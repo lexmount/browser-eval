@@ -3,10 +3,20 @@ from unittest.mock import patch
 
 from browser_harness_eval.models import EvalCase
 from browser_harness_eval.providers.firecrawl import FirecrawlProvider
+from browser_harness_eval.providers.cloudflare import CloudflareMarkdownProvider
+from browser_harness_eval.providers.exa import ExaContentsProvider
+from browser_harness_eval.providers.tavily import TavilyExtractProvider
+from browser_harness_eval.providers.cowagent import CowAgentBuiltinProvider
 from browser_harness_eval.providers.http_client import HttpResponse
 
 
 class ProviderTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.case = EvalCase(
+            id="case", name="Case", url="https://example.com",
+            category="static", expected_any=["Example"],
+        )
+
     @patch("browser_harness_eval.providers.firecrawl.request")
     def test_firecrawl_rate_limit_is_actionable(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(
@@ -16,17 +26,33 @@ class ProviderTest(unittest.TestCase):
             body=b'{"success":false,"error":"Keyless rate limit","reason":"credits","retry_after_seconds":120}',
         )
         provider = FirecrawlProvider("firecrawl", {"type": "firecrawl"})
-        case = EvalCase(
-            id="case",
-            name="Case",
-            url="https://example.com",
-            category="static",
-            expected_any=["Example"],
-        )
-        result = provider.fetch(case, 1)
+        result = provider.fetch(self.case, 1)
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "rate_limit")
         self.assertEqual(result.metadata["retry_after_seconds"], 120)
+
+    @patch("browser_harness_eval.providers.tavily.request")
+    def test_tavily_extract_reads_markdown(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(200, "u", {}, b'{"results":[{"url":"https://example.com","raw_content":"# Example"}]}')
+        result = TavilyExtractProvider("tavily", {"api_key": "x"}).fetch(self.case, 1)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "# Example")
+
+    @patch("browser_harness_eval.providers.exa.request")
+    def test_exa_contents_reads_text(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(200, "u", {}, b'{"results":[{"url":"https://example.com","text":"# Example"}],"statuses":[{"status":"success"}]}')
+        result = ExaContentsProvider("exa", {"api_key": "x"}).fetch(self.case, 1)
+        self.assertTrue(result.ok)
+
+    @patch("browser_harness_eval.providers.cloudflare.request")
+    def test_cloudflare_reads_markdown(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"# Example","meta":{"status":200}}')
+        result = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
+        self.assertTrue(result.ok)
+
+    def test_cowagent_requires_real_checkout(self) -> None:
+        provider = CowAgentBuiltinProvider("cowagent", {"repo_path": "/definitely/missing"})
+        self.assertTrue(provider.validate())
 
 
 if __name__ == "__main__":

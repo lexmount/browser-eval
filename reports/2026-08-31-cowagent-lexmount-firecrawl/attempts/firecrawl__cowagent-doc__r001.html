@@ -1,0 +1,42 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>firecrawl__cowagent-doc__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Browser Harness Eval</a><a href="../datasets/index.html">评测集</a><a href="../providers/index.html">提供方 / 方法</a><a href="../metrics/index.html">指标</a><a href="../market/index.html">市场边界</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成决策</a><a href="../accounts/index.html">账号准备</a><a href="../results.jsonl">JSONL</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">Attempt detail · firecrawl</div><h1>CowAgent Web Fetch documentation</h1><div class="meta"><span class="pill good">Pass</span><span class="pill">run 1</span><span class="pill">3,191 ms</span></div></div></section><section class="section"><div class="wrap"><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>Attempt ID</b><code>firecrawl__cowagent-doc__r001</code></div><div class="kv"><b>HTTP status</b>200</div><div class="kv"><b>Output size</b>996 chars</div><div class="kv"><b>Marker recall</b>100.0%</div><div class="kv"><b>Deadline overrun</b>No</div></div><h3>Expected markers</h3><p><span class="tag">web_fetch</span><span class="tag">网页</span></p><h3>Matched markers</h3><p><span class="tag">web_fetch</span><span class="tag">网页</span></p><h3>Provider metadata</h3><pre>{
+  &quot;upstream_status&quot;: 200,
+  &quot;cache_state&quot;: null,
+  &quot;proxy_used&quot;: &quot;basic&quot;,
+  &quot;credits_used&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;retry_after_seconds&quot;: null
+}</pre></div></section><section class="section"><div class="wrap"><h2>获取到的内容</h2><p><a href="../artifacts/firecrawl/cowagent-doc/run-001.txt">打开完整原始 artifact →</a></p><pre>&gt; ## Documentation Index
+&gt;
+&gt; Fetch the complete documentation index at: [/llms.txt](https://docs.cowagent.ai/llms.txt)
+&gt;
+&gt; Use this file to discover all available pages before exploring further.
+
+[跳转到主要内容](https://docs.cowagent.ai/zh/tools/web-fetch#content-area)
+
+获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。
+
+## [​](https://docs.cowagent.ai/zh/tools/web-fetch\#%E5%8F%82%E6%95%B0)  参数
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `url` | string | 是 | HTTP/HTTPS URL（网页或文档链接） |
+
+## [​](https://docs.cowagent.ai/zh/tools/web-fetch\#%E6%94%AF%E6%8C%81%E7%9A%84%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B)  支持的文件类型
+
+| 类型 | 格式 |
+| --- | --- |
+| PDF | `.pdf` |
+| Word | `.docx` |
+| 文本 | `.txt`、`.md`、`.csv`、`.log` |
+| 表格 | `.xls`、`.xlsx` |
+| 演示文稿 | `.ppt`、`.pptx` |
+
+## [​](https://docs.cowagent.ai/zh/tools/web-fetch\#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF)  使用场景
+
+- 获取网页的文本内容
+- 下载并解析远程文档
+- 获取 API 响应内容
+
+`web_fetch` 只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用 `browser` 工具。</pre></div></section></main><footer class="footer"><div class="wrap">Browser Harness Evaluation · Web Fetch Tool<br><span class="tiny">Generated from persisted artifacts. No credentials are embedded in this report.</span></div></footer></body></html>

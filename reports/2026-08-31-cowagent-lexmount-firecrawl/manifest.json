@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "tool": "web_fetch",
+  "started_at": "2026-08-31T12:57:44.036377+00:00",
+  "dataset": {
+    "id": "public-webfetch-v1",
+    "name": "Public Web Fetch Core Dataset",
+    "source": "/private/tmp/browser-harness-eval/datasets/public_webfetch.json",
+    "case_count": 10
+  },
+  "providers": [
+    {
+      "name": "cowagent-built-in",
+      "type": "cowagent_builtin"
+    },
+    {
+      "name": "lexmount-global",
+      "type": "lexmount"
+    },
+    {
+      "name": "firecrawl",
+      "type": "firecrawl"
+    }
+  ],
+  "parameters": {
+    "runs": 1,
+    "timeout": 45.0,
+    "delay": 0.3
+  },
+  "environment": {
+    "python": "3.9.6",
+    "platform": "macOS-15.4.1-arm64-arm-64bit",
+    "hostname": "8yg55-7.local"
+  },
+  "provider_config_source": "/private/tmp/browser-harness-eval/configs/providers.example.json",
+  "completed_at": "2026-08-31T12:59:34.840646+00:00",
+  "attempt_count": 30
+}

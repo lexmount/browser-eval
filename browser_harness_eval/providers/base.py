@@ -26,6 +26,10 @@ def build_provider(name: str, config: dict[str, Any]) -> Provider:
         from .http import HttpProvider
 
         return HttpProvider(name, config)
+    if provider_type == "cowagent_builtin":
+        from .cowagent import CowAgentBuiltinProvider
+
+        return CowAgentBuiltinProvider(name, config)
     if provider_type == "lexmount":
         from .lexmount import LexmountProvider
 
@@ -34,10 +38,18 @@ def build_provider(name: str, config: dict[str, Any]) -> Provider:
         from .firecrawl import FirecrawlProvider
 
         return FirecrawlProvider(name, config)
-    if provider_type == "jina_reader":
-        from .jina import JinaReaderProvider
+    if provider_type == "tavily_extract":
+        from .tavily import TavilyExtractProvider
 
-        return JinaReaderProvider(name, config)
+        return TavilyExtractProvider(name, config)
+    if provider_type == "exa_contents":
+        from .exa import ExaContentsProvider
+
+        return ExaContentsProvider(name, config)
+    if provider_type == "cloudflare_markdown":
+        from .cloudflare import CloudflareMarkdownProvider
+
+        return CloudflareMarkdownProvider(name, config)
     if provider_type == "fixture":
         from .fixture import FixtureProvider
 

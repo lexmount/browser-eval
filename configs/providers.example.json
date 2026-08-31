@@ -9,18 +9,16 @@
       "type": "http",
       "max_bytes": 10000000
     },
+    "cowagent-built-in": {
+      "type": "cowagent_builtin",
+      "repo_path": "${COWAGENT_REPO}",
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-runs/cowagent-workspace}"
+    },
     "lexmount-global": {
       "type": "lexmount",
       "base_url": "https://api.lexmount.com",
       "api_key": "${LEXMOUNT_API_KEY}",
       "project_id": "${LEXMOUNT_PROJECT_ID}",
-      "max_bytes": 20000000
-    },
-    "lexmount-china": {
-      "type": "lexmount",
-      "base_url": "https://api.lexmount.cn",
-      "api_key": "${LEXMOUNT_CN_API_KEY}",
-      "project_id": "${LEXMOUNT_CN_PROJECT_ID}",
       "max_bytes": 20000000
     },
     "firecrawl": {
@@ -30,11 +28,24 @@
       "max_age": 0,
       "max_bytes": 20000000
     },
-    "jina-reader": {
-      "type": "jina_reader",
-      "base_url": "https://r.jina.ai",
-      "api_key": "${JINA_API_KEY:-}",
-      "no_cache": true,
+    "tavily": {
+      "type": "tavily_extract",
+      "base_url": "https://api.tavily.com",
+      "api_key": "${TAVILY_API_KEY}",
+      "extract_depth": "basic",
+      "max_bytes": 20000000
+    },
+    "exa": {
+      "type": "exa_contents",
+      "base_url": "https://api.exa.ai",
+      "api_key": "${EXA_API_KEY}",
+      "max_age_hours": 0,
+      "max_bytes": 20000000
+    },
+    "cloudflare-markdown": {
+      "type": "cloudflare_markdown",
+      "api_token": "${CLOUDFLARE_API_TOKEN}",
+      "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000
     }
   }
