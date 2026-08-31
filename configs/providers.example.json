@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "providers": {
+    "fixture": {
+      "type": "fixture",
+      "fail_cases": ["javascript-spa"]
+    },
+    "http-local": {
+      "type": "http",
+      "max_bytes": 10000000
+    },
+    "lexmount-global": {
+      "type": "lexmount",
+      "base_url": "https://api.lexmount.com",
+      "api_key": "${LEXMOUNT_API_KEY}",
+      "project_id": "${LEXMOUNT_PROJECT_ID}",
+      "max_bytes": 20000000
+    },
+    "lexmount-china": {
+      "type": "lexmount",
+      "base_url": "https://api.lexmount.cn",
+      "api_key": "${LEXMOUNT_CN_API_KEY}",
+      "project_id": "${LEXMOUNT_CN_PROJECT_ID}",
+      "max_bytes": 20000000
+    },
+    "firecrawl": {
+      "type": "firecrawl",
+      "base_url": "https://api.firecrawl.dev",
+      "api_key": "${FIRECRAWL_API_KEY:-}",
+      "max_age": 0,
+      "max_bytes": 20000000
+    },
+    "jina-reader": {
+      "type": "jina_reader",
+      "base_url": "https://r.jina.ai",
+      "api_key": "${JINA_API_KEY:-}",
+      "no_cache": true,
+      "max_bytes": 20000000
+    }
+  }
+}

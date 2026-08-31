@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "public-webfetch-v1",
+  "name": "Public Web Fetch Core Dataset",
+  "tool": "web_fetch",
+  "description": "公开、无需登录的基础评测集，用于区分静态抓取、正文抽取、JavaScript 渲染、PDF、表格与重定向能力；不用于宣称反爬绕过能力。",
+  "policy": {
+    "login_required": false,
+    "anti_bot_targeted": false,
+    "content_validation": "A case passes when at least one pre-registered marker appears in persisted output."
+  },
+  "cases": [
+    {"id":"static-simple","name":"Static example page","category":"static_html","url":"https://example.com/","expected_any":["Example Domain","documentation examples"],"description":"最小静态 HTML 与重定向后的共同基准。","tags":["html","static"]},
+    {"id":"english-encyclopedia","name":"Long encyclopedia article","category":"long_article","url":"https://en.wikipedia.org/wiki/Artificial_intelligence","expected_any":["Artificial intelligence","machine learning"],"description":"长正文、目录和大量链接。","tags":["article","long-form"]},
+    {"id":"cowagent-doc","name":"CowAgent Web Fetch documentation","category":"technical_documentation","url":"https://docs.cowagent.ai/zh/tools/web-fetch","expected_any":["web_fetch","网页"],"description":"中文技术文档正文。","tags":["docs","chinese"]},
+    {"id":"lexmount-doc","name":"Lexmount WebFetch quick start","category":"technical_documentation","url":"https://browser.lexmount.com/docs/webfetch/quickstart","expected_any":["WebFetch","POST /v1/extract"],"description":"产品文档与代码片段。","tags":["docs","api"]},
+    {"id":"github-repository","name":"Moli GitHub repository","category":"developer_portal","url":"https://github.com/lexmount/moli","expected_any":["Moli","headless browser"],"description":"开发者门户、README 与复杂页面模板。","tags":["github","developer"]},
+    {"id":"ecommerce-list","name":"Books to Scrape catalog","category":"ecommerce_static","url":"https://books.toscrape.com/","expected_any":["A Light in the Attic","Books to Scrape"],"description":"官方教学用静态电商列表，不代表真实电商反爬。","tags":["list","ecommerce"]},
+    {"id":"javascript-spa","name":"Quotes to Scrape JavaScript","category":"javascript_rendering","url":"https://quotes.toscrape.com/js/","expected_any":["The world as we have created it","Albert Einstein"],"description":"正文由 JavaScript 注入，用于识别只抓到页面壳的假成功。","tags":["javascript","spa"]},
+    {"id":"html-table","name":"HTML table tutorial","category":"table_structure","url":"https://www.w3schools.com/html/html_tables.asp","expected_any":["Company","Alfreds Futterkiste","Maria Anders"],"description":"表格单元格覆盖；结构保真需结合输出格式指标。","tags":["table","html"]},
+    {"id":"pdf-paper","name":"Attention Is All You Need PDF","category":"pdf","url":"https://arxiv.org/pdf/1706.03762","expected_any":["Attention Is All You Need","Transformer"],"description":"PDF 正文抽取，不以返回 PDF 说明页代替正文。","tags":["pdf","paper"]},
+    {"id":"redirect","name":"HTTP redirect to example.com","category":"redirect","url":"https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F","expected_any":["Example Domain","documentation examples"],"description":"跨主机重定向后的正文与 final URL。","tags":["redirect","http"]}
+  ]
+}
