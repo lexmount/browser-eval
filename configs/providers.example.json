@@ -46,7 +46,15 @@
       "type": "cloudflare_markdown",
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
-      "max_bytes": 20000000
+      "max_bytes": 20000000,
+      "wait_until": "networkidle2"
+    },
+    "cloudflare-content": {
+      "type": "cloudflare_content",
+      "api_token": "${CLOUDFLARE_API_TOKEN}",
+      "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
+      "max_bytes": 20000000,
+      "wait_until": "networkidle2"
     }
   }
 }

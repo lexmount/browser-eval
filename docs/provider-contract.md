@@ -21,3 +21,8 @@ They must never be added to `metadata`, content, manifest or logs.
 To add another supplier, implement `Provider`, register the type in
 `providers/base.py`, add an example configuration and write a fixture-backed
 unit test. Metric and report code should not require changes.
+
+Providers are also assigned an output contract in `methods.py`. Cleaned
+readable content (`main_text`, Markdown or text) shares one leaderboard.
+Rendered HTML is a separate diagnostic contract; search results, model-bound
+URL context and structured AI extraction require separate datasets.

@@ -50,6 +50,10 @@ def build_provider(name: str, config: dict[str, Any]) -> Provider:
         from .cloudflare import CloudflareMarkdownProvider
 
         return CloudflareMarkdownProvider(name, config)
+    if provider_type == "cloudflare_content":
+        from .cloudflare import CloudflareContentProvider
+
+        return CloudflareContentProvider(name, config)
     if provider_type == "fixture":
         from .fixture import FixtureProvider
 

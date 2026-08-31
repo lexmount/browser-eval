@@ -1,0 +1,117 @@
+![Logo of Lexmount](/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75 "Logo of Lexmount")
+![Logo of Lexmount](/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75 "Logo of Lexmount")
+
+Choose an API
+
+Browser SDKs
+
+WebFetch API
+
+# Quick Start
+
+Send your first WebFetch request and understand the default response behavior.
+
+Use Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+
+The most practical starting point is `POST /v1/extract`.
+
+`POST /v1/extract`
+
+## [Authentication](#authentication)
+
+`X-API-Key`
+`X-Project-Id`
+`https://api.lexmount.com`
+
+## [Send Your First Request](#send-your-first-request)
+
+`API_KEY='<your-api-key>'
+PROJECT_ID='<your-project-id>'
+
+curl -sS -X POST https://api.lexmount.cn/v1/extract \
+ -H 'Content-Type: application/json' \
+ -H "X-API-Key: $API_KEY" \
+ -H "X-Project-Id: $PROJECT_ID" \
+ -d '{
+ "extract": {
+ "url": "https://example.com"
+ }
+ }'`
+
+Typical response:
+
+`{
+ "request_id": "01964d0f-5f3a-7c3d-8a41-1234567890ab",
+ "result": {
+ "url": "https://example.com",
+ "final_url": "https://example.com",
+ "status_code": 200,
+ "title": "Example Domain",
+ "description": "Example Domain",
+ "main_text": "Example Domain This domain is for use in illustrative examples in documents.",
+ "engine": "http",
+ "dom_id": "dom_123"
+ },
+ "metadata": {
+ "dom_id": "dom_123",
+ "server_elapsed_ms": 1234
+ }
+}`
+
+Every JSON response also includes a top-level `request_id`. The same value is returned in the `X-Request-ID` response header for log correlation and support debugging.
+
+`request_id`
+`X-Request-ID`
+
+## [What You Get](#what-you-get)
+
+`POST /v1/extract` is the all-in-one endpoint. It handles:
+
+`POST /v1/extract`
+
+Common fields in `result` include:
+
+`result`
+`title`
+`description`
+`main_text`
+`final_url`
+`author`
+`publish_time`
+`links`
+`images`
+`engine`
+`dom_id`
+
+Top-level debugging fields:
+
+`request_id`
+
+## [When To Use Dump DOM](#when-to-use-dump-dom)
+
+Use `POST /v1/dom/dump` when you need the captured HTML itself, want to inspect rendering output, or want to reuse a `dom_id` in a later extraction request.
+
+`POST /v1/dom/dump`
+`dom_id`
+`curl -sS -X POST https://api.lexmount.cn/v1/dom/dump \
+ -H 'Content-Type: application/json' \
+ -H "X-API-Key: $API_KEY" \
+ -H "X-Project-Id: $PROJECT_ID" \
+ -d '{"url":"https://example.com"}' \
+ | jq '{final_url, engine, dom_id, html_len:(.html|length)}'`
+
+## [Optional Debug Fields](#optional-debug-fields)
+
+`POST /v1/extract` does not return `trace` or `raw_dom` by default.
+
+`POST /v1/extract`
+`trace`
+`raw_dom`
+`raw_dom`
+
+## [Next](#next)
+
+`/v1/extract`
+`/v1/dom/dump`
+
+### Table of Contents

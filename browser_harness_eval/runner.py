@@ -109,7 +109,14 @@ def run_evaluation(
                     artifact = output_dir / artifact_rel
                     artifact.parent.mkdir(parents=True, exist_ok=True)
                     artifact.write_text(result.content, encoding="utf-8", errors="replace")
-                    measured = evaluate_content(result.content, case.expected_any)
+                    measured = evaluate_content(
+                        result.content,
+                        case.expected_any,
+                        required_facts=case.required_facts,
+                        forbidden_any=case.forbidden_any,
+                        min_content_chars=case.min_content_chars,
+                        fact_coverage_threshold=case.fact_coverage_threshold,
+                    )
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
                     record = AttemptRecord(
                         attempt_id=attempt_id,
@@ -162,3 +169,40 @@ def load_records(run_dir: Path) -> list[dict[str, Any]]:
         for line in (run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def rescore_evaluation(
+    *, run_dir: Path, dataset_meta: dict[str, Any], dataset_path: Path, cases: list[EvalCase]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Recompute deterministic metrics from immutable artifacts without supplier calls."""
+    case_by_id = {case.id: case for case in cases}
+    records = load_records(run_dir)
+    for record in records:
+        case = case_by_id.get(record["case_id"])
+        if case is None:
+            raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
+        artifact = run_dir / record["artifact_path"]
+        content = artifact.read_text(encoding="utf-8", errors="replace")
+        previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
+        record["metrics"] = evaluate_content(
+            content,
+            case.expected_any,
+            required_facts=case.required_facts,
+            forbidden_any=case.forbidden_any,
+            min_content_chars=case.min_content_chars,
+            fact_coverage_threshold=case.fact_coverage_threshold,
+        )
+        record["metrics"]["deadline_overrun"] = previous_deadline
+
+    tmp = run_dir / "results.jsonl.tmp"
+    tmp.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")
+    tmp.replace(run_dir / "results.jsonl")
+    summary = summarize(records)
+    (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (run_dir / "dataset.json").write_text(json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    manifest_path = run_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["dataset"].update({"id": dataset_meta.get("id"), "name": dataset_meta.get("name"), "source": str(dataset_path.resolve()), "case_count": len(cases)})
+    manifest["rescored_at"] = utc_now()
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return records, summary

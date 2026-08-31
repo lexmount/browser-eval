@@ -75,7 +75,7 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
         "required": True,
         "implemented": True,
         "free_note": "Browser Rendering is available on the Workers Free plan; token needs Browser Rendering Edit permission.",
-        "steps": "Create a Cloudflare account, copy Account ID, then create a custom API token with Browser Rendering Edit permission.",
+        "steps": "Create a Cloudflare account, copy the 32-character Account ID, then create a custom API token with Account → Browser Rendering → Edit. Verify it with GET /client/v4/user/tokens/verify before running.",
     },
     {
         "id": "bocha-web-search",
@@ -215,7 +215,7 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
 def credential_state(item: dict[str, Any]) -> str:
     present = [bool(os.getenv(name, "").strip()) for name in item["env_vars"]]
     if all(present):
-        return "READY"
+        return "PRESENT"
     if not item["required"]:
         return "OPTIONAL"
     return "MISSING"

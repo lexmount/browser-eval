@@ -1,24 +1,66 @@
 {
-  "schema_version": 1,
-  "id": "public-webfetch-v1",
-  "name": "Public Web Fetch Core Dataset",
+  "schema_version": 2,
+  "id": "public-webfetch-v2.1",
+  "name": "Public Web Fetch Ground-truth Dataset",
   "tool": "web_fetch",
-  "description": "公开、无需登录的基础评测集，用于区分静态抓取、正文抽取、JavaScript 渲染、PDF、表格与重定向能力；不用于宣称反爬绕过能力。",
-  "policy": {
-    "login_required": false,
-    "anti_bot_targeted": false,
-    "content_validation": "A case passes when at least one pre-registered marker appears in persisted output."
+  "description": "公开、无需登录的已知 URL→可读正文评测集。每个案例都有冻结的人工核验事实组；不用于宣称反爬绕过能力。",
+  "ground_truth": {
+    "annotator": "Codex, independently verified against source pages",
+    "verified_at": "2026-08-31",
+    "policy": "Facts are registered before supplier scoring. Alternatives within a fact group are equivalent. Supplier outputs never define the answer key.",
+    "review_status": "single-annotator verified; v2.1 corrected three source-grounded false negatives before final scoring; second-person review recommended before external publication"
   },
+  "policy": {"login_required":false,"anti_bot_targeted":false,"content_validation":"Pass requires a prominent marker, minimum length, all required fact groups, and no forbidden error-page marker."},
   "cases": [
-    {"id":"static-simple","name":"Static example page","category":"static_html","url":"https://example.com/","expected_any":["Example Domain","documentation examples"],"description":"最小静态 HTML 与重定向后的共同基准。","tags":["html","static"]},
-    {"id":"english-encyclopedia","name":"Long encyclopedia article","category":"long_article","url":"https://en.wikipedia.org/wiki/Artificial_intelligence","expected_any":["Artificial intelligence","machine learning"],"description":"长正文、目录和大量链接。","tags":["article","long-form"]},
-    {"id":"cowagent-doc","name":"CowAgent Web Fetch documentation","category":"technical_documentation","url":"https://docs.cowagent.ai/zh/tools/web-fetch","expected_any":["web_fetch","网页"],"description":"中文技术文档正文。","tags":["docs","chinese"]},
-    {"id":"lexmount-doc","name":"Lexmount WebFetch quick start","category":"technical_documentation","url":"https://browser.lexmount.com/docs/webfetch/quickstart","expected_any":["WebFetch","POST /v1/extract"],"description":"产品文档与代码片段。","tags":["docs","api"]},
-    {"id":"github-repository","name":"Moli GitHub repository","category":"developer_portal","url":"https://github.com/lexmount/moli","expected_any":["Moli","headless browser"],"description":"开发者门户、README 与复杂页面模板。","tags":["github","developer"]},
-    {"id":"ecommerce-list","name":"Books to Scrape catalog","category":"ecommerce_static","url":"https://books.toscrape.com/","expected_any":["A Light in the Attic","Books to Scrape"],"description":"官方教学用静态电商列表，不代表真实电商反爬。","tags":["list","ecommerce"]},
-    {"id":"javascript-spa","name":"Quotes to Scrape JavaScript","category":"javascript_rendering","url":"https://quotes.toscrape.com/js/","expected_any":["The world as we have created it","Albert Einstein"],"description":"正文由 JavaScript 注入，用于识别只抓到页面壳的假成功。","tags":["javascript","spa"]},
-    {"id":"html-table","name":"HTML table tutorial","category":"table_structure","url":"https://www.w3schools.com/html/html_tables.asp","expected_any":["Company","Alfreds Futterkiste","Maria Anders"],"description":"表格单元格覆盖；结构保真需结合输出格式指标。","tags":["table","html"]},
-    {"id":"pdf-paper","name":"Attention Is All You Need PDF","category":"pdf","url":"https://arxiv.org/pdf/1706.03762","expected_any":["Attention Is All You Need","Transformer"],"description":"PDF 正文抽取，不以返回 PDF 说明页代替正文。","tags":["pdf","paper"]},
-    {"id":"redirect","name":"HTTP redirect to example.com","category":"redirect","url":"https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F","expected_any":["Example Domain","documentation examples"],"description":"跨主机重定向后的正文与 final URL。","tags":["redirect","http"]}
+    {
+      "id":"static-simple","name":"Static example page","category":"static_html","url":"https://example.com/","expected_any":["Example Domain"],"min_content_chars":100,
+      "required_facts":[{"id":"title","alternatives":["Example Domain"]},{"id":"purpose","alternatives":["documentation examples","illustrative examples"]},{"id":"iana-link","alternatives":["iana.org/domains/example","More information","Learn more"]}],
+      "forbidden_any":["Access denied","Attention Required! | Cloudflare","CAPTCHA"],"description":"最小静态 HTML 基准。","tags":["html","static"],"ground_truth_evidence":[{"source":"https://example.com/","supports":"标题、用途说明和 IANA 链接"}],"annotation_notes":"IANA 保留示例域页面，正文稳定。"
+    },
+    {
+      "id":"english-encyclopedia","name":"Long encyclopedia article","category":"long_article","url":"https://en.wikipedia.org/wiki/Artificial_intelligence","expected_any":["Artificial intelligence"],"min_content_chars":5000,
+      "required_facts":[{"id":"topic","alternatives":["Artificial intelligence"]},{"id":"machine-learning","alternatives":["machine learning"]},{"id":"field","alternatives":["computer science"]}],
+      "forbidden_any":["Wikimedia Error","Access denied","CAPTCHA"],"description":"长正文；事实组只使用文章稳定主题词。","tags":["article","long-form"],"ground_truth_evidence":[{"source":"https://en.wikipedia.org/wiki/Artificial_intelligence","supports":"标题及 computer science、machine learning 主题"}],"annotation_notes":"不标注易随编辑变化的年份和统计数字。"
+    },
+    {
+      "id":"cowagent-doc","name":"CowAgent Web Fetch documentation","category":"technical_documentation","url":"https://docs.cowagent.ai/zh/tools/web-fetch","expected_any":["web_fetch","Web Fetch"],"min_content_chars":300,
+      "required_facts":[{"id":"tool-name","alternatives":["web_fetch","Web Fetch"]},{"id":"url-input","alternatives":["url","URL"]},{"id":"purpose","alternatives":["网页内容","网页正文","获取网页"]}],
+      "forbidden_any":["Page Not Found","Access denied","CAPTCHA"],"description":"CowAgent 自带 Web Fetch 的中文技术文档。","tags":["docs","chinese"],"ground_truth_evidence":[{"source":"https://docs.cowagent.ai/zh/tools/web-fetch","supports":"工具名称、URL 参数与网页内容获取用途"}],"annotation_notes":"CowAgent 内置实现的产品文档 ground truth。"
+    },
+    {
+      "id":"lexmount-doc","name":"Lexmount WebFetch quick start","category":"technical_documentation","url":"https://browser.lexmount.com/docs/webfetch/quickstart","expected_any":["WebFetch"],"min_content_chars":500,
+      "required_facts":[{"id":"endpoint","alternatives":["POST /v1/extract","/v1/extract"]},{"id":"api-key","alternatives":["X-API-Key"]},{"id":"project-id","alternatives":["X-Project-Id"]},{"id":"content-field","alternatives":["main_text"]}],
+      "forbidden_any":["Page Not Found","Access denied","CAPTCHA"],"description":"Lexmount 快速开始、鉴权头和响应字段。","tags":["docs","api"],"ground_truth_evidence":[{"source":"https://browser.lexmount.com/docs/webfetch/quickstart","supports":"/v1/extract、鉴权头和 main_text"}],"annotation_notes":"事实组与真实集成协议字段直接对应。"
+    },
+    {
+      "id":"github-repository","name":"Moli GitHub repository","category":"developer_portal","url":"https://github.com/lexmount/moli","expected_any":["Moli"],"min_content_chars":500,
+      "required_facts":[{"id":"project","alternatives":["Moli"]},{"id":"browser","alternatives":["browser","Browser"]},{"id":"owner","alternatives":["lexmount/moli","lexmount"]}],
+      "forbidden_any":["Access denied","CAPTCHA"],"description":"GitHub 复杂模板与 README 正文。","tags":["github","developer"],"ground_truth_evidence":[{"source":"https://github.com/lexmount/moli","supports":"仓库名、所有者和 browser 项目说明"}],"annotation_notes":"不使用 stars 等动态字段；GitHub 模板中的局部 loading error 不覆盖已完整返回的 README。"
+    },
+    {
+      "id":"ecommerce-list","name":"Books to Scrape catalog","category":"ecommerce_static","url":"https://books.toscrape.com/","expected_any":["Books to Scrape","A Light in the Attic"],"min_content_chars":1000,
+      "required_facts":[{"id":"first-book","alternatives":["A Light in the Attic","A Light in the ..."]},{"id":"first-price","alternatives":["£51.77","51.77"]},{"id":"availability","alternatives":["In stock"]}],
+      "forbidden_any":["Access denied","CAPTCHA"],"description":"教学用静态电商列表，验证商品、价格和库存。","tags":["list","ecommerce"],"ground_truth_evidence":[{"source":"https://books.toscrape.com/","supports":"首个商品、£51.77 和 In stock"}],"annotation_notes":"站点换库存时需重新版本化。"
+    },
+    {
+      "id":"javascript-spa","name":"Quotes to Scrape JavaScript","category":"javascript_rendering","url":"https://quotes.toscrape.com/js/","expected_any":["Albert Einstein"],"min_content_chars":500,
+      "required_facts":[{"id":"quote","alternatives":["The world as we have created it"]},{"id":"author","alternatives":["Albert Einstein"]},{"id":"tag","alternatives":["change","deep-thoughts"]}],
+      "forbidden_any":["Access denied","CAPTCHA"],"description":"识别只抓到页面壳的假成功。","tags":["javascript","spa"],"ground_truth_evidence":[{"source":"https://quotes.toscrape.com/js/","supports":"首条 Einstein 引文、作者与标签"}],"annotation_notes":"只有 Quotes to Scrape 页面壳不通过。"
+    },
+    {
+      "id":"html-table","name":"HTML table tutorial","category":"table_structure","url":"https://www.w3schools.com/html/html_tables.asp","expected_any":["Alfreds Futterkiste"],"min_content_chars":1000,
+      "required_facts":[{"id":"headers","alternatives":["Company Contact Country","Company\nContact\nCountry","Company | Contact | Country","Company  | Contact  | Country"]},{"id":"company","alternatives":["Alfreds Futterkiste"]},{"id":"contact","alternatives":["Maria Anders"]},{"id":"country","alternatives":["Germany"]}],
+      "forbidden_any":["Access Denied","CAPTCHA"],"description":"验证表头和示例行文本。","tags":["table","html"],"ground_truth_evidence":[{"source":"https://www.w3schools.com/html/html_tables.asp","supports":"表头和 Alfreds 示例行"}],"annotation_notes":"本轮评价内容覆盖，不宣称表格结构完全保真。"
+    },
+    {
+      "id":"pdf-paper","name":"Attention Is All You Need PDF","category":"pdf","url":"https://arxiv.org/pdf/1706.03762","expected_any":["Attention Is All You Need"],"min_content_chars":5000,
+      "required_facts":[{"id":"title","alternatives":["Attention Is All You Need"]},{"id":"architecture","alternatives":["Transformer"]},{"id":"attention","alternatives":["Scaled Dot-Product Attention","scaled dot-product attention"]},{"id":"author","alternatives":["Ashish Vaswani","Vaswani"]}],
+      "forbidden_any":["PDF download failed","Access denied","CAPTCHA"],"description":"PDF 正文抽取；二进制或说明页不能替代正文。","tags":["pdf","paper"],"ground_truth_evidence":[{"source":"https://arxiv.org/pdf/1706.03762","supports":"标题、Transformer、attention 术语和作者"}],"annotation_notes":"论文正文中的稳定标题、术语和作者。"
+    },
+    {
+      "id":"redirect","name":"HTTP redirect to example.com","category":"redirect","url":"https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F","expected_any":["Example Domain"],"min_content_chars":100,
+      "required_facts":[{"id":"title","alternatives":["Example Domain"]},{"id":"purpose","alternatives":["documentation examples","illustrative examples"]},{"id":"iana-link","alternatives":["iana.org/domains/example","More information","Learn more"]}],
+      "forbidden_any":["Access denied","CAPTCHA"],"description":"跨主机重定向后的完整 Example Domain 正文。","tags":["redirect","http"],"ground_truth_evidence":[{"source":"https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F","supports":"重定向后的三个稳定事实"}],"annotation_notes":"另检查 provider final_url。"
+    }
   ]
 }

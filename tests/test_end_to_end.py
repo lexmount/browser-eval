@@ -54,6 +54,11 @@ class EndToEndTest(unittest.TestCase):
             self.assertTrue((run_dir / "report/providers/fixture.html").exists())
             self.assertTrue((run_dir / "report/datasets/fail.html").exists())
             self.assertTrue((run_dir / "report/accounts/index.html").exists())
+            self.assertTrue((run_dir / "report/environment/index.html").exists())
+            self.assertTrue((run_dir / "report/methodology/index.html").exists())
+            self.assertTrue((run_dir / "report/analysis/index.html").exists())
+            self.assertTrue((run_dir / "report/execution/index.html").exists())
+            self.assertTrue((run_dir / "report/dataset.json").exists())
             attempt = run_dir / "report/attempts/fixture__fail__r001.html"
             self.assertIn("Configured fixture failure", attempt.read_text(encoding="utf-8"))
             artifact = run_dir / "artifacts/fixture/fail/run-001.txt"

@@ -4,3 +4,4 @@ __pycache__/
 .env
 runs/
 .DS_Store
+run.log

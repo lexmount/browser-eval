@@ -34,8 +34,8 @@ open runs/offline-smoke/report/index.html
 The fixture intentionally fails the JavaScript case, so the generated report
 contains both successful content and a complete failure diagnostic page.
 
-Run the small, credentialed real smoke suite (three calls total: CowAgent,
-Lexmount Global and Firecrawl against `example.com`) explicitly:
+Run the small, credentialed real smoke suite (one `example.com` call per
+configured real method, including both Cloudflare contracts) explicitly:
 
 ```bash
 COWAGENT_REPO=/path/to/CowAgent ./scripts/run_real_smoke.sh
@@ -49,7 +49,7 @@ from `~/.env` by default; override with `WEBFETCH_SMOKE_ENV_FILE=/path/to/.env`.
 ```bash
 ./scripts/run_webfetch_eval.sh \
   --env-file ~/.env \
-  --providers cowagent-built-in,lexmount-global,firecrawl \
+  --providers cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown,cloudflare-content \
   --runs 3 \
   --timeout 45 \
   --delay 1 \
@@ -57,8 +57,24 @@ from `~/.env` by default; override with `WEBFETCH_SMOKE_ENV_FILE=/path/to/.env`.
 ```
 
 The command performs the requests, persists every response or exception,
-calculates metrics and creates the report. Rebuild a report without making
-network calls:
+calculates metrics and creates the report. Cloudflare `/markdown` belongs to
+the readable-content leaderboard; `/content` returns rendered HTML and is shown
+as a separate diagnostic contract.
+
+For a complete new-environment run, use the one-command reproducer. It validates
+credentials, runs the frozen dataset, builds the multi-page report and checks
+all local links:
+
+```bash
+COWAGENT_REPO=/path/to/CowAgent \
+  WEBFETCH_ENV_FILE=~/.env \
+  ./scripts/reproduce_report.sh runs/reproduced
+```
+
+Set `WEBFETCH_RUN_SMOKE=1` to run the real smoke suite first. The script
+reproduces the process and report structure; live website/service responses and
+latencies are time-dependent. Rebuild an already persisted run byte-for-byte
+without making network calls:
 
 ```bash
 python3 -m browser_harness_eval report runs/core-20260831T120000Z
@@ -83,6 +99,7 @@ The example provider registry reads these optional environment variables:
 | Tavily Extract | `TAVILY_API_KEY` | Known-URL Markdown/plain-text extraction |
 | Exa Contents | `EXA_API_KEY` | Known-URL contents; config forces live crawl with `max_age_hours: 0` |
 | Cloudflare `/markdown` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Token needs Browser Rendering Edit permission |
+| Cloudflare `/content` | same as `/markdown` | Rendered HTML diagnostic, not scored against cleaned Markdown size/noise |
 | HTTP local | None | Standard-library static HTTP/HTML baseline |
 | Fixture | None | Deterministic offline installation check |
 | CowAgent built-in | `COWAGENT_REPO` | Path to a CowAgent checkout; invokes its real `WebFetch` class |
@@ -116,7 +133,11 @@ runs/<run-id>/
 └── report/
     ├── index.html                 # cross-provider summary
     ├── datasets/                  # dataset and case pages
+    ├── environment/index.html     # runtime, parameters and limitations
+    ├── methodology/index.html     # fairness, Cloudflare endpoint choice, judging protocol
     ├── providers/                 # one detail page per method
+    ├── analysis/index.html        # dynamic ranking and case-level root-cause entry points
+    ├── execution/index.html       # exact reproduction and incident runbook
     ├── metrics/index.html         # formal metric contract
     ├── market/index.html          # direct vs adjacent supplier capability boundary
     ├── adoption/index.html        # full high-star/recent GitHub candidate table
@@ -126,10 +147,14 @@ runs/<run-id>/
     └── artifacts/                 # complete fetched content, available offline
 ```
 
-An HTTP 200 with missing expected content is shown as a **content failure**, not
-as a successful fetch. Network exceptions and API errors retain their response
-or traceback. This makes the report usable both for comparison and initial
-incident diagnosis.
+An HTTP 200 with missing facts is shown as a **content failure**, not as a
+successful fetch. Strict content requires all frozen fact groups, minimum
+length, and no error/challenge marker. Each attempt shows a short preview, a
+collapsed full report copy, an exact raw artifact and its SHA-256.
+
+The v2 ground truth was independently annotated from source pages before the
+supplier run. See [review log](docs/ground-truth-review.md). A second human
+review is still recommended before external marketing or procurement use.
 
 ## Extend the harness
 

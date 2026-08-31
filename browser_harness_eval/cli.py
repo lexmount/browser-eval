@@ -9,7 +9,7 @@ from .accounts import print_account_checklist
 from .config import load_dataset, load_env_file, load_provider_config
 from .providers import build_provider
 from .report import generate_report
-from .runner import load_records, run_evaluation
+from .runner import load_records, rescore_evaluation, run_evaluation
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +53,14 @@ def command_report(args: argparse.Namespace) -> int:
     records = load_records(args.run_dir)
     report_path = generate_report(args.run_dir, dataset, records)
     print(f"Report: {report_path.resolve()}")
+    return 0
+
+
+def command_rescore(args: argparse.Namespace) -> int:
+    dataset, cases = load_dataset(args.dataset)
+    records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
+    report_path = generate_report(args.run_dir, dataset, records)
+    print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
 
@@ -107,6 +115,11 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("run_dir", type=Path)
     report.add_argument("--dataset", type=Path)
     report.set_defaults(handler=command_report)
+
+    rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts using a dataset version")
+    rescore.add_argument("run_dir", type=Path)
+    rescore.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch.json")
+    rescore.set_defaults(handler=command_rescore)
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")
     validate.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch.json")

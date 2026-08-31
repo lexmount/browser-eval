@@ -48,6 +48,18 @@ class RealProviderSmokeTest(unittest.TestCase):
     def test_firecrawl_real_fetch(self) -> None:
         self.assert_provider_smoke("firecrawl")
 
+    def test_tavily_real_fetch(self) -> None:
+        self.assert_provider_smoke("tavily")
+
+    def test_exa_real_fetch(self) -> None:
+        self.assert_provider_smoke("exa")
+
+    def test_cloudflare_markdown_real_fetch(self) -> None:
+        self.assert_provider_smoke("cloudflare-markdown")
+
+    def test_cloudflare_content_real_fetch(self) -> None:
+        self.assert_provider_smoke("cloudflare-content")
+
 
 if __name__ == "__main__":
     unittest.main()

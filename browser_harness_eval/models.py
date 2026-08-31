@@ -13,6 +13,12 @@ class EvalCase:
     expected_any: list[str]
     description: str = ""
     tags: list[str] = field(default_factory=list)
+    required_facts: list[dict[str, Any]] = field(default_factory=list)
+    forbidden_any: list[str] = field(default_factory=list)
+    min_content_chars: int = 1
+    fact_coverage_threshold: float = 1.0
+    ground_truth_evidence: list[dict[str, str]] = field(default_factory=list)
+    annotation_notes: str = ""
 
 
 @dataclass

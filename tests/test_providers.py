@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from browser_harness_eval.models import EvalCase
 from browser_harness_eval.providers.firecrawl import FirecrawlProvider
-from browser_harness_eval.providers.cloudflare import CloudflareMarkdownProvider
+from browser_harness_eval.providers.cloudflare import CloudflareContentProvider, CloudflareMarkdownProvider
 from browser_harness_eval.providers.exa import ExaContentsProvider
 from browser_harness_eval.providers.tavily import TavilyExtractProvider
 from browser_harness_eval.providers.cowagent import CowAgentBuiltinProvider
@@ -49,6 +49,13 @@ class ProviderTest(unittest.TestCase):
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"# Example","meta":{"status":200}}')
         result = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
         self.assertTrue(result.ok)
+
+    @patch("browser_harness_eval.providers.cloudflare.request")
+    def test_cloudflare_content_reads_rendered_html(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"<html>Example</html>"}')
+        result = CloudflareContentProvider("cf-content", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["output_contract"], "rendered_html")
 
     def test_cowagent_requires_real_checkout(self) -> None:
         provider = CowAgentBuiltinProvider("cowagent", {"repo_path": "/definitely/missing"})

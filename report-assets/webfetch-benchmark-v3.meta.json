@@ -1,0 +1,12 @@
+{
+  "dataset_id": "public-webfetch-v2.1",
+  "providers": {
+    "firecrawl": {"content_pass_rate": 1.0, "p50_ms": 3195.85, "p95_ms": 11654.43},
+    "tavily": {"content_pass_rate": 0.9, "p50_ms": 1300.39, "p95_ms": 3813.88},
+    "exa": {"content_pass_rate": 0.9, "p50_ms": 1783.23, "p95_ms": 2598.93},
+    "cowagent-built-in": {"content_pass_rate": 0.8, "p50_ms": 1972.65, "p95_ms": 2539.78},
+    "lexmount-global": {"content_pass_rate": 0.8, "p50_ms": 1486.64, "p95_ms": 1991.69},
+    "cloudflare-markdown": {"content_pass_rate": 0.0, "p50_ms": null, "p95_ms": null},
+    "cloudflare-content": {"content_pass_rate": 0.0, "p50_ms": null, "p95_ms": null}
+  }
+}

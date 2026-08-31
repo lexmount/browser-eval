@@ -1,0 +1,188 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>firecrawl__lexmount-doc__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Browser Harness Eval</a><a href="../datasets/index.html">评测集</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../providers/index.html">结果</a><a href="../analysis/index.html">分析</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">Attempt detail · firecrawl</div><h1>Lexmount WebFetch quick start</h1><div class="meta"><span class="pill good">Pass</span><span class="pill">run 1</span><span class="pill">7,248 ms</span></div></div></section><section class="section"><div class="wrap"><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>Attempt ID</b><code>firecrawl__lexmount-doc__r001</code></div><div class="kv"><b>HTTP status</b>200</div><div class="kv"><b>Output size</b>4,715 chars</div><div class="kv"><b>Fact coverage</b>100.0%</div><div class="kv"><b>Minimum length</b>PASS</div><div class="kv"><b>SHA-256</b><code>9f2095815d33c252300b01443298a16a39a7d1e2f13589f6b529f880a7a94b10</code></div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>Fact</th><th>状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>endpoint</code></td><td class="good">PASS</td><td>POST /v1/extract / /v1/extract</td><td>POST /v1/extract / /v1/extract</td></tr><tr><td><code>api-key</code></td><td class="good">PASS</td><td>X-API-Key</td><td>X-API-Key</td></tr><tr><td><code>project-id</code></td><td class="good">PASS</td><td>X-Project-Id</td><td>X-Project-Id</td></tr><tr><td><code>content-field</code></td><td class="good">PASS</td><td>main_text</td><td>main_text</td></tr></tbody></table></div><h3>Expected / matched prominent markers</h3><p><span class="tag">WebFetch</span></p><p><span class="tag">WebFetch</span></p><details><summary>Provider metadata</summary><pre>{
+  &quot;upstream_status&quot;: 200,
+  &quot;cache_state&quot;: null,
+  &quot;proxy_used&quot;: &quot;basic&quot;,
+  &quot;credits_used&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;retry_after_seconds&quot;: null
+}</pre></details></div></section><section class="section"><div class="wrap"><h2>获取到的内容</h2><p><a href="../artifacts/firecrawl/lexmount-doc/run-001.txt">打开完整原始 artifact →</a> · 完整性校验 <code>sha256:9f2095815d33c252300b01443298a16a39a7d1e2f13589f6b529f880a7a94b10</code></p><h3>快速预览（前 1,800 字符）</h3><pre>WebFetch API
+
+# Quick Start
+
+Send your first WebFetch request and understand the default response behavior.
+
+Copy MarkdownOpen
+
+Use Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+
+The most practical starting point is `POST /v1/extract`.
+
+## [Authentication](https://browser.lexmount.com/docs/webfetch/quickstart\#authentication)
+
+- The API is currently in internal testing
+- External requests must include both `X-API-Key` and `X-Project-Id`
+- Create or copy them from [https://browser.lexmount.cn/settings/api-keys](https://browser.lexmount.cn/settings/api-keys)
+- For overseas access, use [https://browser.lexmount.com/settings/api-keys](https://browser.lexmount.com/settings/api-keys) and replace the endpoint with `https://api.lexmount.com`
+
+## [Send Your First Request](https://browser.lexmount.com/docs/webfetch/quickstart\#send-your-first-request)
+
+```
+API_KEY=&#x27;&lt;your-api-key&gt;&#x27;
+PROJECT_ID=&#x27;&lt;your-project-id&gt;&#x27;
+
+curl -sS -X POST https://api.lexmount.cn/v1/extract \
+  -H &#x27;Content-Type: application/json&#x27; \
+  -H &quot;X-API-Key: $API_KEY&quot; \
+  -H &quot;X-Project-Id: $PROJECT_ID&quot; \
+  -d &#x27;{
+    &quot;extract&quot;: {
+      &quot;url&quot;: &quot;https://example.com&quot;
+    }
+  }&#x27;
+```
+
+Typical response:
+
+```
+{
+  &quot;request_id&quot;: &quot;01964d0f-5f3a-7c3d-8a41-1234567890ab&quot;,
+  &quot;result&quot;: {
+    &quot;url&quot;: &quot;https://example.com&quot;,
+    &quot;final_url&quot;: &quot;https://example.com&quot;,
+    &quot;status_code&quot;: 200,
+    &quot;title&quot;: &quot;Example Domain&quot;,
+    &quot;description&quot;: &quot;Example Domain&quot;,
+    &quot;main_text&quot;: &quot;Example Domain This domain is for use in illustrative examples in documents.&quot;,
+    &quot;engine&quot;: &quot;http&quot;,
+    &quot;dom_id&quot;: &quot;dom_123&quot;
+  },
+  &quot;metadata&quot;: {
+    &quot;dom_id&quot;: &quot;dom_123&quot;,
+    &quot;server_elapsed_ms&quot;: 1234
+  }
+}
+```
+
+Every JSON response also includes a top-level `request_id`. Th</pre><details><summary>展开报告内完整内容（4,715 / 4,715 字符）</summary><pre>WebFetch API
+
+# Quick Start
+
+Send your first WebFetch request and understand the default response behavior.
+
+Copy MarkdownOpen
+
+Use Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+
+The most practical starting point is `POST /v1/extract`.
+
+## [Authentication](https://browser.lexmount.com/docs/webfetch/quickstart\#authentication)
+
+- The API is currently in internal testing
+- External requests must include both `X-API-Key` and `X-Project-Id`
+- Create or copy them from [https://browser.lexmount.cn/settings/api-keys](https://browser.lexmount.cn/settings/api-keys)
+- For overseas access, use [https://browser.lexmount.com/settings/api-keys](https://browser.lexmount.com/settings/api-keys) and replace the endpoint with `https://api.lexmount.com`
+
+## [Send Your First Request](https://browser.lexmount.com/docs/webfetch/quickstart\#send-your-first-request)
+
+```
+API_KEY=&#x27;&lt;your-api-key&gt;&#x27;
+PROJECT_ID=&#x27;&lt;your-project-id&gt;&#x27;
+
+curl -sS -X POST https://api.lexmount.cn/v1/extract \
+  -H &#x27;Content-Type: application/json&#x27; \
+  -H &quot;X-API-Key: $API_KEY&quot; \
+  -H &quot;X-Project-Id: $PROJECT_ID&quot; \
+  -d &#x27;{
+    &quot;extract&quot;: {
+      &quot;url&quot;: &quot;https://example.com&quot;
+    }
+  }&#x27;
+```
+
+Typical response:
+
+```
+{
+  &quot;request_id&quot;: &quot;01964d0f-5f3a-7c3d-8a41-1234567890ab&quot;,
+  &quot;result&quot;: {
+    &quot;url&quot;: &quot;https://example.com&quot;,
+    &quot;final_url&quot;: &quot;https://example.com&quot;,
+    &quot;status_code&quot;: 200,
+    &quot;title&quot;: &quot;Example Domain&quot;,
+    &quot;description&quot;: &quot;Example Domain&quot;,
+    &quot;main_text&quot;: &quot;Example Domain This domain is for use in illustrative examples in documents.&quot;,
+    &quot;engine&quot;: &quot;http&quot;,
+    &quot;dom_id&quot;: &quot;dom_123&quot;
+  },
+  &quot;metadata&quot;: {
+    &quot;dom_id&quot;: &quot;dom_123&quot;,
+    &quot;server_elapsed_ms&quot;: 1234
+  }
+}
+```
+
+Every JSON response also includes a top-level `request_id`. The same value is returned in the `X-Request-ID` response header for log correlation and support debugging.
+
+## [What You Get](https://browser.lexmount.com/docs/webfetch/quickstart\#what-you-get)
+
+`POST /v1/extract` is the all-in-one endpoint. It handles:
+
+- page fetching
+- template matching
+- background generation when needed
+- final structured extraction
+
+Common fields in `result` include:
+
+- `title`
+- `description`
+- `main_text`
+- `final_url`
+- `author`
+- `publish_time`
+- `links`
+- `images`
+- `engine`
+- `dom_id`
+
+Top-level debugging fields:
+
+- `request_id`
+
+## [When To Use Dump DOM](https://browser.lexmount.com/docs/webfetch/quickstart\#when-to-use-dump-dom)
+
+Use `POST /v1/dom/dump` when you need the captured HTML itself, want to inspect rendering output, or want to reuse a `dom_id` in a later extraction request.
+
+```
+curl -sS -X POST https://api.lexmount.cn/v1/dom/dump \
+  -H &#x27;Content-Type: application/json&#x27; \
+  -H &quot;X-API-Key: $API_KEY&quot; \
+  -H &quot;X-Project-Id: $PROJECT_ID&quot; \
+  -d &#x27;{&quot;url&quot;:&quot;https://example.com&quot;}&#x27; \
+  | jq &#x27;{final_url, engine, dom_id, html_len:(.html|length)}&#x27;
+```
+
+## [Optional Debug Fields](https://browser.lexmount.com/docs/webfetch/quickstart\#optional-debug-fields)
+
+`POST /v1/extract` does not return `trace` or `raw_dom` by default.
+
+- If you need workflow diagnostics, see [Enable Trace](https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract#enable-trace)
+- If you need `raw_dom` in the response, see [Return Raw DOM](https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract#return-raw-dom)
+
+## [Next](https://browser.lexmount.com/docs/webfetch/quickstart\#next)
+
+- See [All-in-One Extract](https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract) for the full `/v1/extract` request and response shape
+- See [Dump DOM](https://browser.lexmount.com/docs/webfetch/reference/dump-dom) for `/v1/dom/dump` options and reuse patterns
+- See [Common Errors](https://browser.lexmount.com/docs/webfetch/reference/common-errors) for troubleshooting guidance
+
+[WebFetch API\\
+\\
+Public overview for fetching structured content from public web pages with Lexmount WebFetch.](https://browser.lexmount.com/docs/webfetch) [All-in-One Extract\\
+\\
+Full request and response reference for POST /v1/extract.](https://browser.lexmount.com/docs/webfetch/reference/all-in-one-extract)
+
+### Table of Contents
+
+[Authentication](https://browser.lexmount.com/docs/webfetch/quickstart#authentication) [Send Your First Request](https://browser.lexmount.com/docs/webfetch/quickstart#send-your-first-request) [What You Get](https://browser.lexmount.com/docs/webfetch/quickstart#what-you-get) [When To Use Dump DOM](https://browser.lexmount.com/docs/webfetch/quickstart#when-to-use-dump-dom) [Optional Debug Fields](https://browser.lexmount.com/docs/webfetch/quickstart#optional-debug-fields) [Next](https://browser.lexmount.com/docs/webfetch/quickstart#next)</pre></details></div></section></main><footer class="footer"><div class="wrap">Browser Harness Evaluation · Web Fetch Tool<br><span class="tiny">Generated from persisted artifacts. No credentials are embedded in this report.</span></div></footer></body></html>
