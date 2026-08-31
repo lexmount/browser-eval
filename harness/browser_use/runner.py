@@ -266,6 +266,33 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _cleanup_runtime(
+    browsers: dict[str, Browser],
+    playwright: Any,
+    containers: dict[str, Any],
+    networks: dict[str, Any],
+) -> None:
+    for browser in browsers.values():
+        try:
+            browser.close()
+        except Exception:
+            pass
+    try:
+        playwright.stop()
+    except Exception:
+        pass
+    for container in containers.values():
+        try:
+            container.remove(force=True)
+        except Exception:
+            pass
+    for network in networks.values():
+        try:
+            network.remove()
+        except Exception:
+            pass
+
+
 def run_evaluation(
     *,
     suite_path: str | Path,
@@ -392,19 +419,4 @@ def run_evaluation(
         write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:
-        for browser in browsers.values():
-            try:
-                browser.close()
-            except Exception:
-                pass
-        playwright.stop()
-        for container in containers.values():
-            try:
-                container.remove(force=True)
-            except Exception:
-                pass
-        for network in networks.values():
-            try:
-                network.remove()
-            except Exception:
-                pass
+        _cleanup_runtime(browsers, playwright, containers, networks)

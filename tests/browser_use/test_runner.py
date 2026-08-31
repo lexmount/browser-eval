@@ -7,6 +7,7 @@ import pytest
 from harness.browser_use import runner
 from harness.browser_use.runner import (
     ENGINE_PORTS,
+    _cleanup_runtime,
     _external_websocket_url,
     _http_origin,
     _prepare_page,
@@ -59,6 +60,41 @@ def test_published_endpoint_uses_loopback_host_binding():
         _published_endpoint(Container(), engine="moli", cdp_port=9222)
         == "http://127.0.0.1:32768"
     )
+
+
+def test_cleanup_continues_after_playwright_stop_failure():
+    calls = []
+
+    class Browser:
+        def close(self):
+            calls.append("browser.close")
+
+    class Playwright:
+        def stop(self):
+            calls.append("playwright.stop")
+            raise RuntimeError("already stopped")
+
+    class Container:
+        def remove(self, *, force):
+            calls.append(("container.remove", force))
+
+    class Network:
+        def remove(self):
+            calls.append("network.remove")
+
+    _cleanup_runtime(
+        {"chromium": Browser()},
+        Playwright(),
+        {"chromium": Container()},
+        {"chromium": Network()},
+    )
+
+    assert calls == [
+        "browser.close",
+        "playwright.stop",
+        ("container.remove", True),
+        "network.remove",
+    ]
 
 
 def test_prepare_page_keeps_context_but_replaces_renderer_page(monkeypatch):
