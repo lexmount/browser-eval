@@ -192,10 +192,17 @@ def delta_counters(before: CounterSnapshot, after: CounterSnapshot) -> dict[str,
 def _metric(values: Iterable[int | float]) -> dict[str, int | float | None]:
     numbers = [float(value) for value in values]
     if not numbers:
-        return {"n": 0, "median": None, "p95": None}
+        return {"n": 0, "p50": None, "median": None, "mean": None, "p95": None}
     ordered = sorted(numbers)
     index = min(len(ordered) - 1, max(0, int(len(ordered) * 0.95 + 0.999) - 1))
-    return {"n": len(numbers), "median": statistics.median(numbers), "p95": ordered[index]}
+    p50 = statistics.median(numbers)
+    return {
+        "n": len(numbers),
+        "p50": p50,
+        "median": p50,
+        "mean": statistics.fmean(numbers),
+        "p95": ordered[index],
+    }
 
 
 def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
@@ -253,6 +260,28 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             if isinstance(row.get("tool_output_tokens"), (int, float))
         )
         by_engine[engine] = values
+    paired_ratios: dict[str, Any] = {}
+    if len(engines) == 2:
+        denominator_engine, numerator_engine = engines
+        ratio_metric_names = (*metric_names, "duration_ms", "tool_output_tokens")
+        for name in ratio_metric_names:
+            ratios: list[float] = []
+            for bucket in intersection:
+                denominator_row = bucket[denominator_engine]
+                numerator_row = bucket[numerator_engine]
+                if name in {"duration_ms", "tool_output_tokens"}:
+                    denominator = denominator_row.get(name)
+                    numerator = numerator_row.get(name)
+                else:
+                    denominator = (denominator_row.get("resource") or {}).get(name)
+                    numerator = (numerator_row.get("resource") or {}).get(name)
+                if (
+                    isinstance(denominator, (int, float))
+                    and denominator > 0
+                    and isinstance(numerator, (int, float))
+                ):
+                    ratios.append(float(numerator) / float(denominator))
+            paired_ratios[name] = _metric(ratios)
     return {
         "functional": functional,
         "resource_comparison": {
@@ -260,6 +289,11 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "functional_score_combined": False,
             "intersection_attempts": len(intersection),
             "by_engine": by_engine,
+            "paired_ratios": {
+                "numerator_engine": engines[1] if len(engines) == 2 else None,
+                "denominator_engine": engines[0] if len(engines) == 2 else None,
+                "metrics": paired_ratios,
+            },
         },
     }
 

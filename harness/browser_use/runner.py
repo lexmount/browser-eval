@@ -383,6 +383,9 @@ def run_evaluation(
                     "title": task.title,
                     "step_count": task.step_count,
                     "complexity": task.complexity,
+                    "tags": list(task.tags),
+                    "steps": list(task.steps),
+                    "assertions": list(task.assertions),
                 }
                 for task in suite.tasks
             ],

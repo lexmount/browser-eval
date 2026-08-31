@@ -124,6 +124,10 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["resource_comparison"]["by_engine"]["moli"]["cpu_ms"]["median"] == 2
     assert summary["resource_comparison"]["by_engine"]["chromium"]["duration_ms"]["median"] == 10
     assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["median"] == 8
+    assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p50"] == 8
+    assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["mean"] == 8
+    assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p95"] == 8
+    assert summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"]["p50"] == 0.8
     assert summary["by_complexity"]["step_01_05"]["functional"]["moli"]["passes"] == 1
     assert (
         summary["by_complexity"]["step_06_10"]["resource_comparison"]["intersection_attempts"] == 0

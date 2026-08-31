@@ -18,6 +18,11 @@ Run:
 
     ./examples/browser_use/run.sh
 
+Run the small real-container smoke test before a release (requires the two
+evaluation images, which the command above builds):
+
+    RUN_BROWSER_USE_SMOKE=1 .venv/bin/pytest -q -m real_smoke
+
 The first run builds two images, downloads pinned Moli v1.0.6, and creates a
 dedicated Python virtual environment. No Codex, coding agent, LLM API key,
 browser account, website login, privileged container, or host filesystem mount
