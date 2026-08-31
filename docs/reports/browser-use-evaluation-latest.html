@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Browser Use Evaluation — Latest</title>
+<style>
+:root{--ink:#172033;--muted:#667085;--line:#d9dfeb;--panel:#f6f8fc;--accent:#3157d5}
+*{box-sizing:border-box} body{margin:0;background:#eef2f8;color:var(--ink);font:15px/1.6 system-ui,sans-serif}
+main{max-width:1180px;margin:32px auto;padding:0 24px 64px} header,section{background:white;border:1px solid var(--line);border-radius:14px;padding:26px;margin:16px 0}
+h1{margin:0 0 6px;font-size:32px} h2{margin:0 0 14px;font-size:21px} p,ul{margin:8px 0} .muted{color:var(--muted)}
+.badge{display:inline-block;background:#e9eeff;color:#2646aa;border-radius:999px;padding:3px 10px;font-size:13px}
+.table-wrap{overflow-x:auto} table{width:100%;border-collapse:collapse} th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;white-space:nowrap} th{background:var(--panel);font-size:13px}
+pre{overflow:auto;background:#111827;color:#dbe5ff;padding:18px;border-radius:10px;font-size:12px} code{font-family:ui-monospace,monospace}
+</style></head><body><main>
+<header><span class="badge">latest reproducible run</span><h1>Browser Use Evaluation</h1><p class="muted">Run 35bdd5496c5e · warm-browser Chromium vs Moli</p></header>
+<section><h2>Methodology</h2><ul>
+<li>Each engine runs in its own Docker container with identical CPU, memory, PID and shared-memory limits; controller usage is excluded.</li>
+<li>Browser process and context remain warm; browser cold start is excluded.</li>
+<li>Before each task, the harness inventories and clears every top-level HTTP(S) navigation origin plus cookies, permissions, browser cache and history, then replaces only the renderer page outside the timer.</li>
+<li>5 repeats; 100 ms memory/PID sampling; balanced alternating engine order.</li>
+<li>After reset and renderer GC, both engines receive a 1500 ms quiescence window before counters and timing begin.</li>
+<li>Functional results include every attempt. Resource results include only matched attempts passed by both engines.</li>
+</ul></section>
+<section><h2>Observed findings and decision</h2><ul><li>Chromium passed 50/50 attempts; Moli passed 45/50. Moli failures were confined to Inspect RFC 9110 and navigate to a section.</li><li>Across 45 matched passing attempts, Moli / Chromium medians were 1.69× duration, 1.31× CPU, 0.57× peak memory, 1.65× RX, and 4.61× TX.</li><li>Matched tool-output tokens were 1.00×; this browser-only suite shows no token-cost advantage.</li><li>For Moli, last/first baseline memory was 2.21× while last/first duration was 1.03×. The five repeats did not show systematic runtime slowdown, but the warm process retained allocations and did not return to its first-run footprint after state cleanup.</li><li>Decision for this suite: keep Chromium as the default provider. Offer Moli as an opt-in memory-oriented provider after workload-specific validation; these results support lower peak memory, but do not support broad claims of higher speed, lower CPU, lower network use, or lower token cost.</li></ul></section>
+<section><h2>Functional results</h2><div class="table-wrap"><table><thead><tr><th>Engine</th><th>Pass / attempts</th><th>Pass rate</th><th>Median duration (ms)</th><th>Median output tokens</th></tr></thead><tbody><tr><td>chromium</td><td>50 / 50</td><td>100.00%</td><td>1,580.04</td><td>1,277.00</td></tr><tr><td>moli</td><td>45 / 50</td><td>90.00%</td><td>2,212.84</td><td>885.00</td></tr></tbody></table></div></section>
+<section><h2>Results by operation-count tier</h2><div class="table-wrap"><table><thead><tr><th>Tier</th><th>Engine</th><th>Pass / attempts</th><th>Pass rate</th><th>Median duration (ms)</th></tr></thead><tbody><tr><td>step_01_05</td><td>chromium</td><td>20 / 20</td><td>100.00%</td><td>937.10</td></tr><tr><td>step_01_05</td><td>moli</td><td>20 / 20</td><td>100.00%</td><td>1,180.17</td></tr><tr><td>step_06_10</td><td>chromium</td><td>15 / 15</td><td>100.00%</td><td>2,000.33</td></tr><tr><td>step_06_10</td><td>moli</td><td>15 / 15</td><td>100.00%</td><td>4,348.71</td></tr><tr><td>step_11_15</td><td>chromium</td><td>10 / 10</td><td>100.00%</td><td>2,403.52</td></tr><tr><td>step_11_15</td><td>moli</td><td>5 / 10</td><td>50.00%</td><td>4,897.84</td></tr><tr><td>step_16_20</td><td>chromium</td><td>5 / 5</td><td>100.00%</td><td>5,075.62</td></tr><tr><td>step_16_20</td><td>moli</td><td>5 / 5</td><td>100.00%</td><td>9,330.72</td></tr></tbody></table></div></section>
+<section><h2>Matched resources by operation-count tier</h2><div class="table-wrap"><table><thead><tr><th>Tier</th><th>Matched attempts</th><th>Engine</th><th>Duration median (ms)</th><th>CPU median (ms)</th><th>Peak memory median (MiB)</th><th>RX median (KiB)</th><th>TX median (KiB)</th></tr></thead><tbody><tr><td>step_01_05</td><td>20</td><td>chromium</td><td>937.10</td><td>553.43</td><td>280.86</td><td>398.26</td><td>28.99</td></tr><tr><td>step_01_05</td><td>20</td><td>moli</td><td>1,180.17</td><td>326.99</td><td>148.68</td><td>800.72</td><td>43.54</td></tr><tr><td>step_06_10</td><td>15</td><td>chromium</td><td>2,000.33</td><td>886.97</td><td>334.37</td><td>801.48</td><td>135.35</td></tr><tr><td>step_06_10</td><td>15</td><td>moli</td><td>4,348.71</td><td>2,857.55</td><td>236.41</td><td>1,575.41</td><td>371.16</td></tr><tr><td>step_11_15</td><td>5</td><td>chromium</td><td>2,453.44</td><td>1,332.66</td><td>302.36</td><td>649.03</td><td>55.13</td></tr><tr><td>step_11_15</td><td>5</td><td>moli</td><td>4,897.84</td><td>1,513.29</td><td>161.25</td><td>2,491.93</td><td>283.11</td></tr><tr><td>step_16_20</td><td>5</td><td>chromium</td><td>5,075.62</td><td>2,076.80</td><td>462.00</td><td>4,478.16</td><td>379.97</td></tr><tr><td>step_16_20</td><td>5</td><td>moli</td><td>9,330.72</td><td>4,712.22</td><td>244.27</td><td>5,119.11</td><td>1,115.00</td></tr></tbody></table></div></section>
+<section><h2>Task-level results and diagnostics</h2><div class="table-wrap"><table><thead><tr><th>Task</th><th>Tier</th><th>Engine</th><th>Pass / attempts</th><th>Median duration (ms)</th><th>Representative error</th></tr></thead><tbody><tr><td>Read the Example Domain heading</td><td>step_01_05</td><td>chromium</td><td>5 / 5</td><td>278.39</td><td>—</td></tr><tr><td>Read the Example Domain heading</td><td>step_01_05</td><td>moli</td><td>5 / 5</td><td>785.53</td><td>—</td></tr><tr><td>Read Hacker News top story</td><td>step_01_05</td><td>chromium</td><td>5 / 5</td><td>945.74</td><td>—</td></tr><tr><td>Read Hacker News top story</td><td>step_01_05</td><td>moli</td><td>5 / 5</td><td>898.79</td><td>—</td></tr><tr><td>Read the current PyPI requests version</td><td>step_01_05</td><td>chromium</td><td>5 / 5</td><td>904.39</td><td>—</td></tr><tr><td>Read the current PyPI requests version</td><td>step_01_05</td><td>moli</td><td>5 / 5</td><td>1,622.72</td><td>—</td></tr><tr><td>Read the Transformer paper abstract</td><td>step_01_05</td><td>chromium</td><td>5 / 5</td><td>1,175.48</td><td>—</td></tr><tr><td>Read the Transformer paper abstract</td><td>step_01_05</td><td>moli</td><td>5 / 5</td><td>1,798.02</td><td>—</td></tr><tr><td>Inspect and scroll the Python Wikipedia article</td><td>step_06_10</td><td>chromium</td><td>5 / 5</td><td>1,194.57</td><td>—</td></tr><tr><td>Inspect and scroll the Python Wikipedia article</td><td>step_06_10</td><td>moli</td><td>5 / 5</td><td>5,559.77</td><td>—</td></tr><tr><td>Open the fixed Moli GitHub repository and inspect its README</td><td>step_06_10</td><td>chromium</td><td>5 / 5</td><td>2,490.79</td><td>—</td></tr><tr><td>Open the fixed Moli GitHub repository and inspect its README</td><td>step_06_10</td><td>moli</td><td>5 / 5</td><td>4,348.71</td><td>—</td></tr><tr><td>Follow MDN Fetch API documentation into Using Fetch</td><td>step_06_10</td><td>chromium</td><td>5 / 5</td><td>1,314.59</td><td>—</td></tr><tr><td>Follow MDN Fetch API documentation into Using Fetch</td><td>step_06_10</td><td>moli</td><td>5 / 5</td><td>2,169.14</td><td>—</td></tr><tr><td>Navigate Python tutorial chapters and history</td><td>step_11_15</td><td>chromium</td><td>5 / 5</td><td>2,453.44</td><td>—</td></tr><tr><td>Navigate Python tutorial chapters and history</td><td>step_11_15</td><td>moli</td><td>5 / 5</td><td>4,897.84</td><td>—</td></tr><tr><td>Inspect RFC 9110 and navigate to a section</td><td>step_11_15</td><td>chromium</td><td>5 / 5</td><td>2,074.65</td><td>—</td></tr><tr><td>Inspect RFC 9110 and navigate to a section</td><td>step_11_15</td><td>moli</td><td>0 / 5</td><td>unavailable</td><td>TimeoutError: Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator(&quot;a.section-name.selfRef[href=&#x27;#name-introduction&#x27;]&quot;).first
+    - locator resolved to &lt;a href=&quot;#name-introduction&quot; class=&quot;section-name selfRef&quot;&gt;Introduction&lt;/a&gt;
+  - attempting click action
+    - waiting for element to be visible, enabled and stable
+    - element is visible, enabled and stable
+    - scrolling into view if needed
+    - done scrolling
+</td></tr><tr><td>Collect Python facts across four public sources</td><td>step_16_20</td><td>chromium</td><td>5 / 5</td><td>5,075.62</td><td>—</td></tr><tr><td>Collect Python facts across four public sources</td><td>step_16_20</td><td>moli</td><td>5 / 5</td><td>9,330.72</td><td>—</td></tr></tbody></table></div></section>
+<section><h2>Repeat drift check</h2><p class="muted">Ratios compare the last repeat with the first repeat for the same tasks. Values near 1× indicate no systematic accumulation.</p><div class="table-wrap"><table><thead><tr><th>Engine</th><th>Paired tasks</th><th>Baseline memory ratio</th><th>Duration ratio</th></tr></thead><tbody><tr><td>chromium</td><td>10</td><td>1.07×</td><td>0.72×</td></tr><tr><td>moli</td><td>10</td><td>2.21×</td><td>1.03×</td></tr></tbody></table></div></section>
+<section><h2>Matched resource results</h2><p class="muted">All-pass intersection: 45 task-attempt pairs.</p><div class="table-wrap"><table><thead><tr><th>Engine</th><th>Duration median (ms)</th><th>CPU median (ms)</th><th>Peak memory median (MiB)</th><th>RX median (KiB)</th><th>TX median (KiB)</th><th>Output tokens median</th></tr></thead><tbody><tr><td>chromium</td><td>1,310.27</td><td>713.30</td><td>310.87</td><td>716.64</td><td>61.40</td><td>885.00</td></tr><tr><td>moli</td><td>2,212.84</td><td>937.37</td><td>176.42</td><td>1,184.62</td><td>283.11</td><td>885.00</td></tr></tbody></table></div><h3>Moli / Chromium ratios</h3><div class="table-wrap"><table><thead><tr><th>Metric</th><th>Ratio</th><th>Interpretation</th></tr></thead><tbody><tr><td>Duration</td><td>1.69×</td><td>Below 1× favors Moli</td></tr><tr><td>CPU</td><td>1.31×</td><td>Below 1× favors Moli</td></tr><tr><td>Peak memory</td><td>0.57×</td><td>Below 1× favors Moli</td></tr><tr><td>Network RX</td><td>1.65×</td><td>Below 1× favors Moli</td></tr><tr><td>Network TX</td><td>4.61×</td><td>Below 1× favors Moli</td></tr><tr><td>Tool-output tokens</td><td>1.00×</td><td>Below 1× favors Moli</td></tr></tbody></table></div></section>
+<section><h2>Initial public, no-login task suite</h2><div class="table-wrap"><table><thead><tr><th>Task</th><th>Browser operations</th><th>Tier</th></tr></thead><tbody><tr><td>Read the Example Domain heading</td><td>2</td><td>step_01_05</td></tr><tr><td>Read Hacker News top story</td><td>3</td><td>step_01_05</td></tr><tr><td>Read the current PyPI requests version</td><td>3</td><td>step_01_05</td></tr><tr><td>Read the Transformer paper abstract</td><td>3</td><td>step_01_05</td></tr><tr><td>Inspect and scroll the Python Wikipedia article</td><td>6</td><td>step_06_10</td></tr><tr><td>Open the fixed Moli GitHub repository and inspect its README</td><td>6</td><td>step_06_10</td></tr><tr><td>Follow MDN Fetch API documentation into Using Fetch</td><td>8</td><td>step_06_10</td></tr><tr><td>Navigate Python tutorial chapters and history</td><td>11</td><td>step_11_15</td></tr><tr><td>Inspect RFC 9110 and navigate to a section</td><td>13</td><td>step_11_15</td></tr><tr><td>Collect Python facts across four public sources</td><td>16</td><td>step_16_20</td></tr></tbody></table></div></section>
+<section><h2>CubeSandbox decision</h2><ul>
+<li><a href="https://docs.cubesandbox.com/guide/tutorials/examples.html">CubeSandbox officially demonstrates headless Chromium in a MicroVM over CDP</a>, so it is a valid future Browser Use backend.</li>
+<li><a href="https://docs.cubesandbox.com/guide/resource-metrics.html">Its native metrics expose host-sandbox and guest-workload CPU/current-memory scopes</a>, but default to 5 s collection, retain only the latest sample, do not export an exact memory peak, and list no per-sandbox network byte counters.</li>
+<li>This first local reference therefore uses 100 ms Docker cgroup/network-namespace accounting. A CubeSandbox backend should model production topology and remain a separate accounting scope.</li>
+</ul></section>
+<section><h2>Interpretation limits</h2><ul>
+<li>Docker is the reproducible accounting boundary, not a recommendation that CowAgent production browsers must run in Docker.</li>
+<li>Public-site latency and network traffic retain Internet/CDN variance. Repeated medians and balanced order reduce but cannot remove it.</li>
+<li>Memory peaks shorter than the sampling interval can be missed.</li>
+<li>Docker cgroup PID values count Linux tasks/threads, not only OS processes.</li>
+<li>Chromium includes a tiny in-container TCP forwarder because Debian Chromium binds CDP to loopback; its resource cost is included and slightly biases Chromium upward.</li>
+</ul></section>
+<section><h2>Environment</h2><pre><code>{
+  &quot;cgroup_version&quot;: &quot;2&quot;,
+  &quot;docker_architecture&quot;: &quot;aarch64&quot;,
+  &quot;docker_cpus&quot;: 4,
+  &quot;docker_memory_bytes&quot;: 6197440512,
+  &quot;docker_os&quot;: &quot;Ubuntu 24.04.4 LTS&quot;,
+  &quot;docker_server_version&quot;: &quot;29.5.2&quot;,
+  &quot;images&quot;: {
+    &quot;chromium&quot;: {
+      &quot;id&quot;: &quot;sha256:60bfe43d8e12576d1665d779b40720786e755739d1669f6129216d2e45ed7339&quot;,
+      &quot;tags&quot;: [
+        &quot;lex-browser-use-eval-chromium:local&quot;
+      ]
+    },
+    &quot;moli&quot;: {
+      &quot;id&quot;: &quot;sha256:bfc9c941e75a92c091e2e6052da2fbd895c25663e41e728b07fd0ba369c4bc2a&quot;,
+      &quot;tags&quot;: [
+        &quot;lex-browser-use-eval-moli:local&quot;
+      ]
+    }
+  },
+  &quot;runner_platform&quot;: &quot;Linux-6.8.0-117-generic-aarch64-with-glibc2.39&quot;
+}</code></pre></section>
+</main></body></html>
