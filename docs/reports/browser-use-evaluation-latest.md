@@ -1,10 +1,11 @@
 # Browser Use Evaluation — Latest
 
-Run: `35bdd5496c5e`
+Run: `1721a7fae735`
 
 ## Methodology
 
 - Scope: one fixed-limit browser container per engine; controller excluded.
+- Network isolation: one dedicated bridge with no peer containers per engine.
 - Browser processes stay warm; cold start and reset work are excluded.
 - Browser process and context stay warm. Before each task, the harness clears every top-level navigation origin plus cookies, permissions, cache and history, then replaces only the renderer page outside the timer.
 - Repeats: 5; memory/PID sample interval: 100 ms.
@@ -13,18 +14,18 @@ Run: `35bdd5496c5e`
 
 ## Observed findings and decision
 
-- Chromium passed 50/50 attempts; Moli passed 45/50. Moli failures were confined to Inspect RFC 9110 and navigate to a section.
-- Across 45 matched passing attempts, Moli / Chromium medians were 1.69× duration, 1.31× CPU, 0.57× peak memory, 1.65× RX, and 4.61× TX.
+- Chromium passed 50/50 attempts; Moli passed 44/50. Moli failures were confined to Read the current PyPI requests version, Inspect RFC 9110 and navigate to a section.
+- Across 44 matched passing attempts, Moli / Chromium medians were 2.11× duration, 1.32× CPU, 0.57× peak memory, 1.66× RX, and 4.37× TX.
 - Matched tool-output tokens were 1.00×; this browser-only suite shows no token-cost advantage.
-- For Moli, last/first baseline memory was 2.21× while last/first duration was 1.03×. The five repeats did not show systematic runtime slowdown, but the warm process retained allocations and did not return to its first-run footprint after state cleanup.
+- For Moli, last/first baseline memory was 1.94× while last/first duration was 1.10×. The five repeats did not show systematic runtime slowdown, but the warm process retained allocations and did not return to its first-run footprint after state cleanup.
 - Decision for this suite: keep Chromium as the default provider. Offer Moli as an opt-in memory-oriented provider after workload-specific validation; these results support lower peak memory, but do not support broad claims of higher speed, lower CPU, lower network use, or lower token cost.
 
 ## Functional results
 
 | Engine | Pass / attempts | Pass rate | Duration median ms | Output tokens median |
 |---|---:|---:|---:|---:|
-| chromium | 50/50 | 100.00% | 1,580.04 | 1,277.00 |
-| moli | 45/50 | 90.00% | 2,212.84 | 885.00 |
+| chromium | 50/50 | 100.00% | 1,288.03 | 1,277.00 |
+| moli | 44/50 | 88.00% | 2,472.34 | 885.00 |
 
 ## Results by task complexity
 
@@ -32,79 +33,83 @@ Run: `35bdd5496c5e`
 
 | Engine | Pass / attempts | Pass rate | Duration median ms |
 |---|---:|---:|---:|
-| chromium | 20/20 | 100.00% | 937.10 |
-| moli | 20/20 | 100.00% | 1,180.17 |
+| chromium | 20/20 | 100.00% | 950.14 |
+| moli | 19/20 | 95.00% | 1,044.57 |
 
-Matched all-pass attempts: 20
+Matched all-pass attempts: 19
 
 | Engine | Duration median ms | CPU median ms | Peak memory median MiB | RX median KiB | TX median KiB |
 |---|---:|---:|---:|---:|---:|
-| chromium | 937.10 | 553.43 | 280.86 | 398.26 | 28.99 |
-| moli | 1,180.17 | 326.99 | 148.68 | 800.72 | 43.54 |
+| chromium | 939.66 | 532.05 | 280.93 | 189.46 | 17.50 |
+| moli | 1,044.57 | 331.29 | 148.89 | 697.14 | 36.42 |
 
 ### step_06_10
 
 | Engine | Pass / attempts | Pass rate | Duration median ms |
 |---|---:|---:|---:|
-| chromium | 15/15 | 100.00% | 2,000.33 |
-| moli | 15/15 | 100.00% | 4,348.71 |
+| chromium | 15/15 | 100.00% | 1,299.46 |
+| moli | 15/15 | 100.00% | 4,461.72 |
 
 Matched all-pass attempts: 15
 
 | Engine | Duration median ms | CPU median ms | Peak memory median MiB | RX median KiB | TX median KiB |
 |---|---:|---:|---:|---:|---:|
-| chromium | 2,000.33 | 886.97 | 334.37 | 801.48 | 135.35 |
-| moli | 4,348.71 | 2,857.55 | 236.41 | 1,575.41 | 371.16 |
+| chromium | 1,299.46 | 852.25 | 334.99 | 801.21 | 125.89 |
+| moli | 4,461.72 | 2,814.78 | 227.73 | 1,574.56 | 360.33 |
 
 ### step_11_15
 
 | Engine | Pass / attempts | Pass rate | Duration median ms |
 |---|---:|---:|---:|
-| chromium | 10/10 | 100.00% | 2,403.52 |
-| moli | 5/10 | 50.00% | 4,897.84 |
+| chromium | 10/10 | 100.00% | 2,392.87 |
+| moli | 5/10 | 50.00% | 4,894.77 |
 
 Matched all-pass attempts: 5
 
 | Engine | Duration median ms | CPU median ms | Peak memory median MiB | RX median KiB | TX median KiB |
 |---|---:|---:|---:|---:|---:|
-| chromium | 2,453.44 | 1,332.66 | 302.36 | 649.03 | 55.13 |
-| moli | 4,897.84 | 1,513.29 | 161.25 | 2,491.93 | 283.11 |
+| chromium | 2,805.84 | 1,448.65 | 302.04 | 648.91 | 54.35 |
+| moli | 4,894.77 | 1,497.92 | 159.47 | 2,490.05 | 295.90 |
 
 ### step_16_20
 
 | Engine | Pass / attempts | Pass rate | Duration median ms |
 |---|---:|---:|---:|
-| chromium | 5/5 | 100.00% | 5,075.62 |
-| moli | 5/5 | 100.00% | 9,330.72 |
+| chromium | 5/5 | 100.00% | 6,443.80 |
+| moli | 5/5 | 100.00% | 9,251.06 |
 
 Matched all-pass attempts: 5
 
 | Engine | Duration median ms | CPU median ms | Peak memory median MiB | RX median KiB | TX median KiB |
 |---|---:|---:|---:|---:|---:|
-| chromium | 5,075.62 | 2,076.80 | 462.00 | 4,478.16 | 379.97 |
-| moli | 9,330.72 | 4,712.22 | 244.27 | 5,119.11 | 1,115.00 |
+| chromium | 6,443.80 | 2,355.65 | 512.77 | 4,483.45 | 398.07 |
+| moli | 9,251.06 | 4,714.43 | 243.92 | 5,139.78 | 1,140.71 |
 
 ## Task-level results
 
 | Task | Tier | Engine | Pass / attempts | Duration median ms | Representative error |
 |---|---|---|---:|---:|---|
-| Read the Example Domain heading | step_01_05 | chromium | 5/5 | 278.39 | — |
-| Read the Example Domain heading | step_01_05 | moli | 5/5 | 785.53 | — |
-| Read Hacker News top story | step_01_05 | chromium | 5/5 | 945.74 | — |
-| Read Hacker News top story | step_01_05 | moli | 5/5 | 898.79 | — |
-| Read the current PyPI requests version | step_01_05 | chromium | 5/5 | 904.39 | — |
-| Read the current PyPI requests version | step_01_05 | moli | 5/5 | 1,622.72 | — |
-| Read the Transformer paper abstract | step_01_05 | chromium | 5/5 | 1,175.48 | — |
-| Read the Transformer paper abstract | step_01_05 | moli | 5/5 | 1,798.02 | — |
-| Inspect and scroll the Python Wikipedia article | step_06_10 | chromium | 5/5 | 1,194.57 | — |
-| Inspect and scroll the Python Wikipedia article | step_06_10 | moli | 5/5 | 5,559.77 | — |
-| Open the fixed Moli GitHub repository and inspect its README | step_06_10 | chromium | 5/5 | 2,490.79 | — |
-| Open the fixed Moli GitHub repository and inspect its README | step_06_10 | moli | 5/5 | 4,348.71 | — |
-| Follow MDN Fetch API documentation into Using Fetch | step_06_10 | chromium | 5/5 | 1,314.59 | — |
-| Follow MDN Fetch API documentation into Using Fetch | step_06_10 | moli | 5/5 | 2,169.14 | — |
-| Navigate Python tutorial chapters and history | step_11_15 | chromium | 5/5 | 2,453.44 | — |
-| Navigate Python tutorial chapters and history | step_11_15 | moli | 5/5 | 4,897.84 | — |
-| Inspect RFC 9110 and navigate to a section | step_11_15 | chromium | 5/5 | 2,074.65 | — |
+| Read the Example Domain heading | step_01_05 | chromium | 5/5 | 316.84 | — |
+| Read the Example Domain heading | step_01_05 | moli | 5/5 | 714.82 | — |
+| Read Hacker News top story | step_01_05 | chromium | 5/5 | 930.41 | — |
+| Read Hacker News top story | step_01_05 | moli | 5/5 | 1,025.60 | — |
+| Read the current PyPI requests version | step_01_05 | chromium | 5/5 | 985.47 | — |
+| Read the current PyPI requests version | step_01_05 | moli | 4/5 | 1,494.25 | TimeoutError: Locator.wait_for: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("h1").first to be visible
+    60 × locator resolved to hidden <h1 class="project-header__name">requests 2.34.2</h1>
+ |
+| Read the Transformer paper abstract | step_01_05 | chromium | 5/5 | 1,149.14 | — |
+| Read the Transformer paper abstract | step_01_05 | moli | 5/5 | 1,792.32 | — |
+| Inspect and scroll the Python Wikipedia article | step_06_10 | chromium | 5/5 | 1,122.93 | — |
+| Inspect and scroll the Python Wikipedia article | step_06_10 | moli | 5/5 | 5,584.75 | — |
+| Open the fixed Moli GitHub repository and inspect its README | step_06_10 | chromium | 5/5 | 3,371.47 | — |
+| Open the fixed Moli GitHub repository and inspect its README | step_06_10 | moli | 5/5 | 4,523.49 | — |
+| Follow MDN Fetch API documentation into Using Fetch | step_06_10 | chromium | 5/5 | 1,276.61 | — |
+| Follow MDN Fetch API documentation into Using Fetch | step_06_10 | moli | 5/5 | 2,413.69 | — |
+| Navigate Python tutorial chapters and history | step_11_15 | chromium | 5/5 | 2,805.84 | — |
+| Navigate Python tutorial chapters and history | step_11_15 | moli | 5/5 | 4,894.77 | — |
+| Inspect RFC 9110 and navigate to a section | step_11_15 | chromium | 5/5 | 1,937.14 | — |
 | Inspect RFC 9110 and navigate to a section | step_11_15 | moli | 0/5 | unavailable | TimeoutError: Locator.click: Timeout 10000ms exceeded.
 Call log:
   - waiting for locator("a.section-name.selfRef[href='#name-introduction']").first
@@ -115,33 +120,33 @@ Call log:
     - scrolling into view if needed
     - done scrolling
  |
-| Collect Python facts across four public sources | step_16_20 | chromium | 5/5 | 5,075.62 | — |
-| Collect Python facts across four public sources | step_16_20 | moli | 5/5 | 9,330.72 | — |
+| Collect Python facts across four public sources | step_16_20 | chromium | 5/5 | 6,443.80 | — |
+| Collect Python facts across four public sources | step_16_20 | moli | 5/5 | 9,251.06 | — |
 
 ## Repeat drift check
 
 | Engine | Paired tasks | Last / first baseline memory | Last / first duration |
 |---|---:|---:|---:|
-| chromium | 10 | 1.07× | 0.72× |
-| moli | 10 | 2.21× | 1.03× |
+| chromium | 10 | 1.06× | 0.78× |
+| moli | 10 | 1.94× | 1.10× |
 ## All-pass intersection resources
 
-Matched attempts: **45**
+Matched attempts: **44**
 
 | Engine | Duration median ms | CPU median ms | Peak memory median MiB | RX median KiB | TX median KiB | Output tokens median |
 |---|---:|---:|---:|---:|---:|---:|
-| chromium | 1,310.27 | 713.30 | 310.87 | 716.64 | 61.40 | 885.00 |
-| moli | 2,212.84 | 937.37 | 176.42 | 1,184.62 | 283.11 | 885.00 |
+| chromium | 1,170.95 | 730.15 | 306.85 | 715.57 | 60.87 | 885.00 |
+| moli | 2,472.34 | 961.57 | 173.38 | 1,184.54 | 265.74 | 885.00 |
 
 ### Moli / Chromium ratios on matched passing attempts
 
 | Metric | Ratio | Interpretation |
 |---|---:|---|
-| Duration | 1.69× | Below 1× favors Moli |
-| CPU | 1.31× | Below 1× favors Moli |
+| Duration | 2.11× | Below 1× favors Moli |
+| CPU | 1.32× | Below 1× favors Moli |
 | Peak memory | 0.57× | Below 1× favors Moli |
-| Network RX | 1.65× | Below 1× favors Moli |
-| Network TX | 4.61× | Below 1× favors Moli |
+| Network RX | 1.66× | Below 1× favors Moli |
+| Network TX | 4.37× | Below 1× favors Moli |
 | Tool-output tokens | 1.00× | Below 1× favors Moli |
 
 ## Initial public task suite
@@ -171,12 +176,17 @@ Matched attempts: **45**
 - Public-site latency and network bytes retain Internet/CDN variance; balanced ordering and repeated medians reduce but do not eliminate it.
 - Memory peak is sampled, so a spike shorter than the sampling interval can be missed.
 - Docker cgroup PID values count Linux tasks/threads, not only OS processes.
+- Chromium's nested setuid browser sandbox is unavailable in this non-privileged container and is disabled; the container boundary is security-relevant.
 - Chromium includes a tiny in-container TCP forwarder because Debian Chromium binds CDP to loopback; its resource cost is included and slightly biases Chromium upward.
 
 ## Environment
 
 ```json
 {
+  "browser_versions": {
+    "chromium": "Chromium 151.0.7922.173 built on Debian GNU/Linux 12 (bookworm)",
+    "moli": "moli 1.0.6"
+  },
   "cgroup_version": "2",
   "docker_architecture": "aarch64",
   "docker_cpus": 4,
@@ -185,13 +195,13 @@ Matched attempts: **45**
   "docker_server_version": "29.5.2",
   "images": {
     "chromium": {
-      "id": "sha256:60bfe43d8e12576d1665d779b40720786e755739d1669f6129216d2e45ed7339",
+      "id": "sha256:53fdd905206d807aecb82dbf5c86682622c0de16e2b1642305b16eb532c77a34",
       "tags": [
         "lex-browser-use-eval-chromium:local"
       ]
     },
     "moli": {
-      "id": "sha256:bfc9c941e75a92c091e2e6052da2fbd895c25663e41e728b07fd0ba369c4bc2a",
+      "id": "sha256:1ef56ea579ecba1f561f5ead61d07d21a4c68124e64647d538457a97f4531733",
       "tags": [
         "lex-browser-use-eval-moli:local"
       ]

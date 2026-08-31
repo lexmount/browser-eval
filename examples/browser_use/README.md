@@ -23,6 +23,11 @@ dedicated Python virtual environment. No Codex, coding agent, LLM API key,
 browser account, website login, privileged container, or host filesystem mount
 is required.
 
+Both Dockerfiles pin the same Debian multi-architecture base-image digest. The
+run manifest records the resulting image IDs and browser versions so a
+reproducer can identify binary drift; Debian security packages and public-site
+content remain external variables rather than being silently treated as fixed.
+
 Outputs:
 
 - raw attempts, manifest, and summary under artifacts/browser_use/latest/
@@ -32,8 +37,13 @@ Outputs:
 
 - Both browser containers receive the same 2 CPU, 2 GiB memory, 512 MiB shared
   memory, and 512 PID limits by default.
+- Each engine receives its own temporary Docker bridge with no peer containers;
+  its CDP port is published only on host loopback. The bridge preserves public
+  web access without exposing CDP to containers on Docker's default bridge.
 - Chromium runs as a non-root user with Docker isolation and
-  no-new-privileges. Its unavailable nested setuid sandbox is disabled.
+  no-new-privileges. Its unavailable nested setuid browser sandbox is disabled;
+  the container boundary is therefore security-relevant and these evaluation
+  images should not be treated as a general-purpose hostile-site sandbox.
 - Both remain warm for the complete run.
 - https://example.com is an excluded warm-up.
 - Browser process and context remain warm. Every top-level HTTP(S) navigation

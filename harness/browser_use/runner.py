@@ -139,6 +139,14 @@ def _resource_result(
     return {**delta_counters(before, after), **sampler.summary()}
 
 
+def _published_endpoint(container: Any, *, engine: str, cdp_port: int) -> str:
+    ports = ((container.attrs.get("NetworkSettings") or {}).get("Ports") or {})
+    bindings = ports.get(f"{cdp_port}/tcp")
+    if not bindings or not bindings[0].get("HostPort"):
+        raise RuntimeError(f"{engine}: Docker did not publish CDP port")
+    return f"http://127.0.0.1:{bindings[0]['HostPort']}"
+
+
 def _prepare_page(page: Page, visited_origins: set[str], *, settle_ms: int) -> Page:
     """Reset task state and replace only the renderer page, keeping the browser/context warm."""
     context = page.context
@@ -203,7 +211,13 @@ def _run_task(
 
 
 def _start_browser_container(
-    client: Any, *, engine: str, run_id: str, cpus: float, memory: str
+    client: Any,
+    *,
+    engine: str,
+    run_id: str,
+    cpus: float,
+    memory: str,
+    network: str,
 ) -> Any:
     name = f"lex-browser-use-eval-{run_id}-{engine}"
     cdp_port = ENGINE_PORTS[engine]
@@ -218,11 +232,21 @@ def _start_browser_container(
         pids_limit=512,
         shm_size="512m",
         security_opt=["no-new-privileges"],
+        network=network,
     )
 
 
 def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     info = client.info()
+    version_commands = {"chromium": ["chromium", "--version"], "moli": ["moli", "--version"]}
+    browser_versions: dict[str, str] = {}
+    for engine, container in containers.items():
+        try:
+            result = container.exec_run(version_commands[engine])
+            output = result.output.decode("utf-8", errors="replace").strip()
+            browser_versions[engine] = output or f"exit {result.exit_code}, no output"
+        except Exception as exc:
+            browser_versions[engine] = f"unavailable: {type(exc).__name__}"
     return {
         "runner_platform": platform.platform(),
         "docker_server_version": client.version().get("Version"),
@@ -231,6 +255,7 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
         "docker_cpus": info.get("NCPU"),
         "docker_memory_bytes": info.get("MemTotal"),
         "cgroup_version": info.get("CgroupVersion"),
+        "browser_versions": browser_versions,
         "images": {
             engine: {
                 "id": container.image.id,
@@ -260,6 +285,7 @@ def run_evaluation(
     run_id = uuid.uuid4().hex[:12]
     client = docker.from_env()
     containers: dict[str, Any] = {}
+    networks: dict[str, Any] = {}
     browsers: dict[str, Browser] = {}
     pages: dict[str, Page] = {}
     visited_origins: dict[str, set[str]] = {}
@@ -268,20 +294,27 @@ def run_evaluation(
     playwright = sync_playwright().start()
     try:
         for engine in ENGINE_IMAGES:
+            network = client.networks.create(
+                f"lex-browser-use-eval-{run_id}-{engine}",
+                driver="bridge",
+                labels={
+                    "lex.browser-use-eval.run": run_id,
+                    "lex.browser-use-eval.engine": engine,
+                },
+            )
+            networks[engine] = network
             container = _start_browser_container(
                 client,
                 engine=engine,
                 run_id=run_id,
                 cpus=cpus,
                 memory=memory,
+                network=network.name,
             )
             containers[engine] = container
             container.reload()
             cdp_port = ENGINE_PORTS[engine]
-            bindings = container.attrs["NetworkSettings"]["Ports"][f"{cdp_port}/tcp"]
-            if not bindings:
-                raise RuntimeError(f"{engine}: Docker did not publish CDP port")
-            endpoint = f"http://127.0.0.1:{bindings[0]['HostPort']}"
+            endpoint = _published_endpoint(container, engine=engine, cdp_port=cdp_port)
             websocket_url = _wait_cdp(endpoint, container=container)
             browsers[engine] = playwright.chromium.connect_over_cdp(websocket_url)
             resources[engine] = DockerStatsResources(container)
@@ -342,6 +375,7 @@ def run_evaluation(
                 "controller_excluded": True,
                 "cpus_per_browser": cpus,
                 "memory_per_browser": memory,
+                "network_isolation": "one dedicated bridge with no peer containers per engine",
             },
             "environment": _environment(client, containers),
         }
@@ -367,5 +401,10 @@ def run_evaluation(
         for container in containers.values():
             try:
                 container.remove(force=True)
+            except Exception:
+                pass
+        for network in networks.values():
+            try:
+                network.remove()
             except Exception:
                 pass

@@ -87,6 +87,7 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         "## Methodology",
         "",
         "- Scope: one fixed-limit browser container per engine; controller excluded.",
+        f"- Network isolation: {protocol.get('network_isolation', 'not recorded')}.",
         "- Browser processes stay warm; cold start and reset work are excluded.",
         "- Browser process and context stay warm. Before each task, the harness clears every top-level navigation origin plus cookies, permissions, cache and history, then replaces only the renderer page outside the timer.",
         f"- Repeats: {protocol.get('repeats', 'unknown')}; memory/PID sample interval: {protocol.get('sample_interval_ms', 'unknown')} ms.",
@@ -246,6 +247,7 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "- Public-site latency and network bytes retain Internet/CDN variance; balanced ordering and repeated medians reduce but do not eliminate it.",
             "- Memory peak is sampled, so a spike shorter than the sampling interval can be missed.",
             "- Docker cgroup PID values count Linux tasks/threads, not only OS processes.",
+            "- Chromium's nested setuid browser sandbox is unavailable in this non-privileged container and is disabled; the container boundary is security-relevant.",
             "- Chromium includes a tiny in-container TCP forwarder because Debian Chromium binds CDP to loopback; its resource cost is included and slightly biases Chromium upward.",
             "",
             "## Environment",
@@ -395,6 +397,7 @@ def _html_report(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     repeats = html.escape(str(protocol.get("repeats", "unknown")))
     sample_ms = html.escape(str(protocol.get("sample_interval_ms", "unknown")))
     settle_ms = html.escape(str(protocol.get("post_reset_settle_ms", "unknown")))
+    network_isolation = html.escape(str(protocol.get("network_isolation", "not recorded")))
     intersection = comparison.get("intersection_attempts", 0)
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -411,6 +414,7 @@ pre{{overflow:auto;background:#111827;color:#dbe5ff;padding:18px;border-radius:1
 <header><span class="badge">latest reproducible run</span><h1>Browser Use Evaluation</h1><p class="muted">Run {run_id} · warm-browser Chromium vs Moli</p></header>
 <section><h2>Methodology</h2><ul>
 <li>Each engine runs in its own Docker container with identical CPU, memory, PID and shared-memory limits; controller usage is excluded.</li>
+<li>Network isolation: {network_isolation}.</li>
 <li>Browser process and context remain warm; browser cold start is excluded.</li>
 <li>Before each task, the harness inventories and clears every top-level HTTP(S) navigation origin plus cookies, permissions, browser cache and history, then replaces only the renderer page outside the timer.</li>
 <li>{repeats} repeats; {sample_ms} ms memory/PID sampling; balanced alternating engine order.</li>
@@ -435,6 +439,7 @@ pre{{overflow:auto;background:#111827;color:#dbe5ff;padding:18px;border-radius:1
 <li>Public-site latency and network traffic retain Internet/CDN variance. Repeated medians and balanced order reduce but cannot remove it.</li>
 <li>Memory peaks shorter than the sampling interval can be missed.</li>
 <li>Docker cgroup PID values count Linux tasks/threads, not only OS processes.</li>
+<li>Chromium's nested setuid browser sandbox is unavailable in this non-privileged container and is disabled; the container boundary is security-relevant.</li>
 <li>Chromium includes a tiny in-container TCP forwarder because Debian Chromium binds CDP to loopback; its resource cost is included and slightly biases Chromium upward.</li>
 </ul></section>
 <section><h2>Environment</h2><pre><code>{environment}</code></pre></section>

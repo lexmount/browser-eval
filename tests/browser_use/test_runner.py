@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from harness.browser_use import runner
 from harness.browser_use.runner import (
     ENGINE_PORTS,
     _external_websocket_url,
     _http_origin,
     _prepare_page,
+    _published_endpoint,
 )
 
 
@@ -34,6 +37,28 @@ def test_external_websocket_url_rewrites_container_advertised_host():
 def test_http_origin_keeps_only_scheme_and_authority():
     assert _http_origin("https://example.com:8443/a?q=1") == "https://example.com:8443"
     assert _http_origin("about:blank") is None
+
+
+def test_published_endpoint_handles_missing_port_binding():
+    class Container:
+        attrs = {"NetworkSettings": {"Ports": {}}}
+
+    with pytest.raises(RuntimeError, match="chromium: Docker did not publish CDP port"):
+        _published_endpoint(Container(), engine="chromium", cdp_port=9223)
+
+
+def test_published_endpoint_uses_loopback_host_binding():
+    class Container:
+        attrs = {
+            "NetworkSettings": {
+                "Ports": {"9222/tcp": [{"HostIp": "127.0.0.1", "HostPort": "32768"}]}
+            }
+        }
+
+    assert (
+        _published_endpoint(Container(), engine="moli", cdp_port=9222)
+        == "http://127.0.0.1:32768"
+    )
 
 
 def test_prepare_page_keeps_context_but_replaces_renderer_page(monkeypatch):
