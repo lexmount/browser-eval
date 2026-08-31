@@ -7,15 +7,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "lex_browser_use_tasks/1"
+SCHEMA = "lex_browser_use_tasks/2"
 SUPPORTED_ACTIONS = frozenset(
     {
         "navigate",
         "click",
         "fill",
+        "select",
         "press",
-        "wait",
-        "extract",
+        "get_text",
         "snapshot",
         "back",
         "forward",
@@ -35,13 +35,13 @@ def complexity_tier(step_count: int) -> str:
 class BrowserTask:
     task_id: str
     title: str
-    steps: tuple[dict[str, Any], ...]
+    tool_calls: tuple[dict[str, Any], ...]
     assertions: tuple[dict[str, Any], ...]
     tags: tuple[str, ...]
 
     @property
     def step_count(self) -> int:
-        return len(self.steps)
+        return len(self.tool_calls)
 
     @property
     def complexity(self) -> str:
@@ -62,10 +62,14 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         raise ValueError(f"{task_id}: unsupported action {action!r} at step {index}")
     if action == "navigate" and not str(step.get("url") or "").startswith(("http://", "https://")):
         raise ValueError(f"{task_id}: navigate step {index} requires an HTTP(S) URL")
-    if action in {"click", "fill", "wait", "extract"} and not str(step.get("selector") or ""):
-        raise ValueError(f"{task_id}: {action} step {index} requires selector")
-    if action == "extract" and not str(step.get("save_as") or ""):
-        raise ValueError(f"{task_id}: extract step {index} requires save_as")
+    if action in {"click", "fill", "select"} and not (
+        str(step.get("selector") or "") or isinstance(step.get("ref"), int)
+    ):
+        raise ValueError(f"{task_id}: {action} call {index} requires selector or ref")
+    if action == "get_text" and not str(step.get("selector") or ""):
+        raise ValueError(f"{task_id}: get_text call {index} requires selector")
+    if action in {"navigate", "snapshot", "get_text"} and not str(step.get("save_as") or ""):
+        raise ValueError(f"{task_id}: {action} call {index} requires save_as")
     return dict(step)
 
 
@@ -90,9 +94,9 @@ def load_suite(path: str | Path) -> TaskSuite:
         title = str(raw.get("title") or "").strip()
         if not title:
             raise ValueError(f"{task_id}: title is required")
-        raw_steps = raw.get("steps")
+        raw_steps = raw.get("tool_calls")
         if not isinstance(raw_steps, list) or not raw_steps:
-            raise ValueError(f"{task_id}: steps must be a non-empty list")
+            raise ValueError(f"{task_id}: tool_calls must be a non-empty list")
         steps = tuple(
             _validate_step(task_id, index, step) for index, step in enumerate(raw_steps, start=1)
         )
@@ -104,7 +108,7 @@ def load_suite(path: str | Path) -> TaskSuite:
             BrowserTask(
                 task_id=task_id,
                 title=title,
-                steps=steps,
+                tool_calls=steps,
                 assertions=tuple(dict(item) for item in assertions),
                 tags=tuple(str(item) for item in tags),
             )

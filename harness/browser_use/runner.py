@@ -6,6 +6,7 @@ import hashlib
 import json
 import platform
 import time
+import traceback
 import urllib.parse
 import urllib.request
 import uuid
@@ -135,12 +136,18 @@ def _resource_result(
     sampler: ResourceSampler,
     before: Any,
     after: Any,
+    duration_ms: float,
 ) -> dict[str, int | float]:
-    return {**delta_counters(before, after), **sampler.summary()}
+    result = {**delta_counters(before, after), **sampler.summary()}
+    if duration_ms > 0:
+        result["cpu_average_utilization_pct"] = result["cpu_ms"] / duration_ms * 100
+        result["network_rx_bytes_per_second"] = result["network_rx_bytes"] / duration_ms * 1000
+        result["network_tx_bytes_per_second"] = result["network_tx_bytes"] / duration_ms * 1000
+    return result
 
 
 def _published_endpoint(container: Any, *, engine: str, cdp_port: int) -> str:
-    ports = ((container.attrs.get("NetworkSettings") or {}).get("Ports") or {})
+    ports = (container.attrs.get("NetworkSettings") or {}).get("Ports") or {}
     bindings = ports.get(f"{cdp_port}/tcp")
     if not bindings or not bindings[0].get("HostPort"):
         raise RuntimeError(f"{engine}: Docker did not publish CDP port")
@@ -180,15 +187,26 @@ def _run_task(
     sampler.start()
     started = time.perf_counter()
     outputs: dict[str, str] = {}
+    trace: list[dict[str, Any]] = []
     error = ""
     try:
-        outputs = execute_steps(page, task.steps)
+        outputs = execute_steps(page, task.tool_calls, trace=trace)
         failures = validate_outputs(outputs, task.assertions)
         status = "pass" if not failures else "fail"
         error = "; ".join(failures)
-    except Exception as exc:
+        trace.append(
+            {
+                "index": len(task.tool_calls) + 1,
+                "action": "validate_assertions",
+                "arguments": {"assertions": list(task.assertions)},
+                "status": status,
+                "duration_ms": 0.0,
+                "output": "all assertions passed" if not failures else error,
+            }
+        )
+    except Exception:
         status = "fail"
-        error = f"{type(exc).__name__}: {exc}"
+        error = traceback.format_exc()
     finally:
         duration_ms = (time.perf_counter() - started) * 1000
         sampler.stop()
@@ -205,8 +223,9 @@ def _run_task(
         "duration_ms": round(duration_ms, 3),
         "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),
-        "error": error[:1000],
-        "resource": _resource_result(resources, sampler, before, after),
+        "error": error,
+        "trace": trace,
+        "resource": _resource_result(resources, sampler, before, after, duration_ms),
     }
 
 
@@ -298,7 +317,7 @@ def run_evaluation(
     suite_path: str | Path,
     output_dir: str | Path,
     reports_dir: str | Path,
-    repeats: int = 5,
+    repeats: int = 3,
     sample_interval_ms: int = 50,
     settle_ms: int = 1500,
     cpus: float = 2.0,
@@ -370,10 +389,30 @@ def run_evaluation(
                         sample_interval_ms,
                     )
                     rows.append(row)
-                    print(json.dumps(row, ensure_ascii=False), flush=True)
+                    print(
+                        json.dumps(
+                            {
+                                "engine": row["engine"],
+                                "task_id": row["task_id"],
+                                "attempt": row["attempt"],
+                                "status": row["status"],
+                                "duration_ms": row["duration_ms"],
+                                "error": next(
+                                    (
+                                        line
+                                        for line in reversed(row["error"].splitlines())
+                                        if line.strip()
+                                    ),
+                                    "",
+                                ),
+                            },
+                            ensure_ascii=False,
+                        ),
+                        flush=True,
+                    )
         summary = summarize_attempts(rows, engines=tuple(ENGINE_IMAGES))
         manifest = {
-            "schema": "lex_browser_use_manifest/1",
+            "schema": "lex_browser_use_manifest/2",
             "run_id": run_id,
             "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "suite_sha256": hashlib.sha256(Path(suite_path).read_bytes()).hexdigest(),
@@ -384,13 +423,19 @@ def run_evaluation(
                     "step_count": task.step_count,
                     "complexity": task.complexity,
                     "tags": list(task.tags),
-                    "steps": list(task.steps),
+                    "tool_calls": list(task.tool_calls),
                     "assertions": list(task.assertions),
                 }
                 for task in suite.tasks
             ],
             "protocol": {
                 "browser_reuse": True,
+                "step_definition": (
+                    "one declared CowAgent BrowserTool-equivalent call; implicit waits excluded"
+                ),
+                "llm_scope": (
+                    "none; deterministic BrowserTool-equivalent microbenchmark, not CowAgent E2E"
+                ),
                 "cold_start_excluded": True,
                 "state_reset_between_tasks": True,
                 "state_reset_method": (

@@ -9,10 +9,10 @@ from .runner import run_evaluation
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", default="/work/tasks.v1.json")
+    parser.add_argument("--suite", default="/work/tasks.v2.json")
     parser.add_argument("--output", default="/work/output")
     parser.add_argument("--reports", default="/work/reports")
-    parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--sample-interval-ms", type=int, default=50)
     parser.add_argument("--settle-ms", type=int, default=1500)
     parser.add_argument("--cpus", type=float, default=2.0)

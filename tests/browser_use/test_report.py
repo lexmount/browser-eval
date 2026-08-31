@@ -13,19 +13,26 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
         manifest={
             "run_id": "run-1",
             "environment": {"docker": "29"},
-            "protocol": {"repeats": 5, "sample_interval_ms": 100},
+            "protocol": {"repeats": 3, "sample_interval_ms": 100},
             "suite": [
                 {
                     "task_id": "example",
                     "title": "Example task",
                     "step_count": 2,
                     "complexity": "step_01_05",
+                    "tool_calls": [
+                        {"action": "navigate", "url": "https://example.com", "save_as": "page"},
+                        {"action": "get_text", "selector": "h1", "save_as": "heading"},
+                    ],
+                    "assertions": [{"output": "heading", "contains": "Example"}],
                 }
             ],
         },
         summary={
             "functional": {},
             "by_complexity": {},
+            "by_task": {},
+            "repeat_drift": {},
             "resource_comparison": {
                 "intersection_attempts": 0,
                 "by_engine": {},
@@ -48,5 +55,51 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     method = (reports / "browser-use-evaluation-latest-method.html").read_text(encoding="utf-8")
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
+    assert "LiteLLM" in method
+    assert "Codex" in method
     assert "<table" in rendered
     assert "<pre># Browser Use Evaluation" not in rendered
+
+
+def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_path):
+    reports = tmp_path / "reports"
+    write_latest_report(
+        reports,
+        manifest={"run_id": "failed", "protocol": {"repeats": 3}, "suite": []},
+        summary={
+            "functional": {},
+            "by_complexity": {},
+            "repeat_drift": {},
+            "resource_comparison": {"intersection_attempts": 0, "by_engine": {}},
+            "by_task": {
+                "task": {
+                    "title": "Task",
+                    "functional": {},
+                    "failures": {
+                        "moli": [
+                            {
+                                "attempt": 2,
+                                "error": "FULL STACK TRACE",
+                                "trace": [
+                                    {
+                                        "index": 1,
+                                        "action": "navigate",
+                                        "status": "fail",
+                                        "duration_ms": 10,
+                                        "arguments": {"url": "https://example.com"},
+                                        "output": "",
+                                        "error": "timeout",
+                                    }
+                                ],
+                            }
+                        ],
+                        "chromium": [],
+                    },
+                }
+            },
+        },
+    )
+    results = (reports / "browser-use-evaluation-latest-results.html").read_text(encoding="utf-8")
+    assert "<details" in results
+    assert "FULL STACK TRACE" in results
+    assert "完整执行轨迹" in results

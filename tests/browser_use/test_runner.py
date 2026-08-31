@@ -57,8 +57,7 @@ def test_published_endpoint_uses_loopback_host_binding():
         }
 
     assert (
-        _published_endpoint(Container(), engine="moli", cdp_port=9222)
-        == "http://127.0.0.1:32768"
+        _published_endpoint(Container(), engine="moli", cdp_port=9222) == "http://127.0.0.1:32768"
     )
 
 

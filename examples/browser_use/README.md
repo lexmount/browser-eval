@@ -21,7 +21,10 @@ Run:
 Run the small real-container smoke test before a release (requires the two
 evaluation images, which the command above builds):
 
-    RUN_BROWSER_USE_SMOKE=1 .venv/bin/pytest -q -m real_smoke
+    RUN_BROWSER_USE_SMOKE=1 .venv/bin/python -m pytest -q -m real_smoke
+
+Smoke is intentionally minimal: one real public-page case, once per engine. It
+reuses existing evaluation images and is not a performance benchmark.
 
 The first run builds two images, downloads pinned Moli v1.0.6, and creates a
 dedicated Python virtual environment. No Codex, coding agent, LLM API key,
@@ -59,10 +62,10 @@ Outputs:
   created. A 1500 ms quiescence window follows. Page replacement, reset, and
   quiescence are excluded; the configured value is recorded in the manifest.
 - Attempt order alternates Chromium→Moli and Moli→Chromium.
-- CPU and network use per-container cumulative counter deltas from Docker Engine.
-  Memory and cgroup PID/thread count use 100 ms one-shot per-container stats
-  samples. The controller is outside the browser containers and excluded from
-  measurements.
+- CPU and network totals use per-container cumulative counter deltas from Docker
+  Engine. Memory, PID/thread count, CPU utilization, and network rates use
+  100 ms one-shot per-container samples. The report includes time-weighted mean,
+  within-attempt P95, peak, retained memory, MiB-seconds, totals, and rates.
 - Functional scores report every attempt. Resource comparison uses only the
   same task/attempt pairs passed by both engines.
 - Cold start is intentionally separate from this warm-browser report.
@@ -71,18 +74,18 @@ Outputs:
   first-versus-last drift check makes retained memory and runtime accumulation
   visible instead of hiding them with browser restarts.
 
-Override defaults with BROWSER_USE_EVAL_REPEATS, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
+Each task runs three times by default. Override defaults with
+BROWSER_USE_EVAL_REPEATS, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
 BROWSER_USE_EVAL_SETTLE_MS, BROWSER_USE_EVAL_CPUS, BROWSER_USE_EVAL_MEMORY, and
 BROWSER_USE_EVAL_OUTPUT_DIR.
 
-## Complexity tiers
+## Browser-tool call count
 
-- step_01_05: 1–5 browser operations
-- step_06_10: 6–10
-- step_11_15: 11–15
-- step_16_20: 16–20
+One step is one declared BrowserTool-equivalent call: navigate, click, fill,
+get_text, snapshot, scroll, back, or forward. Internal page-readiness and
+locator waits are not separate steps.
 
-The initial suite has ten public, no-login tasks across all four tiers.
+The suite has ten public, no-login tasks with distinct primary sites and goals.
 
 ## CubeSandbox
 

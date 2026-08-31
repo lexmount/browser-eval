@@ -4,11 +4,29 @@ from harness.browser_use.metrics import (
     CounterSnapshot,
     DockerStatsResources,
     LinuxContainerResources,
+    ResourceSample,
+    ResourceSampler,
     delta_counters,
     parse_cpu_stat,
     parse_network_dev,
     summarize_attempts,
 )
+
+
+def test_resource_summary_reports_time_series_percentiles_and_sane_cpu_percent():
+    sampler = ResourceSampler(object())
+    sampler.samples = [
+        ResourceSample(0, 100, 2, 0, 0, 0),
+        ResourceSample(100, 200, 4, 50_000, 1_000, 500),
+        ResourceSample(200, 300, 3, 100_000, 3_000, 1_500),
+    ]
+
+    result = sampler.summary()
+
+    assert result["memory_mean_bytes"] == 200
+    assert result["memory_p95_bytes"] == 300
+    assert result["cpu_sampled_utilization_p95_pct"] == 50
+    assert result["network_rx_rate_p95_bytes_per_second"] == 20_000
 
 
 def test_parse_cpu_and_network_counters():

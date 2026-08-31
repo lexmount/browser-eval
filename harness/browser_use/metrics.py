@@ -23,6 +23,9 @@ class ResourceSample:
     elapsed_ms: float
     memory_current_bytes: int
     pids_current: int
+    cpu_usage_usec: int
+    network_rx_bytes: int
+    network_tx_bytes: int
 
 
 class LinuxContainerResources:
@@ -65,7 +68,8 @@ class LinuxContainerResources:
             int(value)
             for value in (self.cgroup_path / "cgroup.procs").read_text(encoding="ascii").split()
         }
-        return ResourceSample(elapsed_ms, memory, len(pids))
+        counters = self.counters()
+        return ResourceSample(elapsed_ms, memory, len(pids), *counters.__dict__.values())
 
 
 class DockerStatsResources:
@@ -98,10 +102,17 @@ class DockerStatsResources:
 
     def sample(self, *, elapsed_ms: float) -> ResourceSample:
         stats = self._stats()
+        cpu_ns = int(
+            (((stats.get("cpu_stats") or {}).get("cpu_usage") or {}).get("total_usage")) or 0
+        )
+        rx, tx = self._network(stats)
         return ResourceSample(
             elapsed_ms=elapsed_ms,
             memory_current_bytes=int((stats.get("memory_stats") or {}).get("usage") or 0),
             pids_current=int((stats.get("pids_stats") or {}).get("current") or 0),
+            cpu_usage_usec=cpu_ns // 1000,
+            network_rx_bytes=rx,
+            network_tx_bytes=tx,
         )
 
 
@@ -141,20 +152,72 @@ class ResourceSampler:
         except (FileNotFoundError, ProcessLookupError):
             pass
 
-    def summary(self) -> dict[str, int]:
+    def summary(self) -> dict[str, int | float]:
         if not self.samples:
             raise RuntimeError("resource sampler has no samples")
         baseline = self.samples[0].memory_current_bytes
         end = self.samples[-1].memory_current_bytes
         peak = max(sample.memory_current_bytes for sample in self.samples)
+        memories = [sample.memory_current_bytes for sample in self.samples]
+        pids = [sample.pids_current for sample in self.samples]
+        elapsed_seconds = max(0.0, self.samples[-1].elapsed_ms / 1000)
+        memory_mean = _time_weighted_mean(
+            [(sample.elapsed_ms, sample.memory_current_bytes) for sample in self.samples]
+        )
+        # microseconds / milliseconds / 10 = percentage of one logical CPU.
+        cpu_rates = _counter_rates(self.samples, "cpu_usage_usec", scale=0.1)
+        rx_rates = _counter_rates(self.samples, "network_rx_bytes", scale=1000.0)
+        tx_rates = _counter_rates(self.samples, "network_tx_bytes", scale=1000.0)
         return {
             "memory_baseline_bytes": baseline,
+            "memory_mean_bytes": memory_mean,
+            "memory_p50_bytes": _nearest_rank(memories, 0.50),
+            "memory_p95_bytes": _nearest_rank(memories, 0.95),
             "memory_peak_bytes": peak,
             "memory_end_bytes": end,
+            "memory_end_delta_bytes": end - baseline,
+            "memory_retained_bytes": max(0, end - baseline),
             "memory_peak_delta_bytes": max(0, peak - baseline),
+            "memory_mib_seconds": memory_mean * elapsed_seconds / (1024 * 1024),
+            "pids_current_mean": statistics.fmean(pids),
+            "pids_current_p95": _nearest_rank(pids, 0.95),
             "pids_current_peak": max(sample.pids_current for sample in self.samples),
+            "cpu_sampled_utilization_p95_pct": _nearest_rank(cpu_rates, 0.95),
+            "cpu_sampled_utilization_peak_pct": max(cpu_rates, default=0.0),
+            "network_rx_rate_p95_bytes_per_second": _nearest_rank(rx_rates, 0.95),
+            "network_rx_rate_peak_bytes_per_second": max(rx_rates, default=0.0),
+            "network_tx_rate_p95_bytes_per_second": _nearest_rank(tx_rates, 0.95),
+            "network_tx_rate_peak_bytes_per_second": max(tx_rates, default=0.0),
             "sample_count": len(self.samples),
         }
+
+
+def _nearest_rank(values: Iterable[int | float], quantile: float) -> float:
+    ordered = sorted(float(value) for value in values)
+    if not ordered:
+        return 0.0
+    index = min(len(ordered) - 1, max(0, int(len(ordered) * quantile + 0.999) - 1))
+    return ordered[index]
+
+
+def _time_weighted_mean(points: list[tuple[float, int | float]]) -> float:
+    if len(points) < 2 or points[-1][0] <= points[0][0]:
+        return float(points[0][1]) if points else 0.0
+    area = 0.0
+    for (left_ms, left), (right_ms, right) in zip(points, points[1:], strict=False):
+        area += (right_ms - left_ms) * (float(left) + float(right)) / 2
+    return area / (points[-1][0] - points[0][0])
+
+
+def _counter_rates(samples: list[ResourceSample], attribute: str, *, scale: float) -> list[float]:
+    rates: list[float] = []
+    for left, right in zip(samples, samples[1:], strict=False):
+        elapsed_ms = right.elapsed_ms - left.elapsed_ms
+        if elapsed_ms <= 0:
+            continue
+        delta = max(0, getattr(right, attribute) - getattr(left, attribute))
+        rates.append(delta / elapsed_ms * scale)
+    return rates
 
 
 def parse_cpu_stat(text: str) -> int:
@@ -234,12 +297,29 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
     ]
     metric_names = (
         "cpu_ms",
+        "cpu_average_utilization_pct",
+        "cpu_sampled_utilization_p95_pct",
+        "cpu_sampled_utilization_peak_pct",
         "memory_baseline_bytes",
+        "memory_mean_bytes",
+        "memory_p50_bytes",
+        "memory_p95_bytes",
         "memory_peak_bytes",
         "memory_end_bytes",
+        "memory_end_delta_bytes",
+        "memory_retained_bytes",
         "memory_peak_delta_bytes",
+        "memory_mib_seconds",
         "network_rx_bytes",
         "network_tx_bytes",
+        "network_rx_bytes_per_second",
+        "network_tx_bytes_per_second",
+        "network_rx_rate_p95_bytes_per_second",
+        "network_rx_rate_peak_bytes_per_second",
+        "network_tx_rate_p95_bytes_per_second",
+        "network_tx_rate_peak_bytes_per_second",
+        "pids_current_mean",
+        "pids_current_p95",
         "pids_current_peak",
     )
     by_engine: dict[str, Any] = {}
@@ -327,6 +407,32 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             if row.get("engine") == engine and row.get("error")
                         )
                     )[:3]
+                    for engine in engines
+                },
+                "failures": {
+                    engine: [
+                        {
+                            "attempt": row.get("attempt"),
+                            "error": row.get("error", ""),
+                            "trace": row.get("trace") or [],
+                        }
+                        for row in task_rows
+                        if row.get("engine") == engine and row.get("status") == "fail"
+                    ]
+                    for engine in engines
+                },
+                "attempts": {
+                    engine: [
+                        {
+                            "attempt": row.get("attempt"),
+                            "status": row.get("status"),
+                            "duration_ms": row.get("duration_ms"),
+                            "error": row.get("error", ""),
+                            "trace": row.get("trace") or [],
+                        }
+                        for row in task_rows
+                        if row.get("engine") == engine
+                    ]
                     for engine in engines
                 },
             }
