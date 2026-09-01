@@ -9,6 +9,7 @@ SAMPLE_MS="${BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS:-100}"
 SETTLE_MS="${BROWSER_USE_EVAL_SETTLE_MS:-1500}"
 CPUS="${BROWSER_USE_EVAL_CPUS:-2}"
 MEMORY="${BROWSER_USE_EVAL_MEMORY:-2g}"
+BUILD_IMAGES="${BROWSER_USE_EVAL_BUILD_IMAGES:-1}"
 OUTPUT="${BROWSER_USE_EVAL_OUTPUT_DIR:-${ROOT}/artifacts/browser_use/latest}"
 REPORTS="${ROOT}/docs/reports"
 
@@ -24,26 +25,32 @@ fi
 mkdir -p "${OUTPUT}" "${REPORTS}"
 find "${OUTPUT}" -mindepth 1 -maxdepth 1 -type f -delete
 
-docker build -f "${ROOT}/examples/browser_use/docker/chromium.Dockerfile" \
-  -t lex-browser-use-eval-chromium:local "${ROOT}"
-docker build -f "${ROOT}/examples/browser_use/docker/moli.Dockerfile" \
-  -t lex-browser-use-eval-moli:local "${ROOT}"
+if [[ "${BUILD_IMAGES}" == "1" ]]; then
+  docker build -f "${ROOT}/examples/browser_use/docker/chromium.Dockerfile" \
+    -t lex-browser-use-eval-chromium:local "${ROOT}"
+  docker build -f "${ROOT}/examples/browser_use/docker/moli.Dockerfile" \
+    -t lex-browser-use-eval-moli:local "${ROOT}"
+fi
 
-if [[ ! -x "${VENV}/bin/python" ]]; then
-  if ! "${PYTHON}" -m venv "${VENV}"; then
-    echo "Failed to create venv (Ubuntu/Debian: sudo apt-get install python3-venv)" >&2
-    exit 2
+if command -v uv >/dev/null 2>&1; then
+  RUNNER=(uv run --extra browser-use-eval python)
+else
+  if [[ ! -x "${VENV}/bin/python" ]]; then
+    if ! "${PYTHON}" -m venv "${VENV}"; then
+      echo "Failed to create venv (Ubuntu/Debian: sudo apt-get install python3-venv)" >&2
+      exit 2
+    fi
   fi
+  if ! "${VENV}/bin/python" -m pip --version >/dev/null 2>&1; then
+    "${PYTHON}" -m ensurepip --upgrade
+  fi
+  "${VENV}/bin/python" -m pip install --disable-pip-version-check -q \
+    -e "${ROOT}[browser-use-eval]"
+  RUNNER=("${VENV}/bin/python")
 fi
-if ! "${VENV}/bin/python" -m pip --version >/dev/null 2>&1; then
-  echo "Repairing incomplete browser-use-eval virtual environment"
-  "${PYTHON}" -m venv --clear "${VENV}"
-fi
-"${VENV}/bin/python" -m pip install --disable-pip-version-check -q \
-  -e "${ROOT}[browser-use-eval]"
 
-"${VENV}/bin/python" -m harness.browser_use.cli \
-  --suite "${ROOT}/examples/browser_use/tasks.v2.json" \
+"${RUNNER[@]}" -m harness.browser_use.cli \
+  --suite "${ROOT}/examples/browser_use/tasks.v3.json" \
   --output "${OUTPUT}" \
   --reports "${REPORTS}" \
   --repeats "${REPEATS}" \

@@ -32,6 +32,16 @@ TASK_META = {
     "rfc9110-section-navigation": ("浏览 RFC 9110 指定章节", "长文档锚点"),
     "quotes-pagination-history": ("翻页浏览公开语录目录", "分页与历史恢复"),
     "httpbin-form-submit": ("填写并提交 HTTPBin 表单", "输入、选择和提交"),
+    "hacker-news-story-context": ("读取 Hacker News 首条新闻及上下文", "动态列表校准任务"),
+    "pypi-requests-release-profile": ("核对 requests 版本与发布历史", "包索引校准任务"),
+    "arxiv-transformer-paper-profile": ("汇总论文标题、作者、摘要与提交历史", "学术长文本多字段读取"),
+    "github-moli-readme-to-issues": ("从 Moli README 浏览到 Issues 并恢复历史", "代码仓库多页面导航"),
+    "mdn-fetch-guide-history": ("从 Fetch API 进入指南并验证前进后退", "文档点击与历史恢复"),
+    "python-tutorial-two-chapters-history": ("连续浏览两章 Python 教程并恢复历史", "多页文档遍历"),
+    "rfc9110-multi-section-history": ("浏览 RFC 9110 多章节并恢复锚点历史", "长标准文档与锚点"),
+    "quotes-three-page-history": ("连续翻阅三页语录并恢复两级历史", "多级分页与历史"),
+    "httpbin-form-resubmission": ("填写 HTTPBin 表单、返回修改并二次提交", "多字段表单与重提交"),
+    "books-mystery-category-traversal": ("浏览分类、两页列表与两本书详情", "目录、分页、详情与历史"),
 }
 
 
@@ -116,12 +126,52 @@ def _functional_rows(summary: dict[str, Any]) -> list[list[str]]:
     return rows
 
 
+def _resource_headline_rows(summary: dict[str, Any]) -> list[list[str]]:
+    engines = (summary.get("resource_comparison") or {}).get("by_engine") or {}
+    rows = []
+    for key, label, divisor, unit in (
+        ("duration_ms", "总耗时", 1, "ms"),
+        ("cpu_ms", "CPU 时间", 1, "ms"),
+        ("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB"),
+        ("memory_p95_bytes", "任务内存 P95", 1048576, "MiB"),
+        ("network_rx_bytes", "网络接收总量 RX", 1024, "KiB"),
+        ("network_tx_bytes", "网络发送总量 TX", 1024, "KiB"),
+    ):
+        c = (engines.get("chromium") or {}).get(key) or {}
+        m = (engines.get("moli") or {}).get(key) or {}
+        c50, m50 = c.get("p50"), m.get("p50")
+        ratio = m50 / c50 if isinstance(c50, (int, float)) and c50 and isinstance(m50, (int, float)) else None
+        rows.append(
+            [
+                f"{label} ({unit})",
+                _stat(c, "p50", divisor),
+                _stat(m, "p50", divisor),
+                _show(ratio, suffix="×"),
+                _stat(c, "p95", divisor),
+                _stat(m, "p95", divisor),
+            ]
+        )
+    return rows
+
+
 def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     f = summary.get("functional") or {}
     c = f.get("chromium") or {}
     m = f.get("moli") or {}
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
-    return f"""<section class="card note"><div class="eyebrow">结论摘要</div><h2>结论与产品建议</h2><p>这是浏览器工具调用层的可重复微基准，不是 LLM Agent 排名。两个暖浏览器执行相同、预先声明的 BrowserTool 等价调用；内部等待不计为一步。功能结果使用全部尝试，资源只比较双方均成功的同任务同轮次。</p></section><section class="card"><div class="grid"><div class="metric"><strong>{c.get("passes", 0)}/{c.get("attempts", 0)}</strong><span>Chromium 成功/尝试</span></div><div class="metric"><strong>{m.get("passes", 0)}/{m.get("attempts", 0)}</strong><span>Moli 成功/尝试</span></div><div class="metric"><strong>{paired}</strong><span>双方均成功配对样本</span></div></div>{_table(["内核", "成功/尝试", "成功率", "耗时 P50 (ms)", "mean (ms)", "P95 (ms)"], _functional_rows(summary), "总体功能与耗时")}</section><section class="card"><h2>产品判断边界</h2><ul><li>默认 provider 先看成功率，再看速度与成本。</li><li>Moli 是追求更低计算与内存成本的推荐项；成为默认值之前，真实任务成功率应接近 Chromium。</li><li>完整任务调用、原始异常、逐调用轨迹和规则化诊断均在“结果与诊断”页。</li></ul></section>"""
+    agent_smoke = manifest.get("agent_smoke") or {}
+    smoke_html = ""
+    if agent_smoke:
+        smoke_html = f"""<section class="card"><h2>CowAgent 端到端冒烟测试（smoke）</h2><p>该测试与资源微基准分开，不参与上表统计。模型 <code>{_e(agent_smoke.get('model'))}</code>，思考强度 <code>{_e(agent_smoke.get('reasoning_effort'))}</code>；同一任务每个 provider 只跑 1 次。</p>{_table(["浏览器 Provider", "结果", "BrowserTool 调用", "最终答案"], [[str(item.get('provider')), "通过" if item.get('status') == "pass" else str(item.get('status')), str(item.get('browser_tool_calls')), str(item.get('answer'))] for item in agent_smoke.get('results') or []], "端到端接受性测试")}</section>"""
+    return f"""<section class="card note"><div class="eyebrow">结论摘要</div><h2>结论与产品建议</h2><p>这是浏览器工具调用层的可重复微基准，不是 LLM Agent 排名。两个暖浏览器执行相同、预先声明的 BrowserTool 等价调用；内部等待不计为一步。功能结果使用全部尝试，资源只比较双方均成功的同任务同轮次。</p></section><section class="card"><div class="grid"><div class="metric"><strong>{c.get("passes", 0)}/{c.get("attempts", 0)}</strong><span>Chromium 成功/尝试</span></div><div class="metric"><strong>{m.get("passes", 0)}/{m.get("attempts", 0)}</strong><span>Moli 成功/尝试</span></div><div class="metric"><strong>{paired}</strong><span>双方均成功配对样本</span></div></div>{_table(["指标", "Chromium P50", "Moli P50", "Moli / Chromium", "Chromium P95", "Moli P95"], _resource_headline_rows(summary), "核心功能、速度与资源对比")}</section>{smoke_html}<section class="card"><h2>如何解读</h2><ul><li>成功率使用全部尝试；耗时、内存、CPU、RX/TX 只使用双方均成功配对样本，避免失败提前结束造成资源假低。</li><li>比值小于 1 表示 Moli 数值更低；网络量低不自动等于更好，需要结合页面完整性与成功率。</li><li>本轮支持把 Moli 定位为内存优先推荐项；CPU、尾时延和成功率对齐 Chromium 前，不建议设为默认值。</li><li>完整任务调用、原始异常、逐调用轨迹和规则化诊断均在“结果与诊断”页。</li></ul></section>"""
+
+
+def _difficulty(step_count: int) -> str:
+    if step_count <= 5:
+        return "简单（校准）"
+    if step_count <= 10:
+        return "中等"
+    return "复杂"
 
 
 def _action_text(call: dict[str, Any]) -> str:
@@ -163,10 +213,10 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         )
         chips = "".join(f'<span class="chip">{_e(tag)}</span>' for tag in task.get("tags") or [])
         cards.append(
-            f'<section class="card"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><p>{_e(purpose)}</p><span class="chip">{len(calls)} 次 BrowserTool 调用</span>{chips}<details><summary>查看完整调用与断言</summary>{call_html}<h3>成功断言</h3><ul>{assertions}</ul></details></section>'
+            f'<section class="card"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><p>{_e(purpose)}</p><span class="chip">{_difficulty(len(calls))}</span><span class="chip">{len(calls)} 次 BrowserTool 调用</span>{chips}<details><summary>查看完整调用与断言</summary>{call_html}<h3>成功断言</h3><ul>{assertions}</ul></details></section>'
         )
     return (
-        '<section class="card note"><h2>评测集设计</h2><p>10 个任务覆盖静态页、动态列表、包索引、论文、代码仓库、文档跳转、历史记录、长标准文档、分页和表单。主站点与任务目标均不重复；定位器等待只是工具内部实现，不单列、不计步。</p></section>'
+        '<section class="card note"><h2>评测集设计</h2><p>10 个公开网站任务按 2 个简单校准、4 个中等、4 个复杂分层，覆盖动态列表、包索引、论文多字段读取、代码仓库、多页文档、长标准文档、三级分页、历史恢复、表单修改重提交和目录详情遍历。主站点与任务目标均不重复；定位器等待只是工具内部实现，不单列、不计步。</p></section>'
         + "".join(cards)
     )
 
@@ -190,7 +240,7 @@ def _method_page(manifest: dict[str, Any]) -> str:
         ["重复", f"默认 {p.get('repeats', '?')} 次，可配置 BROWSER_USE_EVAL_REPEATS"],
         ["采样", f"每 {p.get('sample_interval_ms', '?')} ms 采样内存、PID、CPU、网络计数"],
     ]
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和定位器可用不是 Agent 的独立决策，不计步。每次调用的参数、耗时、输出和状态写入 trace。</p></section><section class="card"><h2>模型与执行边界</h2><ul><li><strong>本报告：</strong>不调用 CowAgent、LiteLLM 或 Codex 模型；按固定序列驱动浏览器，只测 provider/工具执行层。</li><li><strong>本机四个 CowAgent 配置：</strong><code>bot_type=openai</code>、<code>model=gpt-5.4-mini</code>、<code>open_ai_api_base=https://litellm.local.lexmount.net/v1</code>。真实对话由你们的 LiteLLM API 执行，不是 Codex 代替 CowAgent。</li><li><strong>Codex：</strong>只开发、运行和检查工具，不是被测 Agent。</li></ul><p>规划步骤、重试与 LLM token 必须由 CowAgent + LiteLLM 端到端层另测，不能与本微基准混算。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器与 context 全程不关闭。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史；替换 page。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按轮次交替先后顺序。</li><li>计时内执行完整工具调用并采样容器；最后验证输出。</li><li>功能统计保留全部尝试；资源只比较双方都成功的配对样本。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；同时报告 mean 和 nearest-rank P95。</li><li>每任务 n={p.get("repeats", "?")} 时，任务级 P95 等于最大值，仅用于暴露尾部异常。</li><li>内存 mean 是时间加权均值；任务内存 P95 先对单次时序样本求 P95，再跨任务汇总。</li><li>RX = Receive，TX = Transmit；总量含网页资源与 CDP。速率 P95/峰值来自相邻采样点差分。</li></ul></section>"""
+    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和定位器可用不是 Agent 的独立决策，不计步。每次调用的参数、耗时、输出和状态写入 trace。</p></section><section class="card"><h2>模型与执行边界</h2><ul><li><strong>浏览器工具层（本报告主体）：</strong>不调用模型；按固定序列驱动浏览器，以隔离 provider 的成功率、耗时和资源成本。</li><li><strong>CowAgent 端到端控制层：</strong><code>bot_type=openai</code>、<code>model=gpt-5.6-sol</code>、<code>reasoning_effort=low</code>、<code>open_ai_api_base=https://litellm.local.lexmount.net/v1</code>。真实模型调用由 Lexmount LiteLLM API 执行，不是 Codex 代替 CowAgent。</li><li><strong>兼容性实测：</strong>LiteLLM 的 Azure 路由要求 <code>allowed_openai_params=[reasoning_effort]</code>；普通请求和带 function tool 请求均已验证 <code>low</code> 可用。</li><li><strong>Codex：</strong>只开发、运行和检查工具，不是被测 Agent。</li></ul><p>Agent 规划、重试、LLM token 和答案准确率必须在 CowAgent 端到端层单独统计，不能混入确定性浏览器微基准。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器与 context 全程不关闭。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史；替换 page。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按轮次交替先后顺序。</li><li>计时内执行完整工具调用并采样容器；最后验证输出。</li><li>功能统计保留全部尝试；资源只比较双方都成功的配对样本。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；同时报告 mean 和 nearest-rank P95。</li><li>每任务 n={p.get("repeats", "?")} 时，任务级 P95 等于最大值，仅用于暴露尾部异常。</li><li>内存 mean 是时间加权均值；任务内存 P95 先对单次时序样本求 P95，再跨任务汇总。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含网页资源与 CDP。速率 P95/峰值来自相邻采样点差分。</li></ul></section>"""
 
 
 METRICS = (
@@ -312,7 +362,11 @@ def _results_page(summary: dict[str, Any]) -> str:
                 ]
             )
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
-    return f"""<section class="card"><h2>总体结果</h2>{_table(["内核", "成功/尝试", "成功率", "P50 (ms)", "mean (ms)", "P95 (ms)"], _functional_rows(summary), "功能结果")}</section><section class="card"><h2>配对资源结果</h2><p>只包含双方均成功的同任务同轮次，共 {paired} 对；所有指标给出跨样本 P50、mean、P95。</p>{_metric_tables(summary)}</section><section class="card"><h2>逐任务结果</h2>{_table(["任务", "内核", "成功/尝试", "P50 (ms)", "mean (ms)", "P95 (ms)", "失败数"], rows, "逐任务功能与耗时")}</section><section class="card"><h2>完整执行步骤、输出与错误</h2><p>60 个执行样本默认折叠。展开任一条后，可看到每次 BrowserTool 调用的参数、耗时、状态与完整输出；失败样本还会展示未截断错误和调用错误。</p>{_execution_details(summary)}</section>"""
+    total_attempts = sum(
+        (values or {}).get("attempts", 0)
+        for values in (summary.get("functional") or {}).values()
+    )
+    return f"""<section class="card"><h2>总体结果</h2>{_table(["内核", "成功/尝试", "成功率", "P50 (ms)", "mean (ms)", "P95 (ms)"], _functional_rows(summary), "功能结果")}</section><section class="card"><h2>配对资源结果</h2><p>只包含双方均成功的同任务同轮次，共 {paired} 对；所有指标给出跨样本 P50、mean、P95。</p>{_metric_tables(summary)}</section><section class="card"><h2>逐任务结果</h2>{_table(["任务", "内核", "成功/尝试", "P50 (ms)", "mean (ms)", "P95 (ms)", "失败数"], rows, "逐任务功能与耗时")}</section><section class="card"><h2>完整执行步骤、输出与错误</h2><p>{total_attempts} 个执行样本默认折叠。展开任一条后，可看到每次 BrowserTool 调用的参数、耗时、状态与完整输出；失败样本还会展示未截断错误和调用错误。</p>{_execution_details(summary)}</section>"""
 
 
 def _classify(error: str) -> str:
@@ -340,7 +394,42 @@ def _analysis_page(summary: dict[str, Any]) -> str:
     samples = [[task, engine, category] for task, engine, category in failures] or [
         ["—", "—", "无失败"]
     ]
-    return f"""<section class="card note"><h2>分析原则</h2><p>先看全部尝试成功率，再看成功交集资源。下面分类由异常文本规则生成，是定位线索，不替代逐条 trace。</p></section><section class="card"><h2>错误分布</h2>{_table(["类别", "次数"], categories, "规则化错误分类")}{_table(["任务 ID", "内核", "类别"], samples, "失败样本")}</section><section class="card"><h2>决策依据</h2><ol><li>默认 provider 选择成功率达到门槛且失败模式可控者，而不是只看最快一次或最低峰值。</li><li>生产密度优先看时间加权平均内存、任务内存 P95、CPU 与 MiB·s，峰值只是补充。</li><li>网络总量回答“传了多少”，平均/P95 速率回答“传输压力”；两者都含 CDP。</li><li>本轮没有模型规划，不能回答哪个内核让 CowAgent 少思考、少重试或少用 LLM token。</li></ol></section>"""
+    functional = summary.get("functional") or {}
+    resources = (summary.get("resource_comparison") or {}).get("by_engine") or {}
+    c_func, m_func = functional.get("chromium") or {}, functional.get("moli") or {}
+    c_res, m_res = resources.get("chromium") or {}, resources.get("moli") or {}
+
+    def ratio(key: str, stat: str = "p50") -> float | None:
+        c = (c_res.get(key) or {}).get(stat)
+        m = (m_res.get(key) or {}).get(stat)
+        return m / c if isinstance(c, (int, float)) and c and isinstance(m, (int, float)) else None
+
+    task_rows = []
+    for task_id, task in (summary.get("by_task") or {}).items():
+        c = ((task.get("functional") or {}).get("chromium") or {}).get("duration_ms") or {}
+        m = ((task.get("functional") or {}).get("moli") or {}).get("duration_ms") or {}
+        c50, m50 = c.get("p50"), m.get("p50")
+        task_ratio = m50 / c50 if isinstance(c50, (int, float)) and c50 and isinstance(m50, (int, float)) else None
+        task_rows.append(
+            [
+                TASK_META.get(str(task_id), (str(task_id), ""))[0],
+                _stat(c, "p50"),
+                _stat(m, "p50"),
+                _show(task_ratio, suffix="×"),
+            ]
+        )
+    task_rows.sort(key=lambda row: float(row[3].removesuffix("×").replace(",", "")) if row[3] != "无数据" else -1, reverse=True)
+
+    memory_ratio = ratio("memory_mean_bytes")
+    cpu_ratio = ratio("cpu_ms")
+    cpu_tail_ratio = ratio("cpu_ms", "p95")
+    rx_ratio = ratio("network_rx_bytes")
+    tx_ratio = ratio("network_tx_bytes")
+    duration_ratio = ratio("duration_ms")
+    duration_tail_ratio = ratio("duration_ms", "p95")
+    memory_reduction = (1 - memory_ratio) * 100 if memory_ratio is not None else None
+
+    return f"""<section class="card note"><h2>本轮结论</h2><ul><li><strong>功能：</strong>Chromium {_rate(c_func)}（{c_func.get('passes', 0)}/{c_func.get('attempts', 0)}），Moli {_rate(m_func)}（{m_func.get('passes', 0)}/{m_func.get('attempts', 0)}）。Moli 的失败集中在 Books to Scrape 首次导航超时，发生于第 2、3 次；同轮 Chromium 均通过。</li><li><strong>内存：</strong>Moli 时间加权平均内存 P50 为 Chromium 的 {_show(memory_ratio, suffix='×')}，即低约 {_show(memory_reduction, suffix='%')}；任务内存 P95 和峰值仍需看结果页，不能用单个峰值替代时序分布。</li><li><strong>计算与时延：</strong>Moli CPU 时间 P50 为 {_show(cpu_ratio, suffix='×')}、P95 为 {_show(cpu_tail_ratio, suffix='×')}；耗时 P50 为 {_show(duration_ratio, suffix='×')}、P95 为 {_show(duration_tail_ratio, suffix='×')}。本轮不能得出“Moli CPU 更省”的总体结论，RFC 长文档是主要尾部异常。</li><li><strong>网络：</strong>Moli RX P50 为 {_show(rx_ratio, suffix='×')}、TX P50 为 {_show(tx_ratio, suffix='×')}。这意味着当前实现传输更多数据；需结合 CDP 消息与页面资源拆分后，才能判断优化点。</li></ul></section><section class="card"><h2>逐任务耗时差异</h2><p>按 Moli / Chromium 的任务 P50 比值从高到低排列；小于 1 表示 Moli 更快。</p>{_table(["任务", "Chromium P50 (ms)", "Moli P50 (ms)", "Moli / Chromium"], task_rows, "逐任务 P50 比值")}</section><section class="card"><h2>错误分布与诊断</h2><p>下面分类由异常文本规则生成，是定位线索，不替代“结果与诊断”页中的完整 trace。</p>{_table(["类别", "次数"], categories, "规则化错误分类")}{_table(["任务 ID", "内核", "类别"], samples, "失败样本")}</section><section class="card"><h2>产品决策</h2><ol><li>当前数据支持把 Moli 定位为<strong>内存优先的推荐 provider</strong>，不支持把它设为默认值：成功率、RFC 尾延迟、CPU 尾部和 Books 首次导航都还未对齐 Chromium。</li><li>当前“内存约减半”来自本轮 28 对成功交集，不等同于 LexBench 的所有场景，也不能外推成固定倍数。</li><li>生产密度应同时看时间加权平均内存、任务内存 P95、CPU、MiB·s 与成功率；网络需要继续拆分网页流量和 CDP 协议流量。</li><li>本轮工具层没有模型规划；CowAgent + LiteLLM smoke 只验证链路，不用于推断重试数、LLM token 或答案准确率。</li></ol></section>"""
 
 
 def _appendix_page(manifest: dict[str, Any]) -> str:

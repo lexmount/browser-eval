@@ -89,10 +89,13 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
 
 
 def test_public_suite_has_ten_distinct_real_tasks_and_no_fake_wait_steps():
-    suite = load_suite("examples/browser_use/tasks.v2.json")
+    suite = load_suite("examples/browser_use/tasks.v3.json")
 
     assert len(suite.tasks) == 10
     assert len({task.task_id for task in suite.tasks}) == 10
     assert all(call["action"] != "wait" for task in suite.tasks for call in task.tool_calls)
     primary_hosts = {task.tool_calls[0]["url"].split("/", 3)[2] for task in suite.tasks}
     assert len(primary_hosts) == 10
+    assert sum(task.step_count <= 5 for task in suite.tasks) == 2
+    assert sum(6 <= task.step_count <= 10 for task in suite.tasks) == 4
+    assert sum(task.step_count >= 11 for task in suite.tasks) == 4
