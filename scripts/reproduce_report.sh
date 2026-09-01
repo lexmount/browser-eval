@@ -6,7 +6,7 @@ cd "$repo_dir"
 
 output_dir=${1:-runs/reproduced}
 env_file=${WEBFETCH_ENV_FILE:-$HOME/.env}
-providers=cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown,cloudflare-content
+providers=cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown
 
 python3 -m browser_harness_eval validate \
   --env-file "$env_file" \

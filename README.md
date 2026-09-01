@@ -35,7 +35,7 @@ The fixture intentionally fails the JavaScript case, so the generated report
 contains both successful content and a complete failure diagnostic page.
 
 Run the small, credentialed real smoke suite (one `example.com` call per
-configured real method, including both Cloudflare contracts) explicitly:
+configured real method) explicitly:
 
 ```bash
 COWAGENT_REPO=/path/to/CowAgent ./scripts/run_real_smoke.sh
@@ -49,7 +49,7 @@ from `~/.env` by default; override with `WEBFETCH_SMOKE_ENV_FILE=/path/to/.env`.
 ```bash
 ./scripts/run_webfetch_eval.sh \
   --env-file ~/.env \
-  --providers cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown,cloudflare-content \
+  --providers cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown \
   --runs 3 \
   --timeout 45 \
   --delay 1 \
@@ -57,9 +57,9 @@ from `~/.env` by default; override with `WEBFETCH_SMOKE_ENV_FILE=/path/to/.env`.
 ```
 
 The command performs the requests, persists every response or exception,
-calculates metrics and creates the report. Cloudflare `/markdown` belongs to
-the readable-content leaderboard; `/content` returns rendered HTML and is shown
-as a separate diagnostic contract.
+calculates metrics and creates the report. Only Cloudflare `/markdown` is tested:
+it matches the readable-content contract. `/content` returns full rendered HTML
+and is deliberately excluded from this Web Fetch comparison.
 
 For a complete new-environment run, use the one-command reproducer. It validates
 credentials, runs the frozen dataset, builds the multi-page report and checks
@@ -99,7 +99,6 @@ The example provider registry reads these optional environment variables:
 | Tavily Extract | `TAVILY_API_KEY` | Known-URL Markdown/plain-text extraction |
 | Exa Contents | `EXA_API_KEY` | Known-URL contents; config forces live crawl with `max_age_hours: 0` |
 | Cloudflare `/markdown` | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | Token needs Browser Rendering Edit permission |
-| Cloudflare `/content` | same as `/markdown` | Rendered HTML diagnostic, not scored against cleaned Markdown size/noise |
 | HTTP local | None | Standard-library static HTTP/HTML baseline |
 | Fixture | None | Deterministic offline installation check |
 | CowAgent built-in | `COWAGENT_REPO` | Path to a CowAgent checkout; invokes its real `WebFetch` class |
@@ -137,24 +136,26 @@ runs/<run-id>/
     ├── methodology/index.html     # fairness, Cloudflare endpoint choice, judging protocol
     ├── providers/                 # one detail page per method
     ├── analysis/index.html        # dynamic ranking and case-level root-cause entry points
+    ├── review/index.html          # human-review queue and JSON export
     ├── execution/index.html       # exact reproduction and incident runbook
     ├── metrics/index.html         # formal metric contract
     ├── market/index.html          # direct vs adjacent supplier capability boundary
-    ├── adoption/index.html        # full high-star/recent GitHub candidate table
+    ├── adoption/index.html        # deduplicated suppliers plus OpenClaw/DSH baselines
     ├── integration/index.html     # measured CowAgent and cross-agent integration path
     ├── accounts/index.html        # registration and credential checklist
-    ├── attempts/                  # content, failures and root-cause evidence
+    ├── attempts/                  # task, answer key, output, machine verdict and HIL form
     └── artifacts/                 # complete fetched content, available offline
 ```
 
-An HTTP 200 with missing facts is shown as a **content failure**, not as a
-successful fetch. Strict content requires all frozen fact groups, minimum
-length, and no error/challenge marker. Each attempt shows a short preview, a
-collapsed full report copy, an exact raw artifact and its SHA-256.
+An HTTP 200 with missing facts is shown as a machine content failure, not as a
+successful content fetch. The machine verdict requires all frozen fact groups,
+minimum length, and no error/challenge marker. Main P50/P95 use only requests
+that also pass this content gate. Each attempt shows the full task, reference
+answer, supplier output, deterministic verdict, HIL form and SHA-256.
 
-The v2 ground truth was independently annotated from source pages before the
-supplier run. See [review log](docs/ground-truth-review.md). A second human
-review is still recommended before external marketing or procurement use.
+The v3 ground truth was independently annotated from source pages before the
+supplier run. See [review protocol](docs/ground-truth-review.md). A second human
+review is required before external marketing or procurement use.
 
 ## Extend the harness
 

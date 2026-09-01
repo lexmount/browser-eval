@@ -1,0 +1,181 @@
+{
+  "providers": {
+    "cloudflare-markdown": {
+      "provider_type": "cloudflare_markdown",
+      "attempts": 10,
+      "transport_success_rate": 0.2,
+      "content_pass_rate": 0.2,
+      "mean_marker_recall": 0.2,
+      "mean_fact_coverage": 0.2,
+      "p50_ms": 2762.89,
+      "p95_ms": 5324.51,
+      "transport_p50_ms": 2762.89,
+      "transport_p95_ms": 5324.51,
+      "all_attempts_p95_ms": 5324.51,
+      "median_content_chars": 74.0,
+      "deadline_overrun_count": 0,
+      "failure_types": {
+        "api_error": 8
+      }
+    },
+    "cowagent-built-in": {
+      "provider_type": "cowagent_builtin",
+      "attempts": 10,
+      "transport_success_rate": 0.9,
+      "content_pass_rate": 0.8,
+      "mean_marker_recall": 0.7,
+      "mean_fact_coverage": 0.8,
+      "p50_ms": 2275.16,
+      "p95_ms": 2976.19,
+      "transport_p50_ms": 2252.85,
+      "transport_p95_ms": 2976.19,
+      "all_attempts_p95_ms": 9916.69,
+      "median_content_chars": 2098.0,
+      "deadline_overrun_count": 0,
+      "failure_types": {
+        "content_validation_failure": 1,
+        "tool_error": 1
+      }
+    },
+    "exa": {
+      "provider_type": "exa_contents",
+      "attempts": 10,
+      "transport_success_rate": 0.9,
+      "content_pass_rate": 0.9,
+      "mean_marker_recall": 0.85,
+      "mean_fact_coverage": 0.9,
+      "p50_ms": 2084.85,
+      "p95_ms": 3132.15,
+      "transport_p50_ms": 2084.85,
+      "transport_p95_ms": 3132.15,
+      "all_attempts_p95_ms": 3132.15,
+      "median_content_chars": 2535.5,
+      "deadline_overrun_count": 0,
+      "failure_types": {
+        "CRAWL_UNKNOWN_ERROR": 1
+      }
+    },
+    "firecrawl": {
+      "provider_type": "firecrawl",
+      "attempts": 10,
+      "transport_success_rate": 1.0,
+      "content_pass_rate": 1.0,
+      "mean_marker_recall": 0.9,
+      "mean_fact_coverage": 1.0,
+      "p50_ms": 3424.65,
+      "p95_ms": 7094.84,
+      "transport_p50_ms": 3424.65,
+      "transport_p95_ms": 7094.84,
+      "all_attempts_p95_ms": 7094.84,
+      "median_content_chars": 6915.5,
+      "deadline_overrun_count": 0,
+      "failure_types": {}
+    },
+    "lexmount-global": {
+      "provider_type": "lexmount",
+      "attempts": 10,
+      "transport_success_rate": 1.0,
+      "content_pass_rate": 0.8,
+      "mean_marker_recall": 0.7,
+      "mean_fact_coverage": 0.8,
+      "p50_ms": 2041.57,
+      "p95_ms": 2201.44,
+      "transport_p50_ms": 1848.19,
+      "transport_p95_ms": 2201.44,
+      "all_attempts_p95_ms": 2201.44,
+      "median_content_chars": 1362.0,
+      "deadline_overrun_count": 0,
+      "failure_types": {
+        "content_validation_failure": 2
+      }
+    },
+    "tavily": {
+      "provider_type": "tavily_extract",
+      "attempts": 10,
+      "transport_success_rate": 1.0,
+      "content_pass_rate": 1.0,
+      "mean_marker_recall": 0.95,
+      "mean_fact_coverage": 1.0,
+      "p50_ms": 1496.24,
+      "p95_ms": 3222.09,
+      "transport_p50_ms": 1496.24,
+      "transport_p95_ms": 3222.09,
+      "all_attempts_p95_ms": 3222.09,
+      "median_content_chars": 3897.5,
+      "deadline_overrun_count": 0,
+      "failure_types": {}
+    }
+  },
+  "cases": {
+    "cowagent-doc": {
+      "name": "CowAgent Web Fetch documentation",
+      "category": "technical_documentation",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "ecommerce-list": {
+      "name": "Books to Scrape catalog",
+      "category": "ecommerce_static",
+      "attempts": 6,
+      "transport_success_rate": 1.0,
+      "content_pass_rate": 1.0
+    },
+    "english-encyclopedia": {
+      "name": "Long encyclopedia article",
+      "category": "long_article",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "github-repository": {
+      "name": "Moli GitHub repository",
+      "category": "developer_portal",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "html-table": {
+      "name": "HTML table tutorial",
+      "category": "table_structure",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "javascript-spa": {
+      "name": "Quotes to Scrape JavaScript",
+      "category": "javascript_rendering",
+      "attempts": 6,
+      "transport_success_rate": 0.6667,
+      "content_pass_rate": 0.3333
+    },
+    "lexmount-doc": {
+      "name": "Lexmount WebFetch quick start",
+      "category": "technical_documentation",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "pdf-paper": {
+      "name": "Attention Is All You Need PDF",
+      "category": "pdf",
+      "attempts": 6,
+      "transport_success_rate": 0.6667,
+      "content_pass_rate": 0.5
+    },
+    "redirect": {
+      "name": "HTTP redirect to example.com",
+      "category": "redirect",
+      "attempts": 6,
+      "transport_success_rate": 0.8333,
+      "content_pass_rate": 0.8333
+    },
+    "static-simple": {
+      "name": "Static example page",
+      "category": "static_html",
+      "attempts": 6,
+      "transport_success_rate": 1.0,
+      "content_pass_rate": 1.0
+    }
+  }
+}

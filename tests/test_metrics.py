@@ -39,12 +39,14 @@ class MetricsTest(unittest.TestCase):
         }
         records = [
             {**base, "ok": True, "metrics": {"content_pass": True, "marker_recall": 1.0, "content_chars": 10}},
-            {**base, "ok": True, "metrics": {"content_pass": False, "marker_recall": 0.0, "content_chars": 5}},
+            {**base, "ok": True, "elapsed_ms": 900, "metrics": {"content_pass": False, "marker_recall": 0.0, "content_chars": 5}},
         ]
         item = summarize(records)["providers"]["p"]
         self.assertEqual(item["transport_success_rate"], 1.0)
         self.assertEqual(item["content_pass_rate"], 0.5)
         self.assertEqual(item["failure_types"], {"content_validation_failure": 1})
+        self.assertEqual(item["p50_ms"], 100)
+        self.assertEqual(item["transport_p95_ms"], 900)
 
 
 if __name__ == "__main__":

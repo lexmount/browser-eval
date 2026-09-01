@@ -57,9 +57,5 @@ class RealProviderSmokeTest(unittest.TestCase):
     def test_cloudflare_markdown_real_fetch(self) -> None:
         self.assert_provider_smoke("cloudflare-markdown")
 
-    def test_cloudflare_content_real_fetch(self) -> None:
-        self.assert_provider_smoke("cloudflare-content")
-
-
 if __name__ == "__main__":
     unittest.main()

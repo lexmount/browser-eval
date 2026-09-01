@@ -16,7 +16,29 @@ from .methods import method_info
 STYLE = r"""
 :root{--bg:#071015;--panel:#0d1a21;--panel2:#122630;--ink:#edf6f7;--muted:#9aadb4;--line:#263c46;--cyan:#49d6ed;--violet:#8b7cff;--lime:#c6ed3d;--coral:#ff8168;--good:#67df9f;--bad:#ff6b7a;--warn:#ffd166;--max:1180px}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% -10%,#18284b 0,transparent 30%),var(--bg);color:var(--ink);font:15px/1.65 Inter,system-ui,-apple-system,"Segoe UI","PingFang SC",sans-serif}a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}.wrap{width:min(var(--max),calc(100% - 34px));margin:auto}.top{border-bottom:1px solid var(--line);background:#071015e8;position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}nav{display:flex;align-items:center;gap:20px;overflow:auto;padding:12px 0;white-space:nowrap}.brand{font-weight:850;color:#fff;margin-right:auto}.hero{padding:54px 0 34px}.eyebrow{font:700 12px/1.2 ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}h1{font-size:clamp(34px,6vw,66px);line-height:1.03;letter-spacing:-.045em;margin:16px 0}h2{font-size:clamp(26px,4vw,40px);letter-spacing:-.03em;margin:0 0 14px}h3{font-size:20px;margin:28px 0 10px}.lead,.sub{color:var(--muted);max-width:900px}.meta{display:flex;gap:8px;flex-wrap:wrap}.pill,.tag{border:1px solid var(--line);background:#0b171d;border-radius:999px;padding:5px 10px;color:#bdd0d5;font-size:12px}.tag{padding:2px 7px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{background:linear-gradient(145deg,#10212a,#0b171d);border:1px solid var(--line);border-radius:15px;padding:20px}.kpi{grid-column:span 3;border-top:3px solid var(--cyan)}.kpi:nth-child(2){border-top-color:var(--violet)}.kpi:nth-child(3){border-top-color:var(--lime)}.kpi:nth-child(4){border-top-color:var(--coral)}.n{font-size:34px;font-weight:850;letter-spacing:-.04em;margin:8px 0}.section{padding:44px 0;border-top:1px solid var(--line)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}table{border-collapse:collapse;width:100%;min-width:760px;background:#0b171d}th,td{padding:12px 13px;border-bottom:1px solid #1d323b;text-align:left;vertical-align:top}th{background:#12242c;font-size:12px;letter-spacing:.04em}td{color:#bfd0d4}.good{color:var(--good);font-weight:750}.bad{color:var(--bad);font-weight:750}.warn{color:var(--warn);font-weight:750}.bar{height:9px;background:#162a33;border-radius:99px;overflow:hidden;min-width:120px}.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));border-radius:99px}.callout{border-left:4px solid var(--warn);background:#251f13;padding:14px 17px;border-radius:0 12px 12px 0}.failure{border-left-color:var(--bad);background:#2a1419}.success{border-left-color:var(--good);background:#10271d}pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}code{color:#b9f4ff;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#050d11;border:1px solid var(--line);padding:18px;border-radius:13px;color:#d7e8eb;max-height:70vh;overflow:auto}.attempt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.kv{background:#0b171d;border:1px solid var(--line);border-radius:12px;padding:13px}.kv b{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.footer{padding:40px 0 70px;color:#7e969e}.empty{color:var(--muted);font-style:italic}.tiny{font-size:12px;color:#8299a1}
-.visual-summary{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#07162c}details{border:1px solid var(--line);border-radius:12px;background:#0b171d;margin:12px 0}summary{cursor:pointer;padding:13px 16px;font-weight:750;color:#d7e8eb}details>pre,details>div{margin:0;border:0;border-top:1px solid var(--line);border-radius:0}.steps{counter-reset:step}.steps>li{margin:12px 0;padding-left:8px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.break{overflow-wrap:anywhere}@media(max-width:800px){.kpi,.grid>[style*="grid-column:span"]{grid-column:span 6!important}}@media(max-width:520px){.kpi,.grid>[style*="grid-column:span"]{grid-column:span 12!important}h1{overflow-wrap:anywhere}.wrap{width:min(var(--max),calc(100% - 24px))}}
+.visual-summary{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#07162c}details{border:1px solid var(--line);border-radius:12px;background:#0b171d;margin:12px 0}summary{cursor:pointer;padding:13px 16px;font-weight:750;color:#d7e8eb}details>pre,details>div{margin:0;border:0;border-top:1px solid var(--line);border-radius:0}.steps{counter-reset:step}.steps>li{margin:12px 0;padding-left:8px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.break{overflow-wrap:anywhere}.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.compare pre{height:390px}.review-form label{display:block;margin:12px 0 5px;color:var(--muted)}.review-form input,.review-form select,.review-form textarea{width:100%;background:#071015;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}.review-form textarea{min-height:110px}.button{display:inline-block;border:1px solid var(--cyan);background:#10303a;color:var(--ink);border-radius:8px;padding:9px 13px;cursor:pointer;margin:8px 8px 0 0}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.flow .card{position:relative}.flow .card:not(:last-child):after{content:"→";position:absolute;right:-15px;top:42%;color:var(--cyan);font-size:22px;z-index:2}@media(max-width:800px){.kpi,.grid>[style*="grid-column:span"]{grid-column:span 6!important}.compare{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.flow .card:after{display:none}}@media(max-width:520px){.kpi,.grid>[style*="grid-column:span"]{grid-column:span 12!important}h1{overflow-wrap:anywhere}.wrap{width:min(var(--max),calc(100% - 24px))}}
+"""
+
+REVIEW_JS = r"""
+const key = id => `webfetch-hil:${id}`;
+function loadReview(id) {
+  const raw = localStorage.getItem(key(id)); if (!raw) return;
+  const data = JSON.parse(raw);
+  for (const [name, value] of Object.entries(data)) { const el = document.querySelector(`[name="${name}"]`); if (el) el.value = value; }
+  const state = document.getElementById('review-state'); if (state) state.textContent = `已保存：${data.decision || '未判定'} · ${data.saved_at || ''}`;
+}
+function saveReview(id) {
+  const form = document.getElementById('hil-form'); const data = Object.fromEntries(new FormData(form).entries());
+  data.attempt_id = id; data.saved_at = new Date().toISOString(); localStorage.setItem(key(id), JSON.stringify(data)); loadReview(id);
+}
+function downloadReview(id) {
+  saveReview(id); const blob = new Blob([JSON.stringify(JSON.parse(localStorage.getItem(key(id))), null, 2)], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${id}.review.json`; a.click(); URL.revokeObjectURL(a.href);
+}
+function exportAllReviews() {
+  const out=[]; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('webfetch-hil:')) out.push(JSON.parse(localStorage.getItem(k)));}
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='webfetch-human-reviews.json';a.click();URL.revokeObjectURL(a.href);
+}
 """
 
 
@@ -38,16 +60,16 @@ def ms(value: float | int | None) -> str:
 
 def status(record: dict[str, Any]) -> tuple[str, str]:
     if not record["ok"]:
-        return "Transport failure", "bad"
+        return "请求失败", "bad"
     if not record["metrics"]["content_pass"]:
-        return "Content failure", "warn"
-    return "Pass", "good"
+        return "机器内容初判未通过", "warn"
+    return "机器内容初判通过", "good"
 
 
 def layout(*, title: str, body: str, base: str, subtitle: str = "") -> str:
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><link rel="stylesheet" href="{base}assets/style.css"></head><body>
-<header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Browser Harness Eval</a><a href="{base}datasets/index.html">评测集</a><a href="{base}environment/index.html">环境</a><a href="{base}methodology/index.html">方法</a><a href="{base}providers/index.html">结果</a><a href="{base}analysis/index.html">分析</a><a href="{base}execution/index.html">复现</a><a href="{base}market/index.html">市场</a><a href="{base}adoption/index.html">开源采用</a><a href="{base}integration/index.html">集成</a><a href="{base}accounts/index.html">账号</a></nav></header>
-<main>{body}</main><footer class="footer"><div class="wrap">Browser Harness Evaluation · Web Fetch Tool<br><span class="tiny">Generated from persisted artifacts. No credentials are embedded in this report.</span></div></footer></body></html>"""
+<header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a><a href="{base}datasets/index.html">评测集</a><a href="{base}environment/index.html">环境</a><a href="{base}methodology/index.html">方法</a><a href="{base}providers/index.html">结果</a><a href="{base}analysis/index.html">分析</a><a href="{base}review/index.html">人工复核</a><a href="{base}execution/index.html">复现</a><a href="{base}market/index.html">市场</a><a href="{base}adoption/index.html">开源采用</a><a href="{base}integration/index.html">集成</a><a href="{base}accounts/index.html">账号</a></nav></header>
+<main>{body}</main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="{base}assets/review.js"></script></body></html>"""
 
 
 def write_page(path: Path, content: str) -> None:
@@ -66,11 +88,7 @@ def generate_report(run_dir: Path, dataset: dict[str, Any], records: list[dict[s
         shutil.rmtree(report_dir)
     (report_dir / "assets").mkdir(parents=True)
     (report_dir / "assets" / "style.css").write_text(STYLE, encoding="utf-8")
-    assets_source = Path(__file__).resolve().parent.parent / "report-assets"
-    visual = assets_source / "webfetch-benchmark-v3.png"
-    visual_meta = assets_source / "webfetch-benchmark-v3.meta.json"
-    if visual.exists() and visual_meta.exists() and _visual_matches_summary(visual_meta, manifest, summary):
-        shutil.copy2(visual, report_dir / "assets" / visual.name)
+    (report_dir / "assets" / "review.js").write_text(REVIEW_JS, encoding="utf-8")
     shutil.copy2(run_dir / "results.jsonl", report_dir / "results.jsonl")
     shutil.copy2(run_dir / "summary.json", report_dir / "summary.json")
     shutil.copy2(run_dir / "manifest.json", report_dir / "manifest.json")
@@ -98,7 +116,8 @@ def generate_report(run_dir: Path, dataset: dict[str, Any], records: list[dict[s
     _write_adoption_page(report_dir)
     _write_integration_page(report_dir)
     _write_account_page(report_dir)
-    _write_attempt_pages(report_dir, records)
+    _write_attempt_pages(report_dir, dataset, records)
+    _write_review_page(report_dir, dataset, records)
     return report_dir / "index.html"
 
 
@@ -126,20 +145,20 @@ def _write_index(report_dir: Path, manifest: dict[str, Any], summary: dict[str, 
     passing = sum(r["ok"] and r["metrics"]["content_pass"] for r in score_records)
     transport = sum(r["ok"] for r in score_records)
     kpis = f"""<div class="grid">
-<div class="card kpi"><div class="eyebrow">Attempts</div><div class="n">{len(records)}</div><div class="sub">完整保存的调用次数</div></div>
-<div class="card kpi"><div class="eyebrow">Providers</div><div class="n">{len(providers)}</div><div class="sub">本次实际运行的方法</div></div>
-<div class="card kpi"><div class="eyebrow">Transport</div><div class="n">{pct(transport/len(score_records))}</div><div class="sub">可比方法请求成功率</div></div>
-<div class="card kpi"><div class="eyebrow">Strict content</div><div class="n">{pct(passing/len(score_records))}</div><div class="sub">可比方法 ground-truth 通过率</div></div></div>"""
+<div class="card kpi"><div class="eyebrow">调用记录</div><div class="n">{len(records)}</div><div class="sub">完整保存的真实调用次数</div></div>
+<div class="card kpi"><div class="eyebrow">参评方法</div><div class="n">{len(providers)}</div><div class="sub">本次实际运行的方法</div></div>
+<div class="card kpi"><div class="eyebrow">请求成功</div><div class="n">{pct(transport/len(score_records))}</div><div class="sub">只代表接口返回成功</div></div>
+<div class="card kpi"><div class="eyebrow">机器内容初判</div><div class="n">{pct(passing/len(score_records))}</div><div class="sub">按冻结标准答案初判通过</div></div></div>"""
     rows = []
     for name, item in providers.items():
         failures = sum(item["failure_types"].values())
         rows.append(f"""<tr><td><a href="providers/{slug(name)}.html"><b>{esc(name)}</b></a><br><span class="tiny">{esc(item['provider_type'])}</span></td><td>{esc(method_info(item['provider_type'])['leaderboard'])}</td><td>{item['attempts']}</td><td class="{'good' if item['transport_success_rate']==1 else 'warn'}">{pct(item['transport_success_rate'])}</td><td class="{'good' if item['content_pass_rate']==1 else 'warn'}">{pct(item['content_pass_rate'])}</td><td>{ms(item['p50_ms'])}</td><td>{ms(item['p95_ms'])}</td><td>{failures}</td><td>{item['deadline_overrun_count']}</td></tr>""")
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Formal evaluation report · web_fetch</div><h1>{esc(manifest['dataset']['name'])}</h1><p class="lead">对 URL → 内容方法进行可复现比较。请求结果、失败响应、指标与环境信息均由本次运行 artifact 生成。</p><div class="meta"><span class="pill">{esc(manifest['started_at'])}</span><span class="pill">{manifest['dataset']['case_count']} cases</span><span class="pill">{manifest['parameters']['runs']} runs</span><span class="pill">Python {esc(manifest['environment']['python'])}</span></div></div></section>
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">正式评测报告 · Web Fetch</div><h1>{esc(manifest['dataset']['name'])}</h1><p class="lead">比较“给定公开 URL，直接返回正确、完整、可供 Agent 使用的正文”这一项能力。每条请求、失败响应、标准答案、指标与环境信息都可下钻核验。</p><div class="meta"><span class="pill">{esc(manifest['started_at'])}</span><span class="pill">{manifest['dataset']['case_count']} 个案例</span><span class="pill">每案例 {manifest['parameters']['runs']} 次</span><span class="pill">Python {esc(manifest['environment']['python'])}</span></div></div></section>
 <section class="section"><div class="wrap">{kpis}</div></section>
-{('<section class="section"><div class="wrap"><h2>一图读懂能力边界与本轮结果</h2><p class="sub">同一总分只比较相同输入输出契约；Cloudflare 因无效 token 不评分，/content 也不与清洗正文混算。</p><img class="visual-summary" src="assets/webfetch-benchmark-v3.png" alt="70 attempts across seven Web Fetch methods, strict scores, latency and failure roots"></div></section>' if (report_dir / 'assets' / 'webfetch-benchmark-v3.png').exists() else '')}
-<section class="section"><div class="wrap"><h2>提供方比较</h2><p class="sub">Transport success 与 strict content 分开统计；score group 明确 rendered HTML 诊断不进入正文主榜。</p><div class="table-wrap"><table><thead><tr><th>方法</th><th>Score group</th><th>Attempts</th><th>Transport</th><th>Content</th><th>P50</th><th>P95</th><th>Failures</th><th>Deadline overruns</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>
+<section class="section"><div class="wrap"><h2>一图读懂：如何证明“抓到了正确正文”</h2><div class="flow"><div class="card"><div class="eyebrow">1 · 题目</div><h3>相同公开 URL</h3><p class="sub">静态页、长文、技术文档、JS 渲染、PDF、重定向等 10 类案例。</p></div><div class="card"><div class="eyebrow">2 · 标准答案</div><h3>先标注再评分</h3><p class="sub">冻结参考正文、必需事实、错误页标记与人工检查清单。</p></div><div class="card"><div class="eyebrow">3 · 真实调用</div><h3>保存完整输出</h3><p class="sub">供应商输出逐字落盘，并用 SHA-256 防止预览与原文不一致。</p></div><div class="card"><div class="eyebrow">4 · 机器初判</div><h3>四道确定性规则</h3><p class="sub">显著标记、最小长度、全部事实组、无错误页标记。</p></div><div class="card"><div class="eyebrow">5 · 人工复核</div><h3>最终判定由人确认</h3><p class="sub">并排核对标准答案与输出，保存或导出复核 JSON。</p></div></div><div class="callout" style="margin-top:18px"><b>特殊案例：</b>JS 表示正文需执行 JavaScript 后才出现；PDF 表示必须抽取论文文字；重定向表示客户端跟随 HTTP 3xx 的 Location 并返回最终页正文，不是给出一个可点击链接。</div></div></section>
+<section class="section"><div class="wrap"><h2>提供方比较</h2><p class="sub">请求成功与机器内容初判分开统计；P50/P95 只使用“请求成功且机器内容初判通过”的有效调用，避免很快返回空壳或错误页反而获得速度优势。</p><div class="table-wrap"><table><thead><tr><th>方法</th><th>结果分组</th><th>调用次数</th><th>请求成功率</th><th>机器内容初判通过率</th><th>有效 P50</th><th>有效 P95</th><th>失败数</th><th>超时越界</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>
 <section class="section"><div class="wrap"><h2>报告导航</h2><div class="grid"><div class="card" style="grid-column:span 3"><h3>评测集</h3><p class="sub">逐案例查看能力、锚点和结果。</p><a href="datasets/index.html">打开评测集 →</a></div><div class="card" style="grid-column:span 3"><h3>提供方 / 方法</h3><p class="sub">逐方法查看性能与失败。</p><a href="providers/index.html">打开方法页 →</a></div><div class="card" style="grid-column:span 3"><h3>指标定义</h3><p class="sub">查看严格指标契约。</p><a href="metrics/index.html">打开指标页 →</a></div><div class="card" style="grid-column:span 3"><h3>账号准备</h3><p class="sub">注册地址、取 key 位置与环境变量。</p><a href="accounts/index.html">打开账号清单 →</a></div></div></div></section>"""
-    write_page(report_dir / "index.html", layout(title="Web Fetch Evaluation", body=body, base=""))
+    write_page(report_dir / "index.html", layout(title="Web Fetch 正式评测报告", body=body, base=""))
 
 
 def _write_dataset_pages(report_dir: Path, dataset: dict[str, Any], by_case: dict[str, list[dict[str, Any]]]) -> None:
@@ -151,15 +170,16 @@ def _write_dataset_pages(report_dir: Path, dataset: dict[str, Any], by_case: dic
         attempt_rows = []
         for item in items:
             label, cls = status(item)
-            attempt_rows.append(f"<tr><td><a href=\"../attempts/{slug(item['attempt_id'])}.html\">{esc(item['provider'])} · run {item['run']}</a></td><td class=\"{cls}\">{label}</td><td>{ms(item['elapsed_ms'])}</td><td>{item['metrics']['marker_hits']}/{item['metrics']['marker_total']}</td><td>{esc(item['error_type'] or '')}</td></tr>")
+            attempt_rows.append(f"<tr><td><a href=\"../attempts/{slug(item['attempt_id'])}.html\">{esc(item['provider'])} · 第 {item['run']} 次</a></td><td class=\"{cls}\">{label}</td><td>{ms(item['elapsed_ms'])}</td><td>{item['metrics']['marker_hits']}/{item['metrics']['marker_total']}</td><td>{esc(item['error_type'] or '')}</td></tr>")
         markers = "".join(f"<span class=\"tag\">{esc(marker)}</span>" for marker in case["expected_any"])
         fact_rows = "".join(f"<tr><td><code>{esc(fact.get('id'))}</code></td><td>{' / '.join(esc(x) for x in fact.get('alternatives',[]))}</td></tr>" for fact in case.get("required_facts", []))
         evidence = "".join(f"<li><a href=\"{esc(item.get('source'))}\">原始页面</a>：{esc(item.get('supports'))}</li>" for item in case.get("ground_truth_evidence", []))
         forbidden = "".join(f"<span class=\"tag\">{esc(marker)}</span>" for marker in case.get("forbidden_any", []))
-        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Ground-truth case · {esc(case['category'])}</div><h1>{esc(case['name'])}</h1><p class="lead">{esc(case.get('description',''))}</p><div class="meta"><a class="pill" href="{esc(case['url'])}">{esc(case['url'])}</a><span class="pill">min {case.get('min_content_chars',1):,} chars</span></div></div></section><section class="section"><div class="wrap"><h2>冻结标注</h2><p><b>显著标记：</b> {markers}</p><div class="table-wrap"><table><thead><tr><th>事实组</th><th>可接受表达（组内任一）</th></tr></thead><tbody>{fact_rows}</tbody></table></div><h3>反向标记</h3><p>{forbidden or '<span class="empty">None</span>'}</p><h3>标注证据</h3><ul>{evidence}</ul><p class="sub">{esc(case.get('annotation_notes',''))}</p><div class="callout">通过条件：命中显著标记、达到最小长度、每个事实组至少命中一个表达，并且不命中反向标记。</div></div></section><section class="section"><div class="wrap"><h2>所有方法与运行</h2><div class="table-wrap"><table><thead><tr><th>Attempt</th><th>状态</th><th>耗时</th><th>Markers</th><th>失败分类</th></tr></thead><tbody>{''.join(attempt_rows)}</tbody></table></div></div></section>"""
+        checklist = "".join(f"<li>{esc(x)}</li>" for x in case.get("human_review_checklist", []))
+        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">标准答案案例 · {esc(case['category'])}</div><h1>{esc(case['name'])}</h1><p class="lead">{esc(case.get('description',''))}</p><div class="meta"><a class="pill" href="{esc(case['url'])}">{esc(case['url'])}</a><span class="pill">最少 {case.get('min_content_chars',1):,} 字符</span></div></div></section><section class="section"><div class="wrap"><h2>完整题目</h2><div class="card"><p>{esc(case.get('task_prompt',''))}</p></div><h2 style="margin-top:32px">参考答案</h2><pre>{esc(case.get('reference_answer',''))}</pre><h3>人工复核清单</h3><ul>{checklist}</ul><h3>冻结事实组</h3><p><b>显著标记：</b> {markers}</p><div class="table-wrap"><table><thead><tr><th>事实组</th><th>可接受表达（组内任一）</th></tr></thead><tbody>{fact_rows}</tbody></table></div><h3>反向标记</h3><p>{forbidden or '<span class="empty">无</span>'}</p><h3>标注证据</h3><ul>{evidence}</ul><p class="sub">{esc(case.get('annotation_notes',''))}</p><div class="callout">机器初判通过条件：命中显著标记、达到最小长度、每个事实组至少命中一个表达，并且不命中反向标记。机器初判不是最终人工结论。</div></div></section><section class="section"><div class="wrap"><h2>全部方法的调用记录</h2><div class="table-wrap"><table><thead><tr><th>调用记录</th><th>状态</th><th>耗时</th><th>标记命中</th><th>失败分类</th></tr></thead><tbody>{''.join(attempt_rows)}</tbody></table></div></div></section>"""
         write_page(report_dir / "datasets" / f"{slug(case['id'])}.html", layout(title=case["name"], body=body, base="../"))
     gt = dataset.get("ground_truth", {})
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Versioned ground truth</div><h1>{esc(dataset['name'])}</h1><p class="lead">{esc(dataset.get('description',''))}</p><div class="meta"><span class="pill">{len(dataset['cases'])} cases</span><span class="pill">schema v{dataset.get('schema_version')}</span><span class="pill">verified {esc(gt.get('verified_at'))}</span></div></div></section><section class="section"><div class="wrap"><h2>标注协议</h2><p>{esc(gt.get('policy'))}</p><div class="callout"><b>状态：</b>{esc(gt.get('review_status'))}。参评输出不能定义 ground truth；修改标注必须升级数据集版本并重新跑所有方法。</div></div></section><section class="section"><div class="wrap"><h2>案例清单</h2><div class="table-wrap"><table><thead><tr><th>Case</th><th>类别</th><th>URL</th><th>事实组</th><th>最小字符</th><th>通过 attempts</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">版本化标准答案（Ground truth）</div><h1>{esc(dataset['name'])}</h1><p class="lead">{esc(dataset.get('description',''))}</p><div class="meta"><span class="pill">{len(dataset['cases'])} 个案例</span><span class="pill">数据结构 v{dataset.get('schema_version')}</span><span class="pill">核验日期 {esc(gt.get('verified_at'))}</span></div></div></section><section class="section"><div class="wrap"><h2>案例类型怎么理解</h2><div class="grid"><div class="card" style="grid-column:span 4"><h3>JavaScript 渲染</h3><p>页面初始 HTML 只有外壳，正文由脚本插入。只返回导航文字不算成功。</p></div><div class="card" style="grid-column:span 4"><h3>PDF 正文</h3><p>输入直接是 PDF URL，必须返回可读论文文字；二进制或下载说明不算成功。</p></div><div class="card" style="grid-column:span 4"><h3>HTTP 重定向</h3><p>服务端先返回 3xx 与 Location，客户端应自动访问目标并返回最终正文；不是返回一个链接。</p></div></div><h2 style="margin-top:32px">标注协议</h2><p>{esc(gt.get('policy'))}</p><div class="callout"><b>状态：</b>{esc(gt.get('review_status'))}。修改标注必须升级数据集版本并重新运行所有方法。</div></div></section><section class="section"><div class="wrap"><h2>案例清单</h2><div class="table-wrap"><table><thead><tr><th>案例</th><th>类别</th><th>URL</th><th>事实组</th><th>最小字符</th><th>机器初判通过（次）</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
     write_page(report_dir / "datasets" / "index.html", layout(title="评测集", body=body, base="../"))
 
 
@@ -175,17 +195,17 @@ def _write_provider_pages(report_dir: Path, summary: dict[str, Any], by_provider
         attempt_rows = []
         for record in attempts:
             label, cls = status(record)
-            attempt_rows.append(f"<tr><td><a href=\"../attempts/{slug(record['attempt_id'])}.html\">{esc(record['case_name'])} · run {record['run']}</a></td><td class=\"{cls}\">{label}</td><td>{ms(record['elapsed_ms'])}</td><td>{record['metrics']['content_chars']:,}</td><td>{esc(record['error_type'] or '')}</td></tr>")
-        failures = "".join(f"<li><code>{esc(kind)}</code>: {count}</li>" for kind, count in item["failure_types"].items()) or "<li>None</li>"
-        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Provider method · {esc(item['provider_type'])}</div><h1>{esc(name)}</h1><p class="lead">{esc(method['contract'])}</p><div class="meta"><span class="pill">{esc(method['output'])}</span><span class="pill">{esc(method['leaderboard'])}</span></div></div></section><section class="section"><div class="wrap"><h2>公平性配置</h2><div class="attempt-grid"><div class="kv"><b>Endpoint</b><code>{esc(method['endpoint'])}</code></div><div class="kv"><b>Output contract</b>{esc(method['output'])}</div><div class="kv"><b>Freshness / wait</b>{esc(method['freshness'])}</div><div class="kv"><b>Score group</b>{esc(method['leaderboard'])}</div></div></div></section><section class="section"><div class="wrap"><div class="grid"><div class="card kpi"><div class="eyebrow">Transport</div><div class="n">{pct(item['transport_success_rate'])}</div></div><div class="card kpi"><div class="eyebrow">Strict content</div><div class="n">{pct(item['content_pass_rate'])}</div></div><div class="card kpi"><div class="eyebrow">Fact coverage</div><div class="n">{pct(item.get('mean_fact_coverage'))}</div></div><div class="card kpi"><div class="eyebrow">P95</div><div class="n">{ms(item['p95_ms'])}</div></div></div><h3>失败分布</h3><ul>{failures}</ul><p>Deadline overruns: <b>{item['deadline_overrun_count']}</b> · Observed supplier usage: <b>{credit_label}</b></p></div></section><section class="section"><div class="wrap"><h2>逐次结果</h2><div class="table-wrap"><table><thead><tr><th>Case / run</th><th>状态</th><th>耗时</th><th>字符</th><th>失败分类</th></tr></thead><tbody>{''.join(attempt_rows)}</tbody></table></div></div></section>"""
-        write_page(report_dir / "providers" / f"{slug(name)}.html", layout(title=f"Provider: {name}", body=body, base="../"))
-    index_body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Provider registry</div><h1>Web Fetch 提供方 / 方法</h1><p class="lead">Provider 是调用实现，和评测集、指标定义相互独立。同一数据集可重复运行不同 provider。</p></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>方法</th><th>类型</th><th>Transport</th><th>Content</th><th>P50</th><th>P95</th><th>Observed usage</th></tr></thead><tbody>{''.join(index_rows)}</tbody></table></div></div></section>"""
+            attempt_rows.append(f"<tr><td><a href=\"../attempts/{slug(record['attempt_id'])}.html\">{esc(record['case_name'])} · 第 {record['run']} 次</a></td><td class=\"{cls}\">{label}</td><td>{ms(record['elapsed_ms'])}</td><td>{record['metrics']['content_chars']:,}</td><td>{esc(record['error_type'] or '')}</td></tr>")
+        failures = "".join(f"<li><code>{esc(kind)}</code>：{count}</li>" for kind, count in item["failure_types"].items()) or "<li>无</li>"
+        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">提供方方法 · {esc(item['provider_type'])}</div><h1>{esc(name)}</h1><p class="lead">{esc(method['contract'])}</p><div class="meta"><span class="pill">{esc(method['output'])}</span><span class="pill">{esc(method['leaderboard'])}</span></div></div></section><section class="section"><div class="wrap"><h2>公平性配置</h2><div class="attempt-grid"><div class="kv"><b>接口</b><code>{esc(method['endpoint'])}</code></div><div class="kv"><b>输出契约</b>{esc(method['output'])}</div><div class="kv"><b>新鲜度 / 等待</b>{esc(method['freshness'])}</div><div class="kv"><b>结果分组</b>{esc(method['leaderboard'])}</div></div></div></section><section class="section"><div class="wrap"><div class="grid"><div class="card kpi"><div class="eyebrow">请求成功率</div><div class="n">{pct(item['transport_success_rate'])}</div></div><div class="card kpi"><div class="eyebrow">机器内容初判</div><div class="n">{pct(item['content_pass_rate'])}</div></div><div class="card kpi"><div class="eyebrow">事实覆盖率</div><div class="n">{pct(item.get('mean_fact_coverage'))}</div></div><div class="card kpi"><div class="eyebrow">有效 P95</div><div class="n">{ms(item['p95_ms'])}</div></div></div><h3>失败分布</h3><ul>{failures}</ul><p>超时越界：<b>{item['deadline_overrun_count']}</b> · 供应商响应暴露用量：<b>{credit_label}</b></p></div></section><section class="section"><div class="wrap"><h2>逐次结果</h2><div class="table-wrap"><table><thead><tr><th>案例 / 次数</th><th>状态</th><th>耗时</th><th>字符</th><th>失败分类</th></tr></thead><tbody>{''.join(attempt_rows)}</tbody></table></div></div></section>"""
+        write_page(report_dir / "providers" / f"{slug(name)}.html", layout(title=f"提供方：{name}", body=body, base="../"))
+    index_body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">提供方注册表</div><h1>Web Fetch 提供方 / 方法</h1><p class="lead">提供方是调用实现，和评测集、指标定义相互独立。同一数据集可重复运行不同提供方。</p></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>方法</th><th>类型</th><th>请求成功率</th><th>机器内容初判通过率</th><th>有效 P50</th><th>有效 P95</th><th>响应暴露用量</th></tr></thead><tbody>{''.join(index_rows)}</tbody></table></div></div></section>"""
     write_page(report_dir / "providers" / "index.html", layout(title="提供方", body=index_body, base="../"))
 
 
 def _write_metric_page(report_dir: Path) -> None:
     cards = "".join(f"<div class=\"card\" style=\"grid-column:span 6\"><h3><code>{esc(name)}</code></h3><p class=\"sub\">{esc(description)}</p></div>" for name, description in METRIC_DEFINITIONS.items())
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Metric contract</div><h1>评测指标定义</h1><p class="lead">指标在运行前固定定义。报告不会用 HTTP 成功替代正文成功，也不会从失败样本中删除慢请求。</p></div></section><section class="section"><div class="wrap"><div class="grid">{cards}</div><h3>聚合规则</h3><div class="callout">P50/P95 仅在 transport success 样本上计算；all-attempts P95 同时保留，用于暴露超时和慢失败。Content pass 的分母包含所有 attempts。</div></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">固定指标契约</div><h1>评测指标定义</h1><p class="lead">指标在运行前固定。HTTP 成功不等于正文成功；主榜速度也不会纳入快速返回空壳、错误页或不完整正文的调用。</p></div></section><section class="section"><div class="wrap"><div class="grid">{cards}</div><h3>聚合规则</h3><div class="callout"><b>主榜 P50/P95：</b>只统计请求成功且机器内容初判通过的有效调用。另在 summary.json 保留 transport_p50_ms/transport_p95_ms 与全部调用 P95，供网络和超时诊断；机器内容初判通过率的分母包含所有调用。</div></div></section>"""
     write_page(report_dir / "metrics" / "index.html", layout(title="指标定义", body=body, base="../"))
 
 
@@ -193,17 +213,17 @@ def _write_environment_page(report_dir: Path, manifest: dict[str, Any]) -> None:
     env = manifest["environment"]
     params = manifest["parameters"]
     providers = "".join(f"<tr><td>{esc(item['name'])}</td><td><code>{esc(item['type'])}</code></td><td>{esc(method_info(item['type'])['freshness'])}</td></tr>" for item in manifest["providers"])
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Execution environment</div><h1>评测环境</h1><p class="lead">环境信息来自运行时 manifest；凭据值不会写入报告。网络路径、服务负载和源站变化会影响绝对耗时，因此本轮只代表该时间与出口的观测。</p></div></section><section class="section"><div class="wrap"><div class="attempt-grid"><div class="kv"><b>Started UTC</b>{esc(manifest.get('started_at'))}</div><div class="kv"><b>Completed UTC</b>{esc(manifest.get('completed_at'))}</div><div class="kv"><b>Python</b>{esc(env.get('python'))}</div><div class="kv"><b>Platform</b>{esc(env.get('platform'))}</div><div class="kv"><b>Host</b>{esc(env.get('hostname'))}</div><div class="kv"><b>Runs / case</b>{params.get('runs')}</div><div class="kv"><b>Socket timeout</b>{params.get('timeout')} s</div><div class="kv"><b>Inter-call delay</b>{params.get('delay')} s</div></div><h3>运行方法</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Adapter type</th><th>Freshness / wait setting</th></tr></thead><tbody>{providers}</tbody></table></div><div class="callout" style="margin-top:18px">单轮、小样本适合功能定位，不足以给出供应商 SLA。正式采购结论应至少多时段重复 3–5 次，并在目标客户地域各设一个 runner。</div></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">执行环境</div><h1>评测环境</h1><p class="lead">环境信息来自运行时 manifest；凭据值不会写入报告。网络路径、服务负载和源站变化会影响绝对耗时，因此本轮只代表该时间与出口的观测。</p></div></section><section class="section"><div class="wrap"><div class="attempt-grid"><div class="kv"><b>开始时间（UTC）</b>{esc(manifest.get('started_at'))}</div><div class="kv"><b>完成时间（UTC）</b>{esc(manifest.get('completed_at'))}</div><div class="kv"><b>Python</b>{esc(env.get('python'))}</div><div class="kv"><b>平台</b>{esc(env.get('platform'))}</div><div class="kv"><b>主机</b>{esc(env.get('hostname'))}</div><div class="kv"><b>每案例运行次数</b>{params.get('runs')}</div><div class="kv"><b>Socket 超时</b>{params.get('timeout')} 秒</div><div class="kv"><b>调用间隔</b>{params.get('delay')} 秒</div></div><h3>运行方法</h3><div class="table-wrap"><table><thead><tr><th>名称</th><th>适配器类型</th><th>新鲜度 / 等待设置</th></tr></thead><tbody>{providers}</tbody></table></div><div class="callout" style="margin-top:18px">单轮、小样本适合功能定位，不足以给出供应商 SLA。正式采购结论应至少多时段重复 3–5 次，并在目标客户地域各设一个 runner。</div></div></section>"""
     write_page(report_dir / "environment" / "index.html", layout(title="评测环境", body=body, base="../"))
 
 
 def _write_methodology_page(report_dir: Path, manifest: dict[str, Any]) -> None:
     methods = "".join(f"<tr><td><b>{esc(item['name'])}</b></td><td><code>{esc(method_info(item['type'])['endpoint'])}</code></td><td>{esc(method_info(item['type'])['output'])}</td><td>{esc(method_info(item['type'])['freshness'])}</td><td>{esc(method_info(item['type'])['leaderboard'])}</td></tr>" for item in manifest["providers"])
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Pre-registered method</div><h1>评测方法与公平性</h1><p class="lead">主问题是“给定公开 URL，能否稳定返回正确、完整、可供 Agent 使用的正文”。搜索召回、登录交互、反机器人解锁和结构化 AI extraction 不混入主分数。</p></div></section>
-<section class="section"><div class="wrap"><h2>执行顺序</h2><ol class="steps"><li>冻结数据集 v2 ground truth，再运行任何供应商。</li><li>每个方法按相同 URL、timeout、run 数执行；保存完整响应或异常。</li><li>先判 transport，再按事实组、最小长度和反向标记判 strict content。</li><li>聚合成功率、事实覆盖率、P50/P95、输出长度、失败类型和可观测 credits。</li><li>HTML 仅由 artifacts/JSONL 生成；不手工填写供应商分数。</li></ol></div></section>
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">预先登记的评测方法</div><h1>评测方法与公平性</h1><p class="lead">主问题是“给定公开 URL，能否稳定返回正确、完整、可供 Agent 使用的正文”。搜索召回、登录交互、反机器人解锁和结构化 AI 抽取不混入主分数。</p></div></section>
+<section class="section"><div class="wrap"><h2>执行顺序</h2><ol class="steps"><li>冻结数据集 v3 标准答案、参考正文与人工检查清单，再运行任何供应商。</li><li>每个方法按相同 URL、超时和运行次数执行；保存完整响应或异常。</li><li>先判请求，再按显著标记、最小长度、事实组和反向标记做机器内容初判。</li><li>主榜耗时只取“请求成功且机器初判通过”的有效内容调用；失败耗时另存用于诊断。</li><li>每条调用页并排展示题目、标准答案、供应商输出和机器判定，由人工完成最终复核。</li><li>HTML 只由 JSONL 与原始结果生成；不手工填写供应商分数。</li></ol></div></section>
 <section class="section"><div class="wrap"><h2>方法契约</h2><div class="table-wrap"><table><thead><tr><th>方法</th><th>实际 endpoint</th><th>输出</th><th>新鲜度/等待</th><th>分组</th></tr></thead><tbody>{methods}</tbody></table></div></div></section>
-<section class="section"><div class="wrap"><h2>Cloudflare 端点为何这样分</h2><div class="grid"><div class="card" style="grid-column:span 6"><h3><code>/markdown</code> 进入主表</h3><p>官方定义是把浏览器加载后的页面转为 Markdown，并去掉样式和脚本；与 Lexmount main_text、Firecrawl Markdown、Tavily Extract、Exa text 的“可读正文”输出目标最接近。</p><a href="https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/">官方 Markdown 文档 →</a></div><div class="card" style="grid-column:span 6"><h3><code>/content</code> 单列诊断</h3><p>官方定义是 JavaScript 执行后的完整 HTML（包括 head）。它适合判断浏览器是否渲染成功，但 HTML 标签、脚本和模板噪声不能和清洗正文的字符数直接比较。</p><a href="https://developers.cloudflare.com/browser-run/quick-actions/content-endpoint/">官方 Content 文档 →</a></div></div><div class="callout"><code>/json</code> 需要 AI schema/prompt，属于结构化 extraction；它的质量、时延和模型成本应在另一数据集评测。</div></div></section>
-<section class="section"><div class="wrap"><h2>正确性与完整性</h2><p><b>主裁判：</b>版本化人工 ground truth。每个事实组代表一个必须保留的语义单元，组内同义字符串均可接受；所有组命中才通过。另设最小长度防止只返回标题，反向标记防止 CAPTCHA/Access denied 被算作正文。</p><p><b>LLM judge：</b>不进入主榜。若后续启用，只做二级语义审阅：供应商名盲化、固定 rubric 与 JSON schema、记录模型/提示版本、引用 ground truth 和原始 artifact，并抽样人工复核。单一 LLM 的分数不可替代冻结标注。</p></div></section>"""
+<section class="section"><div class="wrap"><h2>Cloudflare 为什么只测 <code>/markdown</code></h2><div class="grid"><div class="card" style="grid-column:span 7"><h3>本轮参评：<code>/markdown</code></h3><p>它把浏览器加载后的页面转为 Markdown，并去除样式和脚本；与 Lexmount <code>main_text</code>、Firecrawl Markdown、Tavily Extract、Exa text 的“可读正文”目标最接近。</p><a href="https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/">官方 Markdown 文档 →</a></div><div class="card" style="grid-column:span 5"><h3>不参评：<code>/content</code></h3><p>它返回执行 JavaScript 后的完整 HTML（包含 head），适合检查 DOM 渲染，不是清洗后的 Agent 正文。把它并列计分会同时改变输出契约和噪声水平。</p><a href="https://developers.cloudflare.com/browser-run/quick-actions/content-endpoint/">官方 Content 文档 →</a></div></div></div></section>
+<section class="section"><div class="wrap"><h2>当前内容裁判到底是什么</h2><p><b>第一层是确定性机器初判：</b>先确认请求成功，再要求输出命中显著标记、达到最小长度、覆盖每个预登记事实组，并且不含错误页或挑战页标记。字符串比较不调用 LLM，任何人用相同结果都能复算。</p><p><b>第二层是人工最终复核：</b>调用页同时展示完整题目、参考答案、事实组、供应商输出和机器命中。复核者按正确性、完整性、可读性重新判断，可保存到浏览器或导出 JSON。机器初判可能因同义改写产生假阴性，也可能因关键词散落产生假阳性，所以不能直接冒充最终结论。</p><p><b>LLM judge 当前不进入主榜：</b>若后续启用，只作为盲化的二级辅助审阅，必须固定模型、提示、量表和 JSON 结构，并由人工抽检。LLM 不能反向修改冻结标准答案。</p><div class="callout">因此本报告证明的是：评测过程可重算、每个判断可下钻、人工可以覆盖机器初判；不是声称单次关键词规则天然等同于最终质量。</div></div></section>"""
     write_page(report_dir / "methodology" / "index.html", layout(title="评测方法", body=body, base="../"))
 
 
@@ -227,8 +247,10 @@ def _write_analysis_page(report_dir: Path, summary: dict[str, Any], by_case: dic
             reason = item.get("error_message") or (f"missing facts: {misses}" if misses else "strict content validation failed")
             failure_rows.append(f"<tr><td><a href=\"../attempts/{slug(item['attempt_id'])}.html\">{esc(item['provider'])}</a></td><td>{esc(item['case_name'])}</td><td><code>{esc(item.get('error_type') or 'content_validation')}</code></td><td>{esc(reason)}</td></tr>")
     auth_failures = [r for items in by_case.values() for r in items if r.get("error_type") == "authentication"]
-    auth_note = f"<div class=\"callout failure\"><b>Authentication failure is a measured result:</b> {len(auth_failures)} attempts。它反映当前环境凭据不可用，不证明供应商产品能力差；修复凭据后必须重跑，不能人工补分。</div>" if auth_failures else ""
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Result analysis</div><h1>评测结果分析</h1><p class="lead">排序优先 strict content，其次事实覆盖率，再其次成功样本 P50。这个顺序避免“很快返回错误页”胜出。</p></div></section><section class="section"><div class="wrap">{auth_note}<h2>主榜（可读正文契约）</h2><div class="table-wrap"><table><thead><tr><th>#</th><th>方法</th><th>Transport</th><th>Strict content</th><th>Fact coverage</th><th>P50</th><th>P95</th></tr></thead><tbody>{rows}</tbody></table></div><p class="tiny">rendered-html-diagnostic 不进入该排序。</p></div></section><section class="section"><div class="wrap"><h2>失败根因明细</h2><div class="table-wrap"><table><thead><tr><th>方法</th><th>案例</th><th>分类</th><th>可操作原因</th></tr></thead><tbody>{''.join(failure_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>逐案例根因入口</h2><div class="table-wrap"><table><thead><tr><th>案例</th><th>方法状态与事实覆盖率</th></tr></thead><tbody>{''.join(case_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>结论边界</h2><ul><li>内容正确性由冻结标注决定，输出越长不等于越完整；字符数只作诊断。</li><li>一次运行用于发现功能缺口，不代表长期稳定性或 SLA。</li><li>供应商公开 credits 与实际美元成本不是同一概念；没有公开价时不做价格胜负断言。</li><li>登录、保护站点与搜索召回需要独立数据集，不能从本轮外推。</li></ul></div></section>"""
+    auth_note = f"<div class=\"callout failure\"><b>认证失败也是实测结果：</b>{len(auth_failures)} 次。它只说明当前环境凭据不可用，不证明供应商产品能力差；修复凭据后必须重跑，不能人工补分。</div>" if auth_failures else ""
+    rate_limited = [r for items in by_case.values() for r in items if r.get("status_code") == 429]
+    rate_note = f"<div class=\"callout\"><b>账户限流污染本轮可用性：</b>{len(rate_limited)} 次 HTTP 429。当前报告按真实请求计为失败，但该比例不能直接外推为供应商内容能力；应在额度充足或限额重置后创建新 run 重测，不能删除本轮记录。</div>" if rate_limited else ""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">结果分析</div><h1>评测结果分析</h1><p class="lead">排序优先机器内容初判通过率，其次事实覆盖率，再其次有效内容 P50。这样可以避免“很快返回错误页”胜出。</p></div></section><section class="section"><div class="wrap">{auth_note}{rate_note}<h2>主榜（可读正文契约）</h2><div class="table-wrap"><table><thead><tr><th>排名</th><th>方法</th><th>请求成功率</th><th>机器内容初判通过率</th><th>事实覆盖率</th><th>有效 P50</th><th>有效 P95</th></tr></thead><tbody>{rows}</tbody></table></div><p class="tiny">最终结论仍需人工复核；主榜耗时只统计机器内容初判通过的有效调用。</p></div></section><section class="section"><div class="wrap"><h2>失败根因明细</h2><div class="table-wrap"><table><thead><tr><th>方法</th><th>案例</th><th>分类</th><th>可操作原因</th></tr></thead><tbody>{''.join(failure_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>逐案例根因入口</h2><div class="table-wrap"><table><thead><tr><th>案例</th><th>方法状态与事实覆盖率</th></tr></thead><tbody>{''.join(case_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>结论边界</h2><ul><li>内容正确性由冻结标注和人工复核共同决定，输出越长不等于越完整；字符数只作诊断。</li><li>一次运行用于发现功能缺口，不代表长期稳定性或 SLA。</li><li>供应商公开 credits 与实际美元成本不是同一概念；没有公开价时不做价格胜负断言。</li><li>登录、保护站点与搜索召回需要独立数据集，不能从本轮外推。</li></ul></div></section>"""
     write_page(report_dir / "analysis" / "index.html", layout(title="结果分析", body=body, base="../"))
 
 
@@ -242,37 +264,21 @@ python3 -m browser_harness_eval validate --env-file ~/.env --providers {names}
 WEBFETCH_REAL_SMOKE=1 WEBFETCH_SMOKE_ENV_FILE=~/.env python3 -m unittest tests.test_real_smoke -v
 ./scripts/reproduce_report.sh runs/reproduced
 open runs/reproduced/report/index.html"""
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Reproduction runbook</div><h1>详细执行过程与复现</h1><p class="lead">一个脚本会验证配置、运行固定数据集和供应商、保存所有 artifacts、生成分页 HTML 并检查本地链接。脚本能复现评测过程和报告结构；实时网站与云服务会变化，因此不能保证未来逐字节复现本次数值。</p></div></section><section class="section"><div class="wrap"><h2>新环境完整步骤</h2><pre>{esc(command)}</pre><h3>两种复现语义</h3><div class="grid"><div class="card" style="grid-column:span 6"><h3>重放已保存结果</h3><pre>python3 -m browser_harness_eval report runs/&lt;run-id&gt;</pre><p class="sub">不发网络请求；从 JSONL/artifacts 重新生成相同指标和 HTML。</p></div><div class="card" style="grid-column:span 6"><h3>重新实测</h3><pre>./scripts/reproduce_report.sh runs/new-run</pre><p class="sub">重新调用真实服务；页面内容、时延、credits 与供应商行为可能变化。</p></div></div></div></section><section class="section"><div class="wrap"><h2>失败定位顺序</h2><ol><li>看 providers 页区分 transport 与 strict content。</li><li>下钻 attempt 页，检查 HTTP 状态、error_type、事实组 MISS、反向标记和 provider metadata。</li><li>用 SHA-256 对照完整 artifact，避免网页预览截断造成误判。</li><li>认证失败先运行 token 官方验证；内容失败再对照 ground-truth 原始证据。</li><li>修复后创建新 run 目录，禁止覆盖原结果，以保留审计链。</li></ol></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">复现操作手册</div><h1>详细执行过程与复现</h1><p class="lead">一个脚本会验证配置、运行固定数据集和供应商、保存所有原始结果、生成分页 HTML 并检查本地链接。脚本能复现评测过程和报告结构；实时网站与云服务会变化，因此不能保证未来逐字节复现本次数值。</p></div></section><section class="section"><div class="wrap"><h2>新环境完整步骤</h2><pre>{esc(command)}</pre><h3>两种复现语义</h3><div class="grid"><div class="card" style="grid-column:span 6"><h3>重放已保存结果</h3><pre>python3 -m browser_harness_eval report runs/&lt;run-id&gt;</pre><p class="sub">不发网络请求；从 JSONL 和原始结果重新生成相同指标与 HTML。</p></div><div class="card" style="grid-column:span 6"><h3>重新实测</h3><pre>./scripts/reproduce_report.sh runs/new-run</pre><p class="sub">重新调用真实服务；页面内容、时延、credits 与供应商行为可能变化。</p></div></div></div></section><section class="section"><div class="wrap"><h2>失败定位顺序</h2><ol><li>看提供方页，区分请求失败与机器内容初判失败。</li><li>下钻调用详情页，检查 HTTP 状态、error_type、事实组未命中、反向标记和供应商元数据。</li><li>用 SHA-256 对照完整输出，避免网页预览截断造成误判。</li><li>认证失败先运行 token 官方验证；内容失败再对照标准答案源页面。</li><li>人工复核并导出 JSON；修复后创建新 run 目录，禁止覆盖原结果。</li></ol></div></section>"""
     write_page(report_dir / "execution" / "index.html", layout(title="复现步骤", body=body, base="../"))
 
 
 def _write_market_page(report_dir: Path, by_provider: dict[str, list[dict[str, Any]]]) -> None:
     direct = [
-        ("CowAgent built-in WebFetch", "Repository-local HTTP + readable-text/document parsing", "Local baseline", "WebFetch.execute({url})", "https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py"),
-        ("Lexmount WebFetch", "Managed URL → Markdown/metadata", "Direct", "POST /v1/extract", "https://browser.lexmount.com/docs/webfetch"),
-        ("Firecrawl Scrape", "Managed + open-source URL extraction", "Direct", "POST /v2/scrape", "https://docs.firecrawl.dev/features/scrape"),
-        ("Tavily Extract", "Known URL → Markdown/plain text", "Direct", "POST /extract", "https://docs.tavily.com/documentation/api-reference/endpoint/extract"),
-        ("Exa Contents", "Known URL → Markdown/highlights/summary", "Direct", "POST /contents; cache or forced live crawl", "https://exa.ai/docs/reference/contents-retrieval"),
-        ("Cloudflare Browser Rendering", "Browser-rendered URL → Markdown", "Direct", "POST /browser-rendering/markdown", "https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/"),
-        ("Browserbase Fetch / Extract", "Known URL → raw or clean Markdown depending current surface", "Candidate: verify current REST schema", "POST /v1/fetch", "https://www.browserbase.com/changelog"),
-        ("Bright Data Web Unlocker", "Unlocked fetch with Markdown option", "Separate protected-site dataset", "Managed scrape/unlock request", "https://docs.brightdata.com/scraping-automation/web-unlocker"),
-        ("Zyte / ScrapingBee / ZenRows / Scrapfly / Oxylabs", "Managed scraping APIs", "Separate protected-site dataset", "HTTP/browser/proxy extraction", "https://docs.zyte.com/zyte-api/"),
-        ("Crawl4AI / ScrapeGraphAI / Browserless", "Self-hostable extraction stack", "Direct, but operator-cost model", "Library/service APIs", "https://github.com/unclecode/crawl4ai"),
+        ("CowAgent 内置 WebFetch", "仓库内 HTTP + 可读文本/文档解析", "本轮已实测", "WebFetch.execute({url})", "https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py"),
+        ("Lexmount WebFetch Global", "托管 URL → Markdown/元数据", "本轮已实测", "POST /v1/extract", "https://browser.lexmount.com/docs/webfetch"),
+        ("Firecrawl Scrape", "托管/开源 URL → Markdown", "本轮已实测", "POST /v2/scrape", "https://docs.firecrawl.dev/features/scrape"),
+        ("Tavily Extract", "已知 URL → Markdown/纯文本", "本轮已实测", "POST /extract", "https://docs.tavily.com/documentation/api-reference/endpoint/extract"),
+        ("Exa Contents", "已知 URL → 正文/摘要/高亮", "本轮已实测", "POST /contents", "https://exa.ai/docs/reference/contents-retrieval"),
+        ("Cloudflare Browser Rendering", "浏览器渲染 URL → Markdown", "本轮只测 /markdown", "POST /browser-rendering/markdown", "https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/"),
+        ("OpenClaw 内置 web_fetch", "HTTP GET + Readability；可选 Firecrawl fallback；无 JS", "源码核验，待单独可执行基准", "web_fetch({url, extractMode})", "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md"),
+        ("DeepSeek Harness web_fetch", "匿名 HTTP provider + Turndown；同源跳转；无 PDF", "源码核验，待单独可执行基准", "ctx.web.fetch({url})", "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web"),
     ]
-    adjacent = [
-        ("Browserbase Browser", "Interactive cloud browser / Stagehand extraction", "Browser-harness dataset; not lightweight fetch latency", "https://docs.browserbase.com/use-cases/web-data-retrieval"),
-        ("Bocha Web Search", "Query → ranked pages/snippets/optional summary", "Search dataset; not arbitrary URL extraction", "https://open.bochaai.com/"),
-        ("Baidu Qianfan AI Search", "Query → summaries, URLs and snippets", "Search dataset; not arbitrary URL extraction", "https://cloud.baidu.com/doc/qianfan-api/s/Wmbq4z7e5"),
-        ("Tencent Cloud Web Search API", "Query → titles, snippets and source URLs", "Search dataset; not arbitrary URL extraction", "https://cloud.tencent.com/document/product/1806/121811"),
-        ("Alibaba Model Studio", "Model tool: web_search + web_extractor", "Model answer/citation dataset; extraction currently accompanies search", "https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-responses"),
-        ("Google Gemini URL Context", "Model consumes supplied public URLs", "Model answer/citation dataset; retrieved content is billed as model input", "https://ai.google.dev/gemini-api/docs/url-context"),
-        ("Google Search / Bing / Brave Search", "Query → search results", "Discovery/search benchmark, not Web Fetch benchmark", "https://developers.google.com/custom-search/v1/overview"),
-    ]
-    def rows(items: list[tuple[str, str, str, str]]) -> str:
-        return "".join(
-            f'<tr><td><a href="{esc(url)}"><b>{esc(name)}</b></a></td><td>{esc(surface)}</td><td>{esc(rule)}</td></tr>'
-            for name, surface, rule, url in items
-        )
     direct_rows = "".join(
         f'<tr><td><a href="{esc(url)}"><b>{esc(name)}</b></a></td><td>{esc(surface)}</td><td>{esc(fit)}</td><td><code>{esc(api)}</code></td></tr>'
         for name, surface, fit, api, url in direct
@@ -285,15 +291,13 @@ def _write_market_page(report_dir: Path, by_provider: dict[str, list[dict[str, A
         "tavily":"basic Extract 通常按成功 URL 分组计 credit",
         "exa":"Contents 以账户套餐与所选内容能力计费",
         "cloudflare-markdown":"Browser Rendering 按账户计划/浏览器资源计费",
-        "cloudflare-content":"同属 Browser Rendering；仅诊断 rendered HTML",
     }
     for name, attempts in sorted(by_provider.items()):
         credits = [item["provider_metadata"].get("credits_used") for item in attempts if item["provider_metadata"].get("credits_used") is not None]
         usage = "—" if not credits else f"{sum(float(value) for value in credits):g} credits"
-        observed_rows.append(f"<tr><td><b>{esc(name)}</b></td><td>{len(attempts)} calls</td><td>{esc(usage)}</td><td>{esc(pricing.get(name,'查看供应商账户账单'))}</td></tr>")
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Supplier capability boundary</div><h1>哪些产品能放进同一张 Web Fetch 表</h1><p class="lead">“Agent-native”不是可测指标，本报告改用输入输出契约分类。只有接受已知 URL、直接返回可持久化页面正文的产品进入主表；搜索结果、模型答案和反机器人解锁分别评测。</p></div></section>
-<section class="section"><div class="wrap"><h2>已知 URL → 可持久化正文</h2><div class="table-wrap"><table><thead><tr><th>提供方</th><th>能力</th><th>进入哪张表</th><th>接口面</th></tr></thead><tbody>{direct_rows}</tbody></table></div></div></section>
-<section class="section"><div class="wrap"><h2>相邻能力，不与主表混算</h2><div class="table-wrap"><table><thead><tr><th>产品</th><th>实际输入输出</th><th>评测规则</th></tr></thead><tbody>{rows(adjacent)}</tbody></table></div><div class="callout" style="margin-top:18px"><b>Browserbase 文档冲突：</b>当前 REST reference 仍描述 raw/no-JS/1 MB，而较新的官方 changelog、产品介绍和 pricing 已描述 Markdown/Extract。账号实测确认请求字段和响应格式前，只列为候选，不给它虚构分数。</div><div class="callout" style="margin-top:18px"><b>Lexmount 地域说明：</b>官方文档列出 <code>api.lexmount.com</code> 与 <code>api.lexmount.cn</code> 两套区域 API/控制台和各自凭据。这里不能据此推断物理上只有两个“服务节点”；本仓库按需求只调用 Global。</div></div></section>
+        observed_rows.append(f"<tr><td><b>{esc(name)}</b></td><td>{len(attempts)} 次</td><td>{esc(usage)}</td><td>{esc(pricing.get(name,'查看供应商账户账单'))}</td></tr>")
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">供应商与实现边界</div><h1>真正可对齐的 Web Fetch 方法</h1><p class="lead">这里只列接受一个已知 URL、直接返回可持久化网页正文的方法。Web Search、浏览器交互、模型 URL Context、反机器人解锁和仅有产品宣传但未确认接口的候选项不进入这张表。</p></div></section>
+<section class="section"><div class="wrap"><h2>可用方法与著名自建基线</h2><div class="table-wrap"><table><thead><tr><th>提供方 / 实现</th><th>实际能力</th><th>证据状态</th><th>接口面</th></tr></thead><tbody>{direct_rows}</tbody></table></div><div class="callout" style="margin-top:18px"><b>国内供给结论：</b>在本轮核验范围内，Lexmount 是已确认可直接按 URL 返回正文并完成实测的国内供应商。博查、百度、腾讯主要公开的是 Web Search；阿里和 Google 的相关能力偏模型工具或 URL Context，输入输出与独立 Web Fetch API 不同，所以不塞进供应商主表。</div><div class="callout" style="margin-top:18px"><b>Lexmount 地域说明：</b>本轮只调用 Global 的 <code>api.lexmount.com</code>。文档同时出现中国区域 API/控制台只能证明存在两套区域入口，不能据此断言底层只有两个物理服务节点。</div></div></section>
 <section class="section"><div class="wrap"><h2>成本：本轮可观测单位</h2><div class="table-wrap"><table><thead><tr><th>方法</th><th>调用</th><th>响应暴露 usage</th><th>计费解释</th></tr></thead><tbody>{''.join(observed_rows)}</tbody></table></div><div class="callout" style="margin-top:18px">未在 API response 暴露 credits 不等于免费；美元成本应从同一账户账单导出，并固定套餐、区域、缓存和附加解析选项后再比较。</div></div></section>"""
     write_page(report_dir / "market" / "index.html", layout(title="市场与能力边界", body=body, base="../"))
 
@@ -307,15 +311,43 @@ def _write_adoption_page(report_dir: Path) -> None:
     data = json.loads(source.read_text(encoding="utf-8"))
     (report_dir / "adoption").mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, report_dir / "adoption" / "evidence.json")
-    rows = []
-    for item in data["included"]:
-        matches = item.get("matches") or []
-        signatures = sorted({match["signature"] for match in matches})
-        files = "<br>".join(f'<a href="{esc(match["url"])}"><code>{esc(match["path"])}</code></a>' for match in matches[:4])
-        if len(matches) > 4:
-            files += f'<br><span class="tiny">+{len(matches)-4} more in evidence.json</span>'
-        rows.append(f'<tr><td><a href="{esc(item["url"])}"><b>{esc(item["repo"])}</b></a><br><span class="tiny">{esc(item.get("description") or "")}</span></td><td>{item["stars"]:,}</td><td>{esc(item["default_branch_head_at"])}</td><td>{esc(", ".join(signatures))}</td><td>{files}</td></tr>')
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">GitHub default-branch evidence</div><h1>高 stars、近 7 天活跃的 Web Fetch / Read / Search 采用仓库</h1><p class="lead">检索不依赖字面量 web fetch；覆盖供应商 endpoint、SDK 方法、通用工具类、搜索/URL Context 和开源正文提取库。结果按仓库去重，并由 GraphQL 核验默认分支 HEAD 提交时间。</p><div class="meta"><span class="pill">{len(data['signatures'])} signatures</span><span class="pill">{data['unique_repositories_examined']:,} unique repositories inspected</span><span class="pill">{len(data['included'])} included</span><span class="pill">stars ≥ {data['minimum_stars']:,}</span></div></div></section><section class="section"><div class="wrap"><div class="callout">“全部”指列出的 {len(data['signatures'])} 个签名、每签名前 {data['per_signature_cap']} 条 GitHub Code Search 结果内全部满足条件的仓库；不是对全 GitHub 的数学完备枚举。原始命中和查询保存在 <a href="evidence.json">evidence.json</a>。</div><div class="table-wrap" style="margin-top:18px"><table><thead><tr><th>仓库</th><th>Stars</th><th>默认分支 HEAD</th><th>命中签名</th><th>证据文件</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
+    groups = [
+        ("Firecrawl", {"firecrawl-sdk", "firecrawl-v1", "firecrawl-v2"}, "托管与开源正文抓取", "已实测"),
+        ("Tavily Extract", {"tavily-extract", "tavily-sdk-extract"}, "已知 URL 正文抽取", "已实测"),
+        ("Exa Contents", {"exa-contents"}, "已知 URL 内容读取", "已实测"),
+        ("Cloudflare Markdown", {"cloudflare-markdown"}, "浏览器渲染后转 Markdown", "已实测"),
+        ("LangChain URL loaders", {"langchain-web-base-loader", "langchain-unstructured-url-loader"}, "库内 HTTP/解析加载器", "可执行开源候选"),
+        ("Crawl4AI", {"crawl4ai"}, "自托管浏览器抓取与 Markdown", "可执行开源候选"),
+        ("Trafilatura", {"trafilatura"}, "开源正文抽取库", "可执行开源候选"),
+        ("Bright Data", {"brightdata-request"}, "托管解锁/抓取 API", "需账号后单独数据集"),
+        ("ZenRows", {"zenrows"}, "托管抓取 API", "需账号后候选"),
+        ("ScrapingBee", {"scrapingbee", "scrapingbee-sdk"}, "托管抓取 API", "需账号后候选"),
+        ("ScraperAPI", {"scraperapi"}, "托管抓取 API", "需账号后候选"),
+        ("Zyte", {"zyte-sdk"}, "托管抓取 API", "需账号后候选"),
+        ("Scrapfly", {"scrapfly"}, "托管抓取 API", "需账号后候选"),
+        ("Oxylabs", {"oxylabs"}, "托管抓取 API", "需账号后候选"),
+    ]
+    supplier_rows = []
+    for name, signatures, capability, status_text in groups:
+        repos = []
+        for item in data["included"]:
+            matched = {match["signature"] for match in item.get("matches", [])}
+            if matched & signatures:
+                repos.append(item)
+        examples = "、".join(f'<a href="{esc(item["url"])}">{esc(item["repo"])}</a>' for item in sorted(repos, key=lambda x: -x["stars"])[:3]) or "—"
+        supplier_rows.append(f"<tr><td><b>{esc(name)}</b></td><td>{len(repos)}</td><td>{esc(capability)}</td><td>{examples}</td><td>{esc(status_text)}</td></tr>")
+    named = {item["repo"]: item for item in data["included"]}
+    openclaw = named.get("openclaw/openclaw", {})
+    dsh = named.get("deepseek-ai/deepseek-harness", {})
+    own_rows = [
+        ("OpenClaw", openclaw, "自建 HTTP GET + Readability；默认不执行 JS；抽取失败可选 Firecrawl fallback；15 分钟缓存。", "静态正文基线；JS/PDF 需其它工具或 fallback", "https://github.com/openclaw/openclaw/blob/main/docs/tools/web-fetch.md"),
+        ("DeepSeek Harness", dsh, "自建匿名 HTTP(S) provider；公共地址校验、连接固定、同源重定向；Turndown 转 Markdown。", "当前明确拒绝 PDF 与跨源重定向", "https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/web"),
+    ]
+    own_html = "".join(f'<tr><td><a href="{esc(url)}"><b>{esc(name)}</b></a></td><td>{int(item.get("stars",0)):,}</td><td>{esc(impl)}</td><td>{esc(boundary)}</td><td>{esc(item.get("default_branch_head_at") or "—")}</td></tr>' for name, item, impl, boundary, url in own_rows)
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">GitHub 默认分支证据</div><h1>著名 Agent 如何实现 Web Fetch</h1><p class="lead">原始仓库检索的目的不是堆名单，而是识别可比较方案：第三方方案按供应商去重；自建实现只保留 OpenClaw 和 DeepSeek Harness 两个高影响力基线。</p><div class="meta"><span class="pill">{len(data['signatures'])} 个检索签名</span><span class="pill">检查 {data['unique_repositories_examined']:,} 个去重仓库</span><span class="pill">{len(data['included'])} 个满足 stars 与活跃度条件</span><span class="pill">stars ≥ {data['minimum_stars']:,}</span></div></div></section>
+<section class="section"><div class="wrap"><h2>去重后的第三方方案</h2><p class="sub">采用仓库数是本次签名检索样本内的去重计数，不代表全 GitHub 市占率；示例按 stars 排序。</p><div class="table-wrap"><table><thead><tr><th>第三方方案</th><th>命中仓库数</th><th>与 Web Fetch 的关系</th><th>高 stars 示例</th><th>本项目状态</th></tr></thead><tbody>{''.join(supplier_rows)}</tbody></table></div></div></section>
+<section class="section"><div class="wrap"><h2>两个著名自建实现</h2><div class="table-wrap"><table><thead><tr><th>仓库</th><th>Stars</th><th>源码核验的实现</th><th>已知边界</th><th>默认分支 HEAD</th></tr></thead><tbody>{own_html}</tbody></table></div><div class="callout" style="margin-top:18px">这两行是源码核验的实现基线，不是本轮云供应商实测分数。要进入同一性能榜，必须把各自 adapter 固定到同一数据集、关闭或记录缓存，并实际保存输出与耗时。</div></div></section>
+<section class="section"><div class="wrap"><h2>证据与完备性边界</h2><p>检索覆盖供应商 endpoint、SDK 方法、通用工具类、URL Context 和开源正文抽取库，并按仓库去重、核验默认分支 HEAD 时间。<a href="evidence.json">下载完整 evidence.json</a> 查看每条命中、文件和查询。</p><div class="callout">“全部找出”在工程上指：列出的 {len(data['signatures'])} 个检索签名、每签名前 {data['per_signature_cap']} 条 GitHub Code Search 结果中，全部满足 stars 与最近 7 天默认分支活跃条件的仓库；不声称对全 GitHub 数学完备。</div></div></section>"""
     write_page(report_dir / "adoption" / "index.html", layout(title="开源采用", body=body, base="../"))
 
 
@@ -344,18 +376,20 @@ def _write_account_page(report_dir: Path) -> None:
     rows = []
     for item in ACCOUNT_REGISTRY:
         variables = "<br>".join(f"<code>{esc(name)}</code>" for name in item["env_vars"])
-        readiness = "Adapter ready" if item["implemented"] else "Adapter planned"
+        readiness = "适配器已实现" if item["implemented"] else "适配器待实现"
         rows.append(
             f"<tr><td><b>{esc(item['provider'])}</b><br><span class=\"tiny\">{esc(item['priority'])} · {readiness}</span></td>"
             f"<td><a href=\"{esc(item['registration_url'])}\">注册 / 登录</a><br><a href=\"{esc(item['key_url'])}\">获取凭据</a></td>"
             f"<td>{variables}</td><td>{esc(item['steps'])}</td><td>{esc(item['free_note'])}</td></tr>"
         )
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Account preparation</div><h1>账号注册与凭据清单</h1><p class="lead">按能力类别列出官方注册入口、API key 获取位置和需要填写的环境变量。报告不保存实际凭据。</p><div class="callout"><b>当前主评测：</b>Lexmount Global、Firecrawl、Tavily Extract、Exa Contents 与 Cloudflare /markdown；Cloudflare /content 仅作 rendered HTML 诊断。搜索 API 与模型绑定工具使用独立数据集。</div></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>提供方</th><th>官方入口</th><th>环境变量</th><th>取得方式</th><th>免费/准入说明</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div><h3>终端打印同一清单</h3><pre>python3 -m browser_harness_eval accounts --env-file ~/.env</pre></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">账号准备</div><h1>账号注册与凭据清单</h1><p class="lead">按能力类别列出官方注册入口、API key 获取位置和需要填写的环境变量。报告不保存实际凭据。</p><div class="callout"><b>当前主评测：</b>Lexmount Global、Firecrawl、Tavily Extract、Exa Contents 与 Cloudflare <code>/markdown</code>。<code>/content</code> 不再作为参评方法；搜索 API 与模型绑定工具使用独立数据集。</div></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>提供方</th><th>官方入口</th><th>环境变量</th><th>取得方式</th><th>免费/准入说明</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div><h3>终端打印同一清单</h3><pre>python3 -m browser_harness_eval accounts --env-file ~/.env</pre></div></section>"""
     write_page(report_dir / "accounts" / "index.html", layout(title="账号准备", body=body, base="../"))
 
 
-def _write_attempt_pages(report_dir: Path, records: list[dict[str, Any]]) -> None:
+def _write_attempt_pages(report_dir: Path, dataset: dict[str, Any], records: list[dict[str, Any]]) -> None:
+    cases = {item["id"]: item for item in dataset["cases"]}
     for record in records:
+        case = cases[record["case_id"]]
         label, cls = status(record)
         artifact = report_dir / record["artifact_path"]
         content = artifact.read_text(encoding="utf-8", errors="replace")
@@ -363,13 +397,30 @@ def _write_attempt_pages(report_dir: Path, records: list[dict[str, Any]]) -> Non
         # reports stay reviewable with git diff --check; the raw artifact remains exact.
         display = "\n".join(line.rstrip() for line in content[:200_000].splitlines())
         truncation = "<p class=\"warn\">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p>" if len(content) > len(display) else ""
-        matched = "".join(f"<span class=\"tag\">{esc(x)}</span>" for x in record["metrics"]["matched_markers"]) or "<span class=\"empty\">None</span>"
+        matched = "".join(f"<span class=\"tag\">{esc(x)}</span>" for x in record["metrics"]["matched_markers"]) or "<span class=\"empty\">无</span>"
         expected = "".join(f"<span class=\"tag\">{esc(x)}</span>" for x in record["metrics"]["expected_markers"])
         error = ""
-        if label != "Pass":
-            error = f"<div class=\"callout failure\"><b>{esc(label)}</b><br>Error type: <code>{esc(record['error_type'] or 'content_validation_failure')}</code><br>{esc(record['error_message'] or 'Expected content markers were not found.')}</div>"
+        if not (record["ok"] and record["metrics"]["content_pass"]):
+            error = f"<div class=\"callout failure\"><b>{esc(label)}</b><br>失败分类：<code>{esc(record['error_type'] or 'content_validation_failure')}</code><br>{esc(record['error_message'] or '机器规则未找到全部必需内容；请人工对照标准答案复核。')}</div>"
         metadata = esc(json.dumps(record["provider_metadata"], ensure_ascii=False, indent=2))
-        fact_rows = "".join(f"<tr><td><code>{esc(item['id'])}</code></td><td class=\"{'good' if item['pass'] else 'bad'}\">{'PASS' if item['pass'] else 'MISS'}</td><td>{' / '.join(esc(x) for x in item['alternatives'])}</td><td>{' / '.join(esc(x) for x in item['matched']) or '—'}</td></tr>" for item in record["metrics"].get("fact_results", []))
+        fact_rows = "".join(f"<tr><td><code>{esc(item['id'])}</code></td><td class=\"{'good' if item['pass'] else 'bad'}\">{'命中' if item['pass'] else '未命中'}</td><td>{' / '.join(esc(x) for x in item['alternatives'])}</td><td>{' / '.join(esc(x) for x in item['matched']) or '—'}</td></tr>" for item in record["metrics"].get("fact_results", []))
         preview = display[:1800]
-        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Attempt detail · {esc(record['provider'])}</div><h1>{esc(record['case_name'])}</h1><div class="meta"><span class="pill {cls}">{label}</span><span class="pill">run {record['run']}</span><span class="pill">{ms(record['elapsed_ms'])}</span></div></div></section><section class="section"><div class="wrap">{error}<div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>Attempt ID</b><code>{esc(record['attempt_id'])}</code></div><div class="kv"><b>HTTP status</b>{esc(record['status_code']) or '—'}</div><div class="kv"><b>Output size</b>{record['metrics']['content_chars']:,} chars</div><div class="kv"><b>Fact coverage</b>{pct(record['metrics'].get('fact_coverage'))}</div><div class="kv"><b>Minimum length</b>{'PASS' if record['metrics'].get('length_pass',True) else 'FAIL'}</div><div class="kv"><b>SHA-256</b><code>{esc(record['metrics'].get('content_sha256',''))}</code></div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>Fact</th><th>状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody>{fact_rows or '<tr><td colspan="4">Legacy dataset: no fact groups</td></tr>'}</tbody></table></div><h3>Expected / matched prominent markers</h3><p>{expected}</p><p>{matched}</p><details><summary>Provider metadata</summary><pre>{metadata}</pre></details></div></section><section class="section"><div class="wrap"><h2>获取到的内容</h2><p><a href="../{esc(record['artifact_path'])}">打开完整原始 artifact →</a> · 完整性校验 <code>sha256:{esc(record['metrics'].get('content_sha256',''))}</code></p><h3>快速预览（前 1,800 字符）</h3><pre>{esc(preview)}</pre>{truncation}<details><summary>展开报告内完整内容（{len(display):,} / {len(content):,} 字符）</summary><pre>{esc(display)}</pre></details></div></section>"""
+        checklist = "".join(f"<li>{esc(item)}</li>" for item in case.get("human_review_checklist", []))
+        aid = json.dumps(record["attempt_id"])
+        body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · {esc(record['provider'])}</div><h1>{esc(record['case_name'])}</h1><div class="meta"><span class="pill {cls}">{label}</span><span class="pill">第 {record['run']} 次</span><span class="pill">{ms(record['elapsed_ms'])}</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>{esc(case.get('task_prompt',''))}</p><p><b>输入 URL：</b><a href="{esc(record['url'])}">{esc(record['url'])}</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>{esc(case.get('reference_answer',''))}</pre></div><div><h3>人工检查清单</h3><div class="card"><ul>{checklist}</ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../{esc(record['artifact_path'])}" download>下载本次完整输出（.txt）</a> · <a href="{esc(record['url'])}">打开标准答案源网页</a> · 完整性校验 <code>sha256:{esc(record['metrics'].get('content_sha256',''))}</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>{esc(case.get('reference_answer',''))}</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>{esc(preview)}</pre></div></div>{truncation}<details><summary>展开本页中的完整供应商输出（{len(display):,} / {len(content):,} 字符）</summary><pre>{esc(display)}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2>{error}<div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>{esc(record['attempt_id'])}</code></div><div class="kv"><b>HTTP 状态</b>{esc(record['status_code']) or '—'}</div><div class="kv"><b>最终 URL</b><span class="break">{esc(record['final_url']) or '—'}</span></div><div class="kv"><b>输出大小</b>{record['metrics']['content_chars']:,} 字符</div><div class="kv"><b>事实覆盖率</b>{pct(record['metrics'].get('fact_coverage'))}</div><div class="kv"><b>最小长度</b>{'通过' if record['metrics'].get('length_pass',True) else '未通过'}</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody>{fact_rows or '<tr><td colspan="4">没有事实组</td></tr>'}</tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p>{expected}</p><p>{matched}</p><details><summary>供应商元数据</summary><pre>{metadata}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview({aid})'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview({aid})'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview({aid}));</script>"""
         write_page(report_dir / "attempts" / f"{slug(record['attempt_id'])}.html", layout(title=record["attempt_id"], body=body, base="../"))
+
+
+def _write_review_page(report_dir: Path, dataset: dict[str, Any], records: list[dict[str, Any]]) -> None:
+    cases = {item["id"]: item for item in dataset["cases"]}
+    ordered = sorted(records, key=lambda item: (item["ok"] and item["metrics"]["content_pass"], item["provider"], item["case_id"]))
+    rows = []
+    for record in ordered:
+        label, cls = status(record)
+        rows.append(f"<tr><td><a href=\"../attempts/{slug(record['attempt_id'])}.html\"><b>{esc(record['provider'])}</b> · {esc(record['case_name'])}</a></td><td>{esc(cases[record['case_id']].get('task_prompt',''))}</td><td class=\"{cls}\">{label}</td><td>{pct(record['metrics'].get('fact_coverage'))}</td><td>{ms(record['elapsed_ms'])}</td></tr>")
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Human in the loop</div><h1>人工复核队列</h1><p class="lead">机器初判仅用于排序和定位问题，最终质量结论由复核人逐条确认。未通过的调用排在前面；每条详情页都展示完整题目、标准答案、供应商输出和导出式复核表单。</p><div class="meta"><span class="pill">{len(records)} 条调用记录</span><span class="pill">数据集 {esc(dataset['id'])}</span></div></div></section><section class="section"><div class="wrap"><div class="callout"><b>保存方式：</b>“保存到当前浏览器”使用 localStorage，不会修改仓库；“导出 JSON”可交给第二人汇总。正式发布时应把复核 JSON 纳入版本控制并记录复核人、时间和理由。</div><button class="button" onclick="exportAllReviews()">导出当前浏览器中的全部复核 JSON</button><div class="table-wrap" style="margin-top:18px"><table><thead><tr><th>调用记录</th><th>题目摘要</th><th>机器初判</th><th>事实覆盖率</th><th>耗时</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
+    write_page(report_dir / "review" / "index.html", layout(title="人工复核队列", body=body, base="../"))

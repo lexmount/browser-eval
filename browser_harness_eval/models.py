@@ -19,6 +19,9 @@ class EvalCase:
     fact_coverage_threshold: float = 1.0
     ground_truth_evidence: list[dict[str, str]] = field(default_factory=list)
     annotation_notes: str = ""
+    task_prompt: str = ""
+    reference_answer: str = ""
+    human_review_checklist: list[str] = field(default_factory=list)
 
 
 @dataclass

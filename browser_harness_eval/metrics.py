@@ -8,19 +8,19 @@ from typing import Any
 
 
 METRIC_DEFINITIONS = {
-    "transport_success": "Provider completed the request and classified it as successful.",
-    "content_pass": "All deterministic gates pass: legacy marker, minimum length, required fact coverage, and no forbidden error-page marker.",
-    "marker_recall": "Matched markers divided by all markers registered for the case.",
-    "elapsed_ms": "Client wall-clock duration, including network and provider processing.",
-    "deadline_overrun": "Elapsed wall-clock time exceeded the configured timeout value; socket timeouts are not assumed to be hard deadlines.",
-    "content_chars": "Unicode character count of the persisted provider output.",
-    "markdown_headings": "Number of Markdown heading lines in the output.",
-    "markdown_links": "Number of Markdown links with HTTP(S) targets.",
-    "html_tags": "Number of HTML-like tags remaining in the output.",
-    "fact_coverage": "Matched pre-registered fact groups divided by all required fact groups; alternatives within a group are equivalent.",
-    "forbidden_hits": "Pre-registered error-page, challenge or access-denied strings found in output.",
-    "content_sha256": "SHA-256 of the exact persisted output, used to verify report previews against artifacts.",
-    "unique_line_ratio": "Unique non-empty normalized lines divided by all non-empty lines; a diagnostic for duplicated boilerplate.",
+    "transport_success": "供应商完成请求，并将响应判为请求成功；它不代表正文正确。",
+    "content_pass": "机器内容初判：显著标记、最小长度、全部事实组和反向错误标记四道确定性规则均通过。",
+    "marker_recall": "命中的显著标记数除以该案例登记的显著标记总数。",
+    "elapsed_ms": "客户端墙钟耗时，包含网络与供应商处理时间。",
+    "deadline_overrun": "实际墙钟耗时超过配置的 timeout；socket timeout 不被假定为严格截止时间。",
+    "content_chars": "持久化供应商输出的 Unicode 字符数。",
+    "markdown_headings": "输出中的 Markdown 标题行数量。",
+    "markdown_links": "输出中目标为 HTTP(S) 的 Markdown 链接数量。",
+    "html_tags": "输出中残留的类 HTML 标签数量。",
+    "fact_coverage": "命中的预登记事实组除以全部必需事实组；同组可接受表达等价。",
+    "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
+    "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
+    "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
 }
 
 
@@ -98,8 +98,11 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
     provider_summary = {}
     for provider, items in sorted(by_provider.items()):
         elapsed = [float(item["elapsed_ms"]) for item in items]
-        successful_elapsed = [
-            float(item["elapsed_ms"]) for item in items if item["ok"]
+        transport_successful_elapsed = [float(item["elapsed_ms"]) for item in items if item["ok"]]
+        content_successful_elapsed = [
+            float(item["elapsed_ms"])
+            for item in items
+            if item["ok"] and item["metrics"]["content_pass"]
         ]
         provider_summary[provider] = {
             "provider_type": items[0]["provider_type"],
@@ -114,8 +117,10 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "mean_fact_coverage": round(
                 statistics.mean(item["metrics"].get("fact_coverage", item["metrics"]["marker_recall"]) for item in items), 4
             ),
-            "p50_ms": percentile(successful_elapsed, 0.50),
-            "p95_ms": percentile(successful_elapsed, 0.95),
+            "p50_ms": percentile(content_successful_elapsed, 0.50),
+            "p95_ms": percentile(content_successful_elapsed, 0.95),
+            "transport_p50_ms": percentile(transport_successful_elapsed, 0.50),
+            "transport_p95_ms": percentile(transport_successful_elapsed, 0.95),
             "all_attempts_p95_ms": percentile(elapsed, 0.95),
             "median_content_chars": round(
                 statistics.median(item["metrics"]["content_chars"] for item in items), 1
