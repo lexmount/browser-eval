@@ -223,6 +223,129 @@
       "assertions": [{"output": "bottom", "equals": "bottom:73"}, {"output": "second", "equals": "page-two:17"}, {"output": "third", "equals": "page-three:29"}, {"output": "back_second", "equals": "History Page Two"}, {"output": "back_first", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "answer", "equals": "page-two:17"}],
       "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"bottom": "bottom:73", "second": "page-two:17", "third": "page-three:29", "back_second": "History Page Two", "back_first": "Lexmount Deterministic Browser Fixture", "answer": "page-two:17"}, "expected_actions": ["navigate", "scroll", "get_text", "click", "get_text", "click", "get_text", "back", "get_text", "back", "get_text", "forward", "get_text"], "derivation": "三个固定文档、两级历史与底部标记均为唯一值。"},
       "source": {"kind": "adapted", "scenario": "nav_forward_after_back", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_forward_after_back.scenario.json", "license": "Apache-2.0"}
+    },
+
+    {
+      "id": "checked-label-toggle", "title": "通过标签切换复选框状态", "difficulty": "simple",
+      "tags": ["simple", "native-control", "checked", "css-state", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"label[for=check-toggle]"},{"action":"get_text","selector":"#check-out","save_as":"answer","wait_for_text":"checked:true"}],
+      "assertions": [{"output":"answer","equals":"checked:true"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"checked:true"},"expected_actions":["navigate","click","get_text"],"derivation":"label 激活原生 checkbox，change 事件输出唯一布尔值。"},
+      "source": {"kind":"adapted","scenario":"css_checked_reveal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/probe_a3_checked_reveal.html","license":"Apache-2.0","coverage":"原生控件与 :checked 状态","hypothesis":"原生 label 激活和 checked 状态传播可能与普通按钮不同"}
+    },
+    {
+      "id": "native-details-toggle", "title": "展开原生 details 并读取内容", "difficulty": "simple",
+      "tags": ["simple", "native-control", "details", "visibility", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#details-box summary"},{"action":"get_text","selector":"#details-out","save_as":"answer","wait_for_text":"details:open:73"}],
+      "assertions": [{"output":"answer","equals":"details:open:73"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"details:open:73"},"expected_actions":["navigate","click","get_text"],"derivation":"summary 激活后 details 子内容由原生布局显现。"},
+      "source": {"kind":"risk-probe","scenario":"native_details_toggle","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2","license":"Apache-2.0","coverage":"原生折叠控件可见性","hypothesis":"动态可见性失败可能扩展到原生 details 布局"}
+    },
+    {
+      "id": "dynamic-option-select", "title": "选择异步插入的下拉选项", "difficulty": "simple",
+      "tags": ["simple", "select", "async-dom", "form", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"select","selector":"#dynamic-choice","value":"gamma"},{"action":"get_text","selector":"#dynamic-choice-out","save_as":"answer","wait_for_text":"choice:gamma"}],
+      "assertions": [{"output":"answer","equals":"choice:gamma"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"choice:gamma"},"expected_actions":["navigate","select","get_text"],"derivation":"120ms 后插入 gamma 选项，change 事件产生唯一输出。"},
+      "source": {"kind":"adapted","scenario":"form_select_option_async","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L1","license":"Apache-2.0","coverage":"异步 DOM 与 select","hypothesis":"若问题不限于 click，异步插入 option 的选择也可能失败"}
+    },
+    {
+      "id": "autofocus-keyboard-submit", "title": "向 autofocus 输入框键入并提交", "difficulty": "simple",
+      "tags": ["simple", "autofocus", "keyboard", "post-render", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"fill","selector":"#auto-input","text":"focus-23"},{"action":"press","key":"Enter"},{"action":"get_text","selector":"#auto-out","save_as":"answer","wait_for_text":"auto:focus-23:41"}],
+      "assertions": [{"output":"answer","equals":"auto:focus-23:41"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"auto:focus-23:41"},"expected_actions":["navigate","fill","press","get_text"],"derivation":"autofocus 输入框的 Enter handler 生成固定校验值。"},
+      "source": {"kind":"moli-risk-probe","scenario":"post_domcontentloaded_autofocus","url":"https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol/src/conn/dispatch_tests.rs#L5519","license":"Apache-2.0","coverage":"DOMContentLoaded 后的 autofocus 渲染更新","hypothesis":"Moli 源码明确记录 autofocus 与首个输入命令可能竞争"}
+    },
+    {
+      "id": "hash-target-reveal", "title": "通过页内锚点显现目标区域", "difficulty": "simple",
+      "tags": ["simple", "target", "css-state", "navigation", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#hash-link"},{"action":"get_text","selector":"#hash-out","save_as":"answer","wait_for_text":"target:visible:29"}],
+      "assertions": [{"output":"answer","equals":"target:visible:29"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"target:visible:29"},"expected_actions":["navigate","click","get_text"],"derivation":"hash 变为 #hash-panel 后 :target 将唯一面板设为可见。"},
+      "source": {"kind":"adapted","scenario":"target_reveal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/dA_m_target_click.html","license":"Apache-2.0","coverage":":target 与布局显现","hypothesis":"CSS 状态驱动的显现可验证可见性计算是否一致"}
+    },
+
+    {
+      "id": "double-raf-reveal-fill", "title": "双 requestAnimationFrame 后填写显现输入框", "difficulty": "medium",
+      "tags": ["medium", "request-animation-frame", "visibility", "fill", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"fill","selector":"#raf-input","text":"frame-37"},{"action":"get_text","selector":"#raf-out","save_as":"answer","wait_for_text":"raf:frame-37:17"}],
+      "assertions": [{"output":"answer","equals":"raf:frame-37:17"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"raf:frame-37:17"},"expected_actions":["navigate","fill","get_text"],"derivation":"输入框在连续两个 rAF 回调后由 display:none 变为可见。"},
+      "source": {"kind":"moli-risk-probe","scenario":"request_animation_frame_visibility","url":"https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-renderer-v8/src/window_host.rs#L719-L750","license":"Apache-2.0","coverage":"rAF 调度与可见性","hypothesis":"验证 1fps 猜测；Moli 源码声明 rAF 目标间隔为 16ms"}
+    },
+    {
+      "id": "delayed-enabled-button", "title": "点击延迟解除 disabled 的按钮", "difficulty": "medium",
+      "tags": ["medium", "disabled", "timer", "actionability", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#enabled-late"},{"action":"get_text","selector":"#enabled-out","save_as":"answer","wait_for_text":"enabled:clicked:31"}],
+      "assertions": [{"output":"answer","equals":"enabled:clicked:31"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"enabled:clicked:31"},"expected_actions":["navigate","click","get_text"],"derivation":"按钮在 180ms 后解除 disabled 并绑定唯一 click 输出。"},
+      "source": {"kind":"risk-probe","scenario":"delayed_enabled_actionability","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L1/playwright","license":"Apache-2.0","coverage":"enabled actionability","hypothesis":"区分不可见与 disabled 状态等待"}
+    },
+    {
+      "id": "dom-replacement-click", "title": "点击异步替换后的同选择器按钮", "difficulty": "medium",
+      "tags": ["medium", "dom-replacement", "locator", "mutation", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#replace-action"},{"action":"click","selector":"#replace-action"},{"action":"get_text","selector":"#replace-out","save_as":"answer","wait_for_text":"replace:new:47"}],
+      "assertions": [{"output":"answer","equals":"replace:new:47"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"replace:new:47"},"expected_actions":["navigate","click","click","get_text"],"derivation":"第一次点击把旧按钮替换为同 id 新按钮，第二次点击必须重新解析同一选择器并产生唯一输出。"},
+      "source": {"kind":"adapted","scenario":"mutation_replacement_locator","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/dC_m_has_child_inject.html","license":"Apache-2.0","coverage":"DOM 替换与 locator 重解析","hypothesis":"动态列表失败可能源于新节点的布局或 locator 状态陈旧"}
+    },
+    {
+      "id": "offscreen-auto-scroll-click", "title": "点击首屏外按钮并验证自动滚动", "difficulty": "medium",
+      "tags": ["medium", "offscreen", "scroll-into-view", "geometry", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#below-fold"},{"action":"get_text","selector":"#below-out","save_as":"answer","wait_for_text":"below:clicked:59"}],
+      "assertions": [{"output":"answer","equals":"below:clicked:59"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"below:clicked:59"},"expected_actions":["navigate","click","get_text"],"derivation":"按钮位于首屏下方，Playwright click 应自动滚动后触发。"},
+      "source": {"kind":"adapted","scenario":"offscreen_scroll_into_view","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2/web_platform/r3_fv_geom_scrollheight.json","license":"Apache-2.0","coverage":"布局几何与自动滚动","hypothesis":"若动态按钮被判隐藏源于几何，首屏外元素也可能失败"}
+    },
+    {
+      "id": "shadow-dom-button", "title": "点击开放 Shadow DOM 内按钮", "difficulty": "medium",
+      "tags": ["medium", "custom-element", "shadow-dom", "locator", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"x-counter button"},{"action":"get_text","selector":"#shadow-out","save_as":"answer","wait_for_text":"shadow:clicked:61"}],
+      "assertions": [{"output":"answer","equals":"shadow:clicked:61"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"shadow:clicked:61"},"expected_actions":["navigate","click","get_text"],"derivation":"开放 shadow root 中唯一按钮触发宿主文档固定输出。"},
+      "source": {"kind":"adapted","scenario":"custom_element_shadow_action","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round4/widget_adopted.html","license":"Apache-2.0","coverage":"Custom Elements 与 Shadow DOM","hypothesis":"动态节点问题可能扩展到 shadow tree 的定位和几何"}
+    },
+
+    {
+      "id": "modal-dialog-confirm", "title": "等待模态对话框并确认", "difficulty": "complex",
+      "tags": ["complex", "dialog", "top-layer", "async", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=modal","save_as":"page"},{"action":"click","selector":"#dialog-confirm"},{"action":"get_text","selector":"#dialog-out","save_as":"answer","wait_for_text":"dialog:confirmed:67"}],
+      "assertions": [{"output":"answer","equals":"dialog:confirmed:67"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"dialog:confirmed:67"},"expected_actions":["navigate","click","get_text"],"derivation":"dialog 在 140ms 后进入 top layer，确认按钮关闭并输出唯一结果。"},
+      "source": {"kind":"adapted","scenario":"dialog_show_modal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/g_dialog.html","license":"Apache-2.0","coverage":"dialog top layer 与异步显现","hypothesis":"top-layer 几何和可见性可能与普通 DOM 不同"}
+    },
+    {
+      "id": "overlay-removal-click", "title": "等待遮罩移除后点击底层控件", "difficulty": "complex",
+      "tags": ["complex", "overlay", "hit-test", "pointer-events", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#overlay-action"},{"action":"get_text","selector":"#overlay-out","save_as":"answer","wait_for_text":"overlay:clicked:71"}],
+      "assertions": [{"output":"answer","equals":"overlay:clicked:71"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"overlay:clicked:71"},"expected_actions":["navigate","click","get_text"],"derivation":"覆盖按钮的高层遮罩在 260ms 后移除，随后点击应命中按钮。"},
+      "source": {"kind":"risk-probe","scenario":"overlay_hit_test","url":"https://github.com/lexmount/moli/tree/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol/src/domains/input","license":"Apache-2.0","coverage":"hit test 与 pointer interception","hypothesis":"可见但不可点击的控件可区分几何错误与命中测试错误"}
+    },
+    {
+      "id": "animated-stability-click", "title": "等待动画控件稳定后点击", "difficulty": "complex",
+      "tags": ["complex", "animation", "stability", "transform", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"#moving"},{"action":"get_text","selector":"#moving-out","save_as":"answer","wait_for_text":"animation:clicked:79"}],
+      "assertions": [{"output":"answer","equals":"animation:clicked:79"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"animation:clicked:79"},"expected_actions":["navigate","click","get_text"],"derivation":"按钮完成 300ms transform 动画后应满足稳定性并触发。"},
+      "source": {"kind":"adapted","scenario":"web_animation_stability","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2/web_platform/r3_fv_web_animations.json","license":"Apache-2.0","coverage":"动画与 actionability 稳定性","hypothesis":"低刷新或几何更新不及时会放大稳定性等待问题"}
+    },
+    {
+      "id": "intersection-virtual-action", "title": "滚动触发 IntersectionObserver 后点击虚拟控件", "difficulty": "complex",
+      "tags": ["complex", "intersection-observer", "virtualized", "scroll", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"scroll","direction":"down","amount":5200},{"action":"click","selector":"#io-action"},{"action":"get_text","selector":"#io-out","save_as":"answer","wait_for_text":"io:clicked:83"}],
+      "assertions": [{"output":"answer","equals":"io:clicked:83"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"io:clicked:83"},"expected_actions":["navigate","scroll","click","get_text"],"derivation":"滚动使 sentinel 进入视口，IntersectionObserver 动态创建唯一按钮。"},
+      "source": {"kind":"adapted","scenario":"intersection_observer_virtual_control","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/g_io.html","license":"Apache-2.0","coverage":"IntersectionObserver 与虚拟列表","hypothesis":"真实虚拟列表依赖布局观察，可能复现动态控件未准备好"}
+    },
+    {
+      "id": "adopted-stylesheet-shadow-action", "title": "点击 adoptedStyleSheets 控制的 Shadow DOM 控件", "difficulty": "complex",
+      "tags": ["complex", "adopted-style-sheets", "shadow-dom", "visibility", "exact-oracle"],
+      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html","save_as":"page"},{"action":"click","selector":"styled-action button"},{"action":"get_text","selector":"#styled-out","save_as":"answer","wait_for_text":"adopted:clicked:89"}],
+      "assertions": [{"output":"answer","equals":"adopted:clicked:89"}],
+      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"adopted:clicked:89"},"expected_actions":["navigate","click","get_text"],"derivation":"构造样式表应用于开放 shadow root；不支持时按钮保持隐藏，支持时可点击。"},
+      "source": {"kind":"adapted","scenario":"adopted_stylesheet_widget","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round4/widget_adopted.html","license":"Apache-2.0","coverage":"adoptedStyleSheets、Shadow DOM 与可见性","hypothesis":"样式能力缺口可能表现为控件存在但被判隐藏"}
     }
   ]
 }

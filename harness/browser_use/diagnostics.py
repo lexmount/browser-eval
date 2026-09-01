@@ -40,7 +40,47 @@ def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
         "rule": "异常文本 + 失败 BrowserTool 调用字段",
         "signature": "|".join((category, action, selector)),
         "evidence": str(failed.get("error") or error).strip()[:1200],
+        "actionability_probe": failed.get("actionability_probe"),
+        "actionability_probe_error": failed.get("actionability_probe_error"),
     }
+
+
+def _refine_observed_failure(
+    diagnosis: dict[str, Any], tags: list[str]
+) -> dict[str, Any]:
+    """Refine broad exceptions into deterministic observed mechanisms."""
+    probe = diagnosis.get("actionability_probe")
+    if isinstance(probe, dict) and probe.get("found") is True:
+        rect = probe.get("rect") or {}
+        style_visible = (
+            probe.get("display") != "none"
+            and probe.get("visibility") != "hidden"
+            and str(probe.get("opacity")) != "0"
+        )
+        if style_visible and rect.get("width") == 0 and rect.get("height") == 0:
+            diagnosis["category"] = "DOM 存在但布局矩形为零"
+            diagnosis["observed_mechanism"] = (
+                "节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，"
+                "因此 Playwright 无法执行 actionability 操作。"
+            )
+    if "native-control" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
+        diagnosis["category"] = "原生控件默认行为未生效"
+        diagnosis["observed_mechanism"] = (
+            "点击调用本身成功，但后续唯一状态值未改变；失败发生在原生默认行为或状态传播。"
+        )
+    elif "target" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
+        diagnosis["category"] = "锚点与 CSS 状态未生效"
+        diagnosis["observed_mechanism"] = (
+            "点击调用本身成功，但 hash/:target 驱动的唯一可见状态未出现。"
+        )
+    diagnosis["signature"] = "|".join(
+        (
+            str(diagnosis.get("category") or "其他"),
+            str(diagnosis.get("failed_action") or "unknown"),
+            str(diagnosis.get("selector") or ""),
+        )
+    )
+    return diagnosis
 
 
 def build_failure_groups(summary: dict[str, Any]) -> list[dict[str, Any]]:
@@ -49,8 +89,11 @@ def build_failure_groups(summary: dict[str, Any]) -> list[dict[str, Any]]:
     for task_id, task in (summary.get("by_task") or {}).items():
         for engine, failures in (task.get("failures") or {}).items():
             for failure in failures:
-                diagnosis = classify_failure(
-                    str(failure.get("error") or ""), failure.get("trace") or []
+                diagnosis = _refine_observed_failure(
+                    classify_failure(
+                        str(failure.get("error") or ""), failure.get("trace") or []
+                    ),
+                    [str(tag) for tag in task.get("tags") or []],
                 )
                 key = (str(task_id), str(engine), diagnosis["signature"])
                 bucket = grouped.setdefault(

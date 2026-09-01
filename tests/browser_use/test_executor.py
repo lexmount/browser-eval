@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from harness.browser_use.executor import execute_steps, judge_outputs, validate_outputs
 
+import pytest
+
 
 class FakePage:
     def __init__(self):
@@ -21,6 +23,9 @@ class FakePage:
 
     def title(self):
         return "Example"
+
+    def evaluate(self, script, argument=None):
+        return {"found": True, "rect": {"width": 0}}
 
     def locator(self, selector):
         page = self
@@ -112,3 +117,29 @@ def test_exact_ground_truth_judge_reports_expected_and_actual():
     assert validate_outputs({"answer": "unique-73"}, assertions) == []
     assert "exact mismatch" in validate_outputs({"answer": "near-73"}, assertions)[0]
     assert judge_outputs({"answer": "unique-73"}, assertions)[0]["passed"] is True
+
+
+def test_failed_click_records_actionability_probe_without_adding_a_step():
+    class FailingPage(FakePage):
+        def locator(self, selector):
+            class Locator:
+                @property
+                def first(self):
+                    return self
+
+                def click(self, **kwargs):
+                    raise TimeoutError("element is not visible")
+
+            return Locator()
+
+    trace = []
+    with pytest.raises(TimeoutError):
+        execute_steps(
+            FailingPage(),
+            ({"action": "click", "selector": "#dynamic"},),
+            trace=trace,
+        )
+
+    assert len(trace) == 1
+    assert trace[0]["status"] == "fail"
+    assert trace[0]["actionability_probe"]["rect"]["width"] == 0

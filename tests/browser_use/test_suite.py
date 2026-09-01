@@ -85,15 +85,15 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
         load_suite(path)
 
 
-def test_suite_has_fifteen_ground_truth_tasks_balanced_by_difficulty():
+def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     suite = load_suite("examples/browser_use/tasks.v4.json")
 
-    assert len(suite.tasks) == 15
-    assert len({task.task_id for task in suite.tasks}) == 15
+    assert len(suite.tasks) == 30
+    assert len({task.task_id for task in suite.tasks}) == 30
     assert all(call["action"] != "wait" for task in suite.tasks for call in task.tool_calls)
     counts = {
         difficulty: sum(task.complexity == difficulty for task in suite.tasks)
         for difficulty in ("simple", "medium", "complex")
     }
-    assert counts == {"simple": 5, "medium": 5, "complex": 5}
+    assert counts == {"simple": 10, "medium": 10, "complex": 10}
     assert all(task.ground_truth["oracle"] == "deterministic_exact" for task in suite.tasks)

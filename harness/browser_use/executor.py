@@ -11,6 +11,32 @@ def _body_text(page: Any, timeout: int, limit: int) -> str:
     return page.locator("body").first.inner_text(timeout=timeout)[:limit]
 
 
+def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
+    """Capture post-failure DOM/actionability evidence without affecting scoring."""
+    return page.evaluate(
+        """selector => {
+          const element = document.querySelector(selector);
+          if (!element) return {found: false};
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return {
+            found: true,
+            connected: element.isConnected,
+            disabled: Boolean(element.disabled),
+            ariaDisabled: element.getAttribute('aria-disabled'),
+            display: style.display,
+            visibility: style.visibility,
+            opacity: style.opacity,
+            pointerEvents: style.pointerEvents,
+            rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
+            clientRectCount: element.getClientRects().length,
+            text: (element.textContent || '').trim().slice(0, 500)
+          };
+        }""",
+        selector,
+    )
+
+
 def execute_steps(
     page: Any,
     tool_calls: Iterable[dict[str, Any]],
@@ -123,6 +149,14 @@ def execute_steps(
         except Exception as exc:
             record["status"] = "fail"
             record["error"] = f"{type(exc).__name__}: {exc}"
+            selector = call.get("selector")
+            if action in {"click", "fill", "select"} and isinstance(selector, str):
+                try:
+                    record["actionability_probe"] = _actionability_probe(page, selector)
+                except Exception as probe_exc:
+                    record["actionability_probe_error"] = (
+                        f"{type(probe_exc).__name__}: {probe_exc}"
+                    )
             raise
         finally:
             record["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Deterministic Interaction Space</title>
+  <style>
+    body { font-family: sans-serif; }
+    section { border-bottom: 1px solid #ddd; padding: 16px 0; }
+    #hash-panel { display: none; }
+    #hash-panel:target { display: block; }
+    #raf-input { display: none; }
+    #below-fold { margin-top: 1800px; }
+    #overlay-wrap { position: relative; width: 240px; height: 80px; }
+    #overlay { position: absolute; inset: 0; z-index: 2; background: rgba(0,0,0,.08); }
+    #moving { animation: settle 300ms linear 1; }
+    @keyframes settle { from { transform: translateX(120px); } to { transform: translateX(0); } }
+    #io-sentinel { margin-top: 1500px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Interaction Space Fixture</h1>
+
+  <section>
+    <input id="check-toggle" type="checkbox"><label for="check-toggle">enable checked state</label>
+    <div id="check-out">checked:false</div>
+  </section>
+  <section>
+    <details id="details-box"><summary>open native details</summary><div>details body</div></details>
+    <div id="details-out">details:closed</div>
+  </section>
+  <section>
+    <select id="dynamic-choice"><option value="alpha">alpha</option></select>
+    <div id="dynamic-choice-out">choice:alpha</div>
+  </section>
+  <section>
+    <input id="auto-input" autofocus><div id="auto-out">auto:pending</div>
+  </section>
+  <section>
+    <a id="hash-link" href="#hash-panel">open target panel</a>
+    <div id="hash-panel">target panel</div><div id="hash-out">target:hidden</div>
+  </section>
+
+  <section>
+    <input id="raf-input"><div id="raf-out">raf:pending</div>
+  </section>
+  <section>
+    <button id="enabled-late" disabled>late enabled</button><div id="enabled-out">enabled:pending</div>
+  </section>
+  <section id="replacement"><button id="replace-action">old action</button><div id="replace-out">replace:pending</div></section>
+  <section>
+    <button id="below-fold">below fold action</button><div id="below-out">below:pending</div>
+  </section>
+  <section>
+    <x-counter id="shadow-counter"></x-counter><div id="shadow-out">shadow:pending</div>
+  </section>
+
+  <section>
+    <dialog id="native-dialog"><button id="dialog-confirm">confirm dialog</button></dialog>
+    <div id="dialog-out">dialog:pending</div>
+  </section>
+  <section>
+    <div id="overlay-wrap"><div id="overlay"></div><button id="overlay-action">covered action</button></div>
+    <div id="overlay-out">overlay:pending</div>
+  </section>
+  <section>
+    <button id="moving">moving action</button><div id="moving-out">animation:pending</div>
+  </section>
+  <section>
+    <div id="io-sentinel">intersection sentinel</div><div id="io-mount"></div><div id="io-out">io:pending</div>
+  </section>
+  <section>
+    <styled-action id="styled-action"></styled-action><div id="styled-out">adopted:pending</div>
+  </section>
+
+  <script>
+    const checkToggle = document.getElementById('check-toggle');
+    checkToggle.onchange = () => document.getElementById('check-out').textContent = `checked:${checkToggle.checked}`;
+
+    const detailsBox = document.getElementById('details-box');
+    detailsBox.ontoggle = () => document.getElementById('details-out').textContent = detailsBox.open ? 'details:open:73' : 'details:closed';
+
+    const dynamicChoice = document.getElementById('dynamic-choice');
+    dynamicChoice.onchange = () => document.getElementById('dynamic-choice-out').textContent = `choice:${dynamicChoice.value}`;
+    setTimeout(() => {
+      const option = document.createElement('option'); option.value = 'gamma'; option.textContent = 'gamma'; dynamicChoice.appendChild(option);
+    }, 120);
+
+    const autoInput = document.getElementById('auto-input');
+    autoInput.onkeydown = event => {
+      if (event.key === 'Enter') document.getElementById('auto-out').textContent = `auto:${autoInput.value}:41`;
+    };
+
+    addEventListener('hashchange', () => requestAnimationFrame(() => {
+      const panel = document.getElementById('hash-panel');
+      const visible = getComputedStyle(panel).display !== 'none' && panel.getClientRects().length > 0;
+      document.getElementById('hash-out').textContent = visible ? 'target:visible:29' : 'target:hidden';
+    }));
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const rafInput = document.getElementById('raf-input'); rafInput.style.display = 'block';
+      rafInput.oninput = () => document.getElementById('raf-out').textContent = `raf:${rafInput.value}:17`;
+    }));
+
+    setTimeout(() => {
+      const late = document.getElementById('enabled-late'); late.disabled = false;
+      late.onclick = () => document.getElementById('enabled-out').textContent = 'enabled:clicked:31';
+    }, 180);
+
+    document.getElementById('replace-action').onclick = () => {
+      const fresh = document.createElement('button'); fresh.id = 'replace-action'; fresh.textContent = 'new action';
+      fresh.onclick = () => document.getElementById('replace-out').textContent = 'replace:new:47';
+      document.getElementById('replace-action').replaceWith(fresh);
+    };
+
+    document.getElementById('below-fold').onclick = () => document.getElementById('below-out').textContent = 'below:clicked:59';
+
+    customElements.define('x-counter', class extends HTMLElement {
+      constructor() {
+        super();
+        const root = this.attachShadow({mode: 'open'}); root.innerHTML = '<button id="shadow-button">shadow action</button>';
+        root.querySelector('button').onclick = () => document.getElementById('shadow-out').textContent = 'shadow:clicked:61';
+      }
+    });
+
+    if (new URLSearchParams(location.search).get('scenario') === 'modal') {
+      setTimeout(() => document.getElementById('native-dialog').showModal(), 140);
+    }
+    document.getElementById('dialog-confirm').onclick = () => {
+      document.getElementById('native-dialog').close(); document.getElementById('dialog-out').textContent = 'dialog:confirmed:67';
+    };
+
+    document.getElementById('overlay-action').onclick = () => document.getElementById('overlay-out').textContent = 'overlay:clicked:71';
+    setTimeout(() => document.getElementById('overlay').remove(), 260);
+
+    document.getElementById('moving').onclick = () => document.getElementById('moving-out').textContent = 'animation:clicked:79';
+
+    const io = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting) || document.getElementById('io-action')) return;
+      const button = document.createElement('button'); button.id = 'io-action'; button.textContent = 'intersection action';
+      button.onclick = () => document.getElementById('io-out').textContent = 'io:clicked:83';
+      document.getElementById('io-mount').appendChild(button);
+    });
+    io.observe(document.getElementById('io-sentinel'));
+
+    customElements.define('styled-action', class extends HTMLElement {
+      constructor() {
+        super();
+        const root = this.attachShadow({mode: 'open'}); root.innerHTML = '<button id="adopted-button">styled action</button>';
+        try {
+          const sheet = new CSSStyleSheet(); sheet.replaceSync('button { display: inline-block; }'); root.adoptedStyleSheets = [sheet];
+        } catch (error) {
+          root.querySelector('button').style.display = 'none';
+        }
+        root.querySelector('button').onclick = () => document.getElementById('styled-out').textContent = 'adopted:clicked:89';
+      }
+    });
+  </script>
+</body>
+</html>
