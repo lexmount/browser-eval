@@ -470,7 +470,7 @@ def _analysis_page(summary: dict[str, Any]) -> str:
         task_ratio = m50 / c50 if isinstance(c50, (int, float)) and c50 and isinstance(m50, (int, float)) else None
         task_rows.append(
             [
-                TASK_META.get(str(task_id), (str(task_id), ""))[0],
+                str(task.get("title") or task_id),
                 _stat(c, "p50"),
                 _stat(m, "p50"),
                 _show(task_ratio, suffix="×"),
