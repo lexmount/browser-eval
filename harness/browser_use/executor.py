@@ -50,11 +50,7 @@ def execute_steps(
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
         default_timeout = (
-            30_000
-            if action == "navigate"
-            else 10_000
-            if action in {"back", "forward"}
-            else 5_000
+            30_000 if action == "navigate" else 10_000 if action in {"back", "forward"} else 5_000
         )
         timeout = int(call.get("timeout_ms", default_timeout))
         started = time.perf_counter()
@@ -117,7 +113,24 @@ def execute_steps(
                         )
                 else:
                     observation = locator.text_content(timeout=timeout) or ""
+                if call.get("strip"):
+                    observation = observation.strip()
                 observation = observation[: int(call.get("max_chars", 40_000))]
+            elif action == "get_attribute":
+                value = page.locator(call["selector"]).first.get_attribute(
+                    str(call["name"]), timeout=timeout
+                )
+                observation = "" if value is None else str(value)
+            elif action == "get_property":
+                value = page.locator(call["selector"]).first.evaluate(
+                    "(element, name) => element[name]", str(call["name"]), timeout=timeout
+                )
+                if isinstance(value, bool):
+                    observation = "true" if value else "false"
+                elif value is None:
+                    observation = ""
+                else:
+                    observation = str(value)
             elif action == "snapshot":
                 selector = str(call.get("selector") or "body")
                 observation = page.locator(selector).first.inner_text(timeout=timeout)
@@ -154,9 +167,7 @@ def execute_steps(
                 try:
                     record["actionability_probe"] = _actionability_probe(page, selector)
                 except Exception as probe_exc:
-                    record["actionability_probe_error"] = (
-                        f"{type(probe_exc).__name__}: {probe_exc}"
-                    )
+                    record["actionability_probe_error"] = f"{type(probe_exc).__name__}: {probe_exc}"
             raise
         finally:
             record["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)

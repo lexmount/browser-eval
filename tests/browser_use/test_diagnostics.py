@@ -60,3 +60,50 @@ def test_failure_groups_deduplicate_primary_and_retry_but_preserve_attempts():
         {"attempt": 1, "is_retry": False},
         {"attempt": 2, "is_retry": True},
     ]
+
+
+def test_navigation_timeout_is_not_misclassified_as_rendering_timeout():
+    trace = [
+        {
+            "index": 1,
+            "action": "navigate",
+            "status": "fail",
+            "arguments": {"url": "https://example.com/"},
+            "error": "TimeoutError: page.goto exceeded 30000ms",
+        }
+    ]
+
+    diagnosis = classify_failure(trace[0]["error"], trace)
+
+    assert diagnosis["category"] == "导航/网络"
+
+
+def test_capability_tags_do_not_override_navigation_failure_category():
+    failure = {
+        "error": "TimeoutError: page.goto exceeded 30000ms",
+        "trace": [
+            {
+                "index": 1,
+                "action": "navigate",
+                "status": "fail",
+                "arguments": {"url": "https://example.com/"},
+                "error": "TimeoutError: page.goto exceeded 30000ms",
+            }
+        ],
+        "attempt": 1,
+        "is_retry": False,
+    }
+    summary = {
+        "by_task": {
+            "public-control": {
+                "title": "公网控件",
+                "complexity": "medium",
+                "tags": ["native-control", "target"],
+                "failures": {"moli": [failure]},
+            }
+        }
+    }
+
+    groups = build_failure_groups(summary)
+
+    assert groups[0]["category"] == "导航/网络"

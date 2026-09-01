@@ -20,14 +20,14 @@ def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
     arguments = failed.get("arguments") or {}
     selector = str(arguments.get("selector") or "")
     text = f"{failed.get('error', '')}\n{error}".lower()
-    if "timeout" in text and ("visible" in text or action == "click"):
+    if action in {"navigate", "back", "forward"} or "net::" in text:
+        category = "导航/网络"
+    elif "timeout" in text and ("visible" in text or action == "click"):
         category = "交互目标超时/不可见"
     elif "timeout" in text:
         category = "超时"
     elif "exact mismatch" in text:
         category = "结果不匹配"
-    elif "net::" in text or action in {"navigate", "back", "forward"}:
-        category = "导航/网络"
     elif "selector" in text or "locator" in text:
         category = "定位器"
     else:
@@ -45,9 +45,7 @@ def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _refine_observed_failure(
-    diagnosis: dict[str, Any], tags: list[str]
-) -> dict[str, Any]:
+def _refine_observed_failure(diagnosis: dict[str, Any], tags: list[str]) -> dict[str, Any]:
     """Refine broad exceptions into deterministic observed mechanisms."""
     probe = diagnosis.get("actionability_probe")
     if isinstance(probe, dict) and probe.get("found") is True:
@@ -63,13 +61,16 @@ def _refine_observed_failure(
                 "节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，"
                 "因此 Playwright 无法执行 actionability 操作。"
             )
-    if "native-control" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
+    state_mismatch = diagnosis.get("category") == "结果不匹配" and diagnosis.get(
+        "failed_action"
+    ) not in {"navigate", "back", "forward"}
+    if "native-control" in tags and state_mismatch:
         diagnosis["category"] = "原生控件默认行为未生效"
         diagnosis["observed_mechanism"] = (
             "点击调用返回成功，但后续读取到的唯一状态值未改变；现有证据不能区分"
             "事件未生效、状态传播延迟、读取陈旧或测试页面因素。"
         )
-    elif "target" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
+    elif "target" in tags and state_mismatch:
         diagnosis["category"] = "锚点与 CSS 状态未生效"
         diagnosis["observed_mechanism"] = (
             "点击调用返回成功，但后续读取时 hash/:target 驱动的唯一可见状态未出现；"
@@ -92,9 +93,7 @@ def build_failure_groups(summary: dict[str, Any]) -> list[dict[str, Any]]:
         for engine, failures in (task.get("failures") or {}).items():
             for failure in failures:
                 diagnosis = _refine_observed_failure(
-                    classify_failure(
-                        str(failure.get("error") or ""), failure.get("trace") or []
-                    ),
+                    classify_failure(str(failure.get("error") or ""), failure.get("trace") or []),
                     [str(tag) for tag in task.get("tags") or []],
                 )
                 key = (str(task_id), str(engine), diagnosis["signature"])
@@ -237,9 +236,7 @@ def diagnose_summary(
     }
     if use_llm:
         key = api_key or os.environ.get("OPENAI_API_KEY")
-        base = api_base or os.environ.get("OPENAI_BASE_URL") or os.environ.get(
-            "OPENAI_API_BASE"
-        )
+        base = api_base or os.environ.get("OPENAI_BASE_URL") or os.environ.get("OPENAI_API_BASE")
         if not key or not base:
             raise RuntimeError("OPENAI_API_KEY and OPENAI_BASE_URL are required")
         result["llm"] = add_llm_diagnoses(

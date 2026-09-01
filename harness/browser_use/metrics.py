@@ -295,14 +295,10 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             result_final_passes += int(result_passed)
             combined_final_passes += int(combined_passed)
             result_recovered += int(
-                bool(attempts)
-                and not _passed(attempts[0], "result")
-                and result_passed
+                bool(attempts) and not _passed(attempts[0], "result") and result_passed
             )
             combined_recovered += int(
-                bool(attempts)
-                and not _passed(attempts[0], "combined")
-                and combined_passed
+                bool(attempts) and not _passed(attempts[0], "combined") and combined_passed
             )
         functional[engine] = {
             "tasks": len(task_ids),
@@ -313,9 +309,7 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "result_first_pass_rate": result_first_passes / len(task_ids) if task_ids else None,
             "result_recovered": result_recovered,
             "result_final_passes": result_final_passes,
-            "result_final_pass_rate": (
-                result_final_passes / len(task_ids) if task_ids else None
-            ),
+            "result_final_pass_rate": (result_final_passes / len(task_ids) if task_ids else None),
             "combined_first_passes": combined_first_passes,
             "combined_first_pass_rate": (
                 combined_first_passes / len(task_ids) if task_ids else None
@@ -432,7 +426,9 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
                     )
             paired_ratios[name] = {
                 **_metric(ratios),
-                "values": sorted(details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))),
+                "values": sorted(
+                    details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))
+                ),
             }
     return {
         "functional": functional,

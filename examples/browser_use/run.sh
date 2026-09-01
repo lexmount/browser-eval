@@ -62,6 +62,7 @@ fi
   --suite "${ROOT}/examples/browser_use/tasks.v4.json" \
   --output "${OUTPUT}" \
   --reports "${REPORTS}" \
+  --ground-truth-evidence "${ROOT}/examples/browser_use/ground_truth_validation.json" \
   --failure-retries "${FAILURE_RETRIES}" \
   --sample-interval-ms "${SAMPLE_MS}" \
   --settle-ms "${SETTLE_MS}" \

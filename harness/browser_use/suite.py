@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,8 @@ SUPPORTED_ACTIONS = frozenset(
         "select",
         "press",
         "get_text",
+        "get_attribute",
+        "get_property",
         "snapshot",
         "back",
         "forward",
@@ -58,6 +61,31 @@ class TaskSuite:
     tasks: tuple[BrowserTask, ...]
 
 
+def validate_ground_truth_evidence(
+    suite_path: str | Path,
+    suite: TaskSuite,
+    evidence_path: str | Path,
+) -> dict[str, Any]:
+    """Bind a reviewed ground-truth record to the exact suite before execution."""
+    path = Path(suite_path)
+    evidence = json.loads(Path(evidence_path).read_text(encoding="utf-8"))
+    suite_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+    if evidence.get("dataset_sha256") != suite_sha256:
+        raise ValueError("ground-truth evidence does not match the suite sha256")
+    expected_by_task = {task.task_id: task.ground_truth["expected_outputs"] for task in suite.tasks}
+    observed_by_task = {str(row.get("task_id")): row for row in evidence.get("results") or []}
+    if set(observed_by_task) != set(expected_by_task):
+        raise ValueError("ground-truth evidence task set does not match the suite")
+    for task_id, expected in expected_by_task.items():
+        row = observed_by_task[task_id]
+        if row.get("status") != "pass" or row.get("observed") != expected:
+            raise ValueError(f"ground-truth evidence mismatch: {task_id}")
+    replay = evidence.get("automatic_browser_replay") or {}
+    if replay.get("status") != "pass" or replay.get("passed") != len(suite.tasks):
+        raise ValueError("ground-truth browser replay is incomplete")
+    return evidence
+
+
 def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
     if not isinstance(step, dict):
         raise ValueError(f"{task_id}: step {index} must be an object")
@@ -74,7 +102,17 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         raise ValueError(f"{task_id}: {action} call {index} requires selector or ref")
     if action == "get_text" and not str(step.get("selector") or ""):
         raise ValueError(f"{task_id}: get_text call {index} requires selector")
-    if action in {"navigate", "snapshot", "get_text"} and not str(step.get("save_as") or ""):
+    if action in {"get_attribute", "get_property"} and not (
+        str(step.get("selector") or "") and str(step.get("name") or "")
+    ):
+        raise ValueError(f"{task_id}: {action} call {index} requires selector and name")
+    if action in {
+        "navigate",
+        "snapshot",
+        "get_text",
+        "get_attribute",
+        "get_property",
+    } and not str(step.get("save_as") or ""):
         raise ValueError(f"{task_id}: {action} call {index} requires save_as")
     return dict(step)
 

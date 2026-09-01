@@ -1,358 +1,1987 @@
 {
   "schema": "lex_browser_use_tasks/3",
-  "ground_truth_annotation": {
-    "policy": "fixture_derivation_then_codex_browser_replay_then_human_signoff",
-    "browser_replay_evidence": "ground_truth_validation.json",
-    "browser_replay_status": "passed_30_of_30",
-    "human_review_status": "pending",
-    "release_rule": "Codex 浏览器复核与人工签字必须分别记录；不得把自动复核冒充人工复核。"
-  },
   "tasks": [
     {
-      "id": "core-title-exact", "title": "读取固定标题", "difficulty": "simple",
-      "tags": ["simple", "observation", "exact-oracle"],
-      "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "get_text", "selector": "#title", "save_as": "answer"}
+      "id": "example-heading",
+      "title": "读取 Example Domain 标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "observation",
+        "exact-oracle"
       ],
-      "assertions": [{"output": "answer", "equals": "Lexmount Deterministic Browser Fixture"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "Lexmount Deterministic Browser Fixture"}, "expected_actions": ["navigate", "get_text"], "derivation": "固定版本 fixture 的唯一 h1 文本；逐字相等。"},
-      "source": {"kind": "adapted", "scenario": "nav_title_read", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_title_read.scenario.json", "license": "Apache-2.0"}
-    },
-    {
-      "id": "counter-double-click", "title": "连续点击两次并读取计数", "difficulty": "simple",
-      "tags": ["simple", "click", "state-mutation", "exact-oracle"],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "click", "selector": "#inc"}, {"action": "click", "selector": "#inc"},
-        {"action": "get_text", "selector": "#count", "save_as": "answer", "wait_for_text": "2"}
+        {
+          "action": "navigate",
+          "url": "https://example.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "answer", "equals": "2"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "2"}, "expected_actions": ["navigate", "click", "click", "get_text"], "derivation": "初始计数为 0，每次 click 同步加 1。"},
-      "source": {"kind": "adapted", "scenario": "dyn_counter_clicks", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_counter_clicks.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Example Domain"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Example Domain"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "IANA 保留示例域名首页的唯一 h1。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://example.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "fill-echo-exact", "title": "填写文本并读取同步回显", "difficulty": "simple",
-      "tags": ["simple", "fill", "form", "exact-oracle"],
+      "id": "pypi-requests-pinned",
+      "title": "读取固定版本 requests 包标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "package-index",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "fill", "selector": "#echo-in", "text": "moli-73"},
-        {"action": "get_text", "selector": "#echo-out", "save_as": "answer", "wait_for_text": "echo:moli-73"}
+        {
+          "action": "navigate",
+          "url": "https://pypi.org/project/requests/2.32.5/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".project-header__name",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "answer", "equals": "echo:moli-73"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "echo:moli-73"}, "expected_actions": ["navigate", "fill", "get_text"], "derivation": "input 事件按 echo:{输入值} 同步生成唯一结果。"},
-      "source": {"kind": "adapted", "scenario": "form_fill_readback", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_fill_readback.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "requests 2.32.5"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "requests 2.32.5"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "固定版本 PyPI 页面项目标题。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://pypi.org/project/requests/2.32.5/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "select-option-exact", "title": "选择下拉项并读取派生值", "difficulty": "simple",
-      "tags": ["simple", "select", "form", "exact-oracle"],
+      "id": "arxiv-transformer-title",
+      "title": "读取 Transformer 论文标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "research",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "select", "selector": "#choice", "value": "gamma"},
-        {"action": "get_text", "selector": "#choice-out", "save_as": "answer", "wait_for_text": "choice:gamma"}
+        {
+          "action": "navigate",
+          "url": "https://arxiv.org/abs/1706.03762",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1.title",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "answer", "equals": "choice:gamma"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "choice:gamma"}, "expected_actions": ["navigate", "select", "get_text"], "derivation": "change 事件输出 choice:{value}。"},
-      "source": {"kind": "adapted", "scenario": "form_select_option", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_select_option.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Title:Attention Is All You Need"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Title:Attention Is All You Need"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "固定 arXiv 论文编号页面标题。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://arxiv.org/abs/1706.03762",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "press-enter-exact", "title": "填写后按 Enter 触发结果", "difficulty": "simple",
-      "tags": ["simple", "fill", "keyboard", "exact-oracle"],
+      "id": "python-tutorial-heading",
+      "title": "读取 Python 教程标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "documentation",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "fill", "selector": "#enter-in", "text": "query-19"},
-        {"action": "press", "key": "Enter"},
-        {"action": "get_text", "selector": "#enter-out", "save_as": "answer", "wait_for_text": "entered:query-19:42"}
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/index.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "answer", "equals": "entered:query-19:42"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "entered:query-19:42"}, "expected_actions": ["navigate", "fill", "press", "get_text"], "derivation": "Enter handler 拼接输入和固定计算结果 42。"},
-      "source": {"kind": "adapted", "scenario": "form_press_enter_handler", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_press_enter_handler.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "The Python Tutorial¶"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "The Python Tutorial¶"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "Python 官方教程索引页唯一 h1。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://docs.python.org/3/tutorial/index.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
-
     {
-      "id": "dynamic-two-page-final", "title": "跨两次异步分页读取最终数据", "difficulty": "medium",
-      "tags": ["medium", "dynamic", "pagination", "exact-oracle"],
+      "id": "rfc9110-number",
+      "title": "读取 RFC 9110 编号",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "standard",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/dynamic.html", "save_as": "page"},
-        {"action": "get_text", "selector": "#page", "save_as": "initial"},
-        {"action": "click", "selector": "#next"},
-        {"action": "get_text", "selector": "#page", "save_as": "middle", "wait_for_text": "page:2:middle-31"},
-        {"action": "click", "selector": "#next"},
-        {"action": "get_text", "selector": "#page", "save_as": "answer", "wait_for_text": "page:3:final-73"}
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#rfcnum",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "initial", "equals": "page:1:start"}, {"output": "middle", "equals": "page:2:middle-31"}, {"output": "answer", "equals": "page:3:final-73"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"initial": "page:1:start", "middle": "page:2:middle-31", "answer": "page:3:final-73"}, "expected_actions": ["navigate", "get_text", "click", "get_text", "click", "get_text"], "derivation": "两次点击分别触发固定延时状态 page:2 和 page:3。"},
-      "source": {"kind": "adapted", "scenario": "dyn_paging_final", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_paging_final.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "RFC 9110"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "RFC 9110"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "RFC Editor 固定标准页编号。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "history-back-forward", "title": "跨页后退与前进恢复", "difficulty": "medium",
-      "tags": ["medium", "navigation", "history", "exact-oracle"],
+      "id": "mdn-fetch-heading",
+      "title": "读取 MDN Fetch API 标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "documentation",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "get_text", "selector": "#title", "save_as": "first"},
-        {"action": "click", "selector": "#page-two"},
-        {"action": "get_text", "selector": "#title", "save_as": "second"},
-        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_value"},
-        {"action": "forward"}, {"action": "get_text", "selector": "#title", "save_as": "answer"}
+        {
+          "action": "navigate",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "first", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "second", "equals": "History Page Two"}, {"output": "back_value", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "answer", "equals": "History Page Two"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"first": "Lexmount Deterministic Browser Fixture", "second": "History Page Two", "back_value": "Lexmount Deterministic Browser Fixture", "answer": "History Page Two"}, "expected_actions": ["navigate", "get_text", "click", "get_text", "back", "get_text", "forward", "get_text"], "derivation": "固定两页文档的 h1 与浏览历史一一对应。"},
-      "source": {"kind": "adapted", "scenario": "nav_back_restores", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_back_restores.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Fetch API"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Fetch API"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "MDN Fetch API 文档唯一 h1。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "multi-field-form-receipt", "title": "填写多字段并生成唯一回执", "difficulty": "medium",
-      "tags": ["medium", "form", "multi-field", "exact-oracle"],
+      "id": "github-moli-readme-heading",
+      "title": "读取 Moli README 标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "repository",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/forms.html", "save_as": "page"},
-        {"action": "fill", "selector": "#first", "text": "Lex"}, {"action": "fill", "selector": "#last", "text": "Mount"},
-        {"action": "select", "selector": "#region", "value": "eu"},
-        {"action": "fill", "selector": "#note", "text": "provider-31"}, {"action": "click", "selector": "#submit"},
-        {"action": "get_text", "selector": "#result", "save_as": "answer", "wait_for_text": "receipt:Lex|Mount|eu|provider-31|73"}
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "answer", "equals": "receipt:Lex|Mount|eu|provider-31|73"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "receipt:Lex|Mount|eu|provider-31|73"}, "expected_actions": ["navigate", "fill", "fill", "select", "fill", "click", "get_text"], "derivation": "回执按四个字段和固定校验码 73 拼接。"},
-      "source": {"kind": "adapted", "scenario": "form_submit_roundtrip", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_submit_roundtrip.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Moli"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Moli"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "Moli 仓库 README 的一级标题。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://github.com/lexmount/moli",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "catalog-filter-detail", "title": "筛选目录并打开唯一详情", "difficulty": "medium",
-      "tags": ["medium", "catalog", "filter", "detail", "exact-oracle"],
+      "id": "github-lexbench-readme-heading",
+      "title": "读取 Lexbench README 标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "repository",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/catalog.html", "save_as": "page"},
-        {"action": "fill", "selector": "#filter", "text": "birch"},
-        {"action": "get_text", "selector": "#items", "save_as": "filtered", "wait_for_text": "birch:£17.00 details"},
-        {"action": "click", "selector": "#items button"},
-        {"action": "get_text", "selector": "#detail", "save_as": "answer", "wait_for_text": "detail:birch|£17.00|B-202"},
-        {"action": "fill", "selector": "#filter", "text": ""},
-        {"action": "get_text", "selector": "#page-label", "save_as": "page_label"}
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/Lexbench-Headless-Browser",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "filtered", "equals": "birch:£17.00 details"}, {"output": "answer", "equals": "detail:birch|£17.00|B-202"}, {"output": "page_label", "equals": "catalogue:page:1"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"filtered": "birch:£17.00 details", "answer": "detail:birch|£17.00|B-202", "page_label": "catalogue:page:1"}, "expected_actions": ["navigate", "fill", "get_text", "click", "get_text", "fill", "get_text"], "derivation": "固定目录中 birch 唯一，其价格和 SKU 固定。"},
-      "source": {"kind": "suite-original", "scenario": "catalog_filter_detail", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Lexbench-Headless-Browser"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Lexbench-Headless-Browser"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "Lexbench 仓库 README 的一级标题。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://github.com/lexmount/Lexbench-Headless-Browser",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "dynamic-settle-and-late-click", "title": "等待最终阶段并点击延迟启用按钮", "difficulty": "medium",
-      "tags": ["medium", "dynamic", "waiting", "click", "exact-oracle"],
+      "id": "quotes-first-author",
+      "title": "读取首页首位名言作者",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "catalogue",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/dynamic.html", "save_as": "page"},
-        {"action": "get_text", "selector": "#phase", "save_as": "phase", "wait_for_text": "phase:2:W7"},
-        {"action": "get_text", "selector": "#list", "save_as": "list", "wait_for_text": "alpha-11beta-23gamma-47"},
-        {"action": "click", "selector": "#late"},
-        {"action": "get_text", "selector": "#late-out", "save_as": "answer", "wait_for_text": "late:clicked:33"},
-        {"action": "snapshot", "selector": "body", "save_as": "final_state"}
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "phase", "equals": "phase:2:W7"}, {"output": "list", "equals": "alpha-11beta-23gamma-47"}, {"output": "answer", "equals": "late:clicked:33"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"phase": "phase:2:W7", "list": "alpha-11beta-23gamma-47", "answer": "late:clicked:33"}, "expected_actions": ["navigate", "get_text", "get_text", "click", "get_text", "snapshot"], "derivation": "三个计时器固定生成最终阶段、三项列表和按钮结果。"},
-      "source": {"kind": "adapted", "scenario": "wait_two_phase_settle", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/wait_two_phase_settle.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Albert Einstein"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Albert Einstein"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "Quotes to Scrape 首页第一条记录作者。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://quotes.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
-
     {
-      "id": "app-login-filter-checkout", "title": "登录、筛选、加入两件商品并结算", "difficulty": "complex",
-      "tags": ["complex", "multi-step-flow", "cart", "checkout", "exact-oracle"],
+      "id": "books-catalogue-heading",
+      "title": "读取图书目录标题",
+      "difficulty": "simple",
+      "tags": [
+        "simple",
+        "public-web",
+        "catalogue",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/app.html", "save_as": "page"},
-        {"action": "fill", "selector": "#user", "text": "eve-7"}, {"action": "click", "selector": "#login"},
-        {"action": "get_text", "selector": "#greet", "save_as": "greeting", "wait_for_text": "hi:eve-7"},
-        {"action": "fill", "selector": "#filter", "text": "widget"},
-        {"action": "get_text", "selector": "#filter-count", "save_as": "filtered", "wait_for_text": "widget:1"},
-        {"action": "click", "selector": "#add-widget-a"}, {"action": "fill", "selector": "#filter", "text": "gizmo"},
-        {"action": "click", "selector": "#add-gizmo-x"}, {"action": "get_text", "selector": "#cart-total", "save_as": "total", "wait_for_text": "total:14"},
-        {"action": "click", "selector": "#checkout"}, {"action": "get_text", "selector": "#receipt", "save_as": "answer", "wait_for_text": "order:14:2:LX73"}
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".page-header h1",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "greeting", "equals": "hi:eve-7"}, {"output": "filtered", "equals": "widget:1"}, {"output": "total", "equals": "total:14"}, {"output": "answer", "equals": "order:14:2:LX73"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"greeting": "hi:eve-7", "filtered": "widget:1", "total": "total:14", "answer": "order:14:2:LX73"}, "expected_actions": ["navigate", "fill", "click", "get_text", "fill", "get_text", "click", "fill", "click", "get_text", "click", "get_text"], "derivation": "5 + 9 = 14，购物车两项，回执格式固定。"},
-      "source": {"kind": "adapted", "scenario": "app_full_flow_aggregate", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/app_full_flow_aggregate.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "All products"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "All products"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "Books to Scrape 根目录标题。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://books.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "app-quantity-and-logout", "title": "同商品累加、结算并退出", "difficulty": "complex",
-      "tags": ["complex", "multi-step-flow", "quantity", "logout", "exact-oracle"],
+      "id": "selenium-form-submit",
+      "title": "填写文本并提交公开表单",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "form",
+        "fill",
+        "submit",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/app.html", "save_as": "page"},
-        {"action": "fill", "selector": "#user", "text": "kai-11"}, {"action": "click", "selector": "#login"},
-        {"action": "fill", "selector": "#filter", "text": "adapter"},
-        {"action": "get_text", "selector": "#filter-count", "save_as": "filtered", "wait_for_text": "adapter:1"},
-        {"action": "click", "selector": "#add-adapter-z"}, {"action": "click", "selector": "#add-adapter-z"},
-        {"action": "get_text", "selector": "#cart-count", "save_as": "count", "wait_for_text": "2"},
-        {"action": "get_text", "selector": "#cart-total", "save_as": "total", "wait_for_text": "total:26"},
-        {"action": "click", "selector": "#checkout"}, {"action": "get_text", "selector": "#receipt", "save_as": "receipt", "wait_for_text": "order:26:2:LX73"},
-        {"action": "click", "selector": "#logout"}, {"action": "get_text", "selector": "#greet", "save_as": "answer", "wait_for_text": "logged-out"}
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='my-text']",
+          "text": "Lexmount public eval"
+        },
+        {
+          "action": "click",
+          "selector": "button"
+        },
+        {
+          "action": "get_text",
+          "selector": "#message",
+          "save_as": "receipt",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "filtered", "equals": "adapter:1"}, {"output": "count", "equals": "2"}, {"output": "total", "equals": "total:26"}, {"output": "receipt", "equals": "order:26:2:LX73"}, {"output": "answer", "equals": "logged-out"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"filtered": "adapter:1", "count": "2", "total": "total:26", "receipt": "order:26:2:LX73", "answer": "logged-out"}, "expected_actions": ["navigate", "fill", "click", "fill", "get_text", "click", "click", "get_text", "get_text", "click", "get_text", "click", "get_text"], "derivation": "13 × 2 = 26；退出状态固定。"},
-      "source": {"kind": "adapted", "scenario": "app_qty_accumulates", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/app_qty_accumulates.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "receipt",
+          "equals": "Received!"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "receipt": "Received!"
+        },
+        "expected_actions": [
+          "navigate",
+          "fill",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Selenium 官方公开表单提交后的固定回执。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "catalog-three-page-inspection", "title": "连续三页目录并检查末页商品", "difficulty": "complex",
-      "tags": ["complex", "pagination", "catalog", "detail", "exact-oracle"],
+      "id": "selenium-select-option",
+      "title": "选择公开下拉选项并读取选中项",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "form",
+        "select",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/catalog.html", "save_as": "page"},
-        {"action": "get_text", "selector": "#page-label", "save_as": "page1"}, {"action": "snapshot", "selector": "#items", "save_as": "items1"},
-        {"action": "click", "selector": "#next"}, {"action": "get_text", "selector": "#page-label", "save_as": "page2", "wait_for_text": "catalogue:page:2"},
-        {"action": "snapshot", "selector": "#items", "save_as": "items2"}, {"action": "click", "selector": "#next"},
-        {"action": "get_text", "selector": "#page-label", "save_as": "page3", "wait_for_text": "catalogue:page:3"},
-        {"action": "fill", "selector": "#filter", "text": "hazel"},
-        {"action": "get_text", "selector": "#items", "save_as": "filtered", "wait_for_text": "hazel:£43.00 details"},
-        {"action": "click", "selector": "#items button"},
-        {"action": "get_text", "selector": "#detail", "save_as": "answer", "wait_for_text": "detail:hazel|£43.00|H-808"}
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "select",
+          "selector": "select[name='my-select']",
+          "value": "2"
+        },
+        {
+          "action": "get_text",
+          "selector": "select[name='my-select'] option:checked",
+          "save_as": "answer",
+          "strip": true
+        }
       ],
-      "assertions": [{"output": "page1", "equals": "catalogue:page:1"}, {"output": "page2", "equals": "catalogue:page:2"}, {"output": "page3", "equals": "catalogue:page:3"}, {"output": "filtered", "equals": "hazel:£43.00 details"}, {"output": "answer", "equals": "detail:hazel|£43.00|H-808"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"page1": "catalogue:page:1", "page2": "catalogue:page:2", "page3": "catalogue:page:3", "filtered": "hazel:£43.00 details", "answer": "detail:hazel|£43.00|H-808"}, "expected_actions": ["navigate", "get_text", "snapshot", "click", "get_text", "snapshot", "click", "get_text", "fill", "get_text", "click", "get_text"], "derivation": "第三页 hazel 唯一，价格和 SKU 固定。"},
-      "source": {"kind": "adapted", "scenario": "dyn_paging_final", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_paging_final.scenario.json", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Two"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Two"
+        },
+        "expected_actions": [
+          "navigate",
+          "select",
+          "get_text"
+        ],
+        "derivation": "Selenium 官方表单 value=2 的固定标签。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "form-submit-reset-resubmit", "title": "提交、重置并修改后再次提交", "difficulty": "complex",
-      "tags": ["complex", "form", "resubmission", "state-reset", "exact-oracle"],
+      "id": "selenium-checkbox-state",
+      "title": "切换公开复选框并读取状态",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "native-control",
+        "checkbox",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/forms.html", "save_as": "page"},
-        {"action": "fill", "selector": "#first", "text": "First"}, {"action": "fill", "selector": "#last", "text": "Run"},
-        {"action": "fill", "selector": "#note", "text": "v1"}, {"action": "click", "selector": "#submit"},
-        {"action": "get_text", "selector": "#result", "save_as": "first_receipt", "wait_for_text": "receipt:First|Run|cn|v1|73"},
-        {"action": "click", "selector": "#reset"}, {"action": "get_text", "selector": "#result", "save_as": "reset_state", "wait_for_text": "reset:ok"},
-        {"action": "fill", "selector": "#first", "text": "Second"}, {"action": "fill", "selector": "#last", "text": "Run"},
-        {"action": "select", "selector": "#region", "value": "eu"}, {"action": "fill", "selector": "#note", "text": "v2"},
-        {"action": "click", "selector": "#submit"}, {"action": "get_text", "selector": "#result", "save_as": "answer", "wait_for_text": "receipt:Second|Run|eu|v2|73"}
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#my-check-2"
+        },
+        {
+          "action": "get_property",
+          "selector": "#my-check-2",
+          "name": "checked",
+          "save_as": "checked"
+        }
       ],
-      "assertions": [{"output": "first_receipt", "equals": "receipt:First|Run|cn|v1|73"}, {"output": "reset_state", "equals": "reset:ok"}, {"output": "answer", "equals": "receipt:Second|Run|eu|v2|73"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"first_receipt": "receipt:First|Run|cn|v1|73", "reset_state": "reset:ok", "answer": "receipt:Second|Run|eu|v2|73"}, "expected_actions": ["navigate", "fill", "fill", "fill", "click", "get_text", "click", "get_text", "fill", "fill", "select", "fill", "click", "get_text"], "derivation": "两次回执及中间重置状态均是确定性字符串。"},
-      "source": {"kind": "suite-original", "scenario": "form_resubmit", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
+      "assertions": [
+        {
+          "output": "checked",
+          "equals": "true"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "checked": "true"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_property"
+        ],
+        "derivation": "未选复选框点击后的 checked DOM 属性。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "three-page-history-and-scroll", "title": "三级历史恢复并验证长页底部", "difficulty": "complex",
-      "tags": ["complex", "navigation", "history", "scroll", "exact-oracle"],
+      "id": "selenium-radio-state",
+      "title": "切换公开单选框并读取状态",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "native-control",
+        "radio",
+        "exact-oracle"
+      ],
       "tool_calls": [
-        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
-        {"action": "scroll", "direction": "down", "amount": 1900}, {"action": "get_text", "selector": "#bottom", "save_as": "bottom"},
-        {"action": "click", "selector": "#page-two"}, {"action": "get_text", "selector": "#datum", "save_as": "second"},
-        {"action": "click", "selector": "#page-three"}, {"action": "get_text", "selector": "#datum", "save_as": "third"},
-        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_second"},
-        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_first"},
-        {"action": "forward"}, {"action": "get_text", "selector": "#datum", "save_as": "answer"}
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#my-radio-2"
+        },
+        {
+          "action": "get_property",
+          "selector": "#my-radio-2",
+          "name": "checked",
+          "save_as": "checked"
+        }
       ],
-      "assertions": [{"output": "bottom", "equals": "bottom:73"}, {"output": "second", "equals": "page-two:17"}, {"output": "third", "equals": "page-three:29"}, {"output": "back_second", "equals": "History Page Two"}, {"output": "back_first", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "answer", "equals": "page-two:17"}],
-      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"bottom": "bottom:73", "second": "page-two:17", "third": "page-three:29", "back_second": "History Page Two", "back_first": "Lexmount Deterministic Browser Fixture", "answer": "page-two:17"}, "expected_actions": ["navigate", "scroll", "get_text", "click", "get_text", "click", "get_text", "back", "get_text", "back", "get_text", "forward", "get_text"], "derivation": "三个固定文档、两级历史与底部标记均为唯一值。"},
-      "source": {"kind": "adapted", "scenario": "nav_forward_after_back", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_forward_after_back.scenario.json", "license": "Apache-2.0"}
-    },
-
-    {
-      "id": "checked-label-toggle", "title": "通过标签切换复选框状态", "difficulty": "simple",
-      "tags": ["simple", "native-control", "checked", "css-state", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=checked","save_as":"page"},{"action":"click","selector":"label[for=check-toggle]"},{"action":"get_text","selector":"#check-out","save_as":"answer","wait_for_text":"checked:true"}],
-      "assertions": [{"output":"answer","equals":"checked:true"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"checked:true"},"expected_actions":["navigate","click","get_text"],"derivation":"label 激活原生 checkbox，change 事件输出唯一布尔值。"},
-      "source": {"kind":"adapted","scenario":"css_checked_reveal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/probe_a3_checked_reveal.html","license":"Apache-2.0","coverage":"原生控件与 :checked 状态","hypothesis":"原生 label 激活和 checked 状态传播可能与普通按钮不同"}
-    },
-    {
-      "id": "native-details-toggle", "title": "展开原生 details 并读取内容", "difficulty": "simple",
-      "tags": ["simple", "native-control", "details", "visibility", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=details","save_as":"page"},{"action":"click","selector":"#details-box summary"},{"action":"get_text","selector":"#details-out","save_as":"answer","wait_for_text":"details:open:73"}],
-      "assertions": [{"output":"answer","equals":"details:open:73"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"details:open:73"},"expected_actions":["navigate","click","get_text"],"derivation":"summary 激活后 details 子内容由原生布局显现。"},
-      "source": {"kind":"risk-probe","scenario":"native_details_toggle","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2","license":"Apache-2.0","coverage":"原生折叠控件可见性","hypothesis":"动态可见性失败可能扩展到原生 details 布局"}
-    },
-    {
-      "id": "dynamic-option-select", "title": "选择异步插入的下拉选项", "difficulty": "simple",
-      "tags": ["simple", "select", "async-dom", "form", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=option","save_as":"page"},{"action":"select","selector":"#dynamic-choice","value":"gamma"},{"action":"get_text","selector":"#dynamic-choice-out","save_as":"answer","wait_for_text":"choice:gamma"}],
-      "assertions": [{"output":"answer","equals":"choice:gamma"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"choice:gamma"},"expected_actions":["navigate","select","get_text"],"derivation":"120ms 后插入 gamma 选项，change 事件产生唯一输出。"},
-      "source": {"kind":"adapted","scenario":"form_select_option_async","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L1","license":"Apache-2.0","coverage":"异步 DOM 与 select","hypothesis":"若问题不限于 click，异步插入 option 的选择也可能失败"}
+      "assertions": [
+        {
+          "output": "checked",
+          "equals": "true"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "checked": "true"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_property"
+        ],
+        "derivation": "未选单选框点击后的 checked DOM 属性。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "autofocus-keyboard-submit", "title": "向 autofocus 输入框键入并提交", "difficulty": "simple",
-      "tags": ["simple", "autofocus", "keyboard", "post-render", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=autofocus","save_as":"page"},{"action":"fill","selector":"#auto-input","text":"focus-23"},{"action":"press","key":"Enter"},{"action":"get_text","selector":"#auto-out","save_as":"answer","wait_for_text":"auto:focus-23:41"}],
-      "assertions": [{"output":"answer","equals":"auto:focus-23:41"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"auto:focus-23:41"},"expected_actions":["navigate","fill","press","get_text"],"derivation":"autofocus 输入框的 Enter handler 生成固定校验值。"},
-      "source": {"kind":"moli-risk-probe","scenario":"post_domcontentloaded_autofocus","url":"https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol/src/conn/dispatch_tests.rs#L5519","license":"Apache-2.0","coverage":"DOMContentLoaded 后的 autofocus 渲染更新","hypothesis":"Moli 源码明确记录 autofocus 与首个输入命令可能竞争"}
+      "id": "quotes-page-two",
+      "title": "翻页后读取第二页首位作者",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "pagination",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/2/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "answer",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Marilyn Monroe"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Marilyn Monroe"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text"
+        ],
+        "derivation": "公开分页路由第二页第一条记录作者。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://quotes.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "hash-target-reveal", "title": "通过页内锚点显现目标区域", "difficulty": "simple",
-      "tags": ["simple", "target", "css-state", "navigation", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=hash","save_as":"page"},{"action":"click","selector":"#hash-link"},{"action":"get_text","selector":"#hash-out","save_as":"answer","wait_for_text":"target:visible:29"}],
-      "assertions": [{"output":"answer","equals":"target:visible:29"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"target:visible:29"},"expected_actions":["navigate","click","get_text"],"derivation":"hash 变为 #hash-panel 后 :target 将唯一面板设为可见。"},
-      "source": {"kind":"adapted","scenario":"target_reveal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/dA_m_target_click.html","license":"Apache-2.0","coverage":":target 与布局显现","hypothesis":"CSS 状态驱动的显现可验证可见性计算是否一致"}
-    },
-
-    {
-      "id": "double-raf-reveal-fill", "title": "双 requestAnimationFrame 后填写显现输入框", "difficulty": "medium",
-      "tags": ["medium", "request-animation-frame", "visibility", "fill", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=raf","save_as":"page"},{"action":"fill","selector":"#raf-input","text":"frame-37"},{"action":"click","selector":"#raf-commit"},{"action":"get_text","selector":"#raf-out","save_as":"answer","wait_for_text":"raf:frame-37:17"}],
-      "assertions": [{"output":"answer","equals":"raf:frame-37:17"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"raf:frame-37:17"},"expected_actions":["navigate","fill","click","get_text"],"derivation":"输入框和提交按钮在连续两个 rAF 回调后由 display:none 变为可见，提交后生成唯一结果。"},
-      "source": {"kind":"moli-risk-probe","scenario":"request_animation_frame_visibility","url":"https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-renderer-v8/src/window_host.rs#L719-L750","license":"Apache-2.0","coverage":"rAF 调度与可见性","hypothesis":"验证 1fps 猜测；Moli 源码声明 rAF 目标间隔为 16ms"}
-    },
-    {
-      "id": "delayed-enabled-button", "title": "点击延迟解除 disabled 的按钮", "difficulty": "medium",
-      "tags": ["medium", "disabled", "timer", "actionability", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=enabled","save_as":"page"},{"action":"fill","selector":"#enabled-note","text":"note-43"},{"action":"click","selector":"#enabled-late"},{"action":"get_text","selector":"#enabled-out","save_as":"answer","wait_for_text":"enabled:note-43:31"}],
-      "assertions": [{"output":"answer","equals":"enabled:note-43:31"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"enabled:note-43:31"},"expected_actions":["navigate","fill","click","get_text"],"derivation":"填写固定值后，按钮在 180ms 后解除 disabled 并生成唯一输出。"},
-      "source": {"kind":"risk-probe","scenario":"delayed_enabled_actionability","url":"https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L1/playwright","license":"Apache-2.0","coverage":"enabled actionability","hypothesis":"区分不可见与 disabled 状态等待"}
-    },
-    {
-      "id": "dom-replacement-click", "title": "同选择器替换后再次点击", "difficulty": "medium",
-      "tags": ["medium", "dom-replacement", "locator", "mutation", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=replacement","save_as":"page"},{"action":"click","selector":"#replace-action"},{"action":"click","selector":"#replace-action"},{"action":"get_text","selector":"#replace-out","save_as":"answer","wait_for_text":"replace:new:47"}],
-      "assertions": [{"output":"answer","equals":"replace:new:47"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"replace:new:47"},"expected_actions":["navigate","click","click","get_text"],"derivation":"第一次点击把旧按钮替换为同 id 新按钮，第二次点击必须重新解析同一选择器并产生唯一输出。"},
-      "source": {"kind":"adapted","scenario":"mutation_replacement_locator","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/dC_m_has_child_inject.html","license":"Apache-2.0","coverage":"DOM 替换与 locator 重解析","hypothesis":"动态列表失败可能源于新节点的布局或 locator 状态陈旧"}
-    },
-    {
-      "id": "offscreen-auto-scroll-click", "title": "点击首屏外按钮并验证自动滚动", "difficulty": "medium",
-      "tags": ["medium", "offscreen", "scroll-into-view", "geometry", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=offscreen","save_as":"page"},{"action":"fill","selector":"#below-code","text":"code-53"},{"action":"click","selector":"#below-fold"},{"action":"get_text","selector":"#below-out","save_as":"answer","wait_for_text":"below:code-53:59"}],
-      "assertions": [{"output":"answer","equals":"below:code-53:59"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"below:code-53:59"},"expected_actions":["navigate","fill","click","get_text"],"derivation":"填写固定值后点击首屏外按钮，Playwright 应自动滚动并生成唯一输出。"},
-      "source": {"kind":"adapted","scenario":"offscreen_scroll_into_view","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2/web_platform/r3_fv_geom_scrollheight.json","license":"Apache-2.0","coverage":"布局几何与自动滚动","hypothesis":"若动态按钮被判隐藏源于几何，首屏外元素也可能失败"}
-    },
-    {
-      "id": "shadow-dom-button", "title": "点击开放 Shadow DOM 内按钮", "difficulty": "medium",
-      "tags": ["medium", "custom-element", "shadow-dom", "locator", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=shadow","save_as":"page"},{"action":"fill","selector":"x-counter input","text":"shadow-57"},{"action":"click","selector":"x-counter button"},{"action":"get_text","selector":"#shadow-out","save_as":"answer","wait_for_text":"shadow:shadow-57:61"}],
-      "assertions": [{"output":"answer","equals":"shadow:shadow-57:61"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"shadow:shadow-57:61"},"expected_actions":["navigate","fill","click","get_text"],"derivation":"开放 shadow root 中填写固定值，再点击唯一按钮生成宿主文档输出。"},
-      "source": {"kind":"adapted","scenario":"custom_element_shadow_action","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round4/widget_adopted.html","license":"Apache-2.0","coverage":"Custom Elements 与 Shadow DOM","hypothesis":"动态节点问题可能扩展到 shadow tree 的定位和几何"}
-    },
-
-    {
-      "id": "modal-dialog-confirm", "title": "等待模态对话框并确认", "difficulty": "complex",
-      "tags": ["complex", "dialog", "top-layer", "async", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=modal","save_as":"page"},{"action":"fill","selector":"#dialog-name","text":"alice-63"},{"action":"select","selector":"#dialog-mode","value":"safe"},{"action":"click","selector":"#dialog-open"},{"action":"click","selector":"#dialog-confirm"},{"action":"get_text","selector":"#dialog-out","save_as":"answer","wait_for_text":"dialog:alice-63:safe:67"}],
-      "assertions": [{"output":"answer","equals":"dialog:alice-63:safe:67"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"dialog:alice-63:safe:67"},"expected_actions":["navigate","fill","select","click","click","get_text"],"derivation":"填写并选择模式后打开 dialog；140ms 后进入 top layer，确认按钮生成唯一结果。"},
-      "source": {"kind":"adapted","scenario":"dialog_show_modal","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/g_dialog.html","license":"Apache-2.0","coverage":"dialog top layer 与异步显现","hypothesis":"top-layer 几何和可见性可能与普通 DOM 不同"}
+      "id": "quotes-author-detail",
+      "title": "打开作者详情并读取出生日期",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "detail",
+        "navigation",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": ".quote:first-of-type a[href*='/author/']"
+        },
+        {
+          "action": "get_text",
+          "selector": ".author-born-date",
+          "save_as": "answer",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "March 14, 1879"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "March 14, 1879"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Albert Einstein 固定作者页出生日期。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://quotes.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "overlay-removal-click", "title": "等待遮罩移除后点击底层控件", "difficulty": "complex",
-      "tags": ["complex", "overlay", "hit-test", "pointer-events", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=overlay","save_as":"page"},{"action":"fill","selector":"#overlay-code","text":"cover-69"},{"action":"click","selector":"#overlay-arm"},{"action":"click","selector":"#overlay-action"},{"action":"get_text","selector":"#overlay-out","save_as":"answer","wait_for_text":"overlay:cover-69:71"}],
-      "assertions": [{"output":"answer","equals":"overlay:cover-69:71"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"overlay:cover-69:71"},"expected_actions":["navigate","fill","click","click","get_text"],"derivation":"填写固定值并启动遮罩移除；260ms 后点击底层控件生成唯一结果。"},
-      "source": {"kind":"risk-probe","scenario":"overlay_hit_test","url":"https://github.com/lexmount/moli/tree/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol/src/domains/input","license":"Apache-2.0","coverage":"hit test 与 pointer interception","hypothesis":"可见但不可点击的控件可区分几何错误与命中测试错误"}
+      "id": "books-mystery-category",
+      "title": "打开悬疑分类并读取首本书",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "catalogue",
+        "category",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": ".page-header h1",
+          "save_as": "category",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": "article.product_pod h3 a",
+          "save_as": "first_book",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "category",
+          "equals": "Mystery"
+        },
+        {
+          "output": "first_book",
+          "equals": "Sharp Objects"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "category": "Mystery",
+          "first_book": "Sharp Objects"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_text",
+          "get_text"
+        ],
+        "derivation": "公开悬疑分类第一页标题与首条目录文本。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://books.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "animated-stability-click", "title": "等待动画控件稳定后点击", "difficulty": "complex",
-      "tags": ["complex", "animation", "stability", "transform", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=animation","save_as":"page"},{"action":"fill","selector":"#moving-seed","text":"move-77"},{"action":"click","selector":"#moving-start"},{"action":"click","selector":"#moving"},{"action":"get_text","selector":"#moving-out","save_as":"answer","wait_for_text":"animation:move-77:79"}],
-      "assertions": [{"output":"answer","equals":"animation:move-77:79"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"animation:move-77:79"},"expected_actions":["navigate","fill","click","click","get_text"],"derivation":"填写固定值并启动 300ms transform 动画，稳定后点击生成唯一结果。"},
-      "source": {"kind":"adapted","scenario":"web_animation_stability","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/L2/web_platform/r3_fv_web_animations.json","license":"Apache-2.0","coverage":"动画与 actionability 稳定性","hypothesis":"低刷新或几何更新不及时会放大稳定性等待问题"}
+      "id": "books-product-detail",
+      "title": "打开目录首本书并读取详情",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "catalogue",
+        "detail",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "article.product_pod h3 a"
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main h1",
+          "save_as": "title",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main .price_color",
+          "save_as": "price",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "title",
+          "equals": "A Light in the Attic"
+        },
+        {
+          "output": "price",
+          "equals": "£51.77"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "title": "A Light in the Attic",
+          "price": "£51.77"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_text",
+          "get_text"
+        ],
+        "derivation": "公开目录第一本书的固定标题与价格。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://books.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "intersection-virtual-action", "title": "滚动触发 IntersectionObserver 后点击虚拟控件", "difficulty": "complex",
-      "tags": ["complex", "intersection-observer", "virtualized", "scroll", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=intersection","save_as":"page"},{"action":"fill","selector":"#io-query","text":"virtual-81"},{"action":"select","selector":"#io-mode","value":"full"},{"action":"scroll","direction":"down","amount":1900},{"action":"click","selector":"#io-action"},{"action":"get_text","selector":"#io-out","save_as":"answer","wait_for_text":"io:virtual-81:full:83"}],
-      "assertions": [{"output":"answer","equals":"io:virtual-81:full:83"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"answer":"io:virtual-81:full:83"},"expected_actions":["navigate","fill","select","scroll","click","get_text"],"derivation":"填写查询并选择模式后滚动，使 IntersectionObserver 动态创建唯一按钮并输出固定组合。"},
-      "source": {"kind":"adapted","scenario":"intersection_observer_virtual_control","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round3/g_io.html","license":"Apache-2.0","coverage":"IntersectionObserver 与虚拟列表","hypothesis":"真实虚拟列表依赖布局观察，可能复现动态控件未准备好"}
+      "id": "python-appetite-navigation",
+      "title": "打开 Python 教程第一章",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "documentation",
+        "navigation",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/index.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "li.toctree-l1 a[href='appetite.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "1. Whetting Your Appetite¶"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "1. Whetting Your Appetite¶"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Python 教程索引进入第一章后的唯一 h1。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://docs.python.org/3/tutorial/index.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     },
     {
-      "id": "adopted-stylesheet-shadow-action", "title": "点击 adoptedStyleSheets 控制的 Shadow DOM 控件", "difficulty": "complex",
-      "tags": ["complex", "adopted-style-sheets", "shadow-dom", "visibility", "exact-oracle"],
-      "tool_calls": [{"action":"navigate","url":"{fixture_origin}/interaction-space.html?scenario=adopted","save_as":"page"},{"action":"fill","selector":"styled-action input","text":"style-87"},{"action":"click","selector":"styled-action button"},{"action":"get_text","selector":"#styled-out","save_as":"first","wait_for_text":"adopted:style-87:89"},{"action":"fill","selector":"styled-action input","text":"style-91"},{"action":"click","selector":"styled-action button"},{"action":"get_text","selector":"#styled-out","save_as":"answer","wait_for_text":"adopted:style-91:89"}],
-      "assertions": [{"output":"first","equals":"adopted:style-87:89"},{"output":"answer","equals":"adopted:style-91:89"}],
-      "ground_truth": {"oracle":"deterministic_exact","expected_outputs":{"first":"adopted:style-87:89","answer":"adopted:style-91:89"},"expected_actions":["navigate","fill","click","get_text","fill","click","get_text"],"derivation":"构造样式表应用于开放 shadow root；分别填写两个固定值并点击，验证控件持续可见和状态更新。"},
-      "source": {"kind":"adapted","scenario":"adopted_stylesheet_widget","url":"https://github.com/lexmount/Lexbench-Headless-Browser/blob/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/fixtures/l2_round4/widget_adopted.html","license":"Apache-2.0","coverage":"adoptedStyleSheets、Shadow DOM 与可见性","hypothesis":"样式能力缺口可能表现为控件存在但被判隐藏"}
+      "id": "mdn-using-fetch-navigation",
+      "title": "打开 MDN Using Fetch 指南",
+      "difficulty": "medium",
+      "tags": [
+        "medium",
+        "public-web",
+        "documentation",
+        "navigation",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "main a[href*='/Using_Fetch']",
+          "timeout_ms": 20000
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "answer",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Using the Fetch API"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Using the Fetch API"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Fetch API 页进入 Using Fetch 后的唯一 h1。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "selenium-delayed-reveal",
+      "title": "等待延迟输入框显现后填写",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "dynamic",
+        "fill",
+        "actionability",
+        "timing",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#reveal"
+        },
+        {
+          "action": "fill",
+          "selector": "#revealed",
+          "text": "Lexmount public timing probe"
+        },
+        {
+          "action": "get_property",
+          "selector": "#revealed",
+          "name": "value",
+          "save_as": "answer"
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Lexmount public timing probe"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Lexmount public timing probe"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "fill",
+          "get_property"
+        ],
+        "derivation": "Selenium 官方动态页延迟显现输入框的 value 属性。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios",
+          "https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol-server/src/cdp_scheduler.rs"
+        ]
+      }
+    },
+    {
+      "id": "selenium-delayed-box",
+      "title": "等待异步插入元素并读取类名",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "dynamic",
+        "dom-insertion",
+        "timing",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "#adder"
+        },
+        {
+          "action": "get_attribute",
+          "selector": "#box0",
+          "name": "class",
+          "save_as": "answer"
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "redbox"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "redbox"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "get_attribute"
+        ],
+        "derivation": "Selenium 官方动态页异步插入方块的固定 class。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/dynamic.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios",
+          "https://github.com/lexmount/moli/blob/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42/moli-protocol-server/src/cdp_scheduler.rs"
+        ]
+      }
+    },
+    {
+      "id": "selenium-multi-control-submit",
+      "title": "填写多控件表单并提交",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "form",
+        "fill",
+        "select",
+        "native-control",
+        "submit",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.selenium.dev/selenium/web/web-form.html",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "input[name='my-text']",
+          "text": "Lexmount"
+        },
+        {
+          "action": "fill",
+          "selector": "textarea[name='my-textarea']",
+          "text": "Chromium and Moli"
+        },
+        {
+          "action": "select",
+          "selector": "select[name='my-select']",
+          "value": "3"
+        },
+        {
+          "action": "click",
+          "selector": "#my-check-2"
+        },
+        {
+          "action": "click",
+          "selector": "#my-radio-2"
+        },
+        {
+          "action": "click",
+          "selector": "button"
+        },
+        {
+          "action": "get_text",
+          "selector": "#message",
+          "save_as": "receipt",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "receipt",
+          "equals": "Received!"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "receipt": "Received!"
+        },
+        "expected_actions": [
+          "navigate",
+          "fill",
+          "fill",
+          "select",
+          "click",
+          "click",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Selenium 官方多控件表单提交后的固定回执。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "quotes-three-page-history",
+      "title": "连续三页名言并恢复历史",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "pagination",
+        "history",
+        "multi-page",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "one",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/2/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "two",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/page/3/",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "three",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "back_two",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "back_one",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": ".quote:first-of-type .author",
+          "save_as": "forward_two",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "one",
+          "equals": "Albert Einstein"
+        },
+        {
+          "output": "two",
+          "equals": "Marilyn Monroe"
+        },
+        {
+          "output": "three",
+          "equals": "Pablo Neruda"
+        },
+        {
+          "output": "back_two",
+          "equals": "Marilyn Monroe"
+        },
+        {
+          "output": "back_one",
+          "equals": "Albert Einstein"
+        },
+        {
+          "output": "forward_two",
+          "equals": "Marilyn Monroe"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "one": "Albert Einstein",
+          "two": "Marilyn Monroe",
+          "three": "Pablo Neruda",
+          "back_two": "Marilyn Monroe",
+          "back_one": "Albert Einstein",
+          "forward_two": "Marilyn Monroe"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text",
+          "navigate",
+          "get_text",
+          "navigate",
+          "get_text",
+          "back",
+          "get_text",
+          "back",
+          "get_text",
+          "forward",
+          "get_text"
+        ],
+        "derivation": "公开目录前三页首位作者及后退/前进恢复结果。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://quotes.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "quotes-login-flow",
+      "title": "登录公开演示站并确认会话",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "form",
+        "login",
+        "session",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://quotes.toscrape.com/login",
+          "save_as": "page"
+        },
+        {
+          "action": "fill",
+          "selector": "#username",
+          "text": "lexmount-eval"
+        },
+        {
+          "action": "fill",
+          "selector": "#password",
+          "text": "browser-eval"
+        },
+        {
+          "action": "click",
+          "selector": "input[type='submit']"
+        },
+        {
+          "action": "get_text",
+          "selector": "a[href='/logout']",
+          "save_as": "answer",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "answer",
+          "equals": "Logout"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "answer": "Logout"
+        },
+        "expected_actions": [
+          "navigate",
+          "fill",
+          "fill",
+          "click",
+          "get_text"
+        ],
+        "derivation": "Quotes to Scrape 接受任意非空凭据，成功后固定显示 Logout。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://quotes.toscrape.com/login",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "books-mystery-page-two-detail",
+      "title": "悬疑分类翻页并打开详情",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "catalogue",
+        "pagination",
+        "detail",
+        "history",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://books.toscrape.com/",
+          "save_as": "page"
+        },
+        {
+          "action": "click",
+          "selector": "a[href='catalogue/category/books/mystery_3/index.html']"
+        },
+        {
+          "action": "click",
+          "selector": ".next a"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.product_pod h3 a",
+          "save_as": "list_title",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "article.product_pod h3 a"
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main h1",
+          "save_as": "detail_title",
+          "strip": true
+        },
+        {
+          "action": "get_text",
+          "selector": ".product_main .price_color",
+          "save_as": "price",
+          "strip": true
+        },
+        {
+          "action": "back"
+        }
+      ],
+      "assertions": [
+        {
+          "output": "list_title",
+          "equals": "The Mysterious Affair at ..."
+        },
+        {
+          "output": "detail_title",
+          "equals": "The Mysterious Affair at Styles (Hercule Poirot #1)"
+        },
+        {
+          "output": "price",
+          "equals": "£24.80"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "list_title": "The Mysterious Affair at ...",
+          "detail_title": "The Mysterious Affair at Styles (Hercule Poirot #1)",
+          "price": "£24.80"
+        },
+        "expected_actions": [
+          "navigate",
+          "click",
+          "click",
+          "get_text",
+          "click",
+          "get_text",
+          "get_text",
+          "back"
+        ],
+        "derivation": "悬疑分类第二页首条目录及其固定详情。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://books.toscrape.com/",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "python-two-chapter-history",
+      "title": "遍历两章 Python 教程并恢复历史",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "documentation",
+        "multi-page",
+        "history",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/index.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "index",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "li.toctree-l1 a[href='appetite.html']"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "appetite",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://docs.python.org/3/tutorial/interpreter.html",
+          "save_as": "interpreter_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "interpreter",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_appetite",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_index",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "index",
+          "equals": "The Python Tutorial¶"
+        },
+        {
+          "output": "appetite",
+          "equals": "1. Whetting Your Appetite¶"
+        },
+        {
+          "output": "interpreter",
+          "equals": "2. Using the Python Interpreter¶"
+        },
+        {
+          "output": "back_appetite",
+          "equals": "1. Whetting Your Appetite¶"
+        },
+        {
+          "output": "back_index",
+          "equals": "The Python Tutorial¶"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "index": "The Python Tutorial¶",
+          "appetite": "1. Whetting Your Appetite¶",
+          "interpreter": "2. Using the Python Interpreter¶",
+          "back_appetite": "1. Whetting Your Appetite¶",
+          "back_index": "The Python Tutorial¶"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text",
+          "click",
+          "get_text",
+          "navigate",
+          "get_text",
+          "back",
+          "get_text",
+          "back",
+          "get_text"
+        ],
+        "derivation": "官方教程两章标题及两级历史恢复。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://docs.python.org/3/tutorial/index.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "rfc9110-section-history",
+      "title": "遍历 RFC 9110 多章节并恢复锚点",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "standard",
+        "anchor",
+        "history",
+        "long-document",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#rfcnum",
+          "save_as": "number",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-1",
+          "save_as": "intro_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-1 h2",
+          "save_as": "intro",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110.html#section-3",
+          "save_as": "terms_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-3 h2",
+          "save_as": "terms",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-1 h2",
+          "save_as": "back_intro",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "#section-3 h2",
+          "save_as": "forward_terms",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "number",
+          "equals": "RFC 9110"
+        },
+        {
+          "output": "intro",
+          "equals": "1. Introduction"
+        },
+        {
+          "output": "terms",
+          "equals": "3. Terminology and Core Concepts"
+        },
+        {
+          "output": "back_intro",
+          "equals": "1. Introduction"
+        },
+        {
+          "output": "forward_terms",
+          "equals": "3. Terminology and Core Concepts"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "number": "RFC 9110",
+          "intro": "1. Introduction",
+          "terms": "3. Terminology and Core Concepts",
+          "back_intro": "1. Introduction",
+          "forward_terms": "3. Terminology and Core Concepts"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text",
+          "navigate",
+          "get_text",
+          "navigate",
+          "get_text",
+          "back",
+          "get_text",
+          "forward",
+          "get_text"
+        ],
+        "derivation": "RFC 固定章节标题及锚点历史恢复。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://www.rfc-editor.org/rfc/rfc9110.html",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "mdn-fetch-history",
+      "title": "进入 Using Fetch 并验证前进后退",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "documentation",
+        "history",
+        "navigation",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "api",
+          "strip": true
+        },
+        {
+          "action": "click",
+          "selector": "main a[href*='/Using_Fetch']",
+          "timeout_ms": 20000
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "guide",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "back_api",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "h1",
+          "save_as": "forward_guide",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "api",
+          "equals": "Fetch API"
+        },
+        {
+          "output": "guide",
+          "equals": "Using the Fetch API"
+        },
+        {
+          "output": "back_api",
+          "equals": "Fetch API"
+        },
+        {
+          "output": "forward_guide",
+          "equals": "Using the Fetch API"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "api": "Fetch API",
+          "guide": "Using the Fetch API",
+          "back_api": "Fetch API",
+          "forward_guide": "Using the Fetch API"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text",
+          "click",
+          "get_text",
+          "back",
+          "get_text",
+          "forward",
+          "get_text"
+        ],
+        "derivation": "MDN 两篇固定文档标题及历史恢复。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
+    },
+    {
+      "id": "github-moli-issues-history",
+      "title": "从 Moli README 进入 Issues 并恢复历史",
+      "difficulty": "complex",
+      "tags": [
+        "complex",
+        "public-web",
+        "repository",
+        "history",
+        "multi-page",
+        "exact-oracle"
+      ],
+      "tool_calls": [
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli",
+          "save_as": "page"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "readme",
+          "strip": true
+        },
+        {
+          "action": "navigate",
+          "url": "https://github.com/lexmount/moli/issues",
+          "save_as": "issues_page"
+        },
+        {
+          "action": "get_text",
+          "selector": "main h1",
+          "save_as": "issues",
+          "strip": true
+        },
+        {
+          "action": "back"
+        },
+        {
+          "action": "get_text",
+          "selector": "article.markdown-body h1",
+          "save_as": "back_readme",
+          "strip": true
+        },
+        {
+          "action": "forward"
+        },
+        {
+          "action": "get_text",
+          "selector": "main h1",
+          "save_as": "forward_issues",
+          "strip": true
+        }
+      ],
+      "assertions": [
+        {
+          "output": "readme",
+          "equals": "Moli"
+        },
+        {
+          "output": "issues",
+          "equals": "All issues"
+        },
+        {
+          "output": "back_readme",
+          "equals": "Moli"
+        },
+        {
+          "output": "forward_issues",
+          "equals": "All issues"
+        }
+      ],
+      "ground_truth": {
+        "oracle": "deterministic_exact",
+        "expected_outputs": {
+          "readme": "Moli",
+          "issues": "All issues",
+          "back_readme": "Moli",
+          "forward_issues": "All issues"
+        },
+        "expected_actions": [
+          "navigate",
+          "get_text",
+          "navigate",
+          "get_text",
+          "back",
+          "get_text",
+          "forward",
+          "get_text"
+        ],
+        "derivation": "GitHub 仓库 README 与 Issues 固定一级标题及历史恢复。"
+      },
+      "source": {
+        "kind": "public_web",
+        "url": "https://github.com/lexmount/moli",
+        "design_basis": [
+          "https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios"
+        ]
+      }
     }
   ]
 }

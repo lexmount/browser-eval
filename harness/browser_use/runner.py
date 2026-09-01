@@ -29,7 +29,7 @@ from .metrics import (
     summarize_attempts,
 )
 from .report import write_latest_report
-from .suite import BrowserTask, load_suite
+from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
 
 ENGINE_IMAGES = {
     "chromium": "lex-browser-use-eval-chromium:local",
@@ -385,6 +385,7 @@ def run_evaluation(
     suite_path: str | Path,
     output_dir: str | Path,
     reports_dir: str | Path,
+    ground_truth_evidence_path: str | Path | None = None,
     max_retries: int = 1,
     sample_interval_ms: int = 50,
     settle_ms: int = 1500,
@@ -397,6 +398,11 @@ def run_evaluation(
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
     suite = load_suite(suite_path)
+    ground_truth_evidence = (
+        validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
+        if ground_truth_evidence_path is not None
+        else None
+    )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]
@@ -409,9 +415,16 @@ def run_evaluation(
     resources: dict[str, DockerStatsResources] = {}
     rows: list[dict[str, Any]] = []
     playwright = sync_playwright().start()
-    fixture_server, fixture_thread, fixture_origin = _start_fixture_server(
-        Path(suite_path).resolve().parent / "fixtures"
+    uses_local_fixtures = any(
+        "{fixture_origin}" in str(value)
+        for task in suite.tasks
+        for call in task.tool_calls
+        for value in call.values()
     )
+    fixture_runtime: tuple[ThreadingHTTPServer, threading.Thread, str] | None = None
+    if uses_local_fixtures:
+        fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
+    fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     try:
         for engine in ENGINE_IMAGES:
             network = client.networks.create(
@@ -515,14 +528,31 @@ def run_evaluation(
                 }
                 for task in suite.tasks
             ],
+            "ground_truth_validation": (
+                {
+                    key: ground_truth_evidence.get(key)
+                    for key in (
+                        "schema",
+                        "dataset",
+                        "dataset_sha256",
+                        "source_commit",
+                        "validator",
+                        "method",
+                        "started_at",
+                        "finished_at",
+                        "automatic_browser_replay",
+                        "human_review",
+                    )
+                }
+                if ground_truth_evidence is not None
+                else None
+            ),
             "protocol": {
                 "browser_reuse": True,
                 "step_definition": (
                     "one declared CowAgent BrowserTool-equivalent call; implicit waits excluded"
                 ),
-                "llm_scope": (
-                    "LLM never judges success; optional LLM only explains failed traces"
-                ),
+                "llm_scope": ("LLM never judges success; optional LLM only explains failed traces"),
                 "llm_failure_diagnostics": llm_diagnostics,
                 "diagnosis_model": diagnosis_model if llm_diagnostics else None,
                 "diagnosis_reasoning_effort": (
@@ -539,7 +569,12 @@ def run_evaluation(
                 "primary_attempts_per_task": 1,
                 "max_failure_retries": max_retries,
                 "engine_order": "balanced by task index",
-                "fixture_origin": "temporary self-hosted deterministic fixture server",
+                "target_mode": "public_web" if not uses_local_fixtures else "mixed",
+                "fixture_origin": (
+                    "temporary self-hosted deterministic fixture server"
+                    if uses_local_fixtures
+                    else None
+                ),
                 "resource_scope": "browser container cgroup/network namespace",
                 "controller_excluded": True,
                 "cpus_per_browser": cpus,
@@ -560,12 +595,10 @@ def run_evaluation(
                     "reused_not_rerun": True,
                 },
             }
-        attempts_bytes = "".join(
-            json.dumps(row, ensure_ascii=False) + "\n" for row in rows
-        ).encode("utf-8")
-        summary_bytes = (
-            json.dumps(summary, indent=2, ensure_ascii=False) + "\n"
-        ).encode("utf-8")
+        attempts_bytes = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows).encode(
+            "utf-8"
+        )
+        summary_bytes = (json.dumps(summary, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
         (output / "attempts.jsonl").write_bytes(attempts_bytes)
         (output / "summary.json").write_bytes(summary_bytes)
         manifest["artifact_provenance"] = {
@@ -579,7 +612,9 @@ def run_evaluation(
         write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:
-        fixture_server.shutdown()
-        fixture_server.server_close()
-        fixture_thread.join(timeout=2)
+        if fixture_runtime:
+            fixture_server, fixture_thread, _ = fixture_runtime
+            fixture_server.shutdown()
+            fixture_server.server_close()
+            fixture_thread.join(timeout=2)
         _cleanup_runtime(browsers, playwright, containers, networks)

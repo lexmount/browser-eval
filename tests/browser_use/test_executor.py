@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from harness.browser_use.executor import execute_steps, judge_outputs, validate_outputs
-
 import pytest
+
+from harness.browser_use.executor import execute_steps, judge_outputs, validate_outputs
 
 
 class FakePage:
@@ -53,6 +53,14 @@ class FakePage:
             def select_option(self, value, **kwargs):
                 page.calls.append(("select", selector, value))
 
+            def get_attribute(self, name, **kwargs):
+                page.calls.append(("get_attribute", selector, name))
+                return "redbox"
+
+            def evaluate(self, expression, name, **kwargs):
+                page.calls.append(("get_property", selector, name))
+                return True if name == "checked" else "Lexmount"
+
         return Locator()
 
     def go_back(self, **kwargs):
@@ -66,7 +74,6 @@ class FakePage:
 
     def press(self, key):
         self.calls.append(("press", key))
-
 
 
 def test_execute_steps_counts_only_declared_browser_operations():
@@ -109,6 +116,30 @@ def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     execute_steps(page, ({"action": "back"}, {"action": "forward"}))
 
     assert page.calls == [("back", "commit"), ("forward", "commit")]
+
+
+def test_attribute_and_property_outputs_are_exact_strings():
+    page = FakePage()
+
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "get_attribute",
+                "selector": "#box0",
+                "name": "class",
+                "save_as": "class_name",
+            },
+            {
+                "action": "get_property",
+                "selector": "#check",
+                "name": "checked",
+                "save_as": "checked",
+            },
+        ),
+    )
+
+    assert outputs == {"class_name": "redbox", "checked": "true"}
 
 
 def test_exact_ground_truth_judge_reports_expected_and_actual():

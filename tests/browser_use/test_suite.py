@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
-from harness.browser_use.suite import load_suite
+from harness.browser_use.suite import load_suite, validate_ground_truth_evidence
 
 
 def _task(task_id, calls, expected="Example"):
@@ -57,9 +58,7 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
         json.dumps(
             {
                 "schema": "lex_browser_use_tasks/3",
-                "tasks": [
-                    _task("bad", [{"action": "shell", "command": "true"}])
-                ],
+                "tasks": [_task("bad", [{"action": "shell", "command": "true"}])],
             }
         ),
         encoding="utf-8",
@@ -100,25 +99,39 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     assert counts == {"simple": 10, "medium": 10, "complex": 10}
     assert all(task.ground_truth["oracle"] == "deterministic_exact" for task in suite.tasks)
 
-    probes = suite.tasks[15:]
-    scenarios = [
-        call["url"].split("scenario=", 1)[1]
-        for task in probes
+    navigations = [
+        str(call["url"])
+        for task in suite.tasks
         for call in task.tool_calls
         if call["action"] == "navigate"
     ]
-    assert len(scenarios) == 15
-    assert len(set(scenarios)) == 15
-    assert all(task.step_count >= 4 for task in probes if task.complexity == "medium")
-    assert all(task.step_count >= 5 for task in probes if task.complexity == "complex")
+    assert navigations
+    assert all(urlparse(url).scheme == "https" for url in navigations)
+    assert all(
+        urlparse(url).hostname not in {"localhost", "127.0.0.1", "host.docker.internal"}
+        for url in navigations
+    )
+    assert all("{fixture_origin}" not in url for url in navigations)
+    assert len({urlparse(url).hostname for url in navigations}) >= 8
 
 
-def test_suite_preserves_existing_cases_and_adds_repository_derived_probes():
+def test_suite_uses_public_targets_and_repository_derived_capability_coverage():
     suite = load_suite("examples/browser_use/tasks.v4.json")
-    urls = [str(task.source.get("url") or "") for task in suite.tasks]
-    assert any(url.startswith("https://github.com/lexmount/browser-harness-eval") for url in urls)
-    assert any(url.startswith("https://github.com/lexmount/Lexbench-Headless-Browser") for url in urls)
-    assert any(url.startswith("https://github.com/lexmount/moli") for url in urls)
+    assert all(task.source.get("kind") == "public_web" for task in suite.tasks)
+    assert all(str(task.source.get("url") or "").startswith("https://") for task in suite.tasks)
+    basis_urls = [str(url) for task in suite.tasks for url in task.source.get("design_basis") or []]
+    assert any("Lexbench-Headless-Browser" in url for url in basis_urls)
+    assert any("lexmount/moli" in url for url in basis_urls)
+    actions = {str(call["action"]) for task in suite.tasks for call in task.tool_calls}
+    assert {
+        "click",
+        "fill",
+        "select",
+        "back",
+        "forward",
+        "get_property",
+        "get_attribute",
+    } <= actions
 
 
 def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
@@ -142,3 +155,17 @@ def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
         row = observed[task.task_id]
         assert row["status"] == "pass"
         assert row["observed"] == task.ground_truth["expected_outputs"]
+
+
+def test_ground_truth_validation_rejects_evidence_for_another_suite(tmp_path):
+    dataset_path = Path("examples/browser_use/tasks.v4.json")
+    suite = load_suite(dataset_path)
+    evidence = json.loads(
+        Path("examples/browser_use/ground_truth_validation.json").read_text(encoding="utf-8")
+    )
+    evidence["dataset_sha256"] = "0" * 64
+    evidence_path = tmp_path / "evidence.json"
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="suite sha256"):
+        validate_ground_truth_evidence(dataset_path, suite, evidence_path)
