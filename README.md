@@ -84,6 +84,12 @@ COWAGENT_REPO=/path/to/CowAgent \
   ./scripts/reproduce_report.sh runs/reproduced
 ```
 
+The reproducer runs different providers in parallel (four by default) while
+keeping cases sequential within each provider. This shortens the full run
+without increasing a single account's QPS or sharing a provider instance across
+threads. Set `WEBFETCH_PROVIDER_CONCURRENCY=1` for fully serial execution, or a
+higher value when provider accounts and the runner have enough capacity.
+
 By default this also installs and executes the real OpenClaw, DeepSeek Harness,
 LangChain WebBaseLoader and Crawl4AI implementations. OpenClaw is run with Node
 24.15.0 because the measured checkout rejects older Node 24 SQLite builds.

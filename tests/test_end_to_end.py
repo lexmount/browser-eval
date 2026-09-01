@@ -71,7 +71,14 @@ class EndToEndTest(unittest.TestCase):
             self.assertIn('id="failure-category"', analysis)
             self.assertIn('id="failure-query"', analysis)
             self.assertIn('class="failure-table"', analysis)
-            self.assertIn("逐案例人工复核", analysis)
+            self.assertNotIn("逐案例人工复核", analysis)
+            self.assertNotIn("标准答案漂移候选队列", analysis)
+            self.assertIn("程序判断通过率", analysis)
+            self.assertIn("通过样本均值", analysis)
+            self.assertIn(
+                '../attempts/fixture__fail__r001.html',
+                analysis,
+            )
             capabilities = (run_dir / "report/capabilities/index.html").read_text(encoding="utf-8")
             self.assertIn('id="image-ranking"', capabilities)
             self.assertIn('id="video-ranking"', capabilities)

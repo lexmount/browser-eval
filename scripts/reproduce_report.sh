@@ -40,6 +40,7 @@ python3 -m browser_harness_eval run \
   --runs "${WEBFETCH_RUNS:-1}" \
   --timeout "${WEBFETCH_TIMEOUT:-45}" \
   --delay "${WEBFETCH_DELAY:-0.5}" \
+  --provider-concurrency "${WEBFETCH_PROVIDER_CONCURRENCY:-4}" \
   --output "$output_dir"
 
 if [[ "${WEBFETCH_RUN_FILE_MEDIA:-1}" == "1" ]]; then
@@ -52,6 +53,7 @@ if [[ "${WEBFETCH_RUN_FILE_MEDIA:-1}" == "1" ]]; then
     --runs "${WEBFETCH_RUNS:-1}" \
     --timeout "${WEBFETCH_TIMEOUT:-45}" \
     --delay "${WEBFETCH_DELAY:-0.5}" \
+    --provider-concurrency "${WEBFETCH_PROVIDER_CONCURRENCY:-4}" \
     --output "$resource_output"
   python3 scripts/check_resource_links.py \
     --dataset datasets/file_media_capabilities.json \

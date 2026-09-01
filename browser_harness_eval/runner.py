@@ -5,8 +5,10 @@ import json
 import platform
 import socket
 import sys
+import threading
 import time
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,7 +49,10 @@ def run_evaluation(
     runs: int,
     timeout: float,
     delay: float,
+    provider_concurrency: int = 1,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if provider_concurrency < 1:
+        raise ValueError("provider_concurrency must be at least 1")
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
@@ -72,7 +77,13 @@ def run_evaluation(
             }
             for provider in providers
         ],
-        "parameters": {"runs": runs, "timeout": timeout, "delay": delay},
+        "parameters": {
+            "runs": runs,
+            "timeout": timeout,
+            "delay": delay,
+            "provider_concurrency": min(provider_concurrency, max(1, len(providers))),
+            "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
+        },
         "environment": {
             "python": sys.version.split()[0],
             "platform": platform.platform(),
@@ -87,14 +98,17 @@ def run_evaluation(
         json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
+    for provider in providers:
+        missing = provider.validate()
+        if missing:
+            raise ValueError(
+                f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
+            )
+
     results_path = output_dir / "results.jsonl"
+    result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
-        for provider in providers:
-            missing = provider.validate()
-            if missing:
-                raise ValueError(
-                    f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
-                )
+        def run_provider(provider: Provider) -> None:
             previous_request_completed: float | None = None
             for run_number in range(1, runs + 1):
                 for case in cases:
@@ -169,17 +183,30 @@ def run_evaluation(
                             "client_throttle_wait_ms": throttle_wait_ms,
                         },
                     ).to_dict()
-                    records.append(record)
-                    results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    results_file.flush()
                     state = "PASS" if result.ok and record["metrics"]["content_pass"] else "FAIL"
-                    print(
-                        f"{state:4} {provider.name:14} {case.id:24} "
-                        f"{elapsed_ms:9.2f} ms  {result.error_type or ''}",
-                        flush=True,
-                    )
+                    with result_lock:
+                        records.append(record)
+                        results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        results_file.flush()
+                        print(
+                            f"{state:4} {provider.name:14} {case.id:24} "
+                            f"{elapsed_ms:9.2f} ms  {result.error_type or ''}",
+                            flush=True,
+                        )
                     if delay:
                         time.sleep(delay)
+
+        workers = min(provider_concurrency, max(1, len(providers)))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
+            list(executor.map(run_provider, providers))
+
+    provider_order = {provider.name: index for index, provider in enumerate(providers)}
+    case_order = {case.id: index for index, case in enumerate(cases)}
+    records.sort(key=lambda item: (provider_order[item["provider"]], item["run"], case_order[item["case_id"]]))
+    results_path.write_text(
+        "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records),
+        encoding="utf-8",
+    )
 
     summary = summarize(records)
     manifest["completed_at"] = utc_now()

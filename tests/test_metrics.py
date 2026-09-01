@@ -57,6 +57,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(item["transport_success_rate"], 1.0)
         self.assertEqual(item["content_pass_rate"], 0.5)
         self.assertEqual(item["failure_types"], {"content_validation_failure": 1})
+        self.assertEqual(item["mean_content_ms"], 100)
         self.assertEqual(item["p50_ms"], 100)
         self.assertEqual(item["transport_p95_ms"], 900)
 

@@ -78,7 +78,7 @@
   "provider_config_source": "/private/tmp/browser-harness-eval/configs/providers.example.json",
   "completed_at": "2026-09-01T08:42:06.643088+00:00",
   "attempt_count": 1100,
-  "rescored_at": "2026-09-01T09:09:57.713011+00:00",
+  "rescored_at": "2026-09-01T10:11:08.939478+00:00",
   "derived_from": {
     "runs": [
       "runs/2026-09-01-webfetch-100/cowagent-built-in",

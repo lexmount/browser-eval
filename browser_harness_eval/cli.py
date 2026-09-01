@@ -48,6 +48,7 @@ def command_run(args: argparse.Namespace) -> int:
         runs=args.runs,
         timeout=args.timeout,
         delay=args.delay,
+        provider_concurrency=args.provider_concurrency,
     )
     report_path = generate_report(args.output, dataset_meta, records)
     print(f"Report: {report_path.resolve()}")
@@ -115,6 +116,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=45)
     run.add_argument("--delay", type=float, default=0.5)
+    run.add_argument(
+        "--provider-concurrency",
+        type=int,
+        default=4,
+        help="Run this many providers in parallel; cases stay sequential within each provider",
+    )
     run.add_argument("--env-file", type=Path)
     run.add_argument("--output", type=Path, default=None)
     run.add_argument("--fail-on-failure", action="store_true")
