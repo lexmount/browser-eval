@@ -62,11 +62,14 @@ it matches the readable-content contract. `/content` returns full rendered HTML
 and is deliberately excluded from this Web Fetch comparison.
 
 The example Cloudflare configuration applies a 10.5-second cooldown after each
-completed response. Cloudflare documents one Quick Action per 10 seconds on the
-Workers Free plan; a start-to-start interval still produced intermittent 429s
-in the measured account, while completion-plus-cooldown completed 10/10 calls
-without a 429. This client wait is recorded separately and excluded from content
-latency; the free-plan throughput ceiling remains a product constraint.
+completed response. A 2026-09-01 retest with the updated Free account completed
+23 requests before HTTP 429 responses returned `Retry-After: 65255` seconds.
+Because the requests were already completion-paced, this is evidence of a
+long-period Browser Rendering account quota rather than a simple QPS limit.
+The checked-in ten-method report therefore uses the earlier complete 50-case
+Cloudflare run and records the newer quota incident separately; repeatedly
+retrying the same exhausted account would not finish the evaluation. Client
+waiting time is recorded separately and is excluded from content latency.
 
 Firecrawl Free documents 10 `/scrape` requests per minute. The example registry
 therefore also applies a 6.1-second completion cooldown. Higher paid plans should
@@ -82,6 +85,13 @@ COWAGENT_REPO=/path/to/CowAgent \
   WEBFETCH_ENV_FILE=~/.env \
   ./scripts/reproduce_report.sh runs/reproduced
 ```
+
+By default this also installs and executes the real OpenClaw, DeepSeek Harness,
+LangChain WebBaseLoader and Crawl4AI implementations. OpenClaw is run with Node
+24.15.0 because the measured checkout rejects older Node 24 SQLite builds.
+Set `WEBFETCH_INCLUDE_OSS=0` only when intentionally running the six managed or
+built-in methods. Override checkout locations with `OPENCLAW_REPO`,
+`DEEPSEEK_HARNESS_REPO` and `CRAWL4AI_REPO`.
 
 Set `WEBFETCH_RUN_SMOKE=1` to run the real smoke suite first. The script
 reproduces the process and report structure; live website/service responses and
@@ -133,11 +143,13 @@ The same registry is rendered at `report/accounts/index.html` in every report.
 ## Report structure
 
 The checked-in reference run is
-[`reports/2026-09-01-webfetch-50-final/index.html`](reports/2026-09-01-webfetch-50-final/index.html).
-It contains the frozen dataset, all 300 supplier attempts, raw artifacts,
-machine verdicts, HIL review controls and the derived-run provenance. The
-original six-way run and the paced Firecrawl replacement remain identified in
-the manifest; the report does not conceal the rate-limited observations.
+[`reports/2026-09-01-webfetch-50-ten-way/index.html`](reports/2026-09-01-webfetch-50-ten-way/index.html).
+It contains 50 frozen cases × 10 methods = 500 attempts, raw artifacts, machine
+verdicts, case-local HIL controls and derived-run provenance. A separate
+[`file/media capability report`](reports/2026-09-01-file-media-final/index.html)
+shows direct PDF, DOCX, TXT, PNG, MP4 and embedded-media behavior. The report
+distinguishes readable-text extraction, resource links/metadata and original
+binary download; binary bytes decoded as text are failures, not support.
 
 Every run produces a portable directory:
 
@@ -154,8 +166,8 @@ runs/<run-id>/
     ├── environment/index.html     # runtime, parameters and limitations
     ├── methodology/index.html     # fairness, Cloudflare endpoint choice, judging protocol
     ├── providers/                 # one detail page per method
-    ├── analysis/index.html        # dynamic ranking and case-level root-cause entry points
-    ├── review/index.html          # human-review queue and JSON export
+    ├── analysis/index.html        # ranking, filters and case-level HIL entry points
+    ├── capabilities/index.html    # file/media three-layer capability matrix
     ├── execution/index.html       # exact reproduction and incident runbook
     ├── metrics/index.html         # formal metric contract
     ├── market/index.html          # direct vs adjacent supplier capability boundary
@@ -169,8 +181,10 @@ runs/<run-id>/
 An HTTP 200 with missing facts is shown as a machine content failure, not as a
 successful content fetch. The machine verdict requires all frozen fact groups,
 minimum length, and no error/challenge marker. Main P50/P95 use only requests
-that also pass this content gate. Each attempt shows the full task, reference
-answer, supplier output, deterministic verdict, HIL form and SHA-256.
+that also pass this content gate. Each attempt—not a separate review queue—shows
+the full task, reference answer, supplier output, deterministic verdict, HIL
+form and SHA-256 so a reviewer can inspect possible false positives and false
+negatives in context.
 
 The default v4 suite contains 50 cases: 10 protocol/capability cases, 28
 CC-BY-4.0 WCXB cases across seven page structures, and 12 concrete render-quality

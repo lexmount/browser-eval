@@ -55,5 +55,7 @@ class LexmountProvider(Provider):
                 "dom_id": result.get("dom_id") or metadata.get("dom_id"),
                 "links_count": len(result.get("links") or []),
                 "images_count": len(result.get("images") or []),
+                "links": result.get("links") or [],
+                "images": result.get("images") or [],
             },
         )

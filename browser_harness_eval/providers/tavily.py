@@ -20,6 +20,7 @@ class TavilyExtractProvider(Provider):
                 "urls": [case.url],
                 "extract_depth": self.config.get("extract_depth", "basic"),
                 "format": "markdown",
+                "include_images": bool(self.config.get("include_images", False)),
             },
         )
         try:
@@ -37,5 +38,5 @@ class TavilyExtractProvider(Provider):
             final_url=result.get("url") or case.url,
             error_type=None if ok else ("authentication" if response.status in (401, 403) else "api_error"),
             error_message=None if ok else (message or f"HTTP {response.status}"),
-            metadata={"response_time": payload.get("response_time"), "failed_results": failures},
+            metadata={"response_time": payload.get("response_time"), "failed_results": failures, "images": result.get("images") or payload.get("images") or []},
         )

@@ -16,7 +16,12 @@ class ExaContentsProvider(Provider):
             timeout=timeout,
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
             headers={"x-api-key": str(self.config.get("api_key", ""))},
-            json_body={"urls": [case.url], "text": True, "maxAgeHours": int(self.config.get("max_age_hours", 0))},
+            json_body={
+                "urls": [case.url],
+                "text": True,
+                "maxAgeHours": int(self.config.get("max_age_hours", 0)),
+                **({"extras": {"links": 20, "imageLinks": 20}} if self.config.get("include_resource_links") else {}),
+            },
         )
         try:
             payload = response.json()
@@ -35,5 +40,5 @@ class ExaContentsProvider(Provider):
             title=result.get("title"),
             error_type=None if ok else ("authentication" if response.status in (401, 403) else error.get("tag", "api_error")),
             error_message=None if ok else (error.get("tag") or payload.get("error") or f"HTTP {response.status}"),
-            metadata={"request_id": payload.get("requestId"), "url_status": status, "cost_dollars": payload.get("costDollars")},
+            metadata={"request_id": payload.get("requestId"), "url_status": status, "cost_dollars": payload.get("costDollars"), "extras": result.get("extras") or {}},
         )

@@ -1,0 +1,29 @@
+# [4o Update 2024-09-05 Broken](/t/4o-update-2024-09-05-broken/931828)
+
+We’re on Teams and whatever version was released last night or today is broken. Document reviews, won’t do basic grammar checks, refers us to Grammatic of all things, errors in reviewing documents all over, is reverted to a five year old. I haven’t check all the rest we do, but will post more as we see it.
+
+Here is what our Chat GPT 4o stated when I asked it to review itself.
+
+" **Contextual Conclusion**: My responses in this thread indicate that I struggled to maintain consistency in handling tasks that should have been well within my capabilities. The issues escalated when I introduced more complexity, such as automated grammar corrections, which led to incorrect outputs. This experience has highlighted a gap in reliability during document handling and linguistic analysis, which are typically strengths of a language model like me."
+
+I asked our GPT if anyone else was having the issue. Response as below.
+
+It appears that you’re not alone in encountering issues with GPT-4’s recent update. Multiple users on the OpenAI forums have reported significant problems following recent updates, particularly with document reviews, grammar checking, and even coding assistance. Many users have observed that GPT-4’s performance has degraded in tasks that previously worked seamlessly. They noted excessive verbosity, inconsistencies, and even a reversion to what feels like GPT-3.5-level performance in some cases.
+
+Several threads from the developer community have highlighted similar experiences:
+
+These experiences align with what you’re facing, and it seems OpenAI is likely aware of the feedback, as it’s been widely reported.
+
+For a more detailed overview or to stay updated, you can follow these discussions on the [OpenAI Developer Forum](https://community.openai.com).
+
+### Related topics
+
+| Topic |  | Replies | Views | Activity |
+| --- | --- | --- | --- | --- |
+| [4o model - (ruined after updates)](https://community.openai.com/t/4o-model-ruined-after-updates/1119804)  [ChatGPT](/c/chatgpt/19) [gpt-4](https://community.openai.com/tag/gpt-4/10) ,  [bug](https://community.openai.com/tag/bug/31) ,  [gpt-4o](https://community.openai.com/tag/gpt-4o/631) | 4 | 1917 | February 25, 2025 |
+| [Recent Changes have made GPT unusable for my use case](https://community.openai.com/t/recent-changes-have-made-gpt-unusable-for-my-use-case/1047373)  [ChatGPT](/c/chatgpt/19) [gpt-4](https://community.openai.com/tag/gpt-4/10) ,  [chatgpt](https://community.openai.com/tag/chatgpt/16) | 2 | 339 | December 9, 2024 |
+| [Something happened with GPT Today](https://community.openai.com/t/something-happened-with-gpt-today/199264)  [ChatGPT](/c/chatgpt/19) | 11 | 1791 | July 6, 2023 |
+| [Has anyone else notice a substantial decrease in usability of gpt?](https://community.openai.com/t/has-anyone-else-notice-a-substantial-decrease-in-usability-of-gpt/200910)  [ChatGPT](/c/chatgpt/19) [chatgpt](https://community.openai.com/tag/chatgpt/16) | 4 | 940 | June 13, 2023 |
+| [GPT-4o is structurally failing again — this is the model’s own self-report (July 9)](https://community.openai.com/t/gpt-4o-is-structurally-failing-again-this-is-the-model-s-own-self-report-july-9/1311616)  [Bugs](/c/chatgpt/bugs/23) [gpt-4](https://community.openai.com/tag/gpt-4/10) ,  [chatgpt](https://community.openai.com/tag/chatgpt/16) | 1 | 518 | July 9, 2025 |
+
+Powered by [Discourse](https://www.discourse.org), best viewed with JavaScript enabled

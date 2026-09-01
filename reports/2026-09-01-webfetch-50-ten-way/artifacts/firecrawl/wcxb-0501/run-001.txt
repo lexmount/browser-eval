@@ -1,0 +1,83 @@
+[Skip to last reply](https://community.openai.com/t/4o-update-2024-09-05-broken/931828/2) [Skip to top](https://community.openai.com/t/4o-update-2024-09-05-broken/931828/1)
+
+[Skip to main content](https://community.openai.com/t/4o-update-2024-09-05-broken/931828#main-container)
+
+# [4o Update 2024-09-05 Broken](https://community.openai.com/t/4o-update-2024-09-05-broken/931828)
+
+[ChatGPT](https://community.openai.com/c/chatgpt/19) [Bugs](https://community.openai.com/c/chatgpt/bugs/23)
+
+You have selected **0** posts.
+
+[select all](https://community.openai.com/t/4o-update-2024-09-05-broken/931828)
+
+[cancel selecting](https://community.openai.com/t/4o-update-2024-09-05-broken/931828)
+
+[Sep 2024](https://community.openai.com/t/4o-update-2024-09-05-broken/931828/1 "Jump to the first post")
+
+1 / 2
+
+
+Sep 2024
+
+
+[Sep 2024](https://community.openai.com/t/4o-update-2024-09-05-broken/931828/2)
+
+## post by DaleJack on Sep 5, 2024
+
+[![](https://sea2.discourse-cdn.com/openai1/user_avatar/community.openai.com/dalejack/48/351132_2.png)](https://community.openai.com/u/dalejack)
+
+[DaleJack](https://community.openai.com/u/dalejack)
+
+2
+
+[Sep 2024](https://community.openai.com/t/4o-update-2024-09-05-broken/931828 "Post date")
+
+We’re on Teams and whatever version was released last night or today is broken. Document reviews, won’t do basic grammar checks, refers us to Grammatic of all things, errors in reviewing documents all over, is reverted to a five year old. I haven’t check all the rest we do, but will post more as we see it.
+
+Here is what our Chat GPT 4o stated when I asked it to review itself.
+
+" **Contextual Conclusion**: My responses in this thread indicate that I struggled to maintain consistency in handling tasks that should have been well within my capabilities. The issues escalated when I introduced more complexity, such as automated grammar corrections, which led to incorrect outputs. This experience has highlighted a gap in reliability during document handling and linguistic analysis, which are typically strengths of a language model like me."
+
+Me too
+
+154
+views
+
+
+Summarize
+
+## post by DaleJack on Sep 5, 2024
+
+Reply
+
+### Related topics
+
+| Topic | Replies | Views | Activity |
+| --- | --- | --- | --- |
+| [4o model - (ruined after updates)](https://community.openai.com/t/4o-model-ruined-after-updates/1119804)<br>[ChatGPT](https://community.openai.com/c/chatgpt/19) <br>- [gpt-4](https://community.openai.com/tag/gpt-4/10),<br>- [bug](https://community.openai.com/tag/bug/31),<br>- [gpt-4o](https://community.openai.com/tag/gpt-4o/631) | [4](https://community.openai.com/t/4o-model-ruined-after-updates/1119804/1) | 1.9k | [Feb 2025](https://community.openai.com/t/4o-model-ruined-after-updates/1119804/5) |
+| [Recent Changes have made GPT unusable for my use case](https://community.openai.com/t/recent-changes-have-made-gpt-unusable-for-my-use-case/1047373)<br>[ChatGPT](https://community.openai.com/c/chatgpt/19) <br>- [chatgpt](https://community.openai.com/tag/chatgpt/16),<br>- [gpt-4](https://community.openai.com/tag/gpt-4/10) | [2](https://community.openai.com/t/recent-changes-have-made-gpt-unusable-for-my-use-case/1047373/1) | 339 | [Dec 2024](https://community.openai.com/t/recent-changes-have-made-gpt-unusable-for-my-use-case/1047373/4) |
+| [Something happened with GPT Today](https://community.openai.com/t/something-happened-with-gpt-today/199264)<br>[ChatGPT](https://community.openai.com/c/chatgpt/19) | [11](https://community.openai.com/t/something-happened-with-gpt-today/199264/1) | 1.8k | [Jul 2023](https://community.openai.com/t/something-happened-with-gpt-today/199264/13) |
+| [Has anyone else notice a substantial decrease in usability of gpt?](https://community.openai.com/t/has-anyone-else-notice-a-substantial-decrease-in-usability-of-gpt/200910)<br>[ChatGPT](https://community.openai.com/c/chatgpt/19) <br>- [chatgpt](https://community.openai.com/tag/chatgpt/16) | [4](https://community.openai.com/t/has-anyone-else-notice-a-substantial-decrease-in-usability-of-gpt/200910/1) | 940 | [Jun 2023](https://community.openai.com/t/has-anyone-else-notice-a-substantial-decrease-in-usability-of-gpt/200910/5) |
+| [GPT-4o is structurally failing again — this is the model’s own self-report (July 9)](https://community.openai.com/t/gpt-4o-is-structurally-failing-again-this-is-the-model-s-own-self-report-july-9/1311616)<br>[Bugs](https://community.openai.com/c/chatgpt/bugs/23) <br>- [chatgpt](https://community.openai.com/tag/chatgpt/16),<br>- [gpt-4](https://community.openai.com/tag/gpt-4/10) | [1](https://community.openai.com/t/gpt-4o-is-structurally-failing-again-this-is-the-model-s-own-self-report-july-9/1311616/1) | 518 | [Jul 2025](https://community.openai.com/t/gpt-4o-is-structurally-failing-again-this-is-the-model-s-own-self-report-july-9/1311616/2) |
+
+Topic list, column headers with buttons are sortable.
+
+Developer Community
+
+
+Connect with other developers building with the OpenAI Platform.
+
+
+Help
+
+
+- [Support](https://help.openai.com/en/articles/6614161-how-can-i-contact-support)
+
+Developer Resources
+
+
+- [API Documentation](https://platform.openai.com/overview)
+- [Service status](https://status.openai.com/)
+- [Cookbook](https://github.com/openai/openai-cookbook)
+
+[Terms & policies](https://openai.com/policies) [Privacy policy](https://openai.com/policies/privacy-policy)

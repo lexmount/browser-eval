@@ -57,5 +57,17 @@ class RealProviderSmokeTest(unittest.TestCase):
     def test_cloudflare_markdown_real_fetch(self) -> None:
         self.assert_provider_smoke("cloudflare-markdown")
 
+    def test_openclaw_built_in_real_fetch(self) -> None:
+        self.assert_provider_smoke("openclaw-built-in")
+
+    def test_deepseek_harness_built_in_real_fetch(self) -> None:
+        self.assert_provider_smoke("deepseek-harness-built-in")
+
+    def test_langchain_webbase_real_fetch(self) -> None:
+        self.assert_provider_smoke("langchain-webbase")
+
+    def test_crawl4ai_real_fetch(self) -> None:
+        self.assert_provider_smoke("crawl4ai")
+
 if __name__ == "__main__":
     unittest.main()

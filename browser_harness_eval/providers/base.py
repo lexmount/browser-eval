@@ -59,6 +59,10 @@ def build_provider(name: str, config: dict[str, Any]) -> Provider:
         from .cloudflare import CloudflareContentProvider
 
         return CloudflareContentProvider(name, config)
+    if provider_type == "subprocess_jsonl":
+        from .subprocess_jsonl import SubprocessJsonlProvider
+
+        return SubprocessJsonlProvider(name, config)
     if provider_type == "fixture":
         from .fixture import FixtureProvider
 

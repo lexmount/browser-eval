@@ -1,0 +1,1 @@
+{"requestId":"3d2902bd24d00445ff5741cdcfa58428","results":[],"statuses":[{"id":"https://calibre-ebook.com/downloads/demos/demo.docx","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNEXPECTED_CONTENT_TYPE"}}],"costDollars":{"total":0},"searchTime":725.1331559997052}

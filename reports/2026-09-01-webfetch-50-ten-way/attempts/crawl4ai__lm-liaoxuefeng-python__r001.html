@@ -1,0 +1,316 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__lm-liaoxuefeng-python__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文件与媒体</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>廖雪峰 Python 教程</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">7,005 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定公开页面的主要可读正文；输出必须包含两个稳定主题标记，不能只是导航外壳、挑战页或错误页。</p><p><b>输入 URL：</b><a href="https://www.liaoxuefeng.com/wiki/1016959663602400/1017063413904832">https://www.liaoxuefeng.com/wiki/1016959663602400/1017063413904832</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>廖雪峰 Python 教程
+页面主要内容应同时包含：Python；教程。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否为目标页面而非错误页</li><li>是否包含 Python</li><li>是否包含 教程</li><li>是否返回连贯正文而非导航外壳</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/lm-liaoxuefeng-python/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.liaoxuefeng.com/wiki/1016959663602400/1017063413904832">打开标准答案源网页</a> · 完整性校验 <code>sha256:0374fe474c7b025dc9e5c9c1bc6b59d09b49ef5a6047e37d54465afd9ddc2782</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>廖雪峰 Python 教程
+页面主要内容应同时包含：Python；教程。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># Python基础
+[ ![](http://thirdqq.qlogo.cn/ek_qqapp/AQVJKMtqeFCGNEZqicOj7qb7mnpcJiaZNlEOf0iasx2DicuEycbIG9cQktWUBxWR1dFWfLMI2Ilt/100) ](https://weibo.com/liaoxuefeng)
+[廖雪峰](https://weibo.com/liaoxuefeng) [ ](https://github.com/michaelliao) [ ](https://weibo.com/liaoxuefeng) [ ](https://zhihu.com/people/liaoxuefeng) [ ](https://twitter.com/liaoxuefeng)
+资深软件开发工程师，业余马拉松选手。
+Python是一种计算机编程语言。计算机编程语言和我们日常使用的自然语言有所不同，最大的区别就是，自然语言在不同的语境下有不同的理解，而计算机要根据编程语言执行任务，就必须保证编程语言写出的程序决不能有歧义，所以，任何一种编程语言都有自己的一套语法，编译器或者解释器就是负责把符合语法的程序代码转换成CPU能够执行的机器码，然后执行。Python也不例外。
+Python的语法比较简单，采用缩进方式，写出来的代码就像下面的样子：
+
+```
+# print absolute value of an integer:
+a = 100
+if a &gt;= 0:
+    print(a)
+else:
+    print(-a)
+
+```
+
+以`#`开头的语句是注释，注释是给人看的，可以是任意内容，解释器会忽略掉注释。其他每一行都是一个语句，当语句以冒号`:`结尾时，缩进的语句视为代码块。
+缩进有利有弊。好处是强迫你写出格式化的代码，但没有规定缩进是几个空格还是Tab。按照约定俗成的惯例，应该始终坚持使用 _4个空格_ 的缩进。
+缩进的另一个好处是强迫你写出缩进较少的代码，你会倾向于把一段很长的代码拆分成若干函数，从而得到缩进较少的代码。
+缩进的坏处就是“复制－粘贴”功能失效了，这是最坑爹的地方。当你重构代码时，粘贴过去的代码必须重新检查缩进是否正确。此外，IDE很难像格式化Java代码那样格式化Python代码。
+最后，请务必注意，Python程序是 _大小写敏感_ 的，如果写错了大小写，程序会报错。
+### 小结
+Python使用缩进来组织代码块，请务必遵守约定俗成的习惯，坚持使用4个空格的缩进；
+在文本编辑器中，需要设置把Tab自动转换为4个空格，确保不混用Tab和空格。
+* * *
+[ 输入和输出 ](https://liaoxuefeng.com/books/python/first-program/input-output/index.html)
+[ 数据类型和变量 ](https://liaoxuefeng.com/books/python/basic/data-types/index.html)
+* * *
+![](https://liaoxuefeng.com/books/python/basic/${user_image})
+${user_name} @ ${created_at} ${delete_action}
+${content}
+${comment_replies} ${comment_action} ${comment_reply_form}
+![](https://liaoxuefeng.com/books/python/basic/${user_image})
+Write [Write](https://liaoxuefeng.com/books/python/basic/index.html#0) Preview [Preview](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0) [ </pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（6,626 / 6,654 字符）</summary><pre># Python基础
+[ ![](http://thirdqq.qlogo.cn/ek_qqapp/AQVJKMtqeFCGNEZqicOj7qb7mnpcJiaZNlEOf0iasx2DicuEycbIG9cQktWUBxWR1dFWfLMI2Ilt/100) ](https://weibo.com/liaoxuefeng)
+[廖雪峰](https://weibo.com/liaoxuefeng) [ ](https://github.com/michaelliao) [ ](https://weibo.com/liaoxuefeng) [ ](https://zhihu.com/people/liaoxuefeng) [ ](https://twitter.com/liaoxuefeng)
+资深软件开发工程师，业余马拉松选手。
+Python是一种计算机编程语言。计算机编程语言和我们日常使用的自然语言有所不同，最大的区别就是，自然语言在不同的语境下有不同的理解，而计算机要根据编程语言执行任务，就必须保证编程语言写出的程序决不能有歧义，所以，任何一种编程语言都有自己的一套语法，编译器或者解释器就是负责把符合语法的程序代码转换成CPU能够执行的机器码，然后执行。Python也不例外。
+Python的语法比较简单，采用缩进方式，写出来的代码就像下面的样子：
+
+```
+# print absolute value of an integer:
+a = 100
+if a &gt;= 0:
+    print(a)
+else:
+    print(-a)
+
+```
+
+以`#`开头的语句是注释，注释是给人看的，可以是任意内容，解释器会忽略掉注释。其他每一行都是一个语句，当语句以冒号`:`结尾时，缩进的语句视为代码块。
+缩进有利有弊。好处是强迫你写出格式化的代码，但没有规定缩进是几个空格还是Tab。按照约定俗成的惯例，应该始终坚持使用 _4个空格_ 的缩进。
+缩进的另一个好处是强迫你写出缩进较少的代码，你会倾向于把一段很长的代码拆分成若干函数，从而得到缩进较少的代码。
+缩进的坏处就是“复制－粘贴”功能失效了，这是最坑爹的地方。当你重构代码时，粘贴过去的代码必须重新检查缩进是否正确。此外，IDE很难像格式化Java代码那样格式化Python代码。
+最后，请务必注意，Python程序是 _大小写敏感_ 的，如果写错了大小写，程序会报错。
+### 小结
+Python使用缩进来组织代码块，请务必遵守约定俗成的习惯，坚持使用4个空格的缩进；
+在文本编辑器中，需要设置把Tab自动转换为4个空格，确保不混用Tab和空格。
+* * *
+[ 输入和输出 ](https://liaoxuefeng.com/books/python/first-program/input-output/index.html)
+[ 数据类型和变量 ](https://liaoxuefeng.com/books/python/basic/data-types/index.html)
+* * *
+![](https://liaoxuefeng.com/books/python/basic/${user_image})
+${user_name} @ ${created_at} ${delete_action}
+${content}
+${comment_replies} ${comment_action} ${comment_reply_form}
+![](https://liaoxuefeng.com/books/python/basic/${user_image})
+Write [Write](https://liaoxuefeng.com/books/python/basic/index.html#0) Preview [Preview](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0) [ ](https://liaoxuefeng.com/books/python/basic/index.html#0)
+Post
+[![](https://liaoxuefeng-dynamic-1251042815.cos.ap-shanghai.myqcloud.com/img/gitee.jpg?v=1)](https://gitee.com/enterprises?utm_source=lxf)
+* * *
+### Comments
+Loading comments...
+Fail to load comments. Try [reload](https://liaoxuefeng.com/books/python/basic/index.html#0).
+Comments loaded. To post a comment, please [Sign In](https://liaoxuefeng.com/books/python/basic/index.html#0) Hello, . [Sign Out](https://liaoxuefeng.com/books/python/basic/index.html#0)
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQOpqOp3YC5XWj3FibRiacf5azUdvACHLgKFUsH4bexBLok3Ah0r13RSlKxXAKrRnLclYFzkN7/100)
+火生木 @ 2026/8/17 15:02:42
+打卡
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQSwJDyhzaWGARFqZ54ruA8XySKG5qs8ZGVB85HZJJZxzcMDCLfRNsB9A8HvOGlEJrxFXWP1/100)
+one @ 2026/8/13 16:32:36
+打卡
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQNhRDoaDUqef2ibLYIRwxEjibg2iapL6uWftprSecNELSEyXSnbaQ5eM13vLx7fia2Y7of6kWsYicj7icWKEnciclKn91Zr3Qr86UyKU1YlZ7TL9yvIoicrWXU/100)
+Risttt @ 2026/8/12 23:15:15
+打卡
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQPbysUVL7qBQET6ibDibjeQqbiaOiccQaDP2LeHhdvw8wAIgC4MSSyYVgglz8aF2uWsHUanx2tF7ghaYbAurKfDCgNiaobYpvo53YMkLs4HC9zXLx9pg7fU/100)
+Homelander. @ 2026/7/30 18:39:49
+有人可以教一下怎么做是或者否吗awa
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQTqRKiakqsL1JWyp8zyQQcKTKto5cEMg5uVuuFZnInfZ8erb5HMK9MjBBibQKN7Y2QVhby8iaLiahRwwVVyAJK1Izxbmwq00J3b8mlV4d4OtibAscO7wAbk/100)
+kk @ 2026/7/26 15:07:42
+打卡第三天
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQUxJicTS5mt7IzjIRgqsYuJkHGkRahicib7oO2yuTmlBQt1yhPJ6iaiaGDdzxnpXQDibZcIKEpQGE/100)
+？ @ 2026/7/26 14:36:39
+gogogo
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQUxJicTS5mt7IzjIRgqsYuJkHGkRahicib7oO2yuTmlBQt1yhPJ6iaiaGDdzxnpXQDibZcIKEpQGE/100)
+？ @ 2026/7/26 13:01:35
+第2天开始
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQR8WA1tgK5umaSTw5yA1N2h8tSaMibCUWQcMibFRjMia71uGxEEVXBfWQ3moKVkJlEibtMGF7F7/100)
+今夜有暴风雨 @ 2026/7/21 16:21:59
+20260721
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQAQnTKGfsiaxE6E3uT4icTlsUXLwicmGtJ8q9Nxy2R6SftzMB5AlnQoIOviaVm7q6MicCjqlib11ib/100)
+叶落无尘 @ 2026/7/15 15:36:23
+干
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQGVbTm1zQDNId2Ikt8ficPwISV5iaqcyuAnk1HQt7GweLFV27yG7K2Dib1oTQxqgTx1x30icZvta1tqIpERKzmCPXptePI09oDWGd1ibJ0kFjqQeH8dq9ias/100)
+鹦果关系 @ 2026/7/14 16:32:59
+day1
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQOT5FBzGxsmDibYxljibo7XmI19YGESBZ9xvFwZp0pAjia88MzkiaMke6zjMG0oeQBeoBxmPx3B/100)
+Thesunsunsun @ 2026/7/3 23:17:12
+打卡第一天day1 加油加油
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQBSyfdGYMeP5olfHuwxN0WuWCeDMZcnhhnMERS0ibGOAlgDc5juQibM1oDdU82fbUmLngqAETzE0ib76uscRGzxvHvDWBytFDI4TzX2GXloWt8KTTqXEg/100)
+(￢_￢) @ 2026/7/2 15:55:41
+day2 end
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQIg0Pk74gyorcDOqAibjTCkCGwn9ckHbqfbejEhlmy7IX5LcZ2qpQ5MFvM4y1t2Ztz9rnB0u/100)
+我发6一定是忘了打没打卡 @ 2026/6/16 11:48:59
+打卡day2
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQF9QOa5OBcFYDoxEDIibzzup4CPQ9rjFhdrsxb0ibwqiaGE1pia52PpwgZL0eaq0YgibrY0RZUm1/100)
+瞎说一批 @ 2026/6/11 16:18:00
+DAY1 Let`s GO!!!! THANK!!!!
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQJeGDmmePM38eet7kdfJl0GG6q5S50U5EfzW9LefVjZib3zYeiadcyKNbfHDadZLGxymP6qYG/100)
+。 @ 2026/6/7 19:26:50
+# print absolute value of an integer:
+a = 100 if a &gt;= 0: print(a) else: print(-a)
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQJeGDmmePM38eet7kdfJl0GG6q5S50U5EfzW9LefVjZib3zYeiadcyKNbfHDadZLGxymP6qYG/100)
+。 @ 2026/6/7 19:28:04
+# print absolute value of an integer:
+a = 100 if a &gt;= 0: print(a) else: print(-a)
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQCejLSSmhjkFf5suGJvCRlAhK2AGPLagbFVgqc7uWcFFpQ2x7eDP5st443D0gUKtickClwrf/100)
+小田 @ 2026/6/5 11:33:25
+打卡day4
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQUBKW0B7uBevQJvGzPafiba5UYH2RxCq4r4Oo8Kiblq48V8hJduvIjmiaAFucKuicM9SQUjxNemGPic59Pm3MbathjtTUVELk0GRHgJCx0PznE9blapBS1A/100)
+🤖 @ 2026/6/2 13:55:08
+import random a = 10; b = 20; print(&quot;a+b=&quot;, a+b);
+print(&quot;hello word&quot;);
+c=float(input(&quot;输入被乘数：&quot;));
+d=float(input(&quot;输入乘数：&quot;));
+print(&quot;两数相乘=:&quot;,c*d);
+range=random.randint(1,100); if range&gt;50: print(range) else: print(-range)
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQXNiaTALzibsSh5zDXxAg7LOlg9xLsJ1H9iapQCHJr9Yzflkbiaib96cM81JRkGz7wKXlGOiao4dQ/100)
+宇智波涛 @ 2026/5/27 17:17:14
+打卡第一天
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQD07eiavDxNicrrKdWMXslichX4AJ0Jk1PPibsYblibEtB2AI2puMajWibOtoBLjcpTtlYO94Kfibn/100)
+可乐加冰，谢谢。 @ 2026/5/19 23:48:30
+打卡
+![](http://thirdqq.qlogo.cn/ek_qqapp/AQFlrGeiaSicBK9RjicVZSDZNNZRsGux5n9QUVOxpicvwsic7Yqg2EInzibzvv093eMWvAtzuzBStXSuS5mDk2z6bwKZLSGfmBzphPFCibJNk5yCuTFZT5BoGE/100)
+砂糖与盐 @ 2025/12/6 16:22:20
+# 评论区学习打卡
+📅 **今日足迹** | 潜心研习，步履不停
+今日驻足评论区，于观点的交锋里萃取思维养分，在见解的碰撞中拓宽认知疆域。每一条独到分享，都是夯实知识体系的基石；每一次深度共鸣，皆是打磨学术视角的砺石。
+深耕不辍，方得真知；学思践悟，终有所成。
+* * *
+✅ **打卡状态** | 今日学习任务已完成
+©[liaoxuefeng.com](https://liaoxuefeng.com/) - [微博](https://weibo.com/liaoxuefeng) - [GitHub](https://github.com/michaelliao/liaoxuefeng.com) - [License](https://liaoxuefeng.com/pages/license/index.html)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__lm-liaoxuefeng-python__r001</code></div><div class="kv"><b>HTTP 状态</b>302</div><div class="kv"><b>最终 URL</b><span class="break">https://www.liaoxuefeng.com/wiki/1016959663602400/1017063413904832</span></div><div class="kv"><b>输出大小</b>6,654 字符</div><div class="kv"><b>事实覆盖率</b>50.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>marker-1</code></td><td class="good">命中</td><td>Python</td><td>Python</td></tr><tr><td><code>marker-2</code></td><td class="bad">未命中</td><td>教程</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Python</span><span class="tag">教程</span></p><p><span class="tag">Python</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://liaoxuefeng-dynamic-1251042815.cos.ap-shanghai.myqcloud.com/img/gitee.jpg?v=1&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;&quot;,
+      &quot;desc&quot;: &quot;Python基础\n    \n    \n        \n    \n        \n            \n        \n    \n    \n        \n            廖雪峰\n            \n                \n            \n            \n                \n            \n            \n                \n            \n            \n                \n            \n        \n        \n        资深软件开发工程师，业余马拉松选手。\n    \n\nPython是一种计算机编程语言。计算机编程语言和我们日常使用的自然语言有所不同，最大的区别就是，自然语言在不同的语境下有不同的理解，而计算机要根据编程语言执行任务，就必须保证编程语言写出的程序决不能有歧义，所以，任何一种编程语言都有自己的一套语法，编译器或者解释器就是负责把符合语法的程序代码转换成CPU能够执行的机器码，然后执行。Python也不例外。\nPython的语法比较简单，采用缩进方式，写出来的代码就像下面的样子：\n# print absolute value of an integer:\na = 100\nif a &gt;= 0:\n    print(a)\nelse:\n    print(-a)\n\n以#开头的语句是注释，注释是给人看的，可以是任意内容，解释器会忽略掉注释。其他每一行都是一个语句，当语句以冒号:结尾时，缩进的语句视为代码块。\n缩进有利有弊。好处是强迫你写出格式化的代码，但没有规定缩进是几个空格还是Tab。按照约定俗成的惯例，应该始终坚持使用4个空格的缩进。\n缩进的另一个好处是强迫你写出缩进较少的代码，你会倾向于把一段很长的代码拆分成若干函数，从而得到缩进较少的代码。\n缩进的坏处就是“复制－粘贴”功能失效了，这是最坑爹的地方。当你重构代码时，粘贴过去的代码必须重新检查缩进是否正确。此外，IDE很难像格式化Java代码那样格式化Python代码。\n最后，请务必注意，Python程序是大小写敏感的，如果写错了大小写，程序会报错。\n小结\nPython使用缩进来组织代码块，请务必遵守约定俗成的习惯，坚持使用4个空格的缩进；\n在文本编辑器中，需要设置把Tab自动转换为4个空格，确保不混用Tab和空格。\n\n    \n\n\n\n\n\n\n    \n    \n        \n\n            \n                \n                    \n                \n                输入和输出\n            \n\n        \n        \n\n            \n                数据类型和变量\n                \n                    \n                \n            \n\n        \n    \n\n\n\n\n\n\n\n\n\n\n\n    \n        \n            \n        \n        \n            \n                ${user_name} @ ${created_at} ${delete_action}\n            \n            ${content}\n            ${comment_replies}\n            ${comment_action}\n            ${comment_reply_form}\n        \n    \n\n\n\n    \n        \n            \n                \n            \n            \n                \n                    Write\n                    Write\n                    Preview\n                    Preview\n                    \n                        \n                            \n                            \n                        \n                    \n                    \n                        \n                            \n                        \n                    \n                    \n                        \n                            \n                            \n                        \n                    \n                    \n                        \n                            \n                        \n                    \n                \n                \n                    \n                \n                \n                \n                    Post\n                    \n                \n            \n        \n    \n\n\n\n    Comments\n    \n        \n            \n            \n            \n        \n        Loading comments...\n    \n    Fail to load comments. Try\n        reload.\n    \n    Comments loaded.\n        To post a comment, please\n            Sign In\n        Hello, .\n            Sign Out\n    \n    \n    \n        \n            \n        \n        \n            \n                火生木 @ 2026/8/17 15:02:42 \n            \n            打卡\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                one @ 2026/8/13 16:32:36 \n            \n            打卡\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                Risttt @ 2026/8/12 23:15:15 \n            \n            打卡\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                Homelander. @ 2026/7/30 18:39:49 \n            \n            有人可以教一下怎么做是或者否吗awa\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                kk @ 2026/7/26 15:07:42 \n            \n            打卡第三天\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                ？ @ 2026/7/26 14:36:39 \n            \n            gogogo\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                ？ @ 2026/7/26 13:01:35 \n            \n            第2天开始\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                今夜有暴风雨 @ 2026/7/21 16:21:59 \n            \n            20260721\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                叶落无尘 @ 2026/7/15 15:36:23 \n            \n            干\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                鹦果关系 @ 2026/7/14 16:32:59 \n            \n            day1\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                Thesunsunsun @ 2026/7/3 23:17:12 \n            \n            打卡第一天day1\n加油加油\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                (￢_￢) @ 2026/7/2 15:55:41 \n            \n            day2\nend\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                我发6一定是忘了打没打卡 @ 2026/6/16 11:48:59 \n            \n            打卡day2\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                瞎说一批 @ 2026/6/11 16:18:00 \n            \n            DAY1  Let`s GO!!!!\nTHANK!!!!\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                。 @ 2026/6/7 19:26:50 \n            \n            print absolute value of an integer:\na = 100\nif a &gt;= 0:\nprint(a)\nelse:\nprint(-a)\n\n            \n    \n        \n            \n        \n        \n            \n                。 @ 2026/6/7 19:28:04 \n            \n            print absolute value of an integer:\na = 100\nif a &gt;= 0:\nprint(a)\nelse:\nprint(-a)\n\n            \n            \n            \n        \n    \n\n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                小田 @ 2026/6/5 11:33:25 \n            \n            打卡day4\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                🤖 @ 2026/6/2 13:55:08 \n            \n            import random\na = 10;\nb = 20;\nprint(\&quot;a+b=\&quot;, a+b);\nprint(\&quot;hello word\&quot;);\nc=float(input(\&quot;输入被乘数：\&quot;));\nd=float(input(\&quot;输入乘数：\&quot;));\nprint(\&quot;两数相乘=:\&quot;,c*d);\nrange=random.randint(1,100);\nif range&gt;50:\nprint(range)\nelse:\nprint(-range)\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                宇智波涛 @ 2026/5/27 17:17:14 \n            \n            打卡第一天\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                可乐加冰，谢谢。 @ 2026/5/19 23:48:30 \n            \n            打卡\n\n            \n            \n            \n        \n    \n\n    \n        \n            \n        \n        \n            \n                砂糖与盐 @ 2025/12/6 16:22:20 \n            \n            评论区学习打卡\n📅 今日足迹 | 潜心研习，步履不停\n今日驻足评论区，于观点的交锋里萃取思维养分，在见解的碰撞中拓宽认知疆域。每一条独到分享，都是夯实知识体系的基石；每一次深度共鸣，皆是打磨学术视角的砺石。\n深耕不辍，方得真知；学思践悟，终有所成。\n\n✅ 打卡状态 | 今日学习任务已完成&quot;,
+      &quot;score&quot;: 4,
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;group_id&quot;: 3,
+      &quot;format&quot;: &quot;jpg&quot;,
+      &quot;width&quot;: null
+    }
+  ],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://liaoxuefeng.com/books/python/first-program/input-output/index.html&quot;,
+      &quot;text&quot;: &quot;输入和输出&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://liaoxuefeng.com/books/python/basic/data-types/index.html&quot;,
+      &quot;text&quot;: &quot;数据类型和变量&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://liaoxuefeng.com/books/python/basic/index.html&quot;,
+      &quot;text&quot;: &quot;Write&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://liaoxuefeng.com/&quot;,
+      &quot;text&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://liaoxuefeng.com/pages/license/index.html&quot;,
+      &quot;text&quot;: &quot;License&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;liaoxuefeng.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://weibo.com/liaoxuefeng&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;weibo.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/michaelliao&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://zhihu.com/people/liaoxuefeng&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;zhihu.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://twitter.com/liaoxuefeng&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;twitter.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://gitee.com/enterprises&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;gitee.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/michaelliao/liaoxuefeng.com&quot;,
+      &quot;text&quot;: &quot;GitHub&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__lm-liaoxuefeng-python__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__lm-liaoxuefeng-python__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__lm-liaoxuefeng-python__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

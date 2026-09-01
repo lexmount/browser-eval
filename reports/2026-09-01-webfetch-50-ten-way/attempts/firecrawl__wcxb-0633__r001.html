@@ -1,0 +1,1354 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>firecrawl__wcxb-0633__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文件与媒体</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · firecrawl</div><h1>WCXB collection · T-Shirts &amp; Tops</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">8,626 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 collection 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://www.gymshark.com/collections/all-products">https://www.gymshark.com/collections/all-products</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>mens
+
+T-Shirts &amp; Tops
+
+400 Products
+
+Running Graphic T-Shirt
+oversized fit
+GS Black
+$36
+
+Geo Seamless T-Shirt
+slim fit
+Storm Blue / Stealth Blue
+$36
+
+Shadow Seamless T Shirt
+muscle fit
+Black
+$38
+
+Arrival Block T-Shirt
+White
+$19.20
+
+Vital Seamless T-Shirt
+slim fit
+Black/Silhouette Grey
+$38
+
+Critical Drop Arm Tank
+slim fit
+Black
+$24
+
+Oversized Performance T-Shirt
+oversized fit
+Black
+$26
+
+Oversized Performance T-Shirt
+oversized fit
+White
+$26
+
+Ribbed Tank 1PK
+muscle fit
+Black
+$16
+
+Crest T-Shirt
+regular fit
+Light Grey Marl
+$22
+
+Arrival T-Shirt
+regular fit
+Navy
+$22
+
+Crest Long Sleeve T-Shirt
+regular fit
+Black
+$26
+
+Crest T-Shirt
+regular fit
+Navy
+$22
+
+Crest T-Shirt
+regular fit
+Black
+$22
+
+Critical Tank
+slim fit
+Black
+$22
+
+Power T-Shirt
+oversized fit
+GS Stealth Blue
+$36
+
+Power T-Shirt
+oversized fit
+Black/Asphalt Grey
+$36
+
+Power T-Shirt
+oversized fit
+Black/Conditioning Red
+$36
+
+Power Cut Off Tank
+oversized fit
+Black/Asphalt Grey
+$30
+
+Legacy Drop Arm Tank
+slim fit
+Black
+$24
+
+Geo Seamless T-Shirt
+slim fit
+Black/Charcoal Grey
+$36
+
+Element Baselayer T-Shirt
+compression fit
+Black/Brand Blue
+$34
+
+Shadow Seamless T Shirt
+muscle fit
+Black/Brand Blue
+$38
+
+Power T-Shirt
+oversized fit
+Mushroom Grey
+$28.80
+
+Power T-Shirt
+oversized fit
+Onyx Grey
+$28.80
+
+Element Tank
+compression fit
+Black
+$24
+
+Element Baselayer Long Sleeve T-Shirt
+compression fit
+Black
+$32
+
+Arrival T-Shirt
+regular fit
+Black
+$22
+
+Power Cut Off Tank
+oversized fit
+Black/Conditioning Red
+$30
+
+Set The Pace Tank
+oversized fit
+Graphite Grey
+$30
+
+Atlas T-Shirt
+oversized fit
+Black
+$40
+
+Legacy T-Shirt
+slim fit
+Black
+$28
+
+Ribbed Tank 1PK
+muscle fit
+Black/White
+$16
+
+Element Tank
+compression fit
+White
+$24
+
+Ribbed Tank 1PK
+muscle fit
+White
+$16</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录/错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为 ground-truth 漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/firecrawl/wcxb-0633/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.gymshark.com/collections/all-products">打开标准答案源网页</a> · 完整性校验 <code>sha256:479a8a2bcfe7df79b2ed27e170bc014512a584b076b80de8af97fa341050155b</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>mens
+
+T-Shirts &amp; Tops
+
+400 Products
+
+Running Graphic T-Shirt
+oversized fit
+GS Black
+$36
+
+Geo Seamless T-Shirt
+slim fit
+Storm Blue / Stealth Blue
+$36
+
+Shadow Seamless T Shirt
+muscle fit
+Black
+$38
+
+Arrival Block T-Shirt
+White
+$19.20
+
+Vital Seamless T-Shirt
+slim fit
+Black/Silhouette Grey
+$38
+
+Critical Drop Arm Tank
+slim fit
+Black
+$24
+
+Oversized Performance T-Shirt
+oversized fit
+Black
+$26
+
+Oversized Performance T-Shirt
+oversized fit
+White
+$26
+
+Ribbed Tank 1PK
+muscle fit
+Black
+$16
+
+Crest T-Shirt
+regular fit
+Light Grey Marl
+$22
+
+Arrival T-Shirt
+regular fit
+Navy
+$22
+
+Crest Long Sleeve T-Shirt
+regular fit
+Black
+$26
+
+Crest T-Shirt
+regular fit
+Navy
+$22
+
+Crest T-Shirt
+regular fit
+Black
+$22
+
+Critical Tank
+slim fit
+Black
+$22
+
+Power T-Shirt
+oversized fit
+GS Stealth Blue
+$36
+
+Power T-Shirt
+oversized fit
+Black/Asphalt Grey
+$36
+
+Power T-Shirt
+oversized fit
+Black/Conditioning Red
+$36
+
+Power Cut Off Tank
+oversized fit
+Black/Asphalt Grey
+$30
+
+Legacy Drop Arm Tank
+slim fit
+Black
+$24
+
+Geo Seamless T-Shirt
+slim fit
+Black/Charcoal Grey
+$36
+
+Element Baselayer T-Shirt
+compression fit
+Black/Brand Blue
+$34
+
+Shadow Seamless T Shirt
+muscle fit
+Black/Brand Blue
+$38
+
+Power T-Shirt
+oversized fit
+Mushroom Grey
+$28.80
+
+Power T-Shirt
+oversized fit
+Onyx Grey
+$28.80
+
+Element Tank
+compression fit
+Black
+$24
+
+Element Baselayer Long Sleeve T-Shirt
+compression fit
+Black
+$32
+
+Arrival T-Shirt
+regular fit
+Black
+$22
+
+Power Cut Off Tank
+oversized fit
+Black/Conditioning Red
+$30
+
+Set The Pace Tank
+oversized fit
+Graphite Grey
+$30
+
+Atlas T-Shirt
+oversized fit
+Black
+$40
+
+Legacy T-Shirt
+slim fit
+Black
+$28
+
+Ribbed Tank 1PK
+muscle fit
+Black/White
+$16
+
+Element Tank
+compression fit
+White
+$24
+
+Ribbed Tank 1PK
+muscle fit
+White
+$16</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Pause slide rotation
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+[Free standard shipping on orders over $75](https://support.gymshark.com/en-US/article/delivery-information)
+
+[Students get an extra 12% off](https://www.gymshark.com/pages/studentbeans)
+
+[Get $10 off when you refer a friend](https://www.gymshark.com/pages/refer-a-friend)
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+[Free standard shipping on orders over $75](https://support.gymshark.com/en-US/article/delivery-information)
+
+[Students get an extra 12% off](https://www.gymshark.com/pages/studentbeans)
+
+[Get $10 off when you refer a friend](https://www.gymshark.com/pages/refer-a-friend)
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+# ALL PRODUCTS
+
+### 2256 Products
+
+Shop all products
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F1Cgsye3X7exmRip9lNe0vp%2F1ab4bcb3092d99f12f15a80981ea4748%2FSoftSculpt-Ecom-PLP_Link_Card_-_25268905.jpeg&amp;w=3840&amp;q=75)Most Popular\\
+\\
+**Men&#x27;s Shorts**](https://www.gymshark.com/collections/shorts/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F69xscV36YoAeA6THRxNgfz%2F3775503b7bbad5dc7d6bb605363c9e63%2FHeadless_Cards_-_26420494.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Women&#x27;s Shorts**](https://www.gymshark.com/collections/shorts/womens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F5pDHwD82txVcI5h36s9pxi%2Fb482f7c29f43871d0f1eaef3f6fbe9db%2FSoftSculpt-Ecom-PLP_Link_Card_-_24850382.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Men&#x27;s T-shirts &amp; Tops**](https://www.gymshark.com/collection</pre></div></div><details><summary>展开本页中的完整供应商输出（43,034 / 43,034 字符）</summary><pre>Pause slide rotation
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+[Free standard shipping on orders over $75](https://support.gymshark.com/en-US/article/delivery-information)
+
+[Students get an extra 12% off](https://www.gymshark.com/pages/studentbeans)
+
+[Get $10 off when you refer a friend](https://www.gymshark.com/pages/refer-a-friend)
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+[Free standard shipping on orders over $75](https://support.gymshark.com/en-US/article/delivery-information)
+
+[Students get an extra 12% off](https://www.gymshark.com/pages/studentbeans)
+
+[Get $10 off when you refer a friend](https://www.gymshark.com/pages/refer-a-friend)
+
+[Get 10% off when you sign up for emails](https://www.gymshark.com/pages/sign-up-to-our-newsletter)
+
+# ALL PRODUCTS
+
+### 2256 Products
+
+Shop all products
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F1Cgsye3X7exmRip9lNe0vp%2F1ab4bcb3092d99f12f15a80981ea4748%2FSoftSculpt-Ecom-PLP_Link_Card_-_25268905.jpeg&amp;w=3840&amp;q=75)Most Popular\\
+\\
+**Men&#x27;s Shorts**](https://www.gymshark.com/collections/shorts/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F69xscV36YoAeA6THRxNgfz%2F3775503b7bbad5dc7d6bb605363c9e63%2FHeadless_Cards_-_26420494.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Women&#x27;s Shorts**](https://www.gymshark.com/collections/shorts/womens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F5pDHwD82txVcI5h36s9pxi%2Fb482f7c29f43871d0f1eaef3f6fbe9db%2FSoftSculpt-Ecom-PLP_Link_Card_-_24850382.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Men&#x27;s T-shirts &amp; Tops**](https://www.gymshark.com/collections/t-shirts-tops/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2Fu8xo3wN20GL7fLXGEd1kf%2F666bc4e1e6133c0f5fdfc9964206ce48%2FWW_Sports_Bra.webp&amp;w=3840&amp;q=75)\\
+\\
+**Womens Sports Bras**](https://www.gymshark.com/collections/sports-bras/womens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F2xoboUkmc45BriLD9moUAz%2Fce0d34a74dcff96c0962d65571966998%2FSoftSculpt-Ecom-PLP_Link_Card_-_24505375.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Men&#x27;s Joggers**](https://www.gymshark.com/collections/joggers/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F6k5KuATDioyg2pnMmA2jv%2F6cfd28fe5156fb8bce29b6b424be80ae%2FSoftSculpt-Ecom-PLP_Link_Card_-_24500752.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Womens Sweatpants**](https://www.gymshark.com/collections/joggers/womens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F5WDV2NUHiWHQWHNMe5hhO9%2Fa1fc7750ad58955f440d96a7a99bac53%2FSoftSculpt-Ecom-PLP_Link_Card_-_24505365.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Men&#x27;s Hoodies &amp; Sweatshirts**](https://www.gymshark.com/collections/hoodies/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F440BcleOQD9eE696Gz1qYZ%2F97c9bdc6bc7fe15e22f6a245a346cfa8%2FSoftSculpt-Ecom-PLP_Link_Card_-_25268849.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Womens Hoodies &amp; Sweatshirts**](https://www.gymshark.com/collections/hoodies/womens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F5N4DTihKXEv2ycovD3caGK%2F4d22d1f3f26944e9faf1f0bb3650b60a%2FSoftSculpt-Ecom-PLP_Link_Card_-_24505373.jpeg&amp;w=3840&amp;q=75)\\
+\\
+**Men&#x27;s Gym Jackets**](https://www.gymshark.com/collections/zip-jackets/mens)
+
+- [![](https://www.gymshark.com/_next/image?url=https%3A%2F%2Fimages.ctfassets.net%2Fwl6q2in9o7k3%2F4I1Qyr6KTmxcgOQncDB8CG%2F18560a09741e2b55ef4071d9fc54226f%2FSoft_Sculpt_Zip_Up_Jacket_GS_Black_B2C9G-BB2J_1971.jpg&amp;w=3840&amp;q=75)\\
+\\
+**Women&#x27;s Gym Jackets**](https://www.gymshark.com/collections/zip-jackets/womens)
+
+
+WomensMens
+
+sort2256 Productsfilter
+
+## filter &amp; sort
+
+Clear All
+
+### Sort By
+
+sortByPrice: Low to HighPrice: High to LowRelevancyNewest
+
+### Product Type
+
+collections
+
+T-Shirts &amp; Tops
+
+Shorts
+
+Leggings
+
+Tanks
+
+Sports Bras
+
+Joggers &amp; Sweatpants
+
+Hoodies &amp; Sweatshirts
+
+Gym Jackets
+
+### Size
+
+sizeInStock
+
+XXS
+
+XS
+
+S
+
+M
+
+L
+
+XL
+
+XXL
+
+3XL
+
+4xl
+
+No size
+
+10.00
+
+25.00
+
+28
+
+30
+
+32
+
+50.00
+
+### gender
+
+gender
+
+Womens
+
+Mens
+
+### Features
+
+features
+
+lightweight
+
+breathable
+
+sweat wicking
+
+seamless
+
+pockets
+
+Adjustable Waistbands
+
+zip pockets
+
+Reflective Branding
+
+Bum Scrunch
+
+Non Restrictive
+
+### Fit
+
+fit
+
+oversized fit
+
+regular
+
+slim fit
+
+\*final sale - non returnable\*
+
+light support
+
+regular fit
+
+muscle fit
+
+boxy fit
+
+medium support
+
+compression fit
+
+high support
+
+body fit
+
+tall
+
+oversized
+
+short
+
+extreme oversized fit
+
+### Rise
+
+garmentRise
+
+High
+
+Mid
+
+High
+
+Mid-High
+
+Low
+
+### Activity
+
+activities
+
+conditioning
+
+lifting
+
+rest day
+
+running
+
+hybrid
+
+studio
+
+lounge
+
+swim
+
+all
+
+hiit
+
+multi
+
+### Collection
+
+range
+
+vital
+
+training
+
+everyday seamless
+
+crest
+
+fundamental sports bras
+
+arrival
+
+running
+
+conditioning goods
+
+cosy luxe
+
+sport
+
+hybrid
+
+power
+
+lift seamless
+
+running elite
+
+conditioning club
+
+lifting icons
+
+### Color
+
+canonicalColour[ ] Black
+[ ] Blue
+[ ] Grey
+[ ] Pink
+[ ] Brown
+[ ] White
+[ ] Purple
+[ ] Green
+[ ] Red
+[ ] Yellow
+[ ] Orange
+[ ] Teal
+
+### pattern
+
+patternType
+
+Camo
+
+Fleck
+
+### Discount
+
+discountPercentage
+
+10%
+
+20%
+
+30%
+
+40%
+
+50%
+
+70%
+
+### Price
+
+price
+
+$0 - $10
+
+$10 - $20
+
+$20 - $30
+
+$30 - $50
+
+$50 - $75
+
+$75 - $100
+
+$100 - $125
+
+$125 - $150
+
+$150 - $175
+
+$175 - $200
+
+[![Crest Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedHoodieGSHeavyBlueA5A8O_UCTN_0506_3840x.jpg?v=1784659585)![Crest Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedHoodieGSHeavyBlueA5A8O_UCTN_0523_3840x.jpg?v=1784659556)](https://www.gymshark.com/products/gymshark-crest-oversized-hoodie-pullovers-blue-aw26 &quot;Crest Oversized Hoodie&quot;)
+
+4.1 [**Crest Oversized Hoodie**](https://www.gymshark.com/products/gymshark-crest-oversized-hoodie-pullovers-blue-aw26 &quot;Crest Oversized Hoodie&quot;)
+
+oversized fit
+
+Heavy Blue
+
+Regular Price: $46
+
+[![Twist Front Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MediumSupportTwistFrontSportsBraGSBlackB5C6A_BB2J_0344_V1_3840x.jpg?v=1774430556)![Twist Front Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MediumSupportTwistFrontSportsBraGSBlackB5C6A_BB2J_0351_V1_3840x.jpg?v=1774430556)](https://www.gymshark.com/products/gymshark-twist-front-sports-bra-sports-bras-black-ss26 &quot;Twist Front Sports Bra&quot;)
+
+4.3 [**Twist Front Sports Bra**](https://www.gymshark.com/products/gymshark-twist-front-sports-bra-sports-bras-black-ss26 &quot;Twist Front Sports Bra&quot;)
+
+medium support
+
+Black
+
+Regular Price: $40
+
+[![Vital Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamlessNewSportsBraBlackMarlB5C7S_BBF3_0657_V2_3840x.jpg?v=1769547514)![Vital Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamlessNewSportsBraBlackMarlB5C7S_BBF3_0665_V2_3840x.jpg?v=1769547514)](https://www.gymshark.com/products/gymshark-vital-sports-bra-sports-bras-black-ss26 &quot;Vital Sports Bra&quot;)
+
+2.8 [**Vital Sports Bra**](https://www.gymshark.com/products/gymshark-vital-sports-bra-sports-bras-black-ss26 &quot;Vital Sports Bra&quot;)
+
+light support
+
+Black Marl
+
+Regular Price: $38
+
+[![Lift Seamless High-Rise Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-LiftSeamlessShortsGSCalmPinkB6A8I_KCPD_6530_V2_3840x.jpg?v=1769101029)![Lift Seamless High-Rise Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-25418562_3840x.jpg?v=1769101029)](https://www.gymshark.com/products/gymshark-lift-seamless-shorts-shorts-pink-ss26 &quot;Lift Seamless High-Rise Shorts&quot;)
+
+3.9 [**Lift Seamless High-Rise Shorts**](https://www.gymshark.com/products/gymshark-lift-seamless-shorts-shorts-pink-ss26 &quot;Lift Seamless High-Rise Shorts&quot;)
+
+Calm Pink
+
+Regular Price: $50
+
+[![Soft Sculpt Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/SoftSculptLeggingsGSBlackB2C7T_BB2J_0846_V1_0e4298b8-5f30-41e9-a0d7-673c265f6ebf_3840x.jpg?v=1782823833)![Soft Sculpt Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/SoftSculptLeggingsGSBlackB2C7T_BB2J_0847_V1_f7fcd443-60c2-428c-87b6-6e512bebe495_3840x.jpg?v=1782823833)](https://www.gymshark.com/products/gymshark-soft-sculpt-leggings-black-ss25 &quot;Soft Sculpt Leggings&quot;)
+
+3.5 [**Soft Sculpt Leggings**](https://www.gymshark.com/products/gymshark-soft-sculpt-leggings-black-ss25 &quot;Soft Sculpt Leggings&quot;)
+
+Black
+
+Regular Price: $60
+
+[![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0LeggingsBlackMarlB1A2B_BBF3_0766_V1b_3840x.jpg?v=1761682058)![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0LeggingsBlackMarlB1A2B_BBF3_0780_V1_3840x.jpg?v=1761682058)](https://www.gymshark.com/products/gymshark-vital-seamless-leggings-logo-black-marl-aw24 &quot;Vital Regular Leggings&quot;)
+
+4.1 [**Vital Regular Leggings**](https://www.gymshark.com/products/gymshark-vital-seamless-leggings-logo-black-marl-aw24 &quot;Vital Regular Leggings&quot;)
+
+regular
+
+Black Marl
+
+Regular Price: $54
+
+[![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeStraightLegJoggerPinkB4C2O_KDM6_1187_fca426d6-56a4-4b80-8568-988755b8dfda_3840x.jpg?v=1784721087)![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeStraightLegJoggerPinkB4C2O_KDM6_1194_3840x.jpg?v=1784721113)](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-pink-aw26 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+New
+
+3.8 [**Cosy Luxe Straight Leg Regular Joggers**](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-pink-aw26 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+oversized fit
+
+Strength Pink
+
+Regular Price: $56
+
+[![Global Lifting Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/GlobalLiftingPantGSBlackA5C9V_BB2J_0102_6116986a-90a8-4c8a-adad-d13960222b2b_3840x.jpg?v=1785750900)![Global Lifting Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/GlobalLiftingPantGSBlackA5C9V_BB2J_0107_22640cc6-33a6-4679-862a-ff009dd685c7_3840x.jpg?v=1785750900)](https://www.gymshark.com/products/gymshark-global-lifting-pant-pants-black-aw26 &quot;Global Lifting Pants&quot;)
+
+New
+
+[**Global Lifting Pants**](https://www.gymshark.com/products/gymshark-global-lifting-pant-pants-black-aw26 &quot;Global Lifting Pants&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $50
+
+[![Cosy Luxe Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BrushedBackFleeceFullLengthHoodieBROSSoftGreyMarlB5B5O_GC3C_2548_V1_3840x.jpg?v=1761743444)![Cosy Luxe Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24584449_3840x.jpg?v=1761743444)](https://www.gymshark.com/products/gymshark-cosy-luxe-hoodie-pullovers-grey-aw25 &quot;Cosy Luxe Hoodie&quot;)
+
+3.5 [**Cosy Luxe Hoodie**](https://www.gymshark.com/products/gymshark-cosy-luxe-hoodie-pullovers-grey-aw25 &quot;Cosy Luxe Hoodie&quot;)
+
+oversized fit
+
+Soft Grey Marl
+
+Regular Price: $60
+
+[![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BrushbackFleeceStraightLegJoggerBROSSoftGreyMarlB4C2O_GC3C_2287_V1a_3840x.jpg?v=1761743329)![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24584390_3840x.jpg?v=1761743329)](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-grey-aw25 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+3.8 [**Cosy Luxe Straight Leg Regular Joggers**](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-grey-aw25 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+oversized fit
+
+Soft Grey Marl
+
+Regular Price: $56
+
+[![Vital Seamless Midi Zip 2.0 Pullover](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0MidiZipUpJacketBlackMarlB5A9Q_BBF3_1004_V2b_3840x.jpg?v=1769000581)![Vital Seamless Midi Zip 2.0 Pullover](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0MidiZipUpJacketBlackMarlB5A9Q_BBF3_1013_V1_3840x.jpg?v=1769000581)](https://www.gymshark.com/products/gymshark-vital-seamless-2-0-midi-zip-up-jacket-black-marl-aw23 &quot;Vital Seamless Midi Zip 2.0 Pullover&quot;)
+
+4.5 [**Vital Seamless Midi Zip 2.0 Pullover**](https://www.gymshark.com/products/gymshark-vital-seamless-2-0-midi-zip-up-jacket-black-marl-aw23 &quot;Vital Seamless Midi Zip 2.0 Pullover&quot;)
+
+compression fit
+
+Black Marl
+
+Regular Price: $56
+
+[![Campus Crest Cuffed Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestCuffedPantsGSHeavyBlueA5C4O_UCTN_0937_3840x.jpg?v=1785227081)![Campus Crest Cuffed Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestCuffedPantsGSHeavyBlueA5C4O_UCTN_0949_3840x.jpg?v=1785227107)](https://www.gymshark.com/products/gymshark-campus-crest-cuffed-pants-pants-blue-aw26 &quot;Campus Crest Cuffed Pants&quot;)
+
+[**Campus Crest Cuffed Pants**](https://www.gymshark.com/products/gymshark-campus-crest-cuffed-pants-pants-blue-aw26 &quot;Campus Crest Cuffed Pants&quot;)
+
+regular
+
+Heavy Blue
+
+Regular Price: $48
+
+[![Training Oversized Boxy Sweatshirt](https://cdn.shopify.com/s/files/1/0156/6146/files/TrainingBoxyPulloverGSBlackB7B6C_BB2J_1012_3840x.jpg?v=1785232358)![Training Oversized Boxy Sweatshirt](https://cdn.shopify.com/s/files/1/0156/6146/files/TrainingBoxyPulloverGSBlackB7B6C_BB2J_1020_3840x.jpg?v=1785232358)](https://www.gymshark.com/products/gymshark-training-oversized-boxy-sweatshirt-pullovers-black-aw26 &quot;Training Oversized Boxy Sweatshirt&quot;)
+
+[**Training Oversized Boxy Sweatshirt**](https://www.gymshark.com/products/gymshark-training-oversized-boxy-sweatshirt-pullovers-black-aw26 &quot;Training Oversized Boxy Sweatshirt&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $40
+
+[![Crest Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedHoodieGSEspressoBrownA5A8O_NDJ1_0527_3840x.jpg?v=1784661002)![Crest Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedHoodieGSEspressoBrownA5A8O_NDJ1_0541_c6457b80-3644-4666-8b21-0c55e02de344_3840x.jpg?v=1784661002)](https://www.gymshark.com/products/gymshark-crest-oversized-hoodie-pullovers-brown-aw26 &quot;Crest Oversized Hoodie&quot;)
+
+4.1 [**Crest Oversized Hoodie**](https://www.gymshark.com/products/gymshark-crest-oversized-hoodie-pullovers-brown-aw26 &quot;Crest Oversized Hoodie&quot;)
+
+oversized fit
+
+Espresso Brown
+
+Regular Price: $46
+
+[![Crest Tapered Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestTaperedSlimPantGSBlackA5C9L_BB2J_0666_3840x.jpg?v=1784185843)![Crest Tapered Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestTaperedSlimPantGSBlackA5C9L_BB2J_0669_V1_3840x.jpg?v=1784185851)](https://www.gymshark.com/products/gymshark-crest-tapered-jogger-pants-black-ss27 &quot;Crest Tapered Joggers&quot;)
+
+[**Crest Tapered Joggers**](https://www.gymshark.com/products/gymshark-crest-tapered-jogger-pants-black-ss27 &quot;Crest Tapered Joggers&quot;)
+
+slim fit
+
+Black
+
+Regular Price: $38
+
+[![Campus Crest Oversized Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestOversizedPantsGSBlackA5C4L_BB2J_0976_3840x.jpg?v=1785227511)![Campus Crest Oversized Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestOversizedPantsGSBlackA5C4L_BB2J_0990_3840x.jpg?v=1785227518)](https://www.gymshark.com/products/gymshark-campus-crest-oversized-pants-pants-black-ss27 &quot;Campus Crest Oversized Pants&quot;)
+
+5 [**Campus Crest Oversized Pants**](https://www.gymshark.com/products/gymshark-campus-crest-oversized-pants-pants-black-ss27 &quot;Campus Crest Oversized Pants&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $48
+
+[![Campus Crest Oversized Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestOversizedPantsGSDarkGreyA5C4L_GB7H_0957_3840x.jpg?v=1785227735)![Campus Crest Oversized Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestOversizedPantsGSDarkGreyA5C4L_GB7H_0970_3840x.jpg?v=1785227736)](https://www.gymshark.com/products/gymshark-campus-crest-oversized-pants-pants-grey-ss27 &quot;Campus Crest Oversized Pants&quot;)
+
+5 [**Campus Crest Oversized Pants**](https://www.gymshark.com/products/gymshark-campus-crest-oversized-pants-pants-grey-ss27 &quot;Campus Crest Oversized Pants&quot;)
+
+oversized fit
+
+Dark Grey
+
+Regular Price: $48
+
+[![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedJoggerLightGreyCoreMarlA4C5V_GBCN_0266_V2_3840x.jpg?v=1769450539)![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedJoggerLightGreyCoreMarlA4C5V_GBCN_0268_V2_3840x.jpg?v=1769450539)](https://www.gymshark.com/products/gymshark-crest-oversized-jogger-pants-grey-ss26 &quot;Crest Oversized Joggers&quot;)
+
+4.1 [**Crest Oversized Joggers**](https://www.gymshark.com/products/gymshark-crest-oversized-jogger-pants-grey-ss26 &quot;Crest Oversized Joggers&quot;)
+
+oversized fit
+
+Light Grey Core Marl
+
+Regular Price: $40
+
+[![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedJoggerGSBlackA4C5V_BB2J_0350_V2_3840x.jpg?v=1768251608)![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedJoggerGSBlackA4C5V_BB2J_0354_V2_3840x.jpg?v=1768251609)](https://www.gymshark.com/products/gymshark-crest-oversized-jogger-pants &quot;Crest Oversized Joggers&quot;)
+
+4.1 [**Crest Oversized Joggers**](https://www.gymshark.com/products/gymshark-crest-oversized-jogger-pants &quot;Crest Oversized Joggers&quot;)
+
+oversized fit
+
+GS Black
+
+Regular Price: $40
+
+[![Washed Pastel Baby Tee](https://cdn.shopify.com/s/files/1/0156/6146/files/WashedPastelBabyTeeGSFocusPinkWASHB6C2U_KDGS_0345_2cd75d10-cac3-4cdf-8433-e24b4218907a_3840x.jpg?v=1780473837)![Washed Pastel Baby Tee](https://cdn.shopify.com/s/files/1/0156/6146/files/WashedPastelBabyTeeGSFocusPinkWASHB6C2U_KDGS_0358_3840x.jpg?v=1780473837)](https://www.gymshark.com/products/gymshark-washed-pastel-baby-tee-ss-tops-pink-ss26 &quot;Washed Pastel Baby Tee&quot;)
+
+[**Washed Pastel Baby Tee**](https://www.gymshark.com/products/gymshark-washed-pastel-baby-tee-ss-tops-pink-ss26 &quot;Washed Pastel Baby Tee&quot;)
+
+Focus Pink/Wash
+
+Regular Price: $38
+
+[![Washed Pastel Baby Tee](https://cdn.shopify.com/s/files/1/0156/6146/files/WashedPastelBabyTeeGSPopTurquoiseWASHB6C2U_TBZZ_0310_V2_3840x.jpg?v=1780475014)![Washed Pastel Baby Tee](https://cdn.shopify.com/s/files/1/0156/6146/files/WashedPastelBabyTeeGSPopTurquoiseWASHB6C2U_TBZZ_0324_3840x.jpg?v=1780474986)](https://www.gymshark.com/products/gymshark-washed-pastel-baby-tee-ss-tops-teal-ss26 &quot;Washed Pastel Baby Tee&quot;)
+
+[**Washed Pastel Baby Tee**](https://www.gymshark.com/products/gymshark-washed-pastel-baby-tee-ss-tops-teal-ss26 &quot;Washed Pastel Baby Tee&quot;)
+
+Pop Turquoise/Wash
+
+Regular Price: $38
+
+[![Soft Sculpt Halterneck Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-SoftSculptLimitedEditionHalterneckSleevelessTopWithShelfGSBlackB4C6J_BB2J_1165_V1b_3840x.jpg?v=1760530573)![Soft Sculpt Halterneck Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24451325_3840x.jpg?v=1760530573)](https://www.gymshark.com/products/gymshark-soft-sculpt-halterneck-tank-with-shelf-sleeveless-tops-black-aw25 &quot;Soft Sculpt Halterneck Tank With Shelf&quot;)
+
+4.2 [**Soft Sculpt Halterneck Tank With Shelf**](https://www.gymshark.com/products/gymshark-soft-sculpt-halterneck-tank-with-shelf-sleeveless-tops-black-aw25 &quot;Soft Sculpt Halterneck Tank With Shelf&quot;)
+
+Black
+
+Regular Price: $48
+
+[![FeatherForm™ Short Sleeve T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-40GGPerfectSSTeeGSSoftWhiteB6B4J_WCMY_0934_V1_3840x.jpg?v=1776330921)![FeatherForm™ Short Sleeve T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-Form_Ecommerce_PDPProductImage_26151726_3840x.jpg?v=1776871787)](https://www.gymshark.com/products/gymshark-bareform-short-sleeve-t-shirt-ss-tops-white-ss26 &quot;FeatherForm™ Short Sleeve T-Shirt&quot;)
+
+4.1 [**FeatherForm™ Short Sleeve T-Shirt**](https://www.gymshark.com/products/gymshark-bareform-short-sleeve-t-shirt-ss-tops-white-ss26 &quot;FeatherForm™ Short Sleeve T-Shirt&quot;)
+
+Soft White
+
+Regular Price: $38
+
+[![FeatherForm™ Short Sleeve T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-40GGPerfectSSTeeGSBlackB6B4J_BB2J_0531_V1_3840x.jpg?v=1776332000)![FeatherForm™ Short Sleeve T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-Form_Ecommerce_PDPProductImage_26095541_3840x.jpg?v=1776332000)](https://www.gymshark.com/products/gymshark-bareform-short-sleeve-t-shirt-ss-tops-black-ss26 &quot;FeatherForm™ Short Sleeve T-Shirt&quot;)
+
+4.1 [**FeatherForm™ Short Sleeve T-Shirt**](https://www.gymshark.com/products/gymshark-bareform-short-sleeve-t-shirt-ss-tops-black-ss26 &quot;FeatherForm™ Short Sleeve T-Shirt&quot;)
+
+Black
+
+Regular Price: $38
+
+[![FeatherForm™ V-Neck Bralette](https://cdn.shopify.com/s/files/1/0156/6146/files/SeamlessV_NeckBraletteGSBlackB4B7J_BB2J_5030_1_3840x.jpg?v=1778781289)![FeatherForm™ V-Neck Bralette](https://cdn.shopify.com/s/files/1/0156/6146/files/SeamlessV_NeckBraletteGSBlackB4B7J_BB2J_505_new_3840x.jpg?v=1778781293)](https://www.gymshark.com/products/gymshark-featherform-v-neck-bralette-underwear-black-ss26 &quot;FeatherForm™ V-Neck Bralette&quot;)
+
+3 [**FeatherForm™ V-Neck Bralette**](https://www.gymshark.com/products/gymshark-featherform-v-neck-bralette-underwear-black-ss26 &quot;FeatherForm™ V-Neck Bralette&quot;)
+
+Black
+
+Regular Price: $20
+
+[![FeatherForm™ Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-40GGPerfectTankGSSoftWhiteB5C7U_WCMY_0818_V1_3840x.jpg?v=1776332836)![FeatherForm™ Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-Form_Ecommerce_PDPProductImage_26095582_3840x.jpg?v=1776332836)](https://www.gymshark.com/products/gymshark-bareform-tank-sleeveless-tops-white-ss26 &quot;FeatherForm™ Tank&quot;)
+
+3.5 [**FeatherForm™ Tank**](https://www.gymshark.com/products/gymshark-bareform-tank-sleeveless-tops-white-ss26 &quot;FeatherForm™ Tank&quot;)
+
+Soft White
+
+Regular Price: $44
+
+[![Sport Hybrid 6&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-SportHybridShortGSBlackA3C9M_BB2J_0889_V1_3840x.jpg?v=1775225465)![Sport Hybrid 6&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-SportHybridShortGSBlackA3C9M_BB2J_0885_V1_3840x.jpg?v=1775225465)](https://www.gymshark.com/products/gymshark-sport-hybrid-short-shorts-black-aw26 &quot;Sport Hybrid 6\&quot; Shorts&quot;)
+
+3.1 [**Sport Hybrid 6&quot; Shorts**](https://www.gymshark.com/products/gymshark-sport-hybrid-short-shorts-black-aw26 &quot;Sport Hybrid 6\&quot; Shorts&quot;)
+
+slim fit
+
+Black
+
+Regular Price: $54
+
+[![Soft Sculpt Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/SoftSculptShortsGSBlackB3B7N-BB2J-2133_A_77d0808f-5c4d-47fc-93a5-4acfeca2412f_3840x.jpg?v=1743601752)![Soft Sculpt Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/SoftSculptShortsGSBlackB3B7N-BB2J_1958_eaab8cb0-b167-4c09-a0ee-02c049566fa1_3840x.jpg?v=1743601752)](https://www.gymshark.com/products/gymshark-soft-sculpt-shorts-black-ss25 &quot;Soft Sculpt Shorts&quot;)
+
+3.5 [**Soft Sculpt Shorts**](https://www.gymshark.com/products/gymshark-soft-sculpt-shorts-black-ss25 &quot;Soft Sculpt Shorts&quot;)
+
+Black
+
+Regular Price: $44
+
+[![Vital Sweetheart Neck Crop Top](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSweetheartNeckCropTopBlackMarlB5C9W_BBF3_0599_V1_3840x.jpg?v=1774972398)![Vital Sweetheart Neck Crop Top](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSweetheartNeckCropTopBlackMarlB5C9W_BBF3_0612_V1_3840x.jpg?v=1774972398)](https://www.gymshark.com/products/gymshark-vital-sweetheart-neck-crop-top-ls-tops-black-ss26 &quot;Vital Sweetheart Neck Crop Top&quot;)
+
+New
+
+4.2 [**Vital Sweetheart Neck Crop Top**](https://www.gymshark.com/products/gymshark-vital-sweetheart-neck-crop-top-ls-tops-black-ss26 &quot;Vital Sweetheart Neck Crop Top&quot;)
+
+Black Marl
+
+Regular Price: $38
+
+[![Vital Seamless Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamlessTankWithShelfBrownB4C6D_NDQS_0007_3840x.jpg?v=1785758396)![Vital Seamless Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamlessTankWithShelfBrownB4C6D_NDQS_0047_3840x.jpg?v=1785758395)](https://www.gymshark.com/products/gymshark-vital-tank-with-shelf-sleeveless-tops-brown-aw26 &quot;Vital Seamless Tank With Shelf&quot;)
+
+New
+
+3.7 [**Vital Seamless Tank With Shelf**](https://www.gymshark.com/products/gymshark-vital-tank-with-shelf-sleeveless-tops-brown-aw26 &quot;Vital Seamless Tank With Shelf&quot;)
+
+Rich Espresso Brown/Marl
+
+Regular Price: $38
+
+[![Global Lifting Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/GlobalLiftingPantLightGreyCoreMarlA5C9V_GBCN_0080_3840x.jpg?v=1785750954)![Global Lifting Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/GlobalLiftingPantLightGreyCoreMarlA5C9V_GBCN_0084_3840x.jpg?v=1785750948)](https://www.gymshark.com/products/gymshark-global-lifting-pant-pants-grey-aw26 &quot;Global Lifting Pants&quot;)
+
+New
+
+[**Global Lifting Pants**](https://www.gymshark.com/products/gymshark-global-lifting-pant-pants-grey-aw26 &quot;Global Lifting Pants&quot;)
+
+oversized fit
+
+Light Grey Core Marl
+
+Regular Price: $50
+
+[![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieGSBlackB6C7Z_BB2J_1204_3840x.jpg?v=1785831584)![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieGSBlackB6C7Z_BB2J_1190_3840x.jpg?v=1785831557)](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-black-aw26 &quot;Conditioning Club Hoodie&quot;)
+
+New
+
+[**Conditioning Club Hoodie**](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-black-aw26 &quot;Conditioning Club Hoodie&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $62
+
+[![Power Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-PowerHoodieBlackA4B9S_BC1D_0770_V2_3840x.jpg?v=1772657951)![Power Oversized Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-PowerHoodieBlackA4B9S_BC1D_0780_V3_3840x.jpg?v=1772657951)](https://www.gymshark.com/products/gymshark-power-hoodie-pullovers-black-ss26 &quot;Power Oversized Hoodie&quot;)
+
+3.2 [**Power Oversized Hoodie**](https://www.gymshark.com/products/gymshark-power-hoodie-pullovers-black-ss26 &quot;Power Oversized Hoodie&quot;)
+
+oversized fit
+
+Black/Conditioning Red
+
+Regular Price: $62
+
+[![Lift Seamless Tank with Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-LiftSeamlessMidiTankwithShelfGSBlackGSBlackMarlB6B8Q_BCPV_0934_V2_3840x.jpg?v=1769101029)![Lift Seamless Tank with Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-25418582_3840x.jpg?v=1769101029)](https://www.gymshark.com/products/gymshark-lift-seamless-tank-with-shelf-sleeveless-tops-black-ss26 &quot;Lift Seamless Tank with Shelf&quot;)
+
+2.8 [**Lift Seamless Tank with Shelf**](https://www.gymshark.com/products/gymshark-lift-seamless-tank-with-shelf-sleeveless-tops-black-ss26 &quot;Lift Seamless Tank with Shelf&quot;)
+
+Black Marl
+
+Regular Price: $44
+
+[![Geo Seamless Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-GeoSeamlessTankBlack_CharcoalGreyA6A3K_BBF9_0254_3840x.jpg?v=1754041510)![Geo Seamless Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-GeoSeamlessTankBlack_CharcoalGreyA6A3K_BBF9_0265_3840x.jpg?v=1754041510)](https://www.gymshark.com/products/gymshark-geo-seamless-tank-black-charcoal-grey-ss24 &quot;Geo Seamless Tank&quot;)
+
+4.4 [**Geo Seamless Tank**](https://www.gymshark.com/products/gymshark-geo-seamless-tank-black-charcoal-grey-ss24 &quot;Geo Seamless Tank&quot;)
+
+slim fit
+
+Black/Charcoal Grey
+
+Regular Price: $32
+
+[![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedJoggerGSHeavyBlueA4C5V_UCTN_0647_3840x.jpg?v=1784661479)![Crest Oversized Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestOversizedJoggerGSHeavyBlueA4C5V_UCTN_0653_3840x.jpg?v=1784661356)](https://www.gymshark.com/products/gymshark-crest-oversized-joggers-pants-blue-ss27 &quot;Crest Oversized Joggers&quot;)
+
+4 [**Crest Oversized Joggers**](https://www.gymshark.com/products/gymshark-crest-oversized-joggers-pants-blue-ss27 &quot;Crest Oversized Joggers&quot;)
+
+oversized fit
+
+Heavy Blue
+
+Regular Price: $40
+
+[![Campus Crest Wide Leg Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestWideLegJoggersGSBlackA5C4J_BB2J_8882_3840x.jpg?v=1785227354)![Campus Crest Wide Leg Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CampusCrestWideLegJoggersGSBlackA5C4J_BB2J_8885_3840x.jpg?v=1785227357)](https://www.gymshark.com/products/gymshark-campus-crest-wide-leg-joggers-pants-black-ss27 &quot;Campus Crest Wide Leg Joggers&quot;)
+
+1 [**Campus Crest Wide Leg Joggers**](https://www.gymshark.com/products/gymshark-campus-crest-wide-leg-joggers-pants-black-ss27 &quot;Campus Crest Wide Leg Joggers&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $48
+
+[![Crest Tapered Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestTaperedSlimPantLightGreyCoreMarlA5C9L_GBCN_0684_3840x.jpg?v=1784185996)![Crest Tapered Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CrestTaperedSlimPantLightGreyCoreMarlA5C9L_GBCN_0692_3840x.jpg?v=1784185996)](https://www.gymshark.com/products/gymshark-crest-tapered-jogger-pants-grey-ss27 &quot;Crest Tapered Joggers&quot;)
+
+[**Crest Tapered Joggers**](https://www.gymshark.com/products/gymshark-crest-tapered-jogger-pants-grey-ss27 &quot;Crest Tapered Joggers&quot;)
+
+slim fit
+
+Light Grey Core Marl
+
+Regular Price: $38
+
+[![Crest Oversized T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedT_ShirtLightGreyCoreMarlA4C5A_GBCN_1008_V1_3840x.jpg?v=1775570072)![Crest Oversized T-Shirt](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestOversizedT_ShirtLightGreyCoreMarlA4C5A_GBCN_1030_V1_3840x.jpg?v=1775570072)](https://www.gymshark.com/products/gymshark-crest-oversized-t-shirt-ss-tops-grey-ss26 &quot;Crest Oversized T-Shirt&quot;)
+
+100% cotton
+
+3.5 [**Crest Oversized T-Shirt**](https://www.gymshark.com/products/gymshark-crest-oversized-t-shirt-ss-tops-grey-ss26 &quot;Crest Oversized T-Shirt&quot;)
+
+oversized fit
+
+Light Grey Core Marl
+
+Regular Price: $26
+
+[![Blush Seamless Light Support Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/AuraSeamlessOmbreBlurredSportsBraGSFocusPinkGSSorbetYellowB6B7E_KDHQ_0350_3840x.jpg?v=1780319680)![Blush Seamless Light Support Sports Bra](https://cdn.shopify.com/s/files/1/0156/6146/files/AuraSeamlessOmbreBlurredSportsBraGSFocusPinkGSSorbetYellowB6B7E_KDHQ_0362_270fda51-39fa-4a66-b26e-f9807f496425_3840x.jpg?v=1780319681)](https://www.gymshark.com/products/gymshark-blush-seamless-light-support-sports-bra-sports-bras-pink-ss26-b6b7e-kdhq &quot;Blush Seamless Light Support Sports Bra&quot;)
+
+1 [**Blush Seamless Light Support Sports Bra**](https://www.gymshark.com/products/gymshark-blush-seamless-light-support-sports-bra-sports-bras-pink-ss26-b6b7e-kdhq &quot;Blush Seamless Light Support Sports Bra&quot;)
+
+light support
+
+Focus Pink/Sorbet Yellow
+
+Regular Price: $44
+
+[![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BrushbackFleeceStraightLegJoggerGSOnyxGreyB4C2O_GB7N_3094_V1a_3840x.jpg?v=1761743368)![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24584392_3840x.jpg?v=1761743368)](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-grey-aw25-1 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+3.8 [**Cosy Luxe Straight Leg Regular Joggers**](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-jogger-pants-grey-aw25-1 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+oversized fit
+
+Grey
+
+Regular Price: $56
+
+[![Cosy Luxe Zip Through Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BrushedBackFleeceZipThroughHoodieBROSSoftGreyMarlB5B5P_GC3C_2199_V2_3840x.jpg?v=1761743682)![Cosy Luxe Zip Through Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24584478_3840x.jpg?v=1761743682)](https://www.gymshark.com/products/gymshark-cosy-luxe-zip-through-hoodie-pullovers-grey-aw25 &quot;Cosy Luxe Zip Through Hoodie&quot;)
+
+3.4 [**Cosy Luxe Zip Through Hoodie**](https://www.gymshark.com/products/gymshark-cosy-luxe-zip-through-hoodie-pullovers-grey-aw25 &quot;Cosy Luxe Zip Through Hoodie&quot;)
+
+oversized fit
+
+Soft Grey Marl
+
+Regular Price: $62
+
+[![Vital Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamlessTankWithShelfBlackMarlB4C6D_BBF3_1428_V1_3840x.jpg?v=1759761895)![Vital Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/images-B4C6D_BBF3_3840x.jpg?v=1759761895)](https://www.gymshark.com/products/gymshark-vital-seamless-tank-with-shelf-sleeveless-tops-black-aw25 &quot;Vital Tank With Shelf&quot;)
+
+3.7 [**Vital Tank With Shelf**](https://www.gymshark.com/products/gymshark-vital-seamless-tank-with-shelf-sleeveless-tops-black-aw25 &quot;Vital Tank With Shelf&quot;)
+
+Black Marl
+
+Regular Price: $38
+
+[![Soft Sculpt Zip Up Jacket](https://cdn.shopify.com/s/files/1/0156/6146/files/images-B2C9G_BB2J_1_3840x.jpg?v=1760521347)![Soft Sculpt Zip Up Jacket](https://cdn.shopify.com/s/files/1/0156/6146/files/images-ANNOTATED_PDP_24450947_3840x.jpg?v=1760521347)](https://www.gymshark.com/products/gymshark-soft-sculpt-zip-up-jacket-black-ss25 &quot;Soft Sculpt Zip Up Jacket&quot;)
+
+4.4 [**Soft Sculpt Zip Up Jacket**](https://www.gymshark.com/products/gymshark-soft-sculpt-zip-up-jacket-black-ss25 &quot;Soft Sculpt Zip Up Jacket&quot;)
+
+Black
+
+Regular Price: $66
+
+[![FeatherForm™ Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-40GGPerfectTankGSBlackB5C7U_BB2J_0227_V1_3840x.jpg?v=1776332655)![FeatherForm™ Tank](https://cdn.shopify.com/s/files/1/0156/6146/files/images-Form_Ecommerce_PDPProductImage_26151746_3840x.jpg?v=1776871810)](https://www.gymshark.com/products/gymshark-bareform-tank-sleeveless-tops-black-ss26 &quot;FeatherForm™ Tank&quot;)
+
+3.5 [**FeatherForm™ Tank**](https://www.gymshark.com/products/gymshark-bareform-tank-sleeveless-tops-black-ss26 &quot;FeatherForm™ Tank&quot;)
+
+Black
+
+Regular Price: $44
+
+[![Vital Seamless Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0ShortsBlackMarlB1A4J_BBF3_0941_V1_3840x.jpg?v=1768995496)![Vital Seamless Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-VitalSeamless2_0ShortsBlackMarlB1A4J_BBF3_0955_V1_3840x.jpg?v=1768995496)](https://www.gymshark.com/products/gymshark-vital-seamless-shorts-black-marl-logo &quot;Vital Seamless Shorts&quot;)
+
+4.2 [**Vital Seamless Shorts**](https://www.gymshark.com/products/gymshark-vital-seamless-shorts-black-marl-logo &quot;Vital Seamless Shorts&quot;)
+
+compression fit
+
+Black Marl
+
+Regular Price: $40
+
+[![Movement Sport 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MovementShort_sportlift_GSOnyxGreyA4C7C_GB7N_0908_V3_3840x.jpg?v=1770132806)![Movement Sport 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MovementShort_sportlift_GSOnyxGreyA4C7C_GB7N_0917_V3_3840x.jpg?v=1770132806)](https://www.gymshark.com/products/gymshark-movement-sport-5-short-shorts-grey-ss26-a4c7c-gb7n &quot;Movement Sport 5\&quot; Shorts&quot;)
+
+2.7 [**Movement Sport 5&quot; Shorts**](https://www.gymshark.com/products/gymshark-movement-sport-5-short-shorts-grey-ss26-a4c7c-gb7n &quot;Movement Sport 5\&quot; Shorts&quot;)
+
+slim fit
+
+Grey
+
+Regular Price: $48
+
+[![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeStraightLegJoggerBlackB4C2O_BB2J_1076_3840x.jpg?v=1784720996)![Cosy Luxe Straight Leg Regular Joggers](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeStraightLegJoggerBlackB4C2O_BB2J_1080_3840x.jpg?v=1784721001)](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-regular-joggers-pants-black-aw26 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+New
+
+3.8 [**Cosy Luxe Straight Leg Regular Joggers**](https://www.gymshark.com/products/gymshark-cosy-luxe-straight-leg-regular-joggers-pants-black-aw26 &quot;Cosy Luxe Straight Leg Regular Joggers&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $56
+
+[![Running 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BetterLevelRunShortBlackA3B9Q_BB2J_0436_3840x.jpg?v=1756467695)![Running 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-BetterLevelRunShortBlackA3B9Q_BB2J_0449_3840x.jpg?v=1756467695)](https://www.gymshark.com/products/gymshark-running-short-6-shorts-black-aw25 &quot;Running 5\&quot; Shorts&quot;)
+
+3.4 [**Running 5&quot; Shorts**](https://www.gymshark.com/products/gymshark-running-short-6-shorts-black-aw25 &quot;Running 5\&quot; Shorts&quot;)
+
+regular fit
+
+Black
+
+Regular Price: $48
+
+[![Movement Sport 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MovementShort_sportlift_GSBlackA4C7C_BB2J_0841_V2_3840x.jpg?v=1773432228)![Movement Sport 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-MovementShort_sportlift_GSBlackA4C7C_BB2J_0851_V2_3840x.jpg?v=1773432228)](https://www.gymshark.com/products/gymshark-movement-sport-5-short-shorts &quot;Movement Sport 5\&quot; Shorts&quot;)
+
+2.7 [**Movement Sport 5&quot; Shorts**](https://www.gymshark.com/products/gymshark-movement-sport-5-short-shorts &quot;Movement Sport 5\&quot; Shorts&quot;)
+
+slim fit
+
+GS Black
+
+Regular Price: $48
+
+[![Crest Short](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestShortRefreshGSBlackA4C6X_BB2J_0795_V2_3840x.jpg?v=1769450534)![Crest Short](https://cdn.shopify.com/s/files/1/0156/6146/files/images-CrestShortRefreshGSBlackA4C6X_BB2J_0803_V2_3840x.jpg?v=1769450534)](https://www.gymshark.com/products/gymshark-crest-short-shorts-black-ss26 &quot;Crest Short&quot;)
+
+4 [**Crest Short**](https://www.gymshark.com/products/gymshark-crest-short-shorts-black-ss26 &quot;Crest Short&quot;)
+
+regular fit
+
+Black
+
+Regular Price: $28
+
+[![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamless2_0LeggingsPinkB1A2B_KDN4_0380_3840x.jpg?v=1785765226)![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamless2_0LeggingsPinkB1A2B_KDN4_0392_3840x.jpg?v=1785765227)](https://www.gymshark.com/products/gymshark-vital-seamless-2-0-leggings-leggings-pink-aw26 &quot;Vital Regular Leggings&quot;)
+
+New
+
+4.1 [**Vital Regular Leggings**](https://www.gymshark.com/products/gymshark-vital-seamless-2-0-leggings-leggings-pink-aw26 &quot;Vital Regular Leggings&quot;)
+
+regular
+
+Strength Pink/Marl
+
+Regular Price: $54
+
+[![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamless2_0LeggingsBrownB1A2B_NDQS_0258_3840x.jpg?v=1785765135)![Vital Regular Leggings](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamless2_0LeggingsBrownB1A2B_NDQS_0272_3840x.jpg?v=1785765126)](https://www.gymshark.com/products/gymshark-vital-regular-leggings-leggings-brown-aw26 &quot;Vital Regular Leggings&quot;)
+
+New
+
+4.1 [**Vital Regular Leggings**](https://www.gymshark.com/products/gymshark-vital-regular-leggings-leggings-brown-aw26 &quot;Vital Regular Leggings&quot;)
+
+regular
+
+Rich Espresso Brown/Marl
+
+Regular Price: $54
+
+[![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieGSStrengthPinkB6C7Z_KDM6_1235_3840x.jpg?v=1785831770)![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieGSStrengthPinkB6C7Z_KDM6_1227_3840x.jpg?v=1785831771)](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-pink-aw26 &quot;Conditioning Club Hoodie&quot;)
+
+New
+
+[**Conditioning Club Hoodie**](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-pink-aw26 &quot;Conditioning Club Hoodie&quot;)
+
+oversized fit
+
+Strength Pink
+
+Regular Price: $62
+
+[![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieLightGreyCoreMarlB6C7Z_GBCN_1164_3840x.jpg?v=1785831829)![Conditioning Club Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/GFXConditioningClubHoodieLightGreyCoreMarlB6C7Z_GBCN_1159_3840x.jpg?v=1785831833)](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-grey-aw26-b6c7z-gbcn &quot;Conditioning Club Hoodie&quot;)
+
+New
+
+[**Conditioning Club Hoodie**](https://www.gymshark.com/products/gymshark-conditioning-club-hoodie-pullovers-grey-aw26-b6c7z-gbcn &quot;Conditioning Club Hoodie&quot;)
+
+oversized fit
+
+Light Grey Core Marl
+
+Regular Price: $62
+
+[![Train Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/TrainPantsNewGSBlackA5C4Q_BB2J_8787_3840x.jpg?v=1785330289)![Train Pants](https://cdn.shopify.com/s/files/1/0156/6146/files/TrainPantsNewGSBlackA5C4Q_BB2J_8791_992aa989-5f58-4d43-a5d1-8a4e8e936ff6_3840x.jpg?v=1785330290)](https://www.gymshark.com/products/gymshark-train-pants-pants-black-ss27 &quot;Train Pants&quot;)
+
+breathable
+
+[**Train Pants**](https://www.gymshark.com/products/gymshark-train-pants-pants-black-ss27 &quot;Train Pants&quot;)
+
+regular
+
+Black
+
+Regular Price: $44
+
+[![Vital Seamless Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamlessTankWithShelfPinkB4C6D_KDN4_0584_V2_3840x.jpg?v=1785758477)![Vital Seamless Tank With Shelf](https://cdn.shopify.com/s/files/1/0156/6146/files/VitalSeamlessTankWithShelfPinkB4C6D_KDN4_0598_3840x.jpg?v=1785758504)](https://www.gymshark.com/products/gymshark-vital-seamless-tank-with-shelf-sleeveless-tops-pink-aw26 &quot;Vital Seamless Tank With Shelf&quot;)
+
+New
+
+3.7 [**Vital Seamless Tank With Shelf**](https://www.gymshark.com/products/gymshark-vital-seamless-tank-with-shelf-sleeveless-tops-pink-aw26 &quot;Vital Seamless Tank With Shelf&quot;)
+
+Strength Pink/Marl
+
+Regular Price: $38
+
+[![Cosy Luxe Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeHoodieBlackB5B5O_BB2J_0681_3840x.jpg?v=1786431648)![Cosy Luxe Hoodie](https://cdn.shopify.com/s/files/1/0156/6146/files/CosyLuxeHoodieBlackB5B5O_BB2J_0691_3840x.jpg?v=1786431657)](https://www.gymshark.com/products/gymshark-cosy-luxe-hoodie-pullovers-black-aw26 &quot;Cosy Luxe Hoodie&quot;)
+
+New
+
+3.5 [**Cosy Luxe Hoodie**](https://www.gymshark.com/products/gymshark-cosy-luxe-hoodie-pullovers-black-aw26 &quot;Cosy Luxe Hoodie&quot;)
+
+oversized fit
+
+Black
+
+Regular Price: $60
+
+[![Train 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/Train5ShortGSDarkGreyA4C7M_GB7H_0081_3840x.jpg?v=1785852827)![Train 5&quot; Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/Train5ShortGSDarkGreyA4C7M_GB7H_0084_3840x.jpg?v=1785852827)](https://www.gymshark.com/products/gymshark-train-5-shorts-shorts-grey-aw26 &quot;Train 5\&quot; Shorts&quot;)
+
+New
+
+3.3 [**Train 5&quot; Shorts**](https://www.gymshark.com/products/gymshark-train-5-shorts-shorts-grey-aw26 &quot;Train 5\&quot; Shorts&quot;)
+
+slim fit
+
+Dark Grey
+
+Regular Price: $30
+
+[![Flutter Woven Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-NewFlutterWovenShortGSElectricPinkB6B3T_KDFY_0005_3840x.jpg?v=1776168221)![Flutter Woven Shorts](https://cdn.shopify.com/s/files/1/0156/6146/files/images-NewFlutterWovenShortGSElectricPinkB6B3T_KDFY_0002_3840x.jpg?v=1776168221)](https://www.gymshark.com/products/gymshark-flutter-woven-short-shorts-pink-ss26 &quot;Flutter Woven Shorts&quot;)
+
+3.7 [**Flutter Woven Shorts**](https://www.gymshark.com/products/gymshark-flutter-woven-short-shorts-pink-ss26 &quot;Flutter Woven Shorts&quot;)
+
+regular fit
+
+GS Electric Pink
+
+Regular Price: $44
+
+Load moreview all
+
+Viewing 1 - 60 of 2256 products
+
+# All Products</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>firecrawl__wcxb-0633__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.gymshark.com/collections/all-products</span></div><div class="kv"><b>输出大小</b>43,034 字符</div><div class="kv"><b>事实覆盖率</b>0.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="bad">未命中</td><td>400 Products</td><td>—</td></tr><tr><td><code>required-2</code></td><td class="bad">未命中</td><td>Running Graphic T-Shirt</td><td>—</td></tr><tr><td><code>required-3</code></td><td class="bad">未命中</td><td>Geo Seamless T-Shirt
+slim fit
+Storm Blue / Stealth Blue</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">T-Shirts &amp; Tops</span><span class="tag">400 Products</span></p><p><span class="tag">T-Shirts &amp; Tops</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;upstream_status&quot;: 200,
+  &quot;cache_state&quot;: null,
+  &quot;proxy_used&quot;: &quot;basic&quot;,
+  &quot;credits_used&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;retry_after_seconds&quot;: null,
+  &quot;configured_min_interval_seconds&quot;: 6.1,
+  &quot;client_throttle_wait_ms&quot;: 6097.6
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview("firecrawl__wcxb-0633__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("firecrawl__wcxb-0633__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("firecrawl__wcxb-0633__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

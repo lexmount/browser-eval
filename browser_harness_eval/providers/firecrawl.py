@@ -19,7 +19,7 @@ class FirecrawlProvider(Provider):
             headers=headers,
             json_body={
                 "url": case.url,
-                "formats": ["markdown"],
+                "formats": self.config.get("formats", ["markdown"]),
                 "maxAge": int(self.config.get("max_age", 0)),
             },
         )
@@ -51,5 +51,7 @@ class FirecrawlProvider(Provider):
                 "credits_used": metadata.get("creditsUsed"),
                 "reason": payload.get("reason"),
                 "retry_after_seconds": payload.get("retry_after_seconds"),
+                "links": data.get("links") or [],
+                "images": data.get("images") or [],
             },
         )

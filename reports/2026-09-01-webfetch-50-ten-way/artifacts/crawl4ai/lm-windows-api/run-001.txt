@@ -1,0 +1,584 @@
+##  Microsoft Ignite
+November 17–20, 2026
+Interactive learning, certifications, and direct access to experts all in one place.
+[Register now](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch)
+This browser is no longer supported.
+Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support. 
+[ Download Microsoft Edge ](https://go.microsoft.com/fwlink/p/?LinkID=2092881%20) [ More info about Internet Explorer and Microsoft Edge ](https://learn.microsoft.com/en-us/lifecycle/faq/internet-explorer-microsoft-edge)
+[Learn](https://learn.microsoft.com/en-us/)
+Suggestions will filter as you type
+
+
+[Sign in](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list)
+  * [Profile](https://learn.microsoft.com/en-us/users/me/activity/)
+  * [Analytics](https://learn.microsoft.com/en-us/users/me/analytics/)
+  * [Settings](https://learn.microsoft.com/en-us/users/me/settings/)
+
+
+[Sign out](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list)
+[](https://www.microsoft.com)[Learn](https://learn.microsoft.com/en-us/)
+  * Documentation
+    * [All product documentation](https://learn.microsoft.com/en-us/docs/)
+    * [Azure documentation](https://learn.microsoft.com/en-us/azure/?product=popular)
+    * [Dynamics 365 documentation](https://learn.microsoft.com/en-us/dynamics365/)
+    * [Microsoft Copilot documentation](https://learn.microsoft.com/en-us/copilot/)
+    * [Microsoft 365 documentation](https://learn.microsoft.com/en-us/microsoft-365/)
+    * [Power Platform documentation](https://learn.microsoft.com/en-us/power-platform/)
+    * [Code samples](https://learn.microsoft.com/en-us/samples/)
+    * [Troubleshooting documentation](https://learn.microsoft.com/en-us/troubleshoot/)
+Register now
+[Microsoft Ignite | November 17-20, 2026](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch)
+Interactive learning, certifications, and direct access to experts all in one place.
+  * Training & Labs
+    * [All training](https://learn.microsoft.com/en-us/training/)
+    * [Azure training](https://learn.microsoft.com/en-us/training/browse/?products=azure)
+    * [Dynamics 365 training](https://learn.microsoft.com/en-us/training/browse/?products=dynamics-365)
+    * [Microsoft Copilot training](https://learn.microsoft.com/en-us/training/browse/?products=ms-copilot)
+    * [Microsoft 365 training](https://learn.microsoft.com/en-us/training/browse/?products=m365)
+    * [Microsoft Power Platform training](https://learn.microsoft.com/en-us/training/browse/?products=power-platform)
+    * [Labs](https://learn.microsoft.com/en-us/labs/)
+    * [Credentials](https://learn.microsoft.com/en-us/credentials/)
+    * [Career paths](https://learn.microsoft.com/en-us/training/career-paths/)
+Register now
+[Microsoft Ignite | November 17-20, 2026](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch)
+Interactive learning, certifications, and direct access to experts all in one place.
+  * Q&A
+    * [Ask a question](https://learn.microsoft.com/en-us/answers/questions/ask/)
+    * [Azure questions](https://learn.microsoft.com/en-us/answers/tags/133/azure/)
+    * [Windows questions](https://learn.microsoft.com/en-us/answers/tags/60/windows/)
+    * [Microsoft 365 questions](https://learn.microsoft.com/en-us/answers/tags/9/m365/)
+    * [Microsoft Outlook questions](https://learn.microsoft.com/en-us/answers/tags/131/office-outlook/)
+    * [Microsoft Teams questions](https://learn.microsoft.com/en-us/answers/tags/108/office-teams/)
+    * [Popular tags](https://learn.microsoft.com/en-us/answers/tags/)
+    * [All questions](https://learn.microsoft.com/en-us/answers/questions/)
+Register now
+[Microsoft Ignite | November 17-20, 2026](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch)
+Interactive learning, certifications, and direct access to experts all in one place.
+  * Topics
+    * [Agents](https://learn.microsoft.com/en-us/agents/)
+Key concepts and resources for agentic computing
+    * [Artificial intelligence](https://learn.microsoft.com/en-us/ai/)
+Curated resources for AI fluency with apps and services
+    * [DevOps](https://learn.microsoft.com/en-us/devops/)
+DevOps practices, Git version control and Agile methods
+    * [Learn for Organizations](https://learn.microsoft.com/en-us/training/organizations/)
+Curated offerings from Microsoft to boost your team’s technical skills
+    * [Security](https://learn.microsoft.com/en-us/security/)
+Guidance to help you tackle security challenges
+    * [Startups hub](https://learn.microsoft.com/en-us/startups/)
+Technical guidance to move toward enterprise readiness
+    * [Assessments](https://learn.microsoft.com/en-us/assessments/)
+Interactive guidance with custom recommendations
+    * [Student hub](https://learn.microsoft.com/en-us/training/student-hub/)
+Self-paced and interactive training for students
+    * [Educator center](https://learn.microsoft.com/en-us/training/educator-center/)
+Resources for educators to bring technical innovation in their classroom
+Register now
+[Microsoft Ignite | November 17-20, 2026](https://ignite.microsoft.com/home?wt.mc_ID=msignite26_gmee_corp_np_oo_MSLearnRegLaunch)
+Interactive learning, certifications, and direct access to experts all in one place.
+
+
+Suggestions will filter as you type
+
+
+[Sign in](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list)
+  * [Profile](https://learn.microsoft.com/en-us/users/me/activity/)
+  * [Analytics](https://learn.microsoft.com/en-us/users/me/analytics/)
+  * [Settings](https://learn.microsoft.com/en-us/users/me/settings/)
+
+
+[Sign out](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list)
+[Windows App Development ](https://learn.microsoft.com/en-us/windows/apps)
+  * Essentials
+    * [Introduction](https://learn.microsoft.com/en-us/windows/apps/introduction)
+    * [Core concepts](https://learn.microsoft.com/en-us/windows/apps/get-started)
+    * [Get started](https://learn.microsoft.com/en-us/windows/apps/get-started/start-here)
+    * [Samples and resources](https://learn.microsoft.com/en-us/windows/apps/get-started/samples)
+    * [Help and guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/best-practices)
+    * [What's new](https://learn.microsoft.com/en-us/windows/apps/whats-new/whats-new-for-developers)
+  * Design
+    * [Overview](https://learn.microsoft.com/en-us/windows/apps/design)
+    * [Design principles](https://learn.microsoft.com/en-us/windows/apps/design/design-principles)
+    * [Guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview)
+    * [Tools and resources](https://learn.microsoft.com/en-us/windows/apps/design/downloads)
+  * Develop
+    * [Overview](https://learn.microsoft.com/en-us/windows/apps/develop/)
+    * [Features](https://learn.microsoft.com/en-us/windows/apps/develop/features-overview)
+    * [Use features with other UI frameworks](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/)
+    * [Platform](https://learn.microsoft.com/en-us/windows/apps/develop/platform/csharp-winrt/)
+    * [API reference](https://learn.microsoft.com/en-us/windows/apps/api-reference/)
+    * [Tools](https://learn.microsoft.com/en-us/windows/apps/dev-tools/agentic-tools)
+    * [Tutorials](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/desktop-winui3-app-with-basic-interop/)
+  * Package and deploy
+    * [Overview](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/)
+    * [Packaging](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/packaging/)
+    * [Deployment](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/deploy-overview)
+  * Publish
+    * [Overview](https://learn.microsoft.com/en-us/windows/apps/publish/)
+    * [Get started with Microsoft Store](https://learn.microsoft.com/en-us/windows/apps/publish/get-started)
+    * [Developer account](https://learn.microsoft.com/en-us/windows/apps/publish/partner-center/open-a-developer-account)
+    * [App submission](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/reserve-your-apps-name)
+    * [App management](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/publish-update-to-your-app-on-store)
+    * [App performance](https://learn.microsoft.com/en-us/windows/apps/publish/analyze-app-performance/msix)
+    * [Developer tools](https://learn.microsoft.com/en-us/windows/apps/publish/product-page-experiments)
+  * More
+    * Essentials
+      * [Introduction](https://learn.microsoft.com/en-us/windows/apps/introduction)
+      * [Core concepts](https://learn.microsoft.com/en-us/windows/apps/get-started)
+      * [Get started](https://learn.microsoft.com/en-us/windows/apps/get-started/start-here)
+      * [Samples and resources](https://learn.microsoft.com/en-us/windows/apps/get-started/samples)
+      * [Help and guidance](https://learn.microsoft.com/en-us/windows/apps/get-started/best-practices)
+      * [What's new](https://learn.microsoft.com/en-us/windows/apps/whats-new/whats-new-for-developers)
+    * Design
+      * [Overview](https://learn.microsoft.com/en-us/windows/apps/design)
+      * [Design principles](https://learn.microsoft.com/en-us/windows/apps/design/design-principles)
+      * [Guidelines](https://learn.microsoft.com/en-us/windows/apps/design/guidelines-overview)
+      * [Tools and resources](https://learn.microsoft.com/en-us/windows/apps/design/downloads)
+    * Develop
+      * [Overview](https://learn.microsoft.com/en-us/windows/apps/develop/)
+      * [Features](https://learn.microsoft.com/en-us/windows/apps/develop/features-overview)
+      * [Use features with other UI frameworks](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/)
+      * [Platform](https://learn.microsoft.com/en-us/windows/apps/develop/platform/csharp-winrt/)
+      * [API reference](https://learn.microsoft.com/en-us/windows/apps/api-reference/)
+      * [Tools](https://learn.microsoft.com/en-us/windows/apps/dev-tools/agentic-tools)
+      * [Tutorials](https://learn.microsoft.com/en-us/windows/apps/winui/winui3/desktop-winui3-app-with-basic-interop/)
+    * Package and deploy
+      * [Overview](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/)
+      * [Packaging](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/packaging/)
+      * [Deployment](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/deploy-overview)
+    * Publish
+      * [Overview](https://learn.microsoft.com/en-us/windows/apps/publish/)
+      * [Get started with Microsoft Store](https://learn.microsoft.com/en-us/windows/apps/publish/get-started)
+      * [Developer account](https://learn.microsoft.com/en-us/windows/apps/publish/partner-center/open-a-developer-account)
+      * [App submission](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/reserve-your-apps-name)
+      * [App management](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/publish-update-to-your-app-on-store)
+      * [App performance](https://learn.microsoft.com/en-us/windows/apps/publish/analyze-app-performance/msix)
+      * [Developer tools](https://learn.microsoft.com/en-us/windows/apps/publish/product-page-experiments)
+
+
+[What's new](https://learn.microsoft.com/windows/apps/whats-new/whats-new-for-developers) [Dashboard](https://partner.microsoft.com/dashboard)
+Table of contents  Exit editor mode
+  1. [Learn](https://learn.microsoft.com/en-us/ "Learn")
+  2. [Windows](https://learn.microsoft.com/en-us/windows/ "Windows")
+  3. [Apps](https://learn.microsoft.com/en-us/windows/apps/ "Apps")
+  4. [Win32](https://learn.microsoft.com/en-us/windows/win32/ "Win32")
+  5. [API Index](https://learn.microsoft.com/en-us/windows/win32/apiindex/api-index-portal "API Index")
+
+
+  1. [Learn](https://learn.microsoft.com/en-us/)
+  2. [Windows](https://learn.microsoft.com/en-us/windows/)
+  3. [Apps](https://learn.microsoft.com/en-us/windows/apps/)
+  4. [Win32](https://learn.microsoft.com/en-us/windows/win32/)
+  5. [API Index](https://learn.microsoft.com/en-us/windows/win32/apiindex/api-index-portal)
+
+
+Ask Learn Ask Learn
+Reading mode Table of contents [ Read in English ](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list) Add to Collections Add to Plans [ Edit ](https://github.com/MicrosoftDocs/win32/blob/docs/desktop-src/apiindex/windows-api-list.md)
+* * *
+Copy Markdown Print
+* * *
+Note
+Access to this page requires authorization. You can try [signing in](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list) or changing directories. 
+Access to this page requires authorization. You can try changing directories. 
+# Windows API index
+Feedback
+Summarize this article for me 
+##  In this article
+  1. [User interface](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#user-interface)
+  2. [Windows environment (Shell)](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#windows-environment-shell)
+  3. [User input and messaging](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#user-input-and-messaging)
+  4. [Data access and storage](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#data-access-and-storage)
+  5. [Diagnostics](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#diagnostics)
+  6. [Graphics and multimedia](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#graphics-and-multimedia)
+  7. [Devices](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#devices)
+  8. [System services](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#system-services)
+  9. [Security and identity](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#security-and-identity)
+  10. [Application installation and servicing](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#application-installation-and-servicing)
+  11. [System admin and management](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#system-admin-and-management)
+  12. [Networking and internet](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#networking-and-internet)
+  13. [Deprecated or legacy APIs](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#deprecated-or-legacy-apis)
+
+Show 9 more
+The following is a list of the reference content for the Windows application programming interface (API) for desktop and server applications.
+Using the Windows API, you can develop applications that run successfully on all versions of Windows while taking advantage of the features and capabilities unique to each version. (Note that this was formerly called the Win32 API. The name Windows API more accurately reflects its roots in 16-bit Windows and its support on 64-bit Windows.)
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#user-interface)
+## User interface
+The Windows UI API creates and uses windows to display output, prompt for user input, and carry out the other tasks that support interaction with the user. Most applications create at least one window.
+  * [Accessibility](https://learn.microsoft.com/en-us/windows/win32/winauto/windows-accessibility-features-reference)
+  * [Desktop Window Manager (DWM)](https://learn.microsoft.com/en-us/windows/win32/dwm/reference)
+  * [Globalization Services](https://learn.microsoft.com/en-us/windows/win32/intl/globalization-services)
+  * [High DPI](https://learn.microsoft.com/en-us/windows/win32/hidpi/high-dpi-reference)
+  * [Multilingual User Interface (MUI)](https://learn.microsoft.com/en-us/windows/win32/intl/multilingual-user-interface-reference)
+  * [National Language Support (NLS)](https://learn.microsoft.com/en-us/windows/win32/intl/national-language-support-reference)
+  * [User Interface elements](https://learn.microsoft.com/en-us/windows/win32/devnotes/user-interface):
+    * [Buttons](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-button-button-control-reference)
+    * [Carets](https://learn.microsoft.com/en-us/windows/win32/menurc/caret-functions)
+    * [Combo Boxes](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-combobox-combobox-control-reference)
+    * [Common Dialog Boxes](https://learn.microsoft.com/en-us/windows/win32/dlgbox/common-dialog-box-reference)
+    * [Common Controls](https://learn.microsoft.com/en-us/windows/win32/controls/individual-control-info)
+    * [Cursors](https://learn.microsoft.com/en-us/windows/win32/menurc/cursor-reference)
+    * [Dialog Boxes](https://learn.microsoft.com/en-us/windows/win32/dlgbox/dialog-box-reference)
+    * [Edit Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-edit-control-edit-control-reference)
+    * [Header Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-header-control-header-control-reference)
+    * [Icons](https://learn.microsoft.com/en-us/windows/win32/menurc/icon-reference)
+    * [Keyboard Accelerators](https://learn.microsoft.com/en-us/windows/win32/menurc/keyboard-accelerator-reference)
+    * [List Boxes](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-list-box-list-box-control-reference)
+    * [List-View Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-list-view-list-view-control-reference)
+    * [Menus](https://learn.microsoft.com/en-us/windows/win32/menurc/menu-reference)
+    * [Progress Bars](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-progress-bar-progress-bar-control-reference)
+    * [Property Sheets](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-property-sheet-property-sheets-reference)
+    * [Rich Edit Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-rich-edit-rich-edit-control-reference)
+    * [Scroll Bars](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-scroll-bar-scroll-bars-reference)
+    * [Static Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-static-control-static-control-reference)
+    * [Strings](https://learn.microsoft.com/en-us/windows/win32/menurc/string-reference)
+    * [Toolbars](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-toolbar-toolbar-control-reference)
+    * [Tooltips](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-tooltip-tooltip-control-reference)
+    * [Trackbars](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-trackbar-trackbar-control-reference)
+    * [Tree-View Controls](https://learn.microsoft.com/en-us/windows/win32/controls/bumper-tree-view-tree-view-control-reference)
+  * [Windows Animation Manager](https://learn.microsoft.com/en-us/windows/win32/uianimation/windows-animation-reference)
+  * [Windows Ribbon Framework](https://learn.microsoft.com/en-us/windows/win32/windowsribbon/windowsribbon-reference-entry)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#windows-environment-shell)
+## Windows environment (Shell)
+  * [Windows Property System](https://learn.microsoft.com/en-us/windows/win32/properties/property-system-reference)
+  * [Windows Shell](https://learn.microsoft.com/en-us/windows/win32/shell/shell-entry)
+  * [Windows Search](https://learn.microsoft.com/en-us/windows/win32/search/-search-reference-entry-page)
+  * [Consoles](https://learn.microsoft.com/en-us/windows/console/console-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#user-input-and-messaging)
+## User input and messaging
+  * [User Interaction](https://learn.microsoft.com/en-us/windows/win32/user-interaction)
+    * [Direct Manipulation](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/directmanipulation/direct-manipulation-portal)
+    * [Ink input](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_ink/input-ink-portal)
+    * [Input Feedback Configuration](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_feedback/input-feedback-configuration-portal)
+    * [Interaction Context](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_intcontext/interaction-context-portal)
+    * [Pointer Device Input Stack](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_pointerdevice/pointer-device-stack-portal)
+    * [Pointer Input Messages and Notifications](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/inputmsg/messages-and-notifications)
+    * [Radial controller input](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_radial/radialcontroller-portal)
+    * [Text Services Framework](https://learn.microsoft.com/en-us/windows/win32/tsf/text-services-framework)
+    * [Touch Hit Testing](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_touchhittest/touch-hit-testing-portal)
+    * [Touch Injection](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/input_touchinjection/touch-injection-portal)
+  * [Legacy User Interaction](https://learn.microsoft.com/en-us/windows/win32/legacy-user-interaction-features)
+    * [Touch Input](https://learn.microsoft.com/en-us/windows/win32/wintouch/windows-touch-portal)
+    * [Keyboard Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/keyboard-input)
+    * [Mouse Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/mouse-input)
+    * [Raw Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/raw-input)
+  * [Windows and Messages](https://learn.microsoft.com/en-us/windows/win32/winmsg/windowing):
+    * [Messages and Message Queues](https://learn.microsoft.com/en-us/windows/win32/winmsg/message-and-message-queue-reference)
+    * [Windows](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-reference)
+    * [Window Classes](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-class-reference)
+    * [Window Procedures](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-procedure-reference)
+    * [Timers](https://learn.microsoft.com/en-us/windows/win32/winmsg/timer-reference)
+    * [Window Properties](https://learn.microsoft.com/en-us/windows/win32/winmsg/window-property-reference)
+    * [Hooks](https://learn.microsoft.com/en-us/windows/win32/winmsg/hook-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#data-access-and-storage)
+## Data access and storage
+  * [Background Intelligent Transfer Service (BITS)](https://learn.microsoft.com/en-us/windows/win32/bits/bits-reference)
+  * [Bind Link](https://learn.microsoft.com/en-us/windows/win32/bindlink/)
+  * [Data Backup](https://learn.microsoft.com/en-us/windows/win32/backup/backup)
+    * [Backup](https://learn.microsoft.com/en-us/windows/win32/backup/backup-reference)
+    * [Data Deduplication](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dedup/data-deduplication-api-reference)
+    * [Volume Shadow Copy](https://learn.microsoft.com/en-us/windows/win32/vss/volume-shadow-copy-reference)
+    * [Windows Server Backup](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wsb/windows-server-backup-api-interfaces)
+  * [Data Exchange](https://learn.microsoft.com/en-us/windows/win32/dataxchg/data-exchange):
+    * [Clipboard](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-reference)
+    * [Dynamic Data Exchange (DDE)](https://learn.microsoft.com/en-us/windows/win32/dataxchg/dynamic-data-exchange-reference)
+    * [Dynamic Data Exchange Management (DDEML)](https://learn.microsoft.com/en-us/windows/win32/dataxchg/dynamic-data-exchange-management-library-reference)
+  * [Directory Management](https://learn.microsoft.com/en-us/windows/win32/fileio/directory-management-reference)
+  * [Disk Management](https://learn.microsoft.com/en-us/windows/win32/fileio/disk-management-reference)
+  * [Distributed File System (DFS)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dfs/distributed-file-system-reference)
+  * [Distributed File System Replication](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dfsr/dfsr-wmi-classes)
+  * [Extensible Storage Engine](https://learn.microsoft.com/en-us/windows/win32/extensible-storage-engine/extensible-storage-engine-reference)
+  * [Files and I/O (Local file system)](https://learn.microsoft.com/en-us/windows/win32/fileio/file-management-reference)
+  * [iSCSI Discovery Library API](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/iscsidisc/iscsi-discovery-library-reference)
+  * [Offline Files](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/offlinefiles/offline-files-reference)
+  * [Packaging](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/opc/packaging-programming-reference)
+  * [Remote Differential Compression](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/rdc/remote-differential-compression-reference)
+  * [Transactional NTFS](https://learn.microsoft.com/en-us/windows/win32/fileio/transactional-ntfs-reference)
+  * [Volume Management](https://learn.microsoft.com/en-us/windows/win32/fileio/volume-management-reference)
+  * [Virtual Hard Disk (VHD)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/dd323700\(v=vs.85\))
+  * [Windows Storage Management](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/windows-storage-management-api-portal)
+  * [Windows Data Access Components](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa968814\(v=vs.85\))
+    * [Microsoft Open Database Connectivity (ODBC)](https://learn.microsoft.com/en-us/sql/odbc/reference/syntax/odbc-reference)
+    * [Microsoft OLE DB](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms718050\(v=vs.85\))
+    * [Microsoft ActiveX Data Objects (ADO)](https://learn.microsoft.com/en-us/sql/ado/reference/ado-programmer-s-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#diagnostics)
+## Diagnostics
+The [Diagnostics](https://learn.microsoft.com/en-us/windows/win32/diagnostics) API enable you to troubleshoot application or system problems and monitor performance.
+  * [Application Recovery and Restart](https://learn.microsoft.com/en-us/windows/win32/recovery/application-recovery-and-restart-reference)
+  * [Debugging](https://learn.microsoft.com/en-us/windows/win32/debug/debugging-reference)
+  * [Error Handling](https://learn.microsoft.com/en-us/windows/win32/debug/error-handling-reference)
+  * [Event Logging](https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging-reference)
+  * [Event Tracing](https://learn.microsoft.com/en-us/windows/win32/etw/event-tracing-reference)
+  * [Hardware Counter Profiling (HCP)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/hcp/hcp-reference)
+  * [Network Diagnostics Framework (NDF)](https://learn.microsoft.com/en-us/windows/win32/ndf/ndf-reference)
+  * [Network Monitor](https://learn.microsoft.com/en-us/windows/win32/netmon2/reference)
+  * [Performance Counters](https://learn.microsoft.com/en-us/windows/win32/perfctrs/performance-counters-reference)
+  * [Performance Logs and Alerts (PLA)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/pla/performance-logs-and-alerts-reference)
+  * [Process Snapshotting](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/proc_snap/process-snapshotting-reference)
+  * [Process Status (PSAPI)](https://learn.microsoft.com/en-us/windows/win32/psapi/psapi-reference)
+  * [Structured Exception Handling](https://learn.microsoft.com/en-us/windows/win32/debug/structured-exception-handling-reference)
+  * [System Monitor](https://learn.microsoft.com/en-us/windows/win32/sysmon/system-monitor-reference)
+  * [Wait Chain Traversal](https://learn.microsoft.com/en-us/windows/win32/debug/wait-chain-traversal)
+  * [Windows Error Reporting (WER)](https://learn.microsoft.com/en-us/windows/win32/wer/wer-reference)
+  * [Windows Event Log](https://learn.microsoft.com/en-us/windows/win32/wes/windows-event-log-reference)
+  * [Windows Troubleshooting Platform](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wintt/windows-troubleshooting-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#graphics-and-multimedia)
+## Graphics and multimedia
+The [Graphics, multimedia,](https://learn.microsoft.com/en-us/previous-versions//aa969176\(v=vs.85\)) [audio, and video](https://learn.microsoft.com/en-us/windows/win32/audio-and-video) APIs enable applications to incorporate formatted text, graphics, audio, and video.
+  * [Core Audio](https://learn.microsoft.com/en-us/windows/win32/coreaudio/programming-reference)
+  * [Direct2D](https://learn.microsoft.com/en-us/windows/win32/direct2d/reference)
+  * [DirectComposition](https://learn.microsoft.com/en-us/windows/win32/directcomp/reference)
+  * [DirectShow](https://learn.microsoft.com/en-us/windows/win32/directshow/directshow-reference)
+  * [DirectWrite](https://learn.microsoft.com/en-us/windows/win32/directwrite/reference)
+  * [DirectX](https://learn.microsoft.com/en-us/windows/win32/directx-sdk--august-2009-)
+  * [Graphics Device Interface (GDI)](https://learn.microsoft.com/en-us/windows/win32/gdi/windows-gdi)
+  * [GDI+](https://learn.microsoft.com/en-us/windows/win32/gdiplus/-gdiplus-class-gdi-reference)
+  * [Media Streaming](https://learn.microsoft.com/en-us/windows/win32/mediastreaming/media-streaming-api-portal)
+  * [Microsoft Media Foundation](https://learn.microsoft.com/en-us/windows/win32/medfound/media-foundation-programming-reference)
+  * [Microsoft TV Technologies](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mstv/microsoft-tv-technologies-application-interface)
+  * [OpenGL](https://learn.microsoft.com/en-us/windows/win32/opengl/opengl-reference)
+  * [Monitor Configuration](https://learn.microsoft.com/en-us/windows/win32/monitor/monitor-configuration-reference)
+  * [Multiple Display Monitors](https://learn.microsoft.com/en-us/windows/win32/gdi/multiple-display-monitors-reference)
+  * [Picture Acquisition](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/acquisition/programming-reference)
+  * [Windows Color System](https://learn.microsoft.com/en-us/windows/win32/wcs/reference)
+  * [Windows Imaging Component (WIC)](https://learn.microsoft.com/en-us/windows/win32/wic/-wic-codec-reference)
+  * [Windows Media Audio and Video Codec and DSP](https://learn.microsoft.com/en-us/previous-versions//dd443208\(v=vs.85\))
+  * [Windows Media Center](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/acquisition/programming-reference)
+  * [Windows Media Format](https://learn.microsoft.com/en-us/windows/win32/wmformat/programming-reference)
+  * [Windows Media Library Sharing Services](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wmlss/windowsmedialibrarysharingservicesportal)
+  * [Windows Media Player](https://learn.microsoft.com/en-us/windows/win32/wmp/windows-media-player-object-model-reference)
+  * [Windows Media Services](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dd893580\(v=vs.85\))
+  * [Windows Movie Maker](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wmmdvdm/windows-movie-maker-apis)
+  * [Windows Multimedia](https://learn.microsoft.com/en-us/windows/win32/multimedia/multimedia-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#devices)
+## Devices
+  * [AllJoyn](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/alljoyn/alljoyn-api-portal)
+  * [Communications Resources](https://learn.microsoft.com/en-us/windows/win32/devio/communications-reference)
+  * [Device Access](https://learn.microsoft.com/en-us/windows/win32/deviceaccess/device-access-broker-api-portal)
+  * [Device Management](https://learn.microsoft.com/en-us/windows/win32/devio/device-management-reference)
+  * [Enhanced Storage](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/enstor/enhanced-storage-reference)
+  * [Function Discovery](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/fundisc/function-discovery-reference)
+  * [Image Mastering](https://learn.microsoft.com/en-us/windows/win32/imapi/imapi-reference)
+  * [Location](https://learn.microsoft.com/en-us/windows/win32/locationapi/windows-location-programming-reference)
+  * [PnP-X Association Database](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/fundisc/pnp-x-association-database-reference)
+  * [Printing](https://learn.microsoft.com/en-us/windows-hardware/drivers/print/introduction-to-printing)
+    * [Print Spooler](https://learn.microsoft.com/en-us/windows/win32/printdocs/printing-and-print-spooler-reference)
+    * [Print Document Package](https://learn.microsoft.com/en-us/windows/win32/printdocs/tailored-app-printing-api)
+    * [Print Schema Specification](https://download.microsoft.com/download/D/E/C/DECA6E6B-3E81-48E7-B7EF-6D92A547D03C/print-schema-spec-2-0.zip)
+    * [Print Ticket](https://learn.microsoft.com/en-us/windows/win32/printdocs/print-ticket-api)
+    * [XPS Print](https://learn.microsoft.com/en-us/windows/win32/printdocs/xpsprint-api)
+  * [Sensors](https://learn.microsoft.com/en-us/windows/win32/sensorsapi/sensor-api-programming-reference)
+  * [System Event Notification Service (SENS)](https://learn.microsoft.com/en-us/windows/win32/sens/sens-reference)
+  * [Tool Help](https://learn.microsoft.com/en-us/windows/win32/toolhelp/tool-help-reference)
+  * [UPnP](https://learn.microsoft.com/en-us/windows/win32/upnp/universal-plug-and-play-start-page)
+  * [Web Services on Devices](https://learn.microsoft.com/en-us/windows/win32/wsdapi/web-services-for-devices-reference)
+  * [Windows Image Acquisition (WIA)](https://learn.microsoft.com/en-us/windows/win32/wia/-wia-reference)
+  * [Windows Media Device Manager](https://learn.microsoft.com/en-us/windows/win32/wmdm/programming-reference)
+  * [Windows Portable Devices](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/programming-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#system-services)
+## System services
+The [System Services](https://learn.microsoft.com/en-us/windows/win32/system-services) APIs give applications access to the resources of the computer and the features of the underlying operating system, such as memory, file systems, devices, processes, and threads.
+  * [Activity Coordinator](https://learn.microsoft.com/en-us/windows/win32/activity_coordinator/-activity-coordinator-portal)
+  * [COM](https://learn.microsoft.com/en-us/windows/win32/com/reference)
+  * [COM+](https://learn.microsoft.com/en-us/windows/win32/cossdk/com--reference)
+  * [Compression API](https://learn.microsoft.com/en-us/windows/win32/cmpapi/-compression-portal)
+  * [Distributed Transaction Coordinator (DTC)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms686108\(v=vs.85\))
+  * [Dynamic-Link Libraries (DLLs)](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-library-functions)
+  * [Hardware Requirement Evaluator (HWREQCHK)](https://learn.microsoft.com/en-us/windows/win32/hwreqchkapi/)
+  * [Help API](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/helpapi/help-api-reference)
+  * [Interprocess Communications](https://learn.microsoft.com/en-us/windows/win32/ipc/interprocess-communications): 
+    * [Mailslots](https://learn.microsoft.com/en-us/windows/win32/ipc/mailslot-functions)
+    * [Pipes](https://learn.microsoft.com/en-us/windows/win32/ipc/pipe-functions)
+  * [Kernel Transaction Manager (KTM)](https://learn.microsoft.com/en-us/windows/win32/ktm/ktm-reference)
+  * [Memory Management](https://learn.microsoft.com/en-us/windows/win32/memory/memory-management-reference)
+  * [Operation Recorder](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/oprec/-operation-portal)
+  * [Power Management](https://learn.microsoft.com/en-us/windows/win32/power/power-management-reference)
+  * [Remote Desktop Services](https://learn.microsoft.com/en-us/windows/win32/termserv/terminal-services-reference)
+  * [Processes](https://learn.microsoft.com/en-us/windows/win32/procthread/process-and-thread-reference)
+  * [Services](https://learn.microsoft.com/en-us/windows/win32/services/service-reference)
+  * [Synchronization](https://learn.microsoft.com/en-us/windows/win32/sync/synchronization-reference)
+  * [Threads](https://learn.microsoft.com/en-us/windows/win32/procthread/process-and-thread-reference)
+  * [Windows Desktop Sharing](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/rdp/windows-desktop-sharing-reference)
+  * [Windows System Information](https://learn.microsoft.com/en-us/windows/win32/sysinfo/windows-system-information)
+    * [Handle and Objects](https://learn.microsoft.com/en-us/windows/win32/sysinfo/handle-and-object-functions)
+    * [Registry](https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-reference)
+    * [Time](https://learn.microsoft.com/en-us/windows/win32/sysinfo/time-reference)
+    * [Time Provider](https://learn.microsoft.com/en-us/windows/win32/sysinfo/time-provider-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#security-and-identity)
+## Security and identity
+The [Security and Identity](https://learn.microsoft.com/en-us/windows/win32/devnotes/security) APIs enable password authentication at logon, discretionary protection for all sharable system objects, privileged access control, rights management, and security auditing.
+  * [Authentication](https://learn.microsoft.com/en-us/windows/win32/secauthn/authentication-reference)
+  * [Authorization](https://learn.microsoft.com/en-us/windows/win32/secauthz/authorization-reference)
+  * [Certificate Enrollment](https://learn.microsoft.com/en-us/windows/win32/seccertenroll/certificate-enrollment-api-reference)
+  * [Cryptography](https://learn.microsoft.com/en-us/windows/win32/seccrypto/cryptography-reference)
+  * [Cryptographic Next Generation (CNG)](https://learn.microsoft.com/en-us/windows/win32/seccng/cng-reference)
+  * [Directory Services](https://learn.microsoft.com/en-us/previous-versions//ms682458\(v=vs.85\))
+    * [Active Directory Domain Services](https://learn.microsoft.com/en-us/windows/win32/ad/active-directory-domain-services-reference)
+    * [Active Directory Service Interfaces (ADSI)](https://learn.microsoft.com/en-us/windows/win32/adsi/adsi-reference)
+  * [Extensible Authentication Protocol (EAP)](https://learn.microsoft.com/en-us/windows/win32/eap/extensible-authentication-protocol-reference)
+  * [Extensible Authentication Protocol Host (EAPHost)](https://learn.microsoft.com/en-us/windows/win32/eaphost/about-eap-host)
+  * [MS-CHAP Password Management](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mschap/ms-chap-password-management-reference)
+  * [Network Access Protection (NAP)](https://learn.microsoft.com/en-us/windows/win32/nap/nap-reference)
+  * [Network Policy Server Extensions (NPS)](https://learn.microsoft.com/en-us/windows/win32/nps/ias-internet-authentication-service-reference)
+  * [Parental Controls](https://learn.microsoft.com/en-us/windows/win32/parcon/parental-controls-reference)
+  * [Security WMI Providers](https://learn.microsoft.com/en-us/windows/win32/secprov/security-wmi-providers-reference)
+  * [TPM Base Services (TBS)](https://learn.microsoft.com/en-us/windows/win32/tbs/tbs-reference)
+  * [Windows Biometric Framework](https://learn.microsoft.com/en-us/windows/win32/secbiomet/biometric-service-api-reference)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#application-installation-and-servicing)
+## Application installation and servicing
+  * [Games Explorer](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ee415251\(v=vs.85\))
+  * [Side-by-side Assemblies](https://learn.microsoft.com/en-us/windows/win32/sbscs/side-by-side-assemblies-reference)
+  * [Packaging, deployment, and query APIs](https://learn.microsoft.com/en-us/windows/win32/appxpkg/api-reference)
+  * [Developer License](https://learn.microsoft.com/en-us/windows/win32/devlic/developer-license-apis)
+  * [Restart Manager](https://learn.microsoft.com/en-us/windows/win32/rstmgr/restart-manager-reference)
+  * [Windows Installer](https://learn.microsoft.com/en-us/windows/win32/msi/windows-installer-portal)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#system-admin-and-management)
+## System admin and management
+The [System administration](https://learn.microsoft.com/en-us/windows/win32/srvnodes/system-administration) interfaces enable you to install, configure, and service applications or systems.
+  * [Boot Configuration Data WMI Provider](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/bcd/bcd-reference)
+  * [Failover Clusters](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mscs/failover-cluster-apis-portal)
+  * [File Server Resource Manager (FSRM)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/fsrm/fsrm-reference)
+  * [Group Policy](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/Policy/group-policy-reference)
+  * [Microsoft Management Console (MMC) 2.0](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mmc/mmc-reference)
+  * [NetShell](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/netshell/netshell-reference)
+  * [Settings Management Infrastructure](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/smi/settings-management-infrastructure--smi-)
+  * [Software Inventory Logging](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/sil/software-inventory-logging-portal)
+  * [Software Licensing](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/secslapi/software-licensing-api-reference)
+  * [Restart Manager](https://learn.microsoft.com/en-us/windows/win32/rstmgr/restart-manager-portal)
+  * [Settings Management Infrastructure](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/smi/settings-management-infrastructure--smi-)
+  * [System Restore](https://learn.microsoft.com/en-us/windows/win32/sr/system-restore-portal)
+  * [System Shutdown](https://learn.microsoft.com/en-us/windows/win32/shutdown/system-shutdown)
+  * [Task Scheduler](https://learn.microsoft.com/en-us/windows/win32/taskschd/task-scheduler-start-page)
+  * [User Access Logging](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ual/user-access-logging-reference)
+  * [Windows Virtual PC](https://learn.microsoft.com/en-us/windows/win32/vpc/virtual-pc-reference)
+  * [Microsoft Virtual Server](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/msvs/microsoft-virtual-server-reference)
+  * [Network Load Balancing Provider](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wlbsprov/network-load-balancing-provider-reference)
+  * [Windows Defender WMI v2](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/defender/windows-defender-wmiv2-apis-portal)
+  * [Windows Deployment Services](https://learn.microsoft.com/en-us/windows/win32/wds/windows-deployment-services-portal)
+  * [Windows Genuine Advantage](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wingen/windows-genuine-advantage-api-functions)
+  * [Windows Management Infrastructure](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wmi_v2/wmi-reference)
+  * [Windows Management Instrumentation (WMI)](https://learn.microsoft.com/en-us/windows/win32/wmisdk/wmi-reference)
+  * [Windows Remote Management](https://learn.microsoft.com/en-us/windows/win32/winrm/portal)
+  * [Windows Resource Protection](https://learn.microsoft.com/en-us/windows/win32/wfp/windows-resource-protection-portal)
+  * [Windows Server Update Services](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms744624\(v=vs.85\))
+  * [Windows System Assessment Tool](https://learn.microsoft.com/en-us/windows/win32/winsat/winsat-reference)
+  * [Windows Update Agent](https://learn.microsoft.com/en-us/windows/win32/wua_sdk/portal-client)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#networking-and-internet)
+## Networking and internet
+The [Networking](https://learn.microsoft.com/en-us/windows/win32/devnotes/networking) APIs enable communication between applications over a network. You can also create and manage access to shared resources, such as directories and network printers.
+  * [Domain Name System (DNS)](https://learn.microsoft.com/en-us/windows/win32/dns/dns-reference)
+  * [Dynamic Host Configuration Protocol (DHCP)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dhcp/dhcp-start-page)
+  * [Fax Service](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/fax/-mfax-fax-service-reference)
+  * [Get Connected Wizard](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/get_connected/get-connected-wizard-api-reference)
+  * [HTTP Server](https://learn.microsoft.com/en-us/windows/win32/http/http-server-api-reference)
+  * [Internet Connection Sharing and Firewall](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ics/internet-connection-sharing-and-internet-connection-firewall-reference)
+  * [IP Helper](https://learn.microsoft.com/en-us/windows/win32/iphlp/ip-helper-function-reference)
+  * [IPv6 Internet Connection Firewall](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ics/ipv6-firewall-configuration-reference)
+  * [Management Information Base](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/mib/management-information-base-reference)
+  * [Message Queuing (MSMQ)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ms700112\(v=vs.85\))
+  * [Multicast Address Dynamic Client Allocation Protocol (MADCAP)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/madcap/madcap-reference)
+  * [Network Address Translation (NAT)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ics/network-address-translation-traversal-reference)
+  * [Network List Manager (NLM)](https://learn.microsoft.com/en-us/windows/win32/nla/network-list-manager-api-reference)
+  * [Network Management](https://learn.microsoft.com/en-us/windows/win32/netmgmt/network-management-reference)
+  * [Network Share Management](https://learn.microsoft.com/en-us/windows/win32/netshare/network-share-management-reference)
+  * [Peer-to-Peer](https://learn.microsoft.com/en-us/windows/win32/p2psdk/portal)
+  * [Quality of Service (QOS)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/qos/qos-reference)
+  * [Remote Procedure Call](https://learn.microsoft.com/en-us/windows/win32/rpc/reference)
+  * [Routing and Remote Access Service (RAS)](https://learn.microsoft.com/en-us/windows/win32/rras/portal)
+  * [Simple Network Management Protocol (SNMP)](https://learn.microsoft.com/en-us/windows/win32/snmp/snmp-reference)
+  * [SMB Management](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/smb/smb-management-api-portal)
+  * [Telephony Application Programming Interfaces (TAPI)](https://learn.microsoft.com/en-us/windows/win32/tapi/telephony-application-programming-interfaces)
+  * [WebDAV](https://learn.microsoft.com/en-us/windows/win32/webdav/webdav-api-reference)
+  * [WebSocket Protocol Component](https://learn.microsoft.com/en-us/windows/win32/websock/web-socket-protocol-component-api-portal)
+  * Wireless networking: 
+    * [Bluetooth](https://learn.microsoft.com/en-us/windows/win32/bluetooth/bluetooth-reference)
+    * [IrDA](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/irda/irda-and-windows-sockets-reference)
+    * [Mobile Broadband](https://learn.microsoft.com/en-us/windows/win32/mbn/mobile-broadband-networks-api-reference)
+    * [Native Wifi](https://learn.microsoft.com/en-us/windows/win32/nativewifi/native-wifi-reference)
+    * [Windows Connect Now](https://learn.microsoft.com/en-us/windows/win32/wcn/windows-connect-now-reference)
+    * [Windows Connection Manager](https://learn.microsoft.com/en-us/windows/win32/wcm/windows-connection-manager-reference)
+  * [Windows Filtering Platform](https://learn.microsoft.com/en-us/windows/win32/fwp/fwp-reference)
+  * [Windows Firewall with Advanced Security](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ics/windows-firewall-with-advanced-security-reference)
+  * [Windows HTTP Services (WinHTTP)](https://learn.microsoft.com/en-us/windows/win32/winhttp/winhttp-reference)
+  * [Windows Internet (WinINet)](https://learn.microsoft.com/en-us/windows/win32/wininet/wininet-reference)
+  * [Windows Networking (WNet)](https://learn.microsoft.com/en-us/windows/win32/wnet/windows-networking-reference)
+  * [Windows Network Virtualization](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wnv/windows-network-virtualization-portal)
+  * [Windows RSS Platform](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ms684702\(v=vs.85\))
+  * [Windows Sockets (Winsock)](https://learn.microsoft.com/en-us/windows/win32/winsock/winsock-reference)
+  * [Windows Web Services](https://learn.microsoft.com/en-us/windows/win32/wsw/windows-web-services-reference)
+  * [XML HTTP Extended Request](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ixhr2/ixmlhttprequest2-portal)
+
+
+[](https://learn.microsoft.com/en-us/windows/win32/apiindex/windows-api-list#deprecated-or-legacy-apis)
+## Deprecated or legacy APIs
+The following are technologies and APIs that are outdated or have been replaced or deprecated from the Windows client and server operating systems.
+  * [DirectMusic](https://learn.microsoft.com/en-us/previous-versions/ms807133\(v=msdn.10\))
+  * [DirectSound](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ee416975\(v=vs.85\))
+  * [Microsoft UDDI SDK](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/aa966237\(v=bts.10\)) is now included with [Microsoft BizTalk Server](https://learn.microsoft.com/en-us/previous-versions/bb905520\(v=msdn.10\)).
+  * [Network Dynamic Data Exchange (DDE)](https://learn.microsoft.com/en-us/windows/win32/ipc/network-dde-reference)
+  * [Remote Installation Service](https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2003/cc786442\(v=ws.10\)): Use [Windows Deployment Services](https://learn.microsoft.com/en-us/windows/win32/wds/windows-deployment-services-portal) instead.
+  * [Virtual Disk Service (VDS)](https://learn.microsoft.com/en-us/windows/win32/vds/vds-reference): Use [Windows Storage Management](https://learn.microsoft.com/en-us/windows-hardware/drivers/storage/windows-storage-management-api-portal) instead.
+  * Terminal Services: Use [Remote Desktop Services](https://learn.microsoft.com/en-us/windows/win32/termserv/terminal-services-reference).
+  * [Windows Media Rights Manager](https://learn.microsoft.com/en-us/previous-versions//bb614742\(v=vs.85\))
+  * [Windows Messaging (MAPI)](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/windowsmapi/mapi-stub-library-and-simple-mapi): Use [Office MAPI](https://learn.microsoft.com/en-us/previous-versions/office/developer/office-2007/cc765775\(v=office.12\)) instead.
+  * [Windows Gadget Platform](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/gadgetplatform/windows-gadget-platform-portal): Create UWP apps instead.
+  * [Windows Sidebar](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/sidebar/-sidebar-ref-entry): Create UWP apps instead.
+  * [Windows SideShow](https://learn.microsoft.com/en-us/previous-versions//ms744179\(v=vs.85\)): No replacement.
+  * [WPF Bitmap Effects](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/wibe/-wibe-about-bitmapeffects)
+
+
+* * *
+## Feedback
+Was this page helpful? 
+Yes No No
+Need help with this topic? 
+Want to try using Ask Learn to clarify or guide you through this topic? 
+Ask Learn Ask Learn
+Suggest a fix? 
+* * *
+##  Additional resources 
+* * *
+  * Last updated on 03/15/2023
+
+
+[English (United States)](https://learn.microsoft.com/en-us/locale?target=https%3A%2F%2Flearn.microsoft.com%2Fen-us%2Fwindows%2Fwin32%2Fapiindex%2Fwindows-api-list)
+[ Your Privacy Choices](https://aka.ms/yourcaliforniaprivacychoices)
+Theme
+  * Light 
+  * Dark 
+  * High contrast 
+
+
+  * Manage cookies
+  * [AI Disclaimer](https://learn.microsoft.com/en-us/principles-for-ai-generated-content)
+  * [Previous Versions](https://learn.microsoft.com/en-us/previous-versions/)
+  * [Blog](https://techcommunity.microsoft.com/t5/microsoft-learn-blog/bg-p/MicrosoftLearnBlog)
+  * [Contribute](https://learn.microsoft.com/en-us/contribute)
+  * [Privacy](https://go.microsoft.com/fwlink/?LinkId=521839)
+  * [Consumer Health Privacy](https://go.microsoft.com/fwlink/?linkid=2259814)
+  * [Terms of Use](https://learn.microsoft.com/en-us/legal/termsofuse)
+  * [Trademarks](https://www.microsoft.com/legal/intellectualproperty/Trademarks/)
+  * © Microsoft 2026
+
+

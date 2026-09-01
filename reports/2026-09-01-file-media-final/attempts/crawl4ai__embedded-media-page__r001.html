@@ -1,0 +1,1351 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__embedded-media-page__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文件与媒体</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>含嵌入视频的 HTML 页面</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">30,201 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>抽取页面正文，并检查是否另行返回视频资源 URL；不要求下载视频二进制。</p><p><b>输入 URL：</b><a href="https://www.w3schools.com/html/html5_video.asp">https://www.w3schools.com/html/html5_video.asp</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>正文应介绍 HTML &lt;video&gt; 元素；资源层应能识别页面中的视频地址才算支持媒体发现。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/embedded-media-page/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.w3schools.com/html/html5_video.asp">打开标准答案源网页</a> · 完整性校验 <code>sha256:ffa18876b486035dc3b72705856d82a689ac9eadfc7c8c4529b018afff6be680</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>正文应介绍 HTML &lt;video&gt; 元素；资源层应能识别页面中的视频地址才算支持媒体发现。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># HTML Video
+[❮ Previous](https://www.w3schools.com/html/html_media.asp) [Next ❯](https://www.w3schools.com/html/html_challenges_video.asp)
+* * *
+The HTML `&lt;video&gt;` element is used to show a video on a web page.
+* * *
+## Video
+### Example
+Courtesy of [Big Buck Bunny](https://www.bigbuckbunny.org/):
+Your browser does not support HTML5 video.
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video)
+* * *
+## The HTML &lt;video&gt; Element
+To show a video in HTML, use the `&lt;video&gt;` element:
+### Example
+&lt;video width=&quot;320&quot; height=&quot;240&quot; controls&gt;
+&lt;source src=&quot;movie.mp4&quot; type=&quot;video/mp4&quot;&gt;
+&lt;source src=&quot;movie.ogg&quot; type=&quot;video/ogg&quot;&gt;
+Your browser does not support the video tag.
+&lt;/video&gt;
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_all)
+* * *
+## How it Works
+The `controls` attribute adds video controls, like play, pause, and volume.
+It is a good idea to always include `width` and `height` attributes. If height and width are not set, the page might flicker while the video loads.
+The `&lt;source&gt;` element allows you to specify alternative video files which the browser may choose from. The browser will use the first recognized format.
+The text between the `&lt;video&gt;` and `&lt;/video&gt;` tags will only be displayed in browsers that do not support the `&lt;video&gt;` element.
+* * *
+## HTML &lt;video&gt; Autoplay
+To start a video automatically, use the `autoplay` attribute:
+### Example
+&lt;video width=&quot;320&quot; height=&quot;240&quot; autoplay&gt;
+&lt;source src=&quot;movie.mp4&quot; type=&quot;video/mp4&quot;&gt;
+&lt;source src=&quot;movie.ogg&quot; type=&quot;video/ogg&quot;&gt;
+Your browser does not support the video tag.
+&lt;/video&gt;
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay)
+**Note:** Chromium browsers do not allow autoplay in most cases. However, muted autoplay is al</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（13,172 / 13,369 字符）</summary><pre># HTML Video
+[❮ Previous](https://www.w3schools.com/html/html_media.asp) [Next ❯](https://www.w3schools.com/html/html_challenges_video.asp)
+* * *
+The HTML `&lt;video&gt;` element is used to show a video on a web page.
+* * *
+## Video
+### Example
+Courtesy of [Big Buck Bunny](https://www.bigbuckbunny.org/):
+Your browser does not support HTML5 video.
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video)
+* * *
+## The HTML &lt;video&gt; Element
+To show a video in HTML, use the `&lt;video&gt;` element:
+### Example
+&lt;video width=&quot;320&quot; height=&quot;240&quot; controls&gt;
+&lt;source src=&quot;movie.mp4&quot; type=&quot;video/mp4&quot;&gt;
+&lt;source src=&quot;movie.ogg&quot; type=&quot;video/ogg&quot;&gt;
+Your browser does not support the video tag.
+&lt;/video&gt;
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_all)
+* * *
+## How it Works
+The `controls` attribute adds video controls, like play, pause, and volume.
+It is a good idea to always include `width` and `height` attributes. If height and width are not set, the page might flicker while the video loads.
+The `&lt;source&gt;` element allows you to specify alternative video files which the browser may choose from. The browser will use the first recognized format.
+The text between the `&lt;video&gt;` and `&lt;/video&gt;` tags will only be displayed in browsers that do not support the `&lt;video&gt;` element.
+* * *
+## HTML &lt;video&gt; Autoplay
+To start a video automatically, use the `autoplay` attribute:
+### Example
+&lt;video width=&quot;320&quot; height=&quot;240&quot; autoplay&gt;
+&lt;source src=&quot;movie.mp4&quot; type=&quot;video/mp4&quot;&gt;
+&lt;source src=&quot;movie.ogg&quot; type=&quot;video/ogg&quot;&gt;
+Your browser does not support the video tag.
+&lt;/video&gt;
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay)
+**Note:** Chromium browsers do not allow autoplay in most cases. However, muted autoplay is always allowed.
+Add `muted` after ` autoplay` to let your video start playing automatically (but muted):
+### Example
+&lt;video width=&quot;320&quot; height=&quot;240&quot; autoplay muted&gt;
+&lt;source src=&quot;movie.mp4&quot; type=&quot;video/mp4&quot;&gt;
+&lt;source src=&quot;movie.ogg&quot; type=&quot;video/ogg&quot;&gt;
+Your browser does not support the video tag.
+&lt;/video&gt;
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay_mute)
+* * *
+## Browser Support
+The numbers in the table specify the first browser version that fully supports the `&lt;video&gt;` element.
+| Element  |   |   |   |   |   |
+| --- | --- | --- | --- | --- | --- |
+| &lt;video&gt;  | 4.0  | 9.0  | 3.5  | 4.0  | 10.5  |
+* * *
+[REMOVE ADS](https://order.w3schools.com/plans)
+* * *
+## HTML Video Formats
+There are three supported video formats: MP4, WebM, and Ogg. The browser support for the different formats is:
+| Browser  | MP4  | WebM  | Ogg  |
+| --- | --- | --- | --- |
+| Edge  | YES  | YES  | YES  |
+| Chrome  | YES  | YES  | YES  |
+| Firefox  | YES  | YES  | YES  |
+| Safari  | YES  | YES  | NO  |
+| Opera  | YES  | YES  | YES  |
+* * *
+## HTML Video - Media Types
+| File Format  | Media Type  |
+| --- | --- |
+| MP4  | video/mp4  |
+| WebM  | video/webm  |
+| Ogg  | video/ogg  |
+* * *
+## HTML Video - Methods, Properties, and Events
+The HTML DOM defines methods, properties, and events for the `&lt;video&gt;` element.
+This allows you to load, play, and pause videos, as well as setting duration and volume.
+There are also DOM events that can notify you when a video begins to play, is paused, etc.
+### Example: Using JavaScript
+
+
+Play/Pause Big Small Normal
+
+Your browser does not support HTML5 video.
+Video courtesy of [Big Buck Bunny](https://www.bigbuckbunny.org/).
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_js_prop)
+For a full DOM reference, go to our [HTML Audio/Video DOM Reference](https://www.w3schools.com/tags/ref_av_dom.asp).
+* * *
+## HTML Video Tags
+| Tag  | Description  |
+| --- | --- |
+| [&lt;video&gt;](https://www.w3schools.com/tags/tag_video.asp)  | Defines a video or movie  |
+| [&lt;source&gt;](https://www.w3schools.com/tags/tag_source.asp)  | Defines multiple media resources for media elements, such as &lt;video&gt; and &lt;audio&gt;  |
+| [&lt;track&gt;](https://www.w3schools.com/tags/tag_track.asp)  | Defines text tracks in media players  |
+
+
+[❮ Previous](https://www.w3schools.com/html/html_media.asp) [Next ❯](https://www.w3schools.com/html/html_challenges_video.asp)
+[ ★ +1 ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp &quot;Your W3Schools Profile&quot;)
+[ Sign in to track progress ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fpathfinder.w3schools.com&amp;origin=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp &quot;Sign in to track your progress&quot;)
+[ ![Get Certified Offer](https://www.w3schools.com/images/img_2026_cert_html_300.webp) ](https://campus.w3schools.com/collections/course-catalog/products/html-course)
+[](https://www.youtube.com/@w3schools &quot;W3Schools on YouTube&quot;) [](https://www.linkedin.com/company/w3schools.com/ &quot;W3Schools on LinkedIn&quot;) [](https://discord.com/invite/w3schools &quot;Join the W3schools community on Discord&quot;) [](https://www.facebook.com/w3schoolscom/ &quot;W3Schools on Facebook&quot;) [](https://www.instagram.com/w3schools.com_official/ &quot;W3Schools on Instagram&quot;) [](https://www.tiktok.com/@w3schools.com &quot;New: W3Schools on TikTok&quot;)
+* * *
+## Create a W3Schools Account
+Ad-free learning, track your progress, earn XP, streaks, compete in leagues, build and host websites, unlock coding challenges, and much more!
+Earn XP
+Streaks
+![](https://pathfinder.w3schools.com/images/leagues/wood.svg) Leagues
+Your Own Space
+[Sign Up for Free](https://profile.w3schools.com/sign-up?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp &quot;Sign up to try W3Schools Hero&quot;)
+[ ](https://www.w3schools.com)
+[PLUS](https://order.w3schools.com/plans &quot;Become a PLUS user and unlock powerful features&quot;)
+[SPACES](https://www.w3schools.com/spaces/index.php &quot;Get your own website with W3Schools Spaces&quot;)
+[GET CERTIFIED](https://campus.w3schools.com/collections/certifications &quot;Document your knowledge by getting certified&quot;)
+[FOR TEACHERS](https://www.w3schools.com/academy/index.php &quot;Contact us about W3Schools Academy for educational institutions&quot;)
+[PRACTICE](https://www.w3schools.com/practice/index.php &quot;W3Schools Practice Problems&quot;)
+[CONTACT US](javascript:void\(0\); &quot;Contact us about sales or errors&quot;)
+## Contact Sales
+If you want to use W3Schools services as an educational institution, team or enterprise, send us an e-mail:
+sales@w3schools.com
+## Report Error
+If you want to report an error, or if you want to make a suggestion, send us an e-mail:
+help@w3schools.com
+##### Top Tutorials
+[HTML Tutorial](https://www.w3schools.com/html/default.asp)
+[CSS Tutorial](https://www.w3schools.com/css/default.asp)
+[JavaScript Tutorial](https://www.w3schools.com/js/default.asp)
+[How To Tutorial](https://www.w3schools.com/howto/default.asp)
+[SQL Tutorial](https://www.w3schools.com/sql/default.asp)
+[Python Tutorial](https://www.w3schools.com/python/default.asp)
+[W3.CSS Tutorial](https://www.w3schools.com/w3css/default.asp)
+[Bootstrap Tutorial](https://www.w3schools.com/bootstrap/bootstrap_ver.asp)
+[PHP Tutorial](https://www.w3schools.com/php/default.asp)
+[Java Tutorial](https://www.w3schools.com/java/default.asp)
+[C++ Tutorial](https://www.w3schools.com/cpp/default.asp)
+[jQuery Tutorial](https://www.w3schools.com/jquery/default.asp)
+
+##### Top References
+[HTML Reference](https://www.w3schools.com/tags/default.asp)
+[CSS Reference](https://www.w3schools.com/cssref/index.php)
+[JavaScript Reference](https://www.w3schools.com/jsref/default.asp)
+[SQL Reference](https://www.w3schools.com/sql/sql_ref_keywords.asp)
+[Python Reference](https://www.w3schools.com/python/python_reference.asp)
+[W3.CSS Reference](https://www.w3schools.com/w3css/w3css_references.asp)
+[Bootstrap Reference](https://www.w3schools.com/bootstrap/bootstrap_ref_all_classes.asp)
+[PHP Reference](https://www.w3schools.com/php/php_ref_overview.asp)
+[HTML Colors](https://www.w3schools.com/colors/colors_names.asp)
+[Java Reference](https://www.w3schools.com/java/java_ref_keywords.asp)
+[AngularJS Reference](https://www.w3schools.com/angularjs/angularjs_ref_directives.asp)
+[jQuery Reference](https://www.w3schools.com/jquery/jquery_ref_overview.asp)
+
+##### Top Examples
+[HTML Examples](https://www.w3schools.com/html/html_examples.asp)
+[CSS Examples](https://www.w3schools.com/css/css_examples.asp)
+[JavaScript Examples](https://www.w3schools.com/js/js_examples.asp)
+[How To Examples](https://www.w3schools.com/howto/default.asp)
+[SQL Examples](https://www.w3schools.com/sql/sql_examples.asp)
+[Python Examples](https://www.w3schools.com/python/python_examples.asp)
+[W3.CSS Examples](https://www.w3schools.com/w3css/w3css_examples.asp)
+[Bootstrap Examples](https://www.w3schools.com/bootstrap/bootstrap_examples.asp)
+[PHP Examples](https://www.w3schools.com/php/php_examples.asp)
+[Java Examples](https://www.w3schools.com/java/java_examples.asp)
+[XML Examples](https://www.w3schools.com/xml/xml_examples.asp)
+[jQuery Examples](https://www.w3schools.com/jquery/jquery_examples.asp)
+
+##### [Get Certified](https://campus.w3schools.com/collections/course-catalog) [HTML Certificate](https://campus.w3schools.com/collections/certifications/products/html-certificate)
+[CSS Certificate](https://campus.w3schools.com/collections/certifications/products/css-certificate)
+[JavaScript Certificate](https://campus.w3schools.com/collections/certifications/products/javascript-certificate)
+[Front End Certificate](https://campus.w3schools.com/collections/certifications/products/front-end-certificate)
+[SQL Certificate](https://campus.w3schools.com/collections/certifications/products/sql-certificate)
+[Python Certificate](https://campus.w3schools.com/collections/certifications/products/python-certificate)
+[PHP Certificate](https://campus.w3schools.com/collections/certifications/products/php-certificate)
+[jQuery Certificate](https://campus.w3schools.com/collections/certifications/products/jquery-certificate)
+[Java Certificate](https://campus.w3schools.com/collections/certifications/products/java-certificate)
+[C++ Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate)
+[C# Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate-1)
+[XML Certificate](https://campus.w3schools.com/collections/certifications/products/xml-certificate)
+
+[](https://www.youtube.com/@w3schools &quot;W3Schools on YouTube&quot;) [__](https://www.linkedin.com/company/w3schools.com/ &quot;W3Schools on LinkedIn&quot;) [__](https://discord.com/invite/w3schools &quot;Join the W3schools community on Discord&quot;) [__](https://www.facebook.com/w3schoolscom/ &quot;W3Schools on Facebook&quot;) [__](https://www.instagram.com/w3schools.com_official/ &quot;W3Schools on Instagram&quot;) [FORUM](https://www.w3schools.com/forum/index.php &quot;Forum&quot;) [ABOUT](https://www.w3schools.com/about/default.asp &quot;About W3Schools&quot;) [ACADEMY](https://www.w3schools.com/academy/index.php &quot;Contact us about W3Schools Academy for educational institutions and organizations&quot;)
+W3Schools is optimized for learning and training. Examples might be simplified to improve reading and learning.
+Tutorials, references, and examples are constantly reviewed to avoid errors, but we cannot warrant full correctness
+of all content. While using W3Schools, you agree to have read and accepted our [terms of use](https://www.w3schools.com/about/about_copyright.asp), cookies and [privacy policy](https://www.w3schools.com/about/about_privacy.asp).
+
+[Copyright 1999-2026](https://www.w3schools.com/about/about_copyright.asp) by Refsnes Data. All Rights Reserved. [W3Schools is Powered by W3.CSS](https://www.w3schools.com/w3css/default.asp).
+
+
+--&gt;
+![](https://cm.g.doubleclick.net/pixel?google_nid=openx&amp;google_cm&amp;google_sc)![](https://cm.g.doubleclick.net/pixel?google_nid=openx&amp;google_hm=NDkyZTZkMDctZTA3MC0yYzVmLWY0MWYtNmUwNjZiNDIzNmJk)![](https://match.adsrvr.org/track/cmf/openx?oxid=6541becd-2907-72fb-e1ff-34bfa1a0f8dd&amp;gdpr=0)![](https://creativecdn.com/cm-notify?pi=openx&amp;gdpr=0)![](https://c1.adform.net/serving/cookie/match?party=22)
+#  sync.connectad.io 已被屏蔽
+**sync.connectad.io** 拒绝了我们的连接请求。
+ERR_BLOCKED_BY_RESPONSE
+**sync.connectad.io** 拒绝了我们的连接请求。
+![](https://www.w3schools.com/html/html5_video.asp) ![](https://www.w3schools.com/html/html5_video.asp)
+![](https://match.sharethrough.com/universal/v1?supply_id=H7IJBRjH) ![](https://pixel-sync.sitescout.com/dmp/pixelSync?nid=49&amp;redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%7BuserID%7D%26dc%3D5bb059433d7d7abf%26fi%3Dc7e340fcafd2aaaa) ![](https://sync.a-mo.net/cchain/0?gdpr={GDPR_APPLIES}&amp;gdpr_consent={TCF_CONSENT_STRING}&amp;us_privacy={US_PRIVACY}&amp;cb=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%24UID%26dc%3D4cb5e7f09da39e40%26fi%3Dc7e340fcafd2aaaa) ![](https://us4.shb-sync.com/242f9efd-a4ac-41dd-ac5b-b0dfe12f0eea.gif?puid=\[UID\]&amp;redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%5BUID%5D%26dc%3D054729a025e6c16a%26fi%3Dc7e340fcafd2aaaa) ![](https://us4.shb-sync.com/242f9efd-a4ac-41dd-ac5b-b0dfe12f0eea.gif?puid=\[UID\]&amp;redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%5BUID%5D%26dc%3Dc5bad88b99fd7fa3%26fi%3Dc7e340fcafd2aaaa&amp;gdpr=\[GDPR\]&amp;gdpr_consent=\[GDPR_CONSENT\]&amp;ccpa=\[CCPA\])</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__embedded-media-page__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.w3schools.com/html/html5_video.asp</span></div><div class="kv"><b>输出大小</b>13,369 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>video-tag</code></td><td class="good">命中</td><td>&lt;video&gt; / HTML &lt;video&gt;</td><td>&lt;video&gt; / HTML &lt;video&gt;</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">HTML Video</span></p><p><span class="tag">HTML Video</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;/images/img_2026_cert_html_300.webp&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;Get Certified Offer&quot;,
+      &quot;desc&quot;: &quot;HTML Video\n\n❮ Previous\nNext ❯\n\n\nThe HTML &lt;video&gt; element is used to \nshow a video on a web page.\n\n\nVideo\n\nExample\nCourtesy of Big Buck Bunny:\n\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \n\nTry it Yourself »\n\n\n\n\nThe HTML &lt;video&gt; Element\nTo show a video in HTML, use the &lt;video&gt; element:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; controls&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nHow it Works\nThe controls attribute adds video controls, like play, pause, and volume.\nIt is a good idea to always include width and height attributes. If height and width are not set, the page \nmight flicker while the video loads.\nThe &lt;source&gt; element allows you to specify alternative video \nfiles which the browser may choose from. The browser will use the first recognized format.\nThe text between the &lt;video&gt; and &lt;/video&gt; tags will only be displayed \nin browsers that do not \nsupport the &lt;video&gt; element.\n\n\n\nHTML &lt;video&gt; Autoplay\nTo start a video automatically, use the autoplay attribute:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nNote: Chromium browsers do not \nallow autoplay in most cases. However, muted autoplay is always allowed.\n\n\nAdd muted after \nautoplay to let your video start playing automatically (but muted):\n\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay muted&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nBrowser Support\nThe numbers in the table specify the first browser version that fully supports the \n&lt;video&gt; element.\n\n  \n    Element\n    \n    \n    \n    \n                    \n  \n  \n    &lt;video&gt;\n    4.0\n    9.0\n    3.5\n    4.0\n    10.5\n  \n  \n\n\n\n\nREMOVE ADS\n\n\nHTML Video Formats\nThere are three supported video formats: MP4, WebM, and Ogg. The browser support for the different formats is:\n\n\nBrowser\nMP4\nWebM\nOgg\n\n\nEdge\nYES\nYES\nYES\n\n\nChrome\nYES\nYES\nYES\n\n\nFirefox\nYES\nYES\nYES\n\n\nSafari\nYES\nYES\nNO\n\n\nOpera\nYES\nYES\nYES\n\n\n\n\n\nHTML Video - Media Types\n\n\nFile Format\nMedia Type\n\n\nMP4\nvideo/mp4\n\n\nWebM\nvideo/webm\n\n\nOgg\nvideo/ogg\n\n\n\n\n\nHTML Video - Methods, Properties, and Events\nThe HTML DOM defines methods, properties, and events for the &lt;video&gt; element.\nThis allows you to load, play, and pause videos, as well as setting duration and volume.\nThere are also DOM events that can notify you when a video begins to play, is paused, etc.\n\nExample: Using JavaScript\n  \n   \n  Play/Pause \n  Big\n  Small\n  Normal\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \nVideo courtesy of Big Buck Bunny.\n\nTry it Yourself »\n\nFor a full DOM reference, go to our HTML Audio/Video DOM Reference.\n\n\n\nHTML Video Tags\n\n\nTag\nDescription\n\n\n&lt;video&gt;\nDefines a video or movie\n\n\n&lt;source&gt;\nDefines multiple media resources for media elements, such as &lt;video&gt; and &lt;audio&gt;\n\n\n&lt;track&gt;\nDefines text tracks in media players\n\n\n\n\n\n❮ Previous\nNext ❯\n\n\n  \n    \n      \n        \n        \n      \n\n      \n\n      ★\n\n      +1\n    \n  \n\n  \n  \n    \n    Sign in to track progress&quot;,
+      &quot;score&quot;: 5,
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: &quot;webp&quot;,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;/images/img_2026_cert_html_120.webp&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;Get Certified Offer&quot;,
+      &quot;desc&quot;: &quot;HTML Video\n\n❮ Previous\nNext ❯\n\n\nThe HTML &lt;video&gt; element is used to \nshow a video on a web page.\n\n\nVideo\n\nExample\nCourtesy of Big Buck Bunny:\n\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \n\nTry it Yourself »\n\n\n\n\nThe HTML &lt;video&gt; Element\nTo show a video in HTML, use the &lt;video&gt; element:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; controls&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nHow it Works\nThe controls attribute adds video controls, like play, pause, and volume.\nIt is a good idea to always include width and height attributes. If height and width are not set, the page \nmight flicker while the video loads.\nThe &lt;source&gt; element allows you to specify alternative video \nfiles which the browser may choose from. The browser will use the first recognized format.\nThe text between the &lt;video&gt; and &lt;/video&gt; tags will only be displayed \nin browsers that do not \nsupport the &lt;video&gt; element.\n\n\n\nHTML &lt;video&gt; Autoplay\nTo start a video automatically, use the autoplay attribute:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nNote: Chromium browsers do not \nallow autoplay in most cases. However, muted autoplay is always allowed.\n\n\nAdd muted after \nautoplay to let your video start playing automatically (but muted):\n\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay muted&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nBrowser Support\nThe numbers in the table specify the first browser version that fully supports the \n&lt;video&gt; element.\n\n  \n    Element\n    \n    \n    \n    \n                    \n  \n  \n    &lt;video&gt;\n    4.0\n    9.0\n    3.5\n    4.0\n    10.5\n  \n  \n\n\n\n\nREMOVE ADS\n\n\nHTML Video Formats\nThere are three supported video formats: MP4, WebM, and Ogg. The browser support for the different formats is:\n\n\nBrowser\nMP4\nWebM\nOgg\n\n\nEdge\nYES\nYES\nYES\n\n\nChrome\nYES\nYES\nYES\n\n\nFirefox\nYES\nYES\nYES\n\n\nSafari\nYES\nYES\nNO\n\n\nOpera\nYES\nYES\nYES\n\n\n\n\n\nHTML Video - Media Types\n\n\nFile Format\nMedia Type\n\n\nMP4\nvideo/mp4\n\n\nWebM\nvideo/webm\n\n\nOgg\nvideo/ogg\n\n\n\n\n\nHTML Video - Methods, Properties, and Events\nThe HTML DOM defines methods, properties, and events for the &lt;video&gt; element.\nThis allows you to load, play, and pause videos, as well as setting duration and volume.\nThere are also DOM events that can notify you when a video begins to play, is paused, etc.\n\nExample: Using JavaScript\n  \n   \n  Play/Pause \n  Big\n  Small\n  Normal\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \nVideo courtesy of Big Buck Bunny.\n\nTry it Yourself »\n\nFor a full DOM reference, go to our HTML Audio/Video DOM Reference.\n\n\n\nHTML Video Tags\n\n\nTag\nDescription\n\n\n&lt;video&gt;\nDefines a video or movie\n\n\n&lt;source&gt;\nDefines multiple media resources for media elements, such as &lt;video&gt; and &lt;audio&gt;\n\n\n&lt;track&gt;\nDefines text tracks in media players\n\n\n\n\n\n❮ Previous\nNext ❯\n\n\n  \n    \n      \n        \n        \n      \n\n      \n\n      ★\n\n      +1\n    \n  \n\n  \n  \n    \n    Sign in to track progress&quot;,
+      &quot;score&quot;: 5,
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: &quot;webp&quot;,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;/images/img_2026_cert_html_160.webp&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;Get Certified Offer&quot;,
+      &quot;desc&quot;: &quot;HTML Video\n\n❮ Previous\nNext ❯\n\n\nThe HTML &lt;video&gt; element is used to \nshow a video on a web page.\n\n\nVideo\n\nExample\nCourtesy of Big Buck Bunny:\n\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \n\nTry it Yourself »\n\n\n\n\nThe HTML &lt;video&gt; Element\nTo show a video in HTML, use the &lt;video&gt; element:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; controls&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nHow it Works\nThe controls attribute adds video controls, like play, pause, and volume.\nIt is a good idea to always include width and height attributes. If height and width are not set, the page \nmight flicker while the video loads.\nThe &lt;source&gt; element allows you to specify alternative video \nfiles which the browser may choose from. The browser will use the first recognized format.\nThe text between the &lt;video&gt; and &lt;/video&gt; tags will only be displayed \nin browsers that do not \nsupport the &lt;video&gt; element.\n\n\n\nHTML &lt;video&gt; Autoplay\nTo start a video automatically, use the autoplay attribute:\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nNote: Chromium browsers do not \nallow autoplay in most cases. However, muted autoplay is always allowed.\n\n\nAdd muted after \nautoplay to let your video start playing automatically (but muted):\n\n\nExample\n\n&lt;video width=\&quot;320\&quot; height=\&quot;240\&quot; autoplay muted&gt;\n  &lt;source src=\&quot;movie.mp4\&quot; type=\&quot;video/mp4\&quot;&gt;\n  &lt;source src=\&quot;movie.ogg\&quot; type=\&quot;video/ogg\&quot;&gt;\nYour browser does not support the video tag.\n&lt;/video&gt;\n \nTry it Yourself »\n\n\n\nBrowser Support\nThe numbers in the table specify the first browser version that fully supports the \n&lt;video&gt; element.\n\n  \n    Element\n    \n    \n    \n    \n                    \n  \n  \n    &lt;video&gt;\n    4.0\n    9.0\n    3.5\n    4.0\n    10.5\n  \n  \n\n\n\n\nREMOVE ADS\n\n\nHTML Video Formats\nThere are three supported video formats: MP4, WebM, and Ogg. The browser support for the different formats is:\n\n\nBrowser\nMP4\nWebM\nOgg\n\n\nEdge\nYES\nYES\nYES\n\n\nChrome\nYES\nYES\nYES\n\n\nFirefox\nYES\nYES\nYES\n\n\nSafari\nYES\nYES\nNO\n\n\nOpera\nYES\nYES\nYES\n\n\n\n\n\nHTML Video - Media Types\n\n\nFile Format\nMedia Type\n\n\nMP4\nvideo/mp4\n\n\nWebM\nvideo/webm\n\n\nOgg\nvideo/ogg\n\n\n\n\n\nHTML Video - Methods, Properties, and Events\nThe HTML DOM defines methods, properties, and events for the &lt;video&gt; element.\nThis allows you to load, play, and pause videos, as well as setting duration and volume.\nThere are also DOM events that can notify you when a video begins to play, is paused, etc.\n\nExample: Using JavaScript\n  \n   \n  Play/Pause \n  Big\n  Small\n  Normal\n   \n  \n    \n    \n    Your browser does not support HTML5 video.\n  \n \nVideo courtesy of Big Buck Bunny.\n\nTry it Yourself »\n\nFor a full DOM reference, go to our HTML Audio/Video DOM Reference.\n\n\n\nHTML Video Tags\n\n\nTag\nDescription\n\n\n&lt;video&gt;\nDefines a video or movie\n\n\n&lt;source&gt;\nDefines multiple media resources for media elements, such as &lt;video&gt; and &lt;audio&gt;\n\n\n&lt;track&gt;\nDefines text tracks in media players\n\n\n\n\n\n❮ Previous\nNext ❯\n\n\n  \n    \n      \n        \n        \n      \n\n      \n\n      ★\n\n      +1\n    \n  \n\n  \n  \n    \n    Sign in to track progress&quot;,
+      &quot;score&quot;: 5,
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: &quot;webp&quot;,
+      &quot;width&quot;: null
+    }
+  ],
+  &quot;videos&quot;: [
+    {
+      &quot;src&quot;: null,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;mov_bbb.mp4&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;mov_bbb.ogg&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: null,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;mov_bbb.mp4&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;mov_bbb.ogg&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;video&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    }
+  ],
+  &quot;audios&quot;: [
+    {
+      &quot;src&quot;: &quot;data:audio/mpeg;base64,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&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;audio&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;data:audio/mpeg;base64,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&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;audio&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    },
+    {
+      &quot;src&quot;: &quot;data:audio/mpeg;base64,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&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: null,
+      &quot;desc&quot;: &quot;&quot;,
+      &quot;score&quot;: 0,
+      &quot;type&quot;: &quot;audio&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: null,
+      &quot;width&quot;: null
+    }
+  ],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/html_media.asp&quot;,
+      &quot;text&quot;: &quot;❮ Previous&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/html_challenges_video.asp&quot;,
+      &quot;text&quot;: &quot;Next ❯&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video&quot;,
+      &quot;text&quot;: &quot;Try it Yourself »&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_all&quot;,
+      &quot;text&quot;: &quot;Try it Yourself »&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay&quot;,
+      &quot;text&quot;: &quot;Try it Yourself »&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay_mute&quot;,
+      &quot;text&quot;: &quot;Try it Yourself »&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://order.w3schools.com/plans&quot;,
+      &quot;text&quot;: &quot;REMOVE ADS&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_js_prop&quot;,
+      &quot;text&quot;: &quot;Try it Yourself »&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/tags/ref_av_dom.asp&quot;,
+      &quot;text&quot;: &quot;HTML Audio/Video DOM Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/tags/tag_video.asp&quot;,
+      &quot;text&quot;: &quot;&lt;video&gt;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/tags/tag_source.asp&quot;,
+      &quot;text&quot;: &quot;&lt;source&gt;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/tags/tag_track.asp&quot;,
+      &quot;text&quot;: &quot;&lt;track&gt;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp&quot;,
+      &quot;text&quot;: &quot;★\n\n      +1&quot;,
+      &quot;title&quot;: &quot;Your W3Schools Profile&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://profile.w3schools.com/log-in?origin=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp&amp;redirect_url=https%3A%2F%2Fpathfinder.w3schools.com&quot;,
+      &quot;text&quot;: &quot;Sign in to track progress&quot;,
+      &quot;title&quot;: &quot;Sign in to track your progress&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/course-catalog/products/html-course&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://profile.w3schools.com/sign-up?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp&quot;,
+      &quot;text&quot;: &quot;Sign Up for Free&quot;,
+      &quot;title&quot;: &quot;Sign up to try W3Schools Hero&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/spaces/index.php&quot;,
+      &quot;text&quot;: &quot;SPACES&quot;,
+      &quot;title&quot;: &quot;Get your own website with W3Schools Spaces&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications&quot;,
+      &quot;text&quot;: &quot;GET CERTIFIED&quot;,
+      &quot;title&quot;: &quot;Document your knowledge by getting certified&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/academy/index.php&quot;,
+      &quot;text&quot;: &quot;FOR TEACHERS&quot;,
+      &quot;title&quot;: &quot;Contact us about W3Schools Academy for educational institutions&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/practice/index.php&quot;,
+      &quot;text&quot;: &quot;PRACTICE&quot;,
+      &quot;title&quot;: &quot;W3Schools Practice Problems&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/default.asp&quot;,
+      &quot;text&quot;: &quot;HTML Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/css/default.asp&quot;,
+      &quot;text&quot;: &quot;CSS Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/js/default.asp&quot;,
+      &quot;text&quot;: &quot;JavaScript Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/howto/default.asp&quot;,
+      &quot;text&quot;: &quot;How To Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/sql/default.asp&quot;,
+      &quot;text&quot;: &quot;SQL Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/python/default.asp&quot;,
+      &quot;text&quot;: &quot;Python Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/w3css/default.asp&quot;,
+      &quot;text&quot;: &quot;W3.CSS Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/bootstrap/bootstrap_ver.asp&quot;,
+      &quot;text&quot;: &quot;Bootstrap Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/php/default.asp&quot;,
+      &quot;text&quot;: &quot;PHP Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/java/default.asp&quot;,
+      &quot;text&quot;: &quot;Java Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/cpp/default.asp&quot;,
+      &quot;text&quot;: &quot;C++ Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/jquery/default.asp&quot;,
+      &quot;text&quot;: &quot;jQuery Tutorial&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/tags/default.asp&quot;,
+      &quot;text&quot;: &quot;HTML Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/cssref/index.php&quot;,
+      &quot;text&quot;: &quot;CSS Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/jsref/default.asp&quot;,
+      &quot;text&quot;: &quot;JavaScript Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/sql/sql_ref_keywords.asp&quot;,
+      &quot;text&quot;: &quot;SQL Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/python/python_reference.asp&quot;,
+      &quot;text&quot;: &quot;Python Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/w3css/w3css_references.asp&quot;,
+      &quot;text&quot;: &quot;W3.CSS Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/bootstrap/bootstrap_ref_all_classes.asp&quot;,
+      &quot;text&quot;: &quot;Bootstrap Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/php/php_ref_overview.asp&quot;,
+      &quot;text&quot;: &quot;PHP Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/colors/colors_names.asp&quot;,
+      &quot;text&quot;: &quot;HTML Colors&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/java/java_ref_keywords.asp&quot;,
+      &quot;text&quot;: &quot;Java Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/angularjs/angularjs_ref_directives.asp&quot;,
+      &quot;text&quot;: &quot;AngularJS Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/jquery/jquery_ref_overview.asp&quot;,
+      &quot;text&quot;: &quot;jQuery Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/html/html_examples.asp&quot;,
+      &quot;text&quot;: &quot;HTML Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/css/css_examples.asp&quot;,
+      &quot;text&quot;: &quot;CSS Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/js/js_examples.asp&quot;,
+      &quot;text&quot;: &quot;JavaScript Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/sql/sql_examples.asp&quot;,
+      &quot;text&quot;: &quot;SQL Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/python/python_examples.asp&quot;,
+      &quot;text&quot;: &quot;Python Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/w3css/w3css_examples.asp&quot;,
+      &quot;text&quot;: &quot;W3.CSS Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/bootstrap/bootstrap_examples.asp&quot;,
+      &quot;text&quot;: &quot;Bootstrap Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/php/php_examples.asp&quot;,
+      &quot;text&quot;: &quot;PHP Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/java/java_examples.asp&quot;,
+      &quot;text&quot;: &quot;Java Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/xml/xml_examples.asp&quot;,
+      &quot;text&quot;: &quot;XML Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/jquery/jquery_examples.asp&quot;,
+      &quot;text&quot;: &quot;jQuery Examples&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/course-catalog&quot;,
+      &quot;text&quot;: &quot;Get Certified&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/html-certificate&quot;,
+      &quot;text&quot;: &quot;HTML Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/css-certificate&quot;,
+      &quot;text&quot;: &quot;CSS Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/javascript-certificate&quot;,
+      &quot;text&quot;: &quot;JavaScript Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/front-end-certificate&quot;,
+      &quot;text&quot;: &quot;Front End Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/sql-certificate&quot;,
+      &quot;text&quot;: &quot;SQL Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/python-certificate&quot;,
+      &quot;text&quot;: &quot;Python Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/php-certificate&quot;,
+      &quot;text&quot;: &quot;PHP Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/jquery-certificate&quot;,
+      &quot;text&quot;: &quot;jQuery Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/java-certificate&quot;,
+      &quot;text&quot;: &quot;Java Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/c-certificate&quot;,
+      &quot;text&quot;: &quot;C++ Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/c-certificate-1&quot;,
+      &quot;text&quot;: &quot;C# Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://campus.w3schools.com/collections/certifications/products/xml-certificate&quot;,
+      &quot;text&quot;: &quot;XML Certificate&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/forum/index.php&quot;,
+      &quot;text&quot;: &quot;FORUM&quot;,
+      &quot;title&quot;: &quot;Forum&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/about/default.asp&quot;,
+      &quot;text&quot;: &quot;ABOUT&quot;,
+      &quot;title&quot;: &quot;About W3Schools&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/about/about_copyright.asp&quot;,
+      &quot;text&quot;: &quot;terms of use&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.w3schools.com/about/about_privacy.asp&quot;,
+      &quot;text&quot;: &quot;privacy policy&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;w3schools.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.bigbuckbunny.org/&quot;,
+      &quot;text&quot;: &quot;Big Buck Bunny&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;bigbuckbunny.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.youtube.com/@w3schools&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;W3Schools on YouTube&quot;,
+      &quot;base_domain&quot;: &quot;youtube.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.linkedin.com/company/w3schools.com/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;W3Schools on LinkedIn&quot;,
+      &quot;base_domain&quot;: &quot;linkedin.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://discord.com/invite/w3schools&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;Join the W3schools community on Discord&quot;,
+      &quot;base_domain&quot;: &quot;discord.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.facebook.com/w3schoolscom/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;W3Schools on Facebook&quot;,
+      &quot;base_domain&quot;: &quot;facebook.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.instagram.com/w3schools.com_official/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;W3Schools on Instagram&quot;,
+      &quot;base_domain&quot;: &quot;instagram.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.tiktok.com/@w3schools.com&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;New: W3Schools on TikTok&quot;,
+      &quot;base_domain&quot;: &quot;tiktok.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;javascript:void(0);&quot;,
+      &quot;text&quot;: &quot;CONTACT US&quot;,
+      &quot;title&quot;: &quot;Contact us about sales or errors&quot;,
+      &quot;base_domain&quot;: &quot;&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__embedded-media-page__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__embedded-media-page__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__embedded-media-page__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

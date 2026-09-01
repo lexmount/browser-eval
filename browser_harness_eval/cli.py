@@ -24,6 +24,14 @@ def command_run(args: argparse.Namespace) -> int:
     if args.env_file:
         load_env_file(args.env_file)
     dataset_meta, cases = load_dataset(args.dataset)
+    if args.case_ids:
+        requested = {item.strip() for item in args.case_ids.split(",") if item.strip()}
+        known = {case.id for case in cases}
+        unknown_cases = requested - known
+        if unknown_cases:
+            raise SystemExit(f"Unknown cases: {', '.join(sorted(unknown_cases))}")
+        cases = [case for case in cases if case.id in requested]
+        dataset_meta = {**dataset_meta, "id": f"{dataset_meta['id']}--subset", "name": f"{dataset_meta['name']}（子集）", "cases": [item for item in dataset_meta["cases"] if item["id"] in requested]}
     provider_configs = load_provider_config(args.provider_config)
     names = [name.strip() for name in args.providers.split(",") if name.strip()]
     unknown = [name for name in names if name not in provider_configs]
@@ -103,6 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_50.json")
     run.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
+    run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=45)
     run.add_argument("--delay", type=float, default=0.5)

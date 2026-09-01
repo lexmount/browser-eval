@@ -1,0 +1,190 @@
+# HTML Video
+[❮ Previous](https://www.w3schools.com/html/html_media.asp) [Next ❯](https://www.w3schools.com/html/html_challenges_video.asp)
+* * *
+The HTML `<video>` element is used to show a video on a web page.
+* * *
+## Video
+### Example
+Courtesy of [Big Buck Bunny](https://www.bigbuckbunny.org/):
+Your browser does not support HTML5 video. 
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video)
+* * *
+## The HTML <video> Element
+To show a video in HTML, use the `<video>` element:
+### Example
+<video width="320" height="240" controls>  
+<source src="movie.mp4" type="video/mp4">  
+<source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_all)
+* * *
+## How it Works
+The `controls` attribute adds video controls, like play, pause, and volume.
+It is a good idea to always include `width` and `height` attributes. If height and width are not set, the page might flicker while the video loads.
+The `<source>` element allows you to specify alternative video files which the browser may choose from. The browser will use the first recognized format.
+The text between the `<video>` and `</video>` tags will only be displayed in browsers that do not support the `<video>` element.
+* * *
+## HTML <video> Autoplay
+To start a video automatically, use the `autoplay` attribute:
+### Example
+<video width="320" height="240" autoplay>  
+<source src="movie.mp4" type="video/mp4">  
+<source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay)
+**Note:** Chromium browsers do not allow autoplay in most cases. However, muted autoplay is always allowed.
+Add `muted` after ` autoplay` to let your video start playing automatically (but muted):
+### Example
+<video width="320" height="240" autoplay muted>  
+<source src="movie.mp4" type="video/mp4">  
+<source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_autoplay_mute)
+* * *
+## Browser Support
+The numbers in the table specify the first browser version that fully supports the `<video>` element.  
+| Element  |   |   |   |   |   |  
+| --- | --- | --- | --- | --- | --- |  
+| <video>  | 4.0  | 9.0  | 3.5  | 4.0  | 10.5  |  
+* * *
+[REMOVE ADS](https://order.w3schools.com/plans)
+* * *
+## HTML Video Formats
+There are three supported video formats: MP4, WebM, and Ogg. The browser support for the different formats is:  
+| Browser  | MP4  | WebM  | Ogg  |  
+| --- | --- | --- | --- |  
+| Edge  | YES  | YES  | YES  |  
+| Chrome  | YES  | YES  | YES  |  
+| Firefox  | YES  | YES  | YES  |  
+| Safari  | YES  | YES  | NO  |  
+| Opera  | YES  | YES  | YES  |  
+* * *
+## HTML Video - Media Types  
+| File Format  | Media Type  |  
+| --- | --- |  
+| MP4  | video/mp4  |  
+| WebM  | video/webm  |  
+| Ogg  | video/ogg  |  
+* * *
+## HTML Video - Methods, Properties, and Events
+The HTML DOM defines methods, properties, and events for the `<video>` element.
+This allows you to load, play, and pause videos, as well as setting duration and volume.
+There are also DOM events that can notify you when a video begins to play, is paused, etc.
+### Example: Using JavaScript
+  
+
+Play/Pause Big Small Normal   
+  
+Your browser does not support HTML5 video. 
+Video courtesy of [Big Buck Bunny](https://www.bigbuckbunny.org/).
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml5_video_js_prop)
+For a full DOM reference, go to our [HTML Audio/Video DOM Reference](https://www.w3schools.com/tags/ref_av_dom.asp).
+* * *
+## HTML Video Tags  
+| Tag  | Description  |  
+| --- | --- |  
+| [<video>](https://www.w3schools.com/tags/tag_video.asp)  | Defines a video or movie  |  
+| [<source>](https://www.w3schools.com/tags/tag_source.asp)  | Defines multiple media resources for media elements, such as <video> and <audio>  |  
+| [<track>](https://www.w3schools.com/tags/tag_track.asp)  | Defines text tracks in media players  |  
+  
+
+[❮ Previous](https://www.w3schools.com/html/html_media.asp) [Next ❯](https://www.w3schools.com/html/html_challenges_video.asp)
+[ ★ +1 ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")
+[ Sign in to track progress ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fpathfinder.w3schools.com&origin=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign in to track your progress")
+[ ![Get Certified Offer](https://www.w3schools.com/images/img_2026_cert_html_300.webp) ](https://campus.w3schools.com/collections/course-catalog/products/html-course)
+[](https://www.youtube.com/@w3schools "W3Schools on YouTube") [](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn") [](https://discord.com/invite/w3schools "Join the W3schools community on Discord") [](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook") [](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram") [](https://www.tiktok.com/@w3schools.com "New: W3Schools on TikTok")
+* * *
+## Create a W3Schools Account
+Ad-free learning, track your progress, earn XP, streaks, compete in leagues, build and host websites, unlock coding challenges, and much more! 
+Earn XP
+Streaks
+![](https://pathfinder.w3schools.com/images/leagues/wood.svg) Leagues
+Your Own Space
+[Sign Up for Free](https://profile.w3schools.com/sign-up?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign up to try W3Schools Hero")
+[ ](https://www.w3schools.com)
+[PLUS](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")
+[SPACES](https://www.w3schools.com/spaces/index.php "Get your own website with W3Schools Spaces")
+[GET CERTIFIED](https://campus.w3schools.com/collections/certifications "Document your knowledge by getting certified")
+[FOR TEACHERS](https://www.w3schools.com/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+[PRACTICE](https://www.w3schools.com/practice/index.php "W3Schools Practice Problems")
+[CONTACT US](javascript:void\(0\); "Contact us about sales or errors")
+## Contact Sales
+If you want to use W3Schools services as an educational institution, team or enterprise, send us an e-mail:  
+sales@w3schools.com
+## Report Error
+If you want to report an error, or if you want to make a suggestion, send us an e-mail:  
+help@w3schools.com
+##### Top Tutorials
+[HTML Tutorial](https://www.w3schools.com/html/default.asp)  
+[CSS Tutorial](https://www.w3schools.com/css/default.asp)  
+[JavaScript Tutorial](https://www.w3schools.com/js/default.asp)  
+[How To Tutorial](https://www.w3schools.com/howto/default.asp)  
+[SQL Tutorial](https://www.w3schools.com/sql/default.asp)  
+[Python Tutorial](https://www.w3schools.com/python/default.asp)  
+[W3.CSS Tutorial](https://www.w3schools.com/w3css/default.asp)  
+[Bootstrap Tutorial](https://www.w3schools.com/bootstrap/bootstrap_ver.asp)  
+[PHP Tutorial](https://www.w3schools.com/php/default.asp)  
+[Java Tutorial](https://www.w3schools.com/java/default.asp)  
+[C++ Tutorial](https://www.w3schools.com/cpp/default.asp)  
+[jQuery Tutorial](https://www.w3schools.com/jquery/default.asp)  
+
+##### Top References
+[HTML Reference](https://www.w3schools.com/tags/default.asp)  
+[CSS Reference](https://www.w3schools.com/cssref/index.php)  
+[JavaScript Reference](https://www.w3schools.com/jsref/default.asp)  
+[SQL Reference](https://www.w3schools.com/sql/sql_ref_keywords.asp)  
+[Python Reference](https://www.w3schools.com/python/python_reference.asp)  
+[W3.CSS Reference](https://www.w3schools.com/w3css/w3css_references.asp)  
+[Bootstrap Reference](https://www.w3schools.com/bootstrap/bootstrap_ref_all_classes.asp)  
+[PHP Reference](https://www.w3schools.com/php/php_ref_overview.asp)  
+[HTML Colors](https://www.w3schools.com/colors/colors_names.asp)  
+[Java Reference](https://www.w3schools.com/java/java_ref_keywords.asp)  
+[AngularJS Reference](https://www.w3schools.com/angularjs/angularjs_ref_directives.asp)  
+[jQuery Reference](https://www.w3schools.com/jquery/jquery_ref_overview.asp)  
+
+##### Top Examples
+[HTML Examples](https://www.w3schools.com/html/html_examples.asp)  
+[CSS Examples](https://www.w3schools.com/css/css_examples.asp)  
+[JavaScript Examples](https://www.w3schools.com/js/js_examples.asp)  
+[How To Examples](https://www.w3schools.com/howto/default.asp)  
+[SQL Examples](https://www.w3schools.com/sql/sql_examples.asp)  
+[Python Examples](https://www.w3schools.com/python/python_examples.asp)  
+[W3.CSS Examples](https://www.w3schools.com/w3css/w3css_examples.asp)  
+[Bootstrap Examples](https://www.w3schools.com/bootstrap/bootstrap_examples.asp)  
+[PHP Examples](https://www.w3schools.com/php/php_examples.asp)  
+[Java Examples](https://www.w3schools.com/java/java_examples.asp)  
+[XML Examples](https://www.w3schools.com/xml/xml_examples.asp)  
+[jQuery Examples](https://www.w3schools.com/jquery/jquery_examples.asp)  
+
+##### [Get Certified](https://campus.w3schools.com/collections/course-catalog) [HTML Certificate](https://campus.w3schools.com/collections/certifications/products/html-certificate)  
+[CSS Certificate](https://campus.w3schools.com/collections/certifications/products/css-certificate)  
+[JavaScript Certificate](https://campus.w3schools.com/collections/certifications/products/javascript-certificate)  
+[Front End Certificate](https://campus.w3schools.com/collections/certifications/products/front-end-certificate)  
+[SQL Certificate](https://campus.w3schools.com/collections/certifications/products/sql-certificate)  
+[Python Certificate](https://campus.w3schools.com/collections/certifications/products/python-certificate)  
+[PHP Certificate](https://campus.w3schools.com/collections/certifications/products/php-certificate)  
+[jQuery Certificate](https://campus.w3schools.com/collections/certifications/products/jquery-certificate)  
+[Java Certificate](https://campus.w3schools.com/collections/certifications/products/java-certificate)  
+[C++ Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate)  
+[C# Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate-1)  
+[XML Certificate](https://campus.w3schools.com/collections/certifications/products/xml-certificate)  
+
+[](https://www.youtube.com/@w3schools "W3Schools on YouTube") [__](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn") [__](https://discord.com/invite/w3schools "Join the W3schools community on Discord") [__](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook") [__](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram") [FORUM](https://www.w3schools.com/forum/index.php "Forum") [ABOUT](https://www.w3schools.com/about/default.asp "About W3Schools") [ACADEMY](https://www.w3schools.com/academy/index.php "Contact us about W3Schools Academy for educational institutions and organizations")
+W3Schools is optimized for learning and training. Examples might be simplified to improve reading and learning.  
+Tutorials, references, and examples are constantly reviewed to avoid errors, but we cannot warrant full correctness  
+of all content. While using W3Schools, you agree to have read and accepted our [terms of use](https://www.w3schools.com/about/about_copyright.asp), cookies and [privacy policy](https://www.w3schools.com/about/about_privacy.asp).  
+  
+[Copyright 1999-2026](https://www.w3schools.com/about/about_copyright.asp) by Refsnes Data. All Rights Reserved. [W3Schools is Powered by W3.CSS](https://www.w3schools.com/w3css/default.asp).  
+  
+
+-->
+![](https://cm.g.doubleclick.net/pixel?google_nid=openx&google_cm&google_sc)![](https://cm.g.doubleclick.net/pixel?google_nid=openx&google_hm=NDkyZTZkMDctZTA3MC0yYzVmLWY0MWYtNmUwNjZiNDIzNmJk)![](https://match.adsrvr.org/track/cmf/openx?oxid=6541becd-2907-72fb-e1ff-34bfa1a0f8dd&gdpr=0)![](https://creativecdn.com/cm-notify?pi=openx&gdpr=0)![](https://c1.adform.net/serving/cookie/match?party=22)
+#  sync.connectad.io 已被屏蔽
+**sync.connectad.io** 拒绝了我们的连接请求。
+ERR_BLOCKED_BY_RESPONSE
+**sync.connectad.io** 拒绝了我们的连接请求。
+![](https://www.w3schools.com/html/html5_video.asp) ![](https://www.w3schools.com/html/html5_video.asp)
+![](https://match.sharethrough.com/universal/v1?supply_id=H7IJBRjH) ![](https://pixel-sync.sitescout.com/dmp/pixelSync?nid=49&redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%7BuserID%7D%26dc%3D5bb059433d7d7abf%26fi%3Dc7e340fcafd2aaaa) ![](https://sync.a-mo.net/cchain/0?gdpr={GDPR_APPLIES}&gdpr_consent={TCF_CONSENT_STRING}&us_privacy={US_PRIVACY}&cb=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%24UID%26dc%3D4cb5e7f09da39e40%26fi%3Dc7e340fcafd2aaaa) ![](https://us4.shb-sync.com/242f9efd-a4ac-41dd-ac5b-b0dfe12f0eea.gif?puid=\[UID\]&redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%5BUID%5D%26dc%3D054729a025e6c16a%26fi%3Dc7e340fcafd2aaaa) ![](https://us4.shb-sync.com/242f9efd-a4ac-41dd-ac5b-b0dfe12f0eea.gif?puid=\[UID\]&redir=https%3A%2F%2Fu-iad04.e-planning.net%2Fum%3Fuid%3D%5BUID%5D%26dc%3Dc5bad88b99fd7fa3%26fi%3Dc7e340fcafd2aaaa&gdpr=\[GDPR\]&gdpr_consent=\[GDPR_CONSENT\]&ccpa=\[CCPA\])

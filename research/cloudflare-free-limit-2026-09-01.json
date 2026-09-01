@@ -1,0 +1,15 @@
+{
+  "tested_at": "2026-09-01T05:44:41Z",
+  "endpoint": "POST /browser-rendering/markdown",
+  "plan": "免费账户",
+  "cooldown_after_response_seconds": 10.5,
+  "records_before_stop": 34,
+  "successful_requests": 23,
+  "rate_limited_requests": 9,
+  "first_rate_limited_case": "wcxb-0634",
+  "http_status": 429,
+  "cloudflare_error_code": 2001,
+  "message": "Rate limit exceeded",
+  "retry_after_seconds": 65255,
+  "conclusion": "已满足响应完成后冷却 10.5 秒仍收到约 18.1 小时 Retry-After，因此这次不是瞬时 QPS；属于免费账户长周期 Browser Rendering 配额。主榜沿用此前完整无 429 的 50 条运行，本轮只作为吞吐边界证据。"
+}

@@ -8,6 +8,18 @@ output_dir=${1:-runs/reproduced}
 env_file=${WEBFETCH_ENV_FILE:-$HOME/.env}
 providers=cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown
 
+if [[ "${WEBFETCH_INCLUDE_OSS:-1}" == "1" ]]; then
+  export OPENCLAW_REPO=${OPENCLAW_REPO:-/private/tmp/openclaw-eval}
+  export DEEPSEEK_HARNESS_REPO=${DEEPSEEK_HARNESS_REPO:-/private/tmp/deepseek-harness-eval}
+  export CRAWL4AI_REPO=${CRAWL4AI_REPO:-/private/tmp/crawl4ai-eval}
+  export OSS_VENV=${OSS_VENV:-/private/tmp/webfetch-oss-venv}
+  export OSS_PYTHON=${OSS_PYTHON:-$OSS_VENV/bin/python}
+  export OPENCLAW_NODE_ROOT=${OPENCLAW_NODE_ROOT:-/private/tmp/openclaw-node}
+  export OPENCLAW_NODE=${OPENCLAW_NODE:-$OPENCLAW_NODE_ROOT/node_modules/node/bin/node}
+  ./scripts/bootstrap_oss_baselines.sh
+  providers=$providers,openclaw-built-in,deepseek-harness-built-in,langchain-webbase,crawl4ai
+fi
+
 python3 -m browser_harness_eval validate \
   --dataset datasets/public_webfetch_50.json \
   --env-file "$env_file" \
