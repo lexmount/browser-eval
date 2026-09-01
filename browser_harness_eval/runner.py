@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import platform
 import socket
@@ -11,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .metrics import evaluate_content, summarize
+from .metrics import evaluate_content, evaluate_resources, summarize
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
 
@@ -131,7 +132,18 @@ def run_evaluation(
                         fact_coverage_threshold=case.fact_coverage_threshold,
                         ground_truth_main_content=case.ground_truth_main_content,
                     )
+                    measured["content_score_applicable"] = case.content_score_applicable
+                    if not case.content_score_applicable:
+                        measured["content_pass"] = False
+                    measured.update(evaluate_resources(
+                        result.content,
+                        result.metadata,
+                        case.expected_resources,
+                        base_url=case.url,
+                        eligible=result.ok,
+                    ))
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
+                    measured["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
                     record = AttemptRecord(
                         attempt_id=attempt_id,
                         provider=provider.name,
@@ -211,7 +223,18 @@ def rescore_evaluation(
             fact_coverage_threshold=case.fact_coverage_threshold,
             ground_truth_main_content=case.ground_truth_main_content,
         )
+        record["metrics"]["content_score_applicable"] = case.content_score_applicable
+        if not case.content_score_applicable:
+            record["metrics"]["content_pass"] = False
+        record["metrics"].update(evaluate_resources(
+            content,
+            record.get("provider_metadata", {}),
+            case.expected_resources,
+            base_url=case.url,
+            eligible=bool(record.get("ok")),
+        ))
         record["metrics"]["deadline_overrun"] = previous_deadline
+        record["metrics"]["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
 
     tmp = run_dir / "results.jsonl.tmp"
     tmp.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")

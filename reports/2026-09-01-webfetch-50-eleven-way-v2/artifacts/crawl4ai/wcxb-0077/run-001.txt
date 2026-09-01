@@ -1,0 +1,20 @@
+[![Google Skills](https://cdn.qwiklabs.com/lqJbxogu4tSLez1OvjDcIO8rwow6cPLwvrfIdmQLf6U%3D)](https://www.skills.google/)
+正在加载…
+未找到任何结果。
+  1. navigate_next
+  2. [路线](https://www.skills.google/paths) navigate_next
+  3. Professional Machine Learning Engineer Certification 
+
+
+在 Google Cloud 控制台中运用您的技能 
+![Learning Path Icon](https://cdn.qwiklabs.com/assets/learning_plans/shapes-activities-chip-82e9b02395fa0c83cc0b38e6a323b23b865fe7de.svg) Path 
+# Professional Machine Learning Engineer Certification
+管理者：Google Cloud 
+17 项活动 
+上次更新时间：about 2 months 
+![Learning Path Shape](https://cdn.qwiklabs.com/assets/learning_plans/shapes-activities-bbd699f18f1125385c6f6b83694bbbc41b8873ab.svg)
+登录或加入 
+A Machine Learning Engineer designs, builds, and productionizes ML systems to solve business challenges. This certification learning path provides the advanced knowledge and practical skills required for this role, preparing you to successfully operate and maintain ML systems on Google Cloud. Through a curated collection of on-demand courses, labs, and skill badges, you will gain real-world, applied experience with Google Cloud technologies. This path focuses on the essential skills for the ML Engineer role, from designing and building ML systems to optimizing and maintaining them in production. Upon completion, you will be equipped with the skills validated by the Professional Machine Learning Engineer certification. Take the next step in your professional journey and demonstrate your expertise by preparing for the [Google Cloud Professional Machine Learning Engineer exam](https://cloud.google.com/learn/certification/machine-learning-engineer/). #googlecloudcertified
+[![Google Skills](https://cdn.qwiklabs.com/lqJbxogu4tSLez1OvjDcIO8rwow6cPLwvrfIdmQLf6U%3D)](https://www.skills.google/)
+[首页](https://www.skills.google/) [目录](https://www.skills.google/catalog) [路线](https://www.skills.google/paths) [订阅](https://www.skills.google/subscriptions) [活动](https://www.skills.google/profile/stay_on_track) [学习奖章](https://www.skills.google/profile/badges) [设置](https://www.skills.google/my_account/profile) [登录或加入](https://www.skills.google/users/sign_in)
+[ YouTube ](https://www.youtube.com/@googlecloud)[帮助中心](https://www.skills.google/help) [条款](https://www.skills.google/terms_of_service) [隐私权](https://www.skills.google/privacy_policy) 管理 Cookie 

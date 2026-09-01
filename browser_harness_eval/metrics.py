@@ -6,6 +6,7 @@ import statistics
 import unicodedata
 from collections import Counter, defaultdict
 from typing import Any
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
 METRIC_DEFINITIONS = {
@@ -23,7 +24,81 @@ METRIC_DEFINITIONS = {
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
     "word_f1": "仅对含完整人工正文的案例计算：供应商输出与标准正文的词袋 precision/recall 调和平均值。",
+    "resource_recall": "从网页输出或结构化元数据中发现的预登记资源数，除以该案例全部必需资源数；输入 URL 本身不计为发现。",
 }
+
+
+URL_KEYS = {"url", "href", "src", "link"}
+
+
+def normalize_resource_url(value: str, base_url: str) -> str | None:
+    value = value.strip().strip("<>\"'")
+    if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
+        return None
+    absolute = urljoin(base_url, value)
+    parsed = urlsplit(absolute)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, ""))
+
+
+def _metadata_resource_urls(value: Any, *, key: str = "") -> list[str]:
+    urls: list[str] = []
+    if isinstance(value, dict):
+        for child_key, child in value.items():
+            urls.extend(_metadata_resource_urls(child, key=str(child_key).casefold()))
+    elif isinstance(value, list):
+        for child in value:
+            urls.extend(_metadata_resource_urls(child, key=key))
+    elif isinstance(value, str) and (key in URL_KEYS or key.endswith(("links", "images", "videos", "media"))):
+        urls.append(value)
+    return urls
+
+
+def evaluate_resources(
+    content: str,
+    metadata: dict[str, Any],
+    expected_resources: list[dict[str, Any]],
+    *,
+    base_url: str,
+    eligible: bool = True,
+) -> dict[str, Any]:
+    """Score resource discovery separately from document text extraction.
+
+    Only URLs explicitly returned in content or structured metadata are eligible.
+    The request URL and provider final_url are deliberately excluded.
+    """
+    candidates = _metadata_resource_urls(metadata) if eligible else []
+    if eligible:
+        candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
+        candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
+        candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
+    normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
+    results = []
+    for index, resource in enumerate(expected_resources):
+        alternatives = [
+            url for item in resource.get("urls", [])
+            if (url := normalize_resource_url(str(item), base_url))
+        ]
+        matched = sorted(set(alternatives) & set(normalized_candidates))
+        results.append({
+            "id": str(resource.get("id") or f"resource-{index + 1}"),
+            "kind": str(resource.get("kind") or "resource"),
+            "expected_urls": alternatives,
+            "expected_mime_types": [str(item) for item in resource.get("mime_types", [])],
+            "matched_urls": matched,
+            "pass": bool(matched),
+        })
+    hits = sum(item["pass"] for item in results)
+    total = len(results)
+    return {
+        "resource_results": results,
+        "resource_hits": hits,
+        "resource_total": total,
+        "resource_recall": round(hits / total, 4) if total else None,
+        "resource_pass": hits == total if total else None,
+        "resource_candidate_urls": normalized_candidates,
+    }
 
 
 def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
@@ -147,6 +222,11 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
                 statistics.mean(item["metrics"].get("fact_coverage", item["metrics"]["marker_recall"]) for item in items), 4
             ),
             "mean_word_f1": _mean_present(item["metrics"].get("word_f1") for item in items),
+            "mean_resource_recall": _mean_present(item["metrics"].get("resource_recall") for item in items),
+            "resource_pass_rate": _mean_present(
+                1.0 if item["metrics"].get("resource_pass") else 0.0
+                for item in items if item["metrics"].get("resource_pass") is not None
+            ),
             "p50_ms": percentile(content_successful_elapsed, 0.50),
             "p95_ms": percentile(content_successful_elapsed, 0.95),
             "transport_p50_ms": percentile(transport_successful_elapsed, 0.50),

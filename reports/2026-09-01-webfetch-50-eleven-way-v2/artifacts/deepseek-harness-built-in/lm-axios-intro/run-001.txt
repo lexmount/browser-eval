@@ -1,0 +1,1 @@
+Error: cross-origin redirect to https://axios.rest is not followed automatically; retry against that URL directly

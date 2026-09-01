@@ -1,0 +1,216 @@
+# HTML Tables
+[❮ Previous](https://www.w3schools.com/html/html_exercise_embed.asp?topic=page_title) [Next ❯](https://www.w3schools.com/html/html_table_borders.asp)
+* * *
+HTML tables allow web developers to arrange data into rows and columns.
+* * *
+### Example  
+| Company  | Contact  | Country  |  
+| --- | --- | --- |  
+| Alfreds Futterkiste  | Maria Anders  | Germany  |  
+| Centro comercial Moctezuma  | Francisco Chang  | Mexico  |  
+| Ernst Handel  | Roland Mendel  | Austria  |  
+| Island Trading  | Helen Bennett  | UK  |  
+| Laughing Bacchus Winecellars  | Yoshi Tannamuri  | Canada  |  
+| Magazzini Alimentari Riuniti  | Giovanni Rovelli  | Italy  |  
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml_table_intro)
+* * *
+## Define an HTML Table
+A table in HTML consists of table cells inside rows and columns.
+### Example
+A simple HTML table:
+<table>  
+<tr>  
+<th>Company</th>  
+<th>Contact</th>   
+<th>Country</th>  
+</tr>  
+<tr>  
+<td>Alfreds Futterkiste</td>  
+<td>Maria Anders</td>   
+<td>Germany</td>  
+</tr>  
+<tr>  
+<td>Centro comercial Moctezuma</td>  
+<td>Francisco Chang</td>   
+<td>Mexico</td>  
+</tr>  
+</table>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml_table3)
+* * *
+## Table Cells
+Each table cell is defined by a `<td>` and a `</td>` tag.
+`td` stands for table data.
+Everything between `<td>` and `</td>` is the content of a table cell.
+### Example
+<table>  
+<tr>  
+<td>Emil</td>  
+<td>Tobias</td>   
+<td>Linus</td>  
+</tr>  
+</table>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml_table4)
+**Note:** A table cell can contain all sorts of HTML elements: text, images, lists, links, other tables, etc.
+* * *
+[REMOVE ADS](https://order.w3schools.com/plans)
+* * *
+## Table Rows
+Each table row starts with a `<tr>` and ends with a `</tr>` tag.
+`tr` stands for table row.
+### Example
+<table>  
+<tr>  
+<td>Emil</td>  
+<td>Tobias</td>   
+<td>Linus</td>  
+</tr>  
+<tr>  
+<td>16</td>  
+<td>14</td>   
+<td>10</td>  
+</tr>  
+</table>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml_table5)
+You can have as many rows as you like in a table; just make sure that the number of cells are the same in each row.
+**Note:** There are times when a row can have fewer or more cells than another. You will learn about that in a later chapter.
+* * *
+## Table Headers
+Sometimes you want your cells to be table header cells. In those cases use the `<th>` tag instead of the `<td>` tag:
+`th` stands for table header.
+### Example
+Let the first row be table header cells:
+<table>  
+<tr>  
+<th>Person 1</th>  
+<th>Person 2</th>   
+<th>Person 3</th>  
+</tr>  
+<tr>  
+<td>Emil</td>  
+<td>Tobias</td>   
+<td>Linus</td>  
+</tr>  
+<tr>  
+<td>16</td>  
+<td>14</td>   
+<td>10</td>  
+</tr>  
+</table>
+[Try it Yourself »](https://www.w3schools.com/html/tryit.asp?filename=tryhtml_table6)
+By default, the text in `<th>` elements are bold and centered, but you can change that with CSS. 
+[REMOVE ADS](https://order.w3schools.com/plans)
+* * *
+## HTML Table Tags  
+| Tag  | Description  |  
+| --- | --- |  
+| [<table>](https://www.w3schools.com/tags/tag_table.asp)  | Defines a table  |  
+| [<th>](https://www.w3schools.com/tags/tag_th.asp)  | Defines a header cell in a table  |  
+| [<tr>](https://www.w3schools.com/tags/tag_tr.asp)  | Defines a row in a table  |  
+| [<td>](https://www.w3schools.com/tags/tag_td.asp)  | Defines a cell in a table  |  
+| [<caption>](https://www.w3schools.com/tags/tag_caption.asp)  | Defines a table caption  |  
+| [<colgroup>](https://www.w3schools.com/tags/tag_colgroup.asp)  | Specifies a group of one or more columns in a table for formatting  |  
+| [<col>](https://www.w3schools.com/tags/tag_col.asp)  | Specifies column properties for each column within a <colgroup> element  |  
+| [<thead>](https://www.w3schools.com/tags/tag_thead.asp)  | Groups the header content in a table  |  
+| [<tbody>](https://www.w3schools.com/tags/tag_tbody.asp)  | Groups the body content in a table  |  
+| [<tfoot>](https://www.w3schools.com/tags/tag_tfoot.asp)  | Groups the footer content in a table  |  
+For a complete list of all available HTML tags, visit our [HTML Tag Reference](https://www.w3schools.com/tags/default.asp).
+* * *
+## Video: HTML Tables
+[ ![Tutorial on YouTube](https://www.w3schools.com/html/images/14_html_tables.png) ](https://youtu.be/e62D-aayveY&list=PLP9IO4UYNF0VdAajP_5pYG-jG2JRrG72s)
+* * *
+[❮ Previous](https://www.w3schools.com/html/html_exercise_embed.asp?topic=page_title) [Next ❯](https://www.w3schools.com/html/html_table_borders.asp)
+#### LEARN MORE
+[Styling Tables](https://www.w3schools.com/css/css_table.asp)  
+[Filter Table](https://www.w3schools.com/howto/howto_js_filter_table.asp)  
+[Sort Table](https://www.w3schools.com/howto/howto_js_sort_table.asp)  
+[Responsive Table](https://www.w3schools.com/howto/howto_css_table_responsive.asp)  
+[Zebra Striped Table](https://www.w3schools.com/howto/howto_css_table_zebra.asp)
+[ ★ +1 ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml_tables.asp "Your W3Schools Profile")
+[ Sign in to track progress ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fpathfinder.w3schools.com&origin=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml_tables.asp "Sign in to track your progress")
+[ ![Get Certified Offer](https://www.w3schools.com/images/img_2026_spring_getcertified_300.webp) ](https://campus.w3schools.com/collections/course-catalog)
+[](https://www.youtube.com/@w3schools "W3Schools on YouTube") [](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn") [](https://discord.com/invite/w3schools "Join the W3schools community on Discord") [](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook") [](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram") [](https://www.tiktok.com/@w3schools.com "New: W3Schools on TikTok")
+* * *
+## Create a W3Schools Account
+Ad-free learning, track your progress, earn XP, streaks, compete in leagues, build and host websites, unlock coding challenges, and much more! 
+Earn XP
+Streaks
+![](https://pathfinder.w3schools.com/images/leagues/wood.svg) Leagues
+Your Own Space
+[Sign Up for Free](https://profile.w3schools.com/sign-up?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml_tables.asp "Sign up to try W3Schools Hero")
+[ ](https://www.w3schools.com)
+[PLUS](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")
+[SPACES](https://www.w3schools.com/spaces/index.php "Get your own website with W3Schools Spaces")
+[GET CERTIFIED](https://campus.w3schools.com/collections/certifications "Document your knowledge by getting certified")
+[FOR TEACHERS](https://www.w3schools.com/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+[PRACTICE](https://www.w3schools.com/practice/index.php "W3Schools Practice Problems")
+[CONTACT US](javascript:void\(0\); "Contact us about sales or errors")
+## Contact Sales
+If you want to use W3Schools services as an educational institution, team or enterprise, send us an e-mail:  
+sales@w3schools.com
+## Report Error
+If you want to report an error, or if you want to make a suggestion, send us an e-mail:  
+help@w3schools.com
+##### Top Tutorials
+[HTML Tutorial](https://www.w3schools.com/html/default.asp)  
+[CSS Tutorial](https://www.w3schools.com/css/default.asp)  
+[JavaScript Tutorial](https://www.w3schools.com/js/default.asp)  
+[How To Tutorial](https://www.w3schools.com/howto/default.asp)  
+[SQL Tutorial](https://www.w3schools.com/sql/default.asp)  
+[Python Tutorial](https://www.w3schools.com/python/default.asp)  
+[W3.CSS Tutorial](https://www.w3schools.com/w3css/default.asp)  
+[Bootstrap Tutorial](https://www.w3schools.com/bootstrap/bootstrap_ver.asp)  
+[PHP Tutorial](https://www.w3schools.com/php/default.asp)  
+[Java Tutorial](https://www.w3schools.com/java/default.asp)  
+[C++ Tutorial](https://www.w3schools.com/cpp/default.asp)  
+[jQuery Tutorial](https://www.w3schools.com/jquery/default.asp)  
+
+##### Top References
+[HTML Reference](https://www.w3schools.com/tags/default.asp)  
+[CSS Reference](https://www.w3schools.com/cssref/index.php)  
+[JavaScript Reference](https://www.w3schools.com/jsref/default.asp)  
+[SQL Reference](https://www.w3schools.com/sql/sql_ref_keywords.asp)  
+[Python Reference](https://www.w3schools.com/python/python_reference.asp)  
+[W3.CSS Reference](https://www.w3schools.com/w3css/w3css_references.asp)  
+[Bootstrap Reference](https://www.w3schools.com/bootstrap/bootstrap_ref_all_classes.asp)  
+[PHP Reference](https://www.w3schools.com/php/php_ref_overview.asp)  
+[HTML Colors](https://www.w3schools.com/colors/colors_names.asp)  
+[Java Reference](https://www.w3schools.com/java/java_ref_keywords.asp)  
+[AngularJS Reference](https://www.w3schools.com/angularjs/angularjs_ref_directives.asp)  
+[jQuery Reference](https://www.w3schools.com/jquery/jquery_ref_overview.asp)  
+
+##### Top Examples
+[HTML Examples](https://www.w3schools.com/html/html_examples.asp)  
+[CSS Examples](https://www.w3schools.com/css/css_examples.asp)  
+[JavaScript Examples](https://www.w3schools.com/js/js_examples.asp)  
+[How To Examples](https://www.w3schools.com/howto/default.asp)  
+[SQL Examples](https://www.w3schools.com/sql/sql_examples.asp)  
+[Python Examples](https://www.w3schools.com/python/python_examples.asp)  
+[W3.CSS Examples](https://www.w3schools.com/w3css/w3css_examples.asp)  
+[Bootstrap Examples](https://www.w3schools.com/bootstrap/bootstrap_examples.asp)  
+[PHP Examples](https://www.w3schools.com/php/php_examples.asp)  
+[Java Examples](https://www.w3schools.com/java/java_examples.asp)  
+[XML Examples](https://www.w3schools.com/xml/xml_examples.asp)  
+[jQuery Examples](https://www.w3schools.com/jquery/jquery_examples.asp)  
+
+##### [Get Certified](https://campus.w3schools.com/collections/course-catalog) [HTML Certificate](https://campus.w3schools.com/collections/certifications/products/html-certificate)  
+[CSS Certificate](https://campus.w3schools.com/collections/certifications/products/css-certificate)  
+[JavaScript Certificate](https://campus.w3schools.com/collections/certifications/products/javascript-certificate)  
+[Front End Certificate](https://campus.w3schools.com/collections/certifications/products/front-end-certificate)  
+[SQL Certificate](https://campus.w3schools.com/collections/certifications/products/sql-certificate)  
+[Python Certificate](https://campus.w3schools.com/collections/certifications/products/python-certificate)  
+[PHP Certificate](https://campus.w3schools.com/collections/certifications/products/php-certificate)  
+[jQuery Certificate](https://campus.w3schools.com/collections/certifications/products/jquery-certificate)  
+[Java Certificate](https://campus.w3schools.com/collections/certifications/products/java-certificate)  
+[C++ Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate)  
+[C# Certificate](https://campus.w3schools.com/collections/certifications/products/c-certificate-1)  
+[XML Certificate](https://campus.w3schools.com/collections/certifications/products/xml-certificate)  
+
+[](https://www.youtube.com/@w3schools "W3Schools on YouTube") [__](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn") [__](https://discord.com/invite/w3schools "Join the W3schools community on Discord") [__](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook") [__](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram") [FORUM](https://www.w3schools.com/forum/index.php "Forum") [ABOUT](https://www.w3schools.com/about/default.asp "About W3Schools") [ACADEMY](https://www.w3schools.com/academy/index.php "Contact us about W3Schools Academy for educational institutions and organizations")
+W3Schools is optimized for learning and training. Examples might be simplified to improve reading and learning.  
+Tutorials, references, and examples are constantly reviewed to avoid errors, but we cannot warrant full correctness  
+of all content. While using W3Schools, you agree to have read and accepted our [terms of use](https://www.w3schools.com/about/about_copyright.asp), cookies and [privacy policy](https://www.w3schools.com/about/about_privacy.asp).  
+  
+[Copyright 1999-2026](https://www.w3schools.com/about/about_copyright.asp) by Refsnes Data. All Rights Reserved. [W3Schools is Powered by W3.CSS](https://www.w3schools.com/w3css/default.asp).  
+  
+
+-->

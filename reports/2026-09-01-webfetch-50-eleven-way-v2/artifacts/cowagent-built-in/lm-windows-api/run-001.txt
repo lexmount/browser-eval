@@ -1,0 +1,1077 @@
+Title: Windows API index - Win32 apps | Microsoft Learn
+
+Content:
+Windows API index - Win32 apps | Microsoft Learn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Skip to main content
+
+
+
+Skip to Ask Learn chat experience
+
+
+
+
+
+
+
+This browser is no longer supported.
+
+Upgrade to Microsoft Edge to take advantage of the latest features, security updates, and technical support.
+
+
+
+Download Microsoft Edge
+
+
+More info about Internet Explorer and Microsoft Edge
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Table of contents
+
+
+
+Exit editor mode
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reading mode
+
+
+
+
+Table of contents
+
+
+
+
+
+
+Read in English
+
+
+
+
+
+
+
+Add
+
+
+
+
+
+
+Add to Plans
+
+
+
+
+
+
+
+Edit
+
+
+
+
+
+
+
+
+
+
+Copy Markdown
+
+
+
+
+
+
+Print
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Note
+
+
+Access to this page requires authorization. You can try signing in or changing directories.
+
+
+Access to this page requires authorization. You can try changing directories.
+
+
+
+
+
+Windows API index
+
+
+
+
+
+
+
+
+
+Feedback
+
+
+
+
+
+
+
+
+
+
+
+
+
+Summarize this article for me
+
+
+
+
+
+
+
+
+
+In this article
+
+
+The following is a list of the reference content for the Windows application programming interface (API) for desktop and server applications.
+Using the Windows API, you can develop applications that run successfully on all versions of Windows while taking advantage of the features and capabilities unique to each version. (Note that this was formerly called the Win32 API. The name Windows API more accurately reflects its roots in 16-bit Windows and its support on 64-bit Windows.)
+User interface
+The Windows UI API creates and uses windows to display output, prompt for user input, and carry out the other tasks that support interaction with the user. Most applications create at least one window.
+
+Accessibility
+
+Desktop Window Manager (DWM)
+
+Globalization Services
+
+High DPI
+
+Multilingual User Interface (MUI)
+
+National Language Support (NLS)
+
+User Interface elements:
+
+Buttons
+Carets
+Combo Boxes
+Common Dialog Boxes
+Common Controls
+Cursors
+Dialog Boxes
+Edit Controls
+Header Controls
+Icons
+Keyboard Accelerators
+List Boxes
+List-View Controls
+Menus
+Progress Bars
+Property Sheets
+Rich Edit Controls
+Scroll Bars
+Static Controls
+Strings
+Toolbars
+Tooltips
+Trackbars
+Tree-View Controls
+
+Windows Animation Manager
+
+Windows Ribbon Framework
+
+Windows environment (Shell)
+
+Windows Property System
+Windows Shell
+Windows Search
+Consoles
+
+User input and messaging
+
+User Interaction
+
+Direct Manipulation
+Ink input
+Input Feedback Configuration
+Interaction Context
+Pointer Device Input Stack
+Pointer Input Messages and Notifications
+Radial controller input
+Text Services Framework
+Touch Hit Testing
+Touch Injection
+
+Legacy User Interaction
+
+Touch Input
+Keyboard Input
+Mouse Input
+Raw Input
+
+Windows and Messages:
+
+Messages and Message Queues
+Windows
+Window Classes
+Window Procedures
+Timers
+Window Properties
+Hooks
+
+Data access and storage
+
+Background Intelligent Transfer Service (BITS)
+
+Bind Link
+
+Data Backup
+
+Backup
+Data Deduplication
+Volume Shadow Copy
+Windows Server Backup
+
+Data Exchange:
+
+Clipboard
+Dynamic Data Exchange (DDE)
+Dynamic Data Exchange Management (DDEML)
+
+Directory Management
+
+Disk Management
+
+Distributed File System (DFS)
+
+Distributed File System Replication
+
+Extensible Storage Engine
+
+Files and I/O (Local file system)
+
+iSCSI Discovery Library API
+
+Offline Files
+
+Packaging
+
+Remote Differential Compression
+
+Transactional NTFS
+
+Volume Management
+
+Virtual Hard Disk (VHD)
+
+Windows Storage Management
+
+Windows Data Access Components
+
+Microsoft Open Database Connectivity (ODBC)
+Microsoft OLE DB
+Microsoft ActiveX Data Objects (ADO)
+
+Diagnostics
+The Diagnostics API enable you to troubleshoot application or system problems and monitor performance.
+
+Application Recovery and Restart
+Debugging
+Error Handling
+Event Logging
+Event Tracing
+Hardware Counter Profiling (HCP)
+Network Diagnostics Framework (NDF)
+Network Monitor
+Performance Counters
+Performance Logs and Alerts (PLA)
+Process Snapshotting
+Process Status (PSAPI)
+Structured Exception Handling
+System Monitor
+Wait Chain Traversal
+Windows Error Reporting (WER)
+Windows Event Log
+Windows Troubleshooting Platform
+
+Graphics and multimedia
+The Graphics, multimedia, audio, and video APIs enable applications to incorporate formatted text, graphics, audio, and video.
+
+Core Audio
+Direct2D
+DirectComposition
+DirectShow
+DirectWrite
+DirectX
+Graphics Device Interface (GDI)
+GDI+
+Media Streaming
+Microsoft Media Foundation
+Microsoft TV Technologies
+OpenGL
+Monitor Configuration
+Multiple Display Monitors
+Picture Acquisition
+Windows Color System
+Windows Imaging Component (WIC)
+Windows Media Audio and Video Codec and DSP
+Windows Media Center
+Windows Media Format
+Windows Media Library Sharing Services
+Windows Media Player
+Windows Media Services
+Windows Movie Maker
+Windows Multimedia
+
+Devices
+
+AllJoyn
+Communications Resources
+Device Access
+Device Management
+Enhanced Storage
+Function Discovery
+Image Mastering
+Location
+PnP-X Association Database
+Printing
+
+Print Spooler
+Print Document Package
+Print Schema Specification
+Print Ticket
+XPS Print
+
+Sensors
+System Event Notification Service (SENS)
+Tool Help
+UPnP
+Web Services on Devices
+Windows Image Acquisition (WIA)
+Windows Media Device Manager
+Windows Portable Devices
+
+System services
+The System Services APIs give applications access to the resources of the computer and the features of the underlying operating system, such as memory, file systems, devices, processes, and threads.
+
+Activity Coordinator
+COM
+COM+
+Compression API
+Distributed Transaction Coordinator (DTC)
+Dynamic-Link Libraries (DLLs)
+Hardware Requirement Evaluator (HWREQCHK)
+Help API
+Interprocess Communications:
+
+Mailslots
+Pipes
+
+Kernel Transaction Manager (KTM)
+Memory Management
+Operation Recorder
+Power Management
+Remote Desktop Services
+Processes
+Services
+Synchronization
+Threads
+Windows Desktop Sharing
+Windows System Information
+
+Handle and Objects
+Registry
+Time
+Time Provider
+
+Security and identity
+The Security and Identity APIs enable password authentication at logon, discretionary protection for all sharable system objects, privileged access control, rights management, and security auditing.
+
+Authentication
+Authorization
+Certificate Enrollment
+Cryptography
+Cryptographic Next Generation (CNG)
+Directory Services
+
+Active Directory Domain Services
+Active Directory Service Interfaces (ADSI)
+
+Extensible Authentication Protocol (EAP)
+Extensible Authentication Protocol Host (EAPHost)
+MS-CHAP Password Management
+Network Access Protection (NAP)
+Network Policy Server Extensions (NPS)
+Parental Controls
+Security WMI Providers
+TPM Base Services (TBS)
+Windows Biometric Framework
+
+Application installation and servicing
+
+Games Explorer
+Side-by-side Assemblies
+Packaging, deployment, and query APIs
+Developer License
+Restart Manager
+Windows Installer
+
+System admin and management
+The System administration interfaces enable you to install, configure, and service applications or systems.
+
+Boot Configuration Data WMI Provider
+Failover Clusters
+File Server Resource Manager (FSRM)
+Group Policy
+Microsoft Management Console (MMC) 2.0
+NetShell
+Settings Management Infrastructure
+Software Inventory Logging
+Software Licensing
+Restart Manager
+Settings Management Infrastructure
+System Restore
+System Shutdown
+Task Scheduler
+User Access Logging
+Windows Virtual PC
+Microsoft Virtual Server
+Network Load Balancing Provider
+Windows Defender WMI v2
+Windows Deployment Services
+Windows Genuine Advantage
+Windows Management Infrastructure
+Windows Management Instrumentation (WMI)
+Windows Remote Management
+Windows Resource Protection
+Windows Server Update Services
+Windows System Assessment Tool
+Windows Update Agent
+
+Networking and internet
+The Networking APIs enable communication between applications over a network. You can also create and manage access to shared resources, such as directories and network printers.
+
+Domain Name System (DNS)
+Dynamic Host Configuration Protocol (DHCP)
+Fax Service
+Get Connected Wizard
+HTTP Server
+Internet Connection Sharing and Firewall
+IP Helper
+IPv6 Internet Connection Firewall
+Management Information Base
+Message Queuing (MSMQ)
+Multicast Address Dynamic Client Allocation Protocol (MADCAP)
+Network Address Translation (NAT)
+Network List Manager (NLM)
+Network Management
+Network Share Management
+Peer-to-Peer
+Quality of Service (QOS)
+Remote Procedure Call
+Routing and Remote Access Service (RAS)
+Simple Network Management Protocol (SNMP)
+SMB Management
+Telephony Application Programming Interfaces (TAPI)
+WebDAV
+WebSocket Protocol Component
+Wireless networking:
+
+Bluetooth
+IrDA
+Mobile Broadband
+Native Wifi
+Windows Connect Now
+Windows Connection Manager
+
+Windows Filtering Platform
+Windows Firewall with Advanced Security
+Windows HTTP Services (WinHTTP)
+Windows Internet (WinINet)
+Windows Networking (WNet)
+Windows Network Virtualization
+Windows RSS Platform
+Windows Sockets (Winsock)
+Windows Web Services
+XML HTTP Extended Request
+
+Deprecated or legacy APIs
+The following are technologies and APIs that are outdated or have been replaced or deprecated from the Windows client and server operating systems.
+
+DirectMusic
+DirectSound
+Microsoft UDDI SDK is now included with Microsoft BizTalk Server.
+Network Dynamic Data Exchange (DDE)
+Remote Installation Service: Use Windows Deployment Services instead.
+Virtual Disk Service (VDS): Use Windows Storage Management instead.
+Terminal Services: Use Remote Desktop Services.
+Windows Media Rights Manager
+Windows Messaging (MAPI): Use Office MAPI instead.
+Windows Gadget Platform: Create UWP apps instead.
+Windows Sidebar: Create UWP apps instead.
+Windows SideShow: No replacement.
+WPF Bitmap Effects
+
+
+
+
+
+
+
+
+
+
+
+Feedback
+
+
+Was this page helpful?
+
+
+
+
+
+
+Yes
+
+
+
+
+
+No
+
+
+
+
+
+
+No
+
+
+
+Need help with this topic?
+
+
+Want to try using Ask Learn to clarify or guide you through this topic?
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+
+Suggest a fix?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Additional resources
+
+
+
+
+
+
+
+
+
+
+
+
+
+Last updated on
+2023-03-15
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+In this article
+
+
+
+
+
+
+
+Was this page helpful?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Need help with this topic?
+
+
+Want to try using Ask Learn to clarify or guide you through this topic?
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+Ask Learn
+
+
+
+
+
+
+Suggest a fix?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+en-us
+
+
+
+
+
+
+
+
+
+
+Your Privacy Choices
+
+
+
+
+
+
+Theme
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Light
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dark
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+High contrast
+
+
+
+
+
+
+
+
+
+
+
+AI Disclaimer
+
+
+
+Previous Versions
+
+
+
+Blog
+
+
+
+Contribute
+
+
+
+Privacy
+
+
+
+Consumer Health Privacy
+
+
+
+Terms of Use
+
+
+
+Trademarks
+
+
+&copy; Microsoft 2026

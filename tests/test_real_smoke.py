@@ -45,6 +45,9 @@ class RealProviderSmokeTest(unittest.TestCase):
     def test_lexmount_global_real_fetch(self) -> None:
         self.assert_provider_smoke("lexmount-global")
 
+    def test_lexmount_cn_real_fetch(self) -> None:
+        self.assert_provider_smoke("lexmount-cn")
+
     def test_firecrawl_real_fetch(self) -> None:
         self.assert_provider_smoke("firecrawl")
 

@@ -32,6 +32,13 @@ class GroundTruthTest(unittest.TestCase):
             self.assertTrue(case.reference_answer, case.id)
             self.assertGreaterEqual(len(case.human_review_checklist), 3, case.id)
 
+    def test_direct_media_cases_do_not_use_webpage_content_score(self) -> None:
+        _, cases = load_dataset(Path("datasets/file_media_capabilities.json"))
+        by_id = {case.id: case for case in cases}
+        self.assertFalse(by_id["direct-image"].content_score_applicable)
+        self.assertFalse(by_id["direct-video"].content_score_applicable)
+        self.assertTrue(by_id["embedded-image-page"].content_score_applicable)
+
 
 if __name__ == "__main__":
     unittest.main()

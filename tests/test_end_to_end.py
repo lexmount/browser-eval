@@ -1,4 +1,5 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -76,6 +77,11 @@ class EndToEndTest(unittest.TestCase):
             self.assertNotIn(">人工复核</a>", index)
             artifact = run_dir / "artifacts/fixture/fail/run-001.txt"
             self.assertIn("Fixture failure", artifact.read_text(encoding="utf-8"))
+            failed_record = next(item for item in records if item["case_id"] == "fail")
+            self.assertEqual(
+                failed_record["metrics"]["content_sha256"],
+                hashlib.sha256(artifact.read_bytes()).hexdigest(),
+            )
             summary = json.loads((run_dir / "summary.json").read_text())
             self.assertEqual(summary["providers"]["fixture"]["transport_success_rate"], 0.5)
 

@@ -1,0 +1,141 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__cowagent-doc__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>CowAgent Web Fetch documentation</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">8,342 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取 CowAgent 的 Web Fetch 工具文档。输出应说明工具名称、URL 输入，以及该工具用于获取网页内容或网页正文。</p><p><b>输入 URL：</b><a href="https://docs.cowagent.ai/zh/tools/web-fetch">https://docs.cowagent.ai/zh/tools/web-fetch</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Web Fetch（web_fetch）用于根据 URL 获取网页内容。调用时传入目标网页 URL，工具返回可供 Agent 使用的网页正文。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否识别 Web Fetch/web_fetch 工具</li><li>是否保留 URL 输入说明</li><li>是否说明获取网页内容的用途</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/cowagent-doc/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.cowagent.ai/zh/tools/web-fetch">打开标准答案源网页</a> · 完整性校验 <code>sha256:bd1a05686a5193cf88bb62166f256baea0a860390c0a68c4a69834c5ad067db1</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Web Fetch（web_fetch）用于根据 URL 获取网页内容。调用时传入目标网页 URL，工具返回可供 Agent 使用的网页正文。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>## 在此页面
+  * [参数](https://docs.cowagent.ai/zh/tools/web-fetch#%E5%8F%82%E6%95%B0)
+  * [支持的文件类型](https://docs.cowagent.ai/zh/tools/web-fetch#%E6%94%AF%E6%8C%81%E7%9A%84%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B)
+  * [使用场景](https://docs.cowagent.ai/zh/tools/web-fetch#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF)
+
+
+内置工具
+# web_fetch - 网页获取
+获取网页或文档内容
+获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。
+## 参数
+| 参数  | 类型  | 必填  | 说明  |
+| --- | --- | --- | --- |
+| `url`  | string  | 是  | HTTP/HTTPS URL（网页或文档链接）  |
+## 支持的文件类型
+| 类型  | 格式  |
+| --- | --- |
+| PDF  | `.pdf`  |
+| Word  | `.docx`  |
+| 文本  |  `.txt`、`.md`、`.csv`、`.log`  |
+| 表格  |  `.xls`、`.xlsx`  |
+| 演示文稿  |  `.ppt`、`.pptx`  |
+## 使用场景
+  * 获取网页的文本内容
+  * 下载并解析远程文档
+  * 获取 API 响应内容
+
+
+`web_fetch` 只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用 `browser` 工具。
+[env_config - 环境变量](https://docs.cowagent.ai/zh/tools/env-config)[scheduler - 定时任务](https://docs.cowagent.ai/zh/tools/scheduler)
+[](https://github.com/zhayujie/CowAgent)
+[技术支持](https://www.mintlify.com?utm_campaign=poweredBy&amp;utm_medium=referral&amp;utm_source=minimalfuture)</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（1,086 / 1,111 字符）</summary><pre>## 在此页面
+  * [参数](https://docs.cowagent.ai/zh/tools/web-fetch#%E5%8F%82%E6%95%B0)
+  * [支持的文件类型](https://docs.cowagent.ai/zh/tools/web-fetch#%E6%94%AF%E6%8C%81%E7%9A%84%E6%96%87%E4%BB%B6%E7%B1%BB%E5%9E%8B)
+  * [使用场景](https://docs.cowagent.ai/zh/tools/web-fetch#%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF)
+
+
+内置工具
+# web_fetch - 网页获取
+获取网页或文档内容
+获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。
+## 参数
+| 参数  | 类型  | 必填  | 说明  |
+| --- | --- | --- | --- |
+| `url`  | string  | 是  | HTTP/HTTPS URL（网页或文档链接）  |
+## 支持的文件类型
+| 类型  | 格式  |
+| --- | --- |
+| PDF  | `.pdf`  |
+| Word  | `.docx`  |
+| 文本  |  `.txt`、`.md`、`.csv`、`.log`  |
+| 表格  |  `.xls`、`.xlsx`  |
+| 演示文稿  |  `.ppt`、`.pptx`  |
+## 使用场景
+  * 获取网页的文本内容
+  * 下载并解析远程文档
+  * 获取 API 响应内容
+
+
+`web_fetch` 只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用 `browser` 工具。
+[env_config - 环境变量](https://docs.cowagent.ai/zh/tools/env-config)[scheduler - 定时任务](https://docs.cowagent.ai/zh/tools/scheduler)
+[](https://github.com/zhayujie/CowAgent)
+[技术支持](https://www.mintlify.com?utm_campaign=poweredBy&amp;utm_medium=referral&amp;utm_source=minimalfuture)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__cowagent-doc__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.cowagent.ai/zh/tools/web-fetch</span></div><div class="kv"><b>输出大小</b>1,111 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>tool-name</code></td><td class="good">命中</td><td>web_fetch / Web Fetch</td><td>web_fetch</td></tr><tr><td><code>url-input</code></td><td class="good">命中</td><td>url / URL</td><td>url / URL</td></tr><tr><td><code>purpose</code></td><td class="good">命中</td><td>网页内容 / 网页正文 / 获取网页</td><td>获取网页</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">web_fetch</span><span class="tag">Web Fetch</span></p><p><span class="tag">web_fetch</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://docs.cowagent.ai/zh/tools/web-fetch&quot;,
+      &quot;text&quot;: &quot;参数&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;cowagent.ai&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.cowagent.ai/zh/tools/env-config&quot;,
+      &quot;text&quot;: &quot;env_config - 环境变量&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;cowagent.ai&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.cowagent.ai/zh/tools/scheduler&quot;,
+      &quot;text&quot;: &quot;scheduler - 定时任务&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;cowagent.ai&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://github.com/zhayujie/CowAgent&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mintlify.com&quot;,
+      &quot;text&quot;: &quot;技术支持&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mintlify.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__cowagent-doc__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__cowagent-doc__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__cowagent-doc__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

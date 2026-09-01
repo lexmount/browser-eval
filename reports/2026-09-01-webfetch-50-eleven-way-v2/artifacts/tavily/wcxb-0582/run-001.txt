@@ -1,0 +1,1 @@
+{"results":[],"failed_results":[{"url":"https://shop.bombas.com/products/mens-quarter-socks","error":"Failed to fetch url"}],"response_time":2.89,"request_id":"17bd85b7-e2f8-4b05-b5c8-ceb06eb50027"}

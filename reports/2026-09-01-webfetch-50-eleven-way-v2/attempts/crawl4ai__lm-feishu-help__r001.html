@@ -1,0 +1,895 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__lm-feishu-help__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>飞书管理后台帮助文档</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">4,995 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定公开页面的主要可读正文；输出必须包含两个稳定主题标记，不能只是导航外壳、挑战页或错误页。</p><p><b>输入 URL：</b><a href="https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据">https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>飞书管理后台帮助文档
+页面主要内容应同时包含：企业 AI；使用数据。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否为目标页面而非错误页</li><li>是否包含 企业 AI</li><li>是否包含 使用数据</li><li>是否返回连贯正文而非导航外壳</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/lm-feishu-help/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据">打开标准答案源网页</a> · 完整性校验 <code>sha256:1eb54bb040ff87d8bad14ddbff54ce740b6841a8f4a0bdfb3d8ce339054e9e63</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>飞书管理后台帮助文档
+页面主要内容应同时包含：企业 AI；使用数据。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/d3859633b9c64b969e91c8dec24c9a37~tplv-jbbdkfciu3-image:0:0.image)
+[飞书 AI](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7210653076326334492)
+[AI 用量购买与管理](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620)
+管理员查看企业 AI 功能使用数据
+# 管理员查看企业 AI 功能使用数据
+本文阅读时长：9 分钟
+一、功能简介​
+增值信息：飞书 AI 版本需企业管理员另外购买。如需购买，请[联系客服](https://applink.feishu.cn/client/web_url/open?width=640&amp;height=480&amp;mode=window&amp;url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)或前往[飞书管理后台](https://feishu.cn/admin) &gt; AI 使用管理 &gt; 用量概览 自助购买。​
+内测信息：功能内测中。​
+谁能操作：超级管理员或拥有 AI 使用管理权限的管理员。​
+​
+飞书管理后台的 AI 使用数据功能帮助管理员全面了解企业内 AI 功能（知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、飞书 aily 工作流应用和企业工作伙伴）的综合使用情况，以及单个 AI 功能的使用情况。​
+管理员可通过 AI 功能的使用次数、使用人数、人均使用次数、使用渗透率等指标，分析不同团队或成员使用 AI 功能的差异，及时[调整 AI 权益的限额规则](https://www.feishu.cn/hc/zh-CN/articles/525309709150)，提升 AI 功能在企业中的应用价值。​
+例如，管理员根据 AI 使用数据发现部门 A 近期对知识问答功能的用量需求持续增加，可适当提升该部门对知识问答功能的用量额度。​
+二、操作流程​
+说明：支持查询 2025 年 8 月 1 日之后产生的数据。各项指标中，“人均可搜文档数”从 2025 年 11 月 1 日之后开始统计。​
+​
+查看整体使用数据​
+  1. 进入[飞书管理后台](https://feishu.cn/admin)，点击 AI 使用管理 &gt;AI 使用数据。​
+
+
+  * ​
+250px|700px|reset
+![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/2bd69d27126445be819826979488f603~tplv-jbbdkfciu3-image:0:0.image)​​
+
+
+  1. 在 AI 整体使用情况 模块中查看企业 AI 功能的综合使用情况；在 AI 功能使用情况 模块中点击 AI 功能名称标签页，查看对应 AI 功能的使用情况。​
+
+
+  * 将鼠标悬停至指标名称右侧的​图标上，可查看对应说明。主要的指标说明如下：​
+
+
+  * 使用次数：对应 AI 功能的实际使用次数。不同功能统计规则不同，请以实际显示的数据为准。​
+
+
+  * 使用人数：使用过该 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。​
+
+
+  * 使用渗透率：该 AI 功能的使用人数在企业飞书活跃人数中所占的比例。​
+
+
+  * 人均使用次数：使用次数 ÷ 使用人数后得到的数值。​
+
+
+  * 使用情况变化趋势：点击使用次数、使用人数、人均使用次数等数据卡片，设置时间范围，即可查看指定时间范围内对应指标的变化趋势。​
+
+
+  * 注：支持查看 2 年内的变化趋势，时间范围最大可设置为 31 天。​
+
+
+  * 使用排行 TOP 10：点击使用次数、使用人数、人均使用次数等数据卡片，可查看该指标下排行前 10 的成员、部门或</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（9,021 / 9,048 字符）</summary><pre>![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/d3859633b9c64b969e91c8dec24c9a37~tplv-jbbdkfciu3-image:0:0.image)
+[飞书 AI](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7210653076326334492)
+[AI 用量购买与管理](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620)
+管理员查看企业 AI 功能使用数据
+# 管理员查看企业 AI 功能使用数据
+本文阅读时长：9 分钟
+一、功能简介​
+增值信息：飞书 AI 版本需企业管理员另外购买。如需购买，请[联系客服](https://applink.feishu.cn/client/web_url/open?width=640&amp;height=480&amp;mode=window&amp;url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)或前往[飞书管理后台](https://feishu.cn/admin) &gt; AI 使用管理 &gt; 用量概览 自助购买。​
+内测信息：功能内测中。​
+谁能操作：超级管理员或拥有 AI 使用管理权限的管理员。​
+​
+飞书管理后台的 AI 使用数据功能帮助管理员全面了解企业内 AI 功能（知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、飞书 aily 工作流应用和企业工作伙伴）的综合使用情况，以及单个 AI 功能的使用情况。​
+管理员可通过 AI 功能的使用次数、使用人数、人均使用次数、使用渗透率等指标，分析不同团队或成员使用 AI 功能的差异，及时[调整 AI 权益的限额规则](https://www.feishu.cn/hc/zh-CN/articles/525309709150)，提升 AI 功能在企业中的应用价值。​
+例如，管理员根据 AI 使用数据发现部门 A 近期对知识问答功能的用量需求持续增加，可适当提升该部门对知识问答功能的用量额度。​
+二、操作流程​
+说明：支持查询 2025 年 8 月 1 日之后产生的数据。各项指标中，“人均可搜文档数”从 2025 年 11 月 1 日之后开始统计。​
+​
+查看整体使用数据​
+  1. 进入[飞书管理后台](https://feishu.cn/admin)，点击 AI 使用管理 &gt;AI 使用数据。​
+
+
+  * ​
+250px|700px|reset
+![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/2bd69d27126445be819826979488f603~tplv-jbbdkfciu3-image:0:0.image)​​
+
+
+  1. 在 AI 整体使用情况 模块中查看企业 AI 功能的综合使用情况；在 AI 功能使用情况 模块中点击 AI 功能名称标签页，查看对应 AI 功能的使用情况。​
+
+
+  * 将鼠标悬停至指标名称右侧的​图标上，可查看对应说明。主要的指标说明如下：​
+
+
+  * 使用次数：对应 AI 功能的实际使用次数。不同功能统计规则不同，请以实际显示的数据为准。​
+
+
+  * 使用人数：使用过该 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。​
+
+
+  * 使用渗透率：该 AI 功能的使用人数在企业飞书活跃人数中所占的比例。​
+
+
+  * 人均使用次数：使用次数 ÷ 使用人数后得到的数值。​
+
+
+  * 使用情况变化趋势：点击使用次数、使用人数、人均使用次数等数据卡片，设置时间范围，即可查看指定时间范围内对应指标的变化趋势。​
+
+
+  * 注：支持查看 2 年内的变化趋势，时间范围最大可设置为 31 天。​
+
+
+  * 使用排行 TOP 10：点击使用次数、使用人数、人均使用次数等数据卡片，可查看该指标下排行前 10 的成员、部门或应用。系统根据成员、部门或应用的单日数据由高到低进行排序。​
+
+
+  * 注：不同 AI 功能标签页下展示的指标类型不同，请以实际页面显示为准。有关更多指标说明的具体信息，请参考本文“三、指标说明”。​
+
+
+查看使用详情​
+管理员可进一步查看成员或部门对 AI 功能的整体使用详情，以及对单个 AI 功能的使用详情。两者操作方式相同，下文以查看 AI 整体使用详情为例，介绍具体的操作步骤。​
+  1. 进入[飞书管理后台](https://feishu.cn/admin)，点击 AI 使用管理 &gt; AI 使用数据。​
+
+
+  1. 在 AI 使用数据页面点击 AI 整体使用情况 右侧的 详情。​
+
+
+  * ​
+250px|700px|reset
+![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/42dcc8b478ff4ec1bd02ddddc9fe6bc0~tplv-jbbdkfciu3-image:0:0.image)​​
+
+
+  1. 点击 部门 或 成员 标签页，选择条件后进行查询。​
+
+
+  * 按部门查询：选择部门和时间，点击 查询。所选的部门总数不可超过 100 个。​
+
+
+  * 按成员查询：选择成员和时间，点击 查询。选择成员时，支持按成员、用户组、部门进行选择，所选的成员、用户组和部门总数不可超过 100 个。​
+
+
+  1. （可选）在查询结果中，点击指标名称右侧的​图标，可对这些成员的用量按升序或降序排列。​
+
+
+  1. （可选）点击 导出数据，可将查询记录导出至本地查看。​
+
+
+  * ​
+250px|700px|reset
+![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/a3d6e606342142b79304a6b8a1f2771e~tplv-jbbdkfciu3-image:0:0.image)​​
+
+
+  1. 进一步查看成员或部门在指定时间范围内，对 AI 功能核心指标（使用次数、使用人数、使用渗透率、人均使用次数等）的每日变化趋势。​
+
+
+  * 注：不同 AI 功能标签页下展示的指标类型不同，请以实际页面显示为准。有关更多指标说明的具体信息，请参考本文“三、指标说明”。​
+
+
+  1. 点击查询记录右侧的 详情。​
+
+
+  * ​
+250px|700px|reset
+![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/3106432788dc4fc6934240be05f75cad~tplv-jbbdkfciu3-image:0:0.image)​​
+
+
+  1. 在详情页面中点击 AI 功能名称标签页。​
+
+
+  1. 选择时间范围。支持查看 2 年内的数据，时间范围最大可设置为 31 天。​
+
+
+三、指标说明​
+通用指标​
+使用次数、使用人数、使用渗透率、人均使用次数为 AI 整体使用情况和单个 AI 的使用情况中的通用指标，具体说明如下：​
+  * 使用次数：使用对应 AI 功能的总次数。不同功能统计规则不同，请以实际显示的数据为准。​
+
+
+  * 使用人数：使用对应 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。​
+
+
+  * 使用渗透率：对应 AI 功能的使用人数在企业飞书活跃人数中所占的比例。​
+
+
+  * 人均使用次数：使用次数 ÷ 使用人数后得到的数值。​
+
+
+注：AI 整体使用情况中包含知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、飞书 aily 工作流应用和企业工作伙伴功能的综合使用数据，不包含多维表格 AI 字段捷径的使用数据。​
+单个 AI 功能专有指标​
+|  AI 功能​  |  指标名称​  |  指标含义​  |
+| --- | --- | --- |
+|  知识问答​  |  人均可搜文档数​  |  企业内每位成员可搜索的文档数。​  |
+| ​  |  文档数​ ​  |  成员或部门作为文档所有者的文档总数。文档类型和位置说明如下：​
+  * 文档类型：文档、电子表格、多维表格（包含问卷）、思维笔记、文件、幻灯片。​
+
+
+  * 文档位置：云盘、我的文档库、知识库。​
+
+ |
+| ​  |  文档密级打标率​  |  成员或部门作为文档所有者的所有文档中，被设置密级标签的文档占比。​  |
+| ​  |  文档安全等级占比​  |  所有被设置了密级标签的文档中，不同密级标签对应的文档占比。​  |
+| ​  |  引用文档 Top 10​  |  知识问答结果中，引用次数排行前 10 的文档。​  |
+| ​  |  引用 AI 智能纪要 Top 10​  |  知识问答结果中，引用次数排行前 10 的智能纪要。​  |
+|  智能纪要​ ​  |  会议数​ ​  |  成员或部门使用了智能纪要的会议数。​ 注：如果通过上传音视频文件、录音等方式生成妙记，也将计为 1 次。​  |
+| ​  |  开启智能纪要的会议占比​  |  开启智能纪要的会议数 ÷ 会议数后得到的数值。​  |
+|  飞书 aily 工作流应用​ ​  |  飞书 aily 工作流应用使用次数 Top 10​  |  所有飞书 aily 工作流应用中，使用次数排行前 10 的应用。​  |
+|  企业工作伙伴​  |  企业工作伙伴使用次数 Top 10​  |  所有企业工作伙伴中，使用次数排行前 10 的工作伙伴。​  |
+​
+四、常见问题​
+问：知识问答的使用数据中，为什么“人均可搜文档数”为 0？
+答：可能企业中当前无可搜文档，或管理员未对成员开启云文档的搜索权限。有关云文档权限的具体信息，请参考[管理员设置文档权限默认值](https://www.feishu.cn/hc/zh-CN/articles/265017155035-%E7%AE%A1%E7%90%86%E5%91%98%E8%AE%BE%E7%BD%AE%E6%96%87%E6%A1%A3%E6%9D%83%E9%99%90%E9%BB%98%E8%AE%A4%E5%80%BC)。​
+作者：飞书帮助中心
+最后更新于2026/08/19
+本文是否对你有帮助
+提交成功，感谢你的反馈！
+未能解决你的问题？请联系[在线客服](https://applink.feishu.cn/client/web_url/open?width=640&amp;height=480&amp;mode=window&amp;url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)
+  * [快速入门](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261501160685596)
+    * [快速了解飞书 AI](https://www.feishu.cn/hc/zh-CN/articles/257240089464 &quot;快速了解飞书 AI&quot;)
+  * [AI 用量购买与管理](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620)
+    * [飞书 AI 用量购买说明](https://www.feishu.cn/hc/zh-CN/articles/146539130003 &quot;飞书 AI 用量购买说明&quot;)
+    * [飞书 AI 版本权益与额度消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/629644238181 &quot;飞书 AI 版本权益与额度消耗规则说明&quot;)
+    * [飞书 AI 用量套餐权益与额度消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/819536981301 &quot;飞书 AI 用量套餐权益与额度消耗规则说明&quot;)
+    * [管理员查看企业 AI 权益用量](https://www.feishu.cn/hc/zh-CN/articles/820986422059 &quot;管理员查看企业 AI 权益用量&quot;)
+    * [管理员查看企业 AI 功能使用数据](https://www.feishu.cn/hc/zh-CN/articles/485770964672 &quot;管理员查看企业 AI 功能使用数据&quot;)
+    * [管理员为企业 AI 权益设置限额](https://www.feishu.cn/hc/zh-CN/articles/525309709150 &quot;管理员为企业 AI 权益设置限额&quot;)
+    * [智能纪要用量额度说明](https://www.feishu.cn/hc/zh-CN/articles/808156011479 &quot;智能纪要用量额度说明&quot;)
+    * [管理员设置智能纪要用量额度](https://www.feishu.cn/hc/zh-CN/articles/093642575023 &quot;管理员设置智能纪要用量额度&quot;)
+    * [管理员购买豆包团队或企业订阅](https://www.feishu.cn/hc/zh-CN/articles/431897742854 &quot;管理员购买豆包团队或企业订阅&quot;)
+    * [自助购买飞书 AI 会员](https://www.feishu.cn/hc/zh-CN/articles/234159142166 &quot;自助购买飞书 AI 会员&quot;)
+    * [飞书 AI 会员权益消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/082024280492 &quot;飞书 AI 会员权益消耗规则说明&quot;)
+    * [飞书 AI 会员档位切换说明](https://www.feishu.cn/hc/zh-CN/articles/598372079100 &quot;飞书 AI 会员档位切换说明&quot;)
+    * [自助申请发票](https://www.feishu.cn/hc/zh-CN/articles/392976766891 &quot;自助申请发票&quot;)
+  * [豆包工作](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226260815471509506)
+    * [在飞书中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/282796994123 &quot;在飞书中使用豆包工作&quot;)
+    * [在文档中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/555367856523 &quot;在文档中使用豆包工作&quot;)
+    * [在表格中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/029517254441 &quot;在表格中使用豆包工作&quot;)
+    * [在幻灯片中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/735492278101 &quot;在幻灯片中使用豆包工作&quot;)
+    * [在知识库中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/125492269056 &quot;在知识库中使用豆包工作&quot;)
+    * [设置知识库的豆包工作功能](https://www.feishu.cn/hc/zh-CN/articles/455965510166 &quot;设置知识库的豆包工作功能&quot;)
+  * [飞书 AI 会议](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=6992888128235143170)
+    * [在视频会议中使用智能纪要](https://www.feishu.cn/hc/zh-CN/articles/244959839578 &quot;在视频会议中使用智能纪要&quot;)
+    * [在视频会议中使用 AI 视图](https://www.feishu.cn/hc/zh-CN/articles/092000440742 &quot;在视频会议中使用 AI 视图&quot;)
+    * [使用会议分析](https://www.feishu.cn/hc/zh-CN/articles/236158521772 &quot;使用会议分析&quot;)
+    * [使用声纹识别功能](https://www.feishu.cn/hc/zh-CN/articles/679093019875 &quot;使用声纹识别功能&quot;)
+    * [管理员开通声纹识别功能](https://www.feishu.cn/hc/zh-CN/articles/035469326633 &quot;管理员开通声纹识别功能&quot;)
+  * [豆包工作伙伴](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7337168432045015068)
+    * [快速了解豆包工作伙伴](https://www.feishu.cn/hc/zh-CN/articles/790732948604 &quot;快速了解豆包工作伙伴&quot;)
+  * [更多 AI 场景](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261252366925825)
+    * [多维表格 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/519714421437 &quot;多维表格 AI 功能介绍&quot;)
+    * [文档 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/591605542595 &quot;文档 AI 功能介绍&quot;)
+    * [在表格中使用 AI 写公式](https://www.feishu.cn/hc/zh-CN/articles/329589389553 &quot;在表格中使用 AI 写公式&quot;)
+    * [生态应用 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/240346148861 &quot;生态应用 AI 功能介绍&quot;)
+    * [使用知识问答](https://www.feishu.cn/hc/zh-CN/articles/854453754409 &quot;使用知识问答&quot;)
+    * [在知识问答中上传本地文件](https://www.feishu.cn/hc/zh-CN/articles/710480845694 &quot;在知识问答中上传本地文件&quot;)
+    * [使用 AI 划词工具](https://www.feishu.cn/hc/zh-CN/articles/998919688730 &quot;使用 AI 划词工具&quot;)
+    * [知识问答安全说明](https://www.feishu.cn/hc/zh-CN/articles/961189047591 &quot;知识问答安全说明&quot;)
+
+
+简体中文
+English
+[](javascript:void\(0\);)[](https://weibo.com/u/7223713567)[](https://www.zhihu.com/org/fei-shu-27-96/activities)[](https://www.toutiao.com/c/user/3073831497904140/)[![social](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/d58453d89da34a179ac64a94d4c136f5~tplv-jbbdkfciu3-image:0:0.image)](https://web.okjike.com/u/b02229cb-9242-4a7f-9ec7-8a8cacb2142c)
+Copyright © 2024 北京飞书科技有限公司[京ICP备16045432号-4](https://beian.miit.gov.cn/)[![](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/24fe94f4e7674d41af176c75560f3ba7~tplv-jbbdkfciu3-image:0:0.image) 京公网安备 11010802029085号](http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11010802029085)[增值电信业务经营许可证：京B2-20190249](https://tsm.miit.gov.cn/dxxzsp/)
+rangeDom
+rangeDom</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__lm-feishu-help__r001</code></div><div class="kv"><b>HTTP 状态</b>302</div><div class="kv"><b>最终 URL</b><span class="break">https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据</span></div><div class="kv"><b>输出大小</b>9,048 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>marker-1</code></td><td class="good">命中</td><td>企业 AI</td><td>企业 AI</td></tr><tr><td><code>marker-2</code></td><td class="good">命中</td><td>使用数据</td><td>使用数据</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">企业 AI</span><span class="tag">使用数据</span></p><p><span class="tag">企业 AI</span><span class="tag">使用数据</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7210653076326334492&quot;,
+      &quot;text&quot;: &quot;飞书 AI&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620&quot;,
+      &quot;text&quot;: &quot;AI 用量购买与管理&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://applink.feishu.cn/client/web_url/open?height=480&amp;mode=window&amp;url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44&amp;width=640&quot;,
+      &quot;text&quot;: &quot;联系客服&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://feishu.cn/admin&quot;,
+      &quot;text&quot;: &quot;飞书管理后台&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/525309709150&quot;,
+      &quot;text&quot;: &quot;调整 AI 权益的限额规则&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/265017155035-%E7%AE%A1%E7%90%86%E5%91%98%E8%AE%BE%E7%BD%AE%E6%96%87%E6%A1%A3%E6%9D%83%E9%99%90%E9%BB%98%E8%AE%A4%E5%80%BC&quot;,
+      &quot;text&quot;: &quot;管理员设置文档权限默认值&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261501160685596&quot;,
+      &quot;text&quot;: &quot;快速入门&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/257240089464&quot;,
+      &quot;text&quot;: &quot;快速了解飞书 AI&quot;,
+      &quot;title&quot;: &quot;快速了解飞书 AI&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/146539130003&quot;,
+      &quot;text&quot;: &quot;飞书 AI 用量购买说明&quot;,
+      &quot;title&quot;: &quot;飞书 AI 用量购买说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/629644238181&quot;,
+      &quot;text&quot;: &quot;飞书 AI 版本权益与额度消耗规则说明&quot;,
+      &quot;title&quot;: &quot;飞书 AI 版本权益与额度消耗规则说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/819536981301&quot;,
+      &quot;text&quot;: &quot;飞书 AI 用量套餐权益与额度消耗规则说明&quot;,
+      &quot;title&quot;: &quot;飞书 AI 用量套餐权益与额度消耗规则说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/820986422059&quot;,
+      &quot;text&quot;: &quot;管理员查看企业 AI 权益用量&quot;,
+      &quot;title&quot;: &quot;管理员查看企业 AI 权益用量&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/485770964672&quot;,
+      &quot;text&quot;: &quot;管理员查看企业 AI 功能使用数据&quot;,
+      &quot;title&quot;: &quot;管理员查看企业 AI 功能使用数据&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/808156011479&quot;,
+      &quot;text&quot;: &quot;智能纪要用量额度说明&quot;,
+      &quot;title&quot;: &quot;智能纪要用量额度说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/093642575023&quot;,
+      &quot;text&quot;: &quot;管理员设置智能纪要用量额度&quot;,
+      &quot;title&quot;: &quot;管理员设置智能纪要用量额度&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/431897742854&quot;,
+      &quot;text&quot;: &quot;管理员购买豆包团队或企业订阅&quot;,
+      &quot;title&quot;: &quot;管理员购买豆包团队或企业订阅&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/234159142166&quot;,
+      &quot;text&quot;: &quot;自助购买飞书 AI 会员&quot;,
+      &quot;title&quot;: &quot;自助购买飞书 AI 会员&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/082024280492&quot;,
+      &quot;text&quot;: &quot;飞书 AI 会员权益消耗规则说明&quot;,
+      &quot;title&quot;: &quot;飞书 AI 会员权益消耗规则说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/598372079100&quot;,
+      &quot;text&quot;: &quot;飞书 AI 会员档位切换说明&quot;,
+      &quot;title&quot;: &quot;飞书 AI 会员档位切换说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/392976766891&quot;,
+      &quot;text&quot;: &quot;自助申请发票&quot;,
+      &quot;title&quot;: &quot;自助申请发票&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226260815471509506&quot;,
+      &quot;text&quot;: &quot;豆包工作&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/282796994123&quot;,
+      &quot;text&quot;: &quot;在飞书中使用豆包工作&quot;,
+      &quot;title&quot;: &quot;在飞书中使用豆包工作&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/555367856523&quot;,
+      &quot;text&quot;: &quot;在文档中使用豆包工作&quot;,
+      &quot;title&quot;: &quot;在文档中使用豆包工作&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/029517254441&quot;,
+      &quot;text&quot;: &quot;在表格中使用豆包工作&quot;,
+      &quot;title&quot;: &quot;在表格中使用豆包工作&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/735492278101&quot;,
+      &quot;text&quot;: &quot;在幻灯片中使用豆包工作&quot;,
+      &quot;title&quot;: &quot;在幻灯片中使用豆包工作&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/125492269056&quot;,
+      &quot;text&quot;: &quot;在知识库中使用豆包工作&quot;,
+      &quot;title&quot;: &quot;在知识库中使用豆包工作&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/455965510166&quot;,
+      &quot;text&quot;: &quot;设置知识库的豆包工作功能&quot;,
+      &quot;title&quot;: &quot;设置知识库的豆包工作功能&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=6992888128235143170&quot;,
+      &quot;text&quot;: &quot;飞书 AI 会议&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/244959839578&quot;,
+      &quot;text&quot;: &quot;在视频会议中使用智能纪要&quot;,
+      &quot;title&quot;: &quot;在视频会议中使用智能纪要&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/092000440742&quot;,
+      &quot;text&quot;: &quot;在视频会议中使用 AI 视图&quot;,
+      &quot;title&quot;: &quot;在视频会议中使用 AI 视图&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/236158521772&quot;,
+      &quot;text&quot;: &quot;使用会议分析&quot;,
+      &quot;title&quot;: &quot;使用会议分析&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/679093019875&quot;,
+      &quot;text&quot;: &quot;使用声纹识别功能&quot;,
+      &quot;title&quot;: &quot;使用声纹识别功能&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/035469326633&quot;,
+      &quot;text&quot;: &quot;管理员开通声纹识别功能&quot;,
+      &quot;title&quot;: &quot;管理员开通声纹识别功能&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7337168432045015068&quot;,
+      &quot;text&quot;: &quot;豆包工作伙伴&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/790732948604&quot;,
+      &quot;text&quot;: &quot;快速了解豆包工作伙伴&quot;,
+      &quot;title&quot;: &quot;快速了解豆包工作伙伴&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261252366925825&quot;,
+      &quot;text&quot;: &quot;更多 AI 场景&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/519714421437&quot;,
+      &quot;text&quot;: &quot;多维表格 AI 功能介绍&quot;,
+      &quot;title&quot;: &quot;多维表格 AI 功能介绍&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/591605542595&quot;,
+      &quot;text&quot;: &quot;文档 AI 功能介绍&quot;,
+      &quot;title&quot;: &quot;文档 AI 功能介绍&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/329589389553&quot;,
+      &quot;text&quot;: &quot;在表格中使用 AI 写公式&quot;,
+      &quot;title&quot;: &quot;在表格中使用 AI 写公式&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/240346148861&quot;,
+      &quot;text&quot;: &quot;生态应用 AI 功能介绍&quot;,
+      &quot;title&quot;: &quot;生态应用 AI 功能介绍&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/854453754409&quot;,
+      &quot;text&quot;: &quot;使用知识问答&quot;,
+      &quot;title&quot;: &quot;使用知识问答&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/710480845694&quot;,
+      &quot;text&quot;: &quot;在知识问答中上传本地文件&quot;,
+      &quot;title&quot;: &quot;在知识问答中上传本地文件&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/998919688730&quot;,
+      &quot;text&quot;: &quot;使用 AI 划词工具&quot;,
+      &quot;title&quot;: &quot;使用 AI 划词工具&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.feishu.cn/hc/zh-CN/articles/961189047591&quot;,
+      &quot;text&quot;: &quot;知识问答安全说明&quot;,
+      &quot;title&quot;: &quot;知识问答安全说明&quot;,
+      &quot;base_domain&quot;: &quot;feishu.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;javascript:void(0);&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://weibo.com/u/7223713567&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;weibo.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.zhihu.com/org/fei-shu-27-96/activities&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;zhihu.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.toutiao.com/c/user/3073831497904140/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;toutiao.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://web.okjike.com/u/b02229cb-9242-4a7f-9ec7-8a8cacb2142c&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;okjike.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://beian.miit.gov.cn/&quot;,
+      &quot;text&quot;: &quot;京ICP备16045432号-4&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;miit.gov.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11010802029085&quot;,
+      &quot;text&quot;: &quot;京公网安备 11010802029085号&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;beian.gov.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://tsm.miit.gov.cn/dxxzsp/&quot;,
+      &quot;text&quot;: &quot;增值电信业务经营许可证：京B2-20190249&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;miit.gov.cn&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__lm-feishu-help__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__lm-feishu-help__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__lm-feishu-help__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

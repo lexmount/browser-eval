@@ -1,0 +1,15 @@
+Title: web_fetch - 网页获取 - CowAgent
+
+Content:
+web_fetch - 网页获取 - CowAgentDocumentation IndexFetch the complete documentation index at: /llms.txtUse this file to discover all available pages before exploring further.Skip to main contentCowAgent home page简体中文Search...⌘K官网下载博客GitHub搜索...Navigation内置工具web_fetch - 网页获取项目介绍快速开始模型工具技能记忆知识通道命令多 Agent版本工具系统工具概览内置工具read - 文件读取write - 文件写入edit - 文件编辑ls - 目录列表search_files - 文件搜索bash - 终端send - 文件发送memory - 记忆与知识env_config - 环境变量web_fetch - 网页获取scheduler - 定时任务可选工具web_search - 联网搜索vision - 图片理解browser - 浏览器MCP 工具MCP 工具在此页面参数支持的文件类型使用场景内置工具web_fetch - 网页获取获取网页或文档内容获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。
+​参数
+参数类型必填说明urlstring是HTTP/HTTPS URL（网页或文档链接）
+​支持的文件类型
+类型格式PDF.pdfWord.docx文本.txt、.md、.csv、.log表格.xls、.xlsx演示文稿.ppt、.pptx
+​使用场景
+
+获取网页的文本内容
+下载并解析远程文档
+获取 API 响应内容
+
+web_fetch 只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用 browser 工具。env_config - 环境变量scheduler - 定时任务github技术支持This documentation is built and hosted on Mintlify, a developer documentation platform

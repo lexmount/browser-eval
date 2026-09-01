@@ -30,6 +30,18 @@ ACCOUNT_REGISTRY: list[dict[str, Any]] = [
         "steps": "注册账号，打开 Firecrawl 控制台 API Keys 页面，创建以 fc- 开头的 key。",
     },
     {
+        "id": "lexmount-cn",
+        "provider": "Lexmount 中国区",
+        "priority": "A · 核心评测",
+        "registration_url": "https://browser.lexmount.cn/",
+        "key_url": "https://browser.lexmount.cn/",
+        "env_vars": ["LEXMOUNT_CN_API_KEY", "LEXMOUNT_CN_PROJECT_ID"],
+        "required": True,
+        "implemented": True,
+        "free_note": "API key 与 Project ID 必须来自同一个中国区项目。",
+        "steps": "登录中国区控制台，复制同一项目下的 API key 与 Project ID；本评测使用 api.lexmount.cn。",
+    },
+    {
         "id": "tavily",
         "provider": "Tavily Extract",
         "priority": "B · 已知 URL 抽取",

@@ -24,6 +24,8 @@ class EvalCase:
     human_review_checklist: list[str] = field(default_factory=list)
     source_benchmark: dict[str, Any] = field(default_factory=dict)
     ground_truth_main_content: str = ""
+    expected_resources: list[dict[str, Any]] = field(default_factory=list)
+    content_score_applicable: bool = True
 
 
 @dataclass

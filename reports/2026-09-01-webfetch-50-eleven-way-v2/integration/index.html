@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>集成决策</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">基于实测证据的集成</div><h1>接入 CowAgent 与其它 Agent 的最小可用路径</h1><p class="lead">CowAgent 当前是仓库内置 HTTP + 文本/文档解析，不依赖外部 Web Fetch 供应商。接入点应在现有 <code>WebFetch</code> 类内部，通过 provider 配置切换，模型仍只看到一个 <code>web_fetch</code>。</p></div></section><section class="section"><div class="wrap"><h2>建议路由原则</h2><pre>known public URL  -&gt; one stable web_fetch tool; provider chosen by policy
+PDF/document       -&gt; route only to a method that passes the PDF ground truth
+JavaScript page    -&gt; route only to a rendering-capable method that passes the JS case
+login/interaction  -&gt; browser tool, never lightweight Web Fetch
+search query       -&gt; web_search first, then web_fetch selected result URLs</pre><div class="callout">具体默认 provider 必须以本报告“结果分析”和逐案例事实覆盖率为准。认证失败的方法不能被判为产品能力失败，也不能在修复凭据前获得人工补分。</div></div></section><section class="section"><div class="wrap"><h2>CowAgent 实现细节</h2><ol><li>保留现有 URL scheme 与 SSRF 检查，再调用供应商。</li><li>凭据只从环境配置读取；不进入 tool schema、artifact 或模型上下文。</li><li>Global rollout 只调用 <code>https://api.lexmount.com/v1/extract</code>，401 不跨域重试。</li><li>区分 authentication、rate_limit、upstream、content failure；HTTP 200 空正文不能算成功。</li><li>fallback 同时记录 primary 与 fallback 的耗时、费用和 trace，否则指标会被隐藏。</li></ol></div></section><section class="section"><div class="wrap"><h2>跨 Agent 稳定契约</h2><pre>{
+  &quot;name&quot;: &quot;web_fetch&quot;,
+  &quot;input&quot;: {&quot;url&quot;: &quot;https://example.com&quot;},
+  &quot;output&quot;: {
+    &quot;title&quot;: &quot;Example Domain&quot;,
+    &quot;content&quot;: &quot;...&quot;,
+    &quot;final_url&quot;: &quot;https://example.com/&quot;,
+    &quot;provider&quot;: &quot;lexmount-global&quot;,
+    &quot;trace_id&quot;: &quot;...&quot;
+  }
+}</pre><p class="sub"><code>web_search(query)</code> 负责发现 URL，<code>web_fetch(url)</code> 负责读取正文，browser 负责点击、登录和交互。供应商变化不应制造新的模型可见同义工具。</p></div></section></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

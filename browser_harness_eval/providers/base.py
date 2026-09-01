@@ -35,7 +35,7 @@ def build_provider(name: str, config: dict[str, Any]) -> Provider:
         from .cowagent import CowAgentBuiltinProvider
 
         return CowAgentBuiltinProvider(name, config)
-    if provider_type == "lexmount":
+    if provider_type in {"lexmount", "lexmount_cn"}:
         from .lexmount import LexmountProvider
 
         return LexmountProvider(name, config)

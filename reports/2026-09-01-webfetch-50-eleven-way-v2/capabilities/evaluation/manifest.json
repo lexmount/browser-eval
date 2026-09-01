@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "tool": "web_fetch",
+  "started_at": "2026-09-01T06:55:06.673318+00:00",
+  "dataset": {
+    "id": "webfetch-file-media-v2",
+    "name": "Web Fetch 文件与媒体能力评测集",
+    "source": "/private/tmp/browser-harness-eval/datasets/file_media_capabilities.json",
+    "case_count": 8
+  },
+  "providers": [
+    {
+      "name": "cloudflare-markdown",
+      "type": "cloudflare_markdown",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "cowagent-built-in",
+      "type": "cowagent_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "crawl4ai",
+      "type": "crawl4ai",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "deepseek-harness-built-in",
+      "type": "deepseek_harness_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "exa-resources",
+      "type": "exa_contents",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "firecrawl-resources",
+      "type": "firecrawl",
+      "min_interval_seconds": 6.1
+    },
+    {
+      "name": "langchain-webbase",
+      "type": "langchain_webbase",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-cn",
+      "type": "lexmount_cn",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-global",
+      "type": "lexmount",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "openclaw-built-in",
+      "type": "openclaw_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "tavily-resources",
+      "type": "tavily_extract",
+      "min_interval_seconds": 0.0
+    }
+  ],
+  "parameters": {
+    "runs": 1,
+    "timeout": 45.0,
+    "delay": 0.0
+  },
+  "environment": {
+    "python": "3.13.3",
+    "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O",
+    "hostname": "8yg55-7.local"
+  },
+  "provider_config_source": "/private/tmp/browser-harness-eval/configs/providers.example.json",
+  "completed_at": "2026-09-01T06:59:30.285897+00:00",
+  "attempt_count": 88,
+  "derived_from": {
+    "runs": [
+      "runs/2026-09-01-file-media-eleven-way-v2",
+      "runs/2026-09-01-cowagent-file-media-system-v2",
+      "runs/2026-09-01-file-media-oss-venv-v2"
+    ],
+    "reason": "merge independently preserved complete provider runs; later runs replace duplicate providers"
+  },
+  "rescored_at": "2026-09-01T07:22:54.881339+00:00"
+}

@@ -49,7 +49,7 @@ from `~/.env` by default; override with `WEBFETCH_SMOKE_ENV_FILE=/path/to/.env`.
 ```bash
 ./scripts/run_webfetch_eval.sh \
   --env-file ~/.env \
-  --providers cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown \
+  --providers cowagent-built-in,lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown \
   --runs 3 \
   --timeout 45 \
   --delay 1 \
@@ -61,15 +61,13 @@ calculates metrics and creates the report. Only Cloudflare `/markdown` is tested
 it matches the readable-content contract. `/content` returns full rendered HTML
 and is deliberately excluded from this Web Fetch comparison.
 
-The example Cloudflare configuration applies a 10.5-second cooldown after each
-completed response. A 2026-09-01 retest with the updated Free account completed
-23 requests before HTTP 429 responses returned `Retry-After: 65255` seconds.
-Because the requests were already completion-paced, this is evidence of a
-long-period Browser Rendering account quota rather than a simple QPS limit.
-The checked-in ten-method report therefore uses the earlier complete 50-case
-Cloudflare run and records the newer quota incident separately; repeatedly
-retrying the same exhausted account would not finish the evaluation. Client
-waiting time is recorded separately and is excluded from content latency.
+Cloudflare account plans are recorded as execution-environment evidence. A Free
+account retest still hit a long-period quota after a 10.5-second completion
+cooldown (`Retry-After: 65255`), so short delays could not fix it. After the
+account was upgraded, an unthrottled 10-case smoke passed 10/10 and a complete
+50-case run produced zero HTTP 429 responses. The example registry therefore no
+longer applies a Cloudflare client cooldown; the checked-in report uses the paid
+run and retains the Free incident as historical evidence.
 
 Firecrawl Free documents 10 `/scrape` requests per minute. The example registry
 therefore also applies a 6.1-second completion cooldown. Higher paid plans should
@@ -77,8 +75,8 @@ override these values to match their documented team-level limits; pacing is
 part of the account environment, not a supplier content-quality score.
 
 For a complete new-environment run, use the one-command reproducer. It validates
-credentials, runs the frozen dataset, builds the multi-page report and checks
-all local links:
+credentials, runs the frozen 50-page dataset and the separate file/media
+dataset, builds the multi-page report and checks all local links:
 
 ```bash
 COWAGENT_REPO=/path/to/CowAgent \
@@ -89,11 +87,13 @@ COWAGENT_REPO=/path/to/CowAgent \
 By default this also installs and executes the real OpenClaw, DeepSeek Harness,
 LangChain WebBaseLoader and Crawl4AI implementations. OpenClaw is run with Node
 24.15.0 because the measured checkout rejects older Node 24 SQLite builds.
-Set `WEBFETCH_INCLUDE_OSS=0` only when intentionally running the six managed or
+Set `WEBFETCH_INCLUDE_OSS=0` only when intentionally running the seven managed or
 built-in methods. Override checkout locations with `OPENCLAW_REPO`,
 `DEEPSEEK_HARNESS_REPO` and `CRAWL4AI_REPO`.
 
 Set `WEBFETCH_RUN_SMOKE=1` to run the real smoke suite first. The script
+sets `WEBFETCH_RUN_FILE_MEDIA=0` only when intentionally skipping the document
+and resource leaderboard. The script
 reproduces the process and report structure; live website/service responses and
 latencies are time-dependent. Rebuild an already persisted run byte-for-byte
 without making network calls:
@@ -117,6 +117,7 @@ The example provider registry reads these optional environment variables:
 | Provider | Required variables | Notes |
 |---|---|---|
 | Lexmount Global | `LEXMOUNT_API_KEY`, `LEXMOUNT_PROJECT_ID` | This harness uses `api.lexmount.com` only |
+| Lexmount CN | `LEXMOUNT_CN_API_KEY`, `LEXMOUNT_CN_PROJECT_ID` | Separate method using `api.lexmount.cn`; never falls back across regions |
 | Firecrawl | `FIRECRAWL_API_KEY` | Limited anonymous calls may work; production evaluation should use an account |
 | Tavily Extract | `TAVILY_API_KEY` | Known-URL Markdown/plain-text extraction |
 | Exa Contents | `EXA_API_KEY` | Known-URL contents; config forces live crawl with `max_age_hours: 0` |
@@ -143,13 +144,13 @@ The same registry is rendered at `report/accounts/index.html` in every report.
 ## Report structure
 
 The checked-in reference run is
-[`reports/2026-09-01-webfetch-50-ten-way/index.html`](reports/2026-09-01-webfetch-50-ten-way/index.html).
-It contains 50 frozen cases × 10 methods = 500 attempts, raw artifacts, machine
+[`reports/2026-09-01-webfetch-50-eleven-way-v2/index.html`](reports/2026-09-01-webfetch-50-eleven-way-v2/index.html).
+It contains 50 frozen cases × 11 methods = 550 attempts, raw artifacts, machine
 verdicts, case-local HIL controls and derived-run provenance. A separate
-[`file/media capability report`](reports/2026-09-01-file-media-final/index.html)
-shows direct PDF, DOCX, TXT, PNG, MP4 and embedded-media behavior. The report
-distinguishes readable-text extraction, resource links/metadata and original
-binary download; binary bytes decoded as text are failures, not support.
+document/resource section is embedded under `capabilities/` and includes its
+own 88 persisted attempts. It distinguishes document text, verified resource
+links, media discovery and original binary download; binary bytes decoded as
+text are failures, not support.
 
 Every run produces a portable directory:
 
@@ -167,7 +168,7 @@ runs/<run-id>/
     ├── methodology/index.html     # fairness, Cloudflare endpoint choice, judging protocol
     ├── providers/                 # one detail page per method
     ├── analysis/index.html        # ranking, filters and case-level HIL entry points
-    ├── capabilities/index.html    # file/media three-layer capability matrix
+    ├── capabilities/index.html    # document text, document links, media resources and source-file tracks
     ├── execution/index.html       # exact reproduction and incident runbook
     ├── metrics/index.html         # formal metric contract
     ├── market/index.html          # direct vs adjacent supplier capability boundary

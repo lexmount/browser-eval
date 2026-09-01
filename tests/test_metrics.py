@@ -1,6 +1,6 @@
 import unittest
 
-from browser_harness_eval.metrics import evaluate_content, normalize_for_match, summarize, word_overlap
+from browser_harness_eval.metrics import evaluate_content, evaluate_resources, normalize_for_match, summarize, word_overlap
 
 
 class MetricsTest(unittest.TestCase):
@@ -59,6 +59,29 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(item["failure_types"], {"content_validation_failure": 1})
         self.assertEqual(item["p50_ms"], 100)
         self.assertEqual(item["transport_p95_ms"], 900)
+
+    def test_resource_discovery_uses_returned_urls_not_request_url(self) -> None:
+        expected = [{
+            "id": "video-mp4",
+            "kind": "video",
+            "urls": ["rabbit320.mp4"],
+            "mime_types": ["video/mp4"],
+        }]
+        absent = evaluate_resources("", {}, expected, base_url="https://example.test/page.html")
+        self.assertEqual(absent["resource_recall"], 0.0)
+        present = evaluate_resources(
+            "[fallback](rabbit320.mp4)",
+            {"media": {"videos": [{"src": "./rabbit320.mp4"}]}},
+            expected,
+            base_url="https://example.test/page.html",
+        )
+        self.assertEqual(present["resource_recall"], 1.0)
+        self.assertEqual(present["resource_results"][0]["matched_urls"], ["https://example.test/rabbit320.mp4"])
+        failed = evaluate_resources(
+            'error for https://example.test/rabbit320.mp4', {}, expected,
+            base_url="https://example.test/page.html", eligible=False,
+        )
+        self.assertEqual(failed["resource_recall"], 0.0)
 
 
 if __name__ == "__main__":

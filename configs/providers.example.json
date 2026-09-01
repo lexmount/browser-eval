@@ -21,10 +21,26 @@
       "project_id": "${LEXMOUNT_PROJECT_ID}",
       "max_bytes": 20000000
     },
+    "lexmount-cn": {
+      "type": "lexmount_cn",
+      "base_url": "https://api.lexmount.cn",
+      "api_key": "${LEXMOUNT_CN_API_KEY}",
+      "project_id": "${LEXMOUNT_CN_PROJECT_ID}",
+      "max_bytes": 20000000
+    },
     "firecrawl": {
       "type": "firecrawl",
       "base_url": "https://api.firecrawl.dev",
       "api_key": "${FIRECRAWL_API_KEY:-}",
+      "max_age": 0,
+      "max_bytes": 20000000,
+      "min_interval_seconds": 6.1
+    },
+    "firecrawl-resources": {
+      "type": "firecrawl",
+      "base_url": "https://api.firecrawl.dev",
+      "api_key": "${FIRECRAWL_API_KEY:-}",
+      "formats": ["markdown", "links", "images"],
       "max_age": 0,
       "max_bytes": 20000000,
       "min_interval_seconds": 6.1
@@ -36,10 +52,26 @@
       "extract_depth": "basic",
       "max_bytes": 20000000
     },
+    "tavily-resources": {
+      "type": "tavily_extract",
+      "base_url": "https://api.tavily.com",
+      "api_key": "${TAVILY_API_KEY}",
+      "extract_depth": "basic",
+      "include_images": true,
+      "max_bytes": 20000000
+    },
     "exa": {
       "type": "exa_contents",
       "base_url": "https://api.exa.ai",
       "api_key": "${EXA_API_KEY}",
+      "max_age_hours": 0,
+      "max_bytes": 20000000
+    },
+    "exa-resources": {
+      "type": "exa_contents",
+      "base_url": "https://api.exa.ai",
+      "api_key": "${EXA_API_KEY}",
+      "include_resource_links": true,
       "max_age_hours": 0,
       "max_bytes": 20000000
     },
@@ -48,8 +80,7 @@
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000,
-      "wait_until": "networkidle2",
-      "min_interval_seconds": 10.5
+      "wait_until": "networkidle2"
     },
     "cloudflare-content": {
       "type": "cloudflare_content",
