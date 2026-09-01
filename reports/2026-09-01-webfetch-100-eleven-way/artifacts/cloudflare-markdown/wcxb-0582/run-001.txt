@@ -1,0 +1,13 @@
+---
+title: "Vercel Security Checkpoint"
+---
+
+We're verifying your browser
+
+[Website owner? Click here to fix](https://vercel.link/security-checkpoint)
+
+Vercel Security Checkpoint
+
+|
+
+pdx1::1788252048-1v2Ar3ycBMw71AzHn1JvdRPXLeuWRPLi

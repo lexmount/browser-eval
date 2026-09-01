@@ -21,14 +21,23 @@ class GroundTruthTest(unittest.TestCase):
                 self.assertTrue(fact.get("id"), case.id)
                 self.assertTrue(fact.get("alternatives"), f"{case.id}/{fact.get('id')}")
 
-    def test_expanded_suite_has_fifty_stratified_cases(self) -> None:
-        metadata, cases = load_dataset(Path("datasets/public_webfetch_50.json"))
-        self.assertEqual(len(cases), 50)
-        self.assertEqual(len({case.id for case in cases}), 50)
-        self.assertEqual(sum(case.id.startswith("wcxb-") for case in cases), 28)
+    def test_expanded_suite_has_one_hundred_webpage_cases(self) -> None:
+        metadata, cases = load_dataset(Path("datasets/public_webfetch_100.json"))
+        self.assertEqual(metadata["id"], "public-webfetch-v5.0-100-hil")
+        self.assertTrue(metadata["policy"]["webpage_only"])
+        self.assertEqual(len(cases), 100)
+        self.assertEqual(len({case.id for case in cases}), 100)
+        self.assertEqual(sum(case.id.startswith("wcxb-") for case in cases), 79)
         self.assertEqual(sum(case.id.startswith("lm-") for case in cases), 12)
+        self.assertEqual(sum(not case.id.startswith(("wcxb-", "lm-")) for case in cases), 9)
         for case in cases:
+            self.assertNotIn(case.category, {"pdf", "document_pdf", "document_docx", "document_txt", "media_image", "media_video"})
             self.assertGreaterEqual(len(case.required_facts), 2, case.id)
+            normalized_facts = [
+                tuple(" ".join(value.split()).casefold() for value in fact["alternatives"])
+                for fact in case.required_facts
+            ]
+            self.assertEqual(len(normalized_facts), len(set(normalized_facts)), case.id)
             self.assertTrue(case.reference_answer, case.id)
             self.assertGreaterEqual(len(case.human_review_checklist), 3, case.id)
 

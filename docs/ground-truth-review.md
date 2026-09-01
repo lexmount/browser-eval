@@ -1,11 +1,12 @@
 # 标准答案与人工复核协议
 
-Dataset: `public-webfetch-v4.0-50-hil`
+Dataset: `public-webfetch-v5.0-100-hil`
 
 Review date: 2026-09-01
 
-Sources: 10 条 Codex 首轮人工核心题；28 条 WCXB 固定提交人工复核答案；12 条
-`lightmount-dark` 渲染质量种子及本项目新增事实组。
+Sources: 9 条 Codex 首轮人工核心网页题；79 条 WCXB 固定提交人工复核答案；12 条
+`lightmount-dark` 渲染质量种子及本项目新增事实组。PDF、DOCX、TXT、图片和视频直链
+放在独立能力集，不混入网页正文主榜。
 
 标准答案在供应商评分之前冻结。事实来自源网页，不从任何参评供应商输出反推。
 每个案例包含完整题目、参考答案、事实组、错误页标记、源页面证据和人工检查清单。
@@ -14,7 +15,7 @@ Sources: 10 条 Codex 首轮人工核心题；28 条 WCXB 固定提交人工复�
 
 - 普通 HTML 与重定向：核对源页面文本和最终目标正文；
 - JavaScript 案例：核对执行脚本后的 DOM；
-- PDF 案例：核对 15 页 arXiv PDF 的标题、作者、Transformer 与 Scaled Dot-Product Attention；
+- 直接文件案例：在独立文档与资源能力集中核对正文、资源链接及原始文件；
 - 产品文档：核对已发布的 CowAgent 与 Lexmount 文档；
 - GitHub：核对默认分支 README。
 
@@ -24,7 +25,7 @@ copy of each page. A content pass requires all registered facts, a minimum
 length and no registered error/challenge marker.
 
 这是首轮单人标注，不声称绝对正确。对外营销或采购使用前，第二位复核者必须在
-`report/review/index.html` 进入每条调用页，并排阅读题目、参考答案和供应商完整输出，
+`report/analysis/index.html` 进入具体案例和调用页，并排阅读题目、参考答案和供应商完整输出，
 独立给出正确性、完整性、可读性和最终结论。任何标准答案修改都必须升级数据集版本并
 重跑全部方法。
 

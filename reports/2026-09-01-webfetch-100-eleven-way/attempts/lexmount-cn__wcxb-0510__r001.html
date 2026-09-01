@@ -1,0 +1,479 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-cn__wcxb-0510__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-cn</div><h1>WCXB forum · Deploy failed for unknown reason</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">4,158 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 forum 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253">https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>tinterweb
+April 26, 2024, 6:28am
+
+Subject: Deploy failed for unknown reason
+
+All of a suddent the deployment for the following site https://karinagrantmarketing.netlify.app/ has stopped deploying, the build passes but when it gets to the deployment stage it shows
+
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+
+A bit of past history as we saw this error here back in February
+
+When this happened in February I changed the node version in this (AWS_LAMBDA_JS_RUNTIME) envionrment variable.
+
+I thought this had fixed the issue as it then started to build.
+
+The issue came back and now I am a loss of what could be causing it, maybe a timeout or size of the build is too big.
+
+Here is the build log which passes.
+
+6:51:42 AM: Netlify Build
+6:51:42 AM: ────────────────────────────────────────────────────────────────
+6:51:42 AM: Version
+6:51:42 AM: @netlify/build 29.41.1
+6:51:42 AM: Flags
+6:51:42 AM: baseRelDir: true
+6:51:42 AM: buildId: 662b40a08b83d4726825275b
+6:51:42 AM: deployId: 662b40a08b83d4726825275d
+6:51:42 AM: Current directory
+6:51:42 AM: /opt/build/repo/gatsby
+6:51:42 AM: Config file
+6:51:42 AM: /opt/build/repo/gatsby/netlify.toml
+6:51:42 AM: Context
+6:51:42 AM: production
+
+Please can anyone shed any light on what may be causing it?
+
+Thanks in advance for any help you can offer here. We are at a loss and are unable to make any changes to the site.
+
+nathanmartin
+April 26, 2024, 7:23am
+
+I&#x27;m confused.
+
+If I&#x27;m reading your post correctly, you&#x27;ve mostly supplied a portion of a previous build log where the build succeeded? But only the &quot;end result message&quot; of the one that failed?
+
+tinterweb
+April 26, 2024, 12:09pm
+
+Hi @nathanmartin
+
+Apologies i thought I added this. Here is the deploy message
+
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+
+Thanks for your help.
+Simon
+
+nathanmartin
+April 26, 2024, 12:42pm
+
+@tinterweb That&#x27;s effectively only the end result, it doesn&#x27;t reveal any useful indication of &quot;why it happened&quot;.
+
+That information may be elsewhere in the log.
+
+It&#x27;s why the instructions for the forum indicate you should provide full build logs.
+
+tinterweb
+April 26, 2024, 1:52pm
+
+Thanks @nathanmartin below is the full log.
+
+There is nothing useful at all that tells me what&#x27;s causing the failed deploy.
+
+When this started all that was changed was a template change. No npm updates or node version changes. I have tried deploying and clearing the cache but nothing.
+
+Could it be the build is too large?
+
+Initializing
+Complete
+6:50:37 AM: build-image version: 3d3c7e8b4321e2c1a54a2c4584fb46ba742b1630 (focal)
+6:50:37 AM: buildbot version: d85d718afb4cfc1d31fb4837470daa2b526f928f
+6:50:37 AM: Building without cache
+6:50:37 AM: Starting to prepare the repo for build
+6:50:37 AM: No cached dependencies found. Cloning fresh repo
+6:50:37 AM: git clone --filter=blob:none https://github.com/tinterweb/karinagrant
+6:50:38 AM: Preparing Git Reference refs/heads/main
+6:50:48 AM: Custom build path detected. Proceeding with the specified path: &#x27;gatsby&#x27;
+6:50:48 AM: Custom publish path detected. Proceeding with the specified path: &#x27;gatsby/public&#x27;
+6:50:48 AM: Custom functions path detected. Proceeding with the specified path: &#x27;gatsby/functions&#x27;
+6:50:48 AM: Custom edge functions path detected. Proceeding with the specified path: &#x27;gatsby/netlify/edge-functions&#x27;
+6:50:48 AM: Custom build command detected. Proceeding with the specified command: &#x27;npm run build &amp;&amp; cp _redirects public/_redirects&#x27;
+6:50:49 AM: Starting to install dependencies
+6:50:49 AM: Python version set to 3.8
+6:50:49 AM: Attempting Ruby version 2.7.2, read from environment
+6:50:50 AM: Using Ruby version 2.7.2
+6:50:51 AM: Installing Go version 1.14.4 (requested 1.14.4)
+6:50:54 AM: go version go1.14.4 linux/amd64
+6:50:55 AM: Using PHP version 8.0
+6:50:56 AM: Attempting Node.js version &#x27;14.15.0&#x27; from .nvmrc
+6:50:56 AM: Downloading and installing node v14.15.0...
+6:50:58 AM: Now using node v14.15.0 (npm v6.14.8)
+6:50:59 AM: No npm workspaces detected
+6:50:59 AM: Installing npm packages using npm version 6.14.8
+6:51:38 AM: added 2971 packages from 1312 contributors and audited 2984 packages in 38.759s
+6:51:39 AM: found 457 vulnerabilities (13 low, 263 moderate, 151 high, 30 critical)
+6:51:39 AM: npm packages installed
+6:51:40 AM: Successfully installed dependencies
+6:51:40 AM: Starting build script
+6:51:41 AM: Detected 1 framework(s)
+6:51:41 AM: &quot;gatsby&quot; at version &quot;2.32.13&quot;
+6:51:41 AM: Section completed: initializing
+Building
+Complete
+Deploying
+Failed
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+Cleanup
+Skipped
+Post-processing
+Skipped
+
+sid.m
+April 26, 2024, 6:19pm
+
+The build is failing because you&#x27;re using an unsupported version of node for functions - please refer to this guide for how to upgrade that version:
+
+End of support for Node.js 16 in Netlify Functions: Everything you need to know
+
+Node.js version 16 reached End of Life (EOL) on September 11, 2023. Netlify Functions will stop supporting serverless function deploys using Node.js 16 on April 25, 2024.
+
+Who is impacted?
+You will be impacted if you have explicitly set the AWS_LAMBDA_JS_RUNTIME environment variable to nodejs16.x.
+If you keep the environment variable set to nodejs16.x and deploy any changes to your existing functions on or after April 25, 2024, your build will fail.
+
+tinterweb
+April 30, 2024, 5:09am
+
+Thanks @sid.m this fixed it.</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-cn/wcxb-0510/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253">打开标准答案源网页</a> · 完整性校验 <code>sha256:a3ccea39837a4bd299266799d693a46df4c367ebe8f1ccd2b4dff0c668a75d83</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>tinterweb
+April 26, 2024, 6:28am
+
+Subject: Deploy failed for unknown reason
+
+All of a suddent the deployment for the following site https://karinagrantmarketing.netlify.app/ has stopped deploying, the build passes but when it gets to the deployment stage it shows
+
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+
+A bit of past history as we saw this error here back in February
+
+When this happened in February I changed the node version in this (AWS_LAMBDA_JS_RUNTIME) envionrment variable.
+
+I thought this had fixed the issue as it then started to build.
+
+The issue came back and now I am a loss of what could be causing it, maybe a timeout or size of the build is too big.
+
+Here is the build log which passes.
+
+6:51:42 AM: Netlify Build
+6:51:42 AM: ────────────────────────────────────────────────────────────────
+6:51:42 AM: Version
+6:51:42 AM: @netlify/build 29.41.1
+6:51:42 AM: Flags
+6:51:42 AM: baseRelDir: true
+6:51:42 AM: buildId: 662b40a08b83d4726825275b
+6:51:42 AM: deployId: 662b40a08b83d4726825275d
+6:51:42 AM: Current directory
+6:51:42 AM: /opt/build/repo/gatsby
+6:51:42 AM: Config file
+6:51:42 AM: /opt/build/repo/gatsby/netlify.toml
+6:51:42 AM: Context
+6:51:42 AM: production
+
+Please can anyone shed any light on what may be causing it?
+
+Thanks in advance for any help you can offer here. We are at a loss and are unable to make any changes to the site.
+
+nathanmartin
+April 26, 2024, 7:23am
+
+I&#x27;m confused.
+
+If I&#x27;m reading your post correctly, you&#x27;ve mostly supplied a portion of a previous build log where the build succeeded? But only the &quot;end result message&quot; of the one that failed?
+
+tinterweb
+April 26, 2024, 12:09pm
+
+Hi @nathanmartin
+
+Apologies i thought I added this. Here is the deploy message
+
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+
+Thanks for your help.
+Simon
+
+nathanmartin
+April 26, 2024, 12:42pm
+
+@tinterweb That&#x27;s effectively only the end result, it doesn&#x27;t reveal any useful indication of &quot;why it happened&quot;.
+
+That information may be elsewhere in the log.
+
+It&#x27;s why the instructions for the forum indicate you should provide full build logs.
+
+tinterweb
+April 26, 2024, 1:52pm
+
+Thanks @nathanmartin below is the full log.
+
+There is nothing useful at all that tells me what&#x27;s causing the failed deploy.
+
+When this started all that was changed was a template change. No npm updates or node version changes. I have tried deploying and clearing the cache but nothing.
+
+Could it be the build is too large?
+
+Initializing
+Complete
+6:50:37 AM: build-image version: 3d3c7e8b4321e2c1a54a2c4584fb46ba742b1630 (focal)
+6:50:37 AM: buildbot version: d85d718afb4cfc1d31fb4837470daa2b526f928f
+6:50:37 AM: Building without cache
+6:50:37 AM: Starting to prepare the repo for build
+6:50:37 AM: No cached dependencies found. Cloning fresh repo
+6:50:37 AM: git clone --filter=blob:none https://github.com/tinterweb/karinagrant
+6:50:38 AM: Preparing Git Reference refs/heads/main
+6:50:48 AM: Custom build path detected. Proceeding with the specified path: &#x27;gatsby&#x27;
+6:50:48 AM: Custom publish path detected. Proceeding with the specified path: &#x27;gatsby/public&#x27;
+6:50:48 AM: Custom functions path detected. Proceeding with the specified path: &#x27;gatsby/functions&#x27;
+6:50:48 AM: Custom edge functions path detected. Proceeding with the specified path: &#x27;gatsby/netlify/edge-functions&#x27;
+6:50:48 AM: Custom build command detected. Proceeding with the specified command: &#x27;npm run build &amp;&amp; cp _redirects public/_redirects&#x27;
+6:50:49 AM: Starting to install dependencies
+6:50:49 AM: Python version set to 3.8
+6:50:49 AM: Attempting Ruby version 2.7.2, read from environment
+6:50:50 AM: Using Ruby version 2.7.2
+6:50:51 AM: Installing Go version 1.14.4 (requested 1.14.4)
+6:50:54 AM: go version go1.14.4 linux/amd64
+6:50:55 AM: Using PHP version 8.0
+6:50:56 AM: Attempting Node.js version &#x27;14.15.0&#x27; from .nvmrc
+6:50:56 AM: Downloading and installing node v14.15.0...
+6:50:58 AM: Now using node v14.15.0 (npm v6.14.8)
+6:50:59 AM: No npm workspaces detected
+6:50:59 AM: Installing npm packages using npm version 6.14.8
+6:51:38 AM: added 2971 packages from 1312 contributors and audited 2984 packages in 38.759s
+6:51:39 AM: found 457 vulnerabilities (13 low, 263 moderate, 151 high, 30 critical)
+6:51:39 AM: npm packages installed
+6:51:40 AM: Successfully installed dependencies
+6:51:40 AM: Starting build script
+6:51:41 AM: Detected 1 framework(s)
+6:51:41 AM: &quot;gatsby&quot; at version &quot;2.32.13&quot;
+6:51:41 AM: Section completed: initializing
+Building
+Complete
+Deploying
+Failed
+6:58:36 AM: Deploy site
+6:58:36 AM: ────────────────────────────────────────────────────────────────
+6:58:36 AM:
+6:58:36 AM: Starting to deploy site from &#x27;gatsby/public&#x27;
+6:58:37 AM: Calculating files to upload
+6:58:37 AM: Execution cancelled
+6:58:37 AM: Failing build: Failed to build site
+Cleanup
+Skipped
+Post-processing
+Skipped
+
+sid.m
+April 26, 2024, 6:19pm
+
+The build is failing because you&#x27;re using an unsupported version of node for functions - please refer to this guide for how to upgrade that version:
+
+End of support for Node.js 16 in Netlify Functions: Everything you need to know
+
+Node.js version 16 reached End of Life (EOL) on September 11, 2023. Netlify Functions will stop supporting serverless function deploys using Node.js 16 on April 25, 2024.
+
+Who is impacted?
+You will be impacted if you have explicitly set the AWS_LAMBDA_JS_RUNTIME environment variable to nodejs16.x.
+If you keep the environment variable set to nodejs16.x and deploy any changes to your existing functions on or after April 25, 2024, your build will fail.
+
+tinterweb
+April 30, 2024, 5:09am
+
+Thanks @sid.m this fixed it.</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Deploy failed for unknown reason - Support - Netlify Support Forums</pre></div></div><details><summary>展开本页中的完整供应商输出（67 / 67 字符）</summary><pre>Deploy failed for unknown reason - Support - Netlify Support Forums</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-cn__wcxb-0510__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253</span></div><div class="kv"><b>输出大小</b>67 字符</div><div class="kv"><b>事实覆盖率</b>0.0%</div><div class="kv"><b>最小长度</b>未通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="bad">未命中</td><td>All of a suddent the deployment for the following site https://karinagrantmarketing.netlify.app/ has stopped deploying</td><td>—</td></tr><tr><td><code>required-2</code></td><td class="bad">未命中</td><td>6:58:37 AM: Execution cancelled</td><td>—</td></tr><tr><td><code>required-3</code></td><td class="bad">未命中</td><td>When this happened in February I changed the node version in this (AWS_LAMBDA_JS_RUNTIME) envionrment variable.</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Deploy failed for unknown reason</span><span class="tag">All of a suddent the deployment for the following site https://karinagrantmarketing.netlify.app/ has stopped deploying</span></p><p><span class="tag">Deploy failed for unknown reason</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;9fbdb2c4-31d8-413f-8905-445f76aff5b7&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 3637,
+  &quot;dom_id&quot;: &quot;320938&quot;,
+  &quot;links_count&quot;: 33,
+  &quot;images_count&quot;: 4,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;Netlify Support Forums&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Home&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Updates&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/c/features/updates/51&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Support&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/c/netlify-support/48&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Categories&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/categories&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Guidelines&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/guidelines&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Privacy Policy&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/privacy&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Deploy failed for unknown reason&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/deploy-failed-for-unknown-reason/117253#p-259156-who-is-impacted-1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Deploy failed Production: master@HEAD&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/deploy-failed-production-master-head/17315&quot;
+    },
+    {
+      &quot;text&quot;: &quot;End of support for Node.js 16 in Netlify Functions: Everything you need to know&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/end-of-support-for-node-js-16-in-netlify-functions-everything-you-need-to-know/113370&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Failed Building production JavaScript and CSS bundles - Build script returned non-zero exit code: 1&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/failed-building-production-javascript-and-css-bundles-build-script-returned-non-zero-exit-code-1/17563&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Failed during stage &#x27;building site&#x27; - Netlify &amp; Gatsby&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/failed-during-stage-building-site-netlify-gatsby/25365&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gatsby Site build timed out&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/gatsby-site-build-timed-out/70872&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React/Gatsby starter deployment error on run build: \&quot;Failed during stage &#x27;building site&#x27;: build script returned non-zero exit code: 137\&quot;&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/t/react-gatsby-starter-deployment-error-on-run-build-failed-during-stage-building-site-build-script-returned-non-zero-exit-code-137/50509&quot;
+    },
+    {
+      &quot;text&quot;: &quot;create-react-app&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/create-react-app/97&quot;
+    },
+    {
+      &quot;text&quot;: &quot;deployment&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/deployment&quot;
+    },
+    {
+      &quot;text&quot;: &quot;deployment&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/deployment/34&quot;
+    },
+    {
+      &quot;text&quot;: &quot;gatsby&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/gatsby&quot;
+    },
+    {
+      &quot;text&quot;: &quot;gatsby&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/gatsby/66&quot;
+    },
+    {
+      &quot;text&quot;: &quot;netlify-newbie&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/tag/netlify-newbie/49&quot;
+    },
+    {
+      &quot;text&quot;: &quot;@nathanmartin&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/nathanmartin&quot;
+    },
+    {
+      &quot;text&quot;: &quot;nathanmartin&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/nathanmartin&quot;
+    },
+    {
+      &quot;text&quot;: &quot;sid.m&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/sid.m&quot;
+    },
+    {
+      &quot;text&quot;: &quot;@sid.m&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/sid.m&quot;
+    },
+    {
+      &quot;text&quot;: &quot;tinterweb&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/tinterweb&quot;
+    },
+    {
+      &quot;text&quot;: &quot;@tinterweb&quot;,
+      &quot;href&quot;: &quot;https://answers.netlify.com/u/tinterweb&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Netlify App&quot;,
+      &quot;href&quot;: &quot;https://app.netlify.com/sites/karinagrantmarketing/deploys/65d35fdfe52d6f00087458cb&quot;
+    },
+    {
+      &quot;text&quot;: &quot;app.netlify.com&quot;,
+      &quot;href&quot;: &quot;https://app.netlify.com/sites/karinagrantmarketing/deploys/65d35fdfe52d6f00087458cb&quot;
+    },
+    {
+      &quot;text&quot;: &quot;https://karinagrantmarketing.netlify.app/&quot;,
+      &quot;href&quot;: &quot;https://karinagrantmarketing.netlify.app/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Node.js version 16 reached End of Life&quot;,
+      &quot;href&quot;: &quot;https://nodejs.org/en/about/releases/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Discourse&quot;,
+      &quot;href&quot;: &quot;https://www.discourse.org&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Terms of Service&quot;,
+      &quot;href&quot;: &quot;https://www.netlify.com/legal/terms-of-use/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://global.discourse-cdn.com/netlify/original/3X/0/f/0f1edea4ebd6ad1bb5a2d5217248cf171e011473.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://global.discourse-cdn.com/netlify/original/3X/6/2/62ffdeb21fa9f5cba018f6e82053f698de5eb162.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://sea1.discourse-cdn.com/netlify/user_avatar/answers.netlify.com/biruwon/48/39030_2.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://sea1.discourse-cdn.com/netlify/user_avatar/answers.netlify.com/tinterweb/48/25775_2.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-cn__wcxb-0510__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-cn__wcxb-0510__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-cn__wcxb-0510__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

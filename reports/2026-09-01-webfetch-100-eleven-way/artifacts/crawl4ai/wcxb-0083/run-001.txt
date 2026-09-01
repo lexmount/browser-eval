@@ -1,0 +1,10 @@
+Please enable cookies. 
+#  Error 1009
+Ray ID: a34305af3f32196e • 2026-09-01 08:49:32 UTC
+##  Access denied 
+##  What happened? 
+The owner of this website (www.cabletv.com) has banned the country or region your IP address is in (CN) from accessing this website.
+Please see <https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1009/> for more details. 
+Was this page helpful?  Yes  No 
+Thank you for your feedback! 
+Cloudflare Ray ID: **a34305af3f32196e** • Your IP: Click to reveal 123.120.3.183 • Performance & security by [Cloudflare](https://www.cloudflare.com/5xx-error-landing)

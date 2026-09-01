@@ -1,0 +1,485 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__wcxb-5456__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>WCXB documentation · Site Config</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">1,923 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 documentation 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://collectionbuilder.github.io/cb-docs/docs/config/">https://collectionbuilder.github.io/cb-docs/docs/config/</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Initial Site Configuration
+
+The file “_config.yml” is used to configure the core features of your CollectionBuilder site. This section will take you through the configuration options you can enable by editing this file.
+
+CB’s configuration options are made up of key-value pairs written in YAML.
+
+For example, below is the option “title”:
+
+# title of site appears in banner
+title: Example Site Title
+
+First, note the line proceeded by a # hash in the example above–everything following the hash is a comment in YAML. CollectionBuilder’s “_config.yml” uses a bunch of comments to divide the content into sections and to explain how to fill in the values–be sure to read the comments for tips and examples!
+
+In the example, title: is the “key” of the key-value pair. YAML keys are a string followed by a colon: and a space–after which follows the value.
+
+Template Values
+
+When you start fresh from the CB template, placeholder values fill all the options, providing you a working example. So to begin configuring and customizing your site, open the “_config.yml” file in the base of your project repository and replace the placeholder values with new ones for your project, following the example.
+
+Some options are “commented out”, i.e. have # in front of them to make them inactive. To enable these, you would need to uncomment the line, which requires you to delete the # and space in front of the value.
+
+The docs in the following pages address the details of what goes in the values.
+
+Common YAML Errors
+
+YAML is very picky about tiny details of spaces and indentation! If you have incorrect YAML in your “_config.yml”, your Jekyll project won’t build and you’ll get mysterious error messages.
+
+Carefully check over your “_config.yml” for these common errors:
+Space in front of key – the key needs to start the line, no spaces in front! This can be hard to see. If you uncomment an option, be sure to delete that extra space in front.
+No space after colon – the key needs to be followed by exactly colon + space:. If you don’t put a space before the starting the value, you’ll get an error.
+Quote values that have a colon – if your value contains a colon:, be sure to put quotes &quot; around the full value!
+
+The “_config.yml” file serves as the main configuration file standard in all Jekyll projects. Some values are related to technical details specific to Jekyll. The rest are the important values that will populate the template elements of your collection site–for example, the site title and organization name that will appear in the header and footer of every page.</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/wcxb-5456/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://collectionbuilder.github.io/cb-docs/docs/config/">打开标准答案源网页</a> · 完整性校验 <code>sha256:d4f1ac3302bb5c2d3e50c41ee812cf157453794e7919a0a6024b1f56ba8be468</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Initial Site Configuration
+
+The file “_config.yml” is used to configure the core features of your CollectionBuilder site. This section will take you through the configuration options you can enable by editing this file.
+
+CB’s configuration options are made up of key-value pairs written in YAML.
+
+For example, below is the option “title”:
+
+# title of site appears in banner
+title: Example Site Title
+
+First, note the line proceeded by a # hash in the example above–everything following the hash is a comment in YAML. CollectionBuilder’s “_config.yml” uses a bunch of comments to divide the content into sections and to explain how to fill in the values–be sure to read the comments for tips and examples!
+
+In the example, title: is the “key” of the key-value pair. YAML keys are a string followed by a colon: and a space–after which follows the value.
+
+Template Values
+
+When you start fresh from the CB template, placeholder values fill all the options, providing you a working example. So to begin configuring and customizing your site, open the “_config.yml” file in the base of your project repository and replace the placeholder values with new ones for your project, following the example.
+
+Some options are “commented out”, i.e. have # in front of them to make them inactive. To enable these, you would need to uncomment the line, which requires you to delete the # and space in front of the value.
+
+The docs in the following pages address the details of what goes in the values.
+
+Common YAML Errors
+
+YAML is very picky about tiny details of spaces and indentation! If you have incorrect YAML in your “_config.yml”, your Jekyll project won’t build and you’ll get mysterious error messages.
+
+Carefully check over your “_config.yml” for these common errors:
+Space in front of key – the key needs to start the line, no spaces in front! This can be hard to see. If you uncomment an option, be sure to delete that extra space in front.
+No space after colon – the key needs to be followed by exactly colon + space:. If you don’t put a space before the starting the value, you’ll get an error.
+Quote values that have a colon – if your value contains a colon:, be sure to put quotes &quot; around the full value!
+
+The “_config.yml” file serves as the main configuration file standard in all Jekyll projects. Some values are related to technical details specific to Jekyll. The rest are the important values that will populate the template elements of your collection site–for example, the site title and organization name that will appear in the header and footer of every page.</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Site Config | CollectionBuilder Documentation Skip to main content Link Search Menu Expand Document CollectionBuilder CollectionBuilder Docs Templates Walkthroughs Sheets Walkthrough GH Walkthrough CSV Walkthrough Creating Object Derivatives Updating Metadata Software GitHub Git Setup Get a Text Editor Install Ruby Windows - Ruby Install Mac - Ruby Install Linux - Ruby Install Install Jekyll ImageMagick and Ghostscript Repository Create Repository Clone Repository Open Repository Generate Site Working With Git Commit Changes Objects Objects for GH and SHEETS Objects for CSV Object Derivatives Metadata GH and SHEETs Metadata CSV Metadata Format Your Metadata Add Your Metadata Compound Objects Recipes for CSV Object Locations Site Config URL Variables Site Settings Collection Settings Additional Variables Page Config Navigation Metadata Browse Map Search Table Colors Theme Options Home Page Browse Page Item Page Subjects Page Locations Page Map Page Timeline Page Data Compound Objects Advanced Options Edit Pages Page Basics Interpretive Pages Home Page Add Page Feature Includes Options Deploy GitHub Pages GitHub Actions Jekyll Build Third Party Services Customize New Cloud Pages TimelineJS Custom CSS Custom Fonts Add Analytics Google Search Repurposing the Timeline Site Icon Add Ons Advanced Overview of Template Structure GitLab Codespaces Migrate CB-GH to CB-CSV Alter Default Site Language Workflow for Multiple Collections Advanced GitHub Actions Contribute Accessibility Glossary Change Log Extras Object Utilities Helpful Software Too Quick Start CollectionBuilder on GitHub CollectionBuilder Docs Site Config Initial Site Configuration The file “_config.yml” is used to configure the core features of your CollectionBuilder site. This section will take you through the confi</pre></div></div><details><summary>展开本页中的完整供应商输出（4,388 / 4,388 字符）</summary><pre>Site Config | CollectionBuilder Documentation Skip to main content Link Search Menu Expand Document CollectionBuilder CollectionBuilder Docs Templates Walkthroughs Sheets Walkthrough GH Walkthrough CSV Walkthrough Creating Object Derivatives Updating Metadata Software GitHub Git Setup Get a Text Editor Install Ruby Windows - Ruby Install Mac - Ruby Install Linux - Ruby Install Install Jekyll ImageMagick and Ghostscript Repository Create Repository Clone Repository Open Repository Generate Site Working With Git Commit Changes Objects Objects for GH and SHEETS Objects for CSV Object Derivatives Metadata GH and SHEETs Metadata CSV Metadata Format Your Metadata Add Your Metadata Compound Objects Recipes for CSV Object Locations Site Config URL Variables Site Settings Collection Settings Additional Variables Page Config Navigation Metadata Browse Map Search Table Colors Theme Options Home Page Browse Page Item Page Subjects Page Locations Page Map Page Timeline Page Data Compound Objects Advanced Options Edit Pages Page Basics Interpretive Pages Home Page Add Page Feature Includes Options Deploy GitHub Pages GitHub Actions Jekyll Build Third Party Services Customize New Cloud Pages TimelineJS Custom CSS Custom Fonts Add Analytics Google Search Repurposing the Timeline Site Icon Add Ons Advanced Overview of Template Structure GitLab Codespaces Migrate CB-GH to CB-CSV Alter Default Site Language Workflow for Multiple Collections Advanced GitHub Actions Contribute Accessibility Glossary Change Log Extras Object Utilities Helpful Software Too Quick Start CollectionBuilder on GitHub CollectionBuilder Docs Site Config Initial Site Configuration The file “_config.yml” is used to configure the core features of your CollectionBuilder site. This section will take you through the configuration options you can enable by editing this file. CB’s configuration options are made up of key-value pairs written in YAML . For example, below is the option “title”: # title of site appears in banner title : Example Site Title First, note the line proceeded by a # hash in the example above–everything following the hash is a comment in YAML. CollectionBuilder’s “_config.yml” uses a bunch of comments to divide the content into sections and to explain how to fill in the values–be sure to read the comments for tips and examples! In the example, title: is the “key” of the key-value pair. YAML keys are a string followed by a colon : and a space–after which follows the value. Template Values When you start fresh from the CB template, placeholder values fill all the options, providing you a working example. So to begin configuring and customizing your site, open the “_config.yml” file in the base of your project repository and replace the placeholder values with new ones for your project, following the example. Some options are “commented out”, i.e. have # in front of them to make them inactive. To enable these, you would need to uncomment the line, which requires you to delete the # and space in front of the value. The docs in the following pages address the details of what goes in the values. Common YAML Errors YAML is very picky about tiny details of spaces and indentation! If you have incorrect YAML in your “_config.yml”, your Jekyll project won’t build and you’ll get mysterious error messages. Carefully check over your “_config.yml” for these common errors: Space in front of key – the key needs to start the line, no spaces in front! This can be hard to see. If you uncomment an option, be sure to delete that extra space in front. No space after colon – the key needs to be followed by exactly colon + space : . If you don’t put a space before the starting the value, you’ll get an error. Quote values that have a colon – if your value contains a colon : , be sure to put quotes &quot; around the full value! The “_config.yml” file serves as the main configuration file standard in all Jekyll projects. Some values are related to technical details specific to Jekyll. The rest are the important values that will populate the template elements of your collection site–for example, the site title and organization name that will appear in the header and footer of every page. Table of contents URL Variables Site Settings Collection Settings Additional Variables Back to top Edit this page on GitHub This site uses Just the Docs , a documentation theme for Jekyll.</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__wcxb-5456__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://collectionbuilder.github.io/cb-docs/docs/config/</span></div><div class="kv"><b>输出大小</b>4,388 字符</div><div class="kv"><b>事实覆盖率</b>66.7%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="bad">未命中</td><td>CB’s configuration options are made up of key-value pairs written in YAML.</td><td>—</td></tr><tr><td><code>required-2</code></td><td class="good">命中</td><td>In the example, title: is the “key” of the key-value pair. YAML keys are a strin</td><td>In the example, title: is the “key” of the key-value pair. YAML keys are a strin</td></tr><tr><td><code>required-3</code></td><td class="good">命中</td><td>Carefully check over your “_config.yml” for these common errors:</td><td>Carefully check over your “_config.yml” for these common errors:</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Site Config</span><span class="tag">CB’s configuration options are made up of key-value pairs written in YAML.</span></p><p><span class="tag">Site Config</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;1a8483b6-afdb-4ed6-b609-f8c63db6a2f4&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 863,
+  &quot;dom_id&quot;: &quot;267894&quot;,
+  &quot;links_count&quot;: 99,
+  &quot;images_count&quot;: 1,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CollectionBuilder&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CollectionBuilder Docs&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Accessibility&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/accessibility/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Customize&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Custom Fonts&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/add-font/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Add Ons&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/add-ons/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Add Analytics&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/analytics/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;New Cloud Pages&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/cloudpage/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Custom CSS&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/custom-css/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Site Icon&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/favicon/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Google Search&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/google-search/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Repurposing the Timeline&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/repurposetimeline/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;TimelineJS&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/add-more/timelinejs/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Advanced&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Advanced GitHub Actions&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/advanced-actions/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview of Template Structure&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/architecture-overview/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Codespaces&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/code-spaces/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Contribute&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/contribute/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GitLab&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/gitlab/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Alter Default Site Language&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/language/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Migrate CB-GH to CB-CSV&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/migrate-to-csv/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Workflow for Multiple Collections&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/advanced/workflow/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Change Log&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/changes/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Site Config&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/#common-yaml-errors&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/#initial-site-configuration&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Skip to main content&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/#main-content&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/#template-values&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Back to top&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/#top&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Additional Variables&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/additional/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Collection Settings&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/collection/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Site Settings&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/site/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;URL Variables&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/config/url/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Page Config&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Browse&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-browse/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Map&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-map/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-metadata/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Navigation&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-nav/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Search&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-search/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Table&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-table/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Colors&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/customization/config-theme-colors/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Deploy&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/deploy/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GitHub Actions&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/deploy/actions/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Jekyll Build&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/deploy/build/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GitHub Pages&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/deploy/gh-pages/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Third Party Services&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/deploy/thirdparty/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Extras&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/extras/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Helpful Software&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/extras/software/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Object Utilities&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/extras/utilities/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Glossary&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/glossary/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;YAML&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/glossary/#yaml&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Compound Objects&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/compound-objects/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CSV Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/csv_metadata/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Format Your Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/formatting/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GH and SHEETs Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/gh_metadata/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Recipes for CSV Object Locations&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/object-paths/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Add Your Metadata&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/metadata/uploading/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Objects&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/objects/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Objects for CSV&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/objects/csv-objects/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Object Derivatives&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/objects/derivatives/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Objects for GH and SHEETS&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/objects/gh-objects/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Edit Pages&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Add Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/add_page/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Page Basics&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/basics/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Feature Includes Options&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/features/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Home Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/home/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Interpretive Pages&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/pages/interpretive/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Too Quick Start&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/quickstart/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Repository&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Clone Repository&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/clone/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Commit Changes&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/commit/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Create Repository&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/create/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generate Site&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/generate/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Working With Git&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/gitworkflow/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Open Repository&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/repository/open/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Software&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Git Setup&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/git/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GitHub&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/github/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Install Jekyll&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/jekyll/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ImageMagick and Ghostscript&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/optional/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Install Ruby&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/ruby/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Linux - Ruby Install&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/ruby_linux/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Mac - Ruby Install&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/ruby_mac/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Windows - Ruby Install&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/ruby_windows/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Get a Text Editor&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/software/texteditor/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Templates&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/templates/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Theme Options&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Advanced Options&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/advanced/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Browse Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/browse/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Compound Objects&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/compound/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Data&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/data/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Home Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/home/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Item Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/item/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Locations Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/locations/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Map Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/map/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Subjects Page&quot;,
+      &quot;href&quot;: &quot;https://collectionbuilder.github.io/cb-docs/docs/theme/subjects/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://collectionbuilder.github.io/images/logo/cb-logo-solid-vgold-transparent.png&quot;,
+      &quot;alt&quot;: &quot;CollectionBuilder logo with fancy brackets&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__wcxb-5456__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__wcxb-5456__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__wcxb-5456__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

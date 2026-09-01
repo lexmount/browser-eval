@@ -1,0 +1,1 @@
+{"results":[],"failed_results":[{"url":"https://www.adorama.com/l/Photography/Lenses/Mirrorless-Lenses","error":"Failed to fetch url"}],"response_time":0.24,"request_id":"e73864c2-17d1-4793-9932-d5cde4e4fce5"}

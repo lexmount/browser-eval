@@ -1,0 +1,1 @@
+Error: Failed to parse document: pypdf library is required for PDF parsing. Install with: pip install pypdf

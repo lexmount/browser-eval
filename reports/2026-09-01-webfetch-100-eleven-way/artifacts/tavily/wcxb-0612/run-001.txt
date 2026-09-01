@@ -1,0 +1,1 @@
+{"results":[],"failed_results":[{"url":"https://www.amazon.com/Wireless-Headphones-Bluetooth-Waterproof-Headphone/dp/B0D1PC8551","error":"Error fetching content"}],"response_time":0.36,"request_id":"def1b1f2-fc4c-4020-a9ea-49064dfc23aa"}

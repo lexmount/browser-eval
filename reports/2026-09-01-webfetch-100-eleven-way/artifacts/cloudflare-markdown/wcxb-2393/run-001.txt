@@ -1,0 +1,326 @@
+---
+title: "FunctionGemma model overview &nbsp;|&nbsp; Google AI for Developers"
+meta:
+  "og:title": "FunctionGemma model overview  |  Google AI for Developers"
+---
+
+[Skip to main content](#main-content)
+
+[![Google AI for Developers](https://www.gstatic.com/devrel-devsite/prod/v6c08f9bb601564cd99488472d05cdf6fb06f007f31b6552465782b15883ce123/googledevai/images/lockup-new.svg)](/)
+
+[Models](https://deepmind.google/models/gemma)
+
+- Gemini
+- [About](https://deepmind.google/gemini)
+- [Docs](https://ai.google.dev/gemini-api/docs)
+- [API reference](https://ai.google.dev/api)
+- [Pricing](https://ai.google.dev/pricing)
+
+- Imagen
+- [About](https://deepmind.google/technologies/imagen/)
+- [Docs](https://ai.google.dev/gemini-api/docs/imagen)
+- [Pricing](https://ai.google.dev/pricing)
+
+- Veo
+- [About](https://deepmind.google/technologies/veo/veo-2/)
+- [Docs](https://ai.google.dev/gemini-api/docs/video)
+- [Pricing](https://ai.google.dev/pricing)
+
+- Gemma
+- [About](https://deepmind.google/models/gemma)
+- [Docs](https://ai.google.dev/gemma/docs)
+- [Gemmaverse](https://ai.google.dev/gemma/gemmaverse) Solutions
+
+- Build with Gemini
+- [Gemini API](https://ai.google.dev/gemini-api/docs)
+- [Google AI Studio](https://aistudio.google.com)
+
+- Customize Gemma open models
+- [Gemma open models](https://ai.google.dev/gemma)
+- [Multi-framework with Keras](https://keras.io/keras_3/)
+- [Fine-tune in Colab](https://colab.sandbox.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lora_tuning.ipynb)
+
+- Run on-device
+- [Google AI Edge](https://ai.google.dev/edge)
+- [Gemini Nano on Android](https://developer.android.com/ai/gemini-nano)
+- [Chrome built-in web APIs](https://developer.chrome.com/docs/ai/built-in)
+
+- Build responsibly
+- [Responsible GenAI Toolkit](https://ai.google.dev/responsible)
+- [Secure AI Framework](https://saif.google) Code assistance
+
+- [Android Studio](https://developer.android.com/gemini-in-android)
+- [Chrome DevTools](https://developer.chrome.com/docs/devtools/console/understand-messages)
+- [Colab](https://colab.google)
+- [Firebase](https://firebase.google.com/products/generative-ai)
+- [Google Cloud](https://cloud.google.com/products/gemini/code-assist)
+- [JetBrains](https://plugins.jetbrains.com/plugin/8079-google-cloud-code)
+- [Jules](https://labs.google.com/jules/home)
+- [VS Code](https://marketplace.visualstudio.com/items?itemName=GoogleCloudTools.cloudcode) Community
+
+- [Google AI Forum](https://discuss.ai.google.dev)
+- [Gemini for Research](https://ai.google.dev/gemini-api/docs/gemini-for-research) More
+
+/
+
+- [English](https://ai.google.dev/gemma/docs/functiongemma)
+- [Deutsch](https://ai.google.dev/gemma/docs/functiongemma?hl=de)
+- [Español – América Latina](https://ai.google.dev/gemma/docs/functiongemma?hl=es-419)
+- [Français](https://ai.google.dev/gemma/docs/functiongemma?hl=fr)
+- [Indonesia](https://ai.google.dev/gemma/docs/functiongemma?hl=id)
+- [Italiano](https://ai.google.dev/gemma/docs/functiongemma?hl=it)
+- [Polski](https://ai.google.dev/gemma/docs/functiongemma?hl=pl)
+- [Português – Brasil](https://ai.google.dev/gemma/docs/functiongemma?hl=pt-br)
+- [Shqip](https://ai.google.dev/gemma/docs/functiongemma?hl=sq)
+- [Tiếng Việt](https://ai.google.dev/gemma/docs/functiongemma?hl=vi)
+- [Türkçe](https://ai.google.dev/gemma/docs/functiongemma?hl=tr)
+- [Русский](https://ai.google.dev/gemma/docs/functiongemma?hl=ru)
+- [עברית](https://ai.google.dev/gemma/docs/functiongemma?hl=he)
+- [العربيّة](https://ai.google.dev/gemma/docs/functiongemma?hl=ar)
+- [فارسی](https://ai.google.dev/gemma/docs/functiongemma?hl=fa)
+- [हिंदी](https://ai.google.dev/gemma/docs/functiongemma?hl=hi)
+- [বাংলা](https://ai.google.dev/gemma/docs/functiongemma?hl=bn)
+- [ภาษาไทย](https://ai.google.dev/gemma/docs/functiongemma?hl=th)
+- [中文 – 简体](https://ai.google.dev/gemma/docs/functiongemma?hl=zh-cn)
+- [中文 – 繁體](https://ai.google.dev/gemma/docs/functiongemma?hl=zh-tw)
+- [日本語](https://ai.google.dev/gemma/docs/functiongemma?hl=ja)
+- [한국어](https://ai.google.dev/gemma/docs/functiongemma?hl=ko)
+
+[Sign in](https://ai.google.dev/_d/signin?continue=https%3A%2F%2Fai.google.dev%2Fgemma%2Fdocs%2Ffunctiongemma&prompt=select_account)
+
+- [Gemma](https://ai.google.dev/gemma)
+
+[Gemma](https://deepmind.google/models/gemma) [Docs](https://ai.google.dev/gemma/docs) More
+
+[![Google AI for Developers](https://www.gstatic.com/devrel-devsite/prod/v6c08f9bb601564cd99488472d05cdf6fb06f007f31b6552465782b15883ce123/googledevai/images/lockup-new.svg)](/)
+
+- [Models](https://deepmind.google/models/gemma)
+  - More
+  - [Gemma](https://deepmind.google/models/gemma)
+  - [Docs](https://ai.google.dev/gemma/docs)
+- Solutions
+  - More
+- Code assistance
+  - More
+- Community
+  - More
+
+- [Overview](https://ai.google.dev/gemma/docs)
+- [Get started](https://ai.google.dev/gemma/docs/get_started)
+- [Releases](https://ai.google.dev/gemma/docs/releases)
+- Models
+- Core Gemma
+  - [Overview](https://ai.google.dev/gemma/docs/core)
+  - [Gemma 4 model card](https://ai.google.dev/gemma/docs/core/model_card_4)
+  - [Gemma 3 model card](https://ai.google.dev/gemma/docs/core/model_card_3)
+  - [Gemma 2 model card](https://ai.google.dev/gemma/docs/core/model_card_2)
+  - [Gemma 1 model card](https://ai.google.dev/gemma/docs/core/model_card)
+- Core Variants
+  - Gemma 3n
+    - [Overview](https://ai.google.dev/gemma/docs/gemma-3n)
+    - [Model card](https://ai.google.dev/gemma/docs/gemma-3n/model_card)
+  - DiffusionGemma
+    - [Overview](https://ai.google.dev/gemma/docs/diffusiongemma)
+    - [Model card](https://ai.google.dev/gemma/docs/diffusiongemma/model_card)
+    - [Diffusion Explained](https://ai.google.dev/gemma/docs/diffusiongemma/explained)
+    - [Generate Output](https://ai.google.dev/gemma/docs/diffusiongemma/inference-diffusiongemma-with-hf)
+  - FunctionGemma
+    - [Overview](https://ai.google.dev/gemma/docs/functiongemma)
+    - [Model card](https://ai.google.dev/gemma/docs/functiongemma/model_card)
+    - [Formatting and best practices](https://ai.google.dev/gemma/docs/functiongemma/formatting-and-best-practices)
+    - [Function calling with Hugging Face Transformers](https://ai.google.dev/gemma/docs/functiongemma/function-calling-with-hf)
+    - [Full function calling sequence with FunctionGemma](https://ai.google.dev/gemma/docs/functiongemma/full-function-calling-sequence-with-functiongemma)
+    - [Fine-tune FunctionGemma](https://ai.google.dev/gemma/docs/functiongemma/finetuning-with-functiongemma)
+  - EmbeddingGemma
+    - [Overview](https://ai.google.dev/gemma/docs/embeddinggemma)
+    - [Model card](https://ai.google.dev/gemma/docs/embeddinggemma/model_card)
+    - [Generate embeddings with Sentence Transformers](https://ai.google.dev/gemma/docs/embeddinggemma/inference-embeddinggemma-with-sentence-transformers)
+    - [Fine-tune EmbeddingGemma](https://ai.google.dev/gemma/docs/embeddinggemma/fine-tuning-embeddinggemma-with-sentence-transformers)
+  - PaliGemma
+    - [Overview](https://ai.google.dev/gemma/docs/paligemma)
+    - [v2 model card](https://ai.google.dev/gemma/docs/paligemma/model-card-2)
+    - [v1 model card](https://ai.google.dev/gemma/docs/paligemma/model-card)
+    - [Generate output with Keras](https://ai.google.dev/gemma/docs/paligemma/inference-with-keras)
+    - [Fine-tune with JAX and Flax](https://ai.google.dev/gemma/docs/paligemma/fine-tuning-paligemma)
+    - [Prompt and system instructions](https://ai.google.dev/gemma/docs/paligemma/prompt-system-instructions)
+  - ShieldGemma
+    - [Overview](https://ai.google.dev/gemma/docs/shieldgemma)
+    - [ShieldGemma 2 Model card](https://ai.google.dev/gemma/docs/shieldgemma/model_card_2)
+    - [ShieldGemma 1 Model card](https://ai.google.dev/gemma/docs/shieldgemma/model_card)
+- Run Gemma
+- Fundamentals
+  - [Overview](https://ai.google.dev/gemma/docs/run)
+  - [Prompt Formatting](https://ai.google.dev/gemma/docs/core/prompt-formatting-gemma4)
+  - [Legacy Gemma setup \[Gemma 1, 2, and 3\]](https://ai.google.dev/gemma/docs/setup)
+  - [Legacy Prompt and system instructions \[Gemma 1, 2, and 3\]](https://ai.google.dev/gemma/docs/core/prompt-structure)
+- Run locally with a Chat UI or integrate via API
+  - [LM Studio](https://ai.google.dev/gemma/docs/integrations/lmstudio)
+  - [Ollama](https://ai.google.dev/gemma/docs/integrations/ollama)
+- Run efficiently on Edge
+  - [LiteRT-LM](https://ai.google.dev/edge/litert-lm/overview)
+  - [Llama.cpp](https://ai.google.dev/gemma/docs/integrations/llamacpp)
+  - [MLX](https://ai.google.dev/gemma/docs/integrations/mlx)
+- Build/Train in Python
+  - [Tunix (Tune-in-JAX)](https://tunix.readthedocs.io)
+  - [Hugging Face Transformers](https://ai.google.dev/gemma/docs/core/huggingface_inference)
+  - [Keras](https://ai.google.dev/gemma/docs/core/keras_inference)
+  - [Unsloth](https://unsloth.ai/docs/models/gemma-4/train)
+- Deploy to Production / Enterprise
+  - [Gemini API](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api)
+  - [Google Cloud](https://ai.google.dev/gemma/docs/integrations/google-cloud)
+  - [Cloud GKE](https://ai.google.dev/gemma/docs/core/gke)
+- Multi-Token Prediction (MTP)
+  - [Overview](https://ai.google.dev/gemma/docs/mtp/overview)
+  - [Hugging Face Transformers](https://ai.google.dev/gemma/docs/mtp/mtp)
+- Core Capabilities
+- Text
+  - [Basic and multi-turn chat](https://ai.google.dev/gemma/docs/capabilities/text/basic)
+  - [Function calling](https://ai.google.dev/gemma/docs/capabilities/text/function-calling-gemma4)
+- Visual data
+  - [Overview](https://ai.google.dev/gemma/docs/capabilities/vision)
+  - [Image understanding](https://ai.google.dev/gemma/docs/capabilities/vision/image)
+  - [Video understanding](https://ai.google.dev/gemma/docs/capabilities/vision/video)
+- [Audio data](https://ai.google.dev/gemma/docs/capabilities/audio)
+- [Thinking](https://ai.google.dev/gemma/docs/capabilities/thinking)
+- Tuning guides
+- [Overview](https://ai.google.dev/gemma/docs/tune)
+- [Tune using Hugging Face Transformers and QLoRA](https://ai.google.dev/gemma/docs/core/huggingface_text_finetune_qlora)
+- [Vision Tune using Hugging Face Transformers and QLoRA](https://ai.google.dev/gemma/docs/core/huggingface_vision_finetune_qlora)
+- [Full model fine-tune using Hugging Face Transformers](https://ai.google.dev/gemma/docs/core/huggingface_text_full_finetune)
+- [Tune using Gemma library](https://gemma-llm.readthedocs.io/en/latest/colab_finetuning.html)
+- Research and tools
+- RecurrentGemma
+  - [Overview](https://ai.google.dev/gemma/docs/recurrentgemma)
+  - [Inference using JAX and Flax](https://ai.google.dev/gemma/docs/recurrentgemma/recurrentgemma_jax_inference)
+  - [Fine-tune using JAX and Flax](https://ai.google.dev/gemma/docs/recurrentgemma/recurrentgemma_jax_finetune)
+  - [Model card](https://ai.google.dev/gemma/docs/recurrentgemma/model_card)
+- [DataGemma](https://ai.google.dev/gemma/docs/datagemma)
+- [Gemma Scope](https://ai.google.dev/gemma/docs/gemma_scope)
+- [Gemma-APS](https://ai.google.dev/gemma/docs/gemma-aps)
+- Community
+- [Gemmaverse](https://deepmind.google/models/gemma/gemmaverse/)
+- [Discord](https://ai.google.dev/gemma/docs/discord)
+- Legal
+- [Terms of use](https://ai.google.dev/gemma/terms)
+- [Gemma 4 license](https://ai.google.dev/gemma/apache_2)
+- [Prohibited use](https://ai.google.dev/gemma/prohibited_use_policy)
+- [Intended use statement](https://ai.google.dev/gemma/intended_use_statement)
+
+- Gemini
+- [About](https://deepmind.google/gemini)
+- [Docs](https://ai.google.dev/gemini-api/docs)
+- [API reference](https://ai.google.dev/api)
+- [Pricing](https://ai.google.dev/pricing)
+- Imagen
+- [About](https://deepmind.google/technologies/imagen/)
+- [Docs](https://ai.google.dev/gemini-api/docs/imagen)
+- [Pricing](https://ai.google.dev/pricing)
+- Veo
+- [About](https://deepmind.google/technologies/veo/veo-2/)
+- [Docs](https://ai.google.dev/gemini-api/docs/video)
+- [Pricing](https://ai.google.dev/pricing)
+- Gemma
+- [About](https://deepmind.google/models/gemma)
+- [Docs](https://ai.google.dev/gemma/docs)
+- [Gemmaverse](https://ai.google.dev/gemma/gemmaverse)
+
+- Build with Gemini
+- [Gemini API](https://ai.google.dev/gemini-api/docs)
+- [Google AI Studio](https://aistudio.google.com)
+- Customize Gemma open models
+- [Gemma open models](https://ai.google.dev/gemma)
+- [Multi-framework with Keras](https://keras.io/keras_3/)
+- [Fine-tune in Colab](https://colab.sandbox.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lora_tuning.ipynb)
+- Run on-device
+- [Google AI Edge](https://ai.google.dev/edge)
+- [Gemini Nano on Android](https://developer.android.com/ai/gemini-nano)
+- [Chrome built-in web APIs](https://developer.chrome.com/docs/ai/built-in)
+- Build responsibly
+- [Responsible GenAI Toolkit](https://ai.google.dev/responsible)
+- [Secure AI Framework](https://saif.google)
+
+- [Android Studio](https://developer.android.com/gemini-in-android)
+- [Chrome DevTools](https://developer.chrome.com/docs/devtools/console/understand-messages)
+- [Colab](https://colab.google)
+- [Firebase](https://firebase.google.com/products/generative-ai)
+- [Google Cloud](https://cloud.google.com/products/gemini/code-assist)
+- [JetBrains](https://plugins.jetbrains.com/plugin/8079-google-cloud-code)
+- [Jules](https://labs.google.com/jules/home)
+- [VS Code](https://marketplace.visualstudio.com/items?itemName=GoogleCloudTools.cloudcode)
+
+- [Google AI Forum](https://discuss.ai.google.dev)
+- [Gemini for Research](https://ai.google.dev/gemini-api/docs/gemini-for-research)
+
+- On this page
+- [When to choose FunctionGemma](#when-to-choose-functiongemma)
+
+**Gemma 4** released with text, audio and image input and long up to 256K context window! [**Learn more**](https://ai.google.dev/gemma/docs/core)
+
+- [Home](https://ai.google.dev/)
+- [Gemma](https://ai.google.dev/gemma)
+- [Models](https://deepmind.google/models/gemma)
+- [Docs](https://ai.google.dev/gemma/docs)
+
+Was this helpful?
+
+Send feedback
+
+# FunctionGemma model overview
+
+- On this page
+- [When to choose FunctionGemma](#when-to-choose-functiongemma)
+-
+
+FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling. It is designed as a strong base for further training into custom, fast, private, local agents that translate natural language into executable API actions.
+
+## When to choose FunctionGemma
+
+FunctionGemma is the bridge between natural language and software execution. It is the right tool if:
+
+- **You have a defined API surface:** Your application has a defined set of actions (e.g., smart home, media, navigation).
+- **You are ready to fine-tune:** You need the consistent, deterministic behavior that comes from fine-tuning on specific data, rather than the variability of zero-shot prompting.
+- **You prioritize local-first deployment:** Your application requires near-instant latency and total data privacy, running efficiently within the compute and battery limits of edge devices.
+- **You are building compound systems:** You need a lightweight edge model to handle local actions, allowing your system to process common commands on-device and only query larger models (like Gemma 3 27B) for more complex tasks.
+
+[Get it on Hugging Face](https://huggingface.co/google/functiongemma-270m-it) [Get it on Kaggle](https://www.kaggle.com/models/google/functiongemma) [Access it on Vertex](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/functiongemma)
+
+As with other Gemma models, FunctionGemma is provided with open weights and licensed for responsible [commercial use](https://ai.google.dev/gemma/terms), allowing you to fine tune and deploy it in your own projects and applications.
+
+[Formatting and best practices](https://ai.google.dev/gemma/docs/functiongemma/formatting-and-best-practices) [Try FunctionGemma](https://ai.google.dev/gemma/docs/functiongemma/function-calling-with-hf)
+
+[Fine-tune FunctionGemma](https://ai.google.dev/gemma/docs/functiongemma/finetuning-with-functiongemma) [Fine-tune the Mobile Actions demo](https://ai.google.dev/gemma/docs/mobile-actions)
+
+Was this helpful?
+
+Send feedback
+
+Except as otherwise noted, the content of this page is licensed under the [Creative Commons Attribution 4.0 License](https://creativecommons.org/licenses/by/4.0/), and code samples are licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0). For details, see the [Google Developers Site Policies](https://developers.google.com/site-policies). Java is a registered trademark of Oracle and/or its affiliates.
+
+Last updated 2025-12-18 UTC.
+
+- [Terms](https://policies.google.com/terms)
+- [Privacy](https://policies.google.com/privacy)
+- [Manage cookies](#)
+
+- [English](https://ai.google.dev/gemma/docs/functiongemma)
+- [Deutsch](https://ai.google.dev/gemma/docs/functiongemma?hl=de)
+- [Español – América Latina](https://ai.google.dev/gemma/docs/functiongemma?hl=es-419)
+- [Français](https://ai.google.dev/gemma/docs/functiongemma?hl=fr)
+- [Indonesia](https://ai.google.dev/gemma/docs/functiongemma?hl=id)
+- [Italiano](https://ai.google.dev/gemma/docs/functiongemma?hl=it)
+- [Polski](https://ai.google.dev/gemma/docs/functiongemma?hl=pl)
+- [Português – Brasil](https://ai.google.dev/gemma/docs/functiongemma?hl=pt-br)
+- [Shqip](https://ai.google.dev/gemma/docs/functiongemma?hl=sq)
+- [Tiếng Việt](https://ai.google.dev/gemma/docs/functiongemma?hl=vi)
+- [Türkçe](https://ai.google.dev/gemma/docs/functiongemma?hl=tr)
+- [Русский](https://ai.google.dev/gemma/docs/functiongemma?hl=ru)
+- [עברית](https://ai.google.dev/gemma/docs/functiongemma?hl=he)
+- [العربيّة](https://ai.google.dev/gemma/docs/functiongemma?hl=ar)
+- [فارسی](https://ai.google.dev/gemma/docs/functiongemma?hl=fa)
+- [हिंदी](https://ai.google.dev/gemma/docs/functiongemma?hl=hi)
+- [বাংলা](https://ai.google.dev/gemma/docs/functiongemma?hl=bn)
+- [ภาษาไทย](https://ai.google.dev/gemma/docs/functiongemma?hl=th)
+- [中文 – 简体](https://ai.google.dev/gemma/docs/functiongemma?hl=zh-cn)
+- [中文 – 繁體](https://ai.google.dev/gemma/docs/functiongemma?hl=zh-tw)
+- [日本語](https://ai.google.dev/gemma/docs/functiongemma?hl=ja)
+- [한국어](https://ai.google.dev/gemma/docs/functiongemma?hl=ko)

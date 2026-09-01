@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "tool": "web_fetch",
+  "started_at": "2026-09-01T08:37:07.846213+00:00",
+  "dataset": {
+    "id": "public-webfetch-v5.0-100-hil",
+    "name": "Web Fetch 100 条公开网页分层标准答案评测集",
+    "source": "/private/tmp/browser-harness-eval/datasets/public_webfetch_100.json",
+    "case_count": 100
+  },
+  "providers": [
+    {
+      "name": "cloudflare-markdown",
+      "type": "cloudflare_markdown",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "cowagent-built-in",
+      "type": "cowagent_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "crawl4ai",
+      "type": "crawl4ai",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "deepseek-harness-built-in",
+      "type": "deepseek_harness_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "exa",
+      "type": "exa_contents",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "firecrawl",
+      "type": "firecrawl",
+      "min_interval_seconds": 6.1
+    },
+    {
+      "name": "langchain-webbase",
+      "type": "langchain_webbase",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-cn",
+      "type": "lexmount_cn",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-global",
+      "type": "lexmount",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "openclaw-built-in",
+      "type": "openclaw_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "tavily",
+      "type": "tavily_extract",
+      "min_interval_seconds": 0.0
+    }
+  ],
+  "parameters": {
+    "runs": 1,
+    "timeout": 45.0,
+    "delay": 0.2
+  },
+  "environment": {
+    "python": "3.9.6",
+    "platform": "macOS-15.4.1-arm64-arm-64bit",
+    "hostname": "8yg55-7.local"
+  },
+  "provider_config_source": "/private/tmp/browser-harness-eval/configs/providers.example.json",
+  "completed_at": "2026-09-01T08:42:06.643088+00:00",
+  "attempt_count": 1100,
+  "rescored_at": "2026-09-01T09:09:57.713011+00:00",
+  "derived_from": {
+    "runs": [
+      "runs/2026-09-01-webfetch-100/cowagent-built-in",
+      "runs/2026-09-01-webfetch-100/lexmount-global",
+      "runs/2026-09-01-webfetch-100/lexmount-cn",
+      "runs/2026-09-01-webfetch-100/firecrawl",
+      "runs/2026-09-01-webfetch-100/tavily",
+      "runs/2026-09-01-webfetch-100/exa",
+      "runs/2026-09-01-webfetch-100/cloudflare-markdown",
+      "runs/2026-09-01-webfetch-100/openclaw-built-in",
+      "runs/2026-09-01-webfetch-100/deepseek-harness-built-in",
+      "runs/2026-09-01-webfetch-100/langchain-webbase",
+      "runs/2026-09-01-webfetch-100/crawl4ai"
+    ],
+    "reason": "merge independently preserved complete provider runs; later runs replace duplicate providers"
+  }
+}

@@ -1,0 +1,2071 @@
+- [Ubuntu](http://www.ubuntu.com/)
+- [Community](http://community.ubuntu.com/)
+- [Ask!](http://askubuntu.com/)
+- [Developer](http://developer.ubuntu.com/)
+- [Design](http://design.ubuntu.com/)
+- [Hardware](http://www.ubuntu.com/certification)
+- [Insights](http://insights.ubuntu.com/)
+- [Juju](https://jujucharms.com/)
+- [Shop](http://shop.ubuntu.com/)
+- [More ›](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#)
+  - [Apps](http://apps.ubuntu.com/)
+  - [Help](https://help.ubuntu.com/)
+  - [Forum](http://ubuntuforums.org/)
+  - [Launchpad](http://www.launchpad.net/)
+  - [MAAS](http://maas.ubuntu.com/)
+  - [Canonical](http://www.canonical.com/)
+
+**Stack Internal**
+
+Knowledge at work
+
+Bring the best of human thought and AI automation together at your work.
+
+[Explore Stack Internal](https://stackoverflow.co/internal/?utm_medium=referral&utm_source=askubuntu-community&utm_campaign=side-bar&utm_content=explore-teams-compact-popover)
+
+# [How to back up my entire system?](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system)
+
+[Ask Question](https://askubuntu.com/questions/ask)
+
+Asked15 years, 10 months ago
+
+Modified [3 years, 8 months ago](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system?lastactivity "2022-12-24 22:13:51Z")
+
+Viewed
+445k times
+
+
+This question shows research effort; it is useful and clear
+
+184
+
+This question does not show any research effort; it is unclear or not useful
+
+Save this question.
+
+[Timeline](https://askubuntu.com/posts/7809/timeline)
+
+Show activity on this post.
+
+If I want to make a backup of my entire OS (including but not just my home directory), how do I go about this?
+
+Is it as simple as backing up everything in `/` and then when if I suffer a crash, just copying the files back over?
+
+Will this cover grub, and how do I actually do this when the system is inoperable?
+
+- [backup](https://askubuntu.com/questions/tagged/backup "show questions tagged 'backup'")
+
+[Share](https://askubuntu.com/q/7809)
+
+Share a link to this question
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this question
+
+[Improve this question](https://askubuntu.com/posts/7809/edit "")
+
+Follow
+
+
+
+Follow this question to receive notifications
+
+[edited Nov 28, 2014 at 4:34](https://askubuntu.com/posts/7809/revisions "show all edits to this post")
+
+[![Seth's user avatar](https://www.gravatar.com/avatar/f31ce482208852dac226a65024fba742?s=64&d=identicon&r=PG)](https://askubuntu.com/users/44179/seth)
+
+[Seth](https://askubuntu.com/users/44179/seth)
+
+59.7k4444 gold badges152152 silver badges202202 bronze badges
+
+asked Oct 16, 2010 at 21:58
+
+[![Will's user avatar](https://www.gravatar.com/avatar/6dc94251218340681ae841931ecfb449?s=64&d=identicon&r=PG)](https://askubuntu.com/users/633/will)
+
+[Will](https://askubuntu.com/users/633/will)
+
+3,48366 gold badges3333 silver badges2828 bronze badges
+
+3
+
+- you may want to take a look at this question for backup tools [askubuntu.com/q/2596](http://askubuntu.com/q/2596/)
+
+
+
+Decio Lira
+
+
+–
+[Decio Lira](https://askubuntu.com/users/431/decio-lira "8,204 reputation")
+
+
+
+2010-10-17 01:03:31 +00:00
+
+[CommentedOct 17, 2010 at 1:03](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7651_7809)
+
+
+- May I ask why you want to do this? In most cases it is _your files_ you will want to backup - the rest of the system is for most people easy to reinstall from the Ubuntu CD.
+
+
+
+8128
+
+
+–
+[8128](https://askubuntu.com/users/866/8128 "28,943 reputation")
+
+
+
+2010-10-17 07:59:33 +00:00
+
+[CommentedOct 17, 2010 at 7:59](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7712_7809)
+
+- 39
+
+
+
+
+
+Because i hate reinstalling all my apps and PPAs, icons and themes. My HD crashes the installer sometime and I just generally hate installing everything from scratch.
+
+
+
+Will
+
+
+–
+[Will](https://askubuntu.com/users/633/will "3,483 reputation")
+
+
+
+2010-10-17 23:10:09 +00:00
+
+[CommentedOct 17, 2010 at 23:10](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7892_7809)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid answering questions in comments.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+## 21 Answers 21
+
+Sorted by:
+[Reset to default](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system?answertab=scoredesc#tab-top)
+
+Highest score (default)
+
+Date modified (newest first)
+
+Date created (oldest first)
+
+
+This answer is useful
+
+158
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/7811/timeline)
+
+Show activity on this post.
+
+**FILES**
+
+Refer to this howto: [http://ubuntuforums.org/showthread.php?t=35087](http://ubuntuforums.org/showthread.php?t=35087)
+
+In simple terms, the backup command is:
+
+```bash
+sudo tar czf /backup.tar.gz \
+    --exclude=/backup.tar.gz \
+    --exclude=/dev \
+    --exclude=/mnt \
+    --exclude=/proc \
+    --exclude=/sys \
+    --exclude=/tmp \
+    --exclude=/media \
+    --exclude=/lost+found \
+    /
+```
+
+Add more `--exclude=` parameters if you need to.
+
+It will create an archive of all your files at `/backup.tar.gz`, which should be copied to another computer or drive.
+
+To restore your files when the system goes pear-shaped, use a Live CD. Mount the bad system under `/media` or `/mnt` and then run `tar xf /path/to/drive/with/backup.tar.gz -C /mnt` (or `/media`).
+
+**GRUB**
+
+This will not cover GRUB, however you can easily reinstall it by following this [guide here](https://askubuntu.com/questions/6317/how-can-i-install-windows-seven-on-ubuntu-10-10/6321#6321). You only need to do **steps Three and Four**.
+
+[Share](https://askubuntu.com/a/7811)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/7811/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited Mar 11, 2022 at 10:45](https://askubuntu.com/posts/7811/revisions "show all edits to this post")
+
+[![alper's user avatar](https://i.sstatic.net/6XXt5.jpg?s=64)](https://askubuntu.com/users/660555/alper)
+
+[alper](https://askubuntu.com/users/660555/alper)
+
+22466 silver badges2222 bronze badges
+
+answered Oct 16, 2010 at 22:13
+
+[![evgeny's user avatar](https://www.gravatar.com/avatar/5cec72966c15703c4cd37ad4deed9017?s=64&d=identicon&r=PG)](https://askubuntu.com/users/2804/evgeny)
+
+[evgeny](https://askubuntu.com/users/2804/evgeny)
+
+9,89533 gold badges3030 silver badges2828 bronze badges
+
+17
+
+- 3
+
+
+
+
+
+why exclude /sys?
+
+
+
+SDsolar
+
+
+–
+[SDsolar](https://askubuntu.com/users/640711/sdsolar "3,259 reputation")
+
+
+
+2017-03-04 22:02:22 +00:00
+
+[CommentedMar 4, 2017 at 22:02](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1390632_7811)
+
+
+- 3
+
+
+
+
+
+How big is the tar file usually? For example I have 90GB of data in "/". But the backing up process (making the backup.tar.gz) stopped because of lack of space.. Is there a way to create the backup.tar.gz file in an external drive?
+
+
+
+Arkya
+
+
+–
+[Arkya](https://askubuntu.com/users/440540/arkya "115 reputation")
+
+
+
+2017-05-01 13:17:36 +00:00
+
+[CommentedMay 1, 2017 at 13:17](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1432401_7811)
+
+- 3
+
+
+
+
+
+@SDsolar: because it's a _virtual filesystem_, just like `/dev`and `/proc`: [askubuntu.com/a/720473/11015](https://askubuntu.com/a/720473/11015)
+
+
+
+MestreLion
+
+
+–
+[MestreLion](https://askubuntu.com/users/11015/mestrelion "20,995 reputation")
+
+
+
+2017-05-18 12:03:55 +00:00
+
+[CommentedMay 18, 2017 at 12:03](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1444548_7811)
+
+- 2
+
+
+
+
+
+@ArkyaChatterjee: Or course... just mount your external drive and change `/backup.tar.gz` to whatever is your mount point, like `/media/backup//backup.tar.gz`
+
+
+
+MestreLion
+
+
+–
+[MestreLion](https://askubuntu.com/users/11015/mestrelion "20,995 reputation")
+
+
+
+2017-05-18 12:06:18 +00:00
+
+[CommentedMay 18, 2017 at 12:06](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1444550_7811)
+
+- 3
+
+
+
+
+
+`tar -cvpzf /backup.tar.gz --exclude=/backup.tar.gz --one-file-system /` will do what you want without needing to add all those other `--exclude` directories
+
+
+
+simplename
+
+
+–
+[simplename](https://askubuntu.com/users/304709/simplename "273 reputation")
+
+
+
+2020-10-28 04:17:47 +00:00
+
+[CommentedOct 28, 2020 at 4:17](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2185435_7811)
+
+
+[Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Show **12** more comments](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+34
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/296748/timeline)
+
+Show activity on this post.
+
+Noone noticed [clonezilla](http://clonezilla.org/). It makes a complete image of your hard drive, so it backups **absolutely everything**. It's as easy as burning an iso or creating a bootable flash drive.
+
+The actual backup takes a while, but is the most reliable.
+
+[Share](https://askubuntu.com/a/296748)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/296748/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered May 17, 2013 at 16:35
+
+[![mreq's user avatar](https://i.sstatic.net/Xk0IG.png?s=64)](https://askubuntu.com/users/44099/mreq)
+
+[mreq](https://askubuntu.com/users/44099/mreq)
+
+4,94288 gold badges4747 silver badges6363 bronze badges
+
+7
+
+- How can you it be better than evgeny's proposal? Is there some management etc tools?
+
+
+
+Léo Léopold Hertz 준영
+
+
+–
+[Léo Léopold Hertz 준영](https://askubuntu.com/users/25388/l%c3%a9o-l%c3%a9opold-hertz-%ec%a4%80%ec%98%81 "4,807 reputation")
+
+
+
+2016-06-17 16:14:36 +00:00
+
+[CommentedJun 17, 2016 at 16:14](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1183908_296748)
+
+
+- 1
+
+
+
+
+
+Can not recommend clonezilla. I just tried it and got this error: [sourceforge.net/p/clonezilla/discussion/Clonezilla\_live/thread/…](https://sourceforge.net/p/clonezilla/discussion/Clonezilla_live/thread/1bfa4f2e/) and seems like nothing is being done about it
+
+
+
+Hakaishin
+
+
+–
+[Hakaishin](https://askubuntu.com/users/517011/hakaishin "396 reputation")
+
+
+
+2018-12-13 09:53:11 +00:00
+
+[CommentedDec 13, 2018 at 9:53](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1813811_296748)
+
+- Clonezilla is really great! It's use-case is a bit different tho. I used it to clone my harddrive to an external. However, it is a full clone of the whole disk, including empty space. It is an exact mirror, which is great, but a different use-case for backups.
+
+
+
+Mike Bell
+
+
+–
+[Mike Bell](https://askubuntu.com/users/1255087/mike-bell "101 reputation")
+
+
+
+2021-05-15 17:58:29 +00:00
+
+[CommentedMay 15, 2021 at 17:58](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2285514_296748)
+
+- 1
+
+
+
+
+
+I've been using Clonezilla for some years. Works well for me.
+
+
+
+u628898
+
+
+–
+[u628898](https://askubuntu.com/users/628898/u628898 "91 reputation")
+
+
+
+2021-12-05 05:53:40 +00:00
+
+[CommentedDec 5, 2021 at 5:53](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2377292_296748)
+
+- 2
+
+
+
+
+
+Clonezilla does not clone empty space. It's a great tool with the only downside being that you have to boot into it.
+
+
+
+Organic Marble
+
+
+–
+[Organic Marble](https://askubuntu.com/users/243321/organic-marble "25,317 reputation")
+
+
+
+2022-03-11 12:51:57 +00:00
+
+[CommentedMar 11, 2022 at 12:51](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2419332_296748)
+
+
+[Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Show **2** more comments](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+34
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/81112/timeline)
+
+Show activity on this post.
+
+To clone your system to another system. Or make a backup. In terminal type:
+
+```
+dpkg --get-selections | grep -v deinstall > ubuntu-files
+```
+
+This command makes a file list of all installed packages in your system (and stores it in present working directory). Backup this file in hdd, email, etc...(this file is very small).
+
+In the freshly installed ubuntu system run:
+
+```
+sudo dpkg --set-selections <./ubuntu-files (will set it up and)
+
+apt-get -y update
+apt-get dselect-upgrade
+```
+
+This will install only those packages you had installed (with `apt-get`) in the old system.
+
+Alternatively, you could back up all the `.deb` packages from `/var/cache/apt/archives/` and install them manually using:
+
+```
+dpkg -i *.deb
+```
+
+And after that running an update cycle later.
+
+[Share](https://askubuntu.com/a/81112)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/81112/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited Dec 10, 2022 at 17:58](https://askubuntu.com/posts/81112/revisions "show all edits to this post")
+
+[![BeastOfCaerbannog's user avatar](https://i.sstatic.net/IRB44.jpg?s=64)](https://askubuntu.com/users/618353/beastofcaerbannog)
+
+[BeastOfCaerbannog](https://askubuntu.com/users/618353/beastofcaerbannog)
+
+17.4k1111 gold badges6464 silver badges107107 bronze badges
+
+answered Nov 20, 2011 at 19:47
+
+[![Newbi's user avatar](https://www.gravatar.com/avatar/05ddd4e933938bb13b2714d8e60f118e?s=64&d=identicon&r=PG)](https://askubuntu.com/users/31237/newbi)
+
+[Newbi](https://askubuntu.com/users/31237/newbi)
+
+2,23922 gold badges2020 silver badges2020 bronze badges
+
+4
+
+- This indeed an interesting strategy. how to go about the second way under (OR) you proposed. Back them up by copying them?
+
+
+
+M J
+
+
+–
+[M J](https://askubuntu.com/users/253530/m-j "129 reputation")
+
+
+
+2017-07-10 21:48:11 +00:00
+
+[CommentedJul 10, 2017 at 21:48](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1480889_81112)
+
+
+- @MohammedJoraid I guess, or by making an archive (.zip or .tar.\*) file and copying that.
+
+
+
+ekl1pse
+
+
+–
+[ekl1pse](https://askubuntu.com/users/1159044/ekl1pse "70 reputation")
+
+
+
+2021-01-18 15:02:44 +00:00
+
+[CommentedJan 18, 2021 at 15:02](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2227083_81112)
+
+- 1
+
+
+
+
+
+Does not back up /home.
+
+
+
+Organic Marble
+
+
+–
+[Organic Marble](https://askubuntu.com/users/243321/organic-marble "25,317 reputation")
+
+
+
+2022-03-11 12:53:02 +00:00
+
+[CommentedMar 11, 2022 at 12:53](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2419333_81112)
+
+- /home should not be on the same partition or filesystem as / which negates a need to backup along with the system essentials.
+
+
+
+Sir\_Scofferoff
+
+
+–
+[Sir\_Scofferoff](https://askubuntu.com/users/502788/sir-scofferoff "322 reputation")
+
+
+
+2025-09-20 20:33:16 +00:00
+
+[CommentedSep 20, 2025 at 20:33](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2737681_81112)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+26
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/857845/timeline)
+
+Show activity on this post.
+
+Here is a solution I use with SquashFS. It is quite similar to TAR.GZ solution proposed earlier, but has some major benefits.
+
+SquashFS is a compressed file system, which is completely stored in one file. This file can be mounted to an existing system and accessed in a usual way, like any other partition. The difference to TAR.GZ is that SquashFS is a full-blown file system with random access to files, while TAR is just one big concatenated file.
+
+This means that if you want to mount some large backup of your whole file system, for TAR.GZ it would take like 5 hours (in my experience) and for SquashFS it would take just minutes/seconds. The same is true also for the compression/backup operation, SquashFS is many times faster.
+
+**UPDATE 2017-01-31**:
+It appears that not only can you mount squashfs file, but also open it as a usual archive with familiar apps like File Roller on Linux and 7-Zip on Windows, etc.
+
+So here is a command I use to back up my root folder:
+
+```
+sudo mksquashfs / /path/to/backup/hdd/root-backup.sqsh -e home media dev run mnt proc sys tmp
+```
+
+where "-e" switch excludes folders you want to exclude (like virtual and external Linux folders in my example).
+
+After the backup is done, I can now mount it:
+
+```
+sudo mkdir /mnt/root_backup
+sudo mount /path/to/backup/hdd/root-backup.sqsh /mnt/root_backup -t squashfs -o loop
+```
+
+Now just wait couple minutes (depending on size of the archive) and enjoy all your files at /mnt/root\_backup folder.
+
+Same can be done for /home/myname folder, e.g.
+
+```
+sudo mksquashfs /home/myname /path/to/backup/hdd/home-backup.sqsh -e Dropbox GoogleDrive
+```
+
+I exclude Dropbox and GoogleDrive here to avoid any potential problems in the future, in case I restore those folders from backup and they become messing with the actual files in the cloud.
+
+Check more info at [http://tldp.org/HOWTO/SquashFS-HOWTO/creatingandusing.html](http://tldp.org/HOWTO/SquashFS-HOWTO/creatingandusing.html)
+
+[Share](https://askubuntu.com/a/857845)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/857845/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited Jan 31, 2017 at 12:05](https://askubuntu.com/posts/857845/revisions "show all edits to this post")
+
+answered Dec 6, 2016 at 23:57
+
+[![afrish's user avatar](https://www.gravatar.com/avatar/909bb3b70c90c946edf8bcfed1153e4e?s=64&d=identicon&r=PG)](https://askubuntu.com/users/98715/afrish)
+
+[afrish](https://askubuntu.com/users/98715/afrish)
+
+56099 silver badges1616 bronze badges
+
+3
+
+- 5
+
+
+
+
+
+Excellent answer. I used this to create my own script that lives on my NAS drive which is connected via NFS. Answered separately below since it has code.
+
+
+
+robmsmt
+
+
+–
+[robmsmt](https://askubuntu.com/users/713611/robmsmt "469 reputation")
+
+
+
+2020-05-18 00:26:26 +00:00
+
+[CommentedMay 18, 2020 at 0:26](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2090457_857845)
+
+
+- 2
+
+
+
+
+
+Note that SquashFS does not support ACLs (see the section titled "Xattr Table" [here](https://dr-emann.github.io/squashfs/) for an explanation). Attempting to run `mksquashfs` on directories that have ACLs defined results in an `Unrecognised xattr prefix system.posix_acl_access` error. More details [here](https://unix.stackexchange.com/a/219809/83446) and a possible patch [here](https://lkml.org/lkml/2019/1/25/117).
+
+
+
+Jim Walker
+
+
+–
+[Jim Walker](https://askubuntu.com/users/427729/jim-walker "171 reputation")
+
+
+
+2020-11-22 20:20:56 +00:00
+
+[CommentedNov 22, 2020 at 20:20](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2198832_857845)
+
+- It might be obvious but the sample command specifically excludes the home folder, which isn't what the OP wanted. But it's a great solution, nonetheless!
+
+
+
+bitsmack
+
+
+–
+[bitsmack](https://askubuntu.com/users/1084192/bitsmack "131 reputation")
+
+
+
+2022-06-13 16:19:20 +00:00
+
+[CommentedJun 13, 2022 at 16:19](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2457961_857845)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+16
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/712980/timeline)
+
+Show activity on this post.
+
+We can also do backup of system with rsync & exclude files & folders that we don't want. Here is the following command to do this :
+
+```
+#rsync -aAXv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} /* /path/to/backup/folder
+```
+
+Using the **`-aAX`** set of options, the files are transferred in archive mode, ensuring that symbolic links, devices, permissions and ownerships, modification times, ACLs and extended attributes are preserved
+
+The **`--exclude`** option will cause files that match the given patterns to be excluded.
+
+**REFERENCE : [Full system backup with rsync](https://wiki.archlinux.org/index.php/Rsync#Full_system_backup)**
+
+[Share](https://askubuntu.com/a/712980)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/712980/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited Nov 10, 2017 at 9:34](https://askubuntu.com/posts/712980/revisions "show all edits to this post")
+
+answered Dec 24, 2015 at 8:21
+
+[![d a i s y's user avatar](https://i.sstatic.net/9HpEm.png?s=64)](https://askubuntu.com/users/378524/d-a-i-s-y)
+
+[d a i s y](https://askubuntu.com/users/378524/d-a-i-s-y)
+
+5,58199 gold badges4444 silver badges5959 bronze badges
+
+1
+
+- Here you should mention to **exclude**`/path/to/backup/folder` as well.
+
+
+
+kkyucon
+
+
+–
+[kkyucon](https://askubuntu.com/users/998350/kkyucon "86 reputation")
+
+
+
+2022-12-15 12:58:54 +00:00
+
+[CommentedDec 15, 2022 at 12:58](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment2523083_712980)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+8
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/7813/timeline)
+
+Show activity on this post.
+
+You can use [Remastersys](http://www.geekconnection.org/remastersys/) to create a bootable live CD/DVD image. This will install like a normal Ubuntu CD.
+
+To install Remastersys, you first need to add a repository:
+
+```
+deb http://www.geekconnection.org/remastersys/repository karmic/
+```
+
+You can then install it from the Software Centre as usual.
+
+Once installed, use it to make a 'dist' backup. This means that user data will be excluded from the ISO image.
+
+![remastersys UI](https://i.sstatic.net/dY4LB.png)
+
+This is often used to create custom distributions but is still useful for the backup task you have in mind. One caveat is that it may fail if the contents of `/` (minus user data in `/home`) takes up too much memory because the ISO file format can only hold ~4GB data. Remastersys uses a file system called squashfs to compress your data so you should be OK with up to ~8GB.
+
+[Share](https://askubuntu.com/a/7813)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/ "The current license for this post: CC BY-SA 2.5")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/7813/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Oct 16, 2010 at 22:31
+
+[![dv3500ea's user avatar](https://www.gravatar.com/avatar/7f3d5b197677567789c00d95032e28a3?s=64&d=identicon&r=PG)](https://askubuntu.com/users/667/dv3500ea)
+
+[dv3500ea](https://askubuntu.com/users/667/dv3500ea)
+
+37.9k1313 gold badges103103 silver badges154154 bronze badges
+
+1
+
+- 1
+
+
+
+
+
+I tried this but last time it got too big so taring / excluding the directories im not interested in is better for me, then when i backup i dont have to wait for the CD as my HD will be quicker thanks for the advice though
+
+
+
+Will
+
+
+–
+[Will](https://askubuntu.com/users/633/will "3,483 reputation")
+
+
+
+2010-10-16 22:47:45 +00:00
+
+[CommentedOct 16, 2010 at 22:47](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7636_7813)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+8
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/791943/timeline)
+
+Show activity on this post.
+
+**TimeShift.**
+
+TimeShift protects your system by taking incremental snapshots of the file system at regular intervals. These snapshots can be restored later to bring your system to the exact state it was in at the time when the snapshot was taken.
+
+Open the terminal and run the following command
+
+```
+sudo apt-add-repository -y ppa:teejee2008/ppa
+sudo apt-get update
+sudo apt-get install timeshift
+```
+
+Screenshots
+
+![enter image description here](https://i.sstatic.net/Nuy0O.png)
+
+![enter image description here](https://i.sstatic.net/tRqgc.png)
+
+[Share](https://askubuntu.com/a/791943)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/791943/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered [Jun 27, 2016 at 13:02](https://askubuntu.com/posts/791943/revisions "show all edits to this post")
+
+community wiki
+
+
+[m3asmi](https://askubuntu.com/posts/791943/revisions "show revision history for this post")
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+7
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1240791/timeline)
+
+Show activity on this post.
+
+I turned [afrish's excellent answer](https://askubuntu.com/a/857845/713611) into a script for myself. Thought it could be useful for those wishing to automate it. The nice thing is that since the script can live on the NAS it will only execute if it's connected.
+
+The script (can be copied to any location - preferably the NAS itself) and will build the backups in the same folder.
+
+## Backups Script
+
+make\_backups\_root\_and\_home.sh
+
+```
+#!/usr/bin/env bash
+
+set -e
+
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+log="log.txt"
+power=$(cat /sys/class/power_supply/AC/online)
+start_date=$(date +%Y%m%d_%H%M%S)
+
+if (( $power == 1 )); then
+    echo "Starting backup $log at $start_date" >> $log
+
+    # ROOT IMAGE
+    root_backup_file=$start_date-root-backup.sqsh
+    sudo mksquashfs / $root_backup_file -e home media dev run mnt proc sys tmp nfs
+
+    # ALL HOMES IMAGE
+    home_backup_file=$start_date-home-backup.sqsh
+    sudo mksquashfs /home $home_backup_file -e Dropbox GoogleDrive
+
+    finish_date=$(date +%Y%m%d_%H%M%S)
+    echo "Completed $root_backup_file and $home_backup_file at $finish_date" >> $log
+else
+    echo "Power is not plugged in... skipped on $start_date" >> $log
+fi
+```
+
+Don't forget to `chmod +x make_backups_root_and_home.sh`!
+
+* * *
+
+## Linux Cronjob
+
+To enable the cronjob:
+
+```
+sudo su
+crontab -e
+```
+
+For Sunday at 1am, append:
+
+```
+00 01 * * sun  /nas_path/to/your/make_backups_root_and_home.sh >> /nas_path/to/your/log.txt 2>&1
+```
+
+* * *
+
+## Testing Backups!
+
+As with all good backups, they should be tested!
+Finally, we can create a script to mount the last available backup (since they are ordered by date).
+
+mount\_last\_backup.sh
+
+```
+#!/usr/bin/env bash
+
+sudo mkdir -p /mnt/root_backup
+sudo mkdir -p /mnt/root_home
+
+#UMOUNT ANY
+sudo umount /mnt/root_backup
+sudo umount /mnt/home_backup
+
+last_root=$(ls -Xrt -1 *root-backup* | head -n 1)
+last_home=$(ls -Xrt -1 *home-backup* | head -n 1)
+
+sudo mount $last_root /mnt/root_backup -t squashfs -o loop
+sudo mount $last_home /mnt/home_backup -t squashfs -o loop
+```
+
+[Share](https://askubuntu.com/a/1240791)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1240791/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited May 18, 2020 at 22:49](https://askubuntu.com/posts/1240791/revisions "show all edits to this post")
+
+answered May 18, 2020 at 1:06
+
+[![robmsmt's user avatar](https://www.gravatar.com/avatar/3f004e487651d152817809e62c2a9349?s=64&d=identicon&r=PG&f=y&so-version=2)](https://askubuntu.com/users/713611/robmsmt)
+
+[robmsmt](https://askubuntu.com/users/713611/robmsmt)
+
+46955 silver badges77 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+6
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/80716/timeline)
+
+Show activity on this post.
+
+Try [Remastersys](http://www.geekconnection.org/remastersys/ubuntu.html).
+
+With that program you can do liveCD (just the same as Ubuntu installation iso file) of your system with ability to install it on hard drive. Works pretty simple (if you know how to burn iso to USB/CD/DVD).
+
+Works perfectly on my 11.10 and 11.04, and older ones as well.
+
+Installation:
+
+edit file `/etc/apt/sources.list`
+
+add: `# Remastersys`
+
+`deb http://www.geekconnection.org/remastersys/repository karmic/` and save
+
+Then run in terminal:
+
+`sudo apt-get update`
+
+`sudo apt-get install remastersys`
+
+[Share](https://askubuntu.com/a/80716)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/80716/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+[edited Nov 19, 2011 at 13:57](https://askubuntu.com/posts/80716/revisions "show all edits to this post")
+
+answered Nov 19, 2011 at 13:21
+
+[![foxy's user avatar](https://www.gravatar.com/avatar/365d8eb732ba02b4b70294eff9d91499?s=64&d=identicon&r=PG)](https://askubuntu.com/users/33976/foxy)
+
+[foxy](https://askubuntu.com/users/33976/foxy)
+
+62366 silver badges1111 bronze badges
+
+0
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+4
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/80717/timeline)
+
+Show activity on this post.
+
+If you hard-disk where Ubuntu is installed isn't too big, you can try booting from a live cd (any linux distro will do) and running:
+
+```
+    dd if=/dev/sda of=/path/to/external/hardisk/mybackupfile
+```
+
+This makes a backup of your whole hard-disk, not just Ubuntu, and it'll also do all the empty bytes, but it's the only solution I can think of.
+To restore the backup, use:
+
+```
+  dd if=/path/to/external/harddisk/mybackupfile of=/dev/sda
+```
+
+[Share](https://askubuntu.com/a/80717)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/80717/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Nov 19, 2011 at 13:29
+
+[![Hippo's user avatar](https://i.sstatic.net/U3GD1.png?s=64)](https://askubuntu.com/users/20096/hippo)
+
+[Hippo](https://askubuntu.com/users/20096/hippo)
+
+53744 silver badges2222 bronze badges
+
+2
+
+- so how would I restore my Ubuntu distro from a copy om my whole HDD? Because you can't do that...
+
+
+
+Alvar
+
+
+–
+[Alvar](https://askubuntu.com/users/10698/alvar "17,108 reputation")
+
+
+
+2011-11-19 13:54:42 +00:00
+
+[CommentedNov 19, 2011 at 13:54](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment91134_80717)
+
+- @Alvar by storing the backup on an external/cloud drive and running it from a live CD/DVD/USB image.
+
+
+
+MacroMan
+
+
+–
+[MacroMan](https://askubuntu.com/users/623297/macroman "101 reputation")
+
+
+
+2018-03-05 11:16:20 +00:00
+
+[CommentedMar 5, 2018 at 11:16](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1640343_80717)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+2
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/7812/timeline)
+
+Show activity on this post.
+
+Here is a good tutorial using [PartImage](http://www.psychocats.net/ubuntu/partimage).
+
+[Share](https://askubuntu.com/a/7812)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/ "The current license for this post: CC BY-SA 2.5")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/7812/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Oct 16, 2010 at 22:14
+
+[![Isaiah's user avatar](https://www.gravatar.com/avatar/e17ecad05e78d0d68d236f81f0456b42?s=64&d=identicon&r=PG)](https://askubuntu.com/users/114/isaiah)
+
+[Isaiah](https://askubuntu.com/users/114/isaiah)
+
+61.1k3030 gold badges136136 silver badges148148 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+2
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1138896/timeline)
+
+Show activity on this post.
+
+You can backup your entire Ubuntu installation to another partition with this answer:
+
+- [Bash script to clone active Ubuntu Partition to another partition](https://askubuntu.com/questions/1028604/bash-script-to-backkup-clone-ubuntu-to-another-partition/1028605#1028605)
+
+Advantages of this technique:
+
+- You can continue using the system while it is being backed up. Care must be taken that you are only using web browser apps, office apps, watching videos, etc. and **not** database apps like accounting or SQL.
+- Virtual file systems are not backed up. They are recreated on each boot up so they are useless to backup in the first place.
+- The first backup may take an hour but daily backups do not copy files that haven't changed so they may only take a few minutes.
+- You can reboot and use the backup. This is beneficial if you want to try something dangerous that might break the system such as a Ubuntu Version upgrade untested in your environment.
+- If you totally break your production environment you can reboot into your clone and copy it back over using the same script.
+- Grub is automatically updated with proper UUID entries.
+- `/etc/fstab` is automatically updated with proper UUID entries.
+
+[Share](https://askubuntu.com/a/1138896)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1138896/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Apr 28, 2019 at 15:45
+
+[![WinEunuuchs2Unix's user avatar](https://i.sstatic.net/2SXNl.jpg?s=64)](https://askubuntu.com/users/307523/wineunuuchs2unix)
+
+[WinEunuuchs2Unix](https://askubuntu.com/users/307523/wineunuuchs2unix)
+
+107k3939 gold badges266266 silver badges446446 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+2
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1210147/timeline)
+
+Show activity on this post.
+
+**Systemback – Restore Ubuntu Desktop and Server To Previous State** _(Free tool)_
+
+_"Systemback is a free utility that can be used to backup and restore Ubuntu-like systems. It is somewhat similar to MS Windows’s “System restore” option. Using Systemback, we can easily create backup of a Ubuntu desktop or server system, and restore them to the previous state whenever we want. It creates one or more restore points date and time-wise, and displays the most recent restore points at the top. Not only restore points, we can also create the complete backup of your live system including user configuration files and data as ISO, and save them in an external hard disk."_
+
+- Backup the system with or without user configuration files and data
+- Restore system to any previous working state
+- Copy files/folders from one partition to another
+- Create the live Ubuntu system as ISO, and boot your system using it in-case of any problems
+- Copy files/folders from one partition to another
+- Create the live Ubuntu system as ISO, and boot your system using it in-case of any problems
+- Upgrade our system to next available version etc.
+
+[Link to website describing the install procedure.](https://www.ostechnix.com/systemback-restore-ubuntu-desktop-and-server-to-previous-state/)
+
+[Share](https://askubuntu.com/a/1210147)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1210147/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Feb 13, 2020 at 5:29
+
+[![Carey G. Butler's user avatar](https://www.gravatar.com/avatar/e3974184a5641c70b587b0b6aac5a0f5?s=64&d=identicon&r=PG)](https://askubuntu.com/users/200950/carey-g-butler)
+
+[Carey G. Butler](https://askubuntu.com/users/200950/carey-g-butler)
+
+6111 silver badge33 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+1
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/80698/timeline)
+
+Show activity on this post.
+
+go to ubuntu software center
+find **Déjà Dup backup manger**
+install it\`\`
+run it and give path where to backup your data
+select files to be backup
+make a back up
+
+later on you can chose backup by giving location of your external hard drive
+gud luck
+source
+\[https://launchpad.net/deja-dup\]
+
+[Share](https://askubuntu.com/a/80698)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/80698/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Nov 19, 2011 at 12:25
+
+[![paru38's user avatar](https://www.gravatar.com/avatar/fa422f34eebb36c4007d4f2c61fbfd29?s=64&d=identicon&r=PG)](https://askubuntu.com/users/32231/paru38)
+
+[paru38](https://askubuntu.com/users/32231/paru38)
+
+68411 gold badge77 silver badges1717 bronze badges
+
+5
+
+- I want to backup my entire system not just my music or videos.
+
+
+
+Alvar
+
+
+–
+[Alvar](https://askubuntu.com/users/10698/alvar "17,108 reputation")
+
+
+
+2011-11-19 12:27:38 +00:00
+
+[CommentedNov 19, 2011 at 12:27](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment91105_80698)
+
+
+- @Alvar you can select the "/" or "File System" and can back that up (that is the ENTIRE SYSTEM).
+
+
+
+jaorizabal
+
+
+–
+[jaorizabal](https://askubuntu.com/users/44863/jaorizabal "3,788 reputation")
+
+
+
+2012-03-23 22:27:41 +00:00
+
+[CommentedMar 23, 2012 at 22:27](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment136646_80698)
+
+- how do I install it? how do I backup my system with it?
+
+
+
+Alvar
+
+
+–
+[Alvar](https://askubuntu.com/users/10698/alvar "17,108 reputation")
+
+
+
+2012-03-23 22:32:49 +00:00
+
+[CommentedMar 23, 2012 at 22:32](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment136648_80698)
+
+- It does seem to be reliable at all. Just read some user reviews here [apps.ubuntu.com/cat/applications/deja-dup](https://apps.ubuntu.com/cat/applications/deja-dup/)
+
+
+
+ILIV
+
+
+–
+[ILIV](https://askubuntu.com/users/108514/iliv "1,607 reputation")
+
+
+
+2016-11-04 09:04:05 +00:00
+
+[CommentedNov 4, 2016 at 9:04](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1296610_80698)
+
+- @ILIV well yeah, the review sucks. That's good to know. Guess it's could be used for single files and music stuff maybe.
+
+
+
+M J
+
+
+–
+[M J](https://askubuntu.com/users/253530/m-j "129 reputation")
+
+
+
+2017-07-10 21:42:38 +00:00
+
+[CommentedJul 10, 2017 at 21:42](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment1480888_80698)
+
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+1
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1026353/timeline)
+
+Show activity on this post.
+
+You can use tools like [Bacula Community](https://bacula.org/) or [Bacula Enterprise](https://www.baculasystems.com/enterprise-backup-solution-with-bacula-systems/linux-server-backup-software).
+The difference between them is that community version doesn't support bare metal restores when you don't need to re-install the system and just purely recover it after the major crash.
+
+[Share](https://askubuntu.com/a/1026353)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1026353/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Apr 19, 2018 at 10:14
+
+[![Andrei Iunisov's user avatar](https://graph.facebook.com/10154201808617739/picture?type=large)](https://askubuntu.com/users/819978/andrei-iunisov)
+
+[Andrei Iunisov](https://askubuntu.com/users/819978/andrei-iunisov)
+
+1122 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+1
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1174888/timeline)
+
+Show activity on this post.
+
+This works for me on a Ubuntu 18.04 desktop, and only requires 'Disks' (gnome-disk-utility), gparted and standard grub commands.
+
+# Backup
+
+- Create an 8GB partition on a drive and install Ubuntu (minimal install) - call it **utilities**
+  - Install **gparted**
+- Within this system ..
+
+  - Run **Disks**, pick production system partition, and choose **Create partition image**
+  - Save the image to _ddMMMYYYY.img_ on any partition on the computer
+
+# Restore
+
+- Within the **utilities** system, run 'Disks' and click on the partition to restore to
+
+  - choose **Restore partition image**, and choose the image
+- Run **gparted**
+
+  - There might be unallocated space in the new partition
+
+    - **Partition -> Check (and repair)**, regardless
+  - The UUID will be the same as the original partition, so if the original partition still exists on the computer, you need ..
+
+    - **Partition -> New UUID**
+  - Take note of the **UUID** \- eg. ba5b7f3a-54d2-4325-80e5-e7a159900d3f
+  - Take note of the restored **partition** \- eg. /dev/sda6
+
+## fstab update
+
+- Skip to _grub update_ below if you have **not** created a new UUID
+- Run **Files** (ie. nautilus)
+
+
+  - Click **\+ Other Locations**
+  - Click on the device/partition - eg./dev/sda6
+- Run ..
+
+```
+      df -hT
+      # you will get something like ..
+      /dev/sda6 xx xx /media/fred/ba5b7f3a-54d2-4325-80e5-e7a159900d3f/etc/fstab
+```
+
+- paste in the last entry to produce a command like so ..
+
+```
+  sudo vi /media/fred/ba5b7f3a-54d2-4325-80e5-e7a159900d3f/etc/fstab
+```
+
+- Change the ''/'' entry in ''fstab'' to use this UUID
+
+## grub update
+
+- Run the following (assuming that your master boot record is on /dev/sda) ..
+
+```
+  # ensure all systems are found
+  sudo os-prober
+  # generate /boot/grub/grub.cfg
+  sudo update-grub
+  # search for root=UUID and check that the new UUID is used in some of these
+  # if not, try sudo grub-mkconfig, seems to get it right eventually
+  less /boot/grub/grub.cfg
+  # update the master boot record
+  sudo grub-install /dev/sda
+```
+
+- Reboot and go into the restored system
+- Check that you **really are in the restored system** \- note the ''/'' line
+
+```
+df -hT | grep ext4
+/dev/sda6      ext4       29G  6.1G   22G  23% /
+/dev/sdb6      ext4      112G   86G   22G  81% /data
+/dev/sda4      ext4      1.6T  377G  1.1T  26% /sata
+```
+
+## final grub update from the new system
+
+- Run this from the new system, so that this system becomes the default in the boot menu (assuming that your master boot record is on /dev/sda) ..
+
+```
+  sudo os-prober
+  sudo update-grub
+  sudo grub-install /dev/sda
+```
+
+[Share](https://askubuntu.com/a/1174888)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1174888/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Sep 17, 2019 at 23:22
+
+[![Tybion's user avatar](https://i.sstatic.net/qMgt0.png?s=64)](https://askubuntu.com/users/996948/tybion)
+
+[Tybion](https://askubuntu.com/users/996948/tybion)
+
+11122 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+0
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/80709/timeline)
+
+Show activity on this post.
+
+[Crashplan](http://www.crashplan.com/consumer/details.html) will back up all your system files and data and allow you to recover it - either on your current PC or allow you to adopt it to another install.
+
+You can back up to their online system, another computer or any attached hard drive.
+
+[Share](https://askubuntu.com/a/80709)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/80709/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Nov 19, 2011 at 12:56
+
+[![Mark Rooney's user avatar](https://www.gravatar.com/avatar/8e833236fa16f0749640633b1583cc5f?s=64&d=identicon&r=PG)](https://askubuntu.com/users/4982/mark-rooney)
+
+[Mark Rooney](https://askubuntu.com/users/4982/mark-rooney)
+
+6,32911 gold badge3737 silver badges6060 bronze badges
+
+0
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+0
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/81089/timeline)
+
+Show activity on this post.
+
+I have found you a detailed and recent how to on using Clonezilla. Clonezilla will let you make an image of your complete system including all hard drive partitions etc and later restore it.
+
+The tutorial is at [http://geekyprojects.com/cloning/how-to-use-clonezilla-tutorial/](http://geekyprojects.com/cloning/how-to-use-clonezilla-tutorial/)
+
+[Share](https://askubuntu.com/a/81089)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/ "The current license for this post: CC BY-SA 3.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/81089/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Nov 20, 2011 at 18:42
+
+[![lpanebr's user avatar](https://www.gravatar.com/avatar/1512eeb965864d2c9e426f9a2ad7319c?s=64&d=identicon&r=PG)](https://askubuntu.com/users/30400/lpanebr)
+
+[lpanebr](https://askubuntu.com/users/30400/lpanebr)
+
+1,29711 gold badge1212 silver badges2929 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+0
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1216497/timeline)
+
+Show activity on this post.
+
+A side note: Make sure permissions and owernship are preserved when copying or your backed up copy will be unusable ( [annoyingly, reinstalling is then the fastest way to recover](https://unix.stackexchange.com/questions/12998/wrongly-set-chmod-777-problems)).
+
+A tar file like that used in the accepted answer will preserve permissions and ownership (see tar manpage and [this answer](https://superuser.com/a/1083144/537480)). [NTFS drives support permissions _if_ mounted with `permissions`.](https://askubuntu.com/a/74851/477026) FAT has no support. For other filesystems, rather than messing around with mounting options and `/etc/fstab`, you should use tar and rest assured permissions/ownership is preserved.
+
+[Share](https://askubuntu.com/a/1216497)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1216497/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Mar 12, 2020 at 4:39
+
+[![qwr's user avatar](https://www.gravatar.com/avatar/f4f61983fcfba581ac686d827a37d16c?s=64&d=identicon&r=PG&f=y&so-version=2)](https://askubuntu.com/users/477026/qwr)
+
+[qwr](https://askubuntu.com/users/477026/qwr)
+
+3,0543030 silver badges4545 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+0
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/1264067/timeline)
+
+Show activity on this post.
+
+I can recommend my solution which was created with the goal of minimizing space requirements: [https://github.com/vbence/osbackup](https://github.com/vbence/osbackup)
+
+It can restore a bootable system to an empty media as long as you only use the following technologies.
+
+It covers:
+
+- Partition tables of block devices (through sfdisk).
+- Raid arrays compatible with mdadm.
+- Logical volumes using LVM.
+- Encrypted devices using dm\_crypt (the user will be prompted for the new passphrases).
+- File systems, as long as they are ext\* or vfat.
+- Grub boot loader.
+
+[Share](https://askubuntu.com/a/1264067)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/ "The current license for this post: CC BY-SA 4.0")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/1264067/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Aug 2, 2020 at 16:28
+
+[![vbence's user avatar](https://i.sstatic.net/vSVkO.png?s=64)](https://askubuntu.com/users/403436/vbence)
+
+[vbence](https://askubuntu.com/users/403436/vbence)
+
+11144 bronze badges
+
+[Add a comment](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Expand to show all comments on this post](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+This answer is useful
+
+-2
+
+This answer is not useful
+
+Save this answer.
+
+Loading when this answer was accepted…
+
+[Timeline](https://askubuntu.com/posts/7818/timeline)
+
+Show activity on this post.
+
+I use a program called [Back In Time](http://backintime.le-web.org/) that's similar to Apple's Time Machine.
+
+It's easy to tell it where you want your backups to go and how often to do the backup.
+
+Back In Time is in the Ubuntu repos.
+
+[Share](https://askubuntu.com/a/7818)
+
+Share a link to this answer
+
+Copy link [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/ "The current license for this post: CC BY-SA 2.5")
+
+Short permalink to this answer
+
+[Improve this answer](https://askubuntu.com/posts/7818/edit "")
+
+Follow
+
+
+
+Follow this answer to receive notifications
+
+answered Oct 16, 2010 at 23:17
+
+[![gamerchick02's user avatar](https://www.gravatar.com/avatar/0349a873e5252c2987384357ca29a997?s=64&d=identicon&r=PG)](https://askubuntu.com/users/149/gamerchick02)
+
+[gamerchick02](https://askubuntu.com/users/149/gamerchick02)
+
+1,7021212 silver badges2121 bronze badges
+
+7
+
+- That doesn't explain how to backup my system and how to restore it at all. When i can't even boot up back in time won't be able to help. If you can suggest how to use backup in time in this way I would be appreciative. Cheers
+
+
+
+Will
+
+
+–
+[Will](https://askubuntu.com/users/633/will "3,483 reputation")
+
+
+
+2010-10-17 09:11:02 +00:00
+
+[CommentedOct 17, 2010 at 9:11](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7727_7818)
+
+
+- Back in time uses is a frontend for rsync. You'll have to have Ubuntu installed to use it. I agree with fluteflute's comment above that it's easier to backup your files. That's what I thought you wanted.
+
+
+
+gamerchick02
+
+
+–
+[gamerchick02](https://askubuntu.com/users/149/gamerchick02 "1,702 reputation")
+
+
+
+2010-10-17 16:21:54 +00:00
+
+[CommentedOct 17, 2010 at 16:21](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7806_7818)
+
+- I already backup my files ;) The amount of times i render ubuntu inoperable its easier to either reinstall or revert to a backup than fix the problem (generally i need it fixed as I have work to do in between fiddling and breaking!)
+
+
+
+Will
+
+
+–
+[Will](https://askubuntu.com/users/633/will "3,483 reputation")
+
+
+
+2010-10-17 23:11:44 +00:00
+
+[CommentedOct 17, 2010 at 23:11](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7893_7818)
+
+- Right. I tried back in time to setup an automatic backup but i get a whole bunch of errors. Most like this: (its just a small fraction, and im running in root mode)
+
+
+
+Will
+
+
+–
+[Will](https://askubuntu.com/users/633/will "3,483 reputation")
+
+
+
+2010-10-18 15:55:33 +00:00
+
+[CommentedOct 18, 2010 at 15:55](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment7989_7818)
+
+- 1
+
+
+
+
+
+The backup commands noted above would probably work best for you. I only suggested Back in Time as a frontend for the rsync, etc. You can choose what you want to make a backup of, including all of the system files.
+
+
+
+gamerchick02
+
+
+–
+[gamerchick02](https://askubuntu.com/users/149/gamerchick02 "1,702 reputation")
+
+
+
+2010-10-18 23:46:05 +00:00
+
+[CommentedOct 18, 2010 at 23:46](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system#comment8044_7818)
+
+
+[Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.") \| [Show **2** more comments](https://askubuntu.com/questions/7809/how-to-back-up-my-entire-system# "Expand to show all comments on this post")
+
+## You must [log in](https://askubuntu.com/users/login?ssrc=question_page&returnurl=https%3a%2f%2faskubuntu.com%2fquestions%2f7809) to answer this question.
+
+Start asking to get answers
+
+Find the answer to your question by asking.
+
+[Ask question](https://askubuntu.com/questions/ask)
+
+Explore related questions
+
+- [backup](https://askubuntu.com/questions/tagged/backup "show questions tagged 'backup'")
+
+See similar questions with these tags.

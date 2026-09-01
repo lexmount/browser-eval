@@ -1,0 +1,10 @@
+SsrFBlockedError: Blocked: resolves to private/internal/special-use IP address
+    at assertAllowedResolvedAddressesOrThrow (/private/tmp/openclaw-eval/src/infra/net/ssrf.ts:410:13)
+    at resolvePinnedHostnameWithPolicy (/private/tmp/openclaw-eval/src/infra/net/ssrf.ts:629:5)
+    at async resolvePinnedHostname (/private/tmp/openclaw-eval/src/infra/net/fetch-guard.ts:536:7)
+    at async fetchWithSsrFGuardInternal (/private/tmp/openclaw-eval/src/infra/net/fetch-guard.ts:621:24)
+    at async fetchWithSsrFGuard (/private/tmp/openclaw-eval/src/infra/net/fetch-guard.ts:449:10)
+    at async fetchWebPayload (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:782:20)
+    at async runWebFetch (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:767:19)
+    at async Object.execute (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:1041:24)
+    at async <anonymous> (/private/tmp/browser-harness-eval/scripts/oss/openclaw_webfetch_worker.mts:33:17)

@@ -1,0 +1,463 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__lm-react-learn__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>React 学习文档</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">1,457 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定公开页面的主要可读正文；输出必须包含两个稳定主题标记，不能只是导航外壳、挑战页或错误页。</p><p><b>输入 URL：</b><a href="https://react.dev/learn">https://react.dev/learn</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>React 学习文档
+页面主要内容应同时包含：React；components。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否为目标页面而非错误页</li><li>是否包含 React</li><li>是否包含 components</li><li>是否返回连贯正文而非导航外壳</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/lm-react-learn/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://react.dev/learn">打开标准答案源网页</a> · 完整性校验 <code>sha256:e047d2394f64a3fbc4d384376c5aeb214189dbfe5fea16f48ee843e7934a1e6d</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>React 学习文档
+页面主要内容应同时包含：React；components。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Quick Start – React React v19.2 Search ⌘ Ctrl K Learn Reference Community Blog GET STARTED Quick Start Tutorial: Tic-Tac-Toe Thinking in React Installation Creating a React App Build a React App from Scratch Add React to an Existing Project Setup Editor Setup Using TypeScript React Developer Tools React Compiler Introduction Installation Incremental Adoption Debugging and Troubleshooting LEARN REACT Describing the UI Your First Component Importing and Exporting Components Writing Markup with JSX JavaScript in JSX with Curly Braces Passing Props to a Component Conditional Rendering Rendering Lists Keeping Components Pure Your UI as a Tree Adding Interactivity Responding to Events State: A Component&#x27;s Memory Render and Commit State as a Snapshot Queueing a Series of State Updates Updating Objects in State Updating Arrays in State Managing State Reacting to Input with State Choosing the State Structure Sharing State Between Components Preserving and Resetting State Extracting State Logic into a Reducer Passing Data Deeply with Context Scaling Up with Reducer and Context Escape Hatches Referencing Values with Refs Manipulating the DOM with Refs Synchronizing with Effects You Might Not Need an Effect Lifecycle of Reactive Effects Separating Events from Effects Removing Effect Dependencies Reusing Logic with Custom Hooks Learn React Copy page Copy Quick Start Welcome to the React documentation! This page will give you an introduction to 80% of the React concepts that you will use on a daily basis. You will learn How to create and nest components How to add markup and styles How to display data How to render conditions and lists How to respond to events and update the screen How to share data between components Creating and nesting components React apps are made out of compone</pre></div></div><details><summary>展开本页中的完整供应商输出（14,300 / 14,300 字符）</summary><pre>Quick Start – React React v19.2 Search ⌘ Ctrl K Learn Reference Community Blog GET STARTED Quick Start Tutorial: Tic-Tac-Toe Thinking in React Installation Creating a React App Build a React App from Scratch Add React to an Existing Project Setup Editor Setup Using TypeScript React Developer Tools React Compiler Introduction Installation Incremental Adoption Debugging and Troubleshooting LEARN REACT Describing the UI Your First Component Importing and Exporting Components Writing Markup with JSX JavaScript in JSX with Curly Braces Passing Props to a Component Conditional Rendering Rendering Lists Keeping Components Pure Your UI as a Tree Adding Interactivity Responding to Events State: A Component&#x27;s Memory Render and Commit State as a Snapshot Queueing a Series of State Updates Updating Objects in State Updating Arrays in State Managing State Reacting to Input with State Choosing the State Structure Sharing State Between Components Preserving and Resetting State Extracting State Logic into a Reducer Passing Data Deeply with Context Scaling Up with Reducer and Context Escape Hatches Referencing Values with Refs Manipulating the DOM with Refs Synchronizing with Effects You Might Not Need an Effect Lifecycle of Reactive Effects Separating Events from Effects Removing Effect Dependencies Reusing Logic with Custom Hooks Learn React Copy page Copy Quick Start Welcome to the React documentation! This page will give you an introduction to 80% of the React concepts that you will use on a daily basis. You will learn How to create and nest components How to add markup and styles How to display data How to render conditions and lists How to respond to events and update the screen How to share data between components Creating and nesting components React apps are made out of components . A component is a piece of the UI (user interface) that has its own logic and appearance. A component can be as small as a button, or as large as an entire page. React components are JavaScript functions that return markup: function MyButton ( ) { return ( &lt; button &gt; I&#x27;m a button &lt;/ button &gt; ) ; } Now that you’ve declared MyButton , you can nest it into another component: export default function MyApp ( ) { return ( &lt; div &gt; &lt; h1 &gt; Welcome to my app &lt;/ h1 &gt; &lt; MyButton /&gt; &lt;/ div &gt; ) ; } Notice that &lt;MyButton /&gt; starts with a capital letter. That’s how you know it’s a React component. React component names must always start with a capital letter, while HTML tags must be lowercase. Have a look at the result: App.js App.js Reload Clear Fork function MyButton ( ) { return ( &lt; button &gt; I&#x27;m a button &lt;/ button &gt; ) ; } export default function MyApp ( ) { return ( &lt; div &gt; &lt; h1 &gt; Welcome to my app &lt;/ h1 &gt; &lt; MyButton /&gt; &lt;/ div &gt; ) ; } Show more The export default keywords specify the main component in the file. If you’re not familiar with some piece of JavaScript syntax, MDN and javascript.info have great references. Writing markup with JSX The markup syntax you’ve seen above is called JSX . It is optional, but most React projects use JSX for its convenience. All of the tools we recommend for local development support JSX out of the box. JSX is stricter than HTML. You have to close tags like &lt;br /&gt; . Your component also can’t return multiple JSX tags. You have to wrap them into a shared parent, like a &lt;div&gt;...&lt;/div&gt; or an empty &lt;&gt;...&lt;/&gt; wrapper: function AboutPage ( ) { return ( &lt; &gt; &lt; h1 &gt; About &lt;/ h1 &gt; &lt; p &gt; Hello there. &lt; br /&gt; How do you do? &lt;/ p &gt; &lt;/ &gt; ) ; } If you have a lot of HTML to port to JSX, you can use an online converter. Adding styles In React, you specify a CSS class with className . It works the same way as the HTML class attribute: &lt; img className = &quot;avatar&quot; /&gt; Then you write the CSS rules for it in a separate CSS file: /* In your CSS */ .avatar { border-radius : 50 % ; } React does not prescribe how you add CSS files. In the simplest case, you’ll add a &lt;link&gt; tag to your HTML. If you use a build tool or a framework, consult its documentation to learn how to add a CSS file to your project. Displaying data JSX lets you put markup into JavaScript. Curly braces let you “escape back” into JavaScript so that you can embed some variable from your code and display it to the user. For example, this will display user.name : return ( &lt; h1 &gt; { user . name } &lt;/ h1 &gt; ) ; You can also “escape into JavaScript” from JSX attributes, but you have to use curly braces instead of quotes. For example, className=&quot;avatar&quot; passes the &quot;avatar&quot; string as the CSS class, but src={user.imageUrl} reads the JavaScript user.imageUrl variable value, and then passes that value as the src attribute: return ( &lt; img className = &quot;avatar&quot; src = { user . imageUrl } /&gt; ) ; You can put more complex expressions inside the JSX curly braces too, for example, string concatenation : App.js App.js Reload Clear Fork const user = { name : &#x27;Hedy Lamarr&#x27; , imageUrl : &#x27;https://react.dev/images/docs/scientists/yXOvdOSs.jpg&#x27; , imageSize : 90 , } ; export default function Profile ( ) { return ( &lt; &gt; &lt; h1 &gt; { user . name } &lt;/ h1 &gt; &lt; img className = &quot;avatar&quot; src = { user . imageUrl } alt = { &#x27;Photo of &#x27; + user . name } style = { { width : user . imageSize , height : user . imageSize } } /&gt; &lt;/ &gt; ) ; } Show more In the above example, style={{}} is not a special syntax, but a regular {} object inside the style={ } JSX curly braces. You can use the style attribute when your styles depend on JavaScript variables. Conditional rendering In React, there is no special syntax for writing conditions. Instead, you’ll use the same techniques as you use when writing regular JavaScript code. For example, you can use an if statement to conditionally include JSX: let content ; if ( isLoggedIn ) { content = &lt; AdminPanel /&gt; ; } else { content = &lt; LoginForm /&gt; ; } return ( &lt; div &gt; { content } &lt;/ div &gt; ) ; If you prefer more compact code, you can use the conditional ? operator. Unlike if , it works inside JSX: &lt; div &gt; { isLoggedIn ? ( &lt; AdminPanel /&gt; ) : ( &lt; LoginForm /&gt; ) } &lt;/ div &gt; When you don’t need the else branch, you can also use a shorter logical &amp;&amp; syntax : &lt; div &gt; { isLoggedIn &amp;&amp; &lt; AdminPanel /&gt; } &lt;/ div &gt; All of these approaches also work for conditionally specifying attributes. If you’re unfamiliar with some of this JavaScript syntax, you can start by always using if...else . Rendering lists You will rely on JavaScript features like for loop and the array map() function to render lists of components. For example, let’s say you have an array of products: const products = [ { title : &#x27;Cabbage&#x27; , id : 1 } , { title : &#x27;Garlic&#x27; , id : 2 } , { title : &#x27;Apple&#x27; , id : 3 } , ] ; Inside your component, use the map() function to transform an array of products into an array of &lt;li&gt; items: const listItems = products . map ( product =&gt; &lt; li key = { product . id } &gt; { product . title } &lt;/ li &gt; ) ; return ( &lt; ul &gt; { listItems } &lt;/ ul &gt; ) ; Notice how &lt;li&gt; has a key attribute. For each item in a list, you should pass a string or a number that uniquely identifies that item among its siblings. Usually, a key should be coming from your data, such as a database ID. React uses your keys to know what happened if you later insert, delete, or reorder the items. App.js App.js Reload Clear Fork const products = [ { title : &#x27;Cabbage&#x27; , isFruit : false , id : 1 } , { title : &#x27;Garlic&#x27; , isFruit : false , id : 2 } , { title : &#x27;Apple&#x27; , isFruit : true , id : 3 } , ] ; export default function ShoppingList ( ) { const listItems = products . map ( product =&gt; &lt; li key = { product . id } style = { { color : product . isFruit ? &#x27;magenta&#x27; : &#x27;darkgreen&#x27; } } &gt; { product . title } &lt;/ li &gt; ) ; return ( &lt; ul &gt; { listItems } &lt;/ ul &gt; ) ; } Show more Responding to events You can respond to events by declaring event handler functions inside your components: function MyButton ( ) { function handleClick ( ) { alert ( &#x27;You clicked me!&#x27; ) ; } return ( &lt; button onClick = { handleClick } &gt; Click me &lt;/ button &gt; ) ; } Notice how onClick={handleClick} has no parentheses at the end! Do not call the event handler function: you only need to pass it down . React will call your event handler when the user clicks the button. Updating the screen Often, you’ll want your component to “remember” some information and display it. For example, maybe you want to count the number of times a button is clicked. To do this, add state to your component. First, import useState from React: import { useState } from &#x27;react&#x27; ; Now you can declare a state variable inside your component: function MyButton ( ) { const [ count , setCount ] = useState ( 0 ) ; // ... You’ll get two things from useState : the current state ( count ), and the function that lets you update it ( setCount ). You can give them any names, but the convention is to write [something, setSomething] . The first time the button is displayed, count will be 0 because you passed 0 to useState() . When you want to change state, call setCount() and pass the new value to it. Clicking this button will increment the counter: function MyButton ( ) { const [ count , setCount ] = useState ( 0 ) ; function handleClick ( ) { setCount ( count + 1 ) ; } return ( &lt; button onClick = { handleClick } &gt; Clicked { count } times &lt;/ button &gt; ) ; } React will call your component function again. This time, count will be 1 . Then it will be 2 . And so on. If you render the same component multiple times, each will get its own state. Click each button separately: App.js App.js Reload Clear Fork import { useState } from &#x27;react&#x27; ; export default function MyApp ( ) { return ( &lt; div &gt; &lt; h1 &gt; Counters that update separately &lt;/ h1 &gt; &lt; MyButton /&gt; &lt; MyButton /&gt; &lt;/ div &gt; ) ; } function MyButton ( ) { const [ count , setCount ] = useState ( 0 ) ; function handleClick ( ) { setCount ( count + 1 ) ; } return ( &lt; button onClick = { handleClick } &gt; Clicked { count } times &lt;/ button &gt; ) ; } Show more Notice how each button “remembers” its own count state and doesn’t affect other buttons. Using Hooks Functions starting with use are called Hooks . useState is a built-in Hook provided by React. You can find other built-in Hooks in the API reference. You can also write your own Hooks by combining the existing ones. Hooks are more restrictive than other functions. You can only call Hooks at the top of your components (or other Hooks). If you want to use useState in a condition or a loop, extract a new component and put it there. Sharing data between components In the previous example, each MyButton had its own independent count , and when each button was clicked, only the count for the button clicked changed: Initially, each MyButton ’s count state is 0 The first MyButton updates its count to 1 However, often you’ll need components to share data and always update together . To make both MyButton components display the same count and update together, you need to move the state from the individual buttons “upwards” to the closest component containing all of them. In this example, it is MyApp : Initially, MyApp ’s count state is 0 and is passed down to both children On click, MyApp updates its count state to 1 and passes it down to both children Now when you click either button, the count in MyApp will change, which will change both of the counts in MyButton . Here’s how you can express this in code. First, move the state up from MyButton into MyApp : export default function MyApp ( ) { const [ count , setCount ] = useState ( 0 ) ; function handleClick ( ) { setCount ( count + 1 ) ; } return ( &lt; div &gt; &lt; h1 &gt; Counters that update separately &lt;/ h1 &gt; &lt; MyButton /&gt; &lt; MyButton /&gt; &lt;/ div &gt; ) ; } function MyButton ( ) { // ... we&#x27;re moving code from here ... } Then, pass the state down from MyApp to each MyButton , together with the shared click handler. You can pass information to MyButton using the JSX curly braces, just like you previously did with built-in tags like &lt;img&gt; : export default function MyApp ( ) { const [ count , setCount ] = useState ( 0 ) ; function handleClick ( ) { setCount ( count + 1 ) ; } return ( &lt; div &gt; &lt; h1 &gt; Counters that update together &lt;/ h1 &gt; &lt; MyButton count = { count } onClick = { handleClick } /&gt; &lt; MyButton count = { count } onClick = { handleClick } /&gt; &lt;/ div &gt; ) ; } The information you pass down like this is called props . Now the MyApp component contains the count state and the handleClick event handler, and passes both of them down as props to each of the buttons. Finally, change MyButton to read the props you have passed from its parent component: function MyButton ( { count , onClick } ) { return ( &lt; button onClick = { onClick } &gt; Clicked { count } times &lt;/ button &gt; ) ; } When you click the button, the onClick handler fires. Each button’s onClick prop was set to the handleClick function inside MyApp , so the code inside of it runs. That code calls setCount(count + 1) , incrementing the count state variable. The new count value is passed as a prop to each button, so they all show the new value. This is called “lifting state up”. By moving state up, you’ve shared it between components. App.js App.js Reload Clear Fork import { useState } from &#x27;react&#x27; ; export default function MyApp ( ) { const [ count , setCount ] = useState ( 0 ) ; function handleClick ( ) { setCount ( count + 1 ) ; } return ( &lt; div &gt; &lt; h1 &gt; Counters that update together &lt;/ h1 &gt; &lt; MyButton count = { count } onClick = { handleClick } /&gt; &lt; MyButton count = { count } onClick = { handleClick } /&gt; &lt;/ div &gt; ) ; } function MyButton ( { count , onClick } ) { return ( &lt; button onClick = { onClick } &gt; Clicked { count } times &lt;/ button &gt; ) ; } Show more Next Steps By now, you know the basics of how to write React code! Check out the Tutorial to put them into practice and build your first mini-app with React. Next Tutorial: Tic-Tac-Toe Copyright © Meta Platforms, Inc no uwu plz uwu? Logo by @sawaratsuki1004 Learn React Quick Start Installation Describing the UI Adding Interactivity Managing State Escape Hatches API Reference React APIs React DOM APIs Community Code of Conduct Meet the Team Docs Contributors Acknowledgements More Blog React Native Privacy Terms On this page Overview Creating and nesting components Writing markup with JSX Adding styles Displaying data Conditional rendering Rendering lists Responding to events Updating the screen Using Hooks Sharing data between components Next Steps</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__lm-react-learn__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://react.dev/learn</span></div><div class="kv"><b>输出大小</b>14,300 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>marker-1</code></td><td class="good">命中</td><td>React</td><td>React</td></tr><tr><td><code>marker-2</code></td><td class="good">命中</td><td>components</td><td>components</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">React</span><span class="tag">components</span></p><p><span class="tag">React</span><span class="tag">components</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;c31c0786-798d-404b-8d49-c98bde844aa3&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 827,
+  &quot;dom_id&quot;: &quot;267924&quot;,
+  &quot;links_count&quot;: 100,
+  &quot;images_count&quot;: 10,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://bsky.app/profile/react.dev&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fork&quot;,
+      &quot;href&quot;: &quot;https://codesandbox.io/api/v1/sandboxes/define?undefined&amp;amp;environment=create-react-app&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&lt;link&gt;&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTML/Element/link&quot;
+    },
+    {
+      &quot;text&quot;: &quot;class&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/class&quot;
+    },
+    {
+      &quot;text&quot;: &quot;array map() function&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React&quot;,
+      &quot;href&quot;: &quot;https://react.dev/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Blog&quot;,
+      &quot;href&quot;: &quot;https://react.dev/blog&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Community&quot;,
+      &quot;href&quot;: &quot;https://react.dev/community&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Acknowledgements&quot;,
+      &quot;href&quot;: &quot;https://react.dev/community/acknowledgements&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Docs Contributors&quot;,
+      &quot;href&quot;: &quot;https://react.dev/community/docs-contributors&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Meet the Team&quot;,
+      &quot;href&quot;: &quot;https://react.dev/community/team&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/community/translations&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Learn&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Learn React&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Quick Start&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Adding styles&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#adding-styles&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#adding-styles&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Creating and nesting components&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Conditional rendering&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#conditional-rendering&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#conditional-rendering&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Displaying data&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#displaying-data&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#displaying-data&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Next Steps&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#next-steps&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#next-steps&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#rendering-lists&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Rendering lists&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#rendering-lists&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#responding-to-events&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Responding to events&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#responding-to-events&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#sharing-data-between-components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Sharing data between components&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#sharing-data-between-components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#undefined&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Updating the screen&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#updating-the-screen&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#updating-the-screen&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#using-hooks&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using Hooks&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#using-hooks&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#writing-markup-with-jsx&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Writing markup with JSX&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn#writing-markup-with-jsx&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Add React to an Existing Project&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/add-react-to-an-existing-project&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Adding Interactivity&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/adding-interactivity&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Build a React App from Scratch&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/build-a-react-app-from-scratch&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Choosing the State Structure&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/choosing-the-state-structure&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Conditional Rendering&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/conditional-rendering&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Creating a React App&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/creating-a-react-app&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Describing the UI&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/describing-the-ui&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Editor Setup&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/editor-setup&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Escape Hatches&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/escape-hatches&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Extracting State Logic into a Reducer&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/extracting-state-logic-into-a-reducer&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Importing and Exporting Components&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/importing-and-exporting-components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;tools we recommend for local development&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/installation&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Installation&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/installation&quot;
+    },
+    {
+      &quot;text&quot;: &quot;JavaScript in JSX with Curly Braces&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/javascript-in-jsx-with-curly-braces&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Keeping Components Pure&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/keeping-components-pure&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lifecycle of Reactive Effects&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/lifecycle-of-reactive-effects&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Managing State&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/managing-state&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Manipulating the DOM with Refs&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/manipulating-the-dom-with-refs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Passing Data Deeply with Context&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/passing-data-deeply-with-context&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Passing Props to a Component&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/passing-props-to-a-component&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Preserving and Resetting State&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/preserving-and-resetting-state&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Queueing a Series of State Updates&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/queueing-a-series-of-state-updates&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React Compiler&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-compiler&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Debugging and Troubleshooting&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-compiler/debugging&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Incremental Adoption&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-compiler/incremental-adoption&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Installation&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-compiler/installation&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Introduction&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-compiler/introduction&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React Developer Tools&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/react-developer-tools&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Reacting to Input with State&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/reacting-to-input-with-state&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Referencing Values with Refs&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/referencing-values-with-refs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Removing Effect Dependencies&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/removing-effect-dependencies&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Render and Commit&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/render-and-commit&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Rendering Lists&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/rendering-lists&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Responding to Events&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/responding-to-events&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Reusing Logic with Custom Hooks&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/reusing-logic-with-custom-hooks&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Scaling Up with Reducer and Context&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/scaling-up-with-reducer-and-context&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Separating Events from Effects&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/separating-events-from-effects&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Setup&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/setup&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Sharing State Between Components&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/sharing-state-between-components&quot;
+    },
+    {
+      &quot;text&quot;: &quot;State: A Component&#x27;s Memory&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/state-a-components-memory&quot;
+    },
+    {
+      &quot;text&quot;: &quot;State as a Snapshot&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/state-as-a-snapshot&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Synchronizing with Effects&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/synchronizing-with-effects&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Thinking in React&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/thinking-in-react&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Tutorial: Tic-Tac-Toe&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/tutorial-tic-tac-toe&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Tutorial&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/tutorial-tic-tac-toe&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Next Tutorial: Tic-Tac-Toe&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/tutorial-tic-tac-toe&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using TypeScript&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/typescript&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Your UI as a Tree&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/understanding-your-ui-as-a-tree&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Updating Arrays in State&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/updating-arrays-in-state&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Updating Objects in State&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/updating-objects-in-state&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Writing Markup with JSX&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/writing-markup-with-jsx&quot;
+    },
+    {
+      &quot;text&quot;: &quot;You Might Not Need an Effect&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/you-might-not-need-an-effect&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Your First Component&quot;,
+      &quot;href&quot;: &quot;https://react.dev/learn/your-first-component&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Reference&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React APIs&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react&quot;
+    },
+    {
+      &quot;text&quot;: &quot;API Reference&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react&quot;
+    },
+    {
+      &quot;text&quot;: &quot;API reference.&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react&quot;
+    },
+    {
+      &quot;text&quot;: &quot;React DOM APIs&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react-dom&quot;
+    },
+    {
+      &quot;text&quot;: &quot;useState&quot;,
+      &quot;href&quot;: &quot;https://react.dev/reference/react/useState&quot;
+    },
+    {
+      &quot;text&quot;: &quot;v19.2&quot;,
+      &quot;href&quot;: &quot;https://react.dev/versions&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_child.dark.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;Diagram showing a tree of three components, one parent labeled MyApp and two children labeled MyButton. Both MyButton components contain a count with value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_child.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;Diagram showing a tree of three components, one parent labeled MyApp and two children labeled MyButton. Both MyButton components contain a count with value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_child_clicked.dark.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;The same diagram as the previous, with the count of the first child MyButton component highlighted indicating a click with the count value incremented to one. The second MyButton component still contains value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_child_clicked.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;The same diagram as the previous, with the count of the first child MyButton component highlighted indicating a click with the count value incremented to one. The second MyButton component still contains value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_parent.dark.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;Diagram showing a tree of three components, one parent labeled MyApp and two children labeled MyButton. MyApp contains a count value of zero which is passed down to both of the MyButton components, which also show value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_parent.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;Diagram showing a tree of three components, one parent labeled MyApp and two children labeled MyButton. MyApp contains a count value of zero which is passed down to both of the MyButton components, which also show value zero.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_parent_clicked.dark.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;The same diagram as the previous, with the count of the parent MyApp component highlighted indicating a click with the value incremented to one. The flow to both of the children MyButton components is also highlighted, and the count value in each child is set to one indicating the value was passed down.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fdocs%2Fdiagrams%2Fsharing_data_parent_clicked.png&amp;amp;w=828&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;The same diagram as the previous, with the count of the parent MyApp component highlighted indicating a click with the value incremented to one. The flow to both of the children MyButton components is also highlighted, and the count value in each child is set to one indicating the value was passed down.&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/_next/image?url=%2Fimages%2Fuwu.png&amp;amp;w=128&amp;amp;q=75&quot;,
+      &quot;alt&quot;: &quot;logo by @sawaratsuki1004&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://react.dev/images/og/learn.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__lm-react-learn__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__lm-react-learn__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__lm-react-learn__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

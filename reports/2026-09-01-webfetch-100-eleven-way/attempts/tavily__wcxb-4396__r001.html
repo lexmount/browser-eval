@@ -1,0 +1,501 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>tavily__wcxb-4396__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · tavily</div><h1>WCXB collection · Sterling Silver Earrings</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">2,311 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 collection 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://www.analuisa.com/collections/sterling-silver-earrings/">https://www.analuisa.com/collections/sterling-silver-earrings/</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Sterling Silver Earrings
+
+31 products
+
+Nate
+Bold Huggie Hoops
+$75
+
+Elios
+Sun Huggie Hoops
+$65
+
+Mini Huggie Hoops
+Sterling Silver
+$65
+
+Sterling Silver Mini Huggie Hoops
+$65
+
+Toda
+Double Hoop Earrings
+$85
+
+Suzanne
+Huggie Hoop Earrings
+$75
+
+Zara
+Small Stud Earring
+$50
+
+Rox Mini Silver
+Sterling Silver Elongated Mini Hoops
+$75
+
+Lo Medium
+Medium Slim Endless Hoops
+$95
+
+Nava
+Huggie Hoops
+$75
+
+Lo Small
+Small Slim Endless Hoops
+$85
+
+Toda Silver
+Double Hoop Earrings
+$85
+
+Suzanne Silver
+Huggie Hoop Earrings
+$75
+
+Harley
+Double Hoop Earrings
+$75
+
+Suzanne Medium
+Pavé Huggie Hoops
+$95
+
+Lo Small Silver
+Small Slim Endless Hoops
+$85
+
+Lo Medium Silver
+Medium Slim Endless Hoops
+$95
+
+Debbie
+Gold Stud Earrings
+$50
+
+Rox Mini
+Gold Hoop Earrings
+$75
+
+Rox Small
+Gold Hoop Earrings
+$85
+
+Rox Small Silver
+Small Hoop Earrings
+$85</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/tavily/wcxb-4396/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.analuisa.com/collections/sterling-silver-earrings/">打开标准答案源网页</a> · 完整性校验 <code>sha256:150a4737cd3ef33380e2b3b6d015a93ce0471944aaa286ba4d34661ef19699e8</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Sterling Silver Earrings
+
+31 products
+
+Nate
+Bold Huggie Hoops
+$75
+
+Elios
+Sun Huggie Hoops
+$65
+
+Mini Huggie Hoops
+Sterling Silver
+$65
+
+Sterling Silver Mini Huggie Hoops
+$65
+
+Toda
+Double Hoop Earrings
+$85
+
+Suzanne
+Huggie Hoop Earrings
+$75
+
+Zara
+Small Stud Earring
+$50
+
+Rox Mini Silver
+Sterling Silver Elongated Mini Hoops
+$75
+
+Lo Medium
+Medium Slim Endless Hoops
+$95
+
+Nava
+Huggie Hoops
+$75
+
+Lo Small
+Small Slim Endless Hoops
+$85
+
+Toda Silver
+Double Hoop Earrings
+$85
+
+Suzanne Silver
+Huggie Hoop Earrings
+$75
+
+Harley
+Double Hoop Earrings
+$75
+
+Suzanne Medium
+Pavé Huggie Hoops
+$95
+
+Lo Small Silver
+Small Slim Endless Hoops
+$85
+
+Lo Medium Silver
+Medium Slim Endless Hoops
+$95
+
+Debbie
+Gold Stud Earrings
+$50
+
+Rox Mini
+Gold Hoop Earrings
+$75
+
+Rox Small
+Gold Hoop Earrings
+$85
+
+Rox Small Silver
+Small Hoop Earrings
+$85</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Your cart
+
+Your cart is empty.
+
+# Sterling Silver Earrings
+
+25 products
+
+(25 products)
+
+Filter
+
+Sort
+
+[## Nava
+
+### Huggie Hoops
+
+$75
+
+$63.75Members](/products/huggie-hoops-nava)
+
+[## Mini Huggie Hoops
+
+### Sterling Silver
+
+$65
+
+$55.25Members](/products/sterling-silver-mini-huggie-hoops)[Color: Silver](/products/sterling-silver-mini-huggie-hoops-mini-huggie-hoops-silver)
+
+[## Nate
+
+### Bold Huggie Hoops
+
+$75
+
+$63.75Members](/products/bold-huggie-hoops-nate)[Color: Silver Size: Small](/products/bold-huggie-hoops-nate-silver) [Color: Pave Size: Small](/products/huggie-earrings-nate-pave) [Color: Gold Size: Medium](/products/small-gold-hoop-earrings-nate-medium) [Color: Silver Size: Medium](/products/silver-earrings-nate-medium-silver) [Color: Pave Size: Medium](/products/gold-hoops-nate-medium-pave)
+
+[## Lo Medium
+
+### Medium Slim Endless Hoops
+
+$95
+
+$80.75Members](/products/medium-slim-endless-hoops-lo-medium)[Color: Silver Size: Medium](/products/medium-slim-endless-hoops-lo-medium-silver) [Color: Gold Size: Small](/products/small-slim-endless-hoops-lo-small)
+
+[## Lo Small
+
+### Small Slim Endless Hoops
+
+$85
+
+$72.25Members](/products/small-slim-endless-hoops-lo-small)[Color: Gold Size: Medium](/products/medium-slim-endless-hoops-lo-medium) [Color: Silver Size: Medium](/products/medium-slim-endless-hoops-lo-medium-silver)
+
+[## Mini Huggie Hoops Silver
+
+### Sterling Silver Mini Huggie Hoops
+
+$65
+
+$55.25Members](/products/sterling-silver-mini-huggie-hoops-mini-huggie-hoops-silver)[Color: Gold](/products/sterling-silver-mini-huggie-hoops)
+
+[## Elios
+
+### Sun Huggie Hoops
+
+$65
+
+$55.25Members](/products/sun-huggie-hoops-elios)
+
+[## Abrielle
+
+### Pearl Threader Earrings
+
+$65
+
+$55.25Members](/products/pearl-threader-earrings-abrielle)
+
+[## Toda
+
+### Double Hoop Earrings
+
+$85
+
+$7</pre></div></div><details><summary>展开本页中的完整供应商输出（10,607 / 10,607 字符）</summary><pre>Your cart
+
+Your cart is empty.
+
+# Sterling Silver Earrings
+
+25 products
+
+(25 products)
+
+Filter
+
+Sort
+
+[## Nava
+
+### Huggie Hoops
+
+$75
+
+$63.75Members](/products/huggie-hoops-nava)
+
+[## Mini Huggie Hoops
+
+### Sterling Silver
+
+$65
+
+$55.25Members](/products/sterling-silver-mini-huggie-hoops)[Color: Silver](/products/sterling-silver-mini-huggie-hoops-mini-huggie-hoops-silver)
+
+[## Nate
+
+### Bold Huggie Hoops
+
+$75
+
+$63.75Members](/products/bold-huggie-hoops-nate)[Color: Silver Size: Small](/products/bold-huggie-hoops-nate-silver) [Color: Pave Size: Small](/products/huggie-earrings-nate-pave) [Color: Gold Size: Medium](/products/small-gold-hoop-earrings-nate-medium) [Color: Silver Size: Medium](/products/silver-earrings-nate-medium-silver) [Color: Pave Size: Medium](/products/gold-hoops-nate-medium-pave)
+
+[## Lo Medium
+
+### Medium Slim Endless Hoops
+
+$95
+
+$80.75Members](/products/medium-slim-endless-hoops-lo-medium)[Color: Silver Size: Medium](/products/medium-slim-endless-hoops-lo-medium-silver) [Color: Gold Size: Small](/products/small-slim-endless-hoops-lo-small)
+
+[## Lo Small
+
+### Small Slim Endless Hoops
+
+$85
+
+$72.25Members](/products/small-slim-endless-hoops-lo-small)[Color: Gold Size: Medium](/products/medium-slim-endless-hoops-lo-medium) [Color: Silver Size: Medium](/products/medium-slim-endless-hoops-lo-medium-silver)
+
+[## Mini Huggie Hoops Silver
+
+### Sterling Silver Mini Huggie Hoops
+
+$65
+
+$55.25Members](/products/sterling-silver-mini-huggie-hoops-mini-huggie-hoops-silver)[Color: Gold](/products/sterling-silver-mini-huggie-hoops)
+
+[## Elios
+
+### Sun Huggie Hoops
+
+$65
+
+$55.25Members](/products/sun-huggie-hoops-elios)
+
+[## Abrielle
+
+### Pearl Threader Earrings
+
+$65
+
+$55.25Members](/products/pearl-threader-earrings-abrielle)
+
+[## Toda
+
+### Double Hoop Earrings
+
+$85
+
+$72.25Members](/products/double-hoop-earrings-toda)[Color: Gold Size: Mini](/products/double-hoop-earrings-toda-mini) [Color: Silver Size: Mini](/products/double-hoop-earrings-toda-mini-silver) [Color: Gold/Silver Size: Small](/products/huggie-earrings-toda-two-tone) [Color: Silver Size: Small](/products/double-hoop-earrings-toda-silver)
+
+[## Suzanne
+
+### Huggie Hoop Earrings
+
+$75
+
+$63.75Members](/products/huggie-hoop-earrings-suzanne)[Color: Gold Size: Medium](/products/pave-huggie-hoops-suzanne-medium) [Color: Silver Size: Small](/products/huggie-hoop-earrings-suzanne-silver)
+
+[## Debbie
+
+### Gold Stud Earrings
+
+$50
+
+$42.50Members](/products/gold-stud-earrings-debbie)
+
+[Bundle Savings - 30.5% OFF
+
+## Starstruck Bundle
+
+### Starstruck Bundle
+
+$200
+
+$139](/products/starstruck-bundle)
+
+[Ships by: October 4th
+
+## Bonny
+
+### Ear Climber Earrings
+
+$55
+
+$46.75Members](/products/ear-climber-earrings-bonny)
+
+[## Harley
+
+### Double Hoop Earrings
+
+$75
+
+$63.75Members](/products/double-hoop-earrings-harley)
+
+[## Suzanne Silver
+
+### Huggie Hoop Earrings
+
+$75
+
+$63.75Members](/products/huggie-hoop-earrings-suzanne-silver)[Color: Gold Size: Small](/products/huggie-hoop-earrings-suzanne) [Color: Gold Size: Medium](/products/pave-huggie-hoops-suzanne-medium)
+
+[## Zara
+
+### Small Stud Earring
+
+$50
+
+$42.50Members](/products/small-stud-earring-zara)[Color: Silver](/products/small-stud-earring-zara-silver)
+
+[## Toda Silver
+
+### Double Hoop Earrings
+
+$85
+
+$72.25Members](/products/double-hoop-earrings-toda-silver)[Color: Gold Size: Mini](/products/double-hoop-earrings-toda-mini) [Color: Silver Size: Mini](/products/double-hoop-earrings-toda-mini-silver) [Color: Gold Size: Small](/products/double-hoop-earrings-toda) [Color: Gold/Silver Size: Small](/products/huggie-earrings-toda-two-tone)
+
+[## Lo Medium Silver
+
+### Medium Slim Endless Hoops
+
+$95
+
+$80.75Members](/products/medium-slim-endless-hoops-lo-medium-silver)[Color: Gold Size: Medium](/products/medium-slim-endless-hoops-lo-medium) [Color: Gold Size: Small](/products/small-slim-endless-hoops-lo-small)
+
+[## Rox Small
+
+### Gold Hoop Earrings
+
+$85
+
+$72.25Members](/products/gold-hoop-earrings-rox-small)[Color: Gold Size: Mini](/products/gold-hoop-earrings-rox-mini) [Color: Gold Size: Mini Style: Double](/products/gold-drop-earrings-rox-mini-double) [Color: Pave Size: Mini Style: Double](/products/drop-earrings-rox-mini-double-pave) [Color: Silver Size: Mini](/products/sterling-silver-elongated-mini-hoops-rox-mini-silver) [Color: Gold Size: Medium Style: Regular](/products/gold-hoop-earrings-rox-medium)
+
+[## Rox Mini
+
+### Gold Hoop Earrings
+
+$75
+
+$63.75Members](/products/gold-hoop-earrings-rox-mini)[Color: Silver Size: Mini](/products/sterling-silver-elongated-mini-hoops-rox-mini-silver) [Color: Gold Size: Mini Style: Double](/products/gold-drop-earrings-rox-mini-double) [Color: Gold Size: Small](/products/gold-hoop-earrings-rox-small) [Color: Gold Size: Medium Style: Regular](/products/gold-hoop-earrings-rox-medium)
+
+[## Rox Mini Silver
+
+### Sterling Silver Elongated Mini Hoops
+
+$75
+
+$63.75Members](/products/sterling-silver-elongated-mini-hoops-rox-mini-silver)[Color: Gold Size: Mini](/products/gold-hoop-earrings-rox-mini) [Color: Gold Size: Small](/products/gold-hoop-earrings-rox-small)
+
+[Bundle Savings - 31% OFF
+
+## The Daily Earring Bundle
+
+### Starstruck Bundle
+
+$240
+
+$165](/products/starstruck-bundle-the-daily-earring-bundle)
+
+[## Jesse
+
+### Small Hoop Earrings
+
+$75
+
+$63.75Members](/products/small-hoop-earrings-jesse)
+
+[## Zara Silver
+
+### Small Stud Earring
+
+$50
+
+$42.50Members](/products/small-stud-earring-zara-silver)[Color: Gold](/products/small-stud-earring-zara)
+
+[1](?page=1)[2](?page=2)[Next](?page=2)
+
+Viewing 24 of 25 products
+
+Show off your glimme[ring](/collections/rings/) personality with Ana Luisa’s [Sterling Silver](/collections/sterling-silver/) Collection.
+
+## Looking For Something Else?
+
+[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Earrings](/collections/earrings/)[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Necklaces](/collections/necklaces/)[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Rings](/collections/rings/)[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Bracelets](/collections/bracelets/)[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Fine Jewelry](/collections/fine-jewelry/)[![](data:image/svg+xml;charset=utf-8,%3Csvg%20height=&#x27;75&#x27;%20width=&#x27;60&#x27;%20xmlns=&#x27;http://www.w3.org/2000/svg&#x27;%20version=&#x27;1.1&#x27;%3E%3C/svg%3E)
+
+### Diamonds](/collections/diamonds/)
+
+[Earrings -](/collections/earrings/) [Hoop Earrings -](/collections/hoop-earrings/) [Drop Earrings -](/collections/drop-earrings/) [Stud Earrings -](/collections/stud-earrings/) [Gold Hoop Earrings -](/collections/gold-hoops/) [Huggie Earrings -](/collections/huggie-earrings/) [Gold Earrings -](/collections/gold-earrings/) [Ear Cuffs -](/collections/huggies-ear-cuffs/) [Earrings Sale -](/collections/sale-earrings/) [Threader Earrings -](/collections/threader-earrings/) [Small Earrings -](/collections/small-earrings/) [Mini Earrings -](/collections/mini-earrings/) [Gold Ear Cuff -](/collections/gold-ear-cuff/) [Titanium Earrings -](/collections/titanium-earrings/) [Freshwater Pearl Earrings -](/collections/freshwater-pearl-earrings/) [14K Gold Earrings -](/collections/14k-gold-earrings/) [Cubic Zirconia Drop Earrings -](/collections/cubic-zirconia-drop-earrings/) [Silver Stud Earrings -](/collections/silver-stud-earrings/) [Cubic Zirconia Stud Earrings -](/collections/cubic-zirconia-stud-earrings/) [Huggie Hoop Earrings -](/collections/huggie-hoop-earrings/) [Mini Gold Hoop Earrings -](/collections/mini-gold-hoop-earrings/) [Pave Hoop Earrings -](/collections/pave-hoop-earrings/) [Cubic Zirconia Hoops Earrings -](/collections/cubic-zirconia-hoops-earrings/) [Unique Earrings -](/collections/unique-earrings/) [Chandelier Earrings -](/collections/chandelier-earrings/) [Statement Earrings -](/collections/statement-earrings/) [Mother&#x27;s Day Earrings -](/collections/mothers-day-earrings/) [Link Earrings -](/collections/link-earrings/) [Fine Jewelry Earrings -](/collections/fine-earrings/) [Fashion Earrings -](/collections/fashion-earrings/) [Earrings Under 50 -](/collections/sale-earrings-under-50/) [Earrings For Her -](/collections/romantic-earrings-for-her/) [Earrings Backs -](/collections/earring-backs/) [Earring Charms -](/collections/create-your-unique-earring-stack/) [Delicate Earrings -](/collections/studs-delicate-earrings/) [Cluster Earrings -](/collections/cluster-earrings/) [Christmas Earrings -](/collections/unique-christmas-earrings/) [Staple Earrings -](/collections/everyday-hoops/) [Chain Earrings -](/collections/chain-earrings/) [Safety Pin Earrings -](/collections/safety-pin-earrings/) [Dangle Earrings -](/collections/dangle-earrings/) [Formal Earrings -](/collections/formal-earrings/) [Star Earrings -](/collections/star-earrings/) [Heart Earrings -](/collections/heart-earrings/) [Flower Earrings -](/collections/flower-earrings/) [Cubic Zirconia Earrings -](/collections/cubic-zirconia-earrings/) [Gemstone Earrings -](/collections/gemstone-earrings/) [Enamel Earrings -](/collections/enamel-earrings-collection/) [Crystal Earrings -](/collections/crystal-earrings/) [Simple Gold Earrings -](/collections/simple-gold-earrings/) [Natural Pearl Earrings -](/collections/natural-pearl-earrings/) [Gold Plated Earrings -](/collections/gold-plated-earrings/) [Sterling Silver Huggie Earrings -](/collections/sterling-silver-huggie-earrings/) [Gold Huggie Earrings -](/collections/gold-huggie-earrings/) [Unique Drop Earrings -](/collections/unique-drop-earrings/) [Pearl Drop Earrings -](/collections/pearl-drop-earrings/) [Gold Drop Earrings -](/collections/gold-drop-earrings/) [Pearl Stud Earrings -](/collections/pearl-studs/) [Gold Stud Earrings -](/collections/gold-studs/) [Everyday Hoop Earrings -](/collections/the-everyday-hoops/) [Thick Hoop Earrings -](/collections/thick-hoop-earrings/) [Small Hoop Earrings -](/collections/small-hoop-earrings/) [Sterling Silver Hoop Earrings -](/collections/sterling-silver-hoop-earrings/) [Pearl Hoop Earrings -](/collections/pearl-hoop-earrings/) [Large Gold Hoop Earrings -](/collections/large-gold-hoop-earrings/) [Small Gold Hoop Earrings -](/collections/small-gold-hoop-earrings/) [Thick Gold Hoops](/collections/thick-gold-hoops/)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>tavily__wcxb-4396__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.analuisa.com/collections/sterling-silver-earrings/</span></div><div class="kv"><b>输出大小</b>10,607 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="good">命中</td><td>Sterling Silver Earrings</td><td>Sterling Silver Earrings</td></tr><tr><td><code>required-2</code></td><td class="good">命中</td><td>Bold Huggie Hoops</td><td>Bold Huggie Hoops</td></tr><tr><td><code>required-3</code></td><td class="good">命中</td><td>Sun Huggie Hoops</td><td>Sun Huggie Hoops</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Sterling Silver Earrings</span><span class="tag">Sterling Silver Earrings</span></p><p><span class="tag">Sterling Silver Earrings</span><span class="tag">Sterling Silver Earrings</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;response_time&quot;: 0.02,
+  &quot;failed_results&quot;: [],
+  &quot;images&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("tavily__wcxb-4396__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("tavily__wcxb-4396__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("tavily__wcxb-4396__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

@@ -1,0 +1,661 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__lm-python-tutorial__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>Python 官方教程</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">4,475 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定公开页面的主要可读正文；输出必须包含两个稳定主题标记，不能只是导航外壳、挑战页或错误页。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/tutorial/index.html">https://docs.python.org/3/tutorial/index.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Python 官方教程
+页面主要内容应同时包含：Python Tutorial；Python interpreter。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否为目标页面而非错误页</li><li>是否包含 Python Tutorial</li><li>是否包含 Python interpreter</li><li>是否返回连贯正文而非导航外壳</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/lm-python-tutorial/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/tutorial/index.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:9dd8511c76123598ce1bab4c62f9882d415f68ee710c315e052623df6df28a8a</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Python 官方教程
+页面主要内容应同时包含：Python Tutorial；Python interpreter。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>[ ![Python logo](https://docs.python.org/3/_static/py.svg) ](https://www.python.org/) dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+Theme  Auto Light Dark
+#### Previous topic
+[Changelog](https://docs.python.org/3/whatsnew/changelog.html &quot;previous chapter&quot;)
+#### Next topic
+[1. Whetting Your Appetite](https://docs.python.org/3/tutorial/appetite.html &quot;next chapter&quot;)
+### This page
+  * [Report a bug](https://docs.python.org/3/bugs.html)
+  * [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=The+Python+Tutorial&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Ftutorial%2Findex.html&amp;pagesource=tutorial%2Findex.rst)
+  * [Show source ](https://github.com/python/cpython/blob/main/Doc/tutorial/index.rst?plain=1)
+
+
+### Navigation
+  * [index](https://docs.python.org/3/genindex.html &quot;General Index&quot;)
+  * [modules](https://docs.python.org/3/py-modindex.html &quot;Python Module Index&quot;) |
+  * [next](https://docs.python.org/3/tutorial/appetite.html &quot;1. Whetting Your Appetite&quot;) |
+  * [previous](https://docs.python.org/3/whatsnew/changelog.html &quot;Changelog&quot;) |
+  * ![Python logo](https://docs.python.org/3/_static/py.svg)
+  * [Python](https://www.python.org/) »
+  * Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+dev (3.16) pre (3.15) 3</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（20,949 / 20,976 字符）</summary><pre>[ ![Python logo](https://docs.python.org/3/_static/py.svg) ](https://www.python.org/) dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+Theme  Auto Light Dark
+#### Previous topic
+[Changelog](https://docs.python.org/3/whatsnew/changelog.html &quot;previous chapter&quot;)
+#### Next topic
+[1. Whetting Your Appetite](https://docs.python.org/3/tutorial/appetite.html &quot;next chapter&quot;)
+### This page
+  * [Report a bug](https://docs.python.org/3/bugs.html)
+  * [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=The+Python+Tutorial&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Ftutorial%2Findex.html&amp;pagesource=tutorial%2Findex.rst)
+  * [Show source ](https://github.com/python/cpython/blob/main/Doc/tutorial/index.rst?plain=1)
+
+
+### Navigation
+  * [index](https://docs.python.org/3/genindex.html &quot;General Index&quot;)
+  * [modules](https://docs.python.org/3/py-modindex.html &quot;Python Module Index&quot;) |
+  * [next](https://docs.python.org/3/tutorial/appetite.html &quot;1. Whetting Your Appetite&quot;) |
+  * [previous](https://docs.python.org/3/whatsnew/changelog.html &quot;Changelog&quot;) |
+  * ![Python logo](https://docs.python.org/3/_static/py.svg)
+  * [Python](https://www.python.org/) »
+  * Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+  * [3.14.7 Documentation](https://docs.python.org/3/index.html) »
+  * [The Python Tutorial](https://docs.python.org/3/tutorial/index.html)
+  * |
+  * Theme  Auto Light Dark |
+
+
+# The Python Tutorial[¶](https://docs.python.org/3/tutorial/index.html#the-python-tutorial &quot;Link to this heading&quot;)
+Tip
+This tutorial is designed for _programmers_ that are new to the Python language, **not** _beginners_ who are new to programming.
+Python is an easy to learn, powerful programming language. It has efficient high-level data structures and a simple but effective approach to object-oriented programming. Python’s elegant syntax and dynamic typing, together with its interpreted nature, make it an ideal language for scripting and rapid application development in many areas on most platforms.
+The Python interpreter and the extensive standard library are freely available in source or binary form for all major platforms from the Python website, &lt;https://www.python.org/&gt;, and may be freely distributed. The same site also contains distributions of and pointers to many free third party Python modules, programs and tools, and additional documentation.
+The Python interpreter is easily extended with new functions and data types implemented in C or C++ (or other languages callable from C). Python is also suitable as an extension language for customizable applications.
+This tutorial introduces the reader informally to the basic concepts and features of the Python language and system. Be aware that it expects you to have a basic understanding of programming in general. It helps to have a Python interpreter handy for hands-on experience, but all examples are self-contained, so the tutorial can be read off-line as well.
+For a description of standard objects and modules, see [The Python Standard Library](https://docs.python.org/3/library/index.html#library-index). [The Python Language Reference](https://docs.python.org/3/reference/index.html#reference-index) gives a more formal definition of the language. To write extensions in C or C++, read [Extending and Embedding the Python Interpreter](https://docs.python.org/3/extending/index.html#extending-index) and [Python/C API reference manual](https://docs.python.org/3/c-api/index.html#c-api-index). There are also several books covering Python in depth.
+This tutorial does not attempt to be comprehensive and cover every single feature, or even every commonly used feature. Instead, it introduces many of Python’s most noteworthy features, and will give you a good idea of the language’s flavor and style. After reading it, you will be able to read and write Python modules and programs, and you will be ready to learn more about the various Python library modules described in [The Python Standard Library](https://docs.python.org/3/library/index.html#library-index).
+The [Glossary](https://docs.python.org/3/glossary.html#glossary) is also worth going through.
+  * [1. Whetting Your Appetite](https://docs.python.org/3/tutorial/appetite.html)
+  * [2. Using the Python Interpreter](https://docs.python.org/3/tutorial/interpreter.html)
+    * [2.1. Invoking the Interpreter](https://docs.python.org/3/tutorial/interpreter.html#invoking-the-interpreter)
+      * [2.1.1. Argument Passing](https://docs.python.org/3/tutorial/interpreter.html#argument-passing)
+      * [2.1.2. Interactive Mode](https://docs.python.org/3/tutorial/interpreter.html#interactive-mode)
+    * [2.2. The Interpreter and Its Environment](https://docs.python.org/3/tutorial/interpreter.html#the-interpreter-and-its-environment)
+      * [2.2.1. Source Code Encoding](https://docs.python.org/3/tutorial/interpreter.html#source-code-encoding)
+  * [3. An Informal Introduction to Python](https://docs.python.org/3/tutorial/introduction.html)
+    * [3.1. Using Python as a Calculator](https://docs.python.org/3/tutorial/introduction.html#using-python-as-a-calculator)
+      * [3.1.1. Numbers](https://docs.python.org/3/tutorial/introduction.html#numbers)
+      * [3.1.2. Text](https://docs.python.org/3/tutorial/introduction.html#text)
+      * [3.1.3. Lists](https://docs.python.org/3/tutorial/introduction.html#lists)
+    * [3.2. First Steps Towards Programming](https://docs.python.org/3/tutorial/introduction.html#first-steps-towards-programming)
+  * [4. More Control Flow Tools](https://docs.python.org/3/tutorial/controlflow.html)
+    * [4.1. `if` Statements](https://docs.python.org/3/tutorial/controlflow.html#if-statements)
+    * [4.2. `for` Statements](https://docs.python.org/3/tutorial/controlflow.html#for-statements)
+    * [4.3. The `range()` Function](https://docs.python.org/3/tutorial/controlflow.html#the-range-function)
+    * [4.4. `break` and `continue` Statements](https://docs.python.org/3/tutorial/controlflow.html#break-and-continue-statements)
+    * [4.5. `else` Clauses on Loops](https://docs.python.org/3/tutorial/controlflow.html#else-clauses-on-loops)
+    * [4.6. `pass` Statements](https://docs.python.org/3/tutorial/controlflow.html#pass-statements)
+    * [4.7. `match` Statements](https://docs.python.org/3/tutorial/controlflow.html#match-statements)
+    * [4.8. Defining Functions](https://docs.python.org/3/tutorial/controlflow.html#defining-functions)
+    * [4.9. More on Defining Functions](https://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions)
+      * [4.9.1. Default Argument Values](https://docs.python.org/3/tutorial/controlflow.html#default-argument-values)
+      * [4.9.2. Keyword Arguments](https://docs.python.org/3/tutorial/controlflow.html#keyword-arguments)
+      * [4.9.3. Special parameters](https://docs.python.org/3/tutorial/controlflow.html#special-parameters)
+        * [4.9.3.1. Positional-or-Keyword Arguments](https://docs.python.org/3/tutorial/controlflow.html#positional-or-keyword-arguments)
+        * [4.9.3.2. Positional-Only Parameters](https://docs.python.org/3/tutorial/controlflow.html#positional-only-parameters)
+        * [4.9.3.3. Keyword-Only Arguments](https://docs.python.org/3/tutorial/controlflow.html#keyword-only-arguments)
+        * [4.9.3.4. Function Examples](https://docs.python.org/3/tutorial/controlflow.html#function-examples)
+        * [4.9.3.5. Recap](https://docs.python.org/3/tutorial/controlflow.html#recap)
+      * [4.9.4. Arbitrary Argument Lists](https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists)
+      * [4.9.5. Unpacking Argument Lists](https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists)
+      * [4.9.6. Lambda Expressions](https://docs.python.org/3/tutorial/controlflow.html#lambda-expressions)
+      * [4.9.7. Documentation Strings](https://docs.python.org/3/tutorial/controlflow.html#documentation-strings)
+      * [4.9.8. Function Annotations](https://docs.python.org/3/tutorial/controlflow.html#function-annotations)
+    * [4.10. Intermezzo: Coding Style](https://docs.python.org/3/tutorial/controlflow.html#intermezzo-coding-style)
+  * [5. Data Structures](https://docs.python.org/3/tutorial/datastructures.html)
+    * [5.1. More on Lists](https://docs.python.org/3/tutorial/datastructures.html#more-on-lists)
+      * [5.1.1. Using Lists as Stacks](https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-stacks)
+      * [5.1.2. Using Lists as Queues](https://docs.python.org/3/tutorial/datastructures.html#using-lists-as-queues)
+      * [5.1.3. List Comprehensions](https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions)
+      * [5.1.4. Nested List Comprehensions](https://docs.python.org/3/tutorial/datastructures.html#nested-list-comprehensions)
+    * [5.2. The `del` statement](https://docs.python.org/3/tutorial/datastructures.html#the-del-statement)
+    * [5.3. Tuples and Sequences](https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences)
+    * [5.4. Sets](https://docs.python.org/3/tutorial/datastructures.html#sets)
+    * [5.5. Dictionaries](https://docs.python.org/3/tutorial/datastructures.html#dictionaries)
+    * [5.6. Looping Techniques](https://docs.python.org/3/tutorial/datastructures.html#looping-techniques)
+    * [5.7. More on Conditions](https://docs.python.org/3/tutorial/datastructures.html#more-on-conditions)
+    * [5.8. Comparing Sequences and Other Types](https://docs.python.org/3/tutorial/datastructures.html#comparing-sequences-and-other-types)
+  * [6. Modules](https://docs.python.org/3/tutorial/modules.html)
+    * [6.1. More on Modules](https://docs.python.org/3/tutorial/modules.html#more-on-modules)
+      * [6.1.1. Executing modules as scripts](https://docs.python.org/3/tutorial/modules.html#executing-modules-as-scripts)
+      * [6.1.2. The Module Search Path](https://docs.python.org/3/tutorial/modules.html#the-module-search-path)
+      * [6.1.3. “Compiled” Python files](https://docs.python.org/3/tutorial/modules.html#compiled-python-files)
+    * [6.2. Standard Modules](https://docs.python.org/3/tutorial/modules.html#standard-modules)
+    * [6.3. The `dir()` Function](https://docs.python.org/3/tutorial/modules.html#the-dir-function)
+    * [6.4. Packages](https://docs.python.org/3/tutorial/modules.html#packages)
+      * [6.4.1. Importing * From a Package](https://docs.python.org/3/tutorial/modules.html#importing-from-a-package)
+      * [6.4.2. Intra-package References](https://docs.python.org/3/tutorial/modules.html#intra-package-references)
+  * [7. Input and Output](https://docs.python.org/3/tutorial/inputoutput.html)
+    * [7.1. Fancier Output Formatting](https://docs.python.org/3/tutorial/inputoutput.html#fancier-output-formatting)
+      * [7.1.1. Formatted String Literals](https://docs.python.org/3/tutorial/inputoutput.html#formatted-string-literals)
+      * [7.1.2. The String format() Method](https://docs.python.org/3/tutorial/inputoutput.html#the-string-format-method)
+      * [7.1.3. Manual String Formatting](https://docs.python.org/3/tutorial/inputoutput.html#manual-string-formatting)
+      * [7.1.4. Old string formatting](https://docs.python.org/3/tutorial/inputoutput.html#old-string-formatting)
+    * [7.2. Reading and Writing Files](https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files)
+      * [7.2.1. Methods of File Objects](https://docs.python.org/3/tutorial/inputoutput.html#methods-of-file-objects)
+      * [7.2.2. Saving structured data with `json`](https://docs.python.org/3/tutorial/inputoutput.html#saving-structured-data-with-json)
+  * [8. Errors and Exceptions](https://docs.python.org/3/tutorial/errors.html)
+    * [8.1. Syntax Errors](https://docs.python.org/3/tutorial/errors.html#syntax-errors)
+    * [8.2. Exceptions](https://docs.python.org/3/tutorial/errors.html#exceptions)
+    * [8.3. Handling Exceptions](https://docs.python.org/3/tutorial/errors.html#handling-exceptions)
+    * [8.4. Raising Exceptions](https://docs.python.org/3/tutorial/errors.html#raising-exceptions)
+    * [8.5. Exception Chaining](https://docs.python.org/3/tutorial/errors.html#exception-chaining)
+    * [8.6. User-defined Exceptions](https://docs.python.org/3/tutorial/errors.html#user-defined-exceptions)
+    * [8.7. Defining Clean-up Actions](https://docs.python.org/3/tutorial/errors.html#defining-clean-up-actions)
+    * [8.8. Predefined Clean-up Actions](https://docs.python.org/3/tutorial/errors.html#predefined-clean-up-actions)
+    * [8.9. Raising and Handling Multiple Unrelated Exceptions](https://docs.python.org/3/tutorial/errors.html#raising-and-handling-multiple-unrelated-exceptions)
+    * [8.10. Enriching Exceptions with Notes](https://docs.python.org/3/tutorial/errors.html#enriching-exceptions-with-notes)
+  * [9. Classes](https://docs.python.org/3/tutorial/classes.html)
+    * [9.1. A Word About Names and Objects](https://docs.python.org/3/tutorial/classes.html#a-word-about-names-and-objects)
+    * [9.2. Python Scopes and Namespaces](https://docs.python.org/3/tutorial/classes.html#python-scopes-and-namespaces)
+      * [9.2.1. Scopes and Namespaces Example](https://docs.python.org/3/tutorial/classes.html#scopes-and-namespaces-example)
+    * [9.3. A First Look at Classes](https://docs.python.org/3/tutorial/classes.html#a-first-look-at-classes)
+      * [9.3.1. Class Definition Syntax](https://docs.python.org/3/tutorial/classes.html#class-definition-syntax)
+      * [9.3.2. Class Objects](https://docs.python.org/3/tutorial/classes.html#class-objects)
+      * [9.3.3. Instance Objects](https://docs.python.org/3/tutorial/classes.html#instance-objects)
+      * [9.3.4. Method Objects](https://docs.python.org/3/tutorial/classes.html#method-objects)
+      * [9.3.5. Class and Instance Variables](https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables)
+    * [9.4. Random Remarks](https://docs.python.org/3/tutorial/classes.html#random-remarks)
+    * [9.5. Inheritance](https://docs.python.org/3/tutorial/classes.html#inheritance)
+      * [9.5.1. Multiple Inheritance](https://docs.python.org/3/tutorial/classes.html#multiple-inheritance)
+    * [9.6. Private Variables](https://docs.python.org/3/tutorial/classes.html#private-variables)
+    * [9.7. Odds and Ends](https://docs.python.org/3/tutorial/classes.html#odds-and-ends)
+    * [9.8. Iterators](https://docs.python.org/3/tutorial/classes.html#iterators)
+    * [9.9. Generators](https://docs.python.org/3/tutorial/classes.html#generators)
+    * [9.10. Generator Expressions](https://docs.python.org/3/tutorial/classes.html#generator-expressions)
+  * [10. Brief tour of the standard library](https://docs.python.org/3/tutorial/stdlib.html)
+    * [10.1. Operating system interface](https://docs.python.org/3/tutorial/stdlib.html#operating-system-interface)
+    * [10.2. File wildcards](https://docs.python.org/3/tutorial/stdlib.html#file-wildcards)
+    * [10.3. Command-line arguments](https://docs.python.org/3/tutorial/stdlib.html#command-line-arguments)
+    * [10.4. Error output redirection and program termination](https://docs.python.org/3/tutorial/stdlib.html#error-output-redirection-and-program-termination)
+    * [10.5. String pattern matching](https://docs.python.org/3/tutorial/stdlib.html#string-pattern-matching)
+    * [10.6. Mathematics](https://docs.python.org/3/tutorial/stdlib.html#mathematics)
+    * [10.7. Internet access](https://docs.python.org/3/tutorial/stdlib.html#internet-access)
+    * [10.8. Dates and times](https://docs.python.org/3/tutorial/stdlib.html#dates-and-times)
+    * [10.9. Data compression](https://docs.python.org/3/tutorial/stdlib.html#data-compression)
+    * [10.10. Performance measurement](https://docs.python.org/3/tutorial/stdlib.html#performance-measurement)
+    * [10.11. Quality control](https://docs.python.org/3/tutorial/stdlib.html#quality-control)
+    * [10.12. Batteries included](https://docs.python.org/3/tutorial/stdlib.html#batteries-included)
+  * [11. Brief tour of the standard library — part II](https://docs.python.org/3/tutorial/stdlib2.html)
+    * [11.1. Output formatting](https://docs.python.org/3/tutorial/stdlib2.html#output-formatting)
+    * [11.2. Templating](https://docs.python.org/3/tutorial/stdlib2.html#templating)
+    * [11.3. Working with binary data record layouts](https://docs.python.org/3/tutorial/stdlib2.html#working-with-binary-data-record-layouts)
+    * [11.4. Multi-threading](https://docs.python.org/3/tutorial/stdlib2.html#multi-threading)
+    * [11.5. Logging](https://docs.python.org/3/tutorial/stdlib2.html#logging)
+    * [11.6. Weak references](https://docs.python.org/3/tutorial/stdlib2.html#weak-references)
+    * [11.7. Tools for working with lists](https://docs.python.org/3/tutorial/stdlib2.html#tools-for-working-with-lists)
+    * [11.8. Decimal floating-point arithmetic](https://docs.python.org/3/tutorial/stdlib2.html#decimal-floating-point-arithmetic)
+  * [12. Virtual Environments and Packages](https://docs.python.org/3/tutorial/venv.html)
+    * [12.1. Introduction](https://docs.python.org/3/tutorial/venv.html#introduction)
+    * [12.2. Creating Virtual Environments](https://docs.python.org/3/tutorial/venv.html#creating-virtual-environments)
+    * [12.3. Managing Packages with pip](https://docs.python.org/3/tutorial/venv.html#managing-packages-with-pip)
+  * [13. What Now?](https://docs.python.org/3/tutorial/whatnow.html)
+  * [14. Interactive Input Editing and History Substitution](https://docs.python.org/3/tutorial/interactive.html)
+    * [14.1. Tab Completion and History Editing](https://docs.python.org/3/tutorial/interactive.html#tab-completion-and-history-editing)
+    * [14.2. Alternatives to the Interactive Interpreter](https://docs.python.org/3/tutorial/interactive.html#alternatives-to-the-interactive-interpreter)
+  * [15. Floating-Point Arithmetic: Issues and Limitations](https://docs.python.org/3/tutorial/floatingpoint.html)
+    * [15.1. Representation Error](https://docs.python.org/3/tutorial/floatingpoint.html#representation-error)
+  * [16. Appendix](https://docs.python.org/3/tutorial/appendix.html)
+    * [16.1. Interactive Mode](https://docs.python.org/3/tutorial/appendix.html#interactive-mode)
+      * [16.1.1. Error Handling](https://docs.python.org/3/tutorial/appendix.html#error-handling)
+      * [16.1.2. Executable Python Scripts](https://docs.python.org/3/tutorial/appendix.html#executable-python-scripts)
+      * [16.1.3. The Interactive Startup File](https://docs.python.org/3/tutorial/appendix.html#the-interactive-startup-file)
+      * [16.1.4. The Customization Modules](https://docs.python.org/3/tutorial/appendix.html#the-customization-modules)
+
+
+### Navigation
+  * [index](https://docs.python.org/3/genindex.html &quot;General Index&quot;)
+  * [modules](https://docs.python.org/3/py-modindex.html &quot;Python Module Index&quot;) |
+  * [next](https://docs.python.org/3/tutorial/appetite.html &quot;1. Whetting Your Appetite&quot;) |
+  * [previous](https://docs.python.org/3/whatsnew/changelog.html &quot;Changelog&quot;) |
+  * ![Python logo](https://docs.python.org/3/_static/py.svg)
+  * [Python](https://www.python.org/) »
+  * Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+  * [3.14.7 Documentation](https://docs.python.org/3/index.html) »
+  * [The Python Tutorial](https://docs.python.org/3/tutorial/index.html)
+  * |
+  * Theme  Auto Light Dark |
+
+
+© [Copyright](https://docs.python.org/3/copyright.html) 2001 Python Software Foundation.
+This page is licensed under the Python Software Foundation License Version 2.
+Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+See [History and License](https://docs.python.org/license.html) for more information.
+
+The Python Software Foundation is a non-profit corporation. [Please donate.](https://www.python.org/psf/donations/)
+
+Last updated on Aug 31, 2026 (22:22 UTC). [Found a bug](https://docs.python.org/bugs.html)?
+Created using [Sphinx](https://www.sphinx-doc.org/) 8.2.3.</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__lm-python-tutorial__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/tutorial/index.html</span></div><div class="kv"><b>输出大小</b>20,976 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>marker-1</code></td><td class="good">命中</td><td>Python Tutorial</td><td>Python Tutorial</td></tr><tr><td><code>marker-2</code></td><td class="good">命中</td><td>Python interpreter</td><td>Python interpreter</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Python Tutorial</span><span class="tag">Python interpreter</span></p><p><span class="tag">Python Tutorial</span><span class="tag">Python interpreter</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.python.org/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/whatsnew/changelog.html&quot;,
+      &quot;text&quot;: &quot;Changelog&quot;,
+      &quot;title&quot;: &quot;previous chapter&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/appetite.html&quot;,
+      &quot;text&quot;: &quot;1. Whetting Your Appetite&quot;,
+      &quot;title&quot;: &quot;next chapter&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/bugs.html&quot;,
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/improve-page.html?pagesource=tutorial%2Findex.rst&amp;pagetitle=The+Python+Tutorial&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Ftutorial%2Findex.html&quot;,
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/genindex.html&quot;,
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;title&quot;: &quot;General Index&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/py-modindex.html&quot;,
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;title&quot;: &quot;Python Module Index&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/index.html&quot;,
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/index.html&quot;,
+      &quot;text&quot;: &quot;¶&quot;,
+      &quot;title&quot;: &quot;Link to this heading&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;,
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/reference/index.html&quot;,
+      &quot;text&quot;: &quot;The Python Language Reference&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/extending/index.html&quot;,
+      &quot;text&quot;: &quot;Extending and Embedding the Python Interpreter&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/c-api/index.html&quot;,
+      &quot;text&quot;: &quot;Python/C API reference manual&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/glossary.html&quot;,
+      &quot;text&quot;: &quot;Glossary&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/interpreter.html&quot;,
+      &quot;text&quot;: &quot;2. Using the Python Interpreter&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/introduction.html&quot;,
+      &quot;text&quot;: &quot;3. An Informal Introduction to Python&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/controlflow.html&quot;,
+      &quot;text&quot;: &quot;4. More Control Flow Tools&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/datastructures.html&quot;,
+      &quot;text&quot;: &quot;5. Data Structures&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/modules.html&quot;,
+      &quot;text&quot;: &quot;6. Modules&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/inputoutput.html&quot;,
+      &quot;text&quot;: &quot;7. Input and Output&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/errors.html&quot;,
+      &quot;text&quot;: &quot;8. Errors and Exceptions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/classes.html&quot;,
+      &quot;text&quot;: &quot;9. Classes&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/stdlib.html&quot;,
+      &quot;text&quot;: &quot;10. Brief tour of the standard library&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/stdlib2.html&quot;,
+      &quot;text&quot;: &quot;11. Brief tour of the standard library — part II&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/venv.html&quot;,
+      &quot;text&quot;: &quot;12. Virtual Environments and Packages&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/whatnow.html&quot;,
+      &quot;text&quot;: &quot;13. What Now?&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/interactive.html&quot;,
+      &quot;text&quot;: &quot;14. Interactive Input Editing and History Substitution&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/floatingpoint.html&quot;,
+      &quot;text&quot;: &quot;15. Floating-Point Arithmetic:  Issues and Limitations&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/tutorial/appendix.html&quot;,
+      &quot;text&quot;: &quot;16. Appendix&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/3/copyright.html&quot;,
+      &quot;text&quot;: &quot;Copyright&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/license.html&quot;,
+      &quot;text&quot;: &quot;History and License&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.python.org/psf/donations/&quot;,
+      &quot;text&quot;: &quot;Please donate.&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://docs.python.org/bugs.html&quot;,
+      &quot;text&quot;: &quot;Found a bug&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;python.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/tutorial/index.rst?plain=1&quot;,
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.sphinx-doc.org/&quot;,
+      &quot;text&quot;: &quot;Sphinx&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;sphinx-doc.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__lm-python-tutorial__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__lm-python-tutorial__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__lm-python-tutorial__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

@@ -1,0 +1,243 @@
+  * [ Home ](https://docs.cloud.google.com/?hl=zh-cn)
+  * [ Documentation ](https://docs.cloud.google.com/docs?hl=zh-cn)
+  * [ Data analytics ](https://docs.cloud.google.com/docs/data?hl=zh-cn)
+  * [ BigQuery ](https://docs.cloud.google.com/bigquery/docs?hl=zh-cn)
+  * [ 指南 ](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn)
+
+
+该内容对您有帮助吗？
+发送反馈 
+  * 本页内容
+  * [BigQuery 使用入门](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#get-started-with-bigquery)
+  * [探索 BigQuery](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#explore-bigquery)
+    * [BigQuery 存储](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-storage)
+    * [BigQuery 分析](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-analytics)
+    * [BigQuery 管理](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-administration)
+  * [BigQuery 资源](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-resources)
+    * [API、工具和参考文档](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#apis_tools_and_references)
+  * [Gemini in BigQuery 功能](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#gemini)
+  * [BigQuery 角色和资源](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-roles-and-resources)
+  * [BigQuery 视频教程](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#bigquery-video-tutorials)
+  * [后续步骤](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn#whats_next)
+
+
+# BigQuery 概览 使用集合让一切井井有条  根据您的偏好保存内容并对其进行分类。 
+BigQuery 是一个 AI 就绪型全托管式数据平台，可帮助您使用机器学习、搜索、地理空间分析和商业智能等内置功能管理和分析数据。 BigQuery 的无服务器架构可让您使用 SQL 和 Python 等语言来解决组织面临的最大问题，而无需管理基础设施。
+BigQuery 提供了一种统一的方式来处理结构化和非结构化数据，并支持 Apache Iceberg、Delta 和 Hudi 等开放表格式。BigQuery 流式传输支持持续的数据注入和分析，而 BigQuery 的可扩缩、分布式分析引擎可让您在几秒钟内查询 TB 级数据，在几分钟内查询 PB 级数据。
+BigQuery 提供内置的治理功能，可让您发现和整理数据，以及管理元数据和数据质量。通过语义搜索和数据沿袭等功能，您可以查找和验证相关数据以进行分析。您可以通过访问权限控制功能在整个组织内共享数据和 AI 资产。这些功能由 Dataplex Universal Catalog 提供支持，它是 Google Cloud中数据和 AI 资产的统一智能治理解决方案。 
+BigQuery 的架构由两部分组成：一个用于注入、存储和优化数据的存储层，一个用于提供分析功能的计算层。得益于 Google 的 PB 级网络能够在这些计算层和存储层之间实现必要的通信，它们可以彼此独立地高效运行。
+传统数据库通常必须在读写操作和分析操作之间共享资源。这可能会导致资源冲突，并且在将数据写入存储空间或从存储空间读取数据时，可能会降低查询速度。当需要资源来执行数据库管理任务（例如分配或撤消权限）时，共享资源池可能会进一步紧张。BigQuery 的计算层和存储层分离可让每一层动态分配资源，而不会影响另一层的性能或可用性。
+![BigQuery 架构使用 PB 级网络分离资源。](https://docs.cloud.google.com/static/bigquery/images/bq-architecture.png?hl=zh-cn)
+这种分离原则可让 BigQuery 加快创新速度，因为存储和计算改进可以独立部署，而不会造成停机或对系统性能产生负面影响。此外，还必须提供全托管式无服务器数据仓库，以供 BigQuery 工程团队处理更新和维护。这样一来，您无需预配或手动扩缩资源，便可以专注于提供价值，而不是专注于传统的数据库管理任务。
+BigQuery 界面包括 Google Cloud 控制台界面和 BigQuery 命令行工具。开发者和数据科学家可以将客户端库与熟悉的编程语言（包括 Python、Java、JavaScript 和 Go）以及 BigQuery 的 REST API 和 RPC API 搭配使用，以转换和管理数据。ODBC 和 JDBC 驱动程序可与现有应用（包括第三方工具和实用程序）进行交互。
+作为数据分析师、数据工程师、数据仓库管理员或数据科学家，BigQuery 可帮助您加载、处理和分析数据，从而做出关键业务决策。
+## BigQuery 使用入门
+只需几分钟即可开始探索 BigQuery。 利用 BigQuery 的免费用量层级或免费沙盒开始加载和查询数据。 
+  * [BigQuery 沙盒](https://docs.cloud.google.com/bigquery/docs/sandbox?hl=zh-cn)：开始使用 BigQuery 沙盒，无风险且免费。
+  * [公共数据集](https://docs.cloud.google.com/bigquery/public-data?hl=zh-cn)：通过探索公共数据集计划中的大型真实数据，体验 BigQuery 的性能。
+  * [Google Cloud 控制台快速入门](https://docs.cloud.google.com/bigquery/docs/quickstarts/quickstart-web-ui?hl=zh-cn)：熟悉 BigQuery Studio 的强大功能。
+
+
+## 探索 BigQuery
+BigQuery 的无服务器基础架构让您可以专注于数据而不是资源管理。BigQuery 结合了云端数据仓库和强大的分析工具。
+### BigQuery 存储
+BigQuery 使用针对分析查询进行了优化的列式存储格式来存储数据。BigQuery 在表、行和列中显示数据，并完全支持数据库事务语义 ([ACID](https://en.wikipedia.org/wiki/ACID))。BigQuery 存储会自动跨多个位置进行复制，以提供高可用性。
+  * [了解数据仓库和数据集市中 BigQuery 资源的常见组织模式](https://docs.cloud.google.com/bigquery/docs/resource-hierarchy?hl=zh-cn#patterns)。
+  * [了解数据集](https://docs.cloud.google.com/bigquery/docs/datasets-intro?hl=zh-cn)，这是 BigQuery 的表和视图的顶层容器。 
+  * [BigQuery Data Transfer Service](https://docs.cloud.google.com/bigquery/docs/dts-introduction?hl=zh-cn) 可自动注入数据。 
+  * 使用以下方式[将数据加载到 BigQuery 中](https://docs.cloud.google.com/bigquery/docs/loading-data?hl=zh-cn)：
+    * 使用 [Storage Write API](https://docs.cloud.google.com/bigquery/docs/write-api?hl=zh-cn) [流式传输数据](https://docs.cloud.google.com/bigquery/docs/streaming-data-into-bigquery?hl=zh-cn)。
+    * 从本地文件或 Cloud Storage [批量加载数据](https://docs.cloud.google.com/bigquery/docs/batch-loading-data?hl=zh-cn)，这些数据使用以下格式：[Avro](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro?hl=zh-cn)、[Parquet](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-parquet?hl=zh-cn)、[ORC](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-orc?hl=zh-cn)、[CSV](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-csv?hl=zh-cn)、[JSON](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json?hl=zh-cn)、[Datastore](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-datastore?hl=zh-cn)、[Firestore](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-firestore?hl=zh-cn)格式。
+
+
+如需了解详情，请参阅 [BigQuery 存储概览](https://docs.cloud.google.com/bigquery/docs/storage_overview?hl=zh-cn)。
+### BigQuery 分析
+描述性分析和规范性分析使用包括商业智能、临时性分析、地理空间分析和机器学习。 您可以使用外部表或联合查询（包括存储在 Google 云端硬盘中的 Cloud Storage、Bigtable、Spanner 或 Google 表格）查询存储在 BigQuery 中的数据，或查询数据位于何处。 
+  * ANSI 标准 SQL 查询（[SQL:2011 支持](https://www.iso.org/standard/53681.html)），其中包括对联接、嵌套和重复字段、分析和聚合函数、多语句查询以及包含地理空间分析的各种空间函数（地理信息系统）的支持。
+  * [创建视图](https://docs.cloud.google.com/bigquery/docs/views-intro?hl=zh-cn)以共享您的分析。 
+  * 商业智能工具支持，包括 [BI Engine](https://docs.cloud.google.com/bigquery/docs/bi-engine-intro?hl=zh-cn) 和 [Looker Studio](https://docs.cloud.google.com/bigquery/docs/visualize-looker-studio?hl=zh-cn)、[Looker](https://docs.cloud.google.com/bigquery/docs/looker?hl=zh-cn)、[Google 表格](https://docs.cloud.google.com/bigquery/docs/connected-sheets?hl=zh-cn)以及第三方工具（如 Tableau 和 Power BI）。 
+  * [BigQuery ML](https://docs.cloud.google.com/bigquery/docs/bqml-introduction?hl=zh-cn) 提供机器学习和预测性分析。 
+  * [BigQuery Studio](https://docs.cloud.google.com/bigquery/docs/query-overview?hl=zh-cn#bigquery-studio) 为 Python 笔记本和已保存的查询提供了 Python 笔记本和版本控制等功能。这些功能让您可更轻松地在 BigQuery 中完成数据分析和机器学习 (ML) 工作流。 
+  * 使用[联合查询](https://docs.cloud.google.com/bigquery/docs/federated-queries-intro?hl=zh-cn)和[外部表](https://docs.cloud.google.com/bigquery/docs/external-tables?hl=zh-cn)[查询 BigQuery 外部的数据](https://docs.cloud.google.com/bigquery/external-data-sources?hl=zh-cn)。 
+
+
+如需了解详情，请参阅 [BigQuery 分析概览](https://docs.cloud.google.com/bigquery/docs/query-overview?hl=zh-cn)。
+### BigQuery 管理
+BigQuery 可集中管理数据和计算资源，而 [Identity and Access Management (IAM)](https://docs.cloud.google.com/iam/docs?hl=zh-cn) 可帮助您利用 Google Cloud中所用的访问模型来保护这些资源。[Google Cloud 安全最佳实践](https://cloud.google.com/security/best-practices?hl=zh-cn)提供了一种可靠且灵活的方法，该方法包括边界安全机制或更复杂、更精细的[纵深防御方法](https://cloud.google.com/security/overview/whitepaper?hl=zh-cn#technology_with_security_at_its_core)。
+  * [数据安全和治理简介](https://docs.cloud.google.com/bigquery/docs/data-governance?hl=zh-cn)可帮助您了解数据治理，以及可能需要采取哪些控制措施来保护 BigQuery 资源。
+  * [作业](https://docs.cloud.google.com/bigquery/docs/managing-jobs?hl=zh-cn)是 BigQuery 代表您执行的操作，用于加载、导出、查询或复制数据。
+  * 借助[预留](https://docs.cloud.google.com/bigquery/docs/reservations-intro?hl=zh-cn)，您可以在按需价格和基于容量的价格之间切换。
+
+
+如需了解详情，请参阅 [BigQuery 管理简介](https://docs.cloud.google.com/bigquery/docs/admin-intro?hl=zh-cn)。
+## BigQuery 资源
+探索 BigQuery 资源：
+  * [版本说明](https://docs.cloud.google.com/bigquery/docs/release-notes?hl=zh-cn)提供功能、更改和弃用的更新日志。 
+  * 分析和存储的[价格](https://cloud.google.com/bigquery/pricing?hl=zh-cn)。另请参阅：[BigQuery ML](https://cloud.google.com/bigquery/pricing?hl=zh-cn#bqml)、[BI Engine](https://cloud.google.com/bigquery/pricing?hl=zh-cn#bi_engine_pricing) 和 [Data Transfer Service](https://cloud.google.com/bigquery/pricing?hl=zh-cn#data-transfer-service-pricing) 价格。 
+  * [位置](https://docs.cloud.google.com/bigquery/docs/locations?hl=zh-cn)定义了创建和存储数据集的位置（区域和多区域位置）。 
+  * [Stack Overflow](https://stackoverflow.com/questions/tagged/google-bigquery) 托管一个互动社区，该社区由使用 BigQuery 的开发者和分析师组成。 
+  * [BigQuery 支持团队](https://docs.cloud.google.com/bigquery/docs/getting-support?hl=zh-cn)提供 BigQuery 方面的帮助。 
+  * [Google BigQuery: The Definitive Guide: Data Warehousing, Analytics, and Machine Learning at Scale](https://www.google.com/books/edition/Google_BigQuery_The_Definitive_Guide/-Jq4DwAAQBAJ?hl=zh-cn)（作者：Valliappa Lakshmanan 和 Jordan Tigani）介绍了 BigQuery 的工作原理并提供了关于如何使用该服务的端到端演示。
+
+
+### API、工具和参考文档
+适用于 BigQuery 开发者和分析师的参考资料：
+  * [BigQuery API](https://docs.cloud.google.com/bigquery/docs/reference/libraries-overview?hl=zh-cn) 和[客户端库](https://docs.cloud.google.com/bigquery/docs/reference/libraries?hl=zh-cn)概述了 BigQuery 的功能及其用法。 
+  * 如需详细了解如何使用 GoogleSQL，请参阅 [SQL 查询语法](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax?hl=zh-cn)。 
+  * [BigQuery 代码示例](https://docs.cloud.google.com/bigquery/docs/samples?hl=zh-cn)为 [C#](https://docs.cloud.google.com/docs/samples?l=csharp&%3Bp=bigquery&hl=zh-cn)、[Go](https://docs.cloud.google.com/docs/samples?l=go&%3Bp=bigquery&hl=zh-cn)、[Java](https://docs.cloud.google.com/docs/samples?l=java&%3Bp=bigquery&hl=zh-cn)、[Node.js](https://docs.cloud.google.com/docs/samples?l=nodejs&%3Bp=bigquery&hl=zh-cn)、[Python](https://docs.cloud.google.com/docs/samples?l=python&%3Bp=bigquery&hl=zh-cn)、[Ruby](https://docs.cloud.google.com/docs/samples?l=ruby&%3Bp=bigquery&hl=zh-cn) 客户端库提供了数百个代码段。也可以查看[示例浏览器](https://docs.cloud.google.com/docs/samples?p=bigquery&hl=zh-cn)。
+  * [DML](https://docs.cloud.google.com/bigquery/docs/data-manipulation-language?hl=zh-cn)、[DDL](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language?hl=zh-cn) 和 [用户定义的函数 (UDF)](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-definition-language?hl=zh-cn#create_function_statement)语法允许您管理和转换 BigQuery 数据。
+  * [bq 命令行工具参考文档](https://docs.cloud.google.com/bigquery/docs/reference/bq-cli-reference?hl=zh-cn)记录了 `bq` CLI 的语法、命令、标志和参数。
+  * [ODBC/JDBC 集成](https://docs.cloud.google.com/bigquery/docs/reference/odbc-jdbc-drivers?hl=zh-cn)将 BigQuery 连接到您现有的工具和基础架构。
+
+
+## Gemini in BigQuery 功能
+Gemini in BigQuery 是 [Gemini for Google Cloud](https://docs.cloud.google.com/gemini/docs/overview?hl=zh-cn) 产品套件的一部分，可提供 AI 赋能的辅助功能，帮助您处理数据。
+Gemini in BigQuery 提供 AI 辅助功能，帮助您执行以下操作：
+  * **使用数据分析洞见来探索和了解数据** 。 数据分析洞见提供了一种自动化、直观的方式，可使用根据表的元数据生成的深度分析查询来发现模式并执行统计分析。此功能对于解决早期数据探索的冷启动难题特别有帮助。如需了解详情，请参阅[在 BigQuery 中生成数据分析](https://docs.cloud.google.com/bigquery/docs/data-insights?hl=zh-cn)。
+  * **使用 BigQuery 数据画布探索、转换、查询和直观呈现数据** 。您可以使用 Gemini in BigQuery 和自然语言来查找、联接和查询表资产，直观呈现结果，并在整个过程中与他人无缝协作。如需了解详情，请参阅[使用数据画布进行分析](https://docs.cloud.google.com/bigquery/docs/data-canvas?hl=zh-cn)。
+  * **获得 SQL 和 Python 数据分析方面的帮助** 。您可以使用 Gemini in BigQuery 生成或建议 SQL 或 Python 代码，以及解释现有 SQL 查询。您还可以使用自然语言查询来开始数据分析。如需了解如何生成、补全和总结代码，请参阅以下文档：  
+
+    * SQL 代码辅助 
+      * [使用 SQL 生成工具](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#use_the_sql_generation_tool)
+      * [用于生成 SQL 查询的提示](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#chat)
+      * [使用 Gemini Cloud Assist 生成 SQL 查询](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#chat)（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）
+      * [将注释转换为 SQL](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#natural_language)（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）
+      * [完成 SQL 查询](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#complete_a_sql_query)（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）
+      * [解释 SQL 查询](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#explain_a_sql_query)
+    * Python 代码辅助 
+      * [使用代码生成工具生成 Python 代码](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#generate_python_code)
+      * [使用 Gemini Cloud Assist 生成 Python 代码](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#chat-python)（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）
+      * [Python 代码补全](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#complete_python_code)
+      * [生成 BigQuery DataFrames Python 代码](https://docs.cloud.google.com/bigquery/docs/write-sql-gemini?hl=zh-cn#dataframe)（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）
+  * **准备数据以进行分析** 。BigQuery 的数据准备功能可提供 AI 根据上下文信息生成的转换建议，帮助您清理数据以便进行分析。如需了解详情，请参阅[使用 Gemini 准备数据](https://docs.cloud.google.com/bigquery/docs/data-prep-get-suggestions?hl=zh-cn)。
+  * **使用转换规则自定义 SQL 转换** 。（[预览版](https://cloud.google.com/products?hl=zh-cn#product-launch-stages)）创建 Gemini 增强型转换规则，以便在使用[交互式 SQL 转换器](https://docs.cloud.google.com/bigquery/docs/interactive-sql-translator?hl=zh-cn)时自定义 SQL 转换。您可以使用自然语言提示来描述 SQL 转换输出的变更，也可以指定 SQL 模式以进行查找和替换。如需了解详情，请参阅[创建转换规则](https://docs.cloud.google.com/bigquery/docs/interactive-sql-translator?hl=zh-cn#create-apply-rules)。
+
+
+如需了解如何设置 Gemini in BigQuery，请参阅[设置 Gemini in BigQuery](https://docs.cloud.google.com/bigquery/docs/gemini-set-up?hl=zh-cn)。 
+## BigQuery 角色和资源
+BigQuery 可满足具有以下角色和职责的数据专业人员的需求。
+帮助您执行以下操作的任务指导：
+  * 使用 [SQL 查询语法](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax?hl=zh-cn)通过交互式查询或批量查询来[查询 BigQuery 数据](https://docs.cloud.google.com/bigquery/docs/query-overview?hl=zh-cn)
+  * 引用 SQL [函数](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/functions-all?hl=zh-cn)、[运算符](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators?hl=zh-cn)和[条件表达式](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions?hl=zh-cn)来查询数据 
+  * 使用工具分析和直观呈现 BigQuery 数据，包括 [Looker](https://docs.cloud.google.com/bigquery/docs/looker?hl=zh-cn)、[Looker Studio](https://docs.cloud.google.com/bigquery/docs/visualize-looker-studio?hl=zh-cn) 和 [Google 表格](https://docs.cloud.google.com/bigquery/docs/connected-sheets?hl=zh-cn)。 
+  * [使用地理空间分析](https://docs.cloud.google.com/bigquery/docs/gis-intro?hl=zh-cn)来通过 BigQuery 的地理信息系统分析和直观呈现地理空间数据
+  * 使用以下各项[优化查询性能](https://docs.cloud.google.com/bigquery/docs/best-practices-performance-overview?hl=zh-cn)：
+    * [分区表](https://docs.cloud.google.com/bigquery/docs/partitioned-tables?hl=zh-cn)：根据时间或整数范围删减大型表。
+    * [物化视图](https://docs.cloud.google.com/bigquery/docs/materialized-views-intro?hl=zh-cn)：定义缓存视图以优化查询或提供永久性结果。 
+    * [BI Engine](https://docs.cloud.google.com/bigquery/docs/bi-engine-query?hl=zh-cn)：BigQuery 的高速内存中分析服务。 
+
+
+如需直接在 Google Cloud 控制台中浏览 BigQuery 的数据分析功能，请点击**浏览** 。
+[浏览](https://console.cloud.google.com/?walkthrough_id=bigquery--ui-tour-data-analyst&hl=zh-cn)
+帮助您执行以下操作的任务指导：
+  * 使用[预留](https://docs.cloud.google.com/bigquery/docs/reservations-intro?hl=zh-cn)[管理费用](https://docs.cloud.google.com/bigquery/docs/controlling-costs?hl=zh-cn)，以平衡按需价格和基于容量的价格。
+  * [了解数据安全和治理](https://docs.cloud.google.com/bigquery/docs/data-governance?hl=zh-cn)，以按[dataset](https://docs.cloud.google.com/bigquery/docs/control-access-to-resources-iam?hl=zh-cn)、[表](https://docs.cloud.google.com/bigquery/docs/control-access-to-resources-iam?hl=zh-cn)、[列](https://docs.cloud.google.com/bigquery/docs/column-level-security-intro?hl=zh-cn)、[行](https://docs.cloud.google.com/bigquery/docs/row-level-security-intro?hl=zh-cn)或[视图](https://docs.cloud.google.com/bigquery/docs/authorized-views?hl=zh-cn)保护数据。
+  * [使用表快照备份数据](https://docs.cloud.google.com/bigquery/docs/table-snapshots-intro?hl=zh-cn)，以保留在特定时间点表的内容。
+  * [查看 BigQuery INFORMATION_SCHEMA](https://docs.cloud.google.com/bigquery/docs/information-schema-intro?hl=zh-cn)，以了解[数据集](https://docs.cloud.google.com/bigquery/docs/information-schema-datasets-schemata?hl=zh-cn)、[作业](https://docs.cloud.google.com/bigquery/docs/information-schema-jobs?hl=zh-cn)、[访问权限控制](https://docs.cloud.google.com/bigquery/docs/information-schema-object-privileges?hl=zh-cn)、[预留](https://docs.cloud.google.com/bigquery/docs/information-schema-reservations?hl=zh-cn)、[表](https://docs.cloud.google.com/bigquery/docs/information-schema-tables?hl=zh-cn)等等的元数据。
+  * [使用作业](https://docs.cloud.google.com/bigquery/docs/managing-jobs?hl=zh-cn)让 BigQuery 代表您加载、导出、查询或复制数据。
+  * [监控日志和资源](https://docs.cloud.google.com/bigquery/docs/monitoring?hl=zh-cn)以了解 BigQuery 和工作负载。
+
+
+如需了解详情，请参阅 [BigQuery 管理简介](https://docs.cloud.google.com/bigquery/docs/admin-intro?hl=zh-cn)。
+如需直接在 Google Cloud 控制台中浏览 BigQuery 的数据管理功能，请点击**浏览** 。
+[浏览](https://console.cloud.google.com/?walkthrough_id=bigquery--ui-tour-data-admin&hl=zh-cn)
+帮助您使用 [BigQuery ML 的机器学习](https://docs.cloud.google.com/bigquery/docs/bqml-introduction?hl=zh-cn)来执行以下操作的任务指导：
+  * [了解机器学习模型的端到端用户体验历程](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-e2e-journey?hl=zh-cn)
+  * 针对 BigQuery ML [管理访问权限控制](https://docs.cloud.google.com/bigquery/docs/access-control?hl=zh-cn)
+  * [创建并训练 BigQuery ML 模型](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create?hl=zh-cn)，包括：
+    * [线性回归](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-glm?hl=zh-cn)预测
+    * [二元逻辑](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-glm?hl=zh-cn)和[多类别逻辑](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-glm?hl=zh-cn)回归分类
+    * [K-means 聚类](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-kmeans?hl=zh-cn)（用于数据细分）
+    * 使用 Arima+ 模型进行[时序](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/bigqueryml-syntax-create-time-series?hl=zh-cn)预测
+
+
+帮助您执行以下操作的任务指导：
+  * 使用以下方式[将数据加载到 BigQuery 中](https://docs.cloud.google.com/bigquery/docs/loading-data?hl=zh-cn)：
+    * [批量加载数据](https://docs.cloud.google.com/bigquery/docs/batch-loading-data?hl=zh-cn)（针对 [Avro](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-avro?hl=zh-cn)、[Parquet](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-parquet?hl=zh-cn)、[ORC](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-orc?hl=zh-cn)、[CSV](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-csv?hl=zh-cn)、[JSON](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-storage-json?hl=zh-cn) 、[Datastore](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-datastore?hl=zh-cn) 和 [Firestore](https://docs.cloud.google.com/bigquery/docs/loading-data-cloud-firestore?hl=zh-cn) 格式）
+    * [BigQuery Data Transfer Service](https://docs.cloud.google.com/bigquery/docs/dts-introduction?hl=zh-cn)
+    * [BigQuery Storage Write API](https://docs.cloud.google.com/bigquery/docs/write-api?hl=zh-cn)
+  * [使用代码示例库](https://docs.cloud.google.com/bigquery/docs/samples?hl=zh-cn)，包括：
+    * [连接示例](https://docs.cloud.google.com/bigquery/docs/samples?api=bigqueryconnectionapi&hl=zh-cn)
+    * [预留示例](https://docs.cloud.google.com/bigquery/docs/samples?api=bigqueryreservationapi&hl=zh-cn)
+    * [存储代码示例](https://docs.cloud.google.com/bigquery/docs/samples?api=bigquerystorage&hl=zh-cn)
+  * [Google Cloud 示例浏览器](https://docs.cloud.google.com/docs/samples?p=bigquery&hl=zh-cn)（仅限 BigQuery）
+  * [API 和库概览](https://docs.cloud.google.com/bigquery/docs/reference/libraries-overview?hl=zh-cn)
+  * [ODBC/JDBC 集成](https://docs.cloud.google.com/bigquery/docs/reference/odbc-jdbc-drivers?hl=zh-cn)
+
+
+## BigQuery 视频教程
+以下系列视频教程将帮助您开始使用 BigQuery：  
+| 标题  | 说明  |  
+| --- | --- |  
+|  [如何开始使用 BigQuery](https://www.youtube.com/watch?v=BH_7_zVk5oM&hl=zh-cn) (17:18)  | 简要介绍 BigQuery 及其使用方法。具体包括：ETL 流水线、价格和优化、BigQuery ML 和 BI Engine，最后是 Google Cloud 控制台中的 BigQuery 的演示。  |  
+|  [什么是 BigQuery？](https://www.youtube.com/watch?v=d3MDxC_iuaw&hl=zh-cn)(4:39)  | 简要介绍 BigQuery 如何注入和存储大量数据，以帮助分析师和开发者处理数据  |  
+|  [使用 BigQuery 沙盒](https://www.youtube.com/watch?v=StEuT-pntZQ&hl=zh-cn) (3:05)  | 如何设置 BigQuery 沙盒，让您无需提供信用卡即可运行查询  |  
+|  [提出问题和运行查询](https://www.youtube.com/watch?v=Davhwj_8b8Q&hl=zh-cn) (5:11)  | 如何在 BigQuery 界面中编写和运行 SQL 查询 - 以及选择胜出的参赛者运动衫号码  |  
+|  [将数据加载到 BigQuery 中](https://www.youtube.com/watch?v=Abzj-Vyhi74&t=60s&hl=zh-cn) (5:31)  | 如何实时注入和分析数据，或者仅对数据进行一次性批量分析 - 包括猫与狗  |  
+|  [直观呈现查询结果](https://www.youtube.com/watch?v=AlKKZuULIxM&hl=zh-cn) (5:38)  | 数据可视化如何使复杂数据集更易于理解和吸收  |  
+|  [使用 IAM 管理访问权限](https://www.youtube.com/watch?v=ZTpOAmJWhAk&hl=zh-cn) (5:23)  | 如何通过 IAM 权限和访问权限控制允许其他用户在 BigQuery 中查询您的数据集  |  
+|  [保存和共享查询](https://www.youtube.com/watch?v=AYmoUQ_lyeg&list=PLIivdWyY5sqLAbIdmcMwsxWg-w8Px34MS&index=8&t=8s&hl=zh-cn) (6:17)  | 如何在 BigQuery 中轻松无忧地保存和共享查询  |  
+|  [使用授权视图保护敏感数据](https://www.youtube.com/watch?v=8fNnqshJ2Nw&hl=zh-cn) (7:12)  | 如何通过设置自定义访问权限控制与不同的用户共享数据集  |  
+|  [使用 BigQuery 查询外部数据](https://www.youtube.com/watch?v=jBfx1K3-97k&hl=zh-cn) (5:49)  | 如何在 BigQuery 中设置外部数据源，以及如何查询 Cloud Storage、Cloud SQL、Google 云端硬盘等等中的数据  |  
+|  [什么是用户定义的函数？](https://www.youtube.com/watch?v=c3dtgLWRycs&hl=zh-cn)(4:59)  | 如何在 BigQuery 中创建用户定义的函数 (UDF) 以分析数据集  |  
+## 后续步骤
+  * 如需大致了解 BigQuery 存储空间，请参阅 [BigQuery 存储空间概览](https://docs.cloud.google.com/bigquery/docs/storage_overview?hl=zh-cn)。
+  * 如需大致了解 BigQuery 查询，请参阅 [BigQuery 分析概览](https://docs.cloud.google.com/bigquery/docs/query-overview?hl=zh-cn)。
+  * 如需大致了解 BigQuery 管理，请参阅 [BigQuery 管理简介](https://docs.cloud.google.com/bigquery/docs/admin-intro?hl=zh-cn)。
+  * 如需大致了解 BigQuery 安全性，请参阅[数据安全和治理概览](https://docs.cloud.google.com/bigquery/docs/data-governance?hl=zh-cn)。
+
+
+该内容对您有帮助吗？
+发送反馈 
+如未另行说明，那么本页面中的内容已根据[知识共享署名 4.0 许可](https://creativecommons.org/licenses/by/4.0/)获得了许可，并且代码示例已根据 [Apache 2.0 许可](https://www.apache.org/licenses/LICENSE-2.0)获得了许可。有关详情，请参阅 [Google 开发者网站政策](https://developers.google.com/site-policies?hl=zh-cn)。Java 是 Oracle 和/或其关联公司的注册商标。
+最后更新时间 (UTC)：2025-12-18。
+需要向我们提供更多信息？  [[["易于理解","easyToUnderstand","thumb-up"],["解决了我的问题","solvedMyProblem","thumb-up"],["其他","otherUp","thumb-up"]],[["很难理解","hardToUnderstand","thumb-down"],["信息或示例代码不正确","incorrectInformationOrSampleCode","thumb-down"],["没有我需要的信息/示例","missingTheInformationSamplesINeed","thumb-down"],["翻译问题","translationIssue","thumb-down"],["其他","otherDown","thumb-down"]],["最后更新时间 (UTC)：2025-12-18。"],[],[]] 
+  * ### 产品和价格
+    * [ 查看所有产品 ](https://cloud.google.com/products/?hl=zh-cn)
+    * [ Google Cloud 价格 ](https://cloud.google.com/pricing/?hl=zh-cn)
+    * [ Google Cloud Marketplace ](https://cloud.google.com/marketplace/?hl=zh-cn)
+    * [ 与销售人员联系 ](https://cloud.google.com/contact/?hl=zh-cn)
+  * ### 支持
+    * [ 社区论坛 ](https://discuss.google.dev/c/google-cloud/14/?hl=zh-cn)
+    * [ 支持 ](https://cloud.google.com/support-hub/?hl=zh-cn)
+    * [ 版本说明 ](https://docs.cloud.google.com/release-notes?hl=zh-cn)
+    * [ 系统状态 ](https://status.cloud.google.com?hl=zh-cn)
+  * ### 资源
+    * [ GitHub ](https://github.com/googlecloudPlatform/)
+    * [ Google Cloud 使用入门 ](https://docs.cloud.google.com/docs/get-started/?hl=zh-cn)
+    * [ 代码示例 ](https://docs.cloud.google.com/docs/samples?hl=zh-cn)
+    * [ 云架构中心 ](https://docs.cloud.google.com/architecture/?hl=zh-cn)
+    * [ 培训和认证 ](https://cloud.google.com/learn/training/?hl=zh-cn)
+  * ### 互动
+    * [ 博客 ](https://cloud.google.com/blog/?hl=zh-cn)
+    * [ 活动 ](https://cloud.google.com/events/?hl=zh-cn)
+    * [ X (Twitter) ](https://x.com/googlecloud)
+    * [ Google Cloud 在 YouTube 上的频道 ](https://www.youtube.com/googlecloud?hl=zh-cn)
+    * [ YouTube 上的 Google Cloud Tech ](https://www.youtube.com/googlecloudplatform?hl=zh-cn)
+
+
+  * [ 关于 Google ](https://about.google/intl/zh-cn/?hl=zh-cn)
+  * [ 隐私权政策 ](https://policies.google.com/privacy?hl=zh-CN)
+  * [ 网站条款 ](https://policies.google.com/terms?hl=zh-cn)
+  * [ Google Cloud 条款 ](https://cloud.google.com/product-terms?hl=zh-cn)
+  * [ Manage cookies ](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn)
+  * [ 环境行动的第三个十年：加入我们 ](https://cloud.google.com/sustainability?hl=zh-cn)
+  * 订阅 Google Cloud 简报 [ 订阅 ](https://cloud.google.com/newsletter/?hl=zh-cn)
+
+
+  * [English](https://docs.cloud.google.com/bigquery/docs/introduction)
+  * [Deutsch](https://docs.cloud.google.com/bigquery/docs/introduction?hl=de)
+  * [Español](https://docs.cloud.google.com/bigquery/docs/introduction?hl=es)
+  * [Español – América Latina](https://docs.cloud.google.com/bigquery/docs/introduction?hl=es-419)
+  * [Français](https://docs.cloud.google.com/bigquery/docs/introduction?hl=fr)
+  * [Indonesia](https://docs.cloud.google.com/bigquery/docs/introduction?hl=id)
+  * [Italiano](https://docs.cloud.google.com/bigquery/docs/introduction?hl=it)
+  * [Português](https://docs.cloud.google.com/bigquery/docs/introduction?hl=pt)
+  * [Português – Brasil](https://docs.cloud.google.com/bigquery/docs/introduction?hl=pt-br)
+  * [עברית](https://docs.cloud.google.com/bigquery/docs/introduction?hl=he)
+  * [中文 – 简体](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-cn)
+  * [中文 – 繁體](https://docs.cloud.google.com/bigquery/docs/introduction?hl=zh-tw)
+  * [日本語](https://docs.cloud.google.com/bigquery/docs/introduction?hl=ja)
+  * [한국어](https://docs.cloud.google.com/bigquery/docs/introduction?hl=ko)
+
+

@@ -1,0 +1,859 @@
+---
+title: "SEO: The Complete Guide for Beginners"
+meta:
+  description: "Everything you need to build a strong foundation of SEO knowledge and start ranking higher in Google."
+  "og:description": "Everything you need to build a strong foundation of SEO knowledge and start ranking higher in Google."
+  "og:title": "SEO: The Complete Guide for Beginners"
+  "twitter:description": "Everything you need to build a strong foundation of SEO knowledge and start ranking higher in Google."
+  "twitter:title": "SEO: The Complete Guide for Beginners"
+---
+
+![](https://cdn-cookieyes.com/assets/images/close.svg)
+
+We value your privacy
+
+This website or its third-party tools process personal data. You can opt out of the sale of your personal information by clicking on the “Do Not Sell or Share My Personal Information” link.
+
+Do Not Sell or Share My Personal Information
+
+Opt-out Preferences ![](https://cdn-cookieyes.com/assets/images/close.svg)
+
+We use third-party cookies that help us analyse how you use this website, store your preferences, and provide the content and advertisements that are relevant to you. However, you can opt out of these cookies by checking "Do Not Sell or Share My Personal Information" and clicking the "Save My Preferences" button. Once you opt out, you can opt in again at any time by unchecking "Do Not Sell or Share My Personal Information" and clicking the "Save My Preferences" button.
+
+Do Not Sell or Share My Personal Information
+
+Cancel Save My Preferences
+
+Your opt-out preference has been honored.
+
+Banner closes automatically in  s...
+
+Marketing reports, apps, and automations, handled. Meet Letaido.
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-capabilities-banner)
+
+Marketing reports, apps, and automations, handled. Meet Letaido.
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-capabilities-banner)
+
+The only AI marketing platform built on Ahrefs’ proprietary web index.
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-stats-banner)
+
+The only AI marketing platform built on Ahrefs’ proprietary web index.
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-stats-banner)
+
+“The AI marketing platform we needed didn’t exist. So we built it.”
+
+![Tim Soulo](https://ahrefs.com/assets/esbuild/tim-headshot-3LGF3RRA.png)
+
+Tim Soulo, CMO at Ahrefs
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-testimonial-banner)
+
+“The AI marketing platform we needed didn’t exist. So we built it.”
+
+![Tim Soulo](https://ahrefs.com/assets/esbuild/tim-headshot-3LGF3RRA.png)
+
+Tim Soulo, CMO at Ahrefs
+
+[Get Started](https://signin.letaido.com/sign-up?utm_source=ahrefs_website&utm_content=header-letaido-testimonial-banner)
+
+![](https://ahrefs.com/assets/esbuild/small-graphics-left-SJBEMD6O.png)
+
+![](https://ahrefs.com/assets/esbuild/small-graphics-right-YPNCEHW2.png)
+
+[![Firehose](https://ahrefs.com/assets/esbuild/firehose-logo-7U4WJPMS.svg)](https://firehose.com?utm_source=ahrefs_website&utm_content=explore_firehose&utm_campaign=firehose_launch&utm_medium=banner)
+
+Track brand mentions and competitor updates in real time.
+
+[Get Firehose free](https://signin.firehose.com/sign-up?utm_source=ahrefs_website&utm_content=start_for_free&utm_campaign=firehose_launch&utm_medium=banner)
+
+[Explore Firehose →](https://firehose.com?utm_source=ahrefs_website&utm_content=explore_firehose&utm_campaign=firehose_launch&utm_medium=banner)
+
+[![Firehose](https://ahrefs.com/assets/esbuild/firehose-logo-7U4WJPMS.svg)](https://firehose.com?utm_source=ahrefs_website&utm_content=explore_firehose&utm_campaign=firehose_launch&utm_medium=banner)
+
+Track brand mentions and competitor updates in real time.
+
+[Get Firehose free](https://signin.firehose.com/sign-up?utm_source=ahrefs_website&utm_content=start_for_free&utm_campaign=firehose_launch&utm_medium=banner)
+
+[Explore Firehose →](https://firehose.com?utm_source=ahrefs_website&utm_content=explore_firehose&utm_campaign=firehose_launch&utm_medium=banner)
+
+[![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros![](https://ahrefs.com/assets/esbuild/evolve-logo-G3WGCZWN.svg)![](https://ahrefs.com/assets/esbuild/date-HLIBHVKV.svg) The conference for search & marketing pros](https://ahrefsevolve.com/?utm_source=ahrefs_website&utm_content=header-evolve-banner)
+
+[Ahrefs](/)
+
+Product
+
+[Search marketing](https://ahrefs.com/search-marketing)
+
+[Site Explorer Study your competitors’ websites.](https://ahrefs.com/site-explorer) [Keywords Explorer Learn what your customers are searching for.](https://ahrefs.com/keywords-explorer) [Rank Tracker Monitor your rankings in search engines.](https://ahrefs.com/rank-tracker) [GSC Insights Monitor your rankings in Google Search Console.](https://ahrefs.com/gsc-insights) [Brand Radar Track your brand’s visibility in LLMs.](https://ahrefs.com/brand-radar) [Custom Prompts Track the AI prompts that matter most.](https://ahrefs.com/custom-prompts)
+
+[Website performance](https://ahrefs.com/website-performance)
+
+[Site Audit Audit & optimize your website.](https://ahrefs.com/site-audit) [Web Analytics Get insights about your website’s traffic.](https://ahrefs.com/web-analytics) [Bot AnalyticsNew See good and bad bots crawling your website.](https://ahrefs.com/bot-analytics)
+
+[Content marketing](https://ahrefs.com/content-marketing)
+
+[Content Explorer Track your web mentions & find link prospects.](https://ahrefs.com/content-explorer) [AI Content Helper Improve your content with AI.](https://ahrefs.com/ai-content-helper) [Social Media Manager Schedule, edit, and manage social media from one place.](https://ahrefs.com/social-media-manager)
+
+[Reporting](https://ahrefs.com/reporting)
+
+[Dashboard Track performance and progress across projects.](https://ahrefs.com/dashboard) [Portfolios Monitor the performance of multiple URLs.](https://ahrefs.com/portfolios) [Report Builder Measure your work’s impact, and showcase its value.](https://ahrefs.com/report-builder)
+
+[Local SEO](https://ahrefs.com/local-seo)
+
+[GBP MonitorNew Manage Google Business Profiles at scale.](https://ahrefs.com/gbp-monitor)
+
+[Use Cases](https://ahrefs.com/use-cases)
+
+[Competitive Intelligence](https://ahrefs.com/use-cases/competitive-intelligence) [PPC](https://ahrefs.com/use-cases/ppc) [SEO](https://ahrefs.com/use-cases/seo) [AEO](https://ahrefs.com/use-cases/aeo) [Content Marketing](https://ahrefs.com/use-cases/content-marketing) [Brand Marketing](https://ahrefs.com/use-cases/brand-marketing) [Investing](https://ahrefs.com/use-cases/investing)
+
+[Ahrefs AI](https://ahrefs.com/ai)
+
+[Ask Ahrefs](https://ahrefs.com/ask-ahrefs) [MCP](https://ahrefs.com/mcp)
+
+[Discover all tools →](https://ahrefs.com/all)
+
+[Our data](https://ahrefs.com/big-data)
+
+Resources
+
+Learn Ahrefs
+
+[Help Center Browse bite-sized tutorials, FAQs, and best practices.](https://help.ahrefs.com) [How to use Ahrefs Learn practical ways to use Ahrefs’ tools and reports.](https://ahrefs.com/academy/how-to-use-ahrefs) [Ahrefs Certification Turn your Ahrefs knowledge into a tangible credential.](https://ahrefs.com/certification) [What’s new? See all the latest product features and improvements.](https://ahrefs.com/blog/category/product-blog/)
+
+Learn marketing
+
+[Blog Expand your marketing knowledge.](https://ahrefs.com/blog/) [Academy Get better at digital marketing with our free video courses.](https://ahrefs.com/academy) [Podcast Get first-hand insights from the world of digital marketing.](https://ahrefs.com/podcast) [Ahrefs on YouTube Watch actionable digital marketing tutorials.](https://www.youtube.com/c/AhrefsCom)
+
+Misc
+
+[Agency Directory Find a perfect match for your project.](https://ahrefs.com/agencies) [Top Websites See top ranking websites by Ahrefs traffic estimates.](https://ahrefstop.com/websites) [Events Explore Ahrefs events happening near you.](https://ahrefs.com/events) [Webinars Watch free live trainings and attend AMAs.](https://ahrefs.com/webinars) [Testimonials Read what users love most about our tools.](https://ahrefs.com/reviews)
+
+Free tools
+
+[SEO Tools](https://ahrefs.com/free-seo-tools) [AI Visibility Checker](https://ahrefs.com/ai-visibility-checker) [AI Writing Tools](https://ahrefs.com/writing-tools) [SEO Browser Extension](https://ahrefs.com/seo-toolbar)
+
+[Word Count ↗](https://wordcount.com)
+
+[Pricing](https://ahrefs.com/pricing)
+
+[Enterprise](https://ahrefs.com/enterprise)
+
+[Evolve](https://ahrefsevolve.com/?utm_source=ahrefs_website&utm_medium=mainmenu)
+
+[Sign in](https://app.ahrefs.com/user/login)
+
+[Sign up](https://ahrefs.com/pricing?utm_source=seo)
+
+Ahrefs
+
+# Beginner’s Guide to SEO
+
+Comprehensive SEO guides to help you improve your rankings and build real-world SEO skills—fully updated for AI Overviews, ChatGPT, and the AI search era.
+
+[How Search Engines Work01 How Search Engines Work](#01)
+
+[SEO Basics02 SEO Basics](#02)
+
+[Keyword Research03 Keyword Research](#03)
+
+[SEO Content04 SEO Content](#04)
+
+[On-Page SEO05 On-Page SEO](#05)
+
+[Link Building06 Link Building](#06)
+
+[Technical SEO07 Technical SEO](#07)
+
+[Local SEO08 Local SEO](#08)
+
+[What AI Means for SEO09 What AI Means for SEO](#09)
+
+[How AI Search Engines Work10 How AI Search Engines Work](#10)
+
+## Ten chapters researched, written, and reviewed by expert SEOs. Everything you need to learn SEO and start ranking higher.
+
+/01
+
+[How Search Engines Work](https://ahrefs.com/seo/how-do-search-engines-work)
+
+Before you start learning SEO, you need to understand how search engines work.
+
+- [
+
+  Search engine basics](/seo/how-do-search-engines-work#seo-guide-tracked-section-0)
+- [
+
+  How search engines build their indexes](/seo/how-do-search-engines-work#seo-guide-tracked-section-1)
+- [
+
+  How search engines rank pages](/seo/how-do-search-engines-work#seo-guide-tracked-section-2)
+- [
+
+  How search engines personalize results](/seo/how-do-search-engines-work#seo-guide-tracked-section-3)
+
+Before you start learning SEO, you need to understand how search engines work.
+
+- [
+
+  Search engine basics](/seo/how-do-search-engines-work#seo-guide-tracked-section-0)
+- [
+
+  How search engines build their indexes](/seo/how-do-search-engines-work#seo-guide-tracked-section-1)
+- [
+
+  How search engines rank pages](/seo/how-do-search-engines-work#seo-guide-tracked-section-2)
+- [
+
+  How search engines personalize results](/seo/how-do-search-engines-work#seo-guide-tracked-section-3)
+
+/02
+
+[SEO Basics](https://ahrefs.com/seo/seo-basics)
+
+Learn how to set your website up for SEO success, and get to grips with the four main facets of SEO.
+
+- [
+
+  SEO fundamentals](/seo/seo-basics#seo-guide-tracked-section-0)
+- [
+
+  Setting up for SEO success](/seo/seo-basics#seo-guide-tracked-section-1)
+- [
+
+  Getting on Google](/seo/seo-basics#seo-guide-tracked-section-2)
+- [
+
+  How to track SEO success](/seo/seo-basics#seo-guide-tracked-section-3)
+
+Learn how to set your website up for SEO success, and get to grips with the four main facets of SEO.
+
+- [
+
+  SEO fundamentals](/seo/seo-basics#seo-guide-tracked-section-0)
+- [
+
+  Setting up for SEO success](/seo/seo-basics#seo-guide-tracked-section-1)
+- [
+
+  Getting on Google](/seo/seo-basics#seo-guide-tracked-section-2)
+- [
+
+  How to track SEO success](/seo/seo-basics#seo-guide-tracked-section-3)
+
+/03
+
+[Keyword Research](https://ahrefs.com/seo/keyword-research)
+
+The starting point in SEO is to understand what your target customers are searching for.
+
+- [
+
+  Getting started with keyword research](/seo/keyword-research#seo-guide-tracked-section-0)
+- [
+
+  Types of keywords](/seo/keyword-research#seo-guide-tracked-section-1)
+- [
+
+  Keyword SEO metrics explained](/seo/keyword-research#seo-guide-tracked-section-2)
+- [
+
+  How to prioritize keywords](/seo/keyword-research#seo-guide-tracked-section-3)
+
+The starting point in SEO is to understand what your target customers are searching for.
+
+- [
+
+  Getting started with keyword research](/seo/keyword-research#seo-guide-tracked-section-0)
+- [
+
+  Types of keywords](/seo/keyword-research#seo-guide-tracked-section-1)
+- [
+
+  Keyword SEO metrics explained](/seo/keyword-research#seo-guide-tracked-section-2)
+- [
+
+  How to prioritize keywords](/seo/keyword-research#seo-guide-tracked-section-3)
+
+/04
+
+[SEO Content](https://ahrefs.com/seo/seo-content)
+
+Learn how to create content that ranks in search engines.
+
+- [
+
+  SEO content basics](/seo/seo-content#seo-guide-tracked-section-0)
+- [
+
+  How to create SEO content](/seo/seo-content#seo-guide-tracked-section-1)
+
+Learn how to create content that ranks in search engines.
+
+- [
+
+  SEO content basics](/seo/seo-content#seo-guide-tracked-section-0)
+- [
+
+  How to create SEO content](/seo/seo-content#seo-guide-tracked-section-1)
+
+/05
+
+[On-Page SEO](https://ahrefs.com/seo/on-page-seo)
+
+This is where you optimize your pages to help search engines understand them.
+
+- [
+
+  Include your target keyword in relevant places](/seo/on-page-seo#seo-guide-tracked-section-0)
+- [
+
+  Use header tags to structure your page](/seo/on-page-seo#seo-guide-tracked-section-1)
+- [
+
+  Write a compelling title tag](/seo/on-page-seo#seo-guide-tracked-section-2)
+- [
+
+  Write an engaging meta description](/seo/on-page-seo#seo-guide-tracked-section-3)
+- [
+
+  Set SEO-friendly URLs](/seo/on-page-seo#seo-guide-tracked-section-4)
+- [
+
+  Add internal links in useful places](/seo/on-page-seo#seo-guide-tracked-section-5)
+- [
+
+  Add external links](/seo/on-page-seo#seo-guide-tracked-section-6)
+- [
+
+  Optimize your images](/seo/on-page-seo#seo-guide-tracked-section-7)
+- [
+
+  Fill your content gaps](/seo/on-page-seo#seo-guide-tracked-section-8)
+- [
+
+  Show off your experience and expertise](/seo/on-page-seo#seo-guide-tracked-section-9)
+- [
+
+  Optimize for zero-click search](/seo/on-page-seo#seo-guide-tracked-section-10)
+- [
+
+  Get rich results with schema markup](/seo/on-page-seo#seo-guide-tracked-section-11)
+- [
+
+  Improve user experience](/seo/on-page-seo#seo-guide-tracked-section-12)
+- [
+
+  Monitor your on-page SEO performance](/seo/on-page-seo#seo-guide-tracked-section-13)
+
+This is where you optimize your pages to help search engines understand them.
+
+- [
+
+  Include your target keyword in relevant places](/seo/on-page-seo#seo-guide-tracked-section-0)
+- [
+
+  Use header tags to structure your page](/seo/on-page-seo#seo-guide-tracked-section-1)
+- [
+
+  Write a compelling title tag](/seo/on-page-seo#seo-guide-tracked-section-2)
+- [
+
+  Write an engaging meta description](/seo/on-page-seo#seo-guide-tracked-section-3)
+- [
+
+  Set SEO-friendly URLs](/seo/on-page-seo#seo-guide-tracked-section-4)
+- [
+
+  Add internal links in useful places](/seo/on-page-seo#seo-guide-tracked-section-5)
+- [
+
+  Add external links](/seo/on-page-seo#seo-guide-tracked-section-6)
+- [
+
+  Optimize your images](/seo/on-page-seo#seo-guide-tracked-section-7)
+- [
+
+  Fill your content gaps](/seo/on-page-seo#seo-guide-tracked-section-8)
+- [
+
+  Show off your experience and expertise](/seo/on-page-seo#seo-guide-tracked-section-9)
+- [
+
+  Optimize for zero-click search](/seo/on-page-seo#seo-guide-tracked-section-10)
+- [
+
+  Get rich results with schema markup](/seo/on-page-seo#seo-guide-tracked-section-11)
+- [
+
+  Improve user experience](/seo/on-page-seo#seo-guide-tracked-section-12)
+- [
+
+  Monitor your on-page SEO performance](/seo/on-page-seo#seo-guide-tracked-section-13)
+
+/06
+
+[Link Building](https://ahrefs.com/seo/link-building)
+
+Learn how to create content that ranks in search engines.
+
+- [
+
+  The basics of link building](/seo/link-building#seo-guide-tracked-section-0)
+- [
+
+  How to build links](/seo/link-building#seo-guide-tracked-section-1)
+- [
+
+  Which links move the needle?](/seo/link-building#seo-guide-tracked-section-2)
+- [
+
+  Best link building strategies](/seo/link-building#seo-guide-tracked-section-3)
+- [
+
+  Link building tools](/seo/link-building#seo-guide-tracked-section-4)
+
+Learn how to create content that ranks in search engines.
+
+- [
+
+  The basics of link building](/seo/link-building#seo-guide-tracked-section-0)
+- [
+
+  How to build links](/seo/link-building#seo-guide-tracked-section-1)
+- [
+
+  Which links move the needle?](/seo/link-building#seo-guide-tracked-section-2)
+- [
+
+  Best link building strategies](/seo/link-building#seo-guide-tracked-section-3)
+- [
+
+  Link building tools](/seo/link-building#seo-guide-tracked-section-4)
+
+/07
+
+[Technical SEO](https://ahrefs.com/seo/technical-seo)
+
+Prevent technical problems that stop Google from accessing and understanding your website.
+
+- [
+
+  Technical SEO basics](/seo/technical-seo#seo-guide-tracked-section-0)
+- [
+
+  Understanding crawling](/seo/technical-seo#seo-guide-tracked-section-1)
+- [
+
+  Understanding indexing](/seo/technical-seo#seo-guide-tracked-section-2)
+- [
+
+  Technical SEO quick wins](/seo/technical-seo#seo-guide-tracked-section-3)
+- [
+
+  Technical SEO for AI search](/seo/technical-seo#seo-guide-tracked-section-4)
+- [
+
+  Additional technical SEO projects](/seo/technical-seo#seo-guide-tracked-section-5)
+- [
+
+  Technical SEO tools](/seo/technical-seo#seo-guide-tracked-section-6)
+
+Prevent technical problems that stop Google from accessing and understanding your website.
+
+- [
+
+  Technical SEO basics](/seo/technical-seo#seo-guide-tracked-section-0)
+- [
+
+  Understanding crawling](/seo/technical-seo#seo-guide-tracked-section-1)
+- [
+
+  Understanding indexing](/seo/technical-seo#seo-guide-tracked-section-2)
+- [
+
+  Technical SEO quick wins](/seo/technical-seo#seo-guide-tracked-section-3)
+- [
+
+  Technical SEO for AI search](/seo/technical-seo#seo-guide-tracked-section-4)
+- [
+
+  Additional technical SEO projects](/seo/technical-seo#seo-guide-tracked-section-5)
+- [
+
+  Technical SEO tools](/seo/technical-seo#seo-guide-tracked-section-6)
+
+/08
+
+[Local SEO](https://ahrefs.com/seo/local-seo)
+
+Learn how to improve your visibility in local search results and get more customers from your area.
+
+- [
+
+  What is local SEO?](/seo/local-seo#seo-guide-tracked-section-0)
+- [
+
+  Why is local SEO important?](/seo/local-seo#seo-guide-tracked-section-1)
+- [
+
+  How does local SEO work?](/seo/local-seo#seo-guide-tracked-section-2)
+- [
+
+  What is a good local SEO strategy?](/seo/local-seo#seo-guide-tracked-section-3)
+- [
+
+  How to do local SEO](/seo/local-seo#seo-guide-tracked-section-4)
+- [
+
+  Local SEO tools](/seo/local-seo#seo-guide-tracked-section-5)
+
+Learn how to improve your visibility in local search results and get more customers from your area.
+
+- [
+
+  What is local SEO?](/seo/local-seo#seo-guide-tracked-section-0)
+- [
+
+  Why is local SEO important?](/seo/local-seo#seo-guide-tracked-section-1)
+- [
+
+  How does local SEO work?](/seo/local-seo#seo-guide-tracked-section-2)
+- [
+
+  What is a good local SEO strategy?](/seo/local-seo#seo-guide-tracked-section-3)
+- [
+
+  How to do local SEO](/seo/local-seo#seo-guide-tracked-section-4)
+- [
+
+  Local SEO tools](/seo/local-seo#seo-guide-tracked-section-5)
+
+/09
+
+[What AI Means for SEO](https://ahrefs.com/seo/what-ai-means-for-seo)
+
+You can’t talk about SEO today without mentioning generative AI.
+
+- [
+
+  How AI has actually changed SEO](/seo/what-ai-means-for-seo#seo-guide-tracked-section-0)
+- [
+
+  Why SEO is more important than ever](/seo/what-ai-means-for-seo#seo-guide-tracked-section-1)
+- [
+
+  Your SEO brain will prepare you for the future](/seo/what-ai-means-for-seo#seo-guide-tracked-section-2)
+
+You can’t talk about SEO today without mentioning generative AI.
+
+- [
+
+  How AI has actually changed SEO](/seo/what-ai-means-for-seo#seo-guide-tracked-section-0)
+- [
+
+  Why SEO is more important than ever](/seo/what-ai-means-for-seo#seo-guide-tracked-section-1)
+- [
+
+  Your SEO brain will prepare you for the future](/seo/what-ai-means-for-seo#seo-guide-tracked-section-2)
+
+/10
+
+[How AI Search Engines Work](https://ahrefs.com/seo/how-ai-search-engines-work)
+
+Learn exactly how AI search engines like ChatGPT generate their answers and choose which brands and products to mention.
+
+- [
+
+  What are AI search engines?](/seo/how-ai-search-engines-work#seo-guide-tracked-section-0)
+- [
+
+  How training works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-1)
+- [
+
+  How grounding and RAG work](/seo/how-ai-search-engines-work#seo-guide-tracked-section-2)
+- [
+
+  How query fan-out works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-3)
+- [
+
+  How retrieval, chunking, and answer synthesis work](/seo/how-ai-search-engines-work#seo-guide-tracked-section-4)
+- [
+
+  How citations are chosen](/seo/how-ai-search-engines-work#seo-guide-tracked-section-5)
+- [
+
+  How personalization works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-6)
+
+Learn exactly how AI search engines like ChatGPT generate their answers and choose which brands and products to mention.
+
+- [
+
+  What are AI search engines?](/seo/how-ai-search-engines-work#seo-guide-tracked-section-0)
+- [
+
+  How training works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-1)
+- [
+
+  How grounding and RAG work](/seo/how-ai-search-engines-work#seo-guide-tracked-section-2)
+- [
+
+  How query fan-out works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-3)
+- [
+
+  How retrieval, chunking, and answer synthesis work](/seo/how-ai-search-engines-work#seo-guide-tracked-section-4)
+- [
+
+  How citations are chosen](/seo/how-ai-search-engines-work#seo-guide-tracked-section-5)
+- [
+
+  How personalization works](/seo/how-ai-search-engines-work#seo-guide-tracked-section-6)
+
+## SEO Book for Beginners
+
+We turned the seven chapters of our beginner’s guide to SEO into a beautiful hardcover book.
+
+[Take a look →](https://ahrefs.com/seo/book)
+
+[![Ahrefs book](https://ahrefs.com/assets/esbuild/cta-KRTANJBD.png)](/seo/book)
+
+## SEO Glossary helps you navigate common industry jargon by introducing a few key terms and concepts you should know to get started.
+
+220+
+
+terms in the SEO glossary
+
+[Learn more in Glossary →](https://ahrefs.com/seo/glossary)
+
+## We’ll support youall the way—whatever your question, there’s a guide, video, or real human ready to help
+
+### [Academy](https://ahrefs.com/academy)
+
+Take free courses on our academy.
+
+### [Certification](https://ahrefs.com/certification)
+
+Get officially Ahrefs certified.
+
+### [Blog](https://ahrefs.com/blog/)
+
+Read detailed guides and case studies.
+
+### [Webinars](https://ahrefs.com/webinars)
+
+Watch free live trainings and attend AMAs.
+
+### [YouTube](https://www.youtube.com/c/AhrefsCom)
+
+Watch binge-worthy tutorials.
+
+### [Podcast](https://ahrefs.com/podcast)
+
+Pick the brains of the brightest in the industry.
+
+### [Events](https://ahrefs.com/events)
+
+Meet us in person and attend live events.
+
+Core tools
+
+[Brand Radar](https://ahrefs.com/brand-radar)
+
+[Dashboard](https://ahrefs.com/dashboard)
+
+[Site Explorer](https://ahrefs.com/site-explorer)
+
+[Keywords Explorer](https://ahrefs.com/keywords-explorer)
+
+[Site Audit](https://ahrefs.com/site-audit)
+
+[Rank Tracker](https://ahrefs.com/rank-tracker)
+
+[GSC Insights](https://ahrefs.com/gsc-insights)
+
+[Content Explorer](https://ahrefs.com/content-explorer)
+
+[Web Analytics](https://ahrefs.com/web-analytics)
+
+[Bot Analytics](https://ahrefs.com/bot-analytics)
+
+[GBP Monitor](https://ahrefs.com/gbp-monitor)
+
+[Social Media Manager](https://ahrefs.com/social-media-manager)
+
+[AI Content Helper](https://ahrefs.com/ai-content-helper)
+
+[Report Builder](https://ahrefs.com/report-builder)
+
+[Use cases →](https://ahrefs.com/use-cases)
+
+[Competitive Intelligence](https://ahrefs.com/use-cases/competitive-intelligence)
+
+[PPC](https://ahrefs.com/use-cases/ppc)
+
+[SEO](https://ahrefs.com/use-cases/seo)
+
+[AEO](https://ahrefs.com/use-cases/aeo)
+
+[Content Marketing](https://ahrefs.com/use-cases/content-marketing)
+
+[Brand Marketing](https://ahrefs.com/use-cases/brand-marketing)
+
+[Investing](https://ahrefs.com/use-cases/investing)
+
+Extra tools & features
+
+[Domain Comparison](https://ahrefs.com/domain-comparison)
+
+[Batch Analysis](https://ahrefs.com/batch-analysis)
+
+[Link Intersect](https://ahrefs.com/link-intersect)
+
+[Content Gap](https://ahrefs.com/content-gap)
+
+[Email Alerts](https://ahrefs.com/alerts)
+
+[SEO Checker](https://ahrefs.com/seo-checker)
+
+[Traffic Checker](https://ahrefs.com/traffic-checker)
+
+[Data Studio Connectors](https://ahrefs.com/google-data-studio-connectors)
+
+[Top Websites](https://ahrefstop.com/websites)
+
+[Patches](https://ahrefs.com/patches)
+
+[Portfolios](https://ahrefs.com/portfolios)
+
+[IndexNow](https://ahrefs.com/index-now)
+
+[AI Tech SEO](https://ahrefs.com/ai-tech-seo)
+
+[All tools](https://ahrefs.com/all)
+
+Other products
+
+[Letaido ↗](https://letaido.com)
+
+[Firehose ↗](https://firehose.com)
+
+[Yep ↗](https://yep.com)
+
+[Free SEO tools →](https://ahrefs.com/free-seo-tools)
+
+[Ahrefs Free](https://ahrefs.com/free)
+
+[AI Mode Tracker](https://ahrefs.com/ai-mode-tracker)
+
+[AI Overviews Tracker](https://ahrefs.com/ai-overviews-tracker)
+
+[AI Visibility Checker](https://ahrefs.com/ai-visibility-checker)
+
+[AI Writing Tools](https://ahrefs.com/writing-tools)
+
+[Backlink Checker](https://ahrefs.com/backlink-checker)
+
+[Broken Link Checker](https://ahrefs.com/broken-link-checker)
+
+[Website Authority Checker](https://ahrefs.com/website-authority-checker)
+
+[Keyword Generator](https://ahrefs.com/keyword-generator)
+
+[SERP Checker](https://ahrefs.com/serp-checker)
+
+[SEO Toolbar](https://ahrefs.com/seo-toolbar)
+
+[Keyword Rank Checker](https://ahrefs.com/keyword-rank-checker)
+
+[Keyword Difficulty Checker](https://ahrefs.com/keyword-difficulty)
+
+[Website Checker](https://ahrefs.com/website-checker)
+
+[SEO Audit Tool](https://ahrefs.com/seo-audit-tool)
+
+[Sitemap Generator](https://ahrefs.com/sitemap-generator)
+
+[Website Change Monitor](https://ahrefs.com/website-change-monitor)
+
+[Word Count](https://wordcount.com)
+
+[Alternatives →](https://ahrefs.com/vs)
+
+[Ahrefs vs Semrush](https://ahrefs.com/vs/semrush)
+
+Product
+
+[Pricing](https://ahrefs.com/pricing)
+
+[Our data](https://ahrefs.com/big-data)
+
+[AhrefsBot](https://ahrefs.com/robot)
+
+[API](https://docs.ahrefs.com/api)
+
+[Ask Ahrefs](https://ahrefs.com/ask-ahrefs)
+
+[MCP](https://ahrefs.com/mcp)
+
+[Enterprise](https://ahrefs.com/enterprise)
+
+[What’s new?](https://ahrefs.com/blog/category/product-blog/)
+
+Company
+
+[About](https://ahrefs.com/about)
+
+[Testimonials](https://ahrefs.com/reviews)
+
+[Events](https://ahrefs.com/events)
+
+[Team](https://ahrefs.com/team)
+
+[Careers](https://ahrefs.com/careers)
+
+[Tech](https://ahrefs.com/tech)
+
+[Media kit](https://ahrefs.com/media-kit)
+
+[FAQ](https://ahrefs.com/faq)
+
+[Contact us](mailto:support@ahrefs.com)
+
+Resources
+
+[Blog](https://ahrefs.com/blog/)
+
+[Tech blog](https://tech.ahrefs.com)
+
+[Podcast](https://ahrefs.com/podcast)
+
+[Webinars](https://ahrefs.com/webinars)
+
+SEO Guide
+
+[Help center](https://help.ahrefs.com/)
+
+[Academy](https://ahrefs.com/academy)
+
+[Marketing Agencies](https://ahrefs.com/agencies)
+
+[Digest](https://ahrefs.com/newsletter)
+
+---
+
+© 2026 Ahrefs Pte. Ltd. (201227417H) 16 Raffles Quay, #33-03 Hong Leong Building, Singapore 048581
+
+[Legal info](https://ahrefs.com/legal)
+
+[Privacy Policy](https://ahrefs.com/legal/privacy-policy)
+
+Cookie Settings
+
+[Terms of Service](https://ahrefs.com/legal/terms)
+
+English
+
+![](https://t.co/1/i/adsct?bci=4&dv=UTC%26en-US%26Google%20Inc.%26Linux%20x86_64%26255%26800%26600%264%2624%26800%26600%260%26na&eci=3&event=%7B%7D&event_id=d08012e7-6e04-4a58-ad4d-bc4219b0896f&integration=advertiser&p_id=Twitter&p_user_id=0&pl_id=7e9ccee0-a30c-46e5-b61f-743d2cc0dcc5&pt=SEO%3A%20The%20Complete%20Guide%20for%20Beginners&tw_document_href=https%3A%2F%2Fahrefs.com%2Fseo&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1788252442463-690906318&tw_session_start=1&twpid=tw.1788252442463.387093459860166875&txn_id=nz6mj&type=javascript&version=2.4.3)![](https://analytics.twitter.com/1/i/adsct?bci=4&dv=UTC%26en-US%26Google%20Inc.%26Linux%20x86_64%26255%26800%26600%264%2624%26800%26600%260%26na&eci=3&event=%7B%7D&event_id=d08012e7-6e04-4a58-ad4d-bc4219b0896f&integration=advertiser&p_id=Twitter&p_user_id=0&pl_id=7e9ccee0-a30c-46e5-b61f-743d2cc0dcc5&pt=SEO%3A%20The%20Complete%20Guide%20for%20Beginners&tw_document_href=https%3A%2F%2Fahrefs.com%2Fseo&tw_iframe_status=0&tw_pid_src=1&tw_session_count=1&tw_session_id=1788252442463-690906318&tw_session_start=1&twpid=tw.1788252442463.387093459860166875&txn_id=nz6mj&type=javascript&version=2.4.3)

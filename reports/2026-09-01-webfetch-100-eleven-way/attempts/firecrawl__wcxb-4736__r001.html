@@ -1,0 +1,610 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>firecrawl__wcxb-4736__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · firecrawl</div><h1>WCXB collection · Decorative Candles</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">5,976 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 collection 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://www.anthropologie.com/collection-decorative-candles">https://www.anthropologie.com/collection-decorative-candles</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Espresso Martini Glass Candle
+$24.50
+
+Romy Clover Floral Fresh Grass &amp; Hyacinth Glass Lidded Candle
+$23.80
+
+Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle
+$66.00 – $165.00
+
+Spring Bunny Floral Lemon Blossom Figural Glass Candle
+$22.40
+
+Dirty Martini Glass Candle
+$35.00
+
+Damson Madder Gourmand Caramel Cafe Figural Ceramic Candle
+$26.60
+
+Spring Swan Floral Fresh Grass &amp; Hyacinth Figural Glass Candle
+$34.00
+
+Romy Fruity Strawberry and Blonde Wood Glass Candle
+$38.00
+
+Davie Ocho Cowboy Hat Decorative Candle
+$140.00
+
+Oaxacan Floral Taper Candle, Large
+$68.00
+
+Nata Penne Pasta Shaped Wax Candle
+$24.00
+
+Ruffle Top Fruity Orange Blossom &amp; Santal Glass Candle
+$28.00
+
+Nata Coffee Beans Shaped Wax Candle
+$18.00
+
+Dotted Rim Floral Peony Blush Glass Candle
+$34.00
+
+Nata Tagliatelle Pasta Shaped Wax Candle
+$24.00
+
+Paddywax Gourmand Smoked Pistachio Ceramic Cowboy Boot Candle
+$32.00
+
+Nata Rigatoni Pasta Shaped Decorative Candle
+$23.00
+
+Nata Butter Shaped Decorative Candle
+$20.00
+
+Davie Ocho Cowboy Boot Decorative Candle
+$125.00
+
+Davie Ocho Candle Co Doodle Decorative Shaped Wax Candle
+$48.00
+
+Nata Farfalle Pasta Shaped Decorative Candle
+$23.00
+
+Ruffle Top Fruity Hibiscus &amp; Pink Guava Glass Candle
+$38.00</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/firecrawl/wcxb-4736/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.anthropologie.com/collection-decorative-candles">打开标准答案源网页</a> · 完整性校验 <code>sha256:d7e3a31c168356f855e6fc76759d8c2a390986c3aa32ee5c873bf26c05ef1d65</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Espresso Martini Glass Candle
+$24.50
+
+Romy Clover Floral Fresh Grass &amp; Hyacinth Glass Lidded Candle
+$23.80
+
+Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle
+$66.00 – $165.00
+
+Spring Bunny Floral Lemon Blossom Figural Glass Candle
+$22.40
+
+Dirty Martini Glass Candle
+$35.00
+
+Damson Madder Gourmand Caramel Cafe Figural Ceramic Candle
+$26.60
+
+Spring Swan Floral Fresh Grass &amp; Hyacinth Figural Glass Candle
+$34.00
+
+Romy Fruity Strawberry and Blonde Wood Glass Candle
+$38.00
+
+Davie Ocho Cowboy Hat Decorative Candle
+$140.00
+
+Oaxacan Floral Taper Candle, Large
+$68.00
+
+Nata Penne Pasta Shaped Wax Candle
+$24.00
+
+Ruffle Top Fruity Orange Blossom &amp; Santal Glass Candle
+$28.00
+
+Nata Coffee Beans Shaped Wax Candle
+$18.00
+
+Dotted Rim Floral Peony Blush Glass Candle
+$34.00
+
+Nata Tagliatelle Pasta Shaped Wax Candle
+$24.00
+
+Paddywax Gourmand Smoked Pistachio Ceramic Cowboy Boot Candle
+$32.00
+
+Nata Rigatoni Pasta Shaped Decorative Candle
+$23.00
+
+Nata Butter Shaped Decorative Candle
+$20.00
+
+Davie Ocho Cowboy Boot Decorative Candle
+$125.00
+
+Davie Ocho Candle Co Doodle Decorative Shaped Wax Candle
+$48.00
+
+Nata Farfalle Pasta Shaped Decorative Candle
+$23.00
+
+Ruffle Top Fruity Hibiscus &amp; Pink Guava Glass Candle
+$38.00</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>[Skip to main content](https://www.anthropologie.com/collection-decorative-candles#u-skip-anchor)
+
+# Decorative Candles
+
+80 products
+
+Filter &amp; Sort
+
+Filter &amp; Sort
+
+80 products
+
+Sort
+
+- Featured
+- Price: Low to High
+- Price: High to Low
+- Newest
+- Bestselling
+- Ratings: High to Low
+- A-Z
+- Z-A
+
+Price
+
+Color
+
+In Stock
+
+Brand
+
+Free Store Pickup
+
+View
+
+346
+
+80 products
+
+Sort: FeaturedPrice: Low to HighPrice: High to LowNewestBestsellingRatings: High to LowA-ZZ-A
+
+[Top Rated\\
+\\
+![Haunted House Woody Honeycrisp &amp; Pinecone Figural Glass Candle](https://images.urbndata.com/is/image/Anthropologie/108103862_001_g?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Haunted House Woody Honeycrisp &amp; Pinecone Figural Glass Candle**](https://www.anthropologie.com/shop/haunted-house-woody-honeycrisp-pinecone-figural-glass-candle?color=001)
+
+Sale price:  $40.60Original price:  $58.00Limited Time!
+
+Quickshop
+
+![Honeycrisp &amp; Pinecone](https://images.urbndata.com/is/image/Anthropologie/108103862_001_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated\\
+\\
+![Bistro Tile Amber Pumpkin &amp; Spice 24k Gold Accent Ceramic Halloween Candle](https://images.urbndata.com/is/image/Anthropologie/107801433_010_g?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Bistro Tile Amber Pumpkin &amp; Spice 24k Gold Accent Ceramic Halloween Candle**](https://www.anthropologie.com/shop/bistro-tile-amber-pumpkin-spice-24k-gold-accent-ceramic-halloween-candle?color=010)
+
+Sale price:  $37.80Original price:  $54.00Limited Time!
+
+Quickshop
+
+![Amber Pumpkin &amp; Spice](https://images.urbndata.com/is/image/Anthropologie/107801433_010_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated\\
+\\
+![Pumpkin Sweet Vanilla Gourd Glass Candle](https://images.urbndata.com/is/image/Anthropologie/107877607_001_b14?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Pumpkin Sweet Vanilla Gou</pre></div></div><details><summary>展开本页中的完整供应商输出（15,563 / 15,563 字符）</summary><pre>[Skip to main content](https://www.anthropologie.com/collection-decorative-candles#u-skip-anchor)
+
+# Decorative Candles
+
+80 products
+
+Filter &amp; Sort
+
+Filter &amp; Sort
+
+80 products
+
+Sort
+
+- Featured
+- Price: Low to High
+- Price: High to Low
+- Newest
+- Bestselling
+- Ratings: High to Low
+- A-Z
+- Z-A
+
+Price
+
+Color
+
+In Stock
+
+Brand
+
+Free Store Pickup
+
+View
+
+346
+
+80 products
+
+Sort: FeaturedPrice: Low to HighPrice: High to LowNewestBestsellingRatings: High to LowA-ZZ-A
+
+[Top Rated\\
+\\
+![Haunted House Woody Honeycrisp &amp; Pinecone Figural Glass Candle](https://images.urbndata.com/is/image/Anthropologie/108103862_001_g?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Haunted House Woody Honeycrisp &amp; Pinecone Figural Glass Candle**](https://www.anthropologie.com/shop/haunted-house-woody-honeycrisp-pinecone-figural-glass-candle?color=001)
+
+Sale price:  $40.60Original price:  $58.00Limited Time!
+
+Quickshop
+
+![Honeycrisp &amp; Pinecone](https://images.urbndata.com/is/image/Anthropologie/108103862_001_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated\\
+\\
+![Bistro Tile Amber Pumpkin &amp; Spice 24k Gold Accent Ceramic Halloween Candle](https://images.urbndata.com/is/image/Anthropologie/107801433_010_g?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Bistro Tile Amber Pumpkin &amp; Spice 24k Gold Accent Ceramic Halloween Candle**](https://www.anthropologie.com/shop/bistro-tile-amber-pumpkin-spice-24k-gold-accent-ceramic-halloween-candle?color=010)
+
+Sale price:  $37.80Original price:  $54.00Limited Time!
+
+Quickshop
+
+![Amber Pumpkin &amp; Spice](https://images.urbndata.com/is/image/Anthropologie/107801433_010_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated\\
+\\
+![Pumpkin Sweet Vanilla Gourd Glass Candle](https://images.urbndata.com/is/image/Anthropologie/107877607_001_b14?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**Pumpkin Sweet Vanilla Gourd Glass Candle**](https://www.anthropologie.com/shop/pumpkin-sweet-vanilla-gourd-glass-candle?color=001)
+
+Sale price:  $30.80 – $47.60Original price:  $44.00 – $68.00Limited Time!
+
+Quickshop
+
+![Pumpkin Sweet Vanilla](https://images.urbndata.com/is/image/Anthropologie/107877607_001_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+![Pumpkin Sweet Vanilla](https://images.urbndata.com/is/image/Anthropologie/107877607_010_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+2 colors
+
+[Top Rated\\
+\\
+![The Gather Candle by Anthropologie: Fruity Hibiscus Tide](https://images.urbndata.com/is/image/Anthropologie/105823124_011_b15?$an-category$&amp;qlt=80&amp;fit=constrain)\\
+**The Gather Candle by Anthropologie: Fruity Hibiscus Tide**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-fruity-hibiscus-tide2?color=011)
+
+$26.00 – $48.00
+
+Quickshop
+
+![Hibiscus Tide](https://images.urbndata.com/is/image/Anthropologie/105823124_011_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[**Noir Luxe Gourmand Brown Sugar Latte Glass Candle**](https://www.anthropologie.com/shop/noir-luxe-gourmand-brown-sugar-latte-glass-candle?color=020)
+
+$36.00
+
+[**Cat on a Broom Shaped Wax Taper Candles, Set of 2**](https://www.anthropologie.com/shop/cat-on-a-broom-shaped-wax-taper-candles-set-of-2?color=020)
+
+Sale price:  $21.00Original price:  $30.00Limited Time!
+
+[**Metal Walnut Gourmand Sugared Walnut &amp; Spice Figural Candle**](https://www.anthropologie.com/shop/metal-walnut-gourmand-sugared-walnut-spice-figural-candle?color=007)
+
+Sale price:  $38.40Original price:  $64.00Limited Time!
+
+[**Witches Hat Amber Pumpkin &amp; Spice Figural Glass Candle**](https://www.anthropologie.com/shop/witches-hat-amber-pumpkin-spice-figural-glass-candle?color=001)
+
+Sale price:  $25.20Original price:  $36.00Limited Time!
+
+[**Fresh Off The Vine Figural Radish Glass Candle**](https://www.anthropologie.com/shop/fresh-off-the-vine-figural-radish-glass-candle?color=259)
+
+Sale price:  $27.60Original price:  $46.00Limited Time!
+
+[**The Gather Candle by Anthropologie Figural Edition: Pumpkin Sweet Vanilla**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-figural-edition-pumpkin-sweet-vanilla?color=080)
+
+Sale price:  $19.60 – $40.60Original price:  $28.00 – $58.00Limited Time!
+
+[**Gather Mini Candle by Anthropologie: Woody Warm Woods &amp; Santal**](https://www.anthropologie.com/shop/gather-mini-candle-by-anthropologie-woody-warm-woods-santal?color=020)
+
+Sale price:  $15.60 – $28.80Original price:  $26.00 – $48.00Limited Time!
+
+[**Apothecary 18 Fruity Harvest Apple &amp; Vanilla Glass Candle**](https://www.anthropologie.com/shop/apothecary-18-fruity-harvest-apple-vanilla-glass-candle2?color=072)
+
+$46.00
+
+[**Capri Blue Pumpkin Clove Glass Jar Candle**](https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-jar-candle4?color=080)
+
+Sale price:  $15.40 – $85.40Original price:  $22.00 – $122.00Limited Time!
+
+[**The Gather Candle by Anthropologie: Pumpkin Sweet Vanilla**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-pumpkin-sweet-vanilla3?color=080)
+
+Sale price:  $12.00 – $64.80Original price:  $20.00 – $108.00Limited Time!
+
+[**The Gather Candle by Anthropologie: Honeycrisp Oakwood**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-honeycrisp-oakwood2?color=054)
+
+Sale price:  $12.00 – $64.80Original price:  $20.00 – $108.00Limited Time!
+
+[**Amelie Woody Vanilla &amp; White Cedar**](https://www.anthropologie.com/shop/amelie-woody-vanilla-white-cedar?color=610)
+
+$68.00
+
+[**Capri Blue Pumpkin Clove Glass Decorator Candle**](https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-decorator-candle?color=080)
+
+Sale price:  $30.80Original price:  $44.00Limited Time!
+
+[**Ghost Witch Shaped Wax Tapers**](https://www.anthropologie.com/shop/ghost-witch-shaped-wax-tapers?color=010)
+
+Sale price:  $21.00Original price:  $30.00Limited Time!
+
+[**Fall Icon Cloche Pumpkin Sweet Vanilla Glass Candle**](https://www.anthropologie.com/shop/fall-icon-cloche-pumpkin-sweet-vanilla-glass-candle?color=089)
+
+Sale price:  $23.80Original price:  $34.00Limited Time!
+
+[**Confetti Icon Dachshund Gourmand Pistachio Glass Candle**](https://www.anthropologie.com/shop/confetti-icon-dachshund-gourmand-pistachio-glass-candle?color=010)
+
+Sale price:  $26.60Original price:  $38.00Limited Time!
+
+[**The Gather Candle by Anthropologie: Amber Pumpkin &amp; Spice**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-amber-pumpkin-spice2?color=010)
+
+Sale price:  $12.00 – $24.00Original price:  $20.00 – $40.00Limited Time!
+
+[**Ghost Icon Cloche Gourmand Sugared Walnut &amp; Spice Glass Candle**](https://www.anthropologie.com/shop/ghost-icon-cloche-gourmand-sugared-walnut-spice-glass-candle?color=001)
+
+Sale price:  $23.80Original price:  $34.00Limited Time!
+
+[**Bat Icon Cloche Pumpkin Oud Glass Candle**](https://www.anthropologie.com/shop/bat-icon-cloche-pumpkin-oud-glass-candle?color=040)
+
+Sale price:  $23.80Original price:  $34.00Limited Time!
+
+[**Mini Pumpkin Sweet Vanilla Figural Glass Candle**](https://www.anthropologie.com/shop/mini-pumpkin-sweet-vanilla-figural-glass-candle?color=080)
+
+Sale price:  $12.60Original price:  $18.00Limited Time!
+
+[**Printed Mini Gather Candle by Anthropologie: Woody Sandalwood &amp; Vanilla**](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-woody-sandalwood-vanilla?color=046)
+
+Sale price:  $14.40Original price:  $24.00Limited Time!
+
+[**Witches Hat Woody Honeycrisp &amp; Pinecone Figural Glass Candle**](https://www.anthropologie.com/shop/witches-hat-woody-honeycrisp-pinecone-figural-glass-candle?color=001)
+
+Sale price:  $40.60Original price:  $58.00Limited Time!
+
+[**Newsstand Gourmand Cozy Matcha Ceramic Candle**](https://www.anthropologie.com/shop/newsstand-gourmand-cozy-matcha-ceramic-candle?color=066)
+
+$44.00
+
+[**54 Celsius The Lovers Glass Tarot Candle**](https://www.anthropologie.com/shop/54-celsius-the-lovers-glass-tarot-candle?color=060)
+
+Sale price:  $27.30Original price:  $39.00Limited Time!
+
+[**Newsstand Gourmand Salted Caramel Pretzel Ceramic Candle**](https://www.anthropologie.com/shop/newsstand-gourmand-salted-caramel-pretzel-ceramic-candle?color=030)
+
+$44.00
+
+[**Morning Sunshine Gourmand White Caramel Coffee Tinned Candle**](https://www.anthropologie.com/shop/morning-sunshine-gourmand-white-caramel-coffee-tinned-candle?color=610)
+
+Sale price:  $19.60Original price:  $28.00Limited Time!
+
+[**Amber Pumpkin &amp; Spice Copper Pumpkin Candle**](https://www.anthropologie.com/shop/amber-pumpkin-spice-copper-pumpkin-candle?color=028)
+
+Sale price:  $21.00Original price:  $30.00Limited Time!
+
+[**Printed Mini Gather Candle by Anthropologie: Fruity Honeycrisp &amp; Oakwood**](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-fruity-honeycrisp-oakwood?color=437)
+
+Sale price:  $14.40Original price:  $24.00Limited Time!
+
+[**54 Celsius The Moon Glass Tarot Candle**](https://www.anthropologie.com/shop/54-celsius-the-moon-glass-tarot-candle?color=040)
+
+Sale price:  $27.30Original price:  $39.00Limited Time!
+
+[**The Gather Candle by Anthropologie: Woody White Pine &amp; Cashmere**](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-woody-white-pine-cashmere?color=000)
+
+$24.00 – $42.00
+
+[**Ciao Bella Gourmand Cozy Matcha Tinned Candle**](https://www.anthropologie.com/shop/ciao-bella-gourmand-cozy-matcha-tinned-candle?color=030)
+
+Sale price:  $16.80Original price:  $28.00Limited Time!
+
+[**Printed Mini Gather Candle by Anthropologie: Amber Pumpkin &amp; Spice**](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-amber-pumpkin-spice?color=072)
+
+Sale price:  $14.40Original price:  $24.00Limited Time!
+
+[**Poured New York Fruity Negroni Nights Marble Candle**](https://www.anthropologie.com/shop/poured-new-york-fruity-negroni-nights-marble-candle?color=050)
+
+$110.00
+
+[**Aperol Spritz Glass Candle**](https://www.anthropologie.com/shop/aperol-spritz-glass-candle?color=060)
+
+$36.00
+
+[**mise en place Gourmand Gingerbread Mocha Ceramic Candle**](https://www.anthropologie.com/shop/mise-en-place-gourmand-gingerbread-mocha-ceramic-candle?color=060)
+
+$38.00
+
+[**Ice Cream Cone Taper Candle**](https://www.anthropologie.com/shop/ice-cream-cone-taper-candle?color=000)
+
+$18.00
+
+[**Happy Organics Blueberry Beeswax Candles, Set of 10**](https://www.anthropologie.com/shop/happy-organics-blueberry-beeswax-candles-set-of-10?color=000)
+
+$35.00
+
+Terrain
+
+[**Dotted Rim Fruity Vanilla &amp; Dark Plum Glass Candle**](https://www.anthropologie.com/shop/dotted-rim-fruity-vanilla-dark-plum-glass-candle?color=259)
+
+$34.00
+
+[**Ceramic Jar Candle, Chinoiserie**](https://www.anthropologie.com/shop/ceramic-jar-candle-chinoiserie?color=040)
+
+$78.00
+
+Terrain
+
+[**Espresso Martini Glass Candle**](https://www.anthropologie.com/shop/espresso-martini-glass-candle?color=020)
+
+$35.00
+
+[**Dotted Rim Fresh Vanilla Orchid &amp; Sea Salt Glass Candle**](https://www.anthropologie.com/shop/dotted-rim-fresh-vanilla-orchid-sea-salt-glass-candle?color=066)
+
+$34.00
+
+[**54 Celsius The Magician Glass Tarot Candle**](https://www.anthropologie.com/shop/54-celsius-the-magician-glass-tarot-candle?color=030)
+
+Sale price:  $27.30Original price:  $39.00Limited Time!
+
+[**Poured New York Fresh Dirty Girl Martini Marble Candle**](https://www.anthropologie.com/shop/poured-new-york-fresh-dirty-girl-martini-marble-candle?color=030)
+
+$110.00
+
+[**Noir Luxe Gourmand Matcha Latte Glass Candle**](https://www.anthropologie.com/shop/noir-luxe-gourmand-matcha-latte-glass-candle?color=030)
+
+$36.00
+
+[**Spring Swan Floral Fresh Grass &amp; Hyacinth Figural Glass Candle**](https://www.anthropologie.com/shop/spring-swan-floral-fresh-grass-hyacinth-figural-glass-candle?color=010)
+
+$34.00
+
+[**Happy Organics Raspberry Beeswax Candles, Set of 10**](https://www.anthropologie.com/shop/happy-organics-raspberry-beeswax-candles-set-of-10?color=000)
+
+$35.00
+
+Terrain
+
+[**Happy Organics Asparagus Beeswax Tapers, Set of 2**](https://www.anthropologie.com/shop/happy-organics-asparagus-beeswax-tapers-set-of-2?color=000)
+
+$32.00
+
+Terrain
+
+[**Dotted Rim Fresh White Cashmere &amp; Musk Glass Candle**](https://www.anthropologie.com/shop/dotted-rim-fresh-white-cashmere-musk-glass-candle?color=011)
+
+$34.00
+
+[**Dotted Rim Fruity Honeycrisp Oakwood Glass Candle**](https://www.anthropologie.com/shop/dotted-rim-fruity-honeycrisp-oakwood-glass-candle?color=001)
+
+$34.00
+
+[**Happy Organics Snap Pea Beeswax Candles, Set of 5**](https://www.anthropologie.com/shop/happy-organics-snap-pea-beeswax-candles-set-of-5?color=000)
+
+$25.00
+
+Terrain
+
+[**Cherie Floral Black Fig &amp; Olive Lidded Porcelain Candle**](https://www.anthropologie.com/shop/cherie-floral-black-fig-olive-lidded-porcelain-candle?color=001)
+
+$27.00
+
+[**Happy Organics Plum Beeswax Candle**](https://www.anthropologie.com/shop/happy-organics-plum-beeswax-candle?color=000)
+
+$24.00
+
+Terrain
+
+[**Poured New York Woody Bougie D&#x27;oud Marble Candle**](https://www.anthropologie.com/shop/poured-new-york-woody-bougie-doud-marble-candle?color=001)
+
+$110.00
+
+[**Happy Organics Zucchini Beeswax Candle**](https://www.anthropologie.com/shop/happy-organics-zucchini-beeswax-candle?color=000)
+
+$28.00
+
+Terrain
+
+[**Davie Ocho Candle Co. Poodle Decorative Shaped Wax Candle**](https://www.anthropologie.com/shop/davie-ocho-candle-co-poodle-decorative-shaped-wax-candle2?color=010)
+
+$72.00
+
+[**Merry Music Box Woody Fresh Balsam &amp; Cedarwood Glass Candle**](https://www.anthropologie.com/shop/merry-music-box-woody-fresh-balsam-cedarwood-glass-candle?color=070)
+
+$58.00
+
+[**Paddywax Gourmand Smoked Pistachio Ceramic Cowboy Boot Candle**](https://www.anthropologie.com/shop/paddywax-gourmand-smoked-pistachio-ceramic-cowboy-boot-candle?color=010)
+
+$32.00
+
+[**Davie Ocho Cowboy Hat Decorative Candle**](https://www.anthropologie.com/shop/davie-ocho-cowboy-hat-decorative-candle?color=010)
+
+$140.00
+
+[**Davie Ocho Candle Co. Fruit Basket Decorative Shaped Wax Candle Set**](https://www.anthropologie.com/shop/davie-ocho-candle-co-fruit-basket-decorative-shaped-wax-candle-set2?color=000)
+
+$140.00
+
+[**Dotted Rim Woody Juniper &amp; Cedar Glass Candle**](https://www.anthropologie.com/shop/dotted-rim-woody-juniper-cedar-glass-candle?color=020)
+
+$34.00
+
+[**Happy Organics Celery Beeswax Tapers, Set of 2**](https://www.anthropologie.com/shop/happy-organics-celery-beeswax-tapers-set-of-2?color=030)
+
+$36.00
+
+Terrain
+
+[**Davie Ocho Cowboy Boot Decorative Candle**](https://www.anthropologie.com/shop/davie-ocho-cowboy-boot-decorative-candle?color=010)
+
+$125.00
+
+[**Peony Blush Heart Candle**](https://www.anthropologie.com/shop/peony-blush-heart-candle?color=031)
+
+$68.00
+
+Terrain
+
+[**Figural Mini Cocktail Shaker Fruity Cranberry Fizz Metal Candle**](https://www.anthropologie.com/shop/figural-mini-cocktail-shaker-fruity-cranberry-fizz-metal-candle?color=007)
+
+$28.00
+
+[**Happy Organics Heirloom Tomato Beeswax Candle**](https://www.anthropologie.com/shop/happy-organics-heirloom-tomato-beeswax-candle?color=000)
+
+$38.00
+
+Terrain
+
+[**Poured New York Floral Cottage Proper Marble Candle**](https://www.anthropologie.com/shop/poured-new-york-floral-cottage-proper-marble-candle?color=060)
+
+$110.00
+
+[**Snowflake Icon Woody Juniper &amp; Cedar Glass Candle**](https://www.anthropologie.com/shop/snowflake-icon-woody-juniper-cedar-glass-candle?color=048)
+
+$38.00
+
+[**Poured New York City Fresh Bicoastal Lidded Stone Candle**](https://www.anthropologie.com/shop/poured-new-york-city-fresh-bicoastal-lidded-stone-candle?color=066)
+
+$110.00
+
+servedby.flashtalking.com
+
+# servedby.flashtalking.com is blocked
+
+This page has been blocked by an extension
+
+- Try disabling your extensions.
+
+ERR\_BLOCKED\_BY\_CLIENT
+
+Reload
+
+
+This page has been blocked by an extension
+
+![](&lt;Base64-Image-Removed&gt;)![](&lt;Base64-Image-Removed&gt;)
+
+Chat</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>firecrawl__wcxb-4736__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.anthropologie.com/collection-decorative-candles</span></div><div class="kv"><b>输出大小</b>15,563 字符</div><div class="kv"><b>事实覆盖率</b>33.3%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="good">命中</td><td>Espresso Martini Glass Candle</td><td>Espresso Martini Glass Candle</td></tr><tr><td><code>required-2</code></td><td class="bad">未命中</td><td>Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle</td><td>—</td></tr><tr><td><code>required-3</code></td><td class="bad">未命中</td><td>Nata Penne Pasta Shaped Wax Candle</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Decorative Candles</span><span class="tag">Espresso Martini Glass Candle</span></p><p><span class="tag">Decorative Candles</span><span class="tag">Espresso Martini Glass Candle</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;upstream_status&quot;: 200,
+  &quot;cache_state&quot;: null,
+  &quot;proxy_used&quot;: &quot;basic&quot;,
+  &quot;credits_used&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;retry_after_seconds&quot;: null,
+  &quot;links&quot;: [],
+  &quot;images&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 6.1,
+  &quot;client_throttle_wait_ms&quot;: 5893.6
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("firecrawl__wcxb-4736__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("firecrawl__wcxb-4736__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("firecrawl__wcxb-4736__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

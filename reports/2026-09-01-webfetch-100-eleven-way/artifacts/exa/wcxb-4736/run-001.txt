@@ -1,0 +1,1 @@
+{"requestId":"de549cf437e10a1975fc973857e32c2b","results":[],"statuses":[{"id":"https://www.anthropologie.com/collection-decorative-candles","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":1399.462970000226}

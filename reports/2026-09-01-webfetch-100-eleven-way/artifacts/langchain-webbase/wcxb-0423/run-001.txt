@@ -1,0 +1,1 @@
+ConnectionError(MaxRetryError('HTTPSConnectionPool(host=\'qubit.guide\', port=443): Max retries exceeded with url: /plan-and-intended-audience (Caused by NameResolutionError("HTTPSConnection(host=\'qubit.guide\', port=443): Failed to resolve \'qubit.guide\' ([Errno 8] nodename nor servname provided, or not known)"))'))

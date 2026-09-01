@@ -1,0 +1,221 @@
+![Seobility logo](https://www.seobility.net/wp-content/uploads/2024/02/Vector.svg)
+
+Get an overview of our all-in-one SEO software suite
+
+Analyze your website and uncover technical and SEO-related issues
+
+Track your SEO success in Google Search, incl. AI Overviews
+
+Keep an eye on your link profile and improve off-page SEO
+
+Get insight into your competitors’ rankings, backlinks, and keywords
+
+Find the right keywords to target and optimize your content
+
+Let Seobility watch over your site and notify you when it’s down
+
+Connect AI assistants to your Seobility data
+
+Discover how to use Seobility for your business and needs
+
+Actionable guides to help you optimize your website
+
+Clear explanations of important SEO terminology
+
+Get answers to common questions about our SEO software
+
+Learn how to get started with Seobility
+
+Use these tools for free and without registration!
+
+[Home](https://www.seobility.net/en/)  SEO Checker
+
+# Free **SEO Checker**
+
+## Test your website with Seobility's SEO Checker!
+
+Complying with search engine guidelines – and making your content accessible to both traditional crawlers and AI bots – is essential for sustainable visibility. The Seobility SEO Checker analyzes your website and provides clear recommendations to improve performance in search engines and AI answer engines.
+
+You have reached your maximum number of free queries for today. Sign up for free to get more queries per day.
+
+Questions? Contact us anytime at [support@seobility.net](mailto:support@seobility.net) – we’re happy to help!
+
+Prices exclude VAT where applicable.
+
+Questions? Contact us anytime at [support@seobility.net](mailto:support@seobility.net) – we’re happy to help!
+
+Prices exclude VAT where applicable.
+
+## Seobility Premium
+
+Analyze more than a single URL and unlock the full SEO software suite:
+
+Can be canceled at any time! Automatically renews to our monthly Premium plan for $50/month.
+
+![Seobility Website Audit](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![Seobility Website Audit](https://www.seobility.net/wp-content/uploads/2024/10/seo-checker-banner.png)
+![G2 High Performer SEO Tools Spring 2026](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2092%20106'%3E%3C/svg%3E)
+![G2 High Performer SEO Tools Spring 2026](https://www.seobility.net/wp-content/uploads/2026/03/g2-high-performer-spring-2026.svg)
+
+## Free **website checker**
+
+![free website checker](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![free website checker](https://www.seobility.net/wp-content/uploads/2024/10/Free-website-checker.png)
+
+Analyze any web page with Seobility’s free SEO Checker to uncover **technical errors and on-page SEO issues** that limit organic rankings or reduce visibility in AI answer engines (LLM-based search tools like ChatGPT and Perplexity).
+
+**What you get:**
+
+The report highlights the **highest-impact issues** first so you can start with changes that deliver quick, measurable improvements.
+
+![free website checker](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![free website checker](https://www.seobility.net/wp-content/uploads/2024/10/Free-website-checker.png)
+![meta information](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![meta information](https://www.seobility.net/wp-content/uploads/2024/10/Meta-information.png)
+
+## **Meta** information
+
+![meta information](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![meta information](https://www.seobility.net/wp-content/uploads/2024/10/Meta-information.png)
+
+Meta-information helps search engines like Google correctly interpret, categorize, and display your content in search results.
+
+The Seobility SEO Checker flags metadata issues, such as:
+
+## Page **quality**
+
+![page quality](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![page quality](https://www.seobility.net/wp-content/uploads/2024/10/Page-quality.png)
+
+High-quality, well-structured content is a core ranking factor for search engines like Google and is also more likely to be used in AI-generated answers.
+
+The SEO Checker helps you identify page quality issues such as:
+
+![page quality](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![page quality](https://www.seobility.net/wp-content/uploads/2024/10/Page-quality.png)
+![page and link structure](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![page and link structure](https://www.seobility.net/wp-content/uploads/2024/10/Page-and-link-structure.png)
+
+## Page and **link structure**
+
+![page and link structure](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![page and link structure](https://www.seobility.net/wp-content/uploads/2024/10/Page-and-link-structure.png)
+
+Search engines and AI crawlers prefer websites that are easy to navigate and logically structured.
+
+The SEO Checker detects issues that make it difficult for crawlers to analyze your website, including:
+
+## **Server** configuration
+
+![server configuration](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![server configuration](https://www.seobility.net/wp-content/uploads/2024/10/Server-configuration.png)
+
+A clean technical foundation supports smooth crawling by search engine bots and AI crawlers. Fast-loading, error-free pages reduce friction for users and machines alike.
+
+The SEO Checker scans for server errors and other technical issues like:
+
+![server configuration](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![server configuration](https://www.seobility.net/wp-content/uploads/2024/10/Server-configuration.png)
+![external factors](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![external factors](https://www.seobility.net/wp-content/uploads/2024/10/External-factors.png)
+
+## **External** factors
+
+![external factors](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%200%200'%3E%3C/svg%3E)
+![external factors](https://www.seobility.net/wp-content/uploads/2024/10/External-factors.png)
+
+SEO and [AEO](https://www.seobility.net/en/wiki/answer-engine-optimization) are not only about on-page optimization. External signals, especially [backlinks](https://www.seobility.net/en/wiki/Backlinks) (also called “inbound links”), strongly influence Google rankings and citation likelihood in AI tools.
+
+The SEO Checker will tell you if your page has a weak backlink profile.
+
+## Frequently asked **questions**
+
+Frequently asked **questions**
+
+The Seobility SEO checker is a tool that scans any web page for technical errors, on-page SEO issues, and optimization gaps that affect search engine rankings and AI visibility.
+
+The Seobility SEO checker is a tool that scans any web page for technical errors, on-page SEO issues, and optimization gaps that affect search engine rankings and AI visibility.
+
+The Seobility SEO checker crawls the entered URL like a search engine bot and **evaluates over 200 SEO-relevant factors** across metadata, content quality, structure, technical setup, and external signals.
+
+It then calculates an SEO score for your page which reflects how well the page is currently optimized for Google and other search engines. It also displays a list of issues found on the page.
+
+The Seobility SEO checker crawls the entered URL like a search engine bot and **evaluates over 200 SEO-relevant factors** across metadata, content quality, structure, technical setup, and external signals.
+
+It then calculates an SEO score for your page which reflects how well the page is currently optimized for Google and other search engines. It also displays a list of issues found on the page.
+
+The SEO score shows how well a page follows best practices:
+
+* **80%+**: Strong SEO foundation
+* **30 – 79%**: Optimization potential
+* **Below 30%**: Critical issues requiring action
+
+The SEO score shows how well a page follows best practices:
+
+Yes. Premium users can export branded PDF reports (short or full versions of the SEO Checker results), including their company logo.
+
+Please visit our [pricing page](https://www.seobility.net/en/pricing/) for more information about our plans.
+
+Yes. Premium users can export branded PDF reports (short or full versions of the SEO Checker results), including their company logo.
+
+Please visit our [pricing page](https://www.seobility.net/en/pricing/) for more information about our plans.
+
+Follow the prioritized task list generated by the SEO Checker and focus first on high-impact issues on your website (displayed in red).
+
+Follow the prioritized task list generated by the SEO Checker and focus first on high-impact issues on your website (displayed in red).
+
+Yes. Use [Seobility’s Ranking Checker](https://www.seobility.net/en/rankingcheck/) to check your site’s keyword positions and compare your performance on Google against competitors.
+
+Yes. Use [Seobility’s Ranking Checker](https://www.seobility.net/en/rankingcheck/) to check your site’s keyword positions and compare your performance on Google against competitors.
+
+## More free SEO tools
+
+Try all of these tools for free and without registration!
+
+### On-Page & Technical SEO
+
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+
+### Off-Page & SERPs
+
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+
+### Keyword Research & Content
+
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2025/06/External-link-light.svg)
+![external](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2025%2024'%3E%3C/svg%3E)
+![external](/wp-content/uploads/2024/02/External-link.svg)
+![Screenshot](data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201778%201184'%3E%3C/svg%3E)
+![Screenshot](https://www.seobility.net/wp-content/uploads/2025/06/free-tools-banner-1.png)
+![Seobility Logo](/wp-content/uploads/2024/02/Vector.svg)

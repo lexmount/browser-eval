@@ -1,0 +1,1 @@
+Error: Failed to parse document: python-docx library is required for .docx parsing. Install with: pip install python-docx

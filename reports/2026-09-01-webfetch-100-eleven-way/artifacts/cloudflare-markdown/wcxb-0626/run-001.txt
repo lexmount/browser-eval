@@ -1,0 +1,17 @@
+---
+title: "Just a moment..."
+---
+
+![Icon for www.bhphotovideo.com](https://www.bhphotovideo.com/favicon.ico)
+
+# www.bhphotovideo.com
+
+## Performing security verification
+
+This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.
+
+## Verification successful. Waiting for www.bhphotovideo.com to respond
+
+Ray ID: `a342ff0f08b666c5`
+
+Performance and Security by [Cloudflare](https://www.cloudflare.com?utm_source=challenge&utm_campaign=m) [Privacy](https://www.cloudflare.com/privacypolicy/)

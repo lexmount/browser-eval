@@ -64,8 +64,8 @@ and is deliberately excluded from this Web Fetch comparison.
 Cloudflare account plans are recorded as execution-environment evidence. A Free
 account retest still hit a long-period quota after a 10.5-second completion
 cooldown (`Retry-After: 65255`), so short delays could not fix it. After the
-account was upgraded, an unthrottled 10-case smoke passed 10/10 and a complete
-50-case run produced zero HTTP 429 responses. The example registry therefore no
+account was upgraded, an unthrottled 10-case smoke passed 10/10 and the complete
+100-page run produced zero HTTP 429 responses. The example registry therefore no
 longer applies a Cloudflare client cooldown; the checked-in report uses the paid
 run and retains the Free incident as historical evidence.
 
@@ -75,7 +75,7 @@ override these values to match their documented team-level limits; pacing is
 part of the account environment, not a supplier content-quality score.
 
 For a complete new-environment run, use the one-command reproducer. It validates
-credentials, runs the frozen 50-page dataset and the separate file/media
+credentials, runs the frozen 100-page dataset and the separate file/media
 dataset, builds the multi-page report and checks all local links:
 
 ```bash
@@ -144,8 +144,8 @@ The same registry is rendered at `report/accounts/index.html` in every report.
 ## Report structure
 
 The checked-in reference run is
-[`reports/2026-09-01-webfetch-50-eleven-way-v2/index.html`](reports/2026-09-01-webfetch-50-eleven-way-v2/index.html).
-It contains 50 frozen cases × 11 methods = 550 attempts, raw artifacts, machine
+[`reports/2026-09-01-webfetch-100-eleven-way/index.html`](reports/2026-09-01-webfetch-100-eleven-way/index.html).
+It contains 100 frozen webpage cases × 11 methods = 1,100 attempts, raw artifacts, machine
 verdicts, case-local HIL controls and derived-run provenance. A separate
 document/resource section is embedded under `capabilities/` and includes its
 own 88 persisted attempts. It distinguishes document text, verified resource
@@ -171,8 +171,7 @@ runs/<run-id>/
     ├── capabilities/index.html    # document text, document links, media resources and source-file tracks
     ├── execution/index.html       # exact reproduction and incident runbook
     ├── metrics/index.html         # formal metric contract
-    ├── market/index.html          # direct vs adjacent supplier capability boundary
-    ├── adoption/index.html        # deduplicated suppliers plus OpenClaw/DSH baselines
+    ├── market/index.html          # participants, industry boundary, adoption evidence and OpenClaw/DSH baselines
     ├── integration/index.html     # measured CowAgent and cross-agent integration path
     ├── accounts/index.html        # registration and credential checklist
     ├── attempts/                  # task, answer key, output, machine verdict and HIL form
@@ -187,15 +186,17 @@ the full task, reference answer, supplier output, deterministic verdict, HIL
 form and SHA-256 so a reviewer can inspect possible false positives and false
 negatives in context.
 
-The default v4 suite contains 50 cases: 10 protocol/capability cases, 28
-CC-BY-4.0 WCXB cases across seven page structures, and 12 concrete render-quality
-seeds from `lightmount-dark`. See [review protocol](docs/ground-truth-review.md).
+The default v5 suite contains exactly 100 webpage URLs: 9 protocol/capability
+cases, 79 CC-BY-4.0 WCXB cases across seven page structures and distinct domains,
+and 12 concrete render-quality seeds from `lightmount-dark`. Direct PDF, DOCX,
+TXT, image and video inputs live in the separate capability suite. See
+[review protocol](docs/ground-truth-review.md).
 A second human review is required before external marketing or procurement use;
 live-page drift is excluded rather than counted as a supplier failure.
 
 ## Extend the harness
 
-To add a dataset, copy `datasets/public_webfetch_50.json` and define stable URLs,
+To add a dataset, copy `datasets/public_webfetch_100.json` and define stable URLs,
 capability categories, deterministic `expected_any` markers and policy scope.
 Do not mix public extraction, login flows and anti-bot unlocking into one score.
 

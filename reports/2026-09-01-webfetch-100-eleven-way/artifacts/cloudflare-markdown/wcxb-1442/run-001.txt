@@ -1,0 +1,622 @@
+---
+title: "Build your first app &nbsp;|&nbsp; Get started &nbsp;|&nbsp; Android Developers"
+meta:
+  description: "Get started building your Android apps.
+"
+  "og:description": "Get started building your Android apps.
+"
+  "og:title": "Build your first app  |  Get started  |  Android Developers"
+---
+
+[Skip to main content](#main-content)
+
+[![Android Developers](https://www.gstatic.com/devrel-devsite/prod/vdc800838fb8be04a9a7685606311d18c65800504bccf261551968ac74bffd42e/android/images/lockup.png)](/)
+
+[Essentials](https://developer.android.com/get-started)
+
+- Build AI experiences
+- Build AI-powered Android apps with Gemini APIs and more.
+- [Get started](https://developer.android.com/ai)
+
+- Get started
+- Create your first app. Use Compose for UI and adaptive app development to support multiple device form factors.
+- [Hello, world!](https://developer.android.com/get-started/overview)
+- [Developer Verification](https://developer.android.com/developer-verification)
+- [Adaptive apps](https://developer.android.com/adaptive-apps)
+- [Compose for UI](https://developer.android.com/compose)
+- [AI-powered IDE](https://developer.android.com/studio)
+- [Training](https://developer.android.com/courses)
+- [Monetization with Play ↗️](https://play.google.com/console/about/guides/play-commerce/)
+
+- Optimize by form factor
+- Build apps that optimize the user experience on phones, tablets, foldables, cars, XR, and more.
+- [Phones, tablets, foldables](https://developer.android.com/phones-tablets-foldables)
+- [Android for Cars](https://developer.android.com/cars)
+- [Android TV](https://developer.android.com/tv)
+- [Android XR](https://developer.android.com/xr)
+- [Googlebook](https://developer.android.com/googlebook)
+- [ChromeOS](https://developer.android.com/chrome-os)
+- [Wear OS](https://developer.android.com/wear)
+
+- Build by category
+- Learn to build for your use case by following Google's prescriptive and opinionated guidance.
+- [Games](https://developer.android.com/games)
+- [Camera & media](https://developer.android.com/media)
+- [Social & messaging](https://developer.android.com/social-and-messaging)
+- [Health & fitness](https://developer.android.com/health-and-fitness)
+- [Productivity](https://developer.android.com/productivity)
+- [Enterprise apps](https://developer.android.com/work/overview)
+
+- Get the latest
+- Stay in touch with the latest releases throughout the year, join our preview programs, and give us your feedback.
+- [Latest updates](https://developer.android.com/latest-updates)
+- [Experimental updates](https://developer.android.com/latest-updates/experimental)
+- [Android Studio preview](https://developer.android.com/studio/preview)
+- [Jetpack & Compose libraries](https://developer.android.com/jetpack/androidx/versions)
+- [Wear OS releases](https://developer.android.com/training/wearables/versions/latest)
+- [Privacy Sandbox ↗️](https://developer.android.com/design-for-safety/privacy-sandbox) [Design & Plan](https://developer.android.com/design)
+
+- Excellent Experiences
+- Build the best experiences for your best users.
+- [Learn more](https://developer.android.com/quality/excellent)
+
+- UI Design
+- Design a beautiful user interface using Android best practices.
+- [Design for Android](https://developer.android.com/design/ui)
+- [Mobile](https://developer.android.com/design/ui/mobile)
+- [Desktop experiences](https://developer.android.com/design/ui/desktop)
+- [XR Headsets & XR Glasses](https://developer.android.com/design/ui/xr)
+- [AI Glasses](https://developer.android.com/design/ui/ai-glasses)
+- [Widgets](https://developer.android.com/design/ui/widget)
+- [Wear OS](https://developer.android.com/design/ui/wear)
+- [Android TV](https://developer.android.com/design/ui/tv)
+- [Android for Cars](https://developer.android.com/design/ui/cars)
+
+- Architecture
+- Design robust, testable, and maintainable app logic and services.
+- [Introduction](https://developer.android.com/topic/architecture/intro)
+- [Libraries](https://developer.android.com/topic/libraries/view-binding)
+- [Navigation](https://developer.android.com/guide/navigation/navigation-principles)
+- [Modularization](https://developer.android.com/topic/modularization)
+- [Testing](https://developer.android.com/training/testing/fundamentals)
+- [Kotlin Multiplatform](https://developer.android.com/kotlin/multiplatform)
+
+- Quality
+- Plan for app quality and align with Play store guidelines.
+- [Overview](https://developer.android.com/quality)
+- [Core value](https://developer.android.com/quality/core-value)
+- [User experience](https://developer.android.com/quality/user-experience)
+- [Accessibility](https://developer.android.com/guide/topics/ui/accessibility)
+- [Technical quality](https://developer.android.com/quality/technical)
+- [Excellent Experiences](https://developer.android.com/quality/excellent)
+
+- Security
+- Safeguard users against threats and ensure a secure Android experience.
+- [Overview](https://developer.android.com/security)
+- [Privacy](https://developer.android.com/privacy)
+- [Permissions](https://developer.android.com/privacy#app-permissions)
+- [Identity](https://developer.android.com/identity)
+- [Fraud prevention](https://developer.android.com/security/fraud-prevention) [Develop](https://developer.android.com/develop)
+
+- Gemini in Android Studio
+- Your AI development companion for Android development.
+- [Learn more](https://developer.android.com/ai-in-android)
+- [Get Android Studio](https://developer.android.com/studio)
+
+- Core areas
+- Get the samples and docs for the features you need.
+- [Samples](https://developer.android.com/samples)
+- [Multidevice support](https://developer.android.com/multidevice)
+- [User interfaces](https://developer.android.com/develop/ui)
+- [Background work](https://developer.android.com/develop/background-work)
+- [Data and files](https://developer.android.com/guide/topics/data)
+- [Connectivity](https://developer.android.com/develop/connectivity)
+- [All core areas ⤵️](https://developer.android.com/develop#core-areas)
+
+- Tools and workflow
+- Use the IDE to write and build your app, or create your own pipeline.
+- [Write and debug code](https://developer.android.com/studio/write)
+- [Build projects](https://developer.android.com/build/gradle-build-overview)
+- [Test your app](https://developer.android.com/training/testing)
+- [Performance](https://developer.android.com/topic/performance/overview)
+- [Command-line tools](https://developer.android.com/tools)
+- [Gradle plugin API](https://developer.android.com/reference/tools/gradle-api)
+- [Android Bench](https://developer.android.com/bench)
+
+- Device tech
+- Write code for form factors. Connect devices and share data.
+- [Phones, tablets, foldables](https://developer.android.com/phones-tablets-foldables)
+- [ChromeOS](https://developer.android.com/chrome-os)
+- [Android for Cars](https://developer.android.com/training/cars)
+- [Android TV](https://developer.android.com/training/tv)
+- [Android XR](https://developer.android.com/develop/xr)
+- [Wear OS](https://developer.android.com/training/wearables)
+- [Android Health](https://developer.android.com/health-and-fitness/guides)
+- [Better Together](https://developer.android.com/develop/better-together)
+- [All devices ⤵️](https://developer.android.com/develop#devices)
+
+- Libraries
+- Browse API reference documentation with all the details.
+- [Android platform](https://developer.android.com/reference/packages)
+- [Jetpack libraries](https://developer.android.com/jetpack/androidx/explorer)
+- [Compose libraries](https://developer.android.com/jetpack/androidx/releases/compose)
+- [Google Play services ↗️](https://developers.google.com/android/reference/packages)
+- [Google Play SDK index ↗️](https://play.google.com/sdks) [Google Play](https://developer.android.com/distribute)
+
+- Play Console
+- Publish your app or game and grow your business on Google Play.
+- [Go to Play Console](https://play.google.com/console)
+- [Learn more ↗️](https://play.google.com/console/about/)
+
+- Fundamentals
+- Learn how to engage users, monitize, and secure your app.
+- [Play Monetization](https://developer.android.com/distribute/play-billing)
+- [Play Integrity](https://developer.android.com/google/play/integrity)
+- [Play Policies](https://developer.android.com/distribute/play-policies)
+- [Play Programs ↗️](https://play.google.com/console/about/programs)
+
+- Games Dev Center
+- Develop and deliver games. Get tools, downloads, and samples.
+- [Overview](https://developer.android.com/games)
+- [Play Asset Delivery](https://developer.android.com/guide/playcore/asset-delivery)
+- [Play Games Services](https://developer.android.com/games/pgs/overview)
+- [Play Games on PC](https://developer.android.com/games/playgames/overview)
+- [Level Up guidelines](https://developer.android.com/games/guidelines)
+- [All Play guides ⤵️](https://developer.android.com/distribute)
+
+- Libraries
+- Browse API reference documentation with all the details.
+- [Play Feature Delivery](https://developer.android.com/guide/playcore/feature-delivery)
+- [Play In-app Updates](https://developer.android.com/guide/playcore/in-app-updates)
+- [Play In-app Reviews](https://developer.android.com/guide/playcore/in-app-review)
+- [Play Install Referrer](https://developer.android.com/google/play/installreferrer)
+- [Google Play services ↗️](https://developers.google.com/android/reference/packages)
+- [Google Play SDK index ↗️](https://play.google.com/sdks)
+- [All Play libraries ⤵️](https://developer.android.com/distribute)
+
+- Tools & resources
+- Tools for publishing, promoting, and managing your app.
+- [Android App Bundles](https://developer.android.com/guide/app-bundle)
+- [Brand & marketing](https://developer.android.com/distribute/marketing-tools)
+- [Play Console APIs ↗️](https://developers.google.com/android-publisher/api-ref/rest) [Blog](https://developer.android.com/blog)
+
+- the Android Developer's Blog
+- [Read the latest](https://developer.android.com/blog/latest)
+- [Explore the authors →](https://developer.android.com/blog/authors)
+
+- Explore categories
+- [Product News Stay in the loop with the latest updates, feature releases, and behind-the-scenes looks at how we’re evolving.](https://developer.android.com/blog/categories/product-news)
+- [Community Discover stories from our users, spotlight features, and the collaborative projects that bring us all together.](https://developer.android.com/blog/categories/community)
+
+- [How-tos From quick tips to deep-dive tutorials, these step-by-step guides are designed to help you work smarter and faster.](https://developer.android.com/blog/categories/how-tos)
+- [Case Studies Real-world results from real-world users. Explore how different teams use our tools to achieve their goals.](https://developer.android.com/blog/categories/case-studies)
+
+- [Events & Programs Get the details on upcoming webinars, workshops, meetups, and special initiatives designed to help you grow.](https://developer.android.com/blog/categories/events-and-programs)
+- [Documentation Access detailed manuals, API references, and technical specifications to help you build and integrate with confidence.](https://developer.android.com/blog/categories/documentation) More
+
+/
+
+- [English](https://developer.android.com/get-started/overview)
+- [Deutsch](https://developer.android.com/get-started/overview?hl=de)
+- [Español – América Latina](https://developer.android.com/get-started/overview?hl=es-419)
+- [Français](https://developer.android.com/get-started/overview?hl=fr)
+- [Indonesia](https://developer.android.com/get-started/overview?hl=id)
+- [Italiano](https://developer.android.com/get-started/overview?hl=it)
+- [Polski](https://developer.android.com/get-started/overview?hl=pl)
+- [Português – Brasil](https://developer.android.com/get-started/overview?hl=pt-br)
+- [Tiếng Việt](https://developer.android.com/get-started/overview?hl=vi)
+- [Türkçe](https://developer.android.com/get-started/overview?hl=tr)
+- [Русский](https://developer.android.com/get-started/overview?hl=ru)
+- [עברית](https://developer.android.com/get-started/overview?hl=he)
+- [العربيّة](https://developer.android.com/get-started/overview?hl=ar)
+- [فارسی](https://developer.android.com/get-started/overview?hl=fa)
+- [हिंदी](https://developer.android.com/get-started/overview?hl=hi)
+- [বাংলা](https://developer.android.com/get-started/overview?hl=bn)
+- [ภาษาไทย](https://developer.android.com/get-started/overview?hl=th)
+- [中文 – 简体](https://developer.android.com/get-started/overview?hl=zh-cn)
+- [中文 – 繁體](https://developer.android.com/get-started/overview?hl=zh-tw)
+- [日本語](https://developer.android.com/get-started/overview?hl=ja)
+- [한국어](https://developer.android.com/get-started/overview?hl=ko)
+
+[Android Studio](https://developer.android.com/studio)
+
+[Sign in](https://developer.android.com/_d/signin?continue=https%3A%2F%2Fdeveloper.android.com%2Fget-started%2Foverview&prompt=select_account)
+
+- [Get started](https://developer.android.com/get-started/overview)
+
+[Overview](https://developer.android.com/get-started/overview) [Adaptive app development](https://developer.android.com/adaptive-apps) [Training](https://developer.android.com/courses) [Tutorials](https://developer.android.com/get-started/codelabs) More
+
+[![Android Developers](https://www.gstatic.com/devrel-devsite/prod/vdc800838fb8be04a9a7685606311d18c65800504bccf261551968ac74bffd42e/android/images/lockup.png)](/)
+
+- [Essentials](https://developer.android.com/get-started)
+  - More
+  - [Overview](https://developer.android.com/get-started/overview)
+  - [Adaptive app development](https://developer.android.com/adaptive-apps)
+  - [Training](https://developer.android.com/courses)
+  - [Tutorials](https://developer.android.com/get-started/codelabs)
+- [Design & Plan](https://developer.android.com/design)
+  - More
+- [Develop](https://developer.android.com/develop)
+  - More
+- [Google Play](https://developer.android.com/distribute)
+  - More
+- [Blog](https://developer.android.com/blog)
+  - More
+- [Android Studio](https://developer.android.com/studio)
+
+- Build AI experiences
+- [Get started](https://developer.android.com/ai)
+- Get started
+- [Hello, world!](https://developer.android.com/get-started/overview)
+- [Developer Verification](https://developer.android.com/developer-verification)
+- [Adaptive apps](https://developer.android.com/adaptive-apps)
+- [Compose for UI](https://developer.android.com/compose)
+- [AI-powered IDE](https://developer.android.com/studio)
+- [Training](https://developer.android.com/courses)
+- [Monetization with Play ↗️](https://play.google.com/console/about/guides/play-commerce/)
+- Optimize by form factor
+- [Phones, tablets, foldables](https://developer.android.com/phones-tablets-foldables)
+- [Android for Cars](https://developer.android.com/cars)
+- [Android TV](https://developer.android.com/tv)
+- [Android XR](https://developer.android.com/xr)
+- [Googlebook](https://developer.android.com/googlebook)
+- [ChromeOS](https://developer.android.com/chrome-os)
+- [Wear OS](https://developer.android.com/wear)
+- Build by category
+- [Games](https://developer.android.com/games)
+- [Camera & media](https://developer.android.com/media)
+- [Social & messaging](https://developer.android.com/social-and-messaging)
+- [Health & fitness](https://developer.android.com/health-and-fitness)
+- [Productivity](https://developer.android.com/productivity)
+- [Enterprise apps](https://developer.android.com/work/overview)
+- Get the latest
+- [Latest updates](https://developer.android.com/latest-updates)
+- [Experimental updates](https://developer.android.com/latest-updates/experimental)
+- [Android Studio preview](https://developer.android.com/studio/preview)
+- [Jetpack & Compose libraries](https://developer.android.com/jetpack/androidx/versions)
+- [Wear OS releases](https://developer.android.com/training/wearables/versions/latest)
+- [Privacy Sandbox ↗️](https://developer.android.com/design-for-safety/privacy-sandbox)
+
+- Excellent Experiences
+- [Learn more](https://developer.android.com/quality/excellent)
+- UI Design
+- [Design for Android](https://developer.android.com/design/ui)
+- [Mobile](https://developer.android.com/design/ui/mobile)
+- [Desktop experiences](https://developer.android.com/design/ui/desktop)
+- [XR Headsets & XR Glasses](https://developer.android.com/design/ui/xr)
+- [AI Glasses](https://developer.android.com/design/ui/ai-glasses)
+- [Widgets](https://developer.android.com/design/ui/widget)
+- [Wear OS](https://developer.android.com/design/ui/wear)
+- [Android TV](https://developer.android.com/design/ui/tv)
+- [Android for Cars](https://developer.android.com/design/ui/cars)
+- Architecture
+- [Introduction](https://developer.android.com/topic/architecture/intro)
+- [Libraries](https://developer.android.com/topic/libraries/view-binding)
+- [Navigation](https://developer.android.com/guide/navigation/navigation-principles)
+- [Modularization](https://developer.android.com/topic/modularization)
+- [Testing](https://developer.android.com/training/testing/fundamentals)
+- [Kotlin Multiplatform](https://developer.android.com/kotlin/multiplatform)
+- Quality
+- [Overview](https://developer.android.com/quality)
+- [Core value](https://developer.android.com/quality/core-value)
+- [User experience](https://developer.android.com/quality/user-experience)
+- [Accessibility](https://developer.android.com/guide/topics/ui/accessibility)
+- [Technical quality](https://developer.android.com/quality/technical)
+- [Excellent Experiences](https://developer.android.com/quality/excellent)
+- Security
+- [Overview](https://developer.android.com/security)
+- [Privacy](https://developer.android.com/privacy)
+- [Permissions](https://developer.android.com/privacy#app-permissions)
+- [Identity](https://developer.android.com/identity)
+- [Fraud prevention](https://developer.android.com/security/fraud-prevention)
+
+- Gemini in Android Studio
+- [Learn more](https://developer.android.com/ai-in-android)
+- [Get Android Studio](https://developer.android.com/studio)
+- Core areas
+- [Samples](https://developer.android.com/samples)
+- [Multidevice support](https://developer.android.com/multidevice)
+- [User interfaces](https://developer.android.com/develop/ui)
+- [Background work](https://developer.android.com/develop/background-work)
+- [Data and files](https://developer.android.com/guide/topics/data)
+- [Connectivity](https://developer.android.com/develop/connectivity)
+- [All core areas ⤵️](https://developer.android.com/develop#core-areas)
+- Tools and workflow
+- [Write and debug code](https://developer.android.com/studio/write)
+- [Build projects](https://developer.android.com/build/gradle-build-overview)
+- [Test your app](https://developer.android.com/training/testing)
+- [Performance](https://developer.android.com/topic/performance/overview)
+- [Command-line tools](https://developer.android.com/tools)
+- [Gradle plugin API](https://developer.android.com/reference/tools/gradle-api)
+- [Android Bench](https://developer.android.com/bench)
+- Device tech
+- [Phones, tablets, foldables](https://developer.android.com/phones-tablets-foldables)
+- [ChromeOS](https://developer.android.com/chrome-os)
+- [Android for Cars](https://developer.android.com/training/cars)
+- [Android TV](https://developer.android.com/training/tv)
+- [Android XR](https://developer.android.com/develop/xr)
+- [Wear OS](https://developer.android.com/training/wearables)
+- [Android Health](https://developer.android.com/health-and-fitness/guides)
+- [Better Together](https://developer.android.com/develop/better-together)
+- [All devices ⤵️](https://developer.android.com/develop#devices)
+- Libraries
+- [Android platform](https://developer.android.com/reference/packages)
+- [Jetpack libraries](https://developer.android.com/jetpack/androidx/explorer)
+- [Compose libraries](https://developer.android.com/jetpack/androidx/releases/compose)
+- [Google Play services ↗️](https://developers.google.com/android/reference/packages)
+- [Google Play SDK index ↗️](https://play.google.com/sdks)
+
+- Play Console
+- [Go to Play Console](https://play.google.com/console)
+- [Learn more ↗️](https://play.google.com/console/about/)
+- Fundamentals
+- [Play Monetization](https://developer.android.com/distribute/play-billing)
+- [Play Integrity](https://developer.android.com/google/play/integrity)
+- [Play Policies](https://developer.android.com/distribute/play-policies)
+- [Play Programs ↗️](https://play.google.com/console/about/programs)
+- Games Dev Center
+- [Overview](https://developer.android.com/games)
+- [Play Asset Delivery](https://developer.android.com/guide/playcore/asset-delivery)
+- [Play Games Services](https://developer.android.com/games/pgs/overview)
+- [Play Games on PC](https://developer.android.com/games/playgames/overview)
+- [Level Up guidelines](https://developer.android.com/games/guidelines)
+- [All Play guides ⤵️](https://developer.android.com/distribute)
+- Libraries
+- [Play Feature Delivery](https://developer.android.com/guide/playcore/feature-delivery)
+- [Play In-app Updates](https://developer.android.com/guide/playcore/in-app-updates)
+- [Play In-app Reviews](https://developer.android.com/guide/playcore/in-app-review)
+- [Play Install Referrer](https://developer.android.com/google/play/installreferrer)
+- [Google Play services ↗️](https://developers.google.com/android/reference/packages)
+- [Google Play SDK index ↗️](https://play.google.com/sdks)
+- [All Play libraries ⤵️](https://developer.android.com/distribute)
+- Tools & resources
+- [Android App Bundles](https://developer.android.com/guide/app-bundle)
+- [Brand & marketing](https://developer.android.com/distribute/marketing-tools)
+- [Play Console APIs ↗️](https://developers.google.com/android-publisher/api-ref/rest)
+
+- the Android Developer's Blog
+- [Read the latest](https://developer.android.com/blog/latest)
+- [Explore the authors →](https://developer.android.com/blog/authors)
+- Explore categories
+- [Product News](https://developer.android.com/blog/categories/product-news)
+- [Community](https://developer.android.com/blog/categories/community)
+- [How-tos](https://developer.android.com/blog/categories/how-tos)
+- [Case Studies](https://developer.android.com/blog/categories/case-studies)
+- [Events & Programs](https://developer.android.com/blog/categories/events-and-programs)
+- [Documentation](https://developer.android.com/blog/categories/documentation)
+
+- [Android Developers](https://developer.android.com/)
+- [Essentials](https://developer.android.com/get-started)
+- [Get started](https://developer.android.com/get-started/overview)
+
+![](https://developer.android.com/static/images/logos/android.svg)
+
+### Get started with Android
+
+Complete a codelab or dive deep into a training course for an overview of key Android development topics. Learn to build apps that look great and work seamlessly across the diverse range of Android devices—from phones to tablets, foldables, ChromeOS devices, car displays, and even XR.
+
+![](https://developer.android.com/static/training/basics/firstapp/images/select_project_type.png)
+
+### Hello, world!
+
+Follow this introductory codelab for step-by-step instructions about how to create an Android Hello World app.
+
+[Start codelab](https://developer.android.com/codelabs/basic-android-kotlin-compose-first-app?continue=https%3A%2F%2Fdeveloper.android.com%2Fcourses%2Fpathways%2Fandroid-basics-compose-unit-1-pathway-2%23codelab-https%3A%2F%2Fdeveloper.android.com%2Fcodelabs%2Fbasic-android-kotlin-compose-first-app)
+
+### Develop a scalable, modularized, testable Android app
+
+Develop a scalable, modularized, testable app from scratch. This won't be a Hello World app. We'll concentrate on building an app architecture that will enable your app to grow.
+
+![](https://developer.android.com/static/images/large-screens/adaptive-apps-hero.png)
+
+### Build for multiple form factors
+
+Build an app that works on phones, tablets, foldables, ChromeOS devices, car displays, and XR 2D. This codelab shows you how to use Jetpack Compose to optimize an app for different display sizes and configurations.
+
+[Start codelab](https://developer.android.com/codelabs/basic-android-kotlin-compose-adaptive-content-for-large-screens) [Read the guides](https://developer.android.com/develop/ui/compose/layouts/adaptive)
+
+[![](https://developer.android.com/static/training/basics/firstapp/images/first_app.svg)](https://developer.android.com/codelabs/basic-android-kotlin-compose-first-app?continue=https%3A%2F%2Fdeveloper.android.com%2Fcourses%2Fpathways%2Fandroid-basics-compose-unit-1-pathway-2%23codelab-https%3A%2F%2Fdeveloper.android.com%2Fcodelabs%2Fbasic-android-kotlin-compose-first-app)
+
+Courses
+
+### [Start the Android Basics course](https://developer.android.com/codelabs/basic-android-kotlin-compose-first-app?continue=https%3A%2F%2Fdeveloper.android.com%2Fcourses%2Fpathways%2Fandroid-basics-compose-unit-1-pathway-2%23codelab-https%3A%2F%2Fdeveloper.android.com%2Fcodelabs%2Fbasic-android-kotlin-compose-first-app)
+
+Take the full course to learn the basics of creating apps with Jetpack Compose, Android's modern toolkit for developing user interfaces.
+
+As you create a series of apps, you’ll learn the basics of the Kotlin programming language and the fundamentals of app development.
+
+[Start codelab](https://developer.android.com/codelabs/basic-android-kotlin-compose-first-app?continue=https%3A%2F%2Fdeveloper.android.com%2Fcourses%2Fpathways%2Fandroid-basics-compose-unit-1-pathway-2%23codelab-https%3A%2F%2Fdeveloper.android.com%2Fcodelabs%2Fbasic-android-kotlin-compose-first-app)
+
+[![](https://developer.android.com/static/training/basics/firstapp/images/paths.svg)](https://developer.android.com/courses)
+
+Learn
+
+### [Browse learning resources](https://developer.android.com/courses)
+
+Go deep by exploring other training resources, such as learning pathways for more-advanced topics, including Compose, app architecture, and accessibility.
+
+[Go to training resources](https://developer.android.com/courses)
+
+## Assemble your toolkit
+
+[![](https://developer.android.com/static/images/spot-icons/jetpack-compose.svg)](https://developer.android.com/compose)
+
+### [Compose:<br> Build compelling user interfaces](https://developer.android.com/compose)
+
+Jetpack Compose simplifies and accelerates UI development on Android. Write less code and use powerful tools and intuitive Kotlin APIs.
+
+[Use Compose](https://developer.android.com/compose)
+
+[![](https://developer.android.com/static/images/logos/kotlin.svg)](https://developer.android.com/kotlin)
+
+### [Kotlin: <br> A modern, concise, powerful language](https://developer.android.com/kotlin)
+
+More than 95% of the the top 1,000 Android apps use Kotlin to boost productivity, developer satisfaction, and code safety.
+
+[Learn more](https://developer.android.com/kotlin)
+
+[![](https://developer.android.com/static/images/spot-icons/jetpack.svg)](https://developer.android.com/jetpack)
+
+### [Jetpack:<br> Libraries for easier app development](https://developer.android.com/jetpack)
+
+Check out the Android suite of libraries, which implement our best practices and reduce boilerplate code.
+
+[Get started](https://developer.android.com/jetpack)
+
+[![](https://developer.android.com/static/images/logos/android-studio-round.svg)](https://developer.android.com/studio)
+
+### [Use Android Studio for development](https://developer.android.com/studio)
+
+Android Studio is the official IDE for Android app development, featuring Compose design tools, flexible build system, and Android Emulator.
+
+[Android Studio](https://developer.android.com/studio)
+
+[![](https://developer.android.com/static/images/logos/android.svg)](https://developer.android.com/about/versions)
+
+### [Target the latest Android version](https://developer.android.com/about/versions)
+
+Android handles backwards compatibility, so you can target the latest SDK version, use the latest technologies, and run consistently across Android versions and devices.
+
+[Get started](https://developer.android.com/about/versions)
+
+[![](https://developer.android.com/static/images/cluster-illustrations/android-architecture-components.svg)](https://developer.android.com/topic/architecture)
+
+### [Architecture and testing best practices](https://developer.android.com/topic/architecture)
+
+Architecture, testing patterns, and guidance help you build solid, scalable apps.
+
+[Learn more](https://developer.android.com/topic/architecture)
+
+![](https://developer.android.com/static/images/picto-icons/actionable.svg)
+
+## App quality matters
+
+Build high-quality apps that provide a seamless and consistent user experience. Learn how to ensure your apps work well on all form factors, including phones, tablets, foldables, ChromeOS devices, parked car displays, and 2D XR.
+
+[Guidelines](https://developer.android.com/docs/quality-guidelines/core-app-quality) [Guides](https://developer.android.com/develop/ui/compose/layouts/adaptive)
+
+|  | Good | Great |
+| --- | --- | --- |
+| ![](https://developer.android.com/static/images/picto-icons/lightbulb.svg)Core value | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Fun, useful, or both | |
+| ![](https://developer.android.com/static/images/picto-icons/stars.svg)User experience | Easy to use | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Delightful to use |
+| ![](https://developer.android.com/static/images/picto-icons/graph-bar.svg)Technical quality | Work well on users' devices | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Make the most of users' devices |
+| ![](https://developer.android.com/static/images/picto-icons/security-2.svg)Privacy and security | Safe | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Designed for safety |
+
+|  | Good |
+| --- | --- |
+| ![](https://developer.android.com/static/images/picto-icons/lightbulb.svg)Core value | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Fun, useful, or both |
+| ![](https://developer.android.com/static/images/picto-stars/stars.svg)User experience | Easy to use |
+| ![](https://developer.android.com/static/images/picto-icons/graph-bar.svg)Technical quality | Works well on users’ devices |
+| ![](https://developer.android.com/static/images/picto-icons/security-2.svg)Privacy and security | Safe |
+
+|  | Great |
+| --- | --- |
+| ![](https://developer.android.com/static/images/picto-icons/lightbulb.svg)Core value | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Fun, useful, or both |
+| ![](https://developer.android.com/static/images/picto-stars/stars.svg)User experience | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Delightful to use |
+| ![](https://developer.android.com/static/images/picto-icons/graph-bar.svg)Technical quality | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Makes the most of users' devices |
+| ![](https://developer.android.com/static/images/picto-icons/security-2.svg)Privacy and security | ![](https://developer.android.com/static/images/picto-tick/tick.svg)Designed for safety |
+
+## Featured samples
+
+If you learn best by reading code, we have a wide range of sample apps that you can check out and learn from.
+
+[![](https://developer.android.com/static/guide/topics/ui/images/overview-now-in-android.png)](https://github.com/android/nowinandroid)
+
+### [Now in Android](https://github.com/android/nowinandroid)
+
+Now in Android is an Android app built with Kotlin and Jetpack Compose. Now in Android is designed to serve as a reference for Android developers that models best practices for design and development.
+
+[![](https://developer.android.com/static/images/cards/distribute/engage/compose-samples.png)](https://github.com/android/compose-samples)
+
+### [Compose samples](https://github.com/android/compose-samples)
+
+This repository contains a set of individual Android Studio projects to help you learn about Compose in Android. Each sample demonstrates different use cases, complexity levels and APIs.
+
+[![](https://developer.android.com/static/images/cards/distribute/engage/to-do-app.png)](https://github.com/android/architecture-samples)
+
+### [Architecture samples](https://github.com/android/architecture-samples)
+
+These samples showcase different architectural approaches to developing Android apps. In its different branches you'll find the same app (a to-do list app) implemented with small differences.
+
+[**Browse all the samples**](https://developer.android.com/samples)
+
+- [![X](https://developer.android.com/_static/android/images/logo-x.svg)X](https://x.com/AndroidDev) Follow @AndroidDev on X
+- [![YouTube](https://www.gstatic.com/images/icons/material/product/2x/youtube_48dp.png)YouTube](https://www.youtube.com/user/androiddevelopers) Check out Android Developers on YouTube
+- [![LinkedIn](https://developer.android.com/_static/android/images/logo-linkedin.svg)LinkedIn](https://www.linkedin.com/showcase/androiddev) Connect with the Android Developers community on LinkedIn
+
+- ### More Android
+  - [Android](https://www.android.com)
+  - [Android for Enterprise](https://www.android.com/enterprise/)
+  - [Security](https://www.android.com/security-center/)
+  - [Source](https://source.android.com)
+  - [News](https://developer.android.com/news)
+  - [Blog](https://android-developers.googleblog.com/)
+  - [Podcasts](https://developer.android.com/podcasts)
+- ### Discover
+  - [Gaming](https://developer.android.com/games)
+  - [Machine Learning](https://developer.android.com/ml)
+  - [Health & Fitness](https://developer.android.com/health-and-fitness)
+  - [Camera & Media](https://developer.android.com/media)
+  - [Privacy](https://developer.android.com/privacy)
+  - [5G](https://developer.android.com/training/connectivity/5g)
+- ### Android Devices
+  - [Large screens](https://developer.android.com/large-screens)
+  - [Wear OS](https://developer.android.com/wear)
+  - [ChromeOS devices](https://developer.android.com/chrome-os)
+  - [Android for cars](https://developer.android.com/cars)
+  - [Android TV](https://developer.android.com/tv)
+- ### Releases
+  - [Android 17](https://developer.android.com/about/versions/17)
+  - [Android 16](https://developer.android.com/about/versions/16)
+  - [Android 15](https://developer.android.com/about/versions/15)
+  - [Android 14](https://developer.android.com/about/versions/14)
+  - [Android 13](https://developer.android.com/about/versions/13)
+  - [Android 12](https://developer.android.com/about/versions/12)
+  - [Android 11](https://developer.android.com/about/versions/11)
+- ### Documentation and Downloads
+  - [Android Studio guide](https://developer.android.com/studio/intro)
+  - [Developers guides](https://developer.android.com/guide)
+  - [API reference](https://developer.android.com/reference)
+  - [Download Studio](https://developer.android.com/studio)
+  - [Android NDK](https://developer.android.com/ndk)
+- ### Support
+  - [Report platform bug](https://issuetracker.google.com/issues/new?component=190923&template=841312)
+  - [Report documentation bug](https://issuetracker.google.com/issues/new?component=192697)
+  - [Google Play support](https://support.google.com/googleplay/android-developer)
+  - [Join research studies](https://g.co/userresearch/androiddeveloperfooter)
+
+[![Google Developers](https://www.gstatic.com/devrel-devsite/prod/vdc800838fb8be04a9a7685606311d18c65800504bccf261551968ac74bffd42e/android/images/lockup-google-for-developers.svg)](https://developers.google.com/)
+
+- [Android](https://developer.android.com)
+- [Chrome](https://developer.chrome.com/home)
+- [Firebase](https://firebase.google.com)
+- [Google Cloud Platform](https://cloud.google.com)
+- [All products](https://developers.google.com/products/)
+
+- [Privacy](https://policies.google.com/privacy)
+- [License](https://developer.android.com/license)
+- [Brand guidelines](https://developer.android.com/distribute/marketing-tools/brand-guidelines)
+- [Manage cookies](#)
+- Get news and tips by email [Subscribe](https://developer.android.com/updates)
+
+- [English](https://developer.android.com/get-started/overview)
+- [Deutsch](https://developer.android.com/get-started/overview?hl=de)
+- [Español – América Latina](https://developer.android.com/get-started/overview?hl=es-419)
+- [Français](https://developer.android.com/get-started/overview?hl=fr)
+- [Indonesia](https://developer.android.com/get-started/overview?hl=id)
+- [Italiano](https://developer.android.com/get-started/overview?hl=it)
+- [Polski](https://developer.android.com/get-started/overview?hl=pl)
+- [Português – Brasil](https://developer.android.com/get-started/overview?hl=pt-br)
+- [Tiếng Việt](https://developer.android.com/get-started/overview?hl=vi)
+- [Türkçe](https://developer.android.com/get-started/overview?hl=tr)
+- [Русский](https://developer.android.com/get-started/overview?hl=ru)
+- [עברית](https://developer.android.com/get-started/overview?hl=he)
+- [العربيّة](https://developer.android.com/get-started/overview?hl=ar)
+- [فارسی](https://developer.android.com/get-started/overview?hl=fa)
+- [हिंदी](https://developer.android.com/get-started/overview?hl=hi)
+- [বাংলা](https://developer.android.com/get-started/overview?hl=bn)
+- [ภาษาไทย](https://developer.android.com/get-started/overview?hl=th)
+- [中文 – 简体](https://developer.android.com/get-started/overview?hl=zh-cn)
+- [中文 – 繁體](https://developer.android.com/get-started/overview?hl=zh-tw)
+- [日本語](https://developer.android.com/get-started/overview?hl=ja)
+- [한국어](https://developer.android.com/get-started/overview?hl=ko)

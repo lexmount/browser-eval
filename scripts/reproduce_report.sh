@@ -23,7 +23,7 @@ if [[ "${WEBFETCH_INCLUDE_OSS:-1}" == "1" ]]; then
 fi
 
 python3 -m browser_harness_eval validate \
-  --dataset datasets/public_webfetch_50.json \
+  --dataset datasets/public_webfetch_100.json \
   --env-file "$env_file" \
   --providers "$providers"
 
@@ -33,7 +33,7 @@ if [[ "${WEBFETCH_RUN_SMOKE:-0}" == "1" ]]; then
 fi
 
 python3 -m browser_harness_eval run \
-  --dataset datasets/public_webfetch_50.json \
+  --dataset datasets/public_webfetch_100.json \
   --provider-config configs/providers.example.json \
   --env-file "$env_file" \
   --providers "$providers" \
@@ -58,7 +58,7 @@ if [[ "${WEBFETCH_RUN_FILE_MEDIA:-1}" == "1" ]]; then
     --output "$resource_output/resource-link-checks.json"
   python3 scripts/build_file_media_evidence.py "$resource_output" \
     --link-checks "$resource_output/resource-link-checks.json"
-  python3 -m browser_harness_eval report "$output_dir" --dataset datasets/public_webfetch_50.json
+  python3 -m browser_harness_eval report "$output_dir" --dataset datasets/public_webfetch_100.json
 fi
 
 python3 scripts/check_report_links.py "$output_dir/report"

@@ -1,0 +1,795 @@
+---
+title: "Next.js Docs | Next.js"
+meta:
+  description: "Welcome to the Next.js Documentation."
+  "og:description": "Welcome to the Next.js Documentation."
+  "og:title": "Next.js Docs | Next.js"
+  "twitter:description": "Welcome to the Next.js Documentation."
+  "twitter:title": "Next.js Docs"
+---
+
+[Skip to content](#geist-skip-nav)
+
+[![Vercel](https://nextjs.org/_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg)![Vercel](https://nextjs.org/_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg)Go to Vercel homepage](https://vercel.com/home?utm_source=next-site&utm_medium=banner&utm_campaign=docs)
+
+[![NextjsLogotype](https://nextjs.org/_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg)![NextjsLogotype](https://nextjs.org/_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg)Go to the homepage](/)
+
+Search documentation...CtrlKSearch...CtrlK
+
+[![Vercel](https://nextjs.org/_next/static/immutable/media/vercel-light.3_gxxexgi1nmy.svg)![Vercel](https://nextjs.org/_next/static/immutable/media/vercel-dark.1f3cgy23m5_jy.svg)Go to Vercel homepage](https://vercel.com/home?utm_source=next-site&utm_medium=banner&utm_campaign=docs)
+
+[![NextjsLogotype](https://nextjs.org/_next/static/immutable/media/nextjs-logotype-light.00-_80jv8_dct.svg)![NextjsLogotype](https://nextjs.org/_next/static/immutable/media/nextjs-logotype-dark.3h4a2z2v_dkod.svg)Go to the homepage](/)
+
+[Showcase](https://nextjs.org/showcase) [Docs](https://nextjs.org/docs%20%22Documentation%22) [Blog](https://nextjs.org/blog) [Templates](https://vercel.com/templates/next.js?utm_source=next-site&utm_medium=navbar&utm_campaign=next_site_nav_templates) [Enterprise](https://vercel.com/contact/sales?utm_source=next-site&utm_medium=navbar&utm_campaign=next_site_nav_enterprise)
+
+Search documentation...CtrlKSearch...CtrlKFeedback [Learn](https://nextjs.org/learn)
+
+[Skip to content](#geist-skip-nav)
+
+[Go to Vercel homepage](https://vercel.com/home?utm_source=next-site&utm_medium=banner&utm_campaign=docs) [Go to the homepage](/)
+
+Search documentation...CtrlKSearch...CtrlK
+
+[Go to Vercel homepage](https://vercel.com/home?utm_source=next-site&utm_medium=banner&utm_campaign=docs) [Go to the homepage](/)
+
+[Showcase](https://nextjs.org/showcase) [Docs](https://nextjs.org/docs%20%22Documentation%22) [Blog](https://nextjs.org/blog) [Templates↗](https://vercel.com/templates/next.js?utm_source=next-site&utm_medium=navbar&utm_campaign=next_site_nav_templates) [Enterprise↗](https://vercel.com/contact/sales?utm_source=next-site&utm_medium=navbar&utm_campaign=next_site_nav_enterprise)
+
+Search documentation...CtrlKSearch...CtrlKFeedback [Learn](https://nextjs.org/learn)
+
+Menu
+
+Using App Router Features available in /app Latest Version 16.3.4
+
+- [Getting Started](https://nextjs.org/docs/app/getting-started)
+  - [Installation](https://nextjs.org/docs/app/getting-started/installation)
+  - [Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)
+  - [Layouts and Pages](https://nextjs.org/docs/app/getting-started/layouts-and-pages)
+  - [Linking and Navigating](https://nextjs.org/docs/app/getting-started/linking-and-navigating)
+  - [Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components)
+  - [Fetching Data](https://nextjs.org/docs/app/getting-started/fetching-data)
+  - [Mutating Data](https://nextjs.org/docs/app/getting-started/mutating-data)
+  - [Caching](https://nextjs.org/docs/app/getting-started/caching)
+  - [Revalidating](https://nextjs.org/docs/app/getting-started/revalidating)
+  - [Error Handling](https://nextjs.org/docs/app/getting-started/error-handling)
+  - [CSS](https://nextjs.org/docs/app/getting-started/css)
+  - [Image Optimization](https://nextjs.org/docs/app/getting-started/images)
+  - [Font Optimization](https://nextjs.org/docs/app/getting-started/fonts)
+  - [Metadata and OG images](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)
+  - [Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers)
+  - [Proxy](https://nextjs.org/docs/app/getting-started/proxy)
+  - [Deploying](https://nextjs.org/docs/app/getting-started/deploying)
+  - [Upgrading](https://nextjs.org/docs/app/getting-started/upgrading)
+
+- [Guides](https://nextjs.org/docs/app/guides)
+  - [Adopting Partial Prefetching](https://nextjs.org/docs/app/guides/adopting-partial-prefetching)
+  - [AI Coding Agents](https://nextjs.org/docs/app/guides/ai-agents)
+  - [Analytics](https://nextjs.org/docs/app/guides/analytics)
+  - [Authentication](https://nextjs.org/docs/app/guides/authentication)
+  - [Authentication with Cache Components](https://nextjs.org/docs/app/guides/authentication-with-cache-components)
+  - [Backend for Frontend](https://nextjs.org/docs/app/guides/backend-for-frontend)
+  - [Building](https://nextjs.org/docs/app/guides/building)
+  - [Caching (Previous Model)](https://nextjs.org/docs/app/guides/caching-without-cache-components)
+  - [CDN Caching](https://nextjs.org/docs/app/guides/cdn-caching)
+  - [CI Build Caching](https://nextjs.org/docs/app/guides/ci-build-caching)
+  - [Client-side data fetching](https://nextjs.org/docs/app/guides/client-side-data-fetching)
+    - [SWR](https://nextjs.org/docs/app/guides/client-side-data-fetching/swr)
+    - [TanStack Query](https://nextjs.org/docs/app/guides/client-side-data-fetching/tanstack-query)
+  - [Content Security Policy](https://nextjs.org/docs/app/guides/content-security-policy)
+  - [CSS-in-JS](https://nextjs.org/docs/app/guides/css-in-js)
+  - [Custom Server](https://nextjs.org/docs/app/guides/custom-server)
+  - [Data Security](https://nextjs.org/docs/app/guides/data-security)
+  - [Debugging](https://nextjs.org/docs/app/guides/debugging)
+  - [Deploying to Platforms](https://nextjs.org/docs/app/guides/deploying-to-platforms)
+  - [Draft Mode](https://nextjs.org/docs/app/guides/draft-mode)
+  - [Environment Variables](https://nextjs.org/docs/app/guides/environment-variables)
+  - [Forms](https://nextjs.org/docs/app/guides/forms)
+  - [How Revalidation Works](https://nextjs.org/docs/app/guides/how-revalidation-works)
+  - [ISR](https://nextjs.org/docs/app/guides/incremental-static-regeneration)
+  - [ISR with Cache Components](https://nextjs.org/docs/app/guides/incremental-static-regeneration-cache-components)
+  - [Instant navigation](https://nextjs.org/docs/app/guides/instant-navigation)
+  - [Instrumentation](https://nextjs.org/docs/app/guides/instrumentation)
+  - [Interactive apps](https://nextjs.org/docs/app/guides/interactive-apps)
+  - [Internationalization](https://nextjs.org/docs/app/guides/internationalization)
+  - [JSON-LD](https://nextjs.org/docs/app/guides/json-ld)
+  - [Lazy Loading](https://nextjs.org/docs/app/guides/lazy-loading)
+  - [Development Environment](https://nextjs.org/docs/app/guides/local-development)
+  - [Next.js MCP Server](https://nextjs.org/docs/app/guides/mcp)
+  - [MDX](https://nextjs.org/docs/app/guides/mdx)
+  - [Memory Usage](https://nextjs.org/docs/app/guides/memory-usage)
+  - [Migrating](https://nextjs.org/docs/app/guides/migrating)
+    - [App Router](https://nextjs.org/docs/app/guides/migrating/app-router-migration)
+    - [Create React App](https://nextjs.org/docs/app/guides/migrating/from-create-react-app)
+    - [Vite](https://nextjs.org/docs/app/guides/migrating/from-vite)
+  - [Migrating to Cache Components](https://nextjs.org/docs/app/guides/migrating-to-cache-components)
+  - [Multi-tenant](https://nextjs.org/docs/app/guides/multi-tenant)
+  - [Multi-zones](https://nextjs.org/docs/app/guides/multi-zones)
+  - [Offline support](https://nextjs.org/docs/app/guides/offline-support)
+  - [OpenTelemetry](https://nextjs.org/docs/app/guides/open-telemetry)
+  - [Optimizing prefetching](https://nextjs.org/docs/app/guides/optimizing-prefetching)
+  - [Package Bundling](https://nextjs.org/docs/app/guides/package-bundling)
+  - [PPR Platform Guide](https://nextjs.org/docs/app/guides/ppr-platform-guide)
+  - [Prefetching](https://nextjs.org/docs/app/guides/prefetching)
+  - [Preserving UI state](https://nextjs.org/docs/app/guides/preserving-ui-state)
+  - [Preventing Flash](https://nextjs.org/docs/app/guides/preventing-flash-before-hydration)
+  - [Production](https://nextjs.org/docs/app/guides/production-checklist)
+  - [PWAs](https://nextjs.org/docs/app/guides/progressive-web-apps)
+  - [Public pages](https://nextjs.org/docs/app/guides/public-static-pages)
+  - [Redirecting](https://nextjs.org/docs/app/guides/redirecting)
+  - [Rendering Philosophy](https://nextjs.org/docs/app/guides/rendering-philosophy)
+  - [Sass](https://nextjs.org/docs/app/guides/sass)
+  - [Scripts](https://nextjs.org/docs/app/guides/scripts)
+  - [Self-Hosting](https://nextjs.org/docs/app/guides/self-hosting)
+  - [Server Actions](https://nextjs.org/docs/app/guides/server-actions)
+  - [Server and Client Boundary](https://nextjs.org/docs/app/guides/server-and-client-boundary)
+  - [SPAs](https://nextjs.org/docs/app/guides/single-page-applications)
+  - [Static Exports](https://nextjs.org/docs/app/guides/static-exports)
+  - [Streaming](https://nextjs.org/docs/app/guides/streaming)
+  - [Tailwind CSS v3](https://nextjs.org/docs/app/guides/tailwind-v3-css)
+  - [Testing](https://nextjs.org/docs/app/guides/testing)
+    - [Cypress](https://nextjs.org/docs/app/guides/testing/cypress)
+    - [Jest](https://nextjs.org/docs/app/guides/testing/jest)
+    - [Playwright](https://nextjs.org/docs/app/guides/testing/playwright)
+    - [Vitest](https://nextjs.org/docs/app/guides/testing/vitest)
+  - [Third Party Libraries](https://nextjs.org/docs/app/guides/third-party-libraries)
+  - [Upgrading](https://nextjs.org/docs/app/guides/upgrading)
+    - [Codemods](https://nextjs.org/docs/app/guides/upgrading/codemods)
+    - [Version 14](https://nextjs.org/docs/app/guides/upgrading/version-14)
+    - [Version 15](https://nextjs.org/docs/app/guides/upgrading/version-15)
+    - [Version 16](https://nextjs.org/docs/app/guides/upgrading/version-16)
+  - [Videos](https://nextjs.org/docs/app/guides/videos)
+  - [View transitions](https://nextjs.org/docs/app/guides/view-transitions)
+
+- [API Reference](https://nextjs.org/docs/app/api-reference)
+  - [Directives](https://nextjs.org/docs/app/api-reference/directives)
+    - [use cache](https://nextjs.org/docs/app/api-reference/directives/use-cache)
+    - [use cache: private](https://nextjs.org/docs/app/api-reference/directives/use-cache-private)
+    - [use cache: remote](https://nextjs.org/docs/app/api-reference/directives/use-cache-remote)
+    - [use client](https://nextjs.org/docs/app/api-reference/directives/use-client)
+    - [use server](https://nextjs.org/docs/app/api-reference/directives/use-server)
+  - [Components](https://nextjs.org/docs/app/api-reference/components)
+    - [Font](https://nextjs.org/docs/app/api-reference/components/font)
+    - [Form Component](https://nextjs.org/docs/app/api-reference/components/form)
+    - [Image Component](https://nextjs.org/docs/app/api-reference/components/image)
+    - [Link Component](https://nextjs.org/docs/app/api-reference/components/link)
+    - [Script Component](https://nextjs.org/docs/app/api-reference/components/script)
+  - [File-system conventions](https://nextjs.org/docs/app/api-reference/file-conventions)
+    - [default.js](https://nextjs.org/docs/app/api-reference/file-conventions/default)
+    - [Dynamic Segments](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes)
+    - [error.js](https://nextjs.org/docs/app/api-reference/file-conventions/error)
+    - [forbidden.js](https://nextjs.org/docs/app/api-reference/file-conventions/forbidden)
+    - [instrumentation.js](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation)
+    - [instrumentation-client.js](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)
+    - [Intercepting Routes](https://nextjs.org/docs/app/api-reference/file-conventions/intercepting-routes)
+    - [layout.js](https://nextjs.org/docs/app/api-reference/file-conventions/layout)
+    - [loading.js](https://nextjs.org/docs/app/api-reference/file-conventions/loading)
+    - [mdx-components.js](https://nextjs.org/docs/app/api-reference/file-conventions/mdx-components)
+    - [not-found.js](https://nextjs.org/docs/app/api-reference/file-conventions/not-found)
+    - [page.js](https://nextjs.org/docs/app/api-reference/file-conventions/page)
+    - [Parallel Routes](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes)
+    - [proxy.js](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
+    - [public](https://nextjs.org/docs/app/api-reference/file-conventions/public-folder)
+    - [route.js](https://nextjs.org/docs/app/api-reference/file-conventions/route)
+    - [Route Groups](https://nextjs.org/docs/app/api-reference/file-conventions/route-groups)
+    - [src](https://nextjs.org/docs/app/api-reference/file-conventions/src-folder)
+    - [template.js](https://nextjs.org/docs/app/api-reference/file-conventions/template)
+    - [unauthorized.js](https://nextjs.org/docs/app/api-reference/file-conventions/unauthorized)
+    - [Metadata Files](https://nextjs.org/docs/app/api-reference/file-conventions/metadata)
+      - [favicon, icon, and apple-icon](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons)
+      - [manifest.json](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/manifest)
+      - [opengraph-image and twitter-image](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image)
+      - [robots.txt](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots)
+      - [sitemap.xml](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap)
+    - [Route Segment Config](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config)
+      - [dynamicParams](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/dynamicParams)
+      - [instant](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/instant)
+      - [maxDuration](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/maxDuration)
+      - [preferredRegion (deprecated)](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/preferredRegion)
+      - [prefetch](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/prefetch)
+      - [runtime](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/runtime)
+  - [Functions](https://nextjs.org/docs/app/api-reference/functions)
+    - [after](https://nextjs.org/docs/app/api-reference/functions/after)
+    - [cacheLife](https://nextjs.org/docs/app/api-reference/functions/cacheLife)
+    - [cacheTag](https://nextjs.org/docs/app/api-reference/functions/cacheTag)
+    - [catchError](https://nextjs.org/docs/app/api-reference/functions/catchError)
+    - [connection](https://nextjs.org/docs/app/api-reference/functions/connection)
+    - [cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)
+    - [draftMode](https://nextjs.org/docs/app/api-reference/functions/draft-mode)
+    - [fetch](https://nextjs.org/docs/app/api-reference/functions/fetch)
+    - [forbidden](https://nextjs.org/docs/app/api-reference/functions/forbidden)
+    - [generateImageMetadata](https://nextjs.org/docs/app/api-reference/functions/generate-image-metadata)
+    - [generateMetadata](https://nextjs.org/docs/app/api-reference/functions/generate-metadata)
+    - [generateSitemaps](https://nextjs.org/docs/app/api-reference/functions/generate-sitemaps)
+    - [generateStaticParams](https://nextjs.org/docs/app/api-reference/functions/generate-static-params)
+    - [generateViewport](https://nextjs.org/docs/app/api-reference/functions/generate-viewport)
+    - [headers](https://nextjs.org/docs/app/api-reference/functions/headers)
+    - [ImageResponse](https://nextjs.org/docs/app/api-reference/functions/image-response)
+    - [io](https://nextjs.org/docs/app/api-reference/functions/io)
+    - [NextRequest](https://nextjs.org/docs/app/api-reference/functions/next-request)
+    - [NextResponse](https://nextjs.org/docs/app/api-reference/functions/next-response)
+    - [root-params](https://nextjs.org/docs/app/api-reference/functions/next-root-params)
+    - [notFound](https://nextjs.org/docs/app/api-reference/functions/not-found)
+    - [permanentRedirect](https://nextjs.org/docs/app/api-reference/functions/permanentRedirect)
+    - [redirect](https://nextjs.org/docs/app/api-reference/functions/redirect)
+    - [refresh](https://nextjs.org/docs/app/api-reference/functions/refresh)
+    - [revalidatePath](https://nextjs.org/docs/app/api-reference/functions/revalidatePath)
+    - [revalidateTag](https://nextjs.org/docs/app/api-reference/functions/revalidateTag)
+    - [unauthorized](https://nextjs.org/docs/app/api-reference/functions/unauthorized)
+    - [unstable\_cache](https://nextjs.org/docs/app/api-reference/functions/unstable_cache)
+    - [unstable\_noStore](https://nextjs.org/docs/app/api-reference/functions/unstable_noStore)
+    - [unstable\_rethrow](https://nextjs.org/docs/app/api-reference/functions/unstable_rethrow)
+    - [updateTag](https://nextjs.org/docs/app/api-reference/functions/updateTag)
+    - [useLinkStatus](https://nextjs.org/docs/app/api-reference/functions/use-link-status)
+    - [useOffline](https://nextjs.org/docs/app/api-reference/functions/use-offline)
+    - [useParams](https://nextjs.org/docs/app/api-reference/functions/use-params)
+    - [usePathname](https://nextjs.org/docs/app/api-reference/functions/use-pathname)
+    - [useReportWebVitals](https://nextjs.org/docs/app/api-reference/functions/use-report-web-vitals)
+    - [useRouter](https://nextjs.org/docs/app/api-reference/functions/use-router)
+    - [useSearchParams](https://nextjs.org/docs/app/api-reference/functions/use-search-params)
+    - [useSelectedLayoutSegment](https://nextjs.org/docs/app/api-reference/functions/use-selected-layout-segment)
+    - [useSelectedLayoutSegments](https://nextjs.org/docs/app/api-reference/functions/use-selected-layout-segments)
+    - [userAgent](https://nextjs.org/docs/app/api-reference/functions/userAgent)
+  - [Configuration](https://nextjs.org/docs/app/api-reference/config)
+    - [next.config.js](https://nextjs.org/docs/app/api-reference/config/next-config-js)
+      - [adapterPath](https://nextjs.org/docs/app/api-reference/config/next-config-js/adapterPath)
+      - [allowedDevOrigins](https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins)
+      - [appDir](https://nextjs.org/docs/app/api-reference/config/next-config-js/appDir)
+      - [assetPrefix](https://nextjs.org/docs/app/api-reference/config/next-config-js/assetPrefix)
+      - [authInterrupts](https://nextjs.org/docs/app/api-reference/config/next-config-js/authInterrupts)
+      - [basePath](https://nextjs.org/docs/app/api-reference/config/next-config-js/basePath)
+      - [cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents)
+      - [cacheHandlers](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheHandlers)
+      - [cacheLife](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheLife)
+      - [cacheMaxMemorySize](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheMaxMemorySize)
+      - [compress](https://nextjs.org/docs/app/api-reference/config/next-config-js/compress)
+      - [crossOrigin](https://nextjs.org/docs/app/api-reference/config/next-config-js/crossOrigin)
+      - [cssChunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking)
+      - [deploymentId](https://nextjs.org/docs/app/api-reference/config/next-config-js/deploymentId)
+      - [devIndicators](https://nextjs.org/docs/app/api-reference/config/next-config-js/devIndicators)
+      - [distDir](https://nextjs.org/docs/app/api-reference/config/next-config-js/distDir)
+      - [env](https://nextjs.org/docs/app/api-reference/config/next-config-js/env)
+      - [expireTime](https://nextjs.org/docs/app/api-reference/config/next-config-js/expireTime)
+      - [exportPathMap](https://nextjs.org/docs/app/api-reference/config/next-config-js/exportPathMap)
+      - [generateBuildId](https://nextjs.org/docs/app/api-reference/config/next-config-js/generateBuildId)
+      - [generateEtags](https://nextjs.org/docs/app/api-reference/config/next-config-js/generateEtags)
+      - [headers](https://nextjs.org/docs/app/api-reference/config/next-config-js/headers)
+      - [htmlLimitedBots](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots)
+      - [httpAgentOptions](https://nextjs.org/docs/app/api-reference/config/next-config-js/httpAgentOptions)
+      - [images](https://nextjs.org/docs/app/api-reference/config/next-config-js/images)
+      - [cacheHandler](https://nextjs.org/docs/app/api-reference/config/next-config-js/incrementalCacheHandlerPath)
+      - [inlineCss](https://nextjs.org/docs/app/api-reference/config/next-config-js/inlineCss)
+      - [instrumentationClientInject](https://nextjs.org/docs/app/api-reference/config/next-config-js/instrumentationClientInject)
+      - [logging](https://nextjs.org/docs/app/api-reference/config/next-config-js/logging)
+      - [mdxRs](https://nextjs.org/docs/app/api-reference/config/next-config-js/mdxRs)
+      - [onDemandEntries](https://nextjs.org/docs/app/api-reference/config/next-config-js/onDemandEntries)
+      - [optimizePackageImports](https://nextjs.org/docs/app/api-reference/config/next-config-js/optimizePackageImports)
+      - [output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)
+      - [outputHashSalt](https://nextjs.org/docs/app/api-reference/config/next-config-js/outputHashSalt)
+      - [pageExtensions](https://nextjs.org/docs/app/api-reference/config/next-config-js/pageExtensions)
+      - [partialPrefetching](https://nextjs.org/docs/app/api-reference/config/next-config-js/partialPrefetching)
+      - [poweredByHeader](https://nextjs.org/docs/app/api-reference/config/next-config-js/poweredByHeader)
+      - [prefetchInlining](https://nextjs.org/docs/app/api-reference/config/next-config-js/prefetchInlining)
+      - [productionBrowserSourceMaps](https://nextjs.org/docs/app/api-reference/config/next-config-js/productionBrowserSourceMaps)
+      - [proxyClientMaxBodySize](https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize)
+      - [reactCompiler](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactCompiler)
+      - [reactMaxHeadersLength](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactMaxHeadersLength)
+      - [reactStrictMode](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactStrictMode)
+      - [redirects](https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects)
+      - [rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites)
+      - [sassOptions](https://nextjs.org/docs/app/api-reference/config/next-config-js/sassOptions)
+      - [serverActions](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions)
+      - [serverComponentsHmrCache](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverComponentsHmrCache)
+      - [serverExternalPackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages)
+      - [staleTimes](https://nextjs.org/docs/app/api-reference/config/next-config-js/staleTimes)
+      - [staticGeneration\*](https://nextjs.org/docs/app/api-reference/config/next-config-js/staticGeneration)
+      - [supportsImmutableAssets](https://nextjs.org/docs/app/api-reference/config/next-config-js/supportsImmutableAssets)
+      - [taint](https://nextjs.org/docs/app/api-reference/config/next-config-js/taint)
+      - [trailingSlash](https://nextjs.org/docs/app/api-reference/config/next-config-js/trailingSlash)
+      - [transpilePackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/transpilePackages)
+      - [turbopack](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack)
+      - [turbopackChunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackChunking)
+      - [turbopackFileSystemCache](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackFileSystemCache)
+      - [turbopack.ignoreIssue](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackIgnoreIssue)
+      - [turbopackLocalPostcssConfig](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackLocalPostcssConfig)
+      - [turbopackMemoryEviction](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackMemoryEviction)
+      - [turbopackRustReactCompiler](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackRustReactCompiler)
+      - [typedRoutes](https://nextjs.org/docs/app/api-reference/config/next-config-js/typedRoutes)
+      - [typescript](https://nextjs.org/docs/app/api-reference/config/next-config-js/typescript)
+      - [urlImports](https://nextjs.org/docs/app/api-reference/config/next-config-js/urlImports)
+      - [useLightningcss](https://nextjs.org/docs/app/api-reference/config/next-config-js/useLightningcss)
+      - [useOffline](https://nextjs.org/docs/app/api-reference/config/next-config-js/useOffline)
+      - [useTypeScriptCli](https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli)
+      - [webpack](https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack)
+      - [webVitalsAttribution](https://nextjs.org/docs/app/api-reference/config/next-config-js/webVitalsAttribution)
+    - [TypeScript](https://nextjs.org/docs/app/api-reference/config/typescript)
+    - [ESLint](https://nextjs.org/docs/app/api-reference/config/eslint)
+  - [CLI](https://nextjs.org/docs/app/api-reference/cli)
+    - [create-next-app](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
+    - [next CLI](https://nextjs.org/docs/app/api-reference/cli/next)
+  - [Adapters](https://nextjs.org/docs/app/api-reference/adapters)
+    - [Configuration](https://nextjs.org/docs/app/api-reference/adapters/configuration)
+    - [Creating an Adapter](https://nextjs.org/docs/app/api-reference/adapters/creating-an-adapter)
+    - [API Reference](https://nextjs.org/docs/app/api-reference/adapters/api-reference)
+    - [Testing Adapters](https://nextjs.org/docs/app/api-reference/adapters/testing-adapters)
+    - [Routing with @next/routing](https://nextjs.org/docs/app/api-reference/adapters/routing-with-next-routing)
+    - [Implementing PPR in an Adapter](https://nextjs.org/docs/app/api-reference/adapters/implementing-ppr-in-an-adapter)
+    - [Runtime Integration](https://nextjs.org/docs/app/api-reference/adapters/runtime-integration)
+    - [Invoking Entrypoints](https://nextjs.org/docs/app/api-reference/adapters/invoking-entrypoints)
+    - [Output Types](https://nextjs.org/docs/app/api-reference/adapters/output-types)
+    - [Routing Information](https://nextjs.org/docs/app/api-reference/adapters/routing-information)
+    - [Use Cases](https://nextjs.org/docs/app/api-reference/adapters/use-cases)
+    - [Supporting Immutable Static Assets](https://nextjs.org/docs/app/api-reference/adapters/immutable-static-assets)
+    - [Supported Providers](https://nextjs.org/docs/app/api-reference/adapters/supported-providers)
+  - [Edge Runtime](https://nextjs.org/docs/app/api-reference/edge)
+  - [Turbopack](https://nextjs.org/docs/app/api-reference/turbopack)
+
+- [Glossary](https://nextjs.org/docs/app/glossary)
+
+- [Architecture](https://nextjs.org/docs/architecture)
+  - [Accessibility](https://nextjs.org/docs/architecture/accessibility)
+  - [Fast Refresh](https://nextjs.org/docs/architecture/fast-refresh)
+  - [Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler)
+  - [Supported Browsers](https://nextjs.org/docs/architecture/supported-browsers)
+
+- [Community](https://nextjs.org/docs/community)
+  - [Contribution Guide](https://nextjs.org/docs/community/contribution-guide)
+  - [Rspack](https://nextjs.org/docs/community/rspack)
+
+Using App Router Features available in /app Latest Version 16.3.4
+
+- [Getting Started](https://nextjs.org/docs/app/getting-started)
+  - [Installation](https://nextjs.org/docs/app/getting-started/installation)
+  - [Project Structure](https://nextjs.org/docs/app/getting-started/project-structure)
+  - [Layouts and Pages](https://nextjs.org/docs/app/getting-started/layouts-and-pages)
+  - [Linking and Navigating](https://nextjs.org/docs/app/getting-started/linking-and-navigating)
+  - [Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components)
+  - [Fetching Data](https://nextjs.org/docs/app/getting-started/fetching-data)
+  - [Mutating Data](https://nextjs.org/docs/app/getting-started/mutating-data)
+  - [Caching](https://nextjs.org/docs/app/getting-started/caching)
+  - [Revalidating](https://nextjs.org/docs/app/getting-started/revalidating)
+  - [Error Handling](https://nextjs.org/docs/app/getting-started/error-handling)
+  - [CSS](https://nextjs.org/docs/app/getting-started/css)
+  - [Image Optimization](https://nextjs.org/docs/app/getting-started/images)
+  - [Font Optimization](https://nextjs.org/docs/app/getting-started/fonts)
+  - [Metadata and OG images](https://nextjs.org/docs/app/getting-started/metadata-and-og-images)
+  - [Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers)
+  - [Proxy](https://nextjs.org/docs/app/getting-started/proxy)
+  - [Deploying](https://nextjs.org/docs/app/getting-started/deploying)
+  - [Upgrading](https://nextjs.org/docs/app/getting-started/upgrading)
+
+- [Guides](https://nextjs.org/docs/app/guides)
+  - [Adopting Partial Prefetching](https://nextjs.org/docs/app/guides/adopting-partial-prefetching)
+  - [AI Coding Agents](https://nextjs.org/docs/app/guides/ai-agents)
+  - [Analytics](https://nextjs.org/docs/app/guides/analytics)
+  - [Authentication](https://nextjs.org/docs/app/guides/authentication)
+  - [Authentication with Cache Components](https://nextjs.org/docs/app/guides/authentication-with-cache-components)
+  - [Backend for Frontend](https://nextjs.org/docs/app/guides/backend-for-frontend)
+  - [Building](https://nextjs.org/docs/app/guides/building)
+  - [Caching (Previous Model)](https://nextjs.org/docs/app/guides/caching-without-cache-components)
+  - [CDN Caching](https://nextjs.org/docs/app/guides/cdn-caching)
+  - [CI Build Caching](https://nextjs.org/docs/app/guides/ci-build-caching)
+  - [Client-side data fetching](https://nextjs.org/docs/app/guides/client-side-data-fetching)
+    - [SWR](https://nextjs.org/docs/app/guides/client-side-data-fetching/swr)
+    - [TanStack Query](https://nextjs.org/docs/app/guides/client-side-data-fetching/tanstack-query)
+  - [Content Security Policy](https://nextjs.org/docs/app/guides/content-security-policy)
+  - [CSS-in-JS](https://nextjs.org/docs/app/guides/css-in-js)
+  - [Custom Server](https://nextjs.org/docs/app/guides/custom-server)
+  - [Data Security](https://nextjs.org/docs/app/guides/data-security)
+  - [Debugging](https://nextjs.org/docs/app/guides/debugging)
+  - [Deploying to Platforms](https://nextjs.org/docs/app/guides/deploying-to-platforms)
+  - [Draft Mode](https://nextjs.org/docs/app/guides/draft-mode)
+  - [Environment Variables](https://nextjs.org/docs/app/guides/environment-variables)
+  - [Forms](https://nextjs.org/docs/app/guides/forms)
+  - [How Revalidation Works](https://nextjs.org/docs/app/guides/how-revalidation-works)
+  - [ISR](https://nextjs.org/docs/app/guides/incremental-static-regeneration)
+  - [ISR with Cache Components](https://nextjs.org/docs/app/guides/incremental-static-regeneration-cache-components)
+  - [Instant navigation](https://nextjs.org/docs/app/guides/instant-navigation)
+  - [Instrumentation](https://nextjs.org/docs/app/guides/instrumentation)
+  - [Interactive apps](https://nextjs.org/docs/app/guides/interactive-apps)
+  - [Internationalization](https://nextjs.org/docs/app/guides/internationalization)
+  - [JSON-LD](https://nextjs.org/docs/app/guides/json-ld)
+  - [Lazy Loading](https://nextjs.org/docs/app/guides/lazy-loading)
+  - [Development Environment](https://nextjs.org/docs/app/guides/local-development)
+  - [Next.js MCP Server](https://nextjs.org/docs/app/guides/mcp)
+  - [MDX](https://nextjs.org/docs/app/guides/mdx)
+  - [Memory Usage](https://nextjs.org/docs/app/guides/memory-usage)
+  - [Migrating](https://nextjs.org/docs/app/guides/migrating)
+    - [App Router](https://nextjs.org/docs/app/guides/migrating/app-router-migration)
+    - [Create React App](https://nextjs.org/docs/app/guides/migrating/from-create-react-app)
+    - [Vite](https://nextjs.org/docs/app/guides/migrating/from-vite)
+  - [Migrating to Cache Components](https://nextjs.org/docs/app/guides/migrating-to-cache-components)
+  - [Multi-tenant](https://nextjs.org/docs/app/guides/multi-tenant)
+  - [Multi-zones](https://nextjs.org/docs/app/guides/multi-zones)
+  - [Offline support](https://nextjs.org/docs/app/guides/offline-support)
+  - [OpenTelemetry](https://nextjs.org/docs/app/guides/open-telemetry)
+  - [Optimizing prefetching](https://nextjs.org/docs/app/guides/optimizing-prefetching)
+  - [Package Bundling](https://nextjs.org/docs/app/guides/package-bundling)
+  - [PPR Platform Guide](https://nextjs.org/docs/app/guides/ppr-platform-guide)
+  - [Prefetching](https://nextjs.org/docs/app/guides/prefetching)
+  - [Preserving UI state](https://nextjs.org/docs/app/guides/preserving-ui-state)
+  - [Preventing Flash](https://nextjs.org/docs/app/guides/preventing-flash-before-hydration)
+  - [Production](https://nextjs.org/docs/app/guides/production-checklist)
+  - [PWAs](https://nextjs.org/docs/app/guides/progressive-web-apps)
+  - [Public pages](https://nextjs.org/docs/app/guides/public-static-pages)
+  - [Redirecting](https://nextjs.org/docs/app/guides/redirecting)
+  - [Rendering Philosophy](https://nextjs.org/docs/app/guides/rendering-philosophy)
+  - [Sass](https://nextjs.org/docs/app/guides/sass)
+  - [Scripts](https://nextjs.org/docs/app/guides/scripts)
+  - [Self-Hosting](https://nextjs.org/docs/app/guides/self-hosting)
+  - [Server Actions](https://nextjs.org/docs/app/guides/server-actions)
+  - [Server and Client Boundary](https://nextjs.org/docs/app/guides/server-and-client-boundary)
+  - [SPAs](https://nextjs.org/docs/app/guides/single-page-applications)
+  - [Static Exports](https://nextjs.org/docs/app/guides/static-exports)
+  - [Streaming](https://nextjs.org/docs/app/guides/streaming)
+  - [Tailwind CSS v3](https://nextjs.org/docs/app/guides/tailwind-v3-css)
+  - [Testing](https://nextjs.org/docs/app/guides/testing)
+    - [Cypress](https://nextjs.org/docs/app/guides/testing/cypress)
+    - [Jest](https://nextjs.org/docs/app/guides/testing/jest)
+    - [Playwright](https://nextjs.org/docs/app/guides/testing/playwright)
+    - [Vitest](https://nextjs.org/docs/app/guides/testing/vitest)
+  - [Third Party Libraries](https://nextjs.org/docs/app/guides/third-party-libraries)
+  - [Upgrading](https://nextjs.org/docs/app/guides/upgrading)
+    - [Codemods](https://nextjs.org/docs/app/guides/upgrading/codemods)
+    - [Version 14](https://nextjs.org/docs/app/guides/upgrading/version-14)
+    - [Version 15](https://nextjs.org/docs/app/guides/upgrading/version-15)
+    - [Version 16](https://nextjs.org/docs/app/guides/upgrading/version-16)
+  - [Videos](https://nextjs.org/docs/app/guides/videos)
+  - [View transitions](https://nextjs.org/docs/app/guides/view-transitions)
+
+- [API Reference](https://nextjs.org/docs/app/api-reference)
+  - [Directives](https://nextjs.org/docs/app/api-reference/directives)
+    - [use cache](https://nextjs.org/docs/app/api-reference/directives/use-cache)
+    - [use cache: private](https://nextjs.org/docs/app/api-reference/directives/use-cache-private)
+    - [use cache: remote](https://nextjs.org/docs/app/api-reference/directives/use-cache-remote)
+    - [use client](https://nextjs.org/docs/app/api-reference/directives/use-client)
+    - [use server](https://nextjs.org/docs/app/api-reference/directives/use-server)
+  - [Components](https://nextjs.org/docs/app/api-reference/components)
+    - [Font](https://nextjs.org/docs/app/api-reference/components/font)
+    - [Form Component](https://nextjs.org/docs/app/api-reference/components/form)
+    - [Image Component](https://nextjs.org/docs/app/api-reference/components/image)
+    - [Link Component](https://nextjs.org/docs/app/api-reference/components/link)
+    - [Script Component](https://nextjs.org/docs/app/api-reference/components/script)
+  - [File-system conventions](https://nextjs.org/docs/app/api-reference/file-conventions)
+    - [default.js](https://nextjs.org/docs/app/api-reference/file-conventions/default)
+    - [Dynamic Segments](https://nextjs.org/docs/app/api-reference/file-conventions/dynamic-routes)
+    - [error.js](https://nextjs.org/docs/app/api-reference/file-conventions/error)
+    - [forbidden.js](https://nextjs.org/docs/app/api-reference/file-conventions/forbidden)
+    - [instrumentation.js](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation)
+    - [instrumentation-client.js](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)
+    - [Intercepting Routes](https://nextjs.org/docs/app/api-reference/file-conventions/intercepting-routes)
+    - [layout.js](https://nextjs.org/docs/app/api-reference/file-conventions/layout)
+    - [loading.js](https://nextjs.org/docs/app/api-reference/file-conventions/loading)
+    - [mdx-components.js](https://nextjs.org/docs/app/api-reference/file-conventions/mdx-components)
+    - [not-found.js](https://nextjs.org/docs/app/api-reference/file-conventions/not-found)
+    - [page.js](https://nextjs.org/docs/app/api-reference/file-conventions/page)
+    - [Parallel Routes](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes)
+    - [proxy.js](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
+    - [public](https://nextjs.org/docs/app/api-reference/file-conventions/public-folder)
+    - [route.js](https://nextjs.org/docs/app/api-reference/file-conventions/route)
+    - [Route Groups](https://nextjs.org/docs/app/api-reference/file-conventions/route-groups)
+    - [src](https://nextjs.org/docs/app/api-reference/file-conventions/src-folder)
+    - [template.js](https://nextjs.org/docs/app/api-reference/file-conventions/template)
+    - [unauthorized.js](https://nextjs.org/docs/app/api-reference/file-conventions/unauthorized)
+    - [Metadata Files](https://nextjs.org/docs/app/api-reference/file-conventions/metadata)
+      - [favicon, icon, and apple-icon](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons)
+      - [manifest.json](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/manifest)
+      - [opengraph-image and twitter-image](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/opengraph-image)
+      - [robots.txt](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots)
+      - [sitemap.xml](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap)
+    - [Route Segment Config](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config)
+      - [dynamicParams](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/dynamicParams)
+      - [instant](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/instant)
+      - [maxDuration](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/maxDuration)
+      - [preferredRegion (deprecated)](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/preferredRegion)
+      - [prefetch](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/prefetch)
+      - [runtime](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/runtime)
+  - [Functions](https://nextjs.org/docs/app/api-reference/functions)
+    - [after](https://nextjs.org/docs/app/api-reference/functions/after)
+    - [cacheLife](https://nextjs.org/docs/app/api-reference/functions/cacheLife)
+    - [cacheTag](https://nextjs.org/docs/app/api-reference/functions/cacheTag)
+    - [catchError](https://nextjs.org/docs/app/api-reference/functions/catchError)
+    - [connection](https://nextjs.org/docs/app/api-reference/functions/connection)
+    - [cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)
+    - [draftMode](https://nextjs.org/docs/app/api-reference/functions/draft-mode)
+    - [fetch](https://nextjs.org/docs/app/api-reference/functions/fetch)
+    - [forbidden](https://nextjs.org/docs/app/api-reference/functions/forbidden)
+    - [generateImageMetadata](https://nextjs.org/docs/app/api-reference/functions/generate-image-metadata)
+    - [generateMetadata](https://nextjs.org/docs/app/api-reference/functions/generate-metadata)
+    - [generateSitemaps](https://nextjs.org/docs/app/api-reference/functions/generate-sitemaps)
+    - [generateStaticParams](https://nextjs.org/docs/app/api-reference/functions/generate-static-params)
+    - [generateViewport](https://nextjs.org/docs/app/api-reference/functions/generate-viewport)
+    - [headers](https://nextjs.org/docs/app/api-reference/functions/headers)
+    - [ImageResponse](https://nextjs.org/docs/app/api-reference/functions/image-response)
+    - [io](https://nextjs.org/docs/app/api-reference/functions/io)
+    - [NextRequest](https://nextjs.org/docs/app/api-reference/functions/next-request)
+    - [NextResponse](https://nextjs.org/docs/app/api-reference/functions/next-response)
+    - [root-params](https://nextjs.org/docs/app/api-reference/functions/next-root-params)
+    - [notFound](https://nextjs.org/docs/app/api-reference/functions/not-found)
+    - [permanentRedirect](https://nextjs.org/docs/app/api-reference/functions/permanentRedirect)
+    - [redirect](https://nextjs.org/docs/app/api-reference/functions/redirect)
+    - [refresh](https://nextjs.org/docs/app/api-reference/functions/refresh)
+    - [revalidatePath](https://nextjs.org/docs/app/api-reference/functions/revalidatePath)
+    - [revalidateTag](https://nextjs.org/docs/app/api-reference/functions/revalidateTag)
+    - [unauthorized](https://nextjs.org/docs/app/api-reference/functions/unauthorized)
+    - [unstable\_cache](https://nextjs.org/docs/app/api-reference/functions/unstable_cache)
+    - [unstable\_noStore](https://nextjs.org/docs/app/api-reference/functions/unstable_noStore)
+    - [unstable\_rethrow](https://nextjs.org/docs/app/api-reference/functions/unstable_rethrow)
+    - [updateTag](https://nextjs.org/docs/app/api-reference/functions/updateTag)
+    - [useLinkStatus](https://nextjs.org/docs/app/api-reference/functions/use-link-status)
+    - [useOffline](https://nextjs.org/docs/app/api-reference/functions/use-offline)
+    - [useParams](https://nextjs.org/docs/app/api-reference/functions/use-params)
+    - [usePathname](https://nextjs.org/docs/app/api-reference/functions/use-pathname)
+    - [useReportWebVitals](https://nextjs.org/docs/app/api-reference/functions/use-report-web-vitals)
+    - [useRouter](https://nextjs.org/docs/app/api-reference/functions/use-router)
+    - [useSearchParams](https://nextjs.org/docs/app/api-reference/functions/use-search-params)
+    - [useSelectedLayoutSegment](https://nextjs.org/docs/app/api-reference/functions/use-selected-layout-segment)
+    - [useSelectedLayoutSegments](https://nextjs.org/docs/app/api-reference/functions/use-selected-layout-segments)
+    - [userAgent](https://nextjs.org/docs/app/api-reference/functions/userAgent)
+  - [Configuration](https://nextjs.org/docs/app/api-reference/config)
+    - [next.config.js](https://nextjs.org/docs/app/api-reference/config/next-config-js)
+      - [adapterPath](https://nextjs.org/docs/app/api-reference/config/next-config-js/adapterPath)
+      - [allowedDevOrigins](https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins)
+      - [appDir](https://nextjs.org/docs/app/api-reference/config/next-config-js/appDir)
+      - [assetPrefix](https://nextjs.org/docs/app/api-reference/config/next-config-js/assetPrefix)
+      - [authInterrupts](https://nextjs.org/docs/app/api-reference/config/next-config-js/authInterrupts)
+      - [basePath](https://nextjs.org/docs/app/api-reference/config/next-config-js/basePath)
+      - [cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents)
+      - [cacheHandlers](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheHandlers)
+      - [cacheLife](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheLife)
+      - [cacheMaxMemorySize](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheMaxMemorySize)
+      - [compress](https://nextjs.org/docs/app/api-reference/config/next-config-js/compress)
+      - [crossOrigin](https://nextjs.org/docs/app/api-reference/config/next-config-js/crossOrigin)
+      - [cssChunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/cssChunking)
+      - [deploymentId](https://nextjs.org/docs/app/api-reference/config/next-config-js/deploymentId)
+      - [devIndicators](https://nextjs.org/docs/app/api-reference/config/next-config-js/devIndicators)
+      - [distDir](https://nextjs.org/docs/app/api-reference/config/next-config-js/distDir)
+      - [env](https://nextjs.org/docs/app/api-reference/config/next-config-js/env)
+      - [expireTime](https://nextjs.org/docs/app/api-reference/config/next-config-js/expireTime)
+      - [exportPathMap](https://nextjs.org/docs/app/api-reference/config/next-config-js/exportPathMap)
+      - [generateBuildId](https://nextjs.org/docs/app/api-reference/config/next-config-js/generateBuildId)
+      - [generateEtags](https://nextjs.org/docs/app/api-reference/config/next-config-js/generateEtags)
+      - [headers](https://nextjs.org/docs/app/api-reference/config/next-config-js/headers)
+      - [htmlLimitedBots](https://nextjs.org/docs/app/api-reference/config/next-config-js/htmlLimitedBots)
+      - [httpAgentOptions](https://nextjs.org/docs/app/api-reference/config/next-config-js/httpAgentOptions)
+      - [images](https://nextjs.org/docs/app/api-reference/config/next-config-js/images)
+      - [cacheHandler](https://nextjs.org/docs/app/api-reference/config/next-config-js/incrementalCacheHandlerPath)
+      - [inlineCss](https://nextjs.org/docs/app/api-reference/config/next-config-js/inlineCss)
+      - [instrumentationClientInject](https://nextjs.org/docs/app/api-reference/config/next-config-js/instrumentationClientInject)
+      - [logging](https://nextjs.org/docs/app/api-reference/config/next-config-js/logging)
+      - [mdxRs](https://nextjs.org/docs/app/api-reference/config/next-config-js/mdxRs)
+      - [onDemandEntries](https://nextjs.org/docs/app/api-reference/config/next-config-js/onDemandEntries)
+      - [optimizePackageImports](https://nextjs.org/docs/app/api-reference/config/next-config-js/optimizePackageImports)
+      - [output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)
+      - [outputHashSalt](https://nextjs.org/docs/app/api-reference/config/next-config-js/outputHashSalt)
+      - [pageExtensions](https://nextjs.org/docs/app/api-reference/config/next-config-js/pageExtensions)
+      - [partialPrefetching](https://nextjs.org/docs/app/api-reference/config/next-config-js/partialPrefetching)
+      - [poweredByHeader](https://nextjs.org/docs/app/api-reference/config/next-config-js/poweredByHeader)
+      - [prefetchInlining](https://nextjs.org/docs/app/api-reference/config/next-config-js/prefetchInlining)
+      - [productionBrowserSourceMaps](https://nextjs.org/docs/app/api-reference/config/next-config-js/productionBrowserSourceMaps)
+      - [proxyClientMaxBodySize](https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize)
+      - [reactCompiler](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactCompiler)
+      - [reactMaxHeadersLength](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactMaxHeadersLength)
+      - [reactStrictMode](https://nextjs.org/docs/app/api-reference/config/next-config-js/reactStrictMode)
+      - [redirects](https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects)
+      - [rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites)
+      - [sassOptions](https://nextjs.org/docs/app/api-reference/config/next-config-js/sassOptions)
+      - [serverActions](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverActions)
+      - [serverComponentsHmrCache](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverComponentsHmrCache)
+      - [serverExternalPackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages)
+      - [staleTimes](https://nextjs.org/docs/app/api-reference/config/next-config-js/staleTimes)
+      - [staticGeneration\*](https://nextjs.org/docs/app/api-reference/config/next-config-js/staticGeneration)
+      - [supportsImmutableAssets](https://nextjs.org/docs/app/api-reference/config/next-config-js/supportsImmutableAssets)
+      - [taint](https://nextjs.org/docs/app/api-reference/config/next-config-js/taint)
+      - [trailingSlash](https://nextjs.org/docs/app/api-reference/config/next-config-js/trailingSlash)
+      - [transpilePackages](https://nextjs.org/docs/app/api-reference/config/next-config-js/transpilePackages)
+      - [turbopack](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack)
+      - [turbopackChunking](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackChunking)
+      - [turbopackFileSystemCache](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackFileSystemCache)
+      - [turbopack.ignoreIssue](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackIgnoreIssue)
+      - [turbopackLocalPostcssConfig](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackLocalPostcssConfig)
+      - [turbopackMemoryEviction](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackMemoryEviction)
+      - [turbopackRustReactCompiler](https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopackRustReactCompiler)
+      - [typedRoutes](https://nextjs.org/docs/app/api-reference/config/next-config-js/typedRoutes)
+      - [typescript](https://nextjs.org/docs/app/api-reference/config/next-config-js/typescript)
+      - [urlImports](https://nextjs.org/docs/app/api-reference/config/next-config-js/urlImports)
+      - [useLightningcss](https://nextjs.org/docs/app/api-reference/config/next-config-js/useLightningcss)
+      - [useOffline](https://nextjs.org/docs/app/api-reference/config/next-config-js/useOffline)
+      - [useTypeScriptCli](https://nextjs.org/docs/app/api-reference/config/next-config-js/useTypeScriptCli)
+      - [webpack](https://nextjs.org/docs/app/api-reference/config/next-config-js/webpack)
+      - [webVitalsAttribution](https://nextjs.org/docs/app/api-reference/config/next-config-js/webVitalsAttribution)
+    - [TypeScript](https://nextjs.org/docs/app/api-reference/config/typescript)
+    - [ESLint](https://nextjs.org/docs/app/api-reference/config/eslint)
+  - [CLI](https://nextjs.org/docs/app/api-reference/cli)
+    - [create-next-app](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
+    - [next CLI](https://nextjs.org/docs/app/api-reference/cli/next)
+  - [Adapters](https://nextjs.org/docs/app/api-reference/adapters)
+    - [Configuration](https://nextjs.org/docs/app/api-reference/adapters/configuration)
+    - [Creating an Adapter](https://nextjs.org/docs/app/api-reference/adapters/creating-an-adapter)
+    - [API Reference](https://nextjs.org/docs/app/api-reference/adapters/api-reference)
+    - [Testing Adapters](https://nextjs.org/docs/app/api-reference/adapters/testing-adapters)
+    - [Routing with @next/routing](https://nextjs.org/docs/app/api-reference/adapters/routing-with-next-routing)
+    - [Implementing PPR in an Adapter](https://nextjs.org/docs/app/api-reference/adapters/implementing-ppr-in-an-adapter)
+    - [Runtime Integration](https://nextjs.org/docs/app/api-reference/adapters/runtime-integration)
+    - [Invoking Entrypoints](https://nextjs.org/docs/app/api-reference/adapters/invoking-entrypoints)
+    - [Output Types](https://nextjs.org/docs/app/api-reference/adapters/output-types)
+    - [Routing Information](https://nextjs.org/docs/app/api-reference/adapters/routing-information)
+    - [Use Cases](https://nextjs.org/docs/app/api-reference/adapters/use-cases)
+    - [Supporting Immutable Static Assets](https://nextjs.org/docs/app/api-reference/adapters/immutable-static-assets)
+    - [Supported Providers](https://nextjs.org/docs/app/api-reference/adapters/supported-providers)
+  - [Edge Runtime](https://nextjs.org/docs/app/api-reference/edge)
+  - [Turbopack](https://nextjs.org/docs/app/api-reference/turbopack)
+
+- [Glossary](https://nextjs.org/docs/app/glossary)
+
+- [Architecture](https://nextjs.org/docs/architecture)
+  - [Accessibility](https://nextjs.org/docs/architecture/accessibility)
+  - [Fast Refresh](https://nextjs.org/docs/architecture/fast-refresh)
+  - [Next.js Compiler](https://nextjs.org/docs/architecture/nextjs-compiler)
+  - [Supported Browsers](https://nextjs.org/docs/architecture/supported-browsers)
+
+- [Community](https://nextjs.org/docs/community)
+  - [Contribution Guide](https://nextjs.org/docs/community/contribution-guide)
+  - [Rspack](https://nextjs.org/docs/community/rspack)
+
+On this page
+
+- [What is Next.js?](#what-is-nextjs)
+- [How to use the docs](#how-to-use-the-docs)
+- [App Router and Pages Router](#app-router-and-pages-router)
+- [React version handling](#react-version-handling)
+- [Pre-requisite knowledge](#pre-requisite-knowledge)
+- [Accessibility](#accessibility)
+- [Join our Community](#join-our-community)
+- [Next Steps](#next-steps)
+
+[Edit this page on GitHub ](https://github.com/vercel/next.js/edit/canary/docs/index.mdx)Scroll to top
+
+For an index of Next.js documentation, see /docs/llms.txt.
+
+On this pageWhat is Next.js?
+
+# Next.js Docs
+
+Welcome to the Next.js documentation!
+
+## What is Next.js? Link to this section
+
+Next.js is a React framework for building full-stack web applications. You use React Components to build user interfaces, and Next.js for additional features and optimizations.
+
+It also automatically configures lower-level tools like bundlers and compilers. You can instead focus on building your product and shipping quickly.
+
+Whether you're an individual developer or part of a larger team, Next.js can help you build interactive, dynamic, and fast React applications.
+
+## How to use the docs Link to this section
+
+The docs are organized into 3 sections:
+
+- [Getting Started](https://nextjs.org/docs/app/getting-started): Step-by-step tutorials to help you create a new application and learn the core Next.js features.
+- [Guides](https://nextjs.org/docs/app/guides): Tutorials on specific use cases, choose what's relevant to you.
+- [API Reference](https://nextjs.org/docs/app/api-reference): Detailed technical reference for every feature.
+
+Use the sidebar to navigate through the sections, or search (`Ctrl+K` or `Cmd+K`) to quickly find a page.
+
+## App Router and Pages Router Link to this section
+
+Next.js has two different routers:
+
+- **App Router**: The newer router that supports new React features like Server Components.
+- **Pages Router**: The original router, still supported and being improved.
+
+At the top of the sidebar, you'll notice a dropdown menu that allows you to switch between the [App Router](https://nextjs.org/docs/app) and the [Pages Router](https://nextjs.org/docs/pages) docs.
+
+### React version handling Link to this section
+
+The App Router and Pages Router handle React versions differently:
+
+- **App Router**: Uses [React canary releases](https://react.dev/blog/2023/05/03/react-canaries) built-in, which include all the stable React 19 changes, as well as newer features being validated in frameworks, prior to a new React release.
+- **Pages Router**: Uses the React version installed in your project's `package.json`.
+
+This approach ensures new React features work reliably in the App Router while maintaining backwards compatibility for existing Pages Router applications.
+
+## Pre-requisite knowledge Link to this section
+
+Our documentation assumes some familiarity with web development. Before getting started, it'll help if you're comfortable with:
+
+- HTML
+- CSS
+- JavaScript
+- React
+
+If you're new to React or need a refresher, we recommend starting with our [React Foundations course](https://nextjs.org/learn/react-foundations), and the [Next.js Foundations course](https://nextjs.org/learn/dashboard-app) that has you building an application as you learn.
+
+## Accessibility Link to this section
+
+For the best experience when using a screen reader, we recommend using Firefox and NVDA, or Safari and VoiceOver.
+
+## Join our Community Link to this section
+
+If you have questions about anything related to Next.js, you're always welcome to ask our community on [GitHub Discussions](https://github.com/vercel/next.js/discussions), [Discord](https://discord.com/invite/bUG2bvbtHy), [X (Twitter)](https://x.com/nextjs), and [Reddit](https://www.reddit.com/r/nextjs).
+
+## Next Steps
+
+Create your first application and learn the core Next.js features.
+
+[<h3>Getting Started</h3>Learn how to create full-stack web applications with the Next.js App Router.](https://nextjs.org/docs/app/getting-started)
+
+[Edit this page on GitHub ](https://github.com/vercel/next.js/edit/canary/docs/index.mdx)Scroll to top
+
+[PreviousRspack](https://nextjs.org/docs/community/rspack)
+
+[NextApp Router](https://nextjs.org/docs/app)
+
+Was this helpful?
+
+supported.
+
+Send
+
+[![VercelLogotype](https://nextjs.org/_next/static/immutable/media/vercel-logotype-light.0k7echqflwha4.svg)![VercelLogotype](https://nextjs.org/_next/static/immutable/media/vercel-logotype-dark.3m9ycmsc1ql8m.svg)Go to the Vercel website](https://vercel.com/home?utm_source=next-site&utm_medium=footer&utm_campaign=next-website)
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg)![](https://nextjs.org/_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg)GitHub](https://github.com/vercel/next.js)
+
+---
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-twitter-x-light.0dvkch_c5dvys.svg)![](https://nextjs.org/_next/static/immutable/media/logo-twitter-x-dark.1-i769nzu94hl.svg)X](https://x.com/nextjs)
+
+---
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-bluesky-light.2may7hm2y7g6v.svg)![](https://nextjs.org/_next/static/immutable/media/logo-bluesky-dark.39tbulfg2p-1z.svg)Bluesky](https://bsky.app/profile/nextjs.org)
+
+#### Resources
+
+[Docs](https://nextjs.org/docs) [Support Policy](https://nextjs.org/support-policy) [Learn](https://nextjs.org/learn) [Showcase](https://nextjs.org/showcase) [Blog](https://nextjs.org/blog) [Team](https://nextjs.org/team) [Analytics](https://vercel.com/analytics?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Next.js Conf](https://nextjs.org/conf) [Previews](https://vercel.com/products/previews?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Evals](https://nextjs.org/evals)
+
+#### More
+
+[Next.js Commerce](https://vercel.com/templates/next.js/nextjs-commerce?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Contact Sales](https://vercel.com/contact/sales?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Community](https://community.vercel.com) [GitHub](https://github.com/vercel/next.js) [Releases](https://github.com/vercel/next.js/releases) [Telemetry](https://nextjs.org/telemetry) [Governance](https://nextjs.org/governance) [Ecosystem Working Group](https://nextjs.org/ecosystem-working-group)
+
+#### About Vercel
+
+[Next.js + Vercel](https://vercel.com/solutions/nextjs?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Open Source Software](https://vercel.com/oss?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [GitHub](https://github.com/vercel) [Bluesky](https://bsky.app/profile/vercel.com) [X](https://x.com/vercel)
+
+#### Legal
+
+[Privacy Policy](https://vercel.com/legal/privacy-policy)Cookie Preferences
+
+#### Subscribe to our newsletter
+
+Stay updated on new releases and features, guides, and case studies.
+
+Subscribe
+
+© 2026 Vercel, Inc.
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-github-light.3dl3lqjq1azpp.svg)![](https://nextjs.org/_next/static/immutable/media/logo-github-dark.1k-70sin_m3qn.svg)GitHub](https://github.com/vercel/next.js)
+
+---
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-twitter-x-light.0dvkch_c5dvys.svg)![](https://nextjs.org/_next/static/immutable/media/logo-twitter-x-dark.1-i769nzu94hl.svg)Twitter](https://x.com/nextjs)
+
+---
+
+[![](https://nextjs.org/_next/static/immutable/media/logo-bluesky-light.2may7hm2y7g6v.svg)![](https://nextjs.org/_next/static/immutable/media/logo-bluesky-dark.39tbulfg2p-1z.svg)Bluesky](https://bsky.app/profile/nextjs.org)
+
+#### Get started
+
+[Docs](https://nextjs.org/docs) [Support Policy](https://nextjs.org/support-policy) [Learn](https://nextjs.org/learn) [Showcase](https://nextjs.org/showcase) [Blog](https://nextjs.org/blog) [Team](https://nextjs.org/team) [Analytics](https://vercel.com/analytics?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Next.js Conf](https://nextjs.org/conf) [Previews](https://vercel.com/products/previews?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Evals](https://nextjs.org/evals)
+
+#### More
+
+[Next.js Commerce](https://vercel.com/templates/next.js/nextjs-commerce?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Contact Sales](https://vercel.com/contact/sales?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Community](https://community.vercel.com) [GitHub](https://github.com/vercel/next.js) [Releases](https://github.com/vercel/next.js/releases) [Telemetry](https://nextjs.org/telemetry) [Governance](https://nextjs.org/governance) [Ecosystem Working Group](https://nextjs.org/ecosystem-working-group)
+
+#### About Vercel
+
+[Next.js + Vercel](https://vercel.com/solutions/nextjs?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [Open Source Software](https://vercel.com/oss?utm_source=next-site&utm_medium=footer&utm_campaign=docs) [GitHub](https://github.com/vercel) [Bluesky](https://bsky.app/profile/vercel.com) [X](https://x.com/vercel)
+
+#### Legal
+
+[Privacy Policy](https://vercel.com/legal/privacy-policy)Cookie Preferences
+
+#### Subscribe to our newsletter
+
+Subscribe
+
+Stay updated on new releases and features, guides, and case studies.
+
+Select a display theme:systemlightdark

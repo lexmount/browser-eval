@@ -1,0 +1,427 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__wcxb-2393__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>WCXB documentation · FunctionGemma model overview</h1><div class="meta"><span class="pill warn">机器内容初判未通过</span><span class="pill">第 1 次</span><span class="pill">4,713 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 documentation 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://ai.google.dev/gemma/docs/functiongemma">https://ai.google.dev/gemma/docs/functiongemma</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling. It is designed as a strong base for further training into custom, fast, private, local agents that translate natural language into executable API actions.
+
+When to choose FunctionGemma
+
+FunctionGemma is the bridge between natural language and software execution. It is the right tool if:
+
+- You have a defined API surface: Your application has a defined set of actions (e.g., smart home, media, navigation).
+- You are ready to fine-tune: You need the consistent, deterministic behavior that comes from fine-tuning on specific data, rather than the variability of zero-shot prompting.
+- You prioritize local-first deployment: Your application requires near-instant latency and total data privacy, running efficiently within the compute and battery limits of edge devices.
+- You are building compound systems: You need a lightweight edge model to handle local actions, allowing your system to process common commands on-device and only query larger models (like Gemma 3 27B) for more complex tasks.
+
+As with other Gemma models, FunctionGemma is provided with open weights and licensed for responsible commercial use, allowing you to fine tune and deploy it in your own projects and applications.</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/wcxb-2393/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://ai.google.dev/gemma/docs/functiongemma">打开标准答案源网页</a> · 完整性校验 <code>sha256:f6a9e6942cfc412a77b32064781ecabd10173436a40da64cb7d239600d86e6b6</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling. It is designed as a strong base for further training into custom, fast, private, local agents that translate natural language into executable API actions.
+
+When to choose FunctionGemma
+
+FunctionGemma is the bridge between natural language and software execution. It is the right tool if:
+
+- You have a defined API surface: Your application has a defined set of actions (e.g., smart home, media, navigation).
+- You are ready to fine-tune: You need the consistent, deterministic behavior that comes from fine-tuning on specific data, rather than the variability of zero-shot prompting.
+- You prioritize local-first deployment: Your application requires near-instant latency and total data privacy, running efficiently within the compute and battery limits of edge devices.
+- You are building compound systems: You need a lightweight edge model to handle local actions, allowing your system to process common commands on-device and only query larger models (like Gemma 3 27B) for more complex tasks.
+
+As with other Gemma models, FunctionGemma is provided with open weights and licensed for responsible commercial use, allowing you to fine tune and deploy it in your own projects and applications.</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>FunctionGemma model overview | Google AI for Developers Skip to main content Models Gemini About Docs API reference Pricing Imagen About Docs Pricing Veo About Docs Pricing Gemma About Docs Gemmaverse Solutions Build with Gemini Gemini API Google AI Studio Customize Gemma open models Gemma open models Multi-framework with Keras Fine-tune in Colab Run on-device Google AI Edge Gemini Nano on Android Chrome built-in web APIs Build responsibly Responsible GenAI Toolkit Secure AI Framework Code assistance Android Studio Chrome DevTools Colab Firebase Google Cloud JetBrains Jules VS Code Community Google AI Forum Gemini for Research / English Deutsch Español – América Latina Français Indonesia Italiano Polski Português – Brasil Shqip Tiếng Việt Türkçe Русский עברית العربيّة فارسی हिंदी বাংলা ภาษาไทย 中文 – 简体 中文 – 繁體 日本語 한국어 Sign in Gemma Gemma Docs Models More Gemma Docs Solutions More Code assistance More Community More Overview Get started Releases Models Core Gemma Overview Gemma 4 model card Gemma 3 model card Gemma 2 model card Gemma 1 model card Core Variants Gemma 3n Overview Model card DiffusionGemma Overview Model card Diffusion Explained Generate Output FunctionGemma Overview Model card Formatting and best practices Function calling with Hugging Face Transformers Full function calling sequence with FunctionGemma Fine-tune FunctionGemma EmbeddingGemma Overview Model card Generate embeddings with Sentence Transformers Fine-tune EmbeddingGemma PaliGemma Overview v2 model card v1 model card Generate output with Keras Fine-tune with JAX and Flax Prompt and system instructions ShieldGemma Overview ShieldGemma 2 Model card ShieldGemma 1 Model card Run Gemma Fundamentals Overview Prompt Formatting Legacy Gemma setup [Gemma 1, 2, and 3] Legacy Prompt and system instructions</pre></div></div><details><summary>展开本页中的完整供应商输出（5,916 / 5,916 字符）</summary><pre>FunctionGemma model overview | Google AI for Developers Skip to main content Models Gemini About Docs API reference Pricing Imagen About Docs Pricing Veo About Docs Pricing Gemma About Docs Gemmaverse Solutions Build with Gemini Gemini API Google AI Studio Customize Gemma open models Gemma open models Multi-framework with Keras Fine-tune in Colab Run on-device Google AI Edge Gemini Nano on Android Chrome built-in web APIs Build responsibly Responsible GenAI Toolkit Secure AI Framework Code assistance Android Studio Chrome DevTools Colab Firebase Google Cloud JetBrains Jules VS Code Community Google AI Forum Gemini for Research / English Deutsch Español – América Latina Français Indonesia Italiano Polski Português – Brasil Shqip Tiếng Việt Türkçe Русский עברית العربيّة فارسی हिंदी বাংলা ภาษาไทย 中文 – 简体 中文 – 繁體 日本語 한국어 Sign in Gemma Gemma Docs Models More Gemma Docs Solutions More Code assistance More Community More Overview Get started Releases Models Core Gemma Overview Gemma 4 model card Gemma 3 model card Gemma 2 model card Gemma 1 model card Core Variants Gemma 3n Overview Model card DiffusionGemma Overview Model card Diffusion Explained Generate Output FunctionGemma Overview Model card Formatting and best practices Function calling with Hugging Face Transformers Full function calling sequence with FunctionGemma Fine-tune FunctionGemma EmbeddingGemma Overview Model card Generate embeddings with Sentence Transformers Fine-tune EmbeddingGemma PaliGemma Overview v2 model card v1 model card Generate output with Keras Fine-tune with JAX and Flax Prompt and system instructions ShieldGemma Overview ShieldGemma 2 Model card ShieldGemma 1 Model card Run Gemma Fundamentals Overview Prompt Formatting Legacy Gemma setup [Gemma 1, 2, and 3] Legacy Prompt and system instructions [Gemma 1, 2, and 3] Run locally with a Chat UI or integrate via API LM Studio Ollama Run efficiently on Edge LiteRT-LM Llama.cpp MLX Build/Train in Python Tunix (Tune-in-JAX) Hugging Face Transformers Keras Unsloth Deploy to Production / Enterprise Gemini API Google Cloud Cloud GKE Multi-Token Prediction (MTP) Overview Hugging Face Transformers Core Capabilities Text Basic and multi-turn chat Function calling Visual data Overview Image understanding Video understanding Audio data Thinking Tuning guides Overview Tune using Hugging Face Transformers and QLoRA Vision Tune using Hugging Face Transformers and QLoRA Full model fine-tune using Hugging Face Transformers Tune using Gemma library Research and tools RecurrentGemma Overview Inference using JAX and Flax Fine-tune using JAX and Flax Model card DataGemma Gemma Scope Gemma-APS Community Gemmaverse Discord Legal Terms of use Gemma 4 license Prohibited use Intended use statement Gemini About Docs API reference Pricing Imagen About Docs Pricing Veo About Docs Pricing Gemma About Docs Gemmaverse Build with Gemini Gemini API Google AI Studio Customize Gemma open models Gemma open models Multi-framework with Keras Fine-tune in Colab Run on-device Google AI Edge Gemini Nano on Android Chrome built-in web APIs Build responsibly Responsible GenAI Toolkit Secure AI Framework Android Studio Chrome DevTools Colab Firebase Google Cloud JetBrains Jules VS Code Google AI Forum Gemini for Research Gemma 4 released with text, audio and image input and long up to 256K context window! Learn more Home Gemma Models Docs Send feedback FunctionGemma model overview FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling. It is designed as a strong base for further training into custom, fast, private, local agents that translate natural language into executable API actions. When to choose FunctionGemma FunctionGemma is the bridge between natural language and software execution. It is the right tool if: You have a defined API surface: Your application has a defined set of actions (e.g., smart home, media, navigation). You are ready to fine-tune: You need the consistent, deterministic behavior that comes from fine-tuning on specific data, rather than the variability of zero-shot prompting. You prioritize local-first deployment: Your application requires near-instant latency and total data privacy, running efficiently within the compute and battery limits of edge devices. You are building compound systems: You need a lightweight edge model to handle local actions, allowing your system to process common commands on-device and only query larger models (like Gemma 3 27B) for more complex tasks. Get it on Hugging Face Get it on Kaggle Access it on Vertex As with other Gemma models, FunctionGemma is provided with open weights and licensed for responsible commercial use , allowing you to fine tune and deploy it in your own projects and applications. Formatting and best practices Try FunctionGemma Fine-tune FunctionGemma Fine-tune the Mobile Actions demo Send feedback Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License , and code samples are licensed under the Apache 2.0 License . For details, see the Google Developers Site Policies . Java is a registered trademark of Oracle and/or its affiliates. Last updated 2025-12-18 UTC. Need to tell us more? [[[&quot;Easy to understand&quot;,&quot;easyToUnderstand&quot;,&quot;thumb-up&quot;],[&quot;Solved my problem&quot;,&quot;solvedMyProblem&quot;,&quot;thumb-up&quot;],[&quot;Other&quot;,&quot;otherUp&quot;,&quot;thumb-up&quot;]],[[&quot;Missing the information I need&quot;,&quot;missingTheInformationINeed&quot;,&quot;thumb-down&quot;],[&quot;Too complicated / too many steps&quot;,&quot;tooComplicatedTooManySteps&quot;,&quot;thumb-down&quot;],[&quot;Out of date&quot;,&quot;outOfDate&quot;,&quot;thumb-down&quot;],[&quot;Samples / code issue&quot;,&quot;samplesCodeIssue&quot;,&quot;thumb-down&quot;],[&quot;Other&quot;,&quot;otherDown&quot;,&quot;thumb-down&quot;]],[&quot;Last updated 2025-12-18 UTC.&quot;],[],[]] Terms Privacy Manage cookies English Deutsch Español – América Latina Français Indonesia Italiano Polski Português – Brasil Shqip Tiếng Việt Türkçe Русский עברית العربيّة فارسی हिंदी বাংলা ภาษาไทย 中文 – 简体 中文 – 繁體 日本語 한국어</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="callout failure"><b>机器内容初判未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__wcxb-2393__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://ai.google.dev/gemma/docs/functiongemma</span></div><div class="kv"><b>输出大小</b>5,916 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="good">命中</td><td>FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling</td><td>FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling</td></tr><tr><td><code>required-2</code></td><td class="good">命中</td><td>designed as a strong base for further training into custom, fast, private, local agents</td><td>designed as a strong base for further training into custom, fast, private, local agents</td></tr><tr><td><code>required-3</code></td><td class="good">命中</td><td>translate natural language into executable API actions</td><td>translate natural language into executable API actions</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">FunctionGemma model overview</span><span class="tag">FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling</span></p><p><span class="tag">FunctionGemma model overview</span><span class="tag">FunctionGemma is a specialized version of our Gemma 3 270M model tuned for function calling</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;ab7fda01-93af-4923-a4f9-f47868d56b26&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 2815,
+  &quot;dom_id&quot;: &quot;267882&quot;,
+  &quot;links_count&quot;: 94,
+  &quot;images_count&quot;: 2,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Home&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;API reference&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/api&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Google AI Edge&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/edge&quot;
+    },
+    {
+      &quot;text&quot;: &quot;LiteRT-LM&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/edge/litert-lm/overview&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemini API&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemini-api/docs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Docs&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemini-api/docs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemini for Research&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemini-api/docs/gemini-for-research&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Docs&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemini-api/docs/imagen&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Docs&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemini-api/docs/video&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma open models&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma 4 license&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/apache_2&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Docs&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Audio data&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/audio&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Basic and multi-turn chat&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/text/basic&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Function calling&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/text/function-calling-gemma4&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Thinking&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/thinking&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/vision&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Image understanding&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/vision/image&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Video understanding&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/capabilities/vision/video&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Learn more&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemini API&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Cloud GKE&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/gke&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Hugging Face Transformers&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/huggingface_inference&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Tune using Hugging Face Transformers and QLoRA&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/huggingface_text_finetune_qlora&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Full model fine-tune using Hugging Face Transformers&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/huggingface_text_full_finetune&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Vision Tune using Hugging Face Transformers and QLoRA&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/huggingface_vision_finetune_qlora&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Keras&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/keras_inference&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma 1 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma 2 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/model_card_2&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma 3 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/model_card_3&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma 4 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/model_card_4&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Prompt Formatting&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/prompt-formatting-gemma4&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Legacy Prompt and system instructions [Gemma 1, 2, and 3]&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/core/prompt-structure&quot;
+    },
+    {
+      &quot;text&quot;: &quot;DataGemma&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/datagemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/diffusiongemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Diffusion Explained&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/diffusiongemma/explained&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generate Output&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/diffusiongemma/inference-diffusiongemma-with-hf&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/diffusiongemma/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Discord&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/discord&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/embeddinggemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fine-tune EmbeddingGemma&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/embeddinggemma/fine-tuning-embeddinggemma-with-sentence-transformers&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generate embeddings with Sentence Transformers&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/embeddinggemma/inference-embeddinggemma-with-sentence-transformers&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/embeddinggemma/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Manage cookies&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Skip to main content&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma#main-content&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fine-tune FunctionGemma&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/finetuning-with-functiongemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Formatting and best practices&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/formatting-and-best-practices&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Full function calling sequence with FunctionGemma&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/full-function-calling-sequence-with-functiongemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Try FunctionGemma&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/function-calling-with-hf&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Function calling with Hugging Face Transformers&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/function-calling-with-hf&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/functiongemma/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/gemma-3n&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/gemma-3n/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma-APS&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/gemma-aps&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemma Scope&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/gemma_scope&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Get started&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/get_started&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Google Cloud&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/integrations/google-cloud&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Llama.cpp&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/integrations/llamacpp&quot;
+    },
+    {
+      &quot;text&quot;: &quot;LM Studio&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/integrations/lmstudio&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MLX&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/integrations/mlx&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Ollama&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/integrations/ollama&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fine-tune the Mobile Actions demo&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/mobile-actions&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Hugging Face Transformers&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/mtp/mtp&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/mtp/overview&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fine-tune with JAX and Flax&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma/fine-tuning-paligemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generate output with Keras&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma/inference-with-keras&quot;
+    },
+    {
+      &quot;text&quot;: &quot;v1 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma/model-card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;v2 model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma/model-card-2&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Prompt and system instructions&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/paligemma/prompt-system-instructions&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/recurrentgemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/recurrentgemma/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fine-tune using JAX and Flax&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/recurrentgemma/recurrentgemma_jax_finetune&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Inference using JAX and Flax&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/recurrentgemma/recurrentgemma_jax_inference&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Releases&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/releases&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/run&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Legacy Gemma setup [Gemma 1, 2, and 3]&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/setup&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/shieldgemma&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ShieldGemma 1 Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/shieldgemma/model_card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ShieldGemma 2 Model card&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/shieldgemma/model_card_2&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Overview&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/docs/tune&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Gemmaverse&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/gemmaverse&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Intended use statement&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/intended_use_statement&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Prohibited use&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/prohibited_use_policy&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Terms of use&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/terms&quot;
+    },
+    {
+      &quot;text&quot;: &quot;commercial use&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/gemma/terms&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Pricing&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/pricing&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Responsible GenAI Toolkit&quot;,
+      &quot;href&quot;: &quot;https://ai.google.dev/responsible&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Privacy&quot;,
+      &quot;href&quot;: &quot;https://policies.google.com/privacy&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Terms&quot;,
+      &quot;href&quot;: &quot;https://policies.google.com/terms&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://ai.google.dev/static/site-assets/images/share.png&quot;,
+      &quot;alt&quot;: &quot;&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://www.gstatic.com/devrel-devsite/prod/vdc800838fb8be04a9a7685606311d18c65800504bccf261551968ac74bffd42e/googledevai/images/lockup-new.svg&quot;,
+      &quot;alt&quot;: &quot;Google AI for Developers&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__wcxb-2393__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__wcxb-2393__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__wcxb-2393__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

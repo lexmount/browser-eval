@@ -1,0 +1,1 @@
+{"requestId":"422ee71e046fb036c2c1d70962d66f48","results":[],"statuses":[{"id":"https://quotes.toscrape.com/js/","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":197.8197960006073}

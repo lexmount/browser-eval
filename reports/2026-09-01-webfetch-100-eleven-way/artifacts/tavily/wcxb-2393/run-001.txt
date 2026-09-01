@@ -1,0 +1,32 @@
+![Google AI for Developers](https://www.gstatic.com/devrel-devsite/prod/vfaab1c846319b03545a380628f94a5f2242cc1b4a1f651e46c0205139cef731f/googledevai/images/lockup-new.svg)
+![Google AI for Developers](https://www.gstatic.com/devrel-devsite/prod/vfaab1c846319b03545a380628f94a5f2242cc1b4a1f651e46c0205139cef731f/googledevai/images/lockup-new.svg)
+
+# FunctionGemma model overview
+
+FunctionGemma is a specialized version of our Gemma 3 270M model tuned for
+function calling. It is designed as a strong base for further training into
+custom, fast, private, local agents that translate natural language into
+executable API actions.
+
+## When to choose FunctionGemma
+
+FunctionGemma is the bridge between natural language and software execution. It
+is the right tool if:
+
+[Get it on Hugging Face](https://huggingface.co/google/functiongemma-270m-it)
+[Get it on Kaggle](https://www.kaggle.com/models/google/functiongemma)
+[Access it on Vertex](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/functiongemma)
+
+As with other Gemma models, FunctionGemma is provided with open weights and
+licensed for responsible [commercial use](/gemma/terms), allowing you to
+fine tune and deploy it in your own projects and applications.
+
+[Formatting and best practices](/gemma/docs/functiongemma/formatting-and-best-practices)
+[Try FunctionGemma](/gemma/docs/functiongemma/function-calling-with-hf)
+
+[Fine-tune FunctionGemma](/gemma/docs/functiongemma/finetuning-with-functiongemma)
+[Fine-tune the Mobile Actions demo](/gemma/docs/mobile-actions)
+
+Except as otherwise noted, the content of this page is licensed under the [Creative Commons Attribution 4.0 License](https://creativecommons.org/licenses/by/4.0/), and code samples are licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0). For details, see the [Google Developers Site Policies](https://developers.google.com/site-policies). Java is a registered trademark of Oracle and/or its affiliates.
+
+Last updated 2025-12-18 UTC.

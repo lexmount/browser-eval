@@ -1,0 +1,1 @@
+{"requestId":"1b6c71e1327ca18ebd95af29a258505b","results":[],"statuses":[{"id":"https://mdn.github.io/learning-area/html/multimedia-and-embedding/responsive-images/responsive.html","status":"error","error":{"httpStatusCode":504,"tag":"CRAWL_LIVECRAWL_TIMEOUT"}}],"costDollars":{"total":0},"searchTime":10013.048165999353}
