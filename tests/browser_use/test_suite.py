@@ -97,3 +97,15 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     }
     assert counts == {"simple": 10, "medium": 10, "complex": 10}
     assert all(task.ground_truth["oracle"] == "deterministic_exact" for task in suite.tasks)
+
+    probes = suite.tasks[15:]
+    scenarios = [
+        call["url"].split("scenario=", 1)[1]
+        for task in probes
+        for call in task.tool_calls
+        if call["action"] == "navigate"
+    ]
+    assert len(scenarios) == 15
+    assert len(set(scenarios)) == 15
+    assert all(task.step_count >= 4 for task in probes if task.complexity == "medium")
+    assert all(task.step_count >= 5 for task in probes if task.complexity == "complex")

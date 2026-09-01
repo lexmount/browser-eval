@@ -549,7 +549,16 @@ def run_evaluation(
         }
         smoke_path = Path(suite_path).resolve().parent / "agent_smoke.json"
         if smoke_path.exists():
-            manifest["agent_smoke"] = json.loads(smoke_path.read_text(encoding="utf-8"))
+            smoke_bytes = smoke_path.read_bytes()
+            manifest["agent_smoke"] = {
+                **json.loads(smoke_bytes.decode("utf-8")),
+                "provenance": {
+                    "source_file": smoke_path.name,
+                    "source_sha256": hashlib.sha256(smoke_bytes).hexdigest(),
+                    "independent_of_browser_microbenchmark": True,
+                    "reused_not_rerun": True,
+                },
+            }
         (output / "attempts.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
             encoding="utf-8",

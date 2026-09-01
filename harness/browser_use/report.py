@@ -102,21 +102,18 @@ def _ratio_metric_cell(value: float | int | None) -> str:
     return f"<td{class_attr}>{_e(_show(value, suffix='×'))}</td>"
 
 
-def _resource_summary_table(summary: dict[str, Any]) -> str:
+def _grouped_resource_table(
+    summary: dict[str, Any],
+    metrics: tuple[tuple[str, str, float, str], ...],
+    caption: str,
+) -> str:
     engines = (summary.get("resource_comparison") or {}).get("by_engine") or {}
     paired_ratios = (
         ((summary.get("resource_comparison") or {}).get("paired_ratios") or {}).get("metrics")
         or {}
     )
     body = []
-    for key, label, divisor, unit in (
-        ("duration_ms", "总耗时", 1, "ms"),
-        ("cpu_ms", "CPU 时间", 1, "ms"),
-        ("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB"),
-        ("memory_p95_bytes", "任务内存 P95", 1048576, "MiB"),
-        ("network_rx_bytes", "网络接收总量 RX", 1024, "KiB"),
-        ("network_tx_bytes", "网络发送总量 TX", 1024, "KiB"),
-    ):
+    for key, label, divisor, unit in metrics:
         chromium = (engines.get("chromium") or {}).get(key) or {}
         moli = (engines.get("moli") or {}).get(key) or {}
         ratios = paired_ratios.get(key) or {}
@@ -129,13 +126,28 @@ def _resource_summary_table(summary: dict[str, Any]) -> str:
             cells.append(_ratio_metric_cell(_numeric_stat(ratios, stat)))
         body.append("<tr>" + "".join(cells) + "</tr>")
     return (
-        '<div class="table-wrap resource-summary"><table><caption>双方成功任务的速度与资源对比（均为越低越好）</caption>'
+        f'<div class="table-wrap resource-summary"><table><caption>{_e(caption)}</caption>'
         '<thead><tr><th rowspan="2">指标</th><th colspan="3">P50</th><th colspan="3">P95</th><th colspan="3">平均值</th></tr>'
         '<tr><th>Chromium</th><th>Moli</th><th>Moli / Chromium</th>'
         '<th>Chromium</th><th>Moli</th><th>Moli / Chromium</th>'
         '<th>Chromium</th><th>Moli</th><th>Moli / Chromium</th></tr></thead><tbody>'
         + "".join(body)
         + "</tbody></table></div>"
+    )
+
+
+def _resource_summary_table(summary: dict[str, Any]) -> str:
+    return _grouped_resource_table(
+        summary,
+        (
+            ("duration_ms", "总耗时", 1, "ms"),
+            ("cpu_ms", "CPU 时间", 1, "ms"),
+            ("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB"),
+            ("memory_p95_bytes", "任务内存 P95", 1048576, "MiB"),
+            ("network_rx_bytes", "网络接收总量 RX", 1024, "KiB"),
+            ("network_tx_bytes", "网络发送总量 TX", 1024, "KiB"),
+        ),
+        "双方成功任务的速度与资源对比（均为越低越好）",
     )
 
 
@@ -206,7 +218,8 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     agent_smoke = manifest.get("agent_smoke") or {}
     smoke_html = ""
     if agent_smoke:
-        smoke_html = f"""<section class="card"><h2>CowAgent 端到端冒烟测试</h2><p>该测试与资源微基准分开，不参与上表统计。模型 <code>{_e(agent_smoke.get('model'))}</code>，思考强度 <code>{_e(agent_smoke.get('reasoning_effort'))}</code>；同一任务每个浏览器方案只执行 1 次。</p>{_table(["浏览器方案", "结果", "BrowserTool 调用次数", "最终答案"], [[str(item.get('provider')), "通过" if item.get('status') == "pass" else str(item.get('status')), str(item.get('browser_tool_calls')), str(item.get('answer'))] for item in agent_smoke.get('results') or []], "端到端接受性测试")}</section>"""
+        provenance = agent_smoke.get("provenance") or {}
+        smoke_html = f"""<section class="card"><h2>CowAgent 端到端冒烟测试</h2><p>该测试与资源微基准分开，不参与上表统计，也没有在运行编号 <code>{_e(manifest.get('run_id'))}</code> 中重新执行。模型 <code>{_e(agent_smoke.get('model'))}</code>，思考强度 <code>{_e(agent_smoke.get('reasoning_effort'))}</code>；独立执行日期 <code>{_e(agent_smoke.get('executed_at'))}</code>，来源文件内容哈希 <code>{_e(str(provenance.get('source_sha256') or '')[:12])}</code>。同一任务每个浏览器方案只执行 1 次。</p>{_table(["浏览器方案", "结果", "BrowserTool 调用次数", "最终答案"], [[str(item.get('provider')), "通过" if item.get('status') == "pass" else str(item.get('status')), str(item.get('browser_tool_calls')), str(item.get('answer'))] for item in agent_smoke.get('results') or []], "独立端到端接受性测试")}</section>"""
     c_passes = int(c.get("result_final_passes", c.get("final_passes", 0)))
     m_passes = int(m.get("result_final_passes", m.get("final_passes", 0)))
     if c_passes > m_passes:
@@ -365,49 +378,10 @@ METRICS = (
 
 
 def _metric_tables(summary: dict[str, Any]) -> str:
-    comparison = summary.get("resource_comparison") or {}
-    engines = comparison.get("by_engine") or {}
-    paired_ratios = ((comparison.get("paired_ratios") or {}).get("metrics") or {})
-    out = []
-    for group, metrics in METRICS:
-        rows = []
-        for key, label, divisor, unit in metrics:
-            c = (engines.get("chromium") or {}).get(key) or {}
-            m = (engines.get("moli") or {}).get(key) or {}
-            ratios = paired_ratios.get(key) or {}
-            rows.append(
-                [
-                    f"{label} ({unit})",
-                    _stat(c, "p50", divisor),
-                    _stat(c, "mean", divisor),
-                    _stat(c, "p95", divisor),
-                    _stat(m, "p50", divisor),
-                    _stat(m, "mean", divisor),
-                    _stat(m, "p95", divisor),
-                    _show(ratios.get("p50"), suffix="×"),
-                    _show(ratios.get("mean"), suffix="×"),
-                    _show(ratios.get("p95"), suffix="×"),
-                ]
-            )
-        out.append(
-            _table(
-                [
-                    "指标",
-                    "Chromium P50",
-                    "Chromium 平均值",
-                    "Chromium P95",
-                    "Moli P50",
-                    "Moli 平均值",
-                    "Moli P95",
-                    "Moli / Chromium P50",
-                    "Moli / Chromium 平均值",
-                    "Moli / Chromium P95",
-                ],
-                rows,
-                group,
-            )
-        )
-    return "".join(out)
+    return "".join(
+        _grouped_resource_table(summary, metrics, f"{group}（均为越低越好）")
+        for group, metrics in METRICS
+    )
 
 
 def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -562,6 +536,18 @@ def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> st
     action_options = "".join(f'<option value="{_e(action)}">{_e(action)}</option>' for action in action_values)
     tag_values = sorted({str(tag) for task in (summary.get("by_task") or {}).values() for tag in task.get("tags") or []})
     tag_options = "".join(f'<option value="{_e(tag)}">{_e(tag)}</option>' for tag in tag_values)
+    diagnostic_categories = sorted(
+        {
+            str(group.get("category") or "其他")
+            for group in (
+                (((summary.get("failure_diagnostics") or {}).get("rule_engine") or {}).get("groups") or [])
+            )
+        }
+    )
+    error_options = '<option value="无错误">无错误</option>' + "".join(
+        f'<option value="{_e(category)}">{_e(category)}</option>'
+        for category in diagnostic_categories
+    )
     filters = f'''<div class="filters" aria-label="执行样本筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option>{task_options}</select></label>
       <label>Provider<select id="f-engine"><option value="">全部 Provider</option><option>chromium</option><option>moli</option></select></label>
@@ -571,19 +557,19 @@ def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> st
       <label>难度<select id="f-complexity"><option value="">全部难度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>
       <label>BrowserTool 方法<select id="f-action"><option value="">全部方法</option>{action_options}</select></label>
       <label>任务标签<select id="f-tag"><option value="">全部标签</option>{tag_options}</select></label>
-      <label>错误类别<select id="f-error"><option value="">全部类别</option><option value="无错误">无错误</option><option value="交互目标超时/不可见">交互目标超时/不可见</option><option value="超时">超时</option><option value="结果不匹配">结果不匹配</option><option value="导航/网络">导航/网络</option><option value="定位器">定位器</option><option value="其他">其他</option></select></label>
+      <label>错误类别<select id="f-error"><option value="">全部类别</option>{error_options}</select></label>
       <label>耗时<select id="f-duration"><option value="">全部耗时</option><option value="lt1000">少于 1 秒</option><option value="1000-5000">1–5 秒</option><option value="gte5000">5 秒及以上</option></select></label>
       <label>全文搜索<input id="f-query" type="search" placeholder="任务、输出或错误"></label>
       <button type="button" id="f-failures">仅看错误</button><button type="button" id="f-reset">重置筛选</button><span class="filter-status" id="f-count" aria-live="polite"></span>
     </div>'''
-    script = '''<script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','attempt','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.attempt.value||c.dataset.attemptKind===el.attempt.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error===el.error.value)&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个样本`;}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){for(const x of ids)el[x].value='';apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';card.scrollIntoView({block:'center'});}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-failures').onclick=()=>{el.status.value='fail';apply()};document.getElementById('f-reset').onclick=()=>{for(const x of ids)el[x].value='';apply()};addEventListener('hashchange',reveal);apply();reveal()})()</script>'''
+    script = '''<script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','attempt','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.attempt.value||c.dataset.attemptKind===el.attempt.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error===el.error.value)&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个样本`;}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){for(const x of ids)el[x].value='';apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-failures').onclick=()=>{el.status.value='fail';apply()};document.getElementById('f-reset').onclick=()=>{for(const x of ids)el[x].value='';apply()};addEventListener('hashchange',reveal);apply();reveal()})()</script>'''
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>执行类型</span><span>结果</span><span>过程</span><span>耗时</span></div>'
     return f"""<section class="card"><h2>执行记录与原始证据</h2><p>共 {total_attempts} 次实际执行，默认折叠。每条记录按固定列对齐，展开后可查看全宽的标准答案判定、过程判定和逐调用证据。</p>{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary)}</div>{script}</section>"""
 
 
 def _results_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
-    return f"""<section class="card"><h2>总体正确性</h2><p>结果正确是主指标；“结果与过程均正确”要求结果正确、参考路径完整且全部调用成功，两项分开统计。本表不混入各自成功集合上的耗时，性能只在下方双方成功的同任务中比较。</p>{_table(["Provider", "首次结果正确", "首次结果与过程均正确", "重试恢复", "最终结果正确", "最终结果与过程均正确"], _correctness_rows(summary), "正确性结果")}</section><section class="card"><h2>双方成功任务的资源对比</h2><p>只包含双方首次结果均正确的同任务，共 {paired} 对；失败任务和重试记录不参与资源比较。各指标先分别统计两个 Provider 的 P50、平均值、P95，再统计同任务 Moli / Chromium 比值的 P50、平均值、P95。除比值外，各资源指标均为越低越好；比值小于 1 表示 Moli 较低。</p>{_metric_tables(summary)}</section>"""
+    return f"""<section class="card"><h2>总体正确性</h2><p>结果正确是主指标；“结果与参考路径均正确”要求结果正确、参考路径完整且全部调用成功，两项分开统计。本表不混入各自成功集合上的耗时，性能只在下方双方成功的同任务中比较。</p>{_table(["Provider", "首次结果正确", "首次结果与参考路径均正确", "重试恢复", "最终结果正确", "最终结果与参考路径均正确"], _correctness_rows(summary), "正确性结果")}</section><section class="card"><h2>双方成功任务的资源对比</h2><p>只包含双方首次结果均正确的同任务，共 {paired} 对；失败任务和重试记录不参与资源比较。所有表均按 P50、P95、平均值分组，每组并排展示 Chromium、Moli 与同任务配对比值；较低绝对值以绿色粗体标示。</p>{_metric_tables(summary)}</section>"""
 
 
 def _classify(error: str) -> str:
