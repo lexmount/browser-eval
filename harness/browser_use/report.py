@@ -19,30 +19,6 @@ PAGES = tuple(
         ("appendix", "复现与附录", "-appendix"),
     )
 )
-TASK_META = {
-    "example-heading": ("读取 Example Domain 标题", "静态页面基线"),
-    "hacker-news-top-story": ("读取 Hacker News 当前首条新闻", "动态列表"),
-    "pypi-requests-version": ("读取 PyPI requests 当前版本", "包索引"),
-    "arxiv-transformer-abstract": ("读取 Transformer 论文摘要", "学术长文本"),
-    "github-moli-readme": ("浏览 Moli README", "代码仓库与滚动"),
-    "mdn-fetch-guide": ("从 Fetch API 进入 Using Fetch", "站内点击跳转"),
-    "python-tutorial-navigation": ("浏览 Python 教程并使用历史记录", "多页前进与后退"),
-    "rfc9110-section-navigation": ("浏览 RFC 9110 指定章节", "长文档锚点"),
-    "quotes-pagination-history": ("翻页浏览公开语录目录", "分页与历史恢复"),
-    "httpbin-form-submit": ("填写并提交 HTTPBin 表单", "输入、选择和提交"),
-    "hacker-news-story-context": ("读取 Hacker News 首条新闻及上下文", "动态列表校准任务"),
-    "pypi-requests-release-profile": ("核对 requests 版本与发布历史", "包索引校准任务"),
-    "arxiv-transformer-paper-profile": ("汇总论文标题、作者、摘要与提交历史", "学术长文本多字段读取"),
-    "github-moli-readme-to-issues": ("从 Moli README 浏览到 Issues 并恢复历史", "代码仓库多页面导航"),
-    "mdn-fetch-guide-history": ("从 Fetch API 进入指南并验证前进后退", "文档点击与历史恢复"),
-    "python-tutorial-two-chapters-history": ("连续浏览两章 Python 教程并恢复历史", "多页文档遍历"),
-    "rfc9110-multi-section-history": ("浏览 RFC 9110 多章节并恢复锚点历史", "长标准文档与锚点"),
-    "quotes-three-page-history": ("连续翻阅三页语录并恢复两级历史", "多级分页与历史"),
-    "httpbin-form-resubmission": ("填写 HTTPBin 表单、返回修改并二次提交", "多字段表单与重提交"),
-    "books-mystery-category-traversal": ("浏览分类、两页列表与两本书详情", "目录、分页、详情与历史"),
-}
-
-
 def _e(value: Any) -> str:
     return html.escape(str(value if value is not None else ""))
 
@@ -84,6 +60,13 @@ def _numeric_stat(metric: dict[str, Any], key: str) -> float | int | None:
     return value if isinstance(value, (int, float)) else None
 
 
+def _display_number(value: float | int | None, divisor: float = 1.0) -> float | None:
+    """Return the exact two-decimal number shown in an absolute metric cell."""
+    if not isinstance(value, (int, float)):
+        return None
+    return float(f"{value / divisor:.2f}")
+
+
 def _absolute_metric_cell(
     value: float | int | None,
     other: float | int | None,
@@ -117,13 +100,9 @@ def _grouped_resource_table(
             m_value = _numeric_stat(moli, stat)
             cells.append(_absolute_metric_cell(c_value, m_value, divisor))
             cells.append(_absolute_metric_cell(m_value, c_value, divisor))
-            ratio = (
-                float(m_value) / float(c_value)
-                if isinstance(c_value, (int, float))
-                and c_value != 0
-                and isinstance(m_value, (int, float))
-                else None
-            )
+            c_display = _display_number(c_value, divisor)
+            m_display = _display_number(m_value, divisor)
+            ratio = m_display / c_display if c_display not in (None, 0) and m_display is not None else None
             cells.append(_ratio_metric_cell(ratio))
         body.append("<tr>" + "".join(cells) + "</tr>")
     return (
@@ -134,21 +113,6 @@ def _grouped_resource_table(
         '<th>Chromium</th><th>Moli</th><th>Moli / Chromium</th></tr></thead><tbody>'
         + "".join(body)
         + "</tbody></table></div>"
-    )
-
-
-def _resource_summary_table(summary: dict[str, Any]) -> str:
-    return _grouped_resource_table(
-        summary,
-        (
-            ("duration_ms", "总耗时", 1, "ms"),
-            ("cpu_ms", "CPU 时间", 1, "ms"),
-            ("memory_mean_bytes", "时间加权平均内存", 1048576, "MiB"),
-            ("memory_p95_bytes", "任务内存 P95", 1048576, "MiB"),
-            ("network_rx_bytes", "网络接收总量 RX", 1024, "KiB"),
-            ("network_tx_bytes", "网络发送总量 TX", 1024, "KiB"),
-        ),
-        "双方成功任务的速度与资源对比（均为越低越好）",
     )
 
 
@@ -218,22 +182,17 @@ def _shell(manifest: dict[str, Any], active: str, body: str) -> str:
 
 def _functional_rows(summary: dict[str, Any]) -> list[list[str]]:
     rows = []
+    correctness_by_engine = {
+        row[0]: row for row in _correctness_rows(summary)
+    }
     for engine in ("chromium", "moli"):
         values = (summary.get("functional") or {}).get(engine) or {}
         duration = values.get("duration_ms") or {}
-        rows.append(
-            [
-                engine,
-                f"{values.get('result_first_passes', values.get('first_passes', 0))}/{values.get('tasks', 0)}",
-                f"{values.get('combined_first_passes', values.get('first_passes', 0))}/{values.get('tasks', 0)}",
-                str(values.get("result_recovered", values.get("recovered", 0))),
-                f"{values.get('result_final_passes', values.get('final_passes', 0))}/{values.get('tasks', 0)}",
-                f"{values.get('combined_final_passes', values.get('final_passes', 0))}/{values.get('tasks', 0)}",
-                _stat(duration, "p50"),
-                _stat(duration, "mean"),
-                _stat(duration, "p95"),
-            ]
-        )
+        rows.append(correctness_by_engine[engine] + [
+            _stat(duration, "p50"),
+            _stat(duration, "mean"),
+            _stat(duration, "p95"),
+        ])
     return rows
 
 
@@ -248,12 +207,21 @@ def _correctness_rows(summary: dict[str, Any]) -> list[list[str]]:
             rate = passed / tasks * 100 if tasks else 0
             return f"{passed}/{tasks}（{rate:.2f}%）"
 
+        def recovery(recovered_key: str, first_key: str, fallback_first: str) -> str:
+            recovered = int(values.get(recovered_key, values.get("recovered", 0)) or 0)
+            first_passes = int(values.get(first_key, values.get(fallback_first, 0)) or 0)
+            first_failures = max(0, tasks - first_passes)
+            if first_failures == 0:
+                return "0/0（不适用）"
+            return f"{recovered}/{first_failures}（{recovered / first_failures * 100:.2f}%）"
+
         rows.append(
             [
                 engine,
                 score("result_first_passes", "first_passes"),
                 score("combined_first_passes", "first_passes"),
-                str(values.get("result_recovered", values.get("recovered", 0)) or 0),
+                recovery("result_recovered", "result_first_passes", "first_passes"),
+                recovery("combined_recovered", "combined_first_passes", "first_passes"),
                 score("result_final_passes", "final_passes"),
                 score("combined_final_passes", "final_passes"),
             ]
@@ -307,7 +275,7 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
         )
     correctness = _table(
-        ["Provider", "首次结果正确", "首次结果与过程均正确", "重试恢复", "最终结果正确", "最终结果与过程均正确"],
+        ["Provider", "首次结果正确", "首次结果与过程均正确", "结果重试恢复", "结果与过程重试恢复", "最终结果正确", "最终结果与过程均正确"],
         _correctness_rows(summary),
         "任务正确率（主指标优先）",
     )
@@ -633,8 +601,10 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
                 traces = "".join(
                     f'<div class="trace"><strong>调用 {_e(c.get("index"))} · {_e(c.get("action"))} · {_e(c.get("status"))} · {_show(c.get("duration_ms"), suffix=" ms")}</strong><div>参数</div><pre>{_e(json.dumps(c.get("arguments") or {}, ensure_ascii=False, indent=2))}</pre><div>完整输出</div><pre>{_e(_trace_text(c.get("output") or "（无输出）"))}</pre>'
                     + (
-                        f"<div>调用错误</div><pre>{_e(_trace_text(c.get('error')))}</pre>"
+                        f'<details class="raw-evidence"><summary>查看该调用独有错误</summary><pre>{_e(_trace_text(c.get("error")))}</pre></details>'
                         if c.get("error")
+                        and _trace_text(c.get("error"))
+                        not in _trace_text(attempt.get("error"))
                         else ""
                     )
                     + "</div>"
@@ -669,60 +639,6 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
                 + "</div></details></div>"
             )
     return "".join(blocks) or "<p>没有可展示的执行样本。</p>"
-
-
-def _task_comparison_rows(summary: dict[str, Any]) -> list[list[str]]:
-    rows: list[list[str]] = []
-    for task_id, task in (summary.get("by_task") or {}).items():
-        title = TASK_META.get(str(task_id), (str(task.get("title") or task_id), ""))[0]
-        engine_values: dict[str, dict[str, Any]] = {}
-        retry_notes = []
-        for engine in ("chromium", "moli"):
-            attempts = ((task.get("attempts") or {}).get(engine) or [])
-            functional = (task.get("functional") or {}).get(engine) or {}
-            duration = functional.get("duration_ms") or {}
-            result_passed = (
-                any(a.get("result_status", a.get("status")) == "pass" for a in attempts)
-                if attempts
-                else bool(functional.get("result_final_passes", functional.get("final_passes", 0)))
-            )
-            process_passed = (
-                any(a.get("process_status", a.get("status")) == "pass" for a in attempts)
-                if attempts
-                else bool(functional.get("combined_final_passes", functional.get("final_passes", 0)))
-            )
-            retries = sum(bool(a.get("is_retry")) for a in attempts)
-            recovered = functional.get("result_recovered", functional.get("recovered", 0))
-            engine_values[engine] = {
-                "status": f"{'通过' if result_passed else '失败'} / {'通过' if process_passed else '失败'}",
-                "duration": duration,
-            }
-            if retries:
-                retry_notes.append(
-                    f"{engine.capitalize()} 重试 {retries} 次，{'恢复' if recovered else '未恢复'}"
-                )
-        c50 = engine_values["chromium"]["duration"].get("p50")
-        m50 = engine_values["moli"]["duration"].get("p50")
-        ratio = (
-            m50 / c50
-            if isinstance(c50, (int, float))
-            and c50
-            and isinstance(m50, (int, float))
-            else None
-        )
-        rows.append(
-            [
-                title,
-                _difficulty(str(task.get("complexity") or "")),
-                engine_values["chromium"]["status"],
-                engine_values["moli"]["status"],
-                _stat(engine_values["chromium"]["duration"], "p50"),
-                _stat(engine_values["moli"]["duration"], "p50"),
-                _show(ratio, suffix="×"),
-                "；".join(retry_notes) or "无",
-            ]
-        )
-    return rows
 
 
 def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -784,11 +700,6 @@ def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> st
     return f"""<section class="card"><h2>逐任务失败分析与原始证据</h2><p>错误类别由程序根据异常文本、失败步骤、BrowserTool 方法和选择器自动生成，不使用人工或 LLM 判断。共 {logical_executions} 条“任务 × Provider”记录、{physical_attempts} 次实际执行；默认只展示最终失败记录，重试归入同一任务，不另占一行。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分布")}{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary)}</div>{script}</section>"""
 
 
-def _results_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
-    paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
-    return f"""<section class="card"><h2>总体正确性</h2><p>结果正确是主指标；“结果与参考路径均正确”要求结果正确、参考路径完整且全部调用成功，两项分开统计。本表不混入各自成功集合上的耗时，性能只在下方双方成功的同任务中比较。</p>{_table(["Provider", "首次结果正确", "首次结果与参考路径均正确", "重试恢复", "最终结果正确", "最终结果与参考路径均正确"], _correctness_rows(summary), "正确性结果")}</section><section class="card"><h2>双方成功任务的资源对比</h2><p>只包含双方首次结果均正确的同任务，共 {paired} 对；失败任务和重试记录不参与资源比较。所有表均按 P50、P95、平均值分组，每组并排展示 Chromium、Moli 与同任务配对比值；较低绝对值以绿色粗体标示。</p>{_metric_tables(summary)}</section>"""
-
-
 def _classify(error: str) -> str:
     text = error.lower()
     if "timeout" in text and ("visible" in text or "click" in text):
@@ -802,60 +713,6 @@ def _classify(error: str) -> str:
     if "selector" in text or "locator" in text:
         return "定位器"
     return "其他"
-
-
-def _failure_evidence_grid(groups: list[dict[str, Any]]) -> str:
-    if not groups:
-        return "<p>本轮没有失败样本。</p>"
-    records = []
-    for group in groups:
-        attempts = group.get("attempts") or []
-        anchor = "#execution-" f"{group.get('task_id')}-{group.get('engine')}"
-        probe = group.get("actionability_probe")
-        if isinstance(probe, dict):
-            probe_html = (
-                "<p><strong>失败后实测 actionability probe：</strong></p><pre>"
-                f"{_e(json.dumps(probe, ensure_ascii=False, indent=2, sort_keys=True))}</pre>"
-            )
-        else:
-            probe_error = group.get("actionability_probe_error")
-            probe_html = (
-                "<p><strong>失败后实测 actionability probe：</strong>"
-                + (
-                    f"采集错误：{_e(probe_error)}"
-                    if probe_error
-                    else "本类失败未采集元素几何 probe；后续读取暴露了状态异常，但不能据此确定异常发生层"
-                )
-                + "。</p>"
-            )
-        summary = (
-            '<summary class="failure-summary">'
-            f'<span>{_e(group.get("task_title") or group.get("task_id"))}</span>'
-            f'<span>{_e(group.get("engine"))}</span>'
-            f'<span>{len(attempts)} 次</span>'
-            f'<span>第 {_e(group.get("failed_step"))} 步 · {_e(group.get("failed_action"))}</span>'
-            f'<span><code>{_e(group.get("selector") or "—")}</code></span>'
-            f'<span>{_e(group.get("category") or "其他")}</span></summary>'
-        )
-        body = (
-            '<div class="failure-body">'
-            f'<p><strong>程序证据：</strong>{_e(group.get("evidence") or "无")}</p>'
-            + (
-                f'<p><strong>程序化现象归纳：</strong>{_e(group.get("observed_mechanism"))}</p>'
-                if group.get("observed_mechanism")
-                else ""
-            )
-            + probe_html
-            + '<p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；'
-            "在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p>"
-            f'<p><a href="{_e(anchor)}">查看该失败的完整执行记录</a></p></div>'
-        )
-        records.append(f'<div class="failure-record"><details>{summary}{body}</details></div>')
-    header = (
-        '<div class="failure-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span>'
-        '<span>失败次数</span><span>失败调用</span><span>选择器</span><span>规则类别</span></div>'
-    )
-    return '<div class="failure-grid">' + header + "".join(records) + "</div>"
 
 
 def _analysis_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -892,8 +749,8 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         "",
         "这是确定性的 BrowserTool 等价调用微基准；成功判定和失败分类均由程序完成。",
         "",
-        "| Provider | 首次结果正确 | 首次结果与过程均正确 | 结果重试恢复 | 最终结果正确 | 最终结果与过程均正确 | P50 ms | 平均值 ms | P95 ms |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "| Provider | 首次结果正确 | 首次结果与过程均正确 | 结果重试恢复 | 结果与过程重试恢复 | 最终结果正确 | 最终结果与过程均正确 | P50 ms | 平均值 ms | P95 ms |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     lines.extend("| " + " | ".join(row) + " |" for row in _functional_rows(summary))
     lines.extend(
