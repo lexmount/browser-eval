@@ -1,0 +1,454 @@
+[Skip to content](https://github.com/pandas-dev/pandas#start-of-content)
+
+You signed in with another tab or window. [Reload](https://github.com/pandas-dev/pandas) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/pandas-dev/pandas) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/pandas-dev/pandas) to refresh your session.Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page](https://github.com/pandas-dev/pandas).
+
+[pandas-dev](https://github.com/pandas-dev)/ **[pandas](https://github.com/pandas-dev/pandas)** Public
+
+- Sponsor
+
+
+
+
+
+
+
+# Sponsor pandas-dev/pandas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### GitHub Sponsors
+
+[Learn more about Sponsors](https://github.com/sponsors)
+
+
+
+
+
+
+
+[![@numfocus](https://avatars.githubusercontent.com/u/1421094?s=80&v=4)](https://github.com/numfocus)
+
+
+
+[numfocus](https://github.com/numfocus)
+
+
+
+[numfocus](https://github.com/numfocus)
+
+
+
+[Sponsor](https://github.com/sponsors/numfocus)
+
+
+
+
+
+
+
+
+
+##### External links
+
+
+
+
+
+
+
+
+
+[https://pandas.pydata.org/donate.html](https://pandas.pydata.org/donate.html)
+
+
+
+
+
+
+
+![tidelift](https://github.githubassets.com/assets/tidelift-8cea37dea8fc.svg)
+
+
+
+[tidelift.com/funding/github/ **pypi/pandas**](https://tidelift.com/funding/github/pypi/pandas)
+
+
+
+
+
+
+
+
+
+[Learn more about funding links in repositories](https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
+
+
+
+
+[Report abuse](https://github.com/contact/report-abuse?report=pandas-dev%2Fpandas+%28Repository+Funding+Links%29)
+
+- [Notifications](https://github.com/login?return_to=%2Fpandas-dev%2Fpandas) You must be signed in to change notification settings
+- [Fork\\
+20.3k](https://github.com/login?return_to=%2Fpandas-dev%2Fpandas)
+- [Star\\
+49.6k](https://github.com/login?return_to=%2Fpandas-dev%2Fpandas)
+
+
+main
+
+[**19** Branches](https://github.com/pandas-dev/pandas/branches) [**191** Tags](https://github.com/pandas-dev/pandas/tags)
+
+[Go to Branches page](https://github.com/pandas-dev/pandas/branches)[Go to Tags page](https://github.com/pandas-dev/pandas/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+![jbrockmendel](https://avatars.githubusercontent.com/u/8078968?v=4&size=40)![claude](https://avatars.githubusercontent.com/u/81847?v=4&size=40)
+
+[jbrockmendel](https://github.com/pandas-dev/pandas/commits?author=jbrockmendel)
+
+and
+
+[claude](https://github.com/pandas-dev/pandas/commits?author=claude)
+
+[TST: reach the pandas namespace through pd in tests (](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784) [#67276](https://github.com/pandas-dev/pandas/pull/67276) [)](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784)
+
+Open commit detailsfailure
+
+2 hours agoSep 1, 2026
+
+[6102c72](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784) · 2 hours agoSep 1, 2026
+
+## History
+
+[38,782 Commits](https://github.com/pandas-dev/pandas/commits/main/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/pandas-dev/pandas/commits/main/) 38,782 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](https://github.com/pandas-dev/pandas/tree/main/.github ".github") | [.github](https://github.com/pandas-dev/pandas/tree/main/.github ".github") | [CI: Assign and unassign issues on edit (](https://github.com/pandas-dev/pandas/commit/9aeb2d9626099f305cc4540adf5eec78c0f8da6c "CI: Assign and unassign issues on edit (#67030)") [#67030](https://github.com/pandas-dev/pandas/pull/67030) [)](https://github.com/pandas-dev/pandas/commit/9aeb2d9626099f305cc4540adf5eec78c0f8da6c "CI: Assign and unassign issues on edit (#67030)") | 4 days agoAug 29, 2026 |
+| [LICENSES](https://github.com/pandas-dev/pandas/tree/main/LICENSES "LICENSES") | [LICENSES](https://github.com/pandas-dev/pandas/tree/main/LICENSES "LICENSES") | [BLD: Add xsimd Dependency and SIMD detection (](https://github.com/pandas-dev/pandas/commit/c693b12ad88447ad61a100721361aaa13ea21b03 "BLD: Add xsimd Dependency and SIMD detection (#65471)  Co-authored-by: William Ayd <william.ayd@icloud.com>") [#65471](https://github.com/pandas-dev/pandas/pull/65471) [)](https://github.com/pandas-dev/pandas/commit/c693b12ad88447ad61a100721361aaa13ea21b03 "BLD: Add xsimd Dependency and SIMD detection (#65471)  Co-authored-by: William Ayd <william.ayd@icloud.com>") | 3 months agoJul 1, 2026 |
+| [asv\_bench](https://github.com/pandas-dev/pandas/tree/main/asv_bench "asv_bench") | [asv\_bench](https://github.com/pandas-dev/pandas/tree/main/asv_bench "asv_bench") | [PERF: avoid redundant cond preparation in NDFrame.\_where (GH#51547) (](https://github.com/pandas-dev/pandas/commit/5bca6fdac739ee57d872920637dfe9488c790608 "PERF: avoid redundant cond preparation in NDFrame._where (GH#51547) (#66910)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#…](https://github.com/pandas-dev/pandas/pull/66910) | last weekAug 22, 2026 |
+| [ci](https://github.com/pandas-dev/pandas/tree/main/ci "ci") | [ci](https://github.com/pandas-dev/pandas/tree/main/ci "ci") | [DEPS: Remove hypothesis (](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") [#66972](https://github.com/pandas-dev/pandas/pull/66972) [)](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") | 4 days agoAug 29, 2026 |
+| [doc](https://github.com/pandas-dev/pandas/tree/main/doc "doc") | [doc](https://github.com/pandas-dev/pandas/tree/main/doc "doc") | [TST: reach the pandas namespace through pd in tests (](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67276](https://github.com/pandas-dev/pandas/pull/67276) [)](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 2 hours agoSep 1, 2026 |
+| [pandas](https://github.com/pandas-dev/pandas/tree/main/pandas "pandas") | [pandas](https://github.com/pandas-dev/pandas/tree/main/pandas "pandas") | [TST: reach the pandas namespace through pd in tests (](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67276](https://github.com/pandas-dev/pandas/pull/67276) [)](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 2 hours agoSep 1, 2026 |
+| [scripts](https://github.com/pandas-dev/pandas/tree/main/scripts "scripts") | [scripts](https://github.com/pandas-dev/pandas/tree/main/scripts "scripts") | [TST: reach the pandas namespace through pd in tests (](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67276](https://github.com/pandas-dev/pandas/pull/67276) [)](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 2 hours agoSep 1, 2026 |
+| [subprojects](https://github.com/pandas-dev/pandas/tree/main/subprojects "subprojects") | [subprojects](https://github.com/pandas-dev/pandas/tree/main/subprojects "subprojects") | [PERF: bump vendored fast\_float to 8.2.10 (](https://github.com/pandas-dev/pandas/commit/f09f70e33e881ec32711c0419416b6376b80615e "PERF: bump vendored fast_float to 8.2.10 (#66457)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#66457](https://github.com/pandas-dev/pandas/pull/66457) [)](https://github.com/pandas-dev/pandas/commit/f09f70e33e881ec32711c0419416b6376b80615e "PERF: bump vendored fast_float to 8.2.10 (#66457)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 2 months agoJul 26, 2026 |
+| [web](https://github.com/pandas-dev/pandas/tree/main/web "web") | [web](https://github.com/pandas-dev/pandas/tree/main/web "web") | [CI: check for current-time values in tests (GH#44341) (](https://github.com/pandas-dev/pandas/commit/2192571f4250bc8b47f553588a40a3b33bf23221 "CI: check for current-time values in tests (GH#44341) (#67034)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67034](https://github.com/pandas-dev/pandas/pull/67034) [)](https://github.com/pandas-dev/pandas/commit/2192571f4250bc8b47f553588a40a3b33bf23221 "CI: check for current-time values in tests (GH#44341) (#67034)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 10 hours agoSep 1, 2026 |
+| [.gitattributes](https://github.com/pandas-dev/pandas/blob/main/.gitattributes ".gitattributes") | [.gitattributes](https://github.com/pandas-dev/pandas/blob/main/.gitattributes ".gitattributes") | [CLN: Remove typings/ directory (](https://github.com/pandas-dev/pandas/commit/a8386ff5b3d7bfd31b5a71e3f21291eb871f4aad "CLN: Remove typings/ directory (#66505)") [#66505](https://github.com/pandas-dev/pandas/pull/66505) [)](https://github.com/pandas-dev/pandas/commit/a8386ff5b3d7bfd31b5a71e3f21291eb871f4aad "CLN: Remove typings/ directory (#66505)") | 2 months agoJul 28, 2026 |
+| [.gitignore](https://github.com/pandas-dev/pandas/blob/main/.gitignore ".gitignore") | [.gitignore](https://github.com/pandas-dev/pandas/blob/main/.gitignore ".gitignore") | [DEPS: Remove hypothesis (](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") [#66972](https://github.com/pandas-dev/pandas/pull/66972) [)](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") | 4 days agoAug 29, 2026 |
+| [.pre-commit-config.yaml](https://github.com/pandas-dev/pandas/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") | [.pre-commit-config.yaml](https://github.com/pandas-dev/pandas/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") | [TST: reach the pandas namespace through pd in tests (](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67276](https://github.com/pandas-dev/pandas/pull/67276) [)](https://github.com/pandas-dev/pandas/commit/6102c724577a7d8bd5cbbbb562ee92641e2c7784 "TST: reach the pandas namespace through pd in tests (#67276)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 2 hours agoSep 1, 2026 |
+| [AGENTS.md](https://github.com/pandas-dev/pandas/blob/main/AGENTS.md "AGENTS.md") | [AGENTS.md](https://github.com/pandas-dev/pandas/blob/main/AGENTS.md "AGENTS.md") | [DOC: require human-written comments and specific AI disclosure (](https://github.com/pandas-dev/pandas/commit/518f2a3cb9504555b40c1d5aaab4690245a7d265 "DOC: require human-written comments and specific AI disclosure (#66767)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#66767](https://github.com/pandas-dev/pandas/pull/66767) [)](https://github.com/pandas-dev/pandas/commit/518f2a3cb9504555b40c1d5aaab4690245a7d265 "DOC: require human-written comments and specific AI disclosure (#66767)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 3 weeks agoAug 14, 2026 |
+| [AUTHORS.md](https://github.com/pandas-dev/pandas/blob/main/AUTHORS.md "AUTHORS.md") | [AUTHORS.md](https://github.com/pandas-dev/pandas/blob/main/AUTHORS.md "AUTHORS.md") | [DOC: Fix grammar in AUTHORS.md (](https://github.com/pandas-dev/pandas/commit/43c39ef445afbbae5dabfd89f002698e72a7d392 "DOC: Fix grammar in AUTHORS.md (#61739)  * DOC: Fix grammar in AUTHORS.md  * Add compatible statsmodels version to environment.yml to fix CI ImportError  * DOC: Fix grammatical issues in AUTHORS.md  * DOC: Fix grammar and improve clarity in AUTHORS.md  * DOC: Fix grammar and improve clarity in AUTHORS.md") [#61739](https://github.com/pandas-dev/pandas/pull/61739) [)](https://github.com/pandas-dev/pandas/commit/43c39ef445afbbae5dabfd89f002698e72a7d392 "DOC: Fix grammar in AUTHORS.md (#61739)  * DOC: Fix grammar in AUTHORS.md  * Add compatible statsmodels version to environment.yml to fix CI ImportError  * DOC: Fix grammatical issues in AUTHORS.md  * DOC: Fix grammar and improve clarity in AUTHORS.md  * DOC: Fix grammar and improve clarity in AUTHORS.md") | last yearJun 30, 2025 |
+| [CITATION.cff](https://github.com/pandas-dev/pandas/blob/main/CITATION.cff "CITATION.cff") | [CITATION.cff](https://github.com/pandas-dev/pandas/blob/main/CITATION.cff "CITATION.cff") | [ENH: Update CFF with publication reference, Zenodo DOI, and other det…](https://github.com/pandas-dev/pandas/commit/bad7db4ae807ef9c03677f5923344d80d24db570 "ENH: Update CFF with publication reference, Zenodo DOI, and other details (#56589)  Add McKinney (2010) reference, DOI, team website, & more keywords") | 3 years agoDec 27, 2023 |
+| [LICENSE](https://github.com/pandas-dev/pandas/blob/main/LICENSE "LICENSE") | [LICENSE](https://github.com/pandas-dev/pandas/blob/main/LICENSE "LICENSE") | [Update license year to 2026 (](https://github.com/pandas-dev/pandas/commit/d7c25a01acc0c15d940d415568a0c5aedf51c81b "Update license year to 2026 (#63538)") [#63538](https://github.com/pandas-dev/pandas/pull/63538) [)](https://github.com/pandas-dev/pandas/commit/d7c25a01acc0c15d940d415568a0c5aedf51c81b "Update license year to 2026 (#63538)") | 8 months agoJan 6, 2026 |
+| [README.md](https://github.com/pandas-dev/pandas/blob/main/README.md "README.md") | [README.md](https://github.com/pandas-dev/pandas/blob/main/README.md "README.md") | [Update link to](https://github.com/pandas-dev/pandas/commit/f3384e7a2ddd40ea0f17b886066bbac915746732 "Update link to `tzdata` documentation (#65579)")`tzdata` [documentation (](https://github.com/pandas-dev/pandas/commit/f3384e7a2ddd40ea0f17b886066bbac915746732 "Update link to `tzdata` documentation (#65579)") [#65579](https://github.com/pandas-dev/pandas/pull/65579) [)](https://github.com/pandas-dev/pandas/commit/f3384e7a2ddd40ea0f17b886066bbac915746732 "Update link to `tzdata` documentation (#65579)") | 4 months agoMay 11, 2026 |
+| [codecov.yml](https://github.com/pandas-dev/pandas/blob/main/codecov.yml "codecov.yml") | [codecov.yml](https://github.com/pandas-dev/pandas/blob/main/codecov.yml "codecov.yml") | [CI: Partially revert](https://github.com/pandas-dev/pandas/commit/48b04ac27b65291430758c50e296e7d225052293 "CI: Partially revert #64658 (use pytest-cov again) (#64693)") [#64658](https://github.com/pandas-dev/pandas/pull/64658) [(use pytest-cov again) (](https://github.com/pandas-dev/pandas/commit/48b04ac27b65291430758c50e296e7d225052293 "CI: Partially revert #64658 (use pytest-cov again) (#64693)") [#64693](https://github.com/pandas-dev/pandas/pull/64693) [)](https://github.com/pandas-dev/pandas/commit/48b04ac27b65291430758c50e296e7d225052293 "CI: Partially revert #64658 (use pytest-cov again) (#64693)") | 6 months agoMar 18, 2026 |
+| [environment.yml](https://github.com/pandas-dev/pandas/blob/main/environment.yml "environment.yml") | [environment.yml](https://github.com/pandas-dev/pandas/blob/main/environment.yml "environment.yml") | [DEPS: Remove hypothesis (](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") [#66972](https://github.com/pandas-dev/pandas/pull/66972) [)](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") | 4 days agoAug 29, 2026 |
+| [generate\_pxi.py](https://github.com/pandas-dev/pandas/blob/main/generate_pxi.py "generate_pxi.py") | [generate\_pxi.py](https://github.com/pandas-dev/pandas/blob/main/generate_pxi.py "generate_pxi.py") | [TYP: simple return types from ruff (](https://github.com/pandas-dev/pandas/commit/854012c7cb0b0e5a5d2c405c2232033c5e917d1b "TYP: simple return types from ruff (#56568)") [#56568](https://github.com/pandas-dev/pandas/pull/56568) [)](https://github.com/pandas-dev/pandas/commit/854012c7cb0b0e5a5d2c405c2232033c5e917d1b "TYP: simple return types from ruff (#56568)") | 3 years agoDec 19, 2023 |
+| [generate\_version.py](https://github.com/pandas-dev/pandas/blob/main/generate_version.py "generate_version.py") | [generate\_version.py](https://github.com/pandas-dev/pandas/blob/main/generate_version.py "generate_version.py") | [DEV: Remove setup.py/setuptools support (](https://github.com/pandas-dev/pandas/commit/7dd44b7535b29688b2096c88a30f46084dcca1dc "DEV:  Remove setup.py/setuptools support (#63981)  Co-authored-by: Devpriya Dave <devpriyadave@gatech.edu> Co-authored-by: Joris Van den Bossche <jorisvandenbossche@gmail.com>") [#63981](https://github.com/pandas-dev/pandas/pull/63981) [)](https://github.com/pandas-dev/pandas/commit/7dd44b7535b29688b2096c88a30f46084dcca1dc "DEV:  Remove setup.py/setuptools support (#63981)  Co-authored-by: Devpriya Dave <devpriyadave@gatech.edu> Co-authored-by: Joris Van den Bossche <jorisvandenbossche@gmail.com>") | 7 months agoFeb 12, 2026 |
+| [meson.build](https://github.com/pandas-dev/pandas/blob/main/meson.build "meson.build") | [meson.build](https://github.com/pandas-dev/pandas/blob/main/meson.build "meson.build") | [CI: Update pixi.lock (](https://github.com/pandas-dev/pandas/commit/11f30a226315a6f5847157ef34b7ffc285f272e5 "CI: Update pixi.lock (#67374)  Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> Co-authored-by: Matthew Roeschke <10647082+mroeschke@users.noreply.github.com>") [#67374](https://github.com/pandas-dev/pandas/pull/67374) [)](https://github.com/pandas-dev/pandas/commit/11f30a226315a6f5847157ef34b7ffc285f272e5 "CI: Update pixi.lock (#67374)  Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> Co-authored-by: Matthew Roeschke <10647082+mroeschke@users.noreply.github.com>") | 18 hours agoAug 31, 2026 |
+| [pixi.lock](https://github.com/pandas-dev/pandas/blob/main/pixi.lock "pixi.lock") | [pixi.lock](https://github.com/pandas-dev/pandas/blob/main/pixi.lock "pixi.lock") | [CI: Update pixi.lock (](https://github.com/pandas-dev/pandas/commit/11f30a226315a6f5847157ef34b7ffc285f272e5 "CI: Update pixi.lock (#67374)  Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> Co-authored-by: Matthew Roeschke <10647082+mroeschke@users.noreply.github.com>") [#67374](https://github.com/pandas-dev/pandas/pull/67374) [)](https://github.com/pandas-dev/pandas/commit/11f30a226315a6f5847157ef34b7ffc285f272e5 "CI: Update pixi.lock (#67374)  Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> Co-authored-by: Matthew Roeschke <10647082+mroeschke@users.noreply.github.com>") | 18 hours agoAug 31, 2026 |
+| [pixi.toml](https://github.com/pandas-dev/pandas/blob/main/pixi.toml "pixi.toml") | [pixi.toml](https://github.com/pandas-dev/pandas/blob/main/pixi.toml "pixi.toml") | [DEPS: Remove hypothesis (](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") [#66972](https://github.com/pandas-dev/pandas/pull/66972) [)](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") | 4 days agoAug 29, 2026 |
+| [pyproject.toml](https://github.com/pandas-dev/pandas/blob/main/pyproject.toml "pyproject.toml") | [pyproject.toml](https://github.com/pandas-dev/pandas/blob/main/pyproject.toml "pyproject.toml") | [CI: check for current-time values in tests (GH#44341) (](https://github.com/pandas-dev/pandas/commit/2192571f4250bc8b47f553588a40a3b33bf23221 "CI: check for current-time values in tests (GH#44341) (#67034)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") [#67034](https://github.com/pandas-dev/pandas/pull/67034) [)](https://github.com/pandas-dev/pandas/commit/2192571f4250bc8b47f553588a40a3b33bf23221 "CI: check for current-time values in tests (GH#44341) (#67034)  Co-authored-by: Claude Opus 5 <noreply@anthropic.com>") | 10 hours agoSep 1, 2026 |
+| [pyright\_reportGeneralTypeIssues.json](https://github.com/pandas-dev/pandas/blob/main/pyright_reportGeneralTypeIssues.json "pyright_reportGeneralTypeIssues.json") | [pyright\_reportGeneralTypeIssues.json](https://github.com/pandas-dev/pandas/blob/main/pyright_reportGeneralTypeIssues.json "pyright_reportGeneralTypeIssues.json") | [CLN: Remove typings/ directory (](https://github.com/pandas-dev/pandas/commit/a8386ff5b3d7bfd31b5a71e3f21291eb871f4aad "CLN: Remove typings/ directory (#66505)") [#66505](https://github.com/pandas-dev/pandas/pull/66505) [)](https://github.com/pandas-dev/pandas/commit/a8386ff5b3d7bfd31b5a71e3f21291eb871f4aad "CLN: Remove typings/ directory (#66505)") | 2 months agoJul 28, 2026 |
+| [requirements-dev.txt](https://github.com/pandas-dev/pandas/blob/main/requirements-dev.txt "requirements-dev.txt") | [requirements-dev.txt](https://github.com/pandas-dev/pandas/blob/main/requirements-dev.txt "requirements-dev.txt") | [DEPS: Remove hypothesis (](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") [#66972](https://github.com/pandas-dev/pandas/pull/66972) [)](https://github.com/pandas-dev/pandas/commit/a71f00e1ff1c8d0417fab1890a984c2d221ae850 "DEPS: Remove hypothesis (#66972)") | 4 days agoAug 29, 2026 |
+| View all files |
+
+## Repository files navigation
+
+![Pandas Logo](https://camo.githubusercontent.com/b8729d85f396d19a34755d9975bd20c114746b76801b8bcbf8a3c3030175eaf9/68747470733a2f2f70616e6461732e7079646174612e6f72672f7374617469632f696d672f70616e6461732e737667)
+
+* * *
+
+# pandas: A Powerful Python Data Analysis Toolkit
+
+[Permalink: pandas: A Powerful Python Data Analysis Toolkit](https://github.com/pandas-dev/pandas#pandas-a-powerful-python-data-analysis-toolkit)
+
+|  |  |
+| --- | --- |
+| Testing | [![CI - Test](https://github.com/pandas-dev/pandas/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/pandas-dev/pandas/actions/workflows/unit-tests.yml)[![Coverage](https://camo.githubusercontent.com/ee5a264638e1bcc56b6905ee48a8b063820944cb0fac574d45f33c139144d011/68747470733a2f2f636f6465636f762e696f2f6769746875622f70616e6461732d6465762f70616e6461732f636f7665726167652e7376673f6272616e63683d6d61696e)](https://codecov.io/gh/pandas-dev/pandas) |
+| Package | [![PyPI Latest Release](https://camo.githubusercontent.com/f98051ef009129145de54150e82d3a32edbf6e920ca42b02d63d5fa0e7afd6e1/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f70616e6461732e737667)](https://pypi.org/project/pandas/)[![PyPI Downloads](https://camo.githubusercontent.com/d5ba66afcc60476914b9cfe52e84ac3895131d98023187144499b3857d5dc061/68747470733a2f2f696d672e736869656c64732e696f2f707970692f646d2f70616e6461732e7376673f6c6162656c3d50795049253230646f776e6c6f616473)](https://pypi.org/project/pandas/)[![Conda Latest Release](https://camo.githubusercontent.com/15ade53d3345d2be55ec49489bd0b10cec1f49344bcaac0a8c2183792e23af0c/68747470733a2f2f616e61636f6e64612e6f72672f636f6e64612d666f7267652f70616e6461732f6261646765732f76657273696f6e2e737667)](https://anaconda.org/conda-forge/pandas)[![Conda Downloads](https://camo.githubusercontent.com/551c3e9bc932c8797ab6d41b630548ce9bcdb1264b7b29a679ef61a852fd99b3/68747470733a2f2f696d672e736869656c64732e696f2f636f6e64612f646e2f636f6e64612d666f7267652f70616e6461732e7376673f6c6162656c3d436f6e6461253230646f776e6c6f616473)](https://anaconda.org/conda-forge/pandas) |
+| Meta | [![Powered by NumFOCUS](https://camo.githubusercontent.com/acf91c4dcec73dd4fc9ede6b4181eb77028d6739d29724a7241ec1fe747d7d05/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f706f776572656425323062792d4e756d464f4355532d6f72616e67652e7376673f7374796c653d666c617426636f6c6f72413d45313532334426636f6c6f72423d303037443841)](https://numfocus.org/)[![DOI](https://camo.githubusercontent.com/a68d79480c50f64be084796dc42d7591aaf28c38d938ab7e7cb3c534c1cb775f/68747470733a2f2f7a656e6f646f2e6f72672f62616467652f444f492f31302e353238312f7a656e6f646f2e333530393133342e737667)](https://doi.org/10.5281/zenodo.3509134)[![License - BSD 3-Clause](https://camo.githubusercontent.com/c3e0935ac48ca601da68d8c931ce1b8ec67402ebfb99a0d0f7c2b94c2ee8f6bf/68747470733a2f2f696d672e736869656c64732e696f2f707970692f6c2f70616e6461732e737667)](https://github.com/pandas-dev/pandas/blob/main/LICENSE)[![Slack](https://camo.githubusercontent.com/4328c6db3f6fa56913e510ba7ddd6d05e6c2f7325b9ad431fa22e7ff3fccf23e/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6a6f696e5f536c61636b2d696e666f726d6174696f6e2d627269676874677265656e2e7376673f6c6f676f3d736c61636b)](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack)[![LFX Health Score](https://camo.githubusercontent.com/02362cb713958db58169ea69652b8ee39d626eb65b222c9dc93940e0cc5ee579/68747470733a2f2f696e7369676874732e6c696e7578666f756e646174696f6e2e6f72672f6170692f62616467652f6865616c74682d73636f72653f70726f6a6563743d70616e6461732d6465762d70616e646173)](https://insights.linuxfoundation.org/project/pandas-dev-pandas) |
+
+## What is it?
+
+[Permalink: What is it?](https://github.com/pandas-dev/pandas#what-is-it)
+
+**pandas** is a Python package that provides fast, flexible, and expressive data
+structures designed to make working with "relational" or "labeled" data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, **real-world** data analysis in Python. Additionally, it has
+the broader goal of becoming **the most powerful and flexible open-source data**
+**analysis/manipulation tool available in any language**. It is already well on
+its way towards this goal.
+
+## Table of Contents
+
+[Permalink: Table of Contents](https://github.com/pandas-dev/pandas#table-of-contents)
+
+- [Main Features](https://github.com/pandas-dev/pandas#main-features)
+- [Where to get it](https://github.com/pandas-dev/pandas#where-to-get-it)
+- [Dependencies](https://github.com/pandas-dev/pandas#dependencies)
+- [Installation from sources](https://github.com/pandas-dev/pandas#installation-from-sources)
+- [License](https://github.com/pandas-dev/pandas#license)
+- [Documentation](https://github.com/pandas-dev/pandas#documentation)
+- [Background](https://github.com/pandas-dev/pandas#background)
+- [Getting Help](https://github.com/pandas-dev/pandas#getting-help)
+- [Discussion and Development](https://github.com/pandas-dev/pandas#discussion-and-development)
+- [Contributing to pandas](https://github.com/pandas-dev/pandas#contributing-to-pandas)
+
+## Main Features
+
+[Permalink: Main Features](https://github.com/pandas-dev/pandas#main-features)
+
+Here are just a few of the things that pandas does well:
+
+- Easy handling of [**missing data**](https://pandas.pydata.org/pandas-docs/stable/user_guide/missing_data.html) (represented as
+`NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
+- Size mutability: columns can be [**inserted and**\\
+**deleted**](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#column-selection-addition-deletion) from DataFrame and higher dimensional
+objects
+- Automatic and explicit [**data alignment**](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html?highlight=alignment#intro-to-data-structures): objects can
+be explicitly aligned to a set of labels, or the user can simply
+ignore the labels and let `Series`, `DataFrame`, etc. automatically
+align the data for you in computations
+- Powerful, flexible [**group by**](https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#group-by-split-apply-combine) functionality to perform
+split-apply-combine operations on data sets, for both aggregating
+and transforming data
+- Make it [**easy to convert**](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe) ragged,
+differently-indexed data in other Python and NumPy data structures
+into DataFrame objects
+- Intelligent label-based [**slicing**](https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#slicing-ranges), [**fancy**\\
+**indexing**](https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#advanced), and [**subsetting**](https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#boolean-indexing) of
+large data sets
+- Intuitive [**merging**](https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#database-style-dataframe-or-named-series-joining-merging) and [**joining**](https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html#joining-on-index) data
+sets
+- Flexible [**reshaping**](https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html) and [**pivoting**](https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html) of
+data sets
+- [**Hierarchical**](https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#hierarchical-indexing-multiindex) labeling of axes (possible to have multiple
+labels per tick)
+- Robust I/O tools for loading data from [**flat files**](https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#csv-text-files)
+(CSV and delimited), [**Excel files**](https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#excel-files), [**databases**](https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#sql-queries),
+and saving/loading data from the ultrafast [**HDF5 format**](https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#hdf5-pytables)
+- [**Time series**](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-series-date-functionality)-specific functionality: date range
+generation and frequency conversion, moving window statistics,
+date shifting and lagging
+
+## Where to get it
+
+[Permalink: Where to get it](https://github.com/pandas-dev/pandas#where-to-get-it)
+
+The source code is currently hosted on GitHub at:
+[https://github.com/pandas-dev/pandas](https://github.com/pandas-dev/pandas)
+
+Binary installers for the latest released version are available at the [Python\\
+Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://anaconda.org/conda-forge/pandas).
+
+```
+# conda
+conda install -c conda-forge pandas
+```
+
+```
+# or PyPI
+pip install pandas
+```
+
+The list of changes to pandas between each release can be found
+[here](https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html). For full
+details, see the commit logs at [https://github.com/pandas-dev/pandas](https://github.com/pandas-dev/pandas).
+
+## Dependencies
+
+[Permalink: Dependencies](https://github.com/pandas-dev/pandas#dependencies)
+
+- [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org/)
+- [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
+- [tzdata - Provides an IANA time zone database](https://tzdata.python.org/) (Only required on Windows/Emscripten)
+
+See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
+
+## Installation from sources
+
+[Permalink: Installation from sources](https://github.com/pandas-dev/pandas#installation-from-sources)
+
+To install pandas from source you need [Cython](https://cython.org/) in addition to the normal
+dependencies above. Cython can be installed from PyPI:
+
+```
+pip install cython
+```
+
+In the `pandas` directory (same one where you found this file after
+cloning the git repo), execute:
+
+```
+pip install .
+```
+
+or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
+
+```
+python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+```
+
+See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
+
+## License
+
+[Permalink: License](https://github.com/pandas-dev/pandas#license)
+
+[BSD 3](https://github.com/pandas-dev/pandas/blob/main/LICENSE)
+
+## Documentation
+
+[Permalink: Documentation](https://github.com/pandas-dev/pandas#documentation)
+
+The official documentation is hosted on [PyData.org](https://pandas.pydata.org/pandas-docs/stable/).
+
+## Background
+
+[Permalink: Background](https://github.com/pandas-dev/pandas#background)
+
+Work on `pandas` started at [AQR](https://www.aqr.com/) (a quantitative hedge fund) in 2008 and
+has been under active development since then.
+
+## Getting Help
+
+[Permalink: Getting Help](https://github.com/pandas-dev/pandas#getting-help)
+
+For usage questions, the best place to go to is [Stack Overflow](https://stackoverflow.com/questions/tagged/pandas).
+Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+
+## Discussion and Development
+
+[Permalink: Discussion and Development](https://github.com/pandas-dev/pandas#discussion-and-development)
+
+Most development discussions take place on GitHub in this repo, via the [GitHub issue tracker](https://github.com/pandas-dev/pandas/issues).
+
+Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Slack channel](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack) is available for quick development related questions.
+
+There are also frequent [community meetings](https://pandas.pydata.org/docs/dev/development/community.html#community-meeting) for project maintainers open to the community as well as monthly [new contributor meetings](https://pandas.pydata.org/docs/dev/development/community.html#new-contributor-meeting) to help support new contributors.
+
+Additional information on the communication channels can be found on the [contributor community](https://pandas.pydata.org/docs/development/community.html) page.
+
+## Contributing to pandas
+
+[Permalink: Contributing to pandas](https://github.com/pandas-dev/pandas#contributing-to-pandas)
+
+[![Open Source Helpers](https://camo.githubusercontent.com/ba10e512ee9660b7292729b68c0b37a7a9ca339dc1dcef65fcf3a8573318995b/68747470733a2f2f7777772e636f64657472696167652e636f6d2f70616e6461732d6465762f70616e6461732f6261646765732f75736572732e737667)](https://www.codetriage.com/pandas-dev/pandas)
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome.
+
+A detailed overview on how to contribute can be found in the **[contributing guide](https://pandas.pydata.org/docs/dev/development/contributing.html)**.
+
+You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
+
+Or maybe through using pandas you have an idea of your own or are looking for something in the documentation and thinking ‘this can be improved’... you can do something about it!
+
+Feel free to ask questions on the [mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata) or on [Slack](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack).
+
+As contributors and maintainers to this project, you are expected to abide by pandas' code of conduct. More information can be found at: [Contributor Code of Conduct](https://github.com/pandas-dev/.github/blob/master/CODE_OF_CONDUCT.md)
+
+* * *
+
+[Go to Top](https://github.com/pandas-dev/pandas#table-of-contents)
+
+## About
+
+Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more
+
+[pandas.pydata.org](https://pandas.pydata.org/)
+
+### Topics
+
+[alignment](https://github.com/topics/alignment) [data-analysis](https://github.com/topics/data-analysis) [data-science](https://github.com/topics/data-science) [flexible](https://github.com/topics/flexible) [pandas](https://github.com/topics/pandas) [python](https://github.com/topics/python)
+
+### Resources
+
+[Readme](https://github.com/pandas-dev/pandas#readme-ov-file)
+
+[BSD-3-Clause license](https://github.com/pandas-dev/pandas#BSD-3-Clause-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/pandas-dev/pandas#coc-ov-file)
+
+### Contributing
+
+[Contributing](https://github.com/pandas-dev/pandas#contributing-ov-file)
+
+### Security policy
+
+[Security policy](https://github.com/pandas-dev/pandas#security-ov-file)
+
+Cite this repository
+
+[Activity](https://github.com/pandas-dev/pandas/activity)
+
+[Custom properties](https://github.com/pandas-dev/pandas/custom-properties)
+
+### Stars
+
+**49.6k** stars
+
+### Watchers
+
+**1.1k** watching
+
+### Forks
+
+[**20.3k** forks](https://github.com/pandas-dev/pandas/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas&report=pandas-dev+%28user%29)
+
+## Releases
+
+## Sponsor this project
+
+## Packages
+
+## Used by
+
+## Contributors
+
+## Languages
+
+You can’t perform that action at this time.

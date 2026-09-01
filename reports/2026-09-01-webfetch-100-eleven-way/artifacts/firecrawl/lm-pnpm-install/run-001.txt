@@ -252,6 +252,8 @@ pnpm self-update\
 \
 If you need to remove the pnpm CLI from your system and any files it has written to your disk, see [Uninstalling pnpm](https://pnpm.io/uninstall).\
 \
+Copy page\
+\
 - [Prerequisites](https://pnpm.io/installation#prerequisites)\
 - [Using a standalone script](https://pnpm.io/installation#using-a-standalone-script)\
   - [On Windows](https://pnpm.io/installation#on-windows)\

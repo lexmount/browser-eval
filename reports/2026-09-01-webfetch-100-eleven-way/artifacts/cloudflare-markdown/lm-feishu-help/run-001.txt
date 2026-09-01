@@ -224,6 +224,12 @@ meta:
 
 本文是否对你有帮助
 
+##
+
+有帮助
+
+无帮助
+
 提交成功，感谢你的反馈！
 
 未能解决你的问题？请联系 [在线客服](https://applink.feishu.cn/client/web_url/open?width=640&height=480&mode=window&url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)
@@ -300,4 +306,4 @@ rangeDom
 
 [预约顾问 免费获取专属服务 填写表单享功能配置等服务](https://www.feishu.cn/salessupport?from=helpcenter_hover)
 
-![](https://bat.bing.com/action/0?ti=187130120&Ver=2&mid=6dd52596-fe9f-4657-bb32-e6025bc8bb7c&bo=1&sid=f48e5170a5e111f1ba2abdf29411362b&vid=f48f3840a5e111f194403b1344ca8791&vids=1&msclkid=N&pi=918639831&lg=en-US&sw=800&sh=600&sc=24&nwd=1&tl=%E7%AE%A1%E7%90%86%E5%91%98%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A%20AI%20%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE&kw=AI%20%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE,%E4%BD%BF%E7%94%A8%E6%AC%A1%E6%95%B0,%E4%BD%BF%E7%94%A8%E4%BA%BA%E6%95%B0,,%E4%BA%BA%E5%9D%87%E4%BD%BF%E7%94%A8%E6%AC%A1%E6%95%B0,%E4%BD%BF%E7%94%A8%E6%B8%97%E9%80%8F%E7%8E%87&p=https%3A%2F%2Fwww.feishu.cn%2Fhc%2Fzh-CN%2Farticles%2F485770964672-%25E7%25AE%25A1%25E7%2590%2586%25E5%2591%2598%25E6%259F%25A5%25E7%259C%258B%25E4%25BC%2581%25E4%25B8%259A-ai-%25E5%258A%259F%25E8%2583%25BD%25E4%25BD%25BF%25E7%2594%25A8%25E6%2595%25B0%25E6%258D%25AE&r=&lt=5415&evt=pageLoad&sv=2&cdb=AQAQ&rn=246691)
+![](https://bat.bing.com/action/0?ti=187130120&Ver=2&mid=570b8f0e-2e40-40c6-bf9b-40d5f0040fb3&bo=1&sid=feb8f740a5fe11f1a5083d9ee59f58ba&vid=feb90800a5fe11f189531d37dd7a2864&vids=1&msclkid=N&pi=918639831&lg=en-US&sw=800&sh=600&sc=24&nwd=1&tl=%E7%AE%A1%E7%90%86%E5%91%98%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A%20AI%20%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE&kw=AI%20%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE,%E4%BD%BF%E7%94%A8%E6%AC%A1%E6%95%B0,%E4%BD%BF%E7%94%A8%E4%BA%BA%E6%95%B0,,%E4%BA%BA%E5%9D%87%E4%BD%BF%E7%94%A8%E6%AC%A1%E6%95%B0,%E4%BD%BF%E7%94%A8%E6%B8%97%E9%80%8F%E7%8E%87&p=https%3A%2F%2Fwww.feishu.cn%2Fhc%2Fzh-CN%2Farticles%2F485770964672-%25E7%25AE%25A1%25E7%2590%2586%25E5%2591%2598%25E6%259F%25A5%25E7%259C%258B%25E4%25BC%2581%25E4%25B8%259A-ai-%25E5%258A%259F%25E8%2583%25BD%25E4%25BD%25BF%25E7%2594%25A8%25E6%2595%25B0%25E6%258D%25AE&r=&lt=4159&evt=pageLoad&sv=2&cdb=AQAQ&rn=716775)

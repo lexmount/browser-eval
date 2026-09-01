@@ -1,1 +1,0 @@
-{"requestId":"2242e3b7575702e394d6bd29f9fa869c","results":[],"statuses":[{"id":"https://shop.bombas.com/products/mens-quarter-socks","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":700.0666990000755}

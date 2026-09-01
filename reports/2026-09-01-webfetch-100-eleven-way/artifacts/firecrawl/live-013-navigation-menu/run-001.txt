@@ -1,0 +1,248 @@
+[Skip to content](https://github.com/sveltejs/svelte#start-of-content)
+
+You signed in with another tab or window. [Reload](https://github.com/sveltejs/svelte) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/sveltejs/svelte) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/sveltejs/svelte) to refresh your session.Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page](https://github.com/sveltejs/svelte).
+
+[sveltejs](https://github.com/sveltejs)/ **[svelte](https://github.com/sveltejs/svelte)** Public
+
+- Sponsor
+
+
+
+
+
+
+
+# Sponsor sveltejs/svelte
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### External links
+
+
+
+
+
+![open_collective](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)
+
+
+
+[opencollective.com/ **svelte**](https://opencollective.com/svelte)
+
+
+
+
+
+
+
+
+
+[Learn more about funding links in repositories](https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
+
+
+
+
+[Report abuse](https://github.com/contact/report-abuse?report=sveltejs%2Fsvelte+%28Repository+Funding+Links%29)
+
+- [Notifications](https://github.com/login?return_to=%2Fsveltejs%2Fsvelte) You must be signed in to change notification settings
+- [Fork\\
+5.2k](https://github.com/login?return_to=%2Fsveltejs%2Fsvelte)
+- [Star\\
+88k](https://github.com/login?return_to=%2Fsveltejs%2Fsvelte)
+
+
+main
+
+[**224** Branches](https://github.com/sveltejs/svelte/branches) [**1032** Tags](https://github.com/sveltejs/svelte/tags)
+
+[Go to Branches page](https://github.com/sveltejs/svelte/branches)[Go to Tags page](https://github.com/sveltejs/svelte/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+[![giaBaoJS](https://avatars.githubusercontent.com/u/39545125?v=4&size=40)](https://github.com/giaBaoJS)[giaBaoJS](https://github.com/sveltejs/svelte/commits?author=giaBaoJS)
+
+[fix: throw when](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc)`setContext` [is called after an](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc)`await` [during SSR (](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc) [#…](https://github.com/sveltejs/svelte/pull/18739)
+
+Open commit detailssuccess
+
+16 hours agoAug 31, 2026
+
+[4bf15ae](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc) · 16 hours agoAug 31, 2026
+
+## History
+
+[11,387 Commits](https://github.com/sveltejs/svelte/commits/main/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/sveltejs/svelte/commits/main/) 11,387 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.agents/skills/performance-investigation](https://github.com/sveltejs/svelte/tree/main/.agents/skills/performance-investigation "This path skips through empty directories") | [.agents/skills/performance-investigation](https://github.com/sveltejs/svelte/tree/main/.agents/skills/performance-investigation "This path skips through empty directories") | [chore: agent hints for perf investigations (](https://github.com/sveltejs/svelte/commit/704e3bb5f0ad25e759c97cf7c8f45be79314d4df "chore: agent hints for perf investigations (#18047)  This adds some hints in an `AGENTS.md` for how to conduct performance investigations, along with a utility for comparing profiles from different branches to identify hotspots. We will likely want to put other stuff in `AGENTS.md` in future but I figured we could start with something immediately useful.  It also tweaks the comparison script — rather than nuking results from existing branches, it keeps them around so that we don't need to re-run benchmarks (which takes a long time) for branches that haven't changed.  ---------  Co-authored-by: vercel[bot] <35613825+vercel[bot]@users.noreply.github.com>") [#18047](https://github.com/sveltejs/svelte/pull/18047) [)](https://github.com/sveltejs/svelte/commit/704e3bb5f0ad25e759c97cf7c8f45be79314d4df "chore: agent hints for perf investigations (#18047)  This adds some hints in an `AGENTS.md` for how to conduct performance investigations, along with a utility for comparing profiles from different branches to identify hotspots. We will likely want to put other stuff in `AGENTS.md` in future but I figured we could start with something immediately useful.  It also tweaks the comparison script — rather than nuking results from existing branches, it keeps them around so that we don't need to re-run benchmarks (which takes a long time) for branches that haven't changed.  ---------  Co-authored-by: vercel[bot] <35613825+vercel[bot]@users.noreply.github.com>") | 6 months agoApr 2, 2026 |
+| [.changeset](https://github.com/sveltejs/svelte/tree/main/.changeset ".changeset") | [.changeset](https://github.com/sveltejs/svelte/tree/main/.changeset ".changeset") | [fix: throw when](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`setContext` [is called after an](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`await` [during SSR (](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.") [#…](https://github.com/sveltejs/svelte/pull/18739) | 16 hours agoAug 31, 2026 |
+| [.github](https://github.com/sveltejs/svelte/tree/main/.github ".github") | [.github](https://github.com/sveltejs/svelte/tree/main/.github ".github") | [chore: Supply chain hardening (](https://github.com/sveltejs/svelte/commit/23bc246a99c649c0c325509debb93e062948e240 "chore: Supply chain hardening (#18253)  `svelte`  Supply-chain hardening pass.  ## Changes - Bump `packageManager` from `pnpm@10.4.0` to `pnpm@10.33.4` with `+sha512` integrity suffix. - Add to `pnpm-workspace.yaml`:   - `minimumReleaseAge: 1440`   - `minimumReleaseAgeExclude: ['@sveltejs/*', svelte, esrap, devalue]`   - `blockExoticSubdeps: true` - Remove `pkg.pr.new.yml` workflow in favor of `pkg.svelte.dev` - Pin all third-party GitHub Actions to full SHA with `# vX.Y.Z` comments across `ci.yml`, `autofix.yml`, `release.yml`, `ecosystem-ci-trigger.yml` - Upgrade `pnpm/action-setup` references in `ci.yml`, `autofix.yml`, `release.yml` from a SHA that was incorrectly labeled `# v4` (actually `v5.0.0` / `v4.4.0`) to the current `v6.0.8` SHA so the version label matches reality.") [#18253](https://github.com/sveltejs/svelte/pull/18253) [)](https://github.com/sveltejs/svelte/commit/23bc246a99c649c0c325509debb93e062948e240 "chore: Supply chain hardening (#18253)  `svelte`  Supply-chain hardening pass.  ## Changes - Bump `packageManager` from `pnpm@10.4.0` to `pnpm@10.33.4` with `+sha512` integrity suffix. - Add to `pnpm-workspace.yaml`:   - `minimumReleaseAge: 1440`   - `minimumReleaseAgeExclude: ['@sveltejs/*', svelte, esrap, devalue]`   - `blockExoticSubdeps: true` - Remove `pkg.pr.new.yml` workflow in favor of `pkg.svelte.dev` - Pin all third-party GitHub Actions to full SHA with `# vX.Y.Z` comments across `ci.yml`, `autofix.yml`, `release.yml`, `ecosystem-ci-trigger.yml` - Upgrade `pnpm/action-setup` references in `ci.yml`, `autofix.yml`, `release.yml` from a SHA that was incorrectly labeled `# v4` (actually `v5.0.0` / `v4.4.0`) to the current `v6.0.8` SHA so the version label matches reality.") | 2 months agoJul 24, 2026 |
+| [.vscode](https://github.com/sveltejs/svelte/tree/main/.vscode ".vscode") | [.vscode](https://github.com/sveltejs/svelte/tree/main/.vscode ".vscode") | [chore: cleanup obselete stuff (](https://github.com/sveltejs/svelte/commit/0ae1d5afffae954d6691b19b71531e0e287c5fa3 "chore: cleanup obselete stuff (#16412)  * Update vitest.config.js  * Update vitest.config.js  * cleanup  * woops  * Update eslint.config.js  ---------  Co-authored-by: Simon H <5968653+dummdidumm@users.noreply.github.com>") [#16412](https://github.com/sveltejs/svelte/pull/16412) [)](https://github.com/sveltejs/svelte/commit/0ae1d5afffae954d6691b19b71531e0e287c5fa3 "chore: cleanup obselete stuff (#16412)  * Update vitest.config.js  * Update vitest.config.js  * cleanup  * woops  * Update eslint.config.js  ---------  Co-authored-by: Simon H <5968653+dummdidumm@users.noreply.github.com>") | last yearJul 17, 2025 |
+| [.well-known](https://github.com/sveltejs/svelte/tree/main/.well-known ".well-known") | [.well-known](https://github.com/sveltejs/svelte/tree/main/.well-known ".well-known") | [chore: add funding manifest URL (](https://github.com/sveltejs/svelte/commit/a10cf95ca732dae624401489973c1814a3e0fde7 "chore: add funding manifest URL (#17827)  Related to https://github.com/sveltejs/svelte.dev/pull/1632  This will allow us to apply for a grant from floss.fund  ### Before submitting the PR, please make sure you do the following  - [ ] It's really useful if your PR references an issue where it is discussed ahead of time. In many cases, features are absent for a reason. For large changes, please create an RFC: https://github.com/sveltejs/rfcs - [ ] Prefix your PR title with `feat:`, `fix:`, `chore:`, or `docs:`. - [ ] This message body should clearly illustrate what problems it solves. - [ ] Ideally, include a test that fails without this PR but passes with it. - [ ] If this PR changes code within `packages/svelte/src`, add a changeset (`npx changeset`).  ### Tests and linting  - [ ] Run the tests with `pnpm test` and lint the project with `pnpm lint`") [#17827](https://github.com/sveltejs/svelte/pull/17827) [)](https://github.com/sveltejs/svelte/commit/a10cf95ca732dae624401489973c1814a3e0fde7 "chore: add funding manifest URL (#17827)  Related to https://github.com/sveltejs/svelte.dev/pull/1632  This will allow us to apply for a grant from floss.fund  ### Before submitting the PR, please make sure you do the following  - [ ] It's really useful if your PR references an issue where it is discussed ahead of time. In many cases, features are absent for a reason. For large changes, please create an RFC: https://github.com/sveltejs/rfcs - [ ] Prefix your PR title with `feat:`, `fix:`, `chore:`, or `docs:`. - [ ] This message body should clearly illustrate what problems it solves. - [ ] Ideally, include a test that fails without this PR but passes with it. - [ ] If this PR changes code within `packages/svelte/src`, add a changeset (`npx changeset`).  ### Tests and linting  - [ ] Run the tests with `pnpm test` and lint the project with `pnpm lint`") | 7 months agoFeb 27, 2026 |
+| [assets](https://github.com/sveltejs/svelte/tree/main/assets "assets") | [assets](https://github.com/sveltejs/svelte/tree/main/assets "assets") | [docs: update README banner (](https://github.com/sveltejs/svelte/commit/de94159238080076150d28fbea5f399690821bf1 "docs: update README banner (#15063)  * fix  * update banner image  this is an empty commit whose name will be shown in the commit history (if someone looks at the commit history they should be able to understand what commit does what).  * chore: fix spacing  * chore: fix spacing  ---------  Co-authored-by: Paolo Ricciuti <ricciutipaolo@gmail.com>") [#15063](https://github.com/sveltejs/svelte/pull/15063) [)](https://github.com/sveltejs/svelte/commit/de94159238080076150d28fbea5f399690821bf1 "docs: update README banner (#15063)  * fix  * update banner image  this is an empty commit whose name will be shown in the commit history (if someone looks at the commit history they should be able to understand what commit does what).  * chore: fix spacing  * chore: fix spacing  ---------  Co-authored-by: Paolo Ricciuti <ricciutipaolo@gmail.com>") | last yearJan 20, 2025 |
+| [benchmarking](https://github.com/sveltejs/svelte/tree/main/benchmarking "benchmarking") | [benchmarking](https://github.com/sveltejs/svelte/tree/main/benchmarking "benchmarking") | [chore: bench compare report as HTML (](https://github.com/sveltejs/svelte/commit/4da9f74cd95e838acc56c4aa0d2e926d5f68972d "chore: bench compare report as HTML (#18543)  Creates a `results.html` file which is much better to look at compared to the terminal output.") [#18543](https://github.com/sveltejs/svelte/pull/18543) [)](https://github.com/sveltejs/svelte/commit/4da9f74cd95e838acc56c4aa0d2e926d5f68972d "chore: bench compare report as HTML (#18543)  Creates a `results.html` file which is much better to look at compared to the terminal output.") | 2 months agoJul 13, 2026 |
+| [documentation/docs](https://github.com/sveltejs/svelte/tree/main/documentation/docs "This path skips through empty directories") | [documentation/docs](https://github.com/sveltejs/svelte/tree/main/documentation/docs "This path skips through empty directories") | [fix: throw when](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`setContext` [is called after an](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`await` [during SSR (](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.") [#…](https://github.com/sveltejs/svelte/pull/18739) | 16 hours agoAug 31, 2026 |
+| [packages/svelte](https://github.com/sveltejs/svelte/tree/main/packages/svelte "This path skips through empty directories") | [packages/svelte](https://github.com/sveltejs/svelte/tree/main/packages/svelte "This path skips through empty directories") | [fix: throw when](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`setContext` [is called after an](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.")`await` [during SSR (](https://github.com/sveltejs/svelte/commit/4bf15ae6f304b9aa49a4396c3f51dc423d0722dc "fix: throw when `setContext` is called after an `await` during SSR (#18739)  Fixes #17233.") [#…](https://github.com/sveltejs/svelte/pull/18739) | 16 hours agoAug 31, 2026 |
+| [playgrounds/sandbox](https://github.com/sveltejs/svelte/tree/main/playgrounds/sandbox "This path skips through empty directories") | [playgrounds/sandbox](https://github.com/sveltejs/svelte/tree/main/playgrounds/sandbox "This path skips through empty directories") | [chore(deps-dev): bump vite from 7.3.2 to 7.3.5 (](https://github.com/sveltejs/svelte/commit/78979c87c96e6071502e8111a2fc5f312ad586b8 "chore(deps-dev): bump vite from 7.3.2 to 7.3.5 (#18444)") [#18444](https://github.com/sveltejs/svelte/pull/18444) [)](https://github.com/sveltejs/svelte/commit/78979c87c96e6071502e8111a2fc5f312ad586b8 "chore(deps-dev): bump vite from 7.3.2 to 7.3.5 (#18444)") | 2 weeks agoAug 21, 2026 |
+| [.editorconfig](https://github.com/sveltejs/svelte/blob/main/.editorconfig ".editorconfig") | [.editorconfig](https://github.com/sveltejs/svelte/blob/main/.editorconfig ".editorconfig") | [chore: fix editorconfig (](https://github.com/sveltejs/svelte/commit/aba4ab8737f5f7ffbe2ea795738ca5eb78dcfb4d "chore: fix editorconfig (#18033)  I don't know why exactly, but VS Code suddenly started paying attention to this line. An indent size of 2 inside an IDE is for masochists and barbarians. If that's your preference then that's up to you but there's certainly no reason to impose it on everyone who clones this repo.") [#18033](https://github.com/sveltejs/svelte/pull/18033) [)](https://github.com/sveltejs/svelte/commit/aba4ab8737f5f7ffbe2ea795738ca5eb78dcfb4d "chore: fix editorconfig (#18033)  I don't know why exactly, but VS Code suddenly started paying attention to this line. An indent size of 2 inside an IDE is for masochists and barbarians. If that's your preference then that's up to you but there's certainly no reason to impose it on everyone who clones this repo.") | 6 months agoMar 31, 2026 |
+| [.gitattributes](https://github.com/sveltejs/svelte/blob/main/.gitattributes ".gitattributes") | [.gitattributes](https://github.com/sveltejs/svelte/blob/main/.gitattributes ".gitattributes") | [Add a linguist configuration (](https://github.com/sveltejs/svelte/commit/dbd184c38c0f517107316835db948619ff4cf8c0 "Add a linguist configuration (#5878)") [#5878](https://github.com/sveltejs/svelte/pull/5878) [)](https://github.com/sveltejs/svelte/commit/dbd184c38c0f517107316835db948619ff4cf8c0 "Add a linguist configuration (#5878)") | 6 years agoJan 18, 2021 |
+| [.gitignore](https://github.com/sveltejs/svelte/blob/main/.gitignore ".gitignore") | [.gitignore](https://github.com/sveltejs/svelte/blob/main/.gitignore ".gitignore") | [chore: bench compare report as HTML (](https://github.com/sveltejs/svelte/commit/4da9f74cd95e838acc56c4aa0d2e926d5f68972d "chore: bench compare report as HTML (#18543)  Creates a `results.html` file which is much better to look at compared to the terminal output.") [#18543](https://github.com/sveltejs/svelte/pull/18543) [)](https://github.com/sveltejs/svelte/commit/4da9f74cd95e838acc56c4aa0d2e926d5f68972d "chore: bench compare report as HTML (#18543)  Creates a `results.html` file which is much better to look at compared to the terminal output.") | 2 months agoJul 13, 2026 |
+| [.npmrc](https://github.com/sveltejs/svelte/blob/main/.npmrc ".npmrc") | [.npmrc](https://github.com/sveltejs/svelte/blob/main/.npmrc ".npmrc") | [chore: Skip playwright instaling browsers (](https://github.com/sveltejs/svelte/commit/828276f06babce9d0a4d9fc57e1a7d024c469d99 "chore: Skip playwright instaling browsers (#8935)  * Push  * try npmrc route  * Rootnpmrc  * Add command to install chromium for running tests") [#8935](https://github.com/sveltejs/svelte/pull/8935) [)](https://github.com/sveltejs/svelte/commit/828276f06babce9d0a4d9fc57e1a7d024c469d99 "chore: Skip playwright instaling browsers (#8935)  * Push  * try npmrc route  * Rootnpmrc  * Add command to install chromium for running tests") | 3 years agoJul 7, 2023 |
+| [.prettierignore](https://github.com/sveltejs/svelte/blob/main/.prettierignore ".prettierignore") | [.prettierignore](https://github.com/sveltejs/svelte/blob/main/.prettierignore ".prettierignore") | [docs: desloppify browser support page (](https://github.com/sveltejs/svelte/commit/11985c020fe1f7f7755494929c5d59f44a45e990 "docs: desloppify browser support page (#18333)  The text in https://svelte.dev/docs/svelte/browser-support is quite redundant and has a lot of AI smell. I did my best to make it more concise and remove some slop comments in the generation script.  Requires a companion PR in svelte.dev: https://github.com/sveltejs/svelte.dev/pull/2013  <img width=\"620\" height=\"809\" alt=\"image\" src=\"https://github.com/user-attachments/assets/7be9d5ff-1623-4897-a2d4-9a601b20f54d\" />  ### Before submitting the PR, please make sure you do the following  - [ ] It's really useful if your PR references an issue where it is discussed ahead of time. In many cases, features are absent for a reason. For large changes, please create an RFC: https://github.com/sveltejs/rfcs - [x] Prefix your PR title with `feat:`, `fix:`, `chore:`, or `docs:`. - [x] This message body should clearly illustrate what problems it solves. - [ ] Ideally, include a test that fails without this PR but passes with it. - [x] If this PR changes code within `packages/svelte/src`, add a changeset (`npx changeset`).  ### Tests and linting  - [x] Run the tests with `pnpm test` and lint the project with `pnpm lint`  ---------  Co-authored-by: Rich Harris <rich.harris@vercel.com>") [#18333](https://github.com/sveltejs/svelte/pull/18333) [)](https://github.com/sveltejs/svelte/commit/11985c020fe1f7f7755494929c5d59f44a45e990 "docs: desloppify browser support page (#18333)  The text in https://svelte.dev/docs/svelte/browser-support is quite redundant and has a lot of AI smell. I did my best to make it more concise and remove some slop comments in the generation script.  Requires a companion PR in svelte.dev: https://github.com/sveltejs/svelte.dev/pull/2013  <img width=\"620\" height=\"809\" alt=\"image\" src=\"https://github.com/user-attachments/assets/7be9d5ff-1623-4897-a2d4-9a601b20f54d\" />  ### Before submitting the PR, please make sure you do the following  - [ ] It's really useful if your PR references an issue where it is discussed ahead of time. In many cases, features are absent for a reason. For large changes, please create an RFC: https://github.com/sveltejs/rfcs - [x] Prefix your PR title with `feat:`, `fix:`, `chore:`, or `docs:`. - [x] This message body should clearly illustrate what problems it solves. - [ ] Ideally, include a test that fails without this PR but passes with it. - [x] If this PR changes code within `packages/svelte/src`, add a changeset (`npx changeset`).  ### Tests and linting  - [x] Run the tests with `pnpm test` and lint the project with `pnpm lint`  ---------  Co-authored-by: Rich Harris <rich.harris@vercel.com>") | 4 months agoMay 31, 2026 |
+| [.prettierrc](https://github.com/sveltejs/svelte/blob/main/.prettierrc ".prettierrc") | [.prettierrc](https://github.com/sveltejs/svelte/blob/main/.prettierrc ".prettierrc") | [chore: cleanup obselete stuff (](https://github.com/sveltejs/svelte/commit/0ae1d5afffae954d6691b19b71531e0e287c5fa3 "chore: cleanup obselete stuff (#16412)  * Update vitest.config.js  * Update vitest.config.js  * cleanup  * woops  * Update eslint.config.js  ---------  Co-authored-by: Simon H <5968653+dummdidumm@users.noreply.github.com>") [#16412](https://github.com/sveltejs/svelte/pull/16412) [)](https://github.com/sveltejs/svelte/commit/0ae1d5afffae954d6691b19b71531e0e287c5fa3 "chore: cleanup obselete stuff (#16412)  * Update vitest.config.js  * Update vitest.config.js  * cleanup  * woops  * Update eslint.config.js  ---------  Co-authored-by: Simon H <5968653+dummdidumm@users.noreply.github.com>") | last yearJul 17, 2025 |
+| [AGENTS.md](https://github.com/sveltejs/svelte/blob/main/AGENTS.md "AGENTS.md") | [AGENTS.md](https://github.com/sveltejs/svelte/blob/main/AGENTS.md "AGENTS.md") | [chore: try and discourage slop, even a tiny bit (](https://github.com/sveltejs/svelte/commit/656dae67808651fa6a7ca5f8446e28e3a4e76a62 "chore: try and discourage slop, even a tiny bit (#18293)  i don't know how to stem the flood of slop PRs but maybe this will help a tiny bit  ---------  Co-authored-by: vercel[bot] <35613825+vercel[bot]@users.noreply.github.com>") [#18293](https://github.com/sveltejs/svelte/pull/18293) [)](https://github.com/sveltejs/svelte/commit/656dae67808651fa6a7ca5f8446e28e3a4e76a62 "chore: try and discourage slop, even a tiny bit (#18293)  i don't know how to stem the flood of slop PRs but maybe this will help a tiny bit  ---------  Co-authored-by: vercel[bot] <35613825+vercel[bot]@users.noreply.github.com>") | 4 months agoMay 29, 2026 |
+| [CODE\_OF\_CONDUCT.md](https://github.com/sveltejs/svelte/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [CODE\_OF\_CONDUCT.md](https://github.com/sveltejs/svelte/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [Create CODE\_OF\_CONDUCT.md (](https://github.com/sveltejs/svelte/commit/5ccfc3c5d7a29fe6df1cb109df8d0e7868d0ea51 "Create CODE_OF_CONDUCT.md (#7183)  * Create CODE_OF_CONDUCT.md  * Update CODE_OF_CONDUCT.md  Co-authored-by: Bjorn Lu <bjornlu.dev@gmail.com>  Co-authored-by: Ignatius Bagus <ignatius.mbs@gmail.com> Co-authored-by: Bjorn Lu <bjornlu.dev@gmail.com>") [#7183](https://github.com/sveltejs/svelte/pull/7183) [)](https://github.com/sveltejs/svelte/commit/5ccfc3c5d7a29fe6df1cb109df8d0e7868d0ea51 "Create CODE_OF_CONDUCT.md (#7183)  * Create CODE_OF_CONDUCT.md  * Update CODE_OF_CONDUCT.md  Co-authored-by: Bjorn Lu <bjornlu.dev@gmail.com>  Co-authored-by: Ignatius Bagus <ignatius.mbs@gmail.com> Co-authored-by: Bjorn Lu <bjornlu.dev@gmail.com>") | 4 years agoJan 25, 2022 |
+| [CONTRIBUTING.md](https://github.com/sveltejs/svelte/blob/main/CONTRIBUTING.md "CONTRIBUTING.md") | [CONTRIBUTING.md](https://github.com/sveltejs/svelte/blob/main/CONTRIBUTING.md "CONTRIBUTING.md") | [docs(contributing): fix grammar in Prioritization section (](https://github.com/sveltejs/svelte/commit/be8ffeb2a4b0c36657fb5c1bdcf36971da814227 "docs(contributing): fix grammar in Prioritization section (#18241)  Small typo in `CONTRIBUTING.md` — \"the most important and active ones repositories\" reads like a leftover from an edit. Removed the dangling \"ones\".  ```diff -PRs to the most important and active ones repositories get reviewed more quickly +PRs to the most important and active repositories get reviewed more quickly ```") [#18241](https://github.com/sveltejs/svelte/pull/18241) [)](https://github.com/sveltejs/svelte/commit/be8ffeb2a4b0c36657fb5c1bdcf36971da814227 "docs(contributing): fix grammar in Prioritization section (#18241)  Small typo in `CONTRIBUTING.md` — \"the most important and active ones repositories\" reads like a leftover from an edit. Removed the dangling \"ones\".  ```diff -PRs to the most important and active ones repositories get reviewed more quickly +PRs to the most important and active repositories get reviewed more quickly ```") | 4 months agoMay 19, 2026 |
+| [FUNDING.json](https://github.com/sveltejs/svelte/blob/main/FUNDING.json "FUNDING.json") | [FUNDING.json](https://github.com/sveltejs/svelte/blob/main/FUNDING.json "FUNDING.json") | [Update Drips claim wallet address (](https://github.com/sveltejs/svelte/commit/f2f71ae3a1b9a416936484c121e51f6645761ea8 "Update Drips claim wallet address (#11444)  Updating wallet address to Open Source Collective owned wallet in order to claim project.") [#11444](https://github.com/sveltejs/svelte/pull/11444) [)](https://github.com/sveltejs/svelte/commit/f2f71ae3a1b9a416936484c121e51f6645761ea8 "Update Drips claim wallet address (#11444)  Updating wallet address to Open Source Collective owned wallet in order to claim project.") | 2 years agoMay 3, 2024 |
+| [LICENSE.md](https://github.com/sveltejs/svelte/blob/main/LICENSE.md "LICENSE.md") | [LICENSE.md](https://github.com/sveltejs/svelte/blob/main/LICENSE.md "LICENSE.md") | [docs: rephrase copyright holder (](https://github.com/sveltejs/svelte/commit/ac215d9b23d091b14caa1f47951997dc6acfb841 "docs: rephrase copyright holder (#15333)") [#15333](https://github.com/sveltejs/svelte/pull/15333) [)](https://github.com/sveltejs/svelte/commit/ac215d9b23d091b14caa1f47951997dc6acfb841 "docs: rephrase copyright holder (#15333)") | last yearFeb 21, 2025 |
+| [README.md](https://github.com/sveltejs/svelte/blob/main/README.md "README.md") | [README.md](https://github.com/sveltejs/svelte/blob/main/README.md "README.md") | [docs: update casing (](https://github.com/sveltejs/svelte/commit/60b22c0b5fc17bf0062d08ad16dc2ba60af12971 "docs: update casing (#15321)") [#15321](https://github.com/sveltejs/svelte/pull/15321) [)](https://github.com/sveltejs/svelte/commit/60b22c0b5fc17bf0062d08ad16dc2ba60af12971 "docs: update casing (#15321)") | last yearFeb 21, 2025 |
+| [eslint.config.js](https://github.com/sveltejs/svelte/blob/main/eslint.config.js "eslint.config.js") | [eslint.config.js](https://github.com/sveltejs/svelte/blob/main/eslint.config.js "eslint.config.js") | [docs: add auto-generated browser support page (](https://github.com/sveltejs/svelte/commit/27e74c4df7b49f6b7663e00acd065a68ddaa337f "docs: add auto-generated browser support page (#18276)  ## Summary  Adds a [Browser support](https://github.com/MathiasWP/svelte/blob/document-pipeline-draft/documentation/docs/07-misc/05-browser-support.md) page listing the minimum browser versions Svelte's runtime and compiler output require. The page (headline floor + per-feature requirements) is auto-generated by `packages/svelte/scripts/generate-browser-support.js`, which scans the code Svelte actually ships against the [web-features](https://github.com/web-platform-dx/web-features) Baseline dataset and resolves results to concrete browser versions via [baseline-browser-mapping](https://github.com/web-platform-dx/baseline-browser-mapping). CI fails if a PR moves the floor without regenerating the page.  For 5.55.9 the floor is **Baseline 2020**: Chrome/Edge 87, Firefox 83, Safari 14.  ## How it works  1. **Headline floor.** Each runtime entry from `pkg.exports` is bundled with rollup using production conditions, then walked with TypeScript's compiler API + TypeChecker. The walker (`browser-support.detector.js`) flags any web-features ID the runtime references; the highest Baseline year among them is the floor. 2. **Per-feature requirements.** Every user-facing surface is enumerated programmatically — every `bind:*` from `binding_properties`, every public subpackage export discovered via `pkg.exports` + `import * as ns`, every rune from `RUNES`, and directives (`transition:` / `animate:` / `use:` / `@attach` / `{@html}` / custom elements). Each gets a fixture, compiled and bundled like user code, then scanned. A row appears only when the fixture's floor exceeds the runtime floor. 3. **Supplemental rules.** A handful of APIs `web-features` doesn't catalogue (`getComputedStyle(...).zoom`, `box: 'device-pixel-content-box'`) are detected with the same type-aware walker via a small `register_extra_rules` list with inline justifications. 4. **Ignore sets.** `SAFE_TO_IGNORE` covers dataset bugs and feature-detected APIs with graceful fallbacks. `BEHAVIORAL_IGNORE` hides APIs reached only via specific user code from the headline (they still surface as conditional rows); staleness-checked, so CI fails if an entry no longer exists in the runtime.  Resolves #18198. Provides an answer to the long-standing #558.  ## Test plan  - [ ] \`pnpm --filter svelte generate:browser-support\` regenerates the page idempotently - [ ] CI fails when a code change bumps the floor without regenerating the page - [ ] Page renders correctly on svelte.dev  🤖 Generated with [Claude Code](https://claude.com/claude-code)  ---------  Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com> Co-authored-by: Rich Harris <rich.harris@vercel.com>") [#18276](https://github.com/sveltejs/svelte/pull/18276) [)](https://github.com/sveltejs/svelte/commit/27e74c4df7b49f6b7663e00acd065a68ddaa337f "docs: add auto-generated browser support page (#18276)  ## Summary  Adds a [Browser support](https://github.com/MathiasWP/svelte/blob/document-pipeline-draft/documentation/docs/07-misc/05-browser-support.md) page listing the minimum browser versions Svelte's runtime and compiler output require. The page (headline floor + per-feature requirements) is auto-generated by `packages/svelte/scripts/generate-browser-support.js`, which scans the code Svelte actually ships against the [web-features](https://github.com/web-platform-dx/web-features) Baseline dataset and resolves results to concrete browser versions via [baseline-browser-mapping](https://github.com/web-platform-dx/baseline-browser-mapping). CI fails if a PR moves the floor without regenerating the page.  For 5.55.9 the floor is **Baseline 2020**: Chrome/Edge 87, Firefox 83, Safari 14.  ## How it works  1. **Headline floor.** Each runtime entry from `pkg.exports` is bundled with rollup using production conditions, then walked with TypeScript's compiler API + TypeChecker. The walker (`browser-support.detector.js`) flags any web-features ID the runtime references; the highest Baseline year among them is the floor. 2. **Per-feature requirements.** Every user-facing surface is enumerated programmatically — every `bind:*` from `binding_properties`, every public subpackage export discovered via `pkg.exports` + `import * as ns`, every rune from `RUNES`, and directives (`transition:` / `animate:` / `use:` / `@attach` / `{@html}` / custom elements). Each gets a fixture, compiled and bundled like user code, then scanned. A row appears only when the fixture's floor exceeds the runtime floor. 3. **Supplemental rules.** A handful of APIs `web-features` doesn't catalogue (`getComputedStyle(...).zoom`, `box: 'device-pixel-content-box'`) are detected with the same type-aware walker via a small `register_extra_rules` list with inline justifications. 4. **Ignore sets.** `SAFE_TO_IGNORE` covers dataset bugs and feature-detected APIs with graceful fallbacks. `BEHAVIORAL_IGNORE` hides APIs reached only via specific user code from the headline (they still surface as conditional rows); staleness-checked, so CI fails if an entry no longer exists in the runtime.  Resolves #18198. Provides an answer to the long-standing #558.  ## Test plan  - [ ] \`pnpm --filter svelte generate:browser-support\` regenerates the page idempotently - [ ] CI fails when a code change bumps the floor without regenerating the page - [ ] Page renders correctly on svelte.dev  🤖 Generated with [Claude Code](https://claude.com/claude-code)  ---------  Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com> Co-authored-by: Rich Harris <rich.harris@vercel.com>") | 4 months agoMay 28, 2026 |
+| [package.json](https://github.com/sveltejs/svelte/blob/main/package.json "package.json") | [package.json](https://github.com/sveltejs/svelte/blob/main/package.json "package.json") | [chore: bump playwright (](https://github.com/sveltejs/svelte/commit/5034b59e9e6cff42451d9136650f5fbde4c25260 "chore: bump playwright (#18729)  supports later ubuntu versions") [#18729](https://github.com/sveltejs/svelte/pull/18729) [)](https://github.com/sveltejs/svelte/commit/5034b59e9e6cff42451d9136650f5fbde4c25260 "chore: bump playwright (#18729)  supports later ubuntu versions") | 5 days agoAug 27, 2026 |
+| [pnpm-lock.yaml](https://github.com/sveltejs/svelte/blob/main/pnpm-lock.yaml "pnpm-lock.yaml") | [pnpm-lock.yaml](https://github.com/sveltejs/svelte/blob/main/pnpm-lock.yaml "pnpm-lock.yaml") | [chore: bump packages (](https://github.com/sveltejs/svelte/commit/9d91a40fafcb126b857384fc39219d44877df631 "chore: bump packages (#18752)  esrap bump ensures a bugfix, devalue silences vulnerability reports") [#18752](https://github.com/sveltejs/svelte/pull/18752) [)](https://github.com/sveltejs/svelte/commit/9d91a40fafcb126b857384fc39219d44877df631 "chore: bump packages (#18752)  esrap bump ensures a bugfix, devalue silences vulnerability reports") | yesterdayAug 31, 2026 |
+| [pnpm-workspace.yaml](https://github.com/sveltejs/svelte/blob/main/pnpm-workspace.yaml "pnpm-workspace.yaml") | [pnpm-workspace.yaml](https://github.com/sveltejs/svelte/blob/main/pnpm-workspace.yaml "pnpm-workspace.yaml") | [chore: Supply chain hardening (](https://github.com/sveltejs/svelte/commit/23bc246a99c649c0c325509debb93e062948e240 "chore: Supply chain hardening (#18253)  `svelte`  Supply-chain hardening pass.  ## Changes - Bump `packageManager` from `pnpm@10.4.0` to `pnpm@10.33.4` with `+sha512` integrity suffix. - Add to `pnpm-workspace.yaml`:   - `minimumReleaseAge: 1440`   - `minimumReleaseAgeExclude: ['@sveltejs/*', svelte, esrap, devalue]`   - `blockExoticSubdeps: true` - Remove `pkg.pr.new.yml` workflow in favor of `pkg.svelte.dev` - Pin all third-party GitHub Actions to full SHA with `# vX.Y.Z` comments across `ci.yml`, `autofix.yml`, `release.yml`, `ecosystem-ci-trigger.yml` - Upgrade `pnpm/action-setup` references in `ci.yml`, `autofix.yml`, `release.yml` from a SHA that was incorrectly labeled `# v4` (actually `v5.0.0` / `v4.4.0`) to the current `v6.0.8` SHA so the version label matches reality.") [#18253](https://github.com/sveltejs/svelte/pull/18253) [)](https://github.com/sveltejs/svelte/commit/23bc246a99c649c0c325509debb93e062948e240 "chore: Supply chain hardening (#18253)  `svelte`  Supply-chain hardening pass.  ## Changes - Bump `packageManager` from `pnpm@10.4.0` to `pnpm@10.33.4` with `+sha512` integrity suffix. - Add to `pnpm-workspace.yaml`:   - `minimumReleaseAge: 1440`   - `minimumReleaseAgeExclude: ['@sveltejs/*', svelte, esrap, devalue]`   - `blockExoticSubdeps: true` - Remove `pkg.pr.new.yml` workflow in favor of `pkg.svelte.dev` - Pin all third-party GitHub Actions to full SHA with `# vX.Y.Z` comments across `ci.yml`, `autofix.yml`, `release.yml`, `ecosystem-ci-trigger.yml` - Upgrade `pnpm/action-setup` references in `ci.yml`, `autofix.yml`, `release.yml` from a SHA that was incorrectly labeled `# v4` (actually `v5.0.0` / `v4.4.0`) to the current `v6.0.8` SHA so the version label matches reality.") | 2 months agoJul 24, 2026 |
+| [svelte.config.js](https://github.com/sveltejs/svelte/blob/main/svelte.config.js "svelte.config.js") | [svelte.config.js](https://github.com/sveltejs/svelte/blob/main/svelte.config.js "svelte.config.js") | [fix: allow async destructured deriveds (](https://github.com/sveltejs/svelte/commit/e1e7a75d719ab6826238ddaef4571ac6f6d22732 "fix: allow async destructured deriveds (#16444)  * fix: allow async destructured deriveds  * add test  * tweak  * tweak  ---------  Co-authored-by: Rich Harris <rich.harris@vercel.com>") [#16444](https://github.com/sveltejs/svelte/pull/16444) [)](https://github.com/sveltejs/svelte/commit/e1e7a75d719ab6826238ddaef4571ac6f6d22732 "fix: allow async destructured deriveds (#16444)  * fix: allow async destructured deriveds  * add test  * tweak  * tweak  ---------  Co-authored-by: Rich Harris <rich.harris@vercel.com>") | last yearJul 19, 2025 |
+| [vitest-xhtml-environment.ts](https://github.com/sveltejs/svelte/blob/main/vitest-xhtml-environment.ts "vitest-xhtml-environment.ts") | [vitest-xhtml-environment.ts](https://github.com/sveltejs/svelte/blob/main/vitest-xhtml-environment.ts "vitest-xhtml-environment.ts") | [chore: upgrade to vitest v4 (](https://github.com/sveltejs/svelte/commit/85dcb91f7c890a4d6d6c23dcbcf1df23cc624272 "chore: upgrade to vitest v4 (#18265)  ## Summary  Bumps `vitest` and `@vitest/coverage-v8` from `^2.1.9` to `^4.1.7` (two major versions). Three small test-harness updates compensate for vitest 4 behavior changes; all 7569 tests still pass.  - **`packages/svelte/tests/runtime-browser/test.ts`** — vitest 4 removed the deprecated `describe(name, fn, opts)` signature. Pass options as the second argument. - **`packages/svelte/tests/runtime-legacy/shared.ts`** — vitest 4's jsdom env binds `virtualConsole` to the original `globalThis.console` reference *before* vitest wraps the console, so inline-`<script>` logs and `jsdomError` events no longer reach per-test `console.{log,error}` overrides. Restore vitest 2's behavior by re-routing the virtual console through the live `console` in `beforeAll`. Also promote the window-error listener to a named function and remove it in `finally` — previously leaked listeners from earlier tests kept writing to module-level `unhandled_rejection`, polluting later tests. - **`vitest.config.js`** — bump `testTimeout` to 10s. The 5s default trips a handful of dev-mode tests that exercise `effect_update_depth_exceeded`, whose ~1000 Error-stack captures per flush are slower under vitest 4's deeper async stacks.  ## Test plan  - [x] `pnpm test` — 7569 passed, 63 skipped, 0 failed  ---------  Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com> Co-authored-by: Rich Harris <rich.harris@vercel.com>") [#18265](https://github.com/sveltejs/svelte/pull/18265) [)](https://github.com/sveltejs/svelte/commit/85dcb91f7c890a4d6d6c23dcbcf1df23cc624272 "chore: upgrade to vitest v4 (#18265)  ## Summary  Bumps `vitest` and `@vitest/coverage-v8` from `^2.1.9` to `^4.1.7` (two major versions). Three small test-harness updates compensate for vitest 4 behavior changes; all 7569 tests still pass.  - **`packages/svelte/tests/runtime-browser/test.ts`** — vitest 4 removed the deprecated `describe(name, fn, opts)` signature. Pass options as the second argument. - **`packages/svelte/tests/runtime-legacy/shared.ts`** — vitest 4's jsdom env binds `virtualConsole` to the original `globalThis.console` reference *before* vitest wraps the console, so inline-`<script>` logs and `jsdomError` events no longer reach per-test `console.{log,error}` overrides. Restore vitest 2's behavior by re-routing the virtual console through the live `console` in `beforeAll`. Also promote the window-error listener to a named function and remove it in `finally` — previously leaked listeners from earlier tests kept writing to module-level `unhandled_rejection`, polluting later tests. - **`vitest.config.js`** — bump `testTimeout` to 10s. The 5s default trips a handful of dev-mode tests that exercise `effect_update_depth_exceeded`, whose ~1000 Error-stack captures per flush are slower under vitest 4's deeper async stacks.  ## Test plan  - [x] `pnpm test` — 7569 passed, 63 skipped, 0 failed  ---------  Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com> Co-authored-by: Rich Harris <rich.harris@vercel.com>") | 4 months agoJun 2, 2026 |
+| [vitest.config.js](https://github.com/sveltejs/svelte/blob/main/vitest.config.js "vitest.config.js") | [vitest.config.js](https://github.com/sveltejs/svelte/blob/main/vitest.config.js "vitest.config.js") | [chore: set Vitest reporter for github actions (](https://github.com/sveltejs/svelte/commit/08c2a72907838f8466bfff91f1deff2dc1bccd57 "chore: set Vitest reporter for github actions (#18722)  test failures show up really bad now, minimal is way better for github actions") [#18722](https://github.com/sveltejs/svelte/pull/18722) [)](https://github.com/sveltejs/svelte/commit/08c2a72907838f8466bfff91f1deff2dc1bccd57 "chore: set Vitest reporter for github actions (#18722)  test failures show up really bad now, minimal is way better for github actions") | last weekAug 26, 2026 |
+| View all files |
+
+## Repository files navigation
+
+[![Svelte - web development for the rest of us](https://github.com/sveltejs/svelte/raw/main/assets/banner.png)](https://svelte.dev/)
+
+[![License](https://camo.githubusercontent.com/ef9a8ed9f8e40651e333c134ffc59fd63ced260158f4ed6a798720dbee59e89b/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f6c2f7376656c74652e737667)](https://github.com/sveltejs/svelte/blob/main/LICENSE.md)[![Chat](https://camo.githubusercontent.com/1ed0a94c2de08697acd79df4f7ba9f9b1321c7b55587a4b08db046a8e202a1eb/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3435373931323037373237373835353736343f6c6162656c3d63686174266c6f676f3d646973636f7264)](https://svelte.dev/chat)
+
+## What is Svelte?
+
+[Permalink: What is Svelte?](https://github.com/sveltejs/svelte#what-is-svelte)
+
+Svelte is a new way to build web applications. It's a compiler that takes your declarative components and converts them into efficient JavaScript that surgically updates the DOM.
+
+Learn more at the [Svelte website](https://svelte.dev/), or stop by the [Discord chatroom](https://svelte.dev/chat).
+
+## Supporting Svelte
+
+[Permalink: Supporting Svelte](https://github.com/sveltejs/svelte#supporting-svelte)
+
+Svelte is an MIT-licensed open source project with its ongoing development made possible entirely by fantastic volunteers. If you'd like to support their efforts, please consider:
+
+- [Becoming a backer on Open Collective](https://opencollective.com/svelte).
+
+Funds donated via Open Collective will be used for compensating expenses related to Svelte's development such as hosting costs. If sufficient donations are received, funds may also be used to support Svelte's development more directly.
+
+## Roadmap
+
+[Permalink: Roadmap](https://github.com/sveltejs/svelte#roadmap)
+
+You may view [our roadmap](https://svelte.dev/roadmap) if you'd like to see what we're currently working on.
+
+## Contributing
+
+[Permalink: Contributing](https://github.com/sveltejs/svelte#contributing)
+
+Please see the [Contributing Guide](https://github.com/sveltejs/svelte/blob/main/CONTRIBUTING.md) and the [`svelte`](https://github.com/sveltejs/svelte/blob/main/packages/svelte) package for information on contributing to Svelte.
+
+## Is svelte.dev down?
+
+[Permalink: Is svelte.dev down?](https://github.com/sveltejs/svelte#is-sveltedev-down)
+
+Probably not, but it's possible. If you can't seem to access any `.dev` sites, check out [this SuperUser question and answer](https://superuser.com/q/1413402).
+
+## License
+
+[Permalink: License](https://github.com/sveltejs/svelte#license)
+
+[MIT](https://github.com/sveltejs/svelte/blob/main/LICENSE.md)
+
+## About
+
+web development for the rest of us
+
+[svelte.dev](https://svelte.dev/)
+
+### Topics
+
+[compiler](https://github.com/topics/compiler) [template](https://github.com/topics/template) [ui](https://github.com/topics/ui)
+
+### Resources
+
+[Readme](https://github.com/sveltejs/svelte#readme-ov-file)
+
+[MIT license](https://github.com/sveltejs/svelte#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/sveltejs/svelte#coc-ov-file)
+
+### Contributing
+
+[Contributing](https://github.com/sveltejs/svelte#contributing-ov-file)
+
+### Security policy
+
+[Security policy](https://github.com/sveltejs/svelte#security-ov-file)
+
+[Activity](https://github.com/sveltejs/svelte/activity)
+
+[Custom properties](https://github.com/sveltejs/svelte/custom-properties)
+
+### Stars
+
+**88.0k** stars
+
+### Watchers
+
+**938** watching
+
+### Forks
+
+[**5.2k** forks](https://github.com/sveltejs/svelte/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fsveltejs%2Fsvelte&report=sveltejs+%28user%29)
+
+## Releases
+
+## Sponsor this project
+
+## Packages
+
+## Used by
+
+## Contributors
+
+## Languages
+
+You can’t perform that action at this time.

@@ -1,10 +1,1 @@
-Example Domain
-
-# Example Domain
-
-This domain is for use in documentation examples without needing permission. Avoid use in operations.
-
-Example Domain
-# Example Domain
-This domain is for use in documentation examples without needing permission. Avoid use in operations.
-[Learn more](https://iana.org/domains/example)
+{"requestId":"9fbf2a2d6983b454cbe7167b3458e92c","results":[],"statuses":[{"id":"https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F","status":"error","error":{"httpStatusCode":504,"tag":"CRAWL_LIVECRAWL_TIMEOUT"}}],"costDollars":{"total":0},"searchTime":10009.246157000074}

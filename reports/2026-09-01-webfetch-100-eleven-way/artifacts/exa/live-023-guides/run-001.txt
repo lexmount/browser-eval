@@ -1,0 +1,63 @@
+Spring | Guides
+
+Learn more about Day 0 access to security patches via Enterprise support.
+
+# Guides
+
+Whatever you're building, these guides are designed to get you productive as quickly as possible – using the latest Spring project releases and techniques as recommended by the Spring team.
+
+# Category
+
+Messaging
+
+IO
+
+Data Access
+
+Security
+
+REST APIs
+
+Web
+
+Ops
+
+Batch Processing
+
+Microservices
+
+Caching
+
+Testing
+
+Documentation
+
+Streaming
+
+Cloud Platform
+
+GraphQL
+
+Misc
+
+# Estimated Time
+
+30m
+
+1h
+
+3h
+
+No result found.
+
+## Get ahead
+
+VMware offers training and certification to turbo-charge your progress.
+
+## Get support
+
+Tanzu Spring offers support and binaries for OpenJDK™, Spring, and Apache Tomcat® in one simple subscription.
+
+## Upcoming events
+
+Check out all the upcoming events in the Spring community.

@@ -1,0 +1,552 @@
+---
+title: "GitHub - remix-run/react-router: Declarative routing for React · GitHub"
+meta:
+  description: "Declarative routing for React. Contribute to remix-run/react-router development by creating an account on GitHub."
+  "og:description": "Declarative routing for React. Contribute to remix-run/react-router development by creating an account on GitHub."
+  "og:title": "GitHub - remix-run/react-router: Declarative routing for React"
+  "twitter:description": "Declarative routing for React. Contribute to remix-run/react-router development by creating an account on GitHub."
+  "twitter:title": "GitHub - remix-run/react-router: Declarative routing for React"
+---
+
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[Homepage](/)
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router)
+
+Appearance settings
+
+- Platform
+  - AI CODE CREATION
+    - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+    - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+    - [MCP RegistryIntegrate external tools](https://github.com/mcp)
+  - DEVELOPER WORKFLOWS
+    - [ActionsAutomate any workflow](https://github.com/features/actions)
+    - [CodespacesInstant dev environments](https://github.com/features/codespaces)
+    - [IssuesPlan and track work](https://github.com/features/issues)
+    - [Code ReviewManage code changes](https://github.com/features/code-review)
+    - [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+  - APPLICATION SECURITY
+    - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+    - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+    - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+  - EXPLORE
+    - [Why GitHub](https://github.com/why-github)
+    - [Documentation](https://docs.github.com)
+    - [Blog](https://github.blog)
+    - [Changelog](https://github.blog/changelog)
+    - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions
+  - BY COMPANY SIZE
+    - [Enterprises](https://github.com/enterprise)
+    - [Small and medium teams](https://github.com/team)
+    - [Startups](https://github.com/enterprise/startups)
+    - [Nonprofits](https://github.com/solutions/industry/nonprofits)
+  - BY USE CASE
+    - [App Modernization](https://github.com/solutions/use-case/app-modernization)
+    - [DevSecOps](https://github.com/solutions/use-case/devsecops)
+    - [DevOps](https://github.com/solutions/use-case/devops)
+    - [CI/CD](https://github.com/solutions/use-case/ci-cd)
+    - [View all use cases](https://github.com/solutions/use-case)
+  - BY INDUSTRY
+    - [Healthcare](https://github.com/solutions/industry/healthcare)
+    - [Financial services](https://github.com/solutions/industry/financial-services)
+    - [Manufacturing](https://github.com/solutions/industry/manufacturing)
+    - [Government](https://github.com/solutions/industry/government)
+    - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources
+  - EXPLORE BY TOPIC
+    - [AI](https://github.com/resources/articles?topic=ai)
+    - [Software Development](https://github.com/resources/articles?topic=software-development)
+    - [DevOps](https://github.com/resources/articles?topic=devops)
+    - [Security](https://github.com/resources/articles?topic=security)
+    - [View all topics](https://github.com/resources/articles)
+  - EXPLORE BY TYPE
+    - [Customer stories](https://github.com/customer-stories)
+    - [Events & webinars](https://github.com/resources/events)
+    - [Ebooks & reports](https://github.com/resources/whitepapers)
+    - [Business insights](https://github.com/solutions/executive-insights)
+    - [GitHub Skills](https://skills.github.com)
+  - SUPPORT & SERVICES
+    - [Documentation](https://docs.github.com)
+    - [Customer support](https://support.github.com)
+    - [Community forum](https://github.com/orgs/community/discussions)
+    - [Trust center](https://github.com/trust-center)
+    - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source
+  - COMMUNITY
+    - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+  - PROGRAMS
+    - [Security Lab](https://securitylab.github.com)
+    - [Maintainer Community](https://maintainers.github.com)
+    - [GitHub Stars](https://stars.github.com)
+    - [Archive Program](https://archiveprogram.github.com)
+  - REPOSITORIES
+    - [Topics](https://github.com/topics)
+    - [Trending](https://github.com/trending)
+    - [Collections](https://github.com/collections)
+- Enterprise
+  - ENTERPRISE SOLUTIONS
+    - [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+  - AVAILABLE ADD-ONS
+    - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+    - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+    - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router)
+
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=remix-run%2Freact-router)
+
+Appearance settings
+
+You signed in with another tab or window. [Reload]() to refresh your session. You signed out in another tab or window. [Reload]() to refresh your session. You switched accounts on another tab or window. [Reload]() to refresh your session. Dismiss alert
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page]().
+
+[remix-run](https://github.com/remix-run) / **[react-router](https://github.com/remix-run/react-router)** Public
+
+- Sponsor # Sponsor remix-run/react-router ##### External links![open\_collective](https://github.githubassets.com/assets/open_collective-0a706523753d.svg) [opencollective.com/**react-router**](https://opencollective.com/react-router)
+
+  [Learn more about funding links in repositories](https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
+
+  [Report abuse](https://github.com/contact/report-abuse?report=remix-run%2Freact-router+%28Repository+Funding+Links%29)
+- [Notifications](https://github.com/login?return_to=%2Fremix-run%2Freact-router) You must be signed in to change notification settings
+- [Fork 10.9k](https://github.com/login?return_to=%2Fremix-run%2Freact-router)
+- [Star 56.6k](https://github.com/login?return_to=%2Fremix-run%2Freact-router)
+
+- [Code](https://github.com/remix-run/react-router)
+- [Issues 102](https://github.com/remix-run/react-router/issues)
+- [Pull requests 71](https://github.com/remix-run/react-router/pulls)
+- [Discussions](https://github.com/remix-run/react-router/discussions)
+- [Actions](https://github.com/remix-run/react-router/actions)
+- [Security and quality 22](https://github.com/remix-run/react-router/security)
+- [Insights](https://github.com/remix-run/react-router/pulse)
+
+Additional navigation options
+
+- [Code](https://github.com/remix-run/react-router)
+- [Issues](https://github.com/remix-run/react-router/issues)
+- [Pull requests](https://github.com/remix-run/react-router/pulls)
+- [Discussions](https://github.com/remix-run/react-router/discussions)
+- [Actions](https://github.com/remix-run/react-router/actions)
+- [Security and quality](https://github.com/remix-run/react-router/security)
+- [Insights](https://github.com/remix-run/react-router/pulse)
+
+main
+
+[**44** Branches](https://github.com/remix-run/react-router/branches) [**2027** Tags](https://github.com/remix-run/react-router/tags)
+
+[Go to Branches page](https://github.com/remix-run/react-router/branches) [Go to Tags page](https://github.com/remix-run/react-router/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+![ryanflorence](https://avatars.githubusercontent.com/u/100200?v=4&size=40)![remix-run-bot](https://avatars.githubusercontent.com/u/72662859?v=4&size=40)
+
+[ryanflorence](https://github.com/remix-run/react-router/commits?author=ryanflorence)
+
+and
+
+[remix-run-bot](https://github.com/remix-run/react-router/commits?author=remix-run-bot)
+
+[Release v8.3.1 (](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109) [#15368](https://github.com/remix-run/react-router/pull/15368) [)](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109)
+
+Open commit detailssuccess
+
+Aug 28, 2026
+
+[da2a0f0](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109) · Aug 28, 2026
+
+## History
+
+[11,195 Commits](https://github.com/remix-run/react-router/commits/main/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/remix-run/react-router/commits/main/)11,195 Commits
+
+## Folders and files
+
+| Name | | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- | --- |
+| [.agents/skills](https://github.com/remix-run/react-router/tree/main/.agents/skills%20%22This%20path%20skips%20through%20empty%20directories%22) | | [.agents/skills](https://github.com/remix-run/react-router/tree/main/.agents/skills%20%22This%20path%20skips%20through%20empty%20directories%22) | [Remove CLA and simplify PR workflows (](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") [#15428](https://github.com/remix-run/react-router/pull/15428) [)](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") | Aug 21, 2026 |
+| [.github](https://github.com/remix-run/react-router/tree/main/.github) | | [.github](https://github.com/remix-run/react-router/tree/main/.github) | [Remove CLA and simplify PR workflows (](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") [#15428](https://github.com/remix-run/react-router/pull/15428) [)](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") | Aug 21, 2026 |
+| [.vscode](https://github.com/remix-run/react-router/tree/main/.vscode) | | [.vscode](https://github.com/remix-run/react-router/tree/main/.vscode) | [Fix bugs with thrown data headers and duplciated set-cookie headers (](https://github.com/remix-run/react-router/commit/8f4229047d7ba999bccf40aec75b9ce60cefe8ed%20%22Fix%20bugs%20with%20thrown%20data%20headers%20and%20duplciated%20set-cookie%20headers%20(#12846)") [#…](https://github.com/remix-run/react-router/pull/12846) | Jan 23, 2025 |
+| [decisions](https://github.com/remix-run/react-router/tree/main/decisions) | | [decisions](https://github.com/remix-run/react-router/tree/main/decisions) | [docs(tutorials): fix dead Node.js debugging link in quickstart (](https://github.com/remix-run/react-router/commit/242e8225470c28fe5158ffa8eb68243f1b81f430%20%22docs(tutorials): fix dead Node.js debugging link in quickstart (#15237)") [#15237](https://github.com/remix-run/react-router/pull/15237) [)](https://github.com/remix-run/react-router/commit/242e8225470c28fe5158ffa8eb68243f1b81f430%20%22docs(tutorials): fix dead Node.js debugging link in quickstart (#15237)") | Jun 25, 2026 |
+| [docs](https://github.com/remix-run/react-router/tree/main/docs) | | [docs](https://github.com/remix-run/react-router/tree/main/docs) | [Remove CLA and simplify PR workflows (](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") [#15428](https://github.com/remix-run/react-router/pull/15428) [)](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") | Aug 21, 2026 |
+| [examples](https://github.com/remix-run/react-router/tree/main/examples) | | [examples](https://github.com/remix-run/react-router/tree/main/examples) | [Remove examples (](https://github.com/remix-run/react-router/commit/2c22bcbb53372b6f8f8bb9dfdfb9477bf09d990a%20%22Remove%20examples%20(#15132)") [#15132](https://github.com/remix-run/react-router/pull/15132) [)](https://github.com/remix-run/react-router/commit/2c22bcbb53372b6f8f8bb9dfdfb9477bf09d990a%20%22Remove%20examples%20(#15132)") | Jun 1, 2026 |
+| [integration](https://github.com/remix-run/react-router/tree/main/integration) | | [integration](https://github.com/remix-run/react-router/tree/main/integration) | [Bump node fetch server dependency (](https://github.com/remix-run/react-router/commit/818fb107b60a9dcceaccdea6e620583ed86769ca%20%22Bump%20node%20fetch%20server%20dependency%20(#15447)") [#15447](https://github.com/remix-run/react-router/pull/15447) [)](https://github.com/remix-run/react-router/commit/818fb107b60a9dcceaccdea6e620583ed86769ca%20%22Bump%20node%20fetch%20server%20dependency%20(#15447)") | Aug 27, 2026 |
+| [jest](https://github.com/remix-run/react-router/tree/main/jest) | | [jest](https://github.com/remix-run/react-router/tree/main/jest) | [esm migration (](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") [#14895](https://github.com/remix-run/react-router/pull/14895) [)](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") | Mar 24, 2026 |
+| [packages](https://github.com/remix-run/react-router/tree/main/packages) | | [packages](https://github.com/remix-run/react-router/tree/main/packages) | [Release v8.3.1 (](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109%20%22Release%20v8.3.1%20(#15368)
+
+Co-authored-by: Remix Run Bot <hello@remix.run>") [#15368](https://github.com/remix-run/react-router/pull/15368) [)](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109%20%22Release%20v8.3.1%20(#15368)
+
+Co-authored-by: Remix Run Bot <hello@remix.run>") | Aug 28, 2026 |
+| [playground](https://github.com/remix-run/react-router/tree/main/playground) | | [playground](https://github.com/remix-run/react-router/tree/main/playground) | [Bump node fetch server dependency (](https://github.com/remix-run/react-router/commit/818fb107b60a9dcceaccdea6e620583ed86769ca%20%22Bump%20node%20fetch%20server%20dependency%20(#15447)") [#15447](https://github.com/remix-run/react-router/pull/15447) [)](https://github.com/remix-run/react-router/commit/818fb107b60a9dcceaccdea6e620583ed86769ca%20%22Bump%20node%20fetch%20server%20dependency%20(#15447)") | Aug 27, 2026 |
+| [scripts](https://github.com/remix-run/react-router/tree/main/scripts) | | [scripts](https://github.com/remix-run/react-router/tree/main/scripts) | [Remove CLA and simplify PR workflows (](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") [#15428](https://github.com/remix-run/react-router/pull/15428) [)](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") | Aug 21, 2026 |
+| [static](https://github.com/remix-run/react-router/tree/main/static) | | [static](https://github.com/remix-run/react-router/tree/main/static) | [chore(docs): Update contributing docs](https://github.com/remix-run/react-router/commit/e68e1530eff294a3e597aaf2dcb83ea028481619) | Nov 10, 2021 |
+| [tutorials/address-book](https://github.com/remix-run/react-router/tree/main/tutorials/address-book%20%22This%20path%20skips%20through%20empty%20directories%22) | | [tutorials/address-book](https://github.com/remix-run/react-router/tree/main/tutorials/address-book%20%22This%20path%20skips%20through%20empty%20directories%22) | [Bump react to 19.2.7 (](https://github.com/remix-run/react-router/commit/9acb00e8696dbeb6fcacfe6f20fb171fd484b8ca%20%22Bump%20react%20to%2019.2.7%20(#15191)") [#15191](https://github.com/remix-run/react-router/pull/15191) [)](https://github.com/remix-run/react-router/commit/9acb00e8696dbeb6fcacfe6f20fb171fd484b8ca%20%22Bump%20react%20to%2019.2.7%20(#15191)") | Jun 16, 2026 |
+| [.browserslistrc](https://github.com/remix-run/react-router/blob/main/.browserslistrc) | | [.browserslistrc](https://github.com/remix-run/react-router/blob/main/.browserslistrc) | [Remove IE 11 support](https://github.com/remix-run/react-router/commit/f6df0697e1b2064a2b3a12e8b39577326fdd945b) | Sep 9, 2021 |
+| [.gitattributes](https://github.com/remix-run/react-router/blob/main/.gitattributes) | | [.gitattributes](https://github.com/remix-run/react-router/blob/main/.gitattributes) | [Initialize agentic workflows](https://github.com/remix-run/react-router/commit/70afb62329876f9ba885c5450a93fc64893eee8b) | Aug 19, 2026 |
+| [.gitignore](https://github.com/remix-run/react-router/blob/main/.gitignore) | | [.gitignore](https://github.com/remix-run/react-router/blob/main/.gitignore) | [Merge branch 'dev' into v8](https://github.com/remix-run/react-router/commit/72d10928f084a265b05956bb915d6774a6a4e9b6) | Jun 1, 2026 |
+| [.npmrc](https://github.com/remix-run/react-router/blob/main/.npmrc) | | [.npmrc](https://github.com/remix-run/react-router/blob/main/.npmrc) | [Migrate to pnpm (](https://github.com/remix-run/react-router/commit/12afb2efdc8408bd9e87e03f8fd16dd21ef1b233%20%22Migrate%20to%20pnpm%20(#11358)") [#11358](https://github.com/remix-run/react-router/pull/11358) [)](https://github.com/remix-run/react-router/commit/12afb2efdc8408bd9e87e03f8fd16dd21ef1b233%20%22Migrate%20to%20pnpm%20(#11358)") | Mar 21, 2024 |
+| [.nvmrc](https://github.com/remix-run/react-router/blob/main/.nvmrc) | | [.nvmrc](https://github.com/remix-run/react-router/blob/main/.nvmrc) | [esm migration (](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") [#14895](https://github.com/remix-run/react-router/pull/14895) [)](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") | Mar 24, 2026 |
+| [.prettierignore](https://github.com/remix-run/react-router/blob/main/.prettierignore) | | [.prettierignore](https://github.com/remix-run/react-router/blob/main/.prettierignore) | [Ignore compiled gh aw files from formatting](https://github.com/remix-run/react-router/commit/5461c8f693145237301b012dfe96caac3daece63) | Aug 20, 2026 |
+| [AGENTS.md](https://github.com/remix-run/react-router/blob/main/AGENTS.md) | | [AGENTS.md](https://github.com/remix-run/react-router/blob/main/AGENTS.md) | [Remove CLA and simplify PR workflows (](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") [#15428](https://github.com/remix-run/react-router/pull/15428) [)](https://github.com/remix-run/react-router/commit/cab1a69054aa7dfba08a81b6e4b4d13957c82a38%20%22Remove%20CLA%20and%20simplify%20PR%20workflows%20(#15428)
+
+* Remove CLA workflow
+
+* simplify PR worklflows") | Aug 21, 2026 |
+| [CHANGELOG.md](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md) | | [CHANGELOG.md](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md) | [Release v8.3.1 (](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109%20%22Release%20v8.3.1%20(#15368)
+
+Co-authored-by: Remix Run Bot <hello@remix.run>") [#15368](https://github.com/remix-run/react-router/pull/15368) [)](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109%20%22Release%20v8.3.1%20(#15368)
+
+Co-authored-by: Remix Run Bot <hello@remix.run>") | Aug 28, 2026 |
+| [CLAUDE.md](https://github.com/remix-run/react-router/blob/main/CLAUDE.md) | | [CLAUDE.md](https://github.com/remix-run/react-router/blob/main/CLAUDE.md) | [Add bug fixing skill](https://github.com/remix-run/react-router/commit/2469dd6621fbcaec689571c3f003af5711bc54de) | Mar 18, 2026 |
+| [CODE\_OF\_CONDUCT.md](https://github.com/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md%20%22CODE_OF_CONDUCT.md%22) | | [CODE\_OF\_CONDUCT.md](https://github.com/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md%20%22CODE_OF_CONDUCT.md%22) | [Update CODE\_OF\_CONDUCT.md](https://github.com/remix-run/react-router/commit/7a270cbc97bf3c9d73448401eef1d99699bf8bb6%20%22Update%20CODE_OF_CONDUCT.md%22) | Jan 21, 2025 |
+| [CONTRIBUTING.md](https://github.com/remix-run/react-router/blob/main/CONTRIBUTING.md) | | [CONTRIBUTING.md](https://github.com/remix-run/react-router/blob/main/CONTRIBUTING.md) | [Update CONTRIBUTING.md (](https://github.com/remix-run/react-router/commit/5aa77698d4f9e8965440f256c8bf88ed817ca46f%20%22Update%20CONTRIBUTING.md%20(#11934)") [#11934](https://github.com/remix-run/react-router/pull/11934) [)](https://github.com/remix-run/react-router/commit/5aa77698d4f9e8965440f256c8bf88ed817ca46f%20%22Update%20CONTRIBUTING.md%20(#11934)") | Aug 27, 2024 |
+| [DEVELOPMENT.md](https://github.com/remix-run/react-router/blob/main/DEVELOPMENT.md) | | [DEVELOPMENT.md](https://github.com/remix-run/react-router/blob/main/DEVELOPMENT.md) | [Version release PR branch names](https://github.com/remix-run/react-router/commit/8ef9b16f646a08840a79554a726512a44180bb50) | Jun 15, 2026 |
+| [GOVERNANCE.md](https://github.com/remix-run/react-router/blob/main/GOVERNANCE.md) | | [GOVERNANCE.md](https://github.com/remix-run/react-router/blob/main/GOVERNANCE.md) | [docs: fix typo in GOVERNANCE.md (](https://github.com/remix-run/react-router/commit/79c5b65308be60f2f9e638914938f01d6090f9eb%20%22docs:%20fix%20typo%20in%20GOVERNANCE.md%20(#15026)") [#15026](https://github.com/remix-run/react-router/pull/15026) [)](https://github.com/remix-run/react-router/commit/79c5b65308be60f2f9e638914938f01d6090f9eb%20%22docs:%20fix%20typo%20in%20GOVERNANCE.md%20(#15026)") | May 10, 2026 |
+| [LICENSE.md](https://github.com/remix-run/react-router/blob/main/LICENSE.md) | | [LICENSE.md](https://github.com/remix-run/react-router/blob/main/LICENSE.md) | [chore: update](https://github.com/remix-run/react-router/commit/fe8243f32ea30309e25c6cf449005d7c8b035ea8%20%22chore:%20update%20%60LICENSE.md%60%20(#10368)
+
+* chore: update `LICENSE.md`
+
+* Update LICENSE.md
+
+* Update LICENSE.md
+
+---------
+
+Co-authored-by: Michael Jackson <michael@jackson.us>") ``[LICENSE.md](https://github.com/remix-run/react-router/commit/fe8243f32ea30309e25c6cf449005d7c8b035ea8%20%22chore:%20update%20%60LICENSE.md%60%20(#10368)
+
+* chore: update `LICENSE.md`
+
+* Update LICENSE.md
+
+* Update LICENSE.md
+
+---------
+
+Co-authored-by: Michael Jackson <michael@jackson.us>")`` [(](https://github.com/remix-run/react-router/commit/fe8243f32ea30309e25c6cf449005d7c8b035ea8%20%22chore:%20update%20%60LICENSE.md%60%20(#10368)
+
+* chore: update `LICENSE.md`
+
+* Update LICENSE.md
+
+* Update LICENSE.md
+
+---------
+
+Co-authored-by: Michael Jackson <michael@jackson.us>") [#10368](https://github.com/remix-run/react-router/pull/10368) [)](https://github.com/remix-run/react-router/commit/fe8243f32ea30309e25c6cf449005d7c8b035ea8%20%22chore:%20update%20%60LICENSE.md%60%20(#10368)
+
+* chore: update `LICENSE.md`
+
+* Update LICENSE.md
+
+* Update LICENSE.md
+
+---------
+
+Co-authored-by: Michael Jackson <michael@jackson.us>") | Apr 19, 2023 |
+| [README.md](https://github.com/remix-run/react-router/blob/main/README.md) | | [README.md](https://github.com/remix-run/react-router/blob/main/README.md) | [Remove lingering react 18 reference](https://github.com/remix-run/react-router/commit/0d9b5a83361428a0486bd99984af5b5f570c563f) | Jun 17, 2026 |
+| [SECURITY.md](https://github.com/remix-run/react-router/blob/main/SECURITY.md) | | [SECURITY.md](https://github.com/remix-run/react-router/blob/main/SECURITY.md) | [Update SECURITY.md](https://github.com/remix-run/react-router/commit/42778339ba9950d996fd5f61167d7b696ecaf7cf) | Jun 5, 2026 |
+| [build.utils.ts](https://github.com/remix-run/react-router/blob/main/build.utils.ts) | | [build.utils.ts](https://github.com/remix-run/react-router/blob/main/build.utils.ts) | [feat: configure export conditions properly (](https://github.com/remix-run/react-router/commit/2d5924f567f35fe1aec13165d8a8c601bddf5bd9%20%22feat:%20configure%20export%20conditions%20properly%20(#12136)
+
+feat: nuke rollup into oblivion in favor of tsup
+feat: add ESM build for architect, express and node packages
+chore: update HMR test to ignore warning log
+feat: add module-sync export condition
+fix: react-router should not reference itself, that's weird (use tsconfig paths)
+chore: update e2e test warning assertion
+chore: add vite ignore comment for dynamic import
+fix: update optimizeDeps
+chore: add wireit for caching
+chore: add cache to workflows
+
+---------
+
+Co-authored-by: Matt Brophy <matt@brophy.org>") [#12136](https://github.com/remix-run/react-router/pull/12136) [)](https://github.com/remix-run/react-router/commit/2d5924f567f35fe1aec13165d8a8c601bddf5bd9%20%22feat:%20configure%20export%20conditions%20properly%20(#12136)
+
+feat: nuke rollup into oblivion in favor of tsup
+feat: add ESM build for architect, express and node packages
+chore: update HMR test to ignore warning log
+feat: add module-sync export condition
+fix: react-router should not reference itself, that's weird (use tsconfig paths)
+chore: update e2e test warning assertion
+chore: add vite ignore comment for dynamic import
+fix: update optimizeDeps
+chore: add wireit for caching
+chore: add cache to workflows
+
+---------
+
+Co-authored-by: Matt Brophy <matt@brophy.org>") | Oct 23, 2024 |
+| [eslint.config.ts](https://github.com/remix-run/react-router/blob/main/eslint.config.ts) | | [eslint.config.ts](https://github.com/remix-run/react-router/blob/main/eslint.config.ts) | [Fix globals dependency for lint config (](https://github.com/remix-run/react-router/commit/da102b5928d2cf0b94cd0abc2895d0939698e7e9%20%22Fix%20globals%20dependency%20for%20lint%20config%20(#15208)") [#15208](https://github.com/remix-run/react-router/pull/15208) [)](https://github.com/remix-run/react-router/commit/da102b5928d2cf0b94cd0abc2895d0939698e7e9%20%22Fix%20globals%20dependency%20for%20lint%20config%20(#15208)") | Jun 18, 2026 |
+| [package.json](https://github.com/remix-run/react-router/blob/main/package.json) | | [package.json](https://github.com/remix-run/react-router/blob/main/package.json) | [Remove v8 prerelease flow (](https://github.com/remix-run/react-router/commit/a198260201b9bc191f80d8d250be85da7291e083%20%22Remove%20v8%20prerelease%20flow%20(#15224)
+
+Assisted-By: devx/05e5feb4-b90f-4cee-89aa-86f527ec65a5") [#15224](https://github.com/remix-run/react-router/pull/15224) [)](https://github.com/remix-run/react-router/commit/a198260201b9bc191f80d8d250be85da7291e083%20%22Remove%20v8%20prerelease%20flow%20(#15224)
+
+Assisted-By: devx/05e5feb4-b90f-4cee-89aa-86f527ec65a5") | Jun 22, 2026 |
+| [pnpm-lock.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-lock.yaml) | | [pnpm-lock.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-lock.yaml) | [chore: deduplicate `pnpm-lock.yaml`](https://github.com/remix-run/react-router/commit/83ae18f91bc5c099ffc76aedf3356a8b7934e549%20%22chore:%20deduplicate%20%60pnpm-lock.yaml%60%22) | Aug 27, 2026 |
+| [pnpm-workspace.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-workspace.yaml) | | [pnpm-workspace.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-workspace.yaml) | [Upgrade repository to pnpm 11 (](https://github.com/remix-run/react-router/commit/8b2f041f264b71fb31ba86342972c425f091762c%20%22Upgrade%20repository%20to%20pnpm%2011%20(#15202)
+
+* Upgrade repository to pnpm 11
+
+Assisted-By: devx/988c1e2f-7688-4786-a6e7-89ad2f4a9d6e
+
+* Allow preview workflow lockfile updates
+
+* Call preview scripts directly
+
+* Make usage notes consistent") [#15202](https://github.com/remix-run/react-router/pull/15202) [)](https://github.com/remix-run/react-router/commit/8b2f041f264b71fb31ba86342972c425f091762c%20%22Upgrade%20repository%20to%20pnpm%2011%20(#15202)
+
+* Upgrade repository to pnpm 11
+
+Assisted-By: devx/988c1e2f-7688-4786-a6e7-89ad2f4a9d6e
+
+* Allow preview workflow lockfile updates
+
+* Call preview scripts directly
+
+* Make usage notes consistent") | Jun 18, 2026 |
+| [prettier.config.js](https://github.com/remix-run/react-router/blob/main/prettier.config.js) | | [prettier.config.js](https://github.com/remix-run/react-router/blob/main/prettier.config.js) | [esm migration (](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") [#14895](https://github.com/remix-run/react-router/pull/14895) [)](https://github.com/remix-run/react-router/commit/5c27d5bf0caac2a55c86ce94c3b7085b58a8e974%20%22esm%20migration%20(#14895)
+
+- updates jest") | Mar 24, 2026 |
+| [tsconfig.base.json](https://github.com/remix-run/react-router/blob/main/tsconfig.base.json) | | [tsconfig.base.json](https://github.com/remix-run/react-router/blob/main/tsconfig.base.json) | [Upgrade TypeScript to 6 (](https://github.com/remix-run/react-router/commit/13f686b8fbbd44db012d2ba8d59838278e08f349%20%22Upgrade%20TypeScript%20to%206%20(#15092)
+
+* Upgrade TypeScript to 6
+
+* Migrate package builds to tsdown
+
+* Use native tsdown config loading
+
+* Enable tsdown unbundle mode
+
+* Add change files for build tooling updates
+
+* Remove unbundle because its dumb
+
+* Fix snapshot
+
+* chore: modernize TypeScript configs across workspace
+
+* Consolidate shared tsconfig options to a base config") [#15092](https://github.com/remix-run/react-router/pull/15092) [)](https://github.com/remix-run/react-router/commit/13f686b8fbbd44db012d2ba8d59838278e08f349%20%22Upgrade%20TypeScript%20to%206%20(#15092)
+
+* Upgrade TypeScript to 6
+
+* Migrate package builds to tsdown
+
+* Use native tsdown config loading
+
+* Enable tsdown unbundle mode
+
+* Add change files for build tooling updates
+
+* Remove unbundle because its dumb
+
+* Fix snapshot
+
+* chore: modernize TypeScript configs across workspace
+
+* Consolidate shared tsconfig options to a base config") | May 26, 2026 |
+| [typedoc.mjs](https://github.com/remix-run/react-router/blob/main/typedoc.mjs) | | [typedoc.mjs](https://github.com/remix-run/react-router/blob/main/typedoc.mjs) | [Update typedoc to include react-router/dom exports (](https://github.com/remix-run/react-router/commit/6d34713e8c90369fffe0c6314c61b62c34863e54%20%22Update%20typedoc%20to%20include%20react-router/dom%20exports%20(#14067)") [#14067](https://github.com/remix-run/react-router/pull/14067) [)](https://github.com/remix-run/react-router/commit/6d34713e8c90369fffe0c6314c61b62c34863e54%20%22Update%20typedoc%20to%20include%20react-router/dom%20exports%20(#14067)") | Jul 25, 2025 |
+| View all files | | |
+
+## Repository files navigation
+
+-
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [MIT license](#)
+- [Security](#)
+
+More items
+
+[![npm package](https://camo.githubusercontent.com/b74bace96f2b6508be60a9758a8899b2a6cfd73c54108f1ad66530fa1226a638/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656163742d726f757465722e737667)](https://www.npmjs.org/package/react-router) [![build](https://camo.githubusercontent.com/06def92801cb5f3f3fdeb06fe5017dfdba6b5ee76d279808340b8425b206092b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656d69782d72756e2f72656163742d726f757465722f746573742d756e69742e796d6c3f6272616e63683d6d61696e267374796c653d737175617265)](https://github.com/remix-run/react-router/actions/workflows/test-unit.yml)
+
+React Router is a multi-strategy router for React. You can use it maximally as a React framework or minimally as a library with your own architecture.
+
+- [Getting Started - Framework](https://reactrouter.com/start/framework/installation)
+- [Getting Started - Library](https://reactrouter.com/start/library/installation)
+- [Upgrade from v7](https://reactrouter.com/upgrading/v7)
+- [Changelog](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md)
+
+## Packages
+
+[Permalink: Packages](#packages)
+
+- [`react-router`](https://github.com/remix-run/react-router/blob/main/packages/react-router)
+- [`create-react-router`](https://github.com/remix-run/react-router/blob/main/packages/create-react-router)
+- [`@react-router/dev`](https://github.com/remix-run/react-router/blob/main/packages/react-router-dev)
+- [`@react-router/node`](https://github.com/remix-run/react-router/blob/main/packages/react-router-node)
+- [`@react-router/serve`](https://github.com/remix-run/react-router/blob/main/packages/react-router-serve)
+- [`@react-router/express`](https://github.com/remix-run/react-router/blob/main/packages/react-router-express)
+- [`@react-router/architect`](https://github.com/remix-run/react-router/blob/main/packages/react-router-architect)
+- [`@react-router/cloudflare`](https://github.com/remix-run/react-router/blob/main/packages/react-router-cloudflare)
+- [`@react-router/fs-routes`](https://github.com/remix-run/react-router/blob/main/packages/react-router-fs-routes)
+
+## Previous Versions
+
+[Permalink: Previous Versions](#previous-versions)
+
+- [v7](https://reactrouter.com/v7)
+- [v6](https://reactrouter.com/v6)
+- [v5](https://v5.reactrouter.com/)
+
+## About
+
+Declarative routing for React
+
+[reactrouter.com](https://reactrouter.com)
+
+### Resources
+
+[Readme](#readme-ov-file)
+
+[MIT license](#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/remix-run/react-router#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Activity](https://github.com/remix-run/react-router/activity)
+
+[Custom properties](https://github.com/remix-run/react-router/custom-properties)
+
+### Stars
+
+**56.6k** stars
+
+### Watchers
+
+**805** watching
+
+### Forks
+
+[**10.9k** forks](https://github.com/remix-run/react-router/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router&report=remix-run+%28user%29)
+
+## [Releases](https://github.com/remix-run/react-router/releases)346 (346)
+
+[v8.3.1LatestAug 28, 2026](https://github.com/remix-run/react-router/releases/tag/react-router%408.3.1)
+
+[+ 345 releases](https://github.com/remix-run/react-router/releases)
+
+## Sponsor this project
+
+- ![](https://github.githubassets.com/assets/open_collective-0a706523753d.svg) [opencollective.com/react-router](https://opencollective.com/react-router)
+
+## [Used by](https://github.com/remix-run/react-router/network/dependents)11M (11M)
+
+[![@Vokabelsalat](https://avatars.githubusercontent.com/u/12813418?s=64&v=4)![@Infomaniak](https://avatars.githubusercontent.com/u/5754857?s=64&v=4)![@engrZihadmia](https://avatars.githubusercontent.com/u/185849029?s=64&v=4)![@fiddle-factory](https://avatars.githubusercontent.com/u/214006096?s=64&v=4)![@dinoopm](https://avatars.githubusercontent.com/u/1402757?s=64&v=4)+ 11,055,988](https://github.com/remix-run/react-router/network/dependents)
+
+## [Contributors](https://github.com/remix-run/react-router/graphs/contributors)1,175 (1,175)
+
+- [![@brophdawg11](https://avatars.githubusercontent.com/u/1609022?s=64&v=4)](https://github.com/brophdawg11)
+- [![@mjackson](https://avatars.githubusercontent.com/u/92839?s=64&v=4)](https://github.com/mjackson)
+- [![@ryanflorence](https://avatars.githubusercontent.com/u/100200?s=64&v=4)](https://github.com/ryanflorence)
+- [![@markdalgleish](https://avatars.githubusercontent.com/u/696693?s=64&v=4)](https://github.com/markdalgleish)
+- [![@timdorr](https://avatars.githubusercontent.com/u/17882?s=64&v=4)](https://github.com/timdorr)
+- [![@taion](https://avatars.githubusercontent.com/u/3112159?s=64&v=4)](https://github.com/taion)
+- [![@remix-run-bot](https://avatars.githubusercontent.com/u/72662859?s=64&v=4)](https://github.com/remix-run-bot)
+- [![@github-actions\[bot\]](https://avatars.githubusercontent.com/in/15368?s=64&v=4)](https://github.com/github-actions[bot])
+- [![@pcattori](https://avatars.githubusercontent.com/u/1477317?s=64&v=4)](https://github.com/pcattori)
+- [![@jacob-ebey](https://avatars.githubusercontent.com/u/12063586?s=64&v=4)](https://github.com/jacob-ebey)
+- [![@MichaelDeBoey](https://avatars.githubusercontent.com/u/6643991?s=64&v=4)](https://github.com/MichaelDeBoey)
+- [![@chaance](https://avatars.githubusercontent.com/u/3082153?s=64&v=4)](https://github.com/chaance)
+- [![@pshrmn](https://avatars.githubusercontent.com/u/1127037?s=64&v=4)](https://github.com/pshrmn)
+- [![@remix-cla-bot\[bot\]](https://avatars.githubusercontent.com/u/64235328?s=64&v=4)](https://github.com/remix-cla-bot[bot])
+
+[+ 1,161 contributors](https://github.com/remix-run/react-router/graphs/contributors)
+
+## Languages
+
+- [TypeScript99.1%](https://github.com/remix-run/react-router/search?l=typescript)
+- [Other0.9%](https://github.com/remix-run/react-router/search?l=Other)
+
+## Footer
+
+[GitHub Homepage](https://github.com) © 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

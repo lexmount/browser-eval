@@ -12,53 +12,6 @@
 
 [登录](https://login.feishu.cn/suite/passport/page/login/?app_id=11&redirect_uri=https%3A%2F%2Fwww.feishu.cn%2Fhc%2Fzh-CN%2Farticles%2F485770964672-%25E7%25AE%25A1%25E7%2590%2586%25E5%2591%2598%25E6%259F%25A5%25E7%259C%258B%25E4%25BC%2581%25E4%25B8%259A-ai-%25E5%258A%259F%25E8%2583%25BD%25E4%25BD%25BF%25E7%2594%25A8%25E6%2595%25B0%25E6%258D%25AE)
 
-- [快速入门](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261501160685596)
-
-  - [快速了解飞书 AI](https://www.feishu.cn/hc/zh-CN/articles/257240089464 "快速了解飞书 AI")
-- [AI 用量购买与管理](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620)
-
-  - [飞书 AI 用量购买说明](https://www.feishu.cn/hc/zh-CN/articles/146539130003 "飞书 AI 用量购买说明")
-  - [飞书 AI 版本权益与额度消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/629644238181 "飞书 AI 版本权益与额度消耗规则说明")
-  - [飞书 AI 用量套餐权益与额度消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/819536981301 "飞书 AI 用量套餐权益与额度消耗规则说明")
-  - [管理员查看企业 AI 权益用量](https://www.feishu.cn/hc/zh-CN/articles/820986422059 "管理员查看企业 AI 权益用量")
-  - [管理员查看企业 AI 功能使用数据](https://www.feishu.cn/hc/zh-CN/articles/485770964672 "管理员查看企业 AI 功能使用数据")
-  - [管理员为企业 AI 权益设置限额](https://www.feishu.cn/hc/zh-CN/articles/525309709150 "管理员为企业 AI 权益设置限额")
-  - [智能纪要用量额度说明](https://www.feishu.cn/hc/zh-CN/articles/808156011479 "智能纪要用量额度说明")
-  - [管理员设置智能纪要用量额度](https://www.feishu.cn/hc/zh-CN/articles/093642575023 "管理员设置智能纪要用量额度")
-  - [管理员购买豆包团队或企业订阅](https://www.feishu.cn/hc/zh-CN/articles/431897742854 "管理员购买豆包团队或企业订阅")
-  - [自助购买飞书 AI 会员](https://www.feishu.cn/hc/zh-CN/articles/234159142166 "自助购买飞书 AI 会员")
-  - [飞书 AI 会员权益消耗规则说明](https://www.feishu.cn/hc/zh-CN/articles/082024280492 "飞书 AI 会员权益消耗规则说明")
-  - [飞书 AI 会员档位切换说明](https://www.feishu.cn/hc/zh-CN/articles/598372079100 "飞书 AI 会员档位切换说明")
-  - [自助申请发票](https://www.feishu.cn/hc/zh-CN/articles/392976766891 "自助申请发票")
-- [豆包工作](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226260815471509506)
-
-  - [在飞书中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/282796994123 "在飞书中使用豆包工作")
-  - [在文档中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/555367856523 "在文档中使用豆包工作")
-  - [在表格中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/029517254441 "在表格中使用豆包工作")
-  - [在幻灯片中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/735492278101 "在幻灯片中使用豆包工作")
-  - [在知识库中使用豆包工作](https://www.feishu.cn/hc/zh-CN/articles/125492269056 "在知识库中使用豆包工作")
-  - [设置知识库的豆包工作功能](https://www.feishu.cn/hc/zh-CN/articles/455965510166 "设置知识库的豆包工作功能")
-- [飞书 AI 会议](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=6992888128235143170)
-
-  - [在视频会议中使用智能纪要](https://www.feishu.cn/hc/zh-CN/articles/244959839578 "在视频会议中使用智能纪要")
-  - [在视频会议中使用 AI 视图](https://www.feishu.cn/hc/zh-CN/articles/092000440742 "在视频会议中使用 AI 视图")
-  - [使用会议分析](https://www.feishu.cn/hc/zh-CN/articles/236158521772 "使用会议分析")
-  - [使用声纹识别功能](https://www.feishu.cn/hc/zh-CN/articles/679093019875 "使用声纹识别功能")
-  - [管理员开通声纹识别功能](https://www.feishu.cn/hc/zh-CN/articles/035469326633 "管理员开通声纹识别功能")
-- [豆包工作伙伴](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7337168432045015068)
-
-  - [快速了解豆包工作伙伴](https://www.feishu.cn/hc/zh-CN/articles/790732948604 "快速了解豆包工作伙伴")
-- [更多 AI 场景](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7226261252366925825)
-
-  - [多维表格 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/519714421437 "多维表格 AI 功能介绍")
-  - [文档 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/591605542595 "文档 AI 功能介绍")
-  - [在表格中使用 AI 写公式](https://www.feishu.cn/hc/zh-CN/articles/329589389553 "在表格中使用 AI 写公式")
-  - [生态应用 AI 功能介绍](https://www.feishu.cn/hc/zh-CN/articles/240346148861 "生态应用 AI 功能介绍")
-  - [使用知识问答](https://www.feishu.cn/hc/zh-CN/articles/854453754409 "使用知识问答")
-  - [在知识问答中上传本地文件](https://www.feishu.cn/hc/zh-CN/articles/710480845694 "在知识问答中上传本地文件")
-  - [使用 AI 划词工具](https://www.feishu.cn/hc/zh-CN/articles/998919688730 "使用 AI 划词工具")
-  - [知识问答安全说明](https://www.feishu.cn/hc/zh-CN/articles/961189047591 "知识问答安全说明")
-
 [飞书 AI](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7210653076326334492)
 
 [AI 用量购买与管理](https://www.feishu.cn/hc/zh-CN/categories-detail?category-id=7546516021025390620)

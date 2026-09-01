@@ -236,5 +236,5 @@ The [Glossary](../glossary.html#glossary) is also worth going through.
   
  The Python Software Foundation is a non-profit corporation. [Please donate.](https://www.python.org/psf/donations/)  
   
- Last updated on Aug 31, 2026 (22:22 UTC). [Found a bug](https://docs.python.org/bugs.html)?  
+ Last updated on Sep 01, 2026 (10:58 UTC). [Found a bug](https://docs.python.org/bugs.html)?  
  Created using [Sphinx](https://www.sphinx-doc.org/) 8.2.3.

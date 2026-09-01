@@ -1,0 +1,429 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-046-file-api__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>File API</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,133 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：File API；Concepts and Usage；Relationship to other file-related APIs。</p><p><b>输入 URL：</b><a href="https://developer.mozilla.org/en-US/docs/Web/API/File_API">https://developer.mozilla.org/en-US/docs/Web/API/File_API</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>File API
+Concepts and Usage
+Relationship to other file-related APIs</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：File API</li><li>是否保留核对点：Concepts and Usage</li><li>是否保留核对点：Relationship to other file-related APIs</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-046-file-api/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/File_API">打开标准答案源网页</a> · 完整性校验 <code>sha256:288b4ed4947f7a43aeeb31471e80e8baae9c2ae408ab6c3b481e438ca514c406</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>File API
+Concepts and Usage
+Relationship to other file-related APIs</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>File API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date &amp; time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See all… CSS guides Box model Animations Flexbox Colors See all… Layout cookbook Column layouts Centering an element Card component See all… JavaScript JS JavaScript: Scripting language JS reference Standard built-in objects Expressions &amp; operators Statements &amp; declarations Functions See all… JS guides Control flow &amp; error handing Loops and iteration Working with objects Using classes See all… Web APIs Web APIs: Programming interfaces Web API reference File system API Fetch API Geolocation API HTML DOM API Push API Service worker API See all… Web API guides Using the Web animation API Using the Fetch API Working with the History API Using the Web speech API Using web workers All All web technology Technologies Accessibility HTTP URI Web extensions WebAssembly WebDriver See all… Topics Media Performance Privacy Security Progressive web apps Learn Learn web development Frontend developer course Getting started modules Core modules MDN Curriculum Check out the video course from Scrimba, our partner Learn HTML Structuring content with HTML module Learn CSS CSS styling basics module CSS layout module Learn JavaScript Dynamic scripting with JavaScript module Tools Discover our tools Playground HTTP Observatory Border-image generator Border-radius generator Box-shadow generator Color format converter Color mixer Shape generator About Get to know MDN better About MDN Advertise with us Community MDN on GitHub Blog Toggle sidebar Web Web APIs File</pre></div></div><details><summary>展开本页中的完整供应商输出（7,257 / 7,257 字符）</summary><pre>File API - Web APIs | MDN Skip to main content Skip to search MDN HTML HTML: Markup language HTML reference Elements Global attributes Attributes See all… HTML guides Responsive images HTML cheatsheet Date &amp; time formats See all… Markup languages SVG MathML XML CSS CSS: Styling language CSS reference Properties Selectors At-rules Values See all… CSS guides Box model Animations Flexbox Colors See all… Layout cookbook Column layouts Centering an element Card component See all… JavaScript JS JavaScript: Scripting language JS reference Standard built-in objects Expressions &amp; operators Statements &amp; declarations Functions See all… JS guides Control flow &amp; error handing Loops and iteration Working with objects Using classes See all… Web APIs Web APIs: Programming interfaces Web API reference File system API Fetch API Geolocation API HTML DOM API Push API Service worker API See all… Web API guides Using the Web animation API Using the Fetch API Working with the History API Using the Web speech API Using web workers All All web technology Technologies Accessibility HTTP URI Web extensions WebAssembly WebDriver See all… Topics Media Performance Privacy Security Progressive web apps Learn Learn web development Frontend developer course Getting started modules Core modules MDN Curriculum Check out the video course from Scrimba, our partner Learn HTML Structuring content with HTML module Learn CSS CSS styling basics module CSS layout module Learn JavaScript Dynamic scripting with JavaScript module Tools Discover our tools Playground HTTP Observatory Border-image generator Border-radius generator Box-shadow generator Color format converter Color mixer Shape generator About Get to know MDN better About MDN Advertise with us Community MDN on GitHub Blog Toggle sidebar Web Web APIs File API Theme OS default Light Dark English (US) Remember language Learn more Deutsch English (US) 日本語 한국어 中文 (简体) File API Note: This feature is available in Web Workers . In this article Concepts and Usage Relationship to other file-related APIs Interfaces Examples Specifications See also Concepts and Usage The File API enables web applications to access files and their contents. Web applications can access files when the user makes them available, either using a file &lt;input&gt; element or via drag and drop . Sets of files made available in this way are represented as FileList objects, which enable a web application to retrieve individual File objects. In turn File objects provide access to metadata such as the file&#x27;s name, size, type, and last modified date. File objects can be passed to FileReader objects to access the contents of the file. The FileReader interface is asynchronous, but a synchronous version, available only in web workers , is provided by the FileReaderSync interface. Relationship to other file-related APIs There are two other major APIs that also deal with files: File and Directory Entries API and File System API . The File API is the most basic one. It supports reading and processing file data explicitly provided by the user in the form of a form element input or drag-and-drop operation. It also enables binary data handling via blobs. The File and Directory Entries API, like the File API, also deals with files provided by the user via form inputs or drag-and-drop operations. However, instead of a single file, the input element now allows the selection of a directory or multiple files. The API then provides a way to process the directory or files. It is mostly Chrome&#x27;s own invention—you will find that its extensions to other interfaces are all prefixed with webkit . The File and Directory Entries API has a more complete story about its implementation and standardization. It was originally intended to support a full virtual file system, but now only supports read operations on user-provided data. The File System API provides a virtual file system for web applications, so that they can persistently store data in a virtual system which is private to the document&#x27;s origin (known as an Origin private file system (OPFS) ). The File System Access API further extends the File System API to allow websites to read and write user files, subject to user consent. Unlike the File API and the File and Directory Entries API, the File System API is purely JavaScript and does not deal with form inputs. Interfaces Blob Represents a &quot;Binary Large Object&quot;, meaning a file-like object of immutable, raw data; a Blob can be read as text or binary data, or converted into a ReadableStream so its methods can be used for processing the data. File Provides information about a file and allows JavaScript in a web page to access its content. FileList Returned by the files property of the HTML &lt;input&gt; element; this lets you access the list of files selected with the &lt;input type=&quot;file&quot;&gt; element. It&#x27;s also used for a list of files dropped into web content when using the drag and drop API; see the DataTransfer object for details on this usage. FileReader Enables web applications to asynchronously read the contents of files (or raw data buffers) stored on the user&#x27;s computer, using File or Blob objects to specify the file or data to read. FileReaderSync Enables web applications to synchronously read the contents of files (or raw data buffers) stored on the user&#x27;s computer, using File or Blob objects to specify the file or data to read. Extensions to other interfaces URL.createObjectURL() Creates a URL that can be used to fetch a File or Blob object. URL.revokeObjectURL() Releases an existing object URL which was previously created by calling URL.createObjectURL() . Examples Reading a file In this example, we provide a file &lt;input&gt; element , and when the user selects a file, we read the contents of the first file selected as text, and display the result in a &lt;div&gt; . HTML html &lt;input type=&quot;file&quot; /&gt; &lt;div class=&quot;output&quot;&gt;&lt;/div&gt; CSS css .output { overflow: scroll; margin: 1rem 0; height: 200px; } JavaScript js const fileInput = document.querySelector(&quot;input[type=file]&quot;); const output = document.querySelector(&quot;.output&quot;); fileInput.addEventListener(&quot;change&quot;, async () =&gt; { const [file] = fileInput.files; if (file) { output.innerText = await file.text(); } }); Result Specifications Specification File API See also &lt;input type=&quot;file&quot;&gt; : the file input element Blob.text() The DataTransfer interface Help improve MDN Was this page helpful to you? Yes No Learn how to contribute This page was last modified on Apr 10, 2025 by MDN contributors . View this page on GitHub • Report a problem with this content Filter sidebar Clear filter input File API Guides Using files from web applications Interfaces Blob File FileList FileReader FileReaderSync Methods URL .createObjectURL URL .revokeObjectURL MDN Your blueprint for a better internet. MDN About Blog Mozilla careers Advertise with us MDN Plus Product help Contribute MDN Community Community resources Writing guidelines MDN Discord MDN on GitHub Developers Web technologies Learn web development Guides Tutorials Glossary Hacks blog Mozilla Website Privacy Notice Telemetry Settings Legal Community Participation Guidelines Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license .</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-046-file-api__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://developer.mozilla.org/en-US/docs/Web/API/File_API</span></div><div class="kv"><b>输出大小</b>7,257 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>File API</td><td>File API</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Concepts and Usage</td><td>Concepts and Usage</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Relationship to other file-related APIs</td><td>Relationship to other file-related APIs</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">File API</span></p><p><span class="tag">File API</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;afd23c75-0e33-44cb-bf39-0fb9b7d7a052&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 679,
+  &quot;dom_id&quot;: &quot;268168&quot;,
+  &quot;links_count&quot;: 100,
+  &quot;images_count&quot;: 1,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;MDN&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Deutsch&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/de/docs/Web/API/File_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MDN Discord&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/discord&quot;
+    },
+    {
+      &quot;text&quot;: &quot;a Creative Commons license&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/docs/MDN/Writing_guidelines/Attrib_copyright_license&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MDN&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;About MDN&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/about&quot;
+    },
+    {
+      &quot;text&quot;: &quot;About&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/about&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Advertise with us&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/advertising&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Blog&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/rss.xml&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Community&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/community&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MDN Community&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/community&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MDN Curriculum&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/curriculum/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Glossary&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Learn web development&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Core modules&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Core&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CSS layout module&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Dynamic scripting with JavaScript module&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Scripting&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Structuring content with HTML module&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CSS styling basics module&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Getting started modules&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Community resources&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Learn how to contribute&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Guides&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Guides&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Tutorials&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Tutorials&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Writing guidelines&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web extensions&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions&quot;
+    },
+    {
+      &quot;text&quot;: &quot;All web technology&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web technologies&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See all…&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web APIs&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web APIs: Programming interfaces&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See all…&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Blob&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Blob&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Blob.text()&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Blob/text&quot;
+    },
+    {
+      &quot;text&quot;: &quot;DataTransfer&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer&quot;
+    },
+    {
+      &quot;text&quot;: &quot;via drag and drop&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/files&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Fetch API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using the Fetch API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File&quot;
+    },
+    {
+      &quot;text&quot;: &quot;FileList&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/FileList&quot;
+    },
+    {
+      &quot;text&quot;: &quot;FileReader&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/FileReader&quot;
+    },
+    {
+      &quot;text&quot;: &quot;FileReaderSync&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/FileReaderSync&quot;
+    },
+    {
+      &quot;text&quot;: &quot;English (US)&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Concepts and Usage&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#concepts_and_usage&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Skip to main content&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#content&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Examples&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#examples&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Extensions to other interfaces&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#extensions_to_other_interfaces&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Interfaces&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#interfaces&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Reading a file&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#reading_a_file&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Relationship to other file-related APIs&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#relationship_to_other_file-related_apis&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Result&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#result&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Skip to search&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#search&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See also&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#see_also&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Specifications&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API#specifications&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using files from web applications&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API/Using_files_from_web_applications&quot;
+    },
+    {
+      &quot;text&quot;: &quot;MDN contributors&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_API/contributors.txt&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File system API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_System_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File System API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_System_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Origin private file system (OPFS)&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File and Directory Entries API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_and_Directory_Entries_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File and Directory Entries API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/File_and_Directory_Entries_API#history&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Geolocation API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;HTML DOM API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Working with the History API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/History_API/Working_with_the_History_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Push API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Push_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ReadableStream&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Service worker API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;URL.createObjectURL()&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL_static&quot;
+    },
+    {
+      &quot;text&quot;: &quot;URL .createObjectURL&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL_static&quot;
+    },
+    {
+      &quot;text&quot;: &quot;URL.revokeObjectURL()&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL_static&quot;
+    },
+    {
+      &quot;text&quot;: &quot;URL .revokeObjectURL&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL_static&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using the Web animation API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using the Web speech API&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Web Workers&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;web workers&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Using web workers&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Accessibility&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/Accessibility&quot;
+    },
+    {
+      &quot;text&quot;: &quot;CSS: Styling language&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See all…&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Animations&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Animations/Using&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Border-image generator&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Border-radius generator&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Box-shadow generator&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Box model&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Colors&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Colors/Applying_color&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Color format converter&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Color mixer&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Colors/Color_mixer&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Flexbox&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Shape generator&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See all…&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/How_to/Layout_cookbook&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Card component&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Centering an element&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Column layouts&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts&quot;
+    },
+    {
+      &quot;text&quot;: &quot;See all…&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Reference&quot;
+    },
+    {
+      &quot;text&quot;: &quot;At-rules&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Properties&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Selectors&quot;,
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://developer.mozilla.org/mdn-social-image.46ac2375.png&quot;,
+      &quot;alt&quot;: &quot;The MDN logo&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-046-file-api__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-046-file-api__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-046-file-api__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

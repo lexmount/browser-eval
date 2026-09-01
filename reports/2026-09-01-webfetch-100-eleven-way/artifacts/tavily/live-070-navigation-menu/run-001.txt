@@ -1,0 +1,229 @@
+[Skip to content](#start-of-content)   
+
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux) 
+
+Appearance settings
+
+# Search code, repositories, users, issues, pull requests...
+
+[Search syntax tips](https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax)
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux)
+
+ [Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=reduxjs%2Fredux) 
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[reduxjs](/reduxjs)   /  **[redux](/reduxjs/redux)**  Public
+
+* ### Uh oh!
+
+  There was an error while loading. Please reload this page.
+* [Notifications](/login?return_to=%2Freduxjs%2Fredux)  You must be signed in to change notification settings
+* [Fork 15.2k](/login?return_to=%2Freduxjs%2Fredux)
+* [Star  61.5k](/login?return_to=%2Freduxjs%2Fredux)
+
+[Branches](/reduxjs/redux/branches)[Tags](/reduxjs/redux/tags)
+
+Open more actions menu
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| Latest commit   History[4,181 Commits](/reduxjs/redux/commits/master/) 4,181 Commits |
+| [.github](/reduxjs/redux/tree/master/.github ".github") | [.github](/reduxjs/redux/tree/master/.github ".github") |  |  |
+| [.yarn/releases](/reduxjs/redux/tree/master/.yarn/releases "This path skips through empty directories") | [.yarn/releases](/reduxjs/redux/tree/master/.yarn/releases "This path skips through empty directories") |  |  |
+| [docs](/reduxjs/redux/tree/master/docs "docs") | [docs](/reduxjs/redux/tree/master/docs "docs") |  |  |
+| [examples](/reduxjs/redux/tree/master/examples "examples") | [examples](/reduxjs/redux/tree/master/examples "examples") |  |  |
+| [logo](/reduxjs/redux/tree/master/logo "logo") | [logo](/reduxjs/redux/tree/master/logo "logo") |  |  |
+| [scripts](/reduxjs/redux/tree/master/scripts "scripts") | [scripts](/reduxjs/redux/tree/master/scripts "scripts") |  |  |
+| [src](/reduxjs/redux/tree/master/src "src") | [src](/reduxjs/redux/tree/master/src "src") |  |  |
+| [test](/reduxjs/redux/tree/master/test "test") | [test](/reduxjs/redux/tree/master/test "test") |  |  |
+| [website](/reduxjs/redux/tree/master/website "website") | [website](/reduxjs/redux/tree/master/website "website") |  |  |
+| [.editorconfig](/reduxjs/redux/blob/master/.editorconfig ".editorconfig") | [.editorconfig](/reduxjs/redux/blob/master/.editorconfig ".editorconfig") |  |  |
+| [.eslintignore](/reduxjs/redux/blob/master/.eslintignore ".eslintignore") | [.eslintignore](/reduxjs/redux/blob/master/.eslintignore ".eslintignore") |  |  |
+| [.eslintrc.cjs](/reduxjs/redux/blob/master/.eslintrc.cjs ".eslintrc.cjs") | [.eslintrc.cjs](/reduxjs/redux/blob/master/.eslintrc.cjs ".eslintrc.cjs") |  |  |
+| [.git-blame-ignore-revs](/reduxjs/redux/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") | [.git-blame-ignore-revs](/reduxjs/redux/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") |  |  |
+| [.gitattributes](/reduxjs/redux/blob/master/.gitattributes ".gitattributes") | [.gitattributes](/reduxjs/redux/blob/master/.gitattributes ".gitattributes") |  |  |
+| [.gitbook.yaml](/reduxjs/redux/blob/master/.gitbook.yaml ".gitbook.yaml") | [.gitbook.yaml](/reduxjs/redux/blob/master/.gitbook.yaml ".gitbook.yaml") |  |  |
+| [.gitignore](/reduxjs/redux/blob/master/.gitignore ".gitignore") | [.gitignore](/reduxjs/redux/blob/master/.gitignore ".gitignore") |  |  |
+| [.prettierrc.json](/reduxjs/redux/blob/master/.prettierrc.json ".prettierrc.json") | [.prettierrc.json](/reduxjs/redux/blob/master/.prettierrc.json ".prettierrc.json") |  |  |
+| [.release-it.json](/reduxjs/redux/blob/master/.release-it.json ".release-it.json") | [.release-it.json](/reduxjs/redux/blob/master/.release-it.json ".release-it.json") |  |  |
+| [.yarnrc.yml](/reduxjs/redux/blob/master/.yarnrc.yml ".yarnrc.yml") | [.yarnrc.yml](/reduxjs/redux/blob/master/.yarnrc.yml ".yarnrc.yml") |  |  |
+| [CHANGELOG.md](/reduxjs/redux/blob/master/CHANGELOG.md "CHANGELOG.md") | [CHANGELOG.md](/reduxjs/redux/blob/master/CHANGELOG.md "CHANGELOG.md") |  |  |
+| [CNAME](/reduxjs/redux/blob/master/CNAME "CNAME") | [CNAME](/reduxjs/redux/blob/master/CNAME "CNAME") |  |  |
+| [CODE\_OF\_CONDUCT.md](/reduxjs/redux/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [CODE\_OF\_CONDUCT.md](/reduxjs/redux/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") |  |  |
+| [CONTRIBUTING.md](/reduxjs/redux/blob/master/CONTRIBUTING.md "CONTRIBUTING.md") | [CONTRIBUTING.md](/reduxjs/redux/blob/master/CONTRIBUTING.md "CONTRIBUTING.md") |  |  |
+| [LICENSE-logo.md](/reduxjs/redux/blob/master/LICENSE-logo.md "LICENSE-logo.md") | [LICENSE-logo.md](/reduxjs/redux/blob/master/LICENSE-logo.md "LICENSE-logo.md") |  |  |
+| [LICENSE.md](/reduxjs/redux/blob/master/LICENSE.md "LICENSE.md") | [LICENSE.md](/reduxjs/redux/blob/master/LICENSE.md "LICENSE.md") |  |  |
+| [PATRONS.md](/reduxjs/redux/blob/master/PATRONS.md "PATRONS.md") | [PATRONS.md](/reduxjs/redux/blob/master/PATRONS.md "PATRONS.md") |  |  |
+| [README.md](/reduxjs/redux/blob/master/README.md "README.md") | [README.md](/reduxjs/redux/blob/master/README.md "README.md") |  |  |
+| [errors.json](/reduxjs/redux/blob/master/errors.json "errors.json") | [errors.json](/reduxjs/redux/blob/master/errors.json "errors.json") |  |  |
+| [netlify.toml](/reduxjs/redux/blob/master/netlify.toml "netlify.toml") | [netlify.toml](/reduxjs/redux/blob/master/netlify.toml "netlify.toml") |  |  |
+| [package.json](/reduxjs/redux/blob/master/package.json "package.json") | [package.json](/reduxjs/redux/blob/master/package.json "package.json") |  |  |
+| [tsconfig.base.json](/reduxjs/redux/blob/master/tsconfig.base.json "tsconfig.base.json") | [tsconfig.base.json](/reduxjs/redux/blob/master/tsconfig.base.json "tsconfig.base.json") |  |  |
+| [tsconfig.build.json](/reduxjs/redux/blob/master/tsconfig.build.json "tsconfig.build.json") | [tsconfig.build.json](/reduxjs/redux/blob/master/tsconfig.build.json "tsconfig.build.json") |  |  |
+| [tsconfig.json](/reduxjs/redux/blob/master/tsconfig.json "tsconfig.json") | [tsconfig.json](/reduxjs/redux/blob/master/tsconfig.json "tsconfig.json") |  |  |
+| [tsconfig.test.json](/reduxjs/redux/blob/master/tsconfig.test.json "tsconfig.test.json") | [tsconfig.test.json](/reduxjs/redux/blob/master/tsconfig.test.json "tsconfig.test.json") |  |  |
+| [tsup.config.ts](/reduxjs/redux/blob/master/tsup.config.ts "tsup.config.ts") | [tsup.config.ts](/reduxjs/redux/blob/master/tsup.config.ts "tsup.config.ts") |  |  |
+| [vitest.config.mts](/reduxjs/redux/blob/master/vitest.config.mts "vitest.config.mts") | [vitest.config.mts](/reduxjs/redux/blob/master/vitest.config.mts "vitest.config.mts") |  |  |
+| [yarn.lock](/reduxjs/redux/blob/master/yarn.lock "yarn.lock") | [yarn.lock](/reduxjs/redux/blob/master/yarn.lock "yarn.lock") |  |  |
+|  |
+
+## Repository files navigation
+
+# [Redux LogoRedux](https://redux.js.org)
+
+Redux is a JS library for predictable and maintainable global state management.
+
+It helps you write applications that behave consistently, run in different environments (client, server, and native), and are easy to test. On top of that, it provides a great developer experience, such as [live code editing combined with a time traveling debugger](https://github.com/reduxjs/redux-devtools).
+
+You can use Redux together with [React](https://react.dev), or with any other view library. The Redux core is tiny (2kB, including dependencies), and has a rich ecosystem of addons.
+
+[**Redux Toolkit**](https://redux-toolkit.js.org) is our official recommended approach for writing Redux logic. It wraps around the Redux core, and contains packages and functions that we think are essential for building a Redux app. Redux Toolkit builds in our suggested best practices, simplifies most Redux tasks, prevents common mistakes, and makes it easier to write Redux applications.
+
+[![GitHub Workflow Status](https://camo.githubusercontent.com/ed3993130132d3d96177d330b2e2632e94b7792743719d8701472405cae53a41/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656475786a732f72656475782f746573742e79616d6c3f6272616e63683d6d6173746572266576656e743d70757368267374796c653d666c61742d737175617265)](https://camo.githubusercontent.com/ed3993130132d3d96177d330b2e2632e94b7792743719d8701472405cae53a41/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656475786a732f72656475782f746573742e79616d6c3f6272616e63683d6d6173746572266576656e743d70757368267374796c653d666c61742d737175617265) [![npm version](https://camo.githubusercontent.com/8d594c96056d26eacf6b21637e53013b548b67187b3e4e0976a453ea9034c937/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656475782e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/redux) [![npm downloads](https://camo.githubusercontent.com/58196606fea323a57ae3b92ac2f626bc166250fb52492c2666a2f7783f33b792/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f646d2f72656475782e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/redux) [![redux channel on discord](https://camo.githubusercontent.com/897729ca17d7f078e3c181ccc610dede06999c5097157ca5b1c794f7e88b5f6f/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646973636f72642d2532337265647578253230253430253230726561637469666c75782d3631646166622e7376673f7374796c653d666c61742d737175617265)](https://discord.gg/0ZcbPKXt5bZ6au5t)
+
+## Installation
+
+### Create a React Redux App
+
+The recommended way to start new apps with React and Redux Toolkit is by using [our official Redux Toolkit + TS template for Vite](https://github.com/reduxjs/redux-templates), or by creating a new Next.js project using [Next's `with-redux` template](https://github.com/vercel/next.js/tree/canary/examples/with-redux).
+
+Both of these already have Redux Toolkit and React-Redux configured appropriately for that build tool, and come with a small example app that demonstrates how to use several of Redux Toolkit's features.
+
+```
+# Vite with our Redux+TS template ## (using the `degit` tool to clone and extract the template) ## Next.js using the `with-redux` template #
+```
+
+We do not currently have official React Native templates, but recommend these templates for standard React Native and for Expo:
+
+* <https://github.com/rahsheen/react-native-template-redux-typescript>
+* <https://github.com/rahsheen/expo-template-redux-typescript>
+
+```
+npm install @reduxjs/toolkit react-redux 
+```
+
+For the Redux core library by itself:
+
+```
+npm install redux 
+```
+
+For more details, see [the Installation docs page](https://redux.js.org/introduction/installation).
+
+## Documentation
+
+The Redux core docs are located at **<https://redux.js.org>**, and include the full Redux tutorials, as well usage guides on general Redux patterns:
+
+* [Introduction](https://redux.js.org/introduction/getting-started)
+* [Tutorials](https://redux.js.org/tutorials/index)
+* [Usage Guides](https://redux.js.org/usage/index)
+* [FAQ](https://redux.js.org/faq)
+* [API Reference](https://redux.js.org/api/api-reference)
+
+The Redux Toolkit docs are available at **<https://redux-toolkit.js.org>**, including API references and usage guides for all of the APIs included in Redux Toolkit.
+
+## Learn Redux
+
+### Redux Essentials Tutorial
+
+The [**Redux Essentials tutorial**](https://redux.js.org/tutorials/essentials/part-1-overview-concepts) is a "top-down" tutorial that teaches "how to use Redux the right way", using our latest recommended APIs and best practices. We recommend starting there.
+
+### Redux Fundamentals Tutorial
+
+The [**Redux Fundamentals tutorial**](https://redux.js.org/tutorials/fundamentals/part-1-overview) is a "bottom-up" tutorial that teaches "how Redux works" from first principles and without any abstractions, and why standard Redux usage patterns exist.
+
+### Help and Discussion
+
+The **[#redux channel](https://discord.gg/0ZcbPKXt5bZ6au5t)** of the **[Reactiflux Discord community](https://www.reactiflux.com)** is our official resource for all questions related to learning and using Redux. Reactiflux is a great place to hang out, ask questions, and learn - please come and join us there!
+
+## Before Proceeding Further
+
+Redux is a valuable tool for organizing your state, but you should also consider whether it's appropriate for your situation. Please don't use Redux just because someone said you should - instead, please take some time to understand the potential benefits and tradeoffs of using it.
+
+Here are some suggestions on when it makes sense to use Redux:
+
+* You have reasonable amounts of data changing over time
+* You need a single source of truth for your state
+* You find that keeping all your state in a top-level component is no longer sufficient
+
+Yes, these guidelines are subjective and vague, but this is for a good reason. The point at which you should integrate Redux into your application is different for every user and different for every application.
+
+> **For more thoughts on how Redux is meant to be used, please see:**
+>
+> * **[When (and when not) to reach for Redux](https://changelog.com/posts/when-and-when-not-to-reach-for-redux)**
+> * **[You Might Not Need Redux](https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367)**
+> * **[The Tao of Redux, Part 1 - Implementation and Intent](https://blog.isquaredsoftware.com/2017/05/idiomatic-redux-tao-of-redux-part-1/)**
+> * **[The Tao of Redux, Part 2 - Practice and Philosophy](https://blog.isquaredsoftware.com/2017/05/idiomatic-redux-tao-of-redux-part-2/)**
+> * **[Redux FAQ](https://redux.js.org/faq)**
+
+## Basic Example
+
+The whole global state of your app is stored in an object tree inside a single *store*. The only way to change the state tree is to create an *action*, an object describing what happened, and *dispatch* it to the store. To specify how state gets updated in response to an action, you write pure *reducer* functions that calculate a new state based on the old state and the action.
+
+Redux Toolkit simplifies the process of writing Redux logic and setting up the store. With Redux Toolkit, the basic app logic looks like:
+
+```
+import{createSlice, configureStore} from'@reduxjs/toolkit' const counterSlice = createSlice({name 'counter', initialState{value 0}, reducers{incremented state =>{// Redux Toolkit allows us to write "mutating" logic in reducers. It// doesn't actually mutate the state because it uses the Immer library,// which detects changes to a "draft state" and produces a brand new// immutable state based off those changes state. value += 1}, decremented state =>{state. value -= 1}}}) export const{,} = counterSlice. actions const store = configureStore({reducer counterSlice. reducer})// Can still subscribe to the store store. subscribe(() => console. log(store. getState()))// Still pass action objects to `dispatch`, but they're created for us store. dispatch(incremented())// {value: 1} store. dispatch(incremented())// {value: 2} store. dispatch(decremented())// {value: 1}
+```
+
+Redux Toolkit allows us to write shorter logic that's easier to read, while still following the original core Redux behavior and data flow.
+
+You can find the official logo [on GitHub](https://github.com/reduxjs/redux/tree/master/logo).
+
+## Change Log
+
+This project adheres to [Semantic Versioning](https://semver.org/). Every release, along with the migration instructions, is documented on the GitHub [Releases](https://github.com/reduxjs/redux/releases) page.
+
+## About
+
+A JS library for predictable global state management
+
+### Topics
+
+### Resources
+
+### Code of conduct
+
+[Code of conduct](/reduxjs/redux#coc-ov-file)
+
+### Contributing
+
+[Custom properties](/reduxjs/redux/custom-properties)
+
+### Stars
+
+[**61.5k** stars](/reduxjs/redux/stargazers)
+
+### Watchers
+
+[**1.3k** watching](/reduxjs/redux/watchers)
+
+### Forks
+
+[**15.2k** forks](/reduxjs/redux/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux&report=reduxjs+%28user%29)
+
+## Sponsor this project
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

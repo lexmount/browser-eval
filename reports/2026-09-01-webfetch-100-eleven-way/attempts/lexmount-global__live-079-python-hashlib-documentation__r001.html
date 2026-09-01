@@ -1,0 +1,223 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-079-python-hashlib-documentation__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>Python hashlib documentation</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,100 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：hashlib — Secure hashes and message digests；common interface to many different hash algorithms；Hash algorithms。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/hashlib.html">https://docs.python.org/3/library/hashlib.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>hashlib — Secure hashes and message digests
+common interface to many different hash algorithms
+Hash algorithms</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：hashlib — Secure hashes and message digests</li><li>是否保留核对点：common interface to many different hash algorithms</li><li>是否保留核对点：Hash algorithms</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-079-python-hashlib-documentation/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/hashlib.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:17de5665f7cdf632c9877fefca7824c5befa0713f45b25a672013beabf6ebc48</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>hashlib — Secure hashes and message digests
+common interface to many different hash algorithms
+Hash algorithms</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>hashlib — Secure hashes and message digests¶
+Source code: Lib/hashlib.py
+This module implements a common interface to many different hash algorithms. Included are the FIPS secure hash algorithms SHA224, SHA256, SHA384, SHA512, (defined in the FIPS 180-4 standard), the SHA-3 series (defined in the FIPS 202 standard) as well as the legacy algorithms SHA1 (formerly part of FIPS) and the MD5 algorithm (defined in internet RFC 1321).
+Note
+If you want the adler32 or crc32 hash functions, they are available in the zlib module.
+Hash algorithms¶
+There is one constructor method named for each type of hash. All return a hash object with the same simple interface. For example: use sha256() to create a SHA-256 hash object. You can now feed this object with bytes-like objects (normally bytes) using the update method. At any point you can ask it for the digest of the concatenation of the data fed to it so far using the digest() or hexdigest() methods.
+To allow multithreading, the Python GIL is released while computing a hash supplied more than 2047 bytes of data at once in its constructor or .update method.
+Constructors for hash algorithms that are always present in this module are sha1(), sha224(), sha256(), sha384(), sha512(), sha3_224(), sha3_256(), sha3_384(), sha3_512(), shake_128(), shake_256(), blake2b(), and blake2s(). md5() is normally available as well, though it may be missing or blocked if you are using a rare “FIPS compliant” build of Python. These correspond to algorithms_guaranteed.
+Additional algorithms may also be available if your Python distribution’s hashlib was linked against a build of OpenSSL that provides others. Others are not guaranteed available on all installations and will only be accessible by name via new(). See algorithms_available.
+Warning
+Some algorit</pre></div></div><details><summary>展开本页中的完整供应商输出（15,378 / 15,378 字符）</summary><pre>hashlib — Secure hashes and message digests¶
+Source code: Lib/hashlib.py
+This module implements a common interface to many different hash algorithms. Included are the FIPS secure hash algorithms SHA224, SHA256, SHA384, SHA512, (defined in the FIPS 180-4 standard), the SHA-3 series (defined in the FIPS 202 standard) as well as the legacy algorithms SHA1 (formerly part of FIPS) and the MD5 algorithm (defined in internet RFC 1321).
+Note
+If you want the adler32 or crc32 hash functions, they are available in the zlib module.
+Hash algorithms¶
+There is one constructor method named for each type of hash. All return a hash object with the same simple interface. For example: use sha256() to create a SHA-256 hash object. You can now feed this object with bytes-like objects (normally bytes) using the update method. At any point you can ask it for the digest of the concatenation of the data fed to it so far using the digest() or hexdigest() methods.
+To allow multithreading, the Python GIL is released while computing a hash supplied more than 2047 bytes of data at once in its constructor or .update method.
+Constructors for hash algorithms that are always present in this module are sha1(), sha224(), sha256(), sha384(), sha512(), sha3_224(), sha3_256(), sha3_384(), sha3_512(), shake_128(), shake_256(), blake2b(), and blake2s(). md5() is normally available as well, though it may be missing or blocked if you are using a rare “FIPS compliant” build of Python. These correspond to algorithms_guaranteed.
+Additional algorithms may also be available if your Python distribution’s hashlib was linked against a build of OpenSSL that provides others. Others are not guaranteed available on all installations and will only be accessible by name via new(). See algorithms_available.
+Warning
+Some algorithms have known hash collision weaknesses (including MD5 and SHA1). Refer to Attacks on cryptographic hash algorithms and the hashlib-seealso section at the end of this document.
+Added in version 3.6: SHA3 (Keccak) and SHAKE constructors sha3_224(), sha3_256(), sha3_384(), sha3_512(), shake_128(), shake_256() were added. blake2b() and blake2s() were added.
+Changed in version 3.9: All hashlib constructors take a keyword-only argument usedforsecurity with default value True. A false value allows the use of insecure and blocked hashing algorithms in restricted environments. False indicates that the hashing algorithm is not used in a security context, e.g. as a non-cryptographic one-way compression function.
+Changed in version 3.9: Hashlib now uses SHA3 and SHAKE from OpenSSL if it provides it.
+Changed in version 3.12: For any of the MD5, SHA1, SHA2, or SHA3 algorithms that the linked OpenSSL does not provide we fall back to a verified implementation from the HACL* project.
+Usage¶
+To obtain the digest of the byte string b&quot;Nobody inspects the spammish repetition&quot;:
+&gt;&gt;&gt; import hashlib &gt;&gt;&gt; m = hashlib.sha256() &gt;&gt;&gt; m.update(b&quot;Nobody inspects&quot;) &gt;&gt;&gt; m.update(b&quot; the spammish repetition&quot;) &gt;&gt;&gt; m.digest() b&#x27;\x03\x1e\xdd}Ae\x15\x93\xc5\xfe\\\x00o\xa5u+7\xfd\xdf\xf7\xbcN\x84:\xa6\xaf\x0c\x95\x0fK\x94\x06&#x27; &gt;&gt;&gt; m.hexdigest() &#x27;031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406&#x27;
+More condensed:
+&gt;&gt;&gt; hashlib.sha256(b&quot;Nobody inspects the spammish repetition&quot;).hexdigest() &#x27;031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406&#x27;
+Constructors¶
+Is a generic constructor that takes the string name of the desired algorithm as its first parameter. It also exists to allow access to the above listed hashes as well as any other algorithms that your OpenSSL library may offer.
+Is a generic constructor that takes the string name of the desired algorithm as its first parameter. It also exists to allow access to the above listed hashes as well as any other algorithms that your OpenSSL library may offer.
+Using new() with an algorithm name:
+&gt;&gt;&gt; h = hashlib.new(&#x27;sha256&#x27;) &gt;&gt;&gt; h.update(b&quot;Nobody inspects the spammish repetition&quot;) &gt;&gt;&gt; h.hexdigest() &#x27;031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406&#x27;
+Named constructors such as these are faster than passing an algorithm name to new().
+Attributes¶
+Hashlib provides the following constant module attributes:
+A set containing the names of the hash algorithms guaranteed to be supported by this module on all platforms. Note that ‘md5’ is in this list despite some upstream vendors offering an odd “FIPS compliant” Python build that excludes it. Added in version 3.2.
+A set containing the names of the hash algorithms guaranteed to be supported by this module on all platforms. Note that ‘md5’ is in this list despite some upstream vendors offering an odd “FIPS compliant” Python build that excludes it.
+Added in version 3.2.
+A set containing the names of the hash algorithms that are available in the running Python interpreter. These names will be recognized when passed to new(). algorithms_guaranteed will always be a subset. The same algorithm may appear multiple times in this set under different names (thanks to OpenSSL). Added in version 3.2.
+A set containing the names of the hash algorithms that are available in the running Python interpreter. These names will be recognized when passed to new(). algorithms_guaranteed will always be a subset. The same algorithm may appear multiple times in this set under different names (thanks to OpenSSL).
+Added in version 3.2.
+Hash Objects¶
+The following values are provided as constant attributes of the hash objects returned by the constructors:
+The size of the resulting hash in bytes.
+The size of the resulting hash in bytes.
+The internal block size of the hash algorithm in bytes.
+The internal block size of the hash algorithm in bytes.
+A hash object has the following attributes:
+The canonical name of this hash, always lowercase and always suitable as a parameter to new() to create another hash of this type. Changed in version 3.4: The name attribute has been present in CPython since its inception, but until Python 3.4 was not formally specified, so may not exist on some platforms.
+The canonical name of this hash, always lowercase and always suitable as a parameter to new() to create another hash of this type.
+Changed in version 3.4: The name attribute has been present in CPython since its inception, but until Python 3.4 was not formally specified, so may not exist on some platforms.
+A hash object has the following methods:
+Update the hash object with the bytes-like object. Repeated calls are equivalent to a single call with the concatenation of all the arguments: m.update(a); m.update(b) is equivalent to m.update(a+b).
+Update the hash object with the bytes-like object. Repeated calls are equivalent to a single call with the concatenation of all the arguments: m.update(a); m.update(b) is equivalent to m.update(a+b).
+Return the digest of the data passed to the update() method so far. This is a bytes object of size digest_size which may contain bytes in the whole range from 0 to 255.
+Return the digest of the data passed to the update() method so far. This is a bytes object of size digest_size which may contain bytes in the whole range from 0 to 255.
+Like digest() except the digest is returned as a string object of double length, containing only hexadecimal digits. This may be used to exchange the value safely in email or other non-binary environments.
+Like digest() except the digest is returned as a string object of double length, containing only hexadecimal digits. This may be used to exchange the value safely in email or other non-binary environments.
+Return a copy (“clone”) of the hash object. This can be used to efficiently compute the digests of data sharing a common initial substring.
+Return a copy (“clone”) of the hash object. This can be used to efficiently compute the digests of data sharing a common initial substring.
+SHAKE variable length digests¶
+The shake_128() and shake_256() algorithms provide variable length digests with length_in_bits//2 up to 128 or 256 bits of security. As such, their digest methods require a length. Maximum length is not limited by the SHAKE algorithm.
+Return the digest of the data passed to the update() method so far. This is a bytes object of size length which may contain bytes in the whole range from 0 to 255.
+Return the digest of the data passed to the update() method so far. This is a bytes object of size length which may contain bytes in the whole range from 0 to 255.
+Like digest() except the digest is returned as a string object of double length, containing only hexadecimal digits. This may be used to exchange the value in email or other non-binary environments.
+Like digest() except the digest is returned as a string object of double length, containing only hexadecimal digits. This may be used to exchange the value in email or other non-binary environments.
+Example use:
+&gt;&gt;&gt; h = hashlib.shake_256(b&#x27;Nobody inspects the spammish repetition&#x27;) &gt;&gt;&gt; h.hexdigest(20) &#x27;44709d6fcb83d92a76dcb0b668c98e1b1d3dafe7&#x27;
+File hashing¶
+The hashlib module provides a helper function for efficient hashing of a file or file-like object.
+Return a digest object that has been updated with contents of file object. fileobj must be a file-like object opened for reading in binary mode. It accepts file objects from builtin open(), BytesIO instances, SocketIO objects from socket.socket.makefile(), and similar. fileobj must be opened in blocking mode, otherwise a BlockingIOError may be raised. The function may bypass Python’s I/O and use the file descriptor from fileno() directly. fileobj must be assumed to be in an unknown state after this function returns or raises. It is up to the caller to close fileobj. digest must either be a hash algorithm name as a str, a hash constructor, or a callable that returns a hash object. Example: &gt;&gt;&gt; import io, hashlib, hmac &gt;&gt;&gt; with open(&quot;library/hashlib.rst&quot;, &quot;rb&quot;) as f: ... digest = hashlib.file_digest(f, &quot;sha256&quot;) ... &gt;&gt;&gt; digest.hexdigest() &#x27;...&#x27; &gt;&gt;&gt; buf = io.BytesIO(b&quot;somedata&quot;) &gt;&gt;&gt; mac1 = hmac.HMAC(b&quot;key&quot;, digestmod=hashlib.sha512) &gt;&gt;&gt; digest = hashlib.file_digest(buf, lambda: mac1) &gt;&gt;&gt; digest is mac1 True &gt;&gt;&gt; mac2 = hmac.HMAC(b&quot;key&quot;, b&quot;somedata&quot;, digestmod=hashlib.sha512) &gt;&gt;&gt; mac1.digest() == mac2.digest() True Added in version 3.11. Changed in version 3.14: Now raises a BlockingIOError if the file is opened in non-blocking mode. Previously, spurious null bytes were added to the digest.
+Return a digest object that has been updated with contents of file object.
+fileobj must be a file-like object opened for reading in binary mode. It accepts file objects from builtin open(), BytesIO instances, SocketIO objects from socket.socket.makefile(), and similar. fileobj must be opened in blocking mode, otherwise a BlockingIOError may be raised.
+The function may bypass Python’s I/O and use the file descriptor from fileno() directly. fileobj must be assumed to be in an unknown state after this function returns or raises. It is up to the caller to close fileobj.
+digest must either be a hash algorithm name as a str, a hash constructor, or a callable that returns a hash object.
+Example:
+&gt;&gt;&gt; import io, hashlib, hmac &gt;&gt;&gt; with open(&quot;library/hashlib.rst&quot;, &quot;rb&quot;) as f: ... digest = hashlib.file_digest(f, &quot;sha256&quot;) ... &gt;&gt;&gt; digest.hexdigest() &#x27;...&#x27;
+&gt;&gt;&gt; buf = io.BytesIO(b&quot;somedata&quot;) &gt;&gt;&gt; mac1 = hmac.HMAC(b&quot;key&quot;, digestmod=hashlib.sha512) &gt;&gt;&gt; digest = hashlib.file_digest(buf, lambda: mac1)
+&gt;&gt;&gt; digest is mac1 True &gt;&gt;&gt; mac2 = hmac.HMAC(b&quot;key&quot;, b&quot;somedata&quot;, digestmod=hashlib.sha512) &gt;&gt;&gt; mac1.digest() == mac2.digest() True
+Added in version 3.11.
+Changed in version 3.14: Now raises a BlockingIOError if the file is opened in non-blocking mode. Previously, spurious null bytes were added to the digest.
+Key derivation¶
+Key derivation and key stretching algorithms are designed for secure password hashing. Naive algorithms such as sha1(password) are not resistant against brute-force attacks. A good password hashing function must be tunable, slow, and include a salt.
+The function provides PKCS#5 password-based key derivation function 2. It uses HMAC as pseudorandom function. The string hash_name is the desired name of the hash digest algorithm for HMAC, e.g. ‘sha1’ or ‘sha256’. password and salt are interpreted as buffers of bytes. Applications and libraries should limit password to a sensible length (e.g. 1024). salt should be about 16 or more bytes from a proper source, e.g. os.urandom(). The number of iterations should be chosen based on the hash algorithm and computing power. As of 2022, hundreds of thousands of iterations of SHA-256 are suggested. For rationale as to why and how to choose what is best for your application, read Appendix A.2.2 of NIST-SP-800-132. The answers on the stackexchange pbkdf2 iterations question explain in detail. dklen is the length of the derived key in bytes. If dklen is None then the digest size of the hash algorithm hash_name is used, e.g. 64 for SHA-512. &gt;&gt;&gt; from hashlib import pbkdf2_hmac &gt;&gt;&gt; our_app_iters = 500_000 # Application specific, read above. &gt;&gt;&gt; dk = pbkdf2_hmac(&#x27;sha256&#x27;, b&#x27;password&#x27;, b&#x27;bad salt&#x27; * 2, our_app_iters) &gt;&gt;&gt; dk.hex() &#x27;15530bba69924174860db778f2c6f8104d3aaf9d26241840c8c4a641c8d000a9&#x27; Function only available when Python is compiled with OpenSSL. Added in version 3.4. Changed in version 3.12: Function now only available when Python is built with OpenSSL. The slow pure Python implementation has been removed.
+The function provides PKCS#5 password-based key derivation function 2. It uses HMAC as pseudorandom function.
+The string hash_name is the desired name of the hash digest algorithm for HMAC, e.g. ‘sha1’ or ‘sha256’. password and salt are interpreted as buffers of bytes. Applications and libraries should limit password to a sensible length (e.g. 1024). salt should be about 16 or more bytes from a proper source, e.g. os.urandom().
+The number of iterations should be chosen based on the hash algorithm and computing power. As of 2022, hundreds of thousands of iterations of SHA-256 are suggested. For rationale as to why and how to choose what is best for your application, read Appendix A.2.2 of NIST-SP-800-132. The answers on the stackexchange pbkdf2 iterations question explain in detail.
+dklen is the length of the derived key in bytes. If dklen is None then the digest size of the hash algorithm hash_name is used, e.g. 64 for SHA-512.
+&gt;&gt;&gt; from hashlib import pbkdf2_hmac &gt;&gt;&gt; our_app_iters = 500_000 # Application specific, read above. &gt;&gt;&gt; dk = pbkdf2_hmac(&#x27;sha256&#x27;, b&#x27;password&#x27;, b&#x27;bad salt&#x27; * 2, our_app_iters) &gt;&gt;&gt; dk.hex() &#x27;15530bba69924174860db778f2c6f8104d3aaf9d26241840c8c4a641c8d000a9&#x27;
+Function only available when Python is compiled with OpenSSL.
+Added in version 3.4.
+Changed in version 3.12: Function now only available when Python is built with OpenSSL. The slow pure Python implementation has been removed.
+The function provides scrypt password-based key derivation function as defined in RFC 7914. password and salt must be bytes-like objects. Applications and libraries should limit password to a sensible length (e.g. 1024). salt should be about 16 or more bytes from a proper source, e.g. os.urandom(). n is the CPU/Memory cost factor, r the block size, p parallelization factor and maxmem limits memory (OpenSSL 1.1.0 defaults to 32 MiB). dklen is the length of the derived key in bytes. Added in version 3.6.
+The function provides scrypt password-based key derivation function as defined in RFC 7914.</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-079-python-hashlib-documentation__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/hashlib.html</span></div><div class="kv"><b>输出大小</b>15,378 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>hashlib — Secure hashes and message digests</td><td>hashlib — Secure hashes and message digests</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>common interface to many different hash algorithms</td><td>common interface to many different hash algorithms</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Hash algorithms</td><td>Hash algorithms</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">hashlib — Secure hashes and message digests</span></p><p><span class="tag">hashlib — Secure hashes and message digests</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;53b5ed1f-ff56-40aa-aaca-507342bb8682&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 701,
+  &quot;dom_id&quot;: &quot;268213&quot;,
+  &quot;links_count&quot;: 23,
+  &quot;images_count&quot;: 2,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;formerly part of FIPS&quot;,
+      &quot;href&quot;: &quot;https://csrc.nist.gov/news/2023/decision-to-revise-fips-180-4&quot;
+    },
+    {
+      &quot;text&quot;: &quot;the FIPS 180-4 standard&quot;,
+      &quot;href&quot;: &quot;https://csrc.nist.gov/pubs/fips/180-4/upd1/final&quot;
+    },
+    {
+      &quot;text&quot;: &quot;the FIPS 202 standard&quot;,
+      &quot;href&quot;: &quot;https://csrc.nist.gov/pubs/fips/202/final&quot;
+    },
+    {
+      &quot;text&quot;: &quot;RFC 1321&quot;,
+      &quot;href&quot;: &quot;https://datatracker.ietf.org/doc/html/rfc1321.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../bugs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../genindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;GIL&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-GIL&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes-like object&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-bytes-like-object&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes-like objects&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-bytes-like-object&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../improve-page-nojs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../py-modindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Cryptographic Services&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/crypto.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;previous&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/crypto.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;next&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/hmac.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytes&quot;
+    },
+    {
+      &quot;text&quot;: &quot;zlib&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/zlib.html#module-zlib&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Attacks on cryptographic hash algorithms&quot;,
+      &quot;href&quot;: &quot;https://en.wikipedia.org/wiki/Cryptographic_hash_function#Attacks_on_cryptographic_hash_algorithms&quot;
+    },
+    {
+      &quot;text&quot;: &quot;HACL* project&quot;,
+      &quot;href&quot;: &quot;https://github.com/hacl-star/hacl-star&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/library/hashlib.rst?plain=1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lib/hashlib.py&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/tree/3.14/Lib/hashlib.py&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Python&quot;,
+      &quot;href&quot;: &quot;https://www.python.org/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3.14/_images/social_previews/summary_library_hashlib_9fcb3b95.png&quot;,
+      &quot;alt&quot;: &quot;Source code: Lib/hashlib.py This module implements a common interface to many different hash algorithms. Included are the FIPS secure hash algorithms SHA224, SHA256, SHA384, SHA512, (defined in the...&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3/library/../_images/hashlib-blake2-tree.png&quot;,
+      &quot;alt&quot;: &quot;Explanation of tree mode parameters.&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-079-python-hashlib-documentation__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-079-python-hashlib-documentation__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-079-python-hashlib-documentation__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

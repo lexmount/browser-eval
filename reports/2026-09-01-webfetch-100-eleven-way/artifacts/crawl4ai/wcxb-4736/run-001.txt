@@ -1,4 +1,4 @@
-![Anthropologie](https://static.captcha-delivery.com/captcha/assets/set/9fee510df0cbdb8aeee6b4ba5e0e4bbace93bee1/logo.png?update_cache=1198008883249065323)
+![Anthropologie](https://static.captcha-delivery.com/captcha/assets/set/9fee510df0cbdb8aeee6b4ba5e0e4bbace93bee1/logo.png?update_cache=-1417212275868103839)
 为提升会员帐户安全，我们需与您确认此网页操作行为确实出自您本人。 
 您可能无法使用视觉验证。我们建议您使用音频验证。重要提示：点击播放后，您将听到 6 位数字。请等待音频播放完毕后再进行输入或与页面交互。
 向右滑动以保护您的访问
@@ -12,7 +12,7 @@
 
 
 无法操作验证页面?  联络我们 
-ID: 8b759c8e-e4d2-bc8d-7603-2aa9cbb742b8
+ID: 0435ec6d-84e7-4f75-a40e-4739c3afb524
 请选择一个理由（强制性）。
 我已经尝试很多次了，一直无法完成验证。 
 其他问题 

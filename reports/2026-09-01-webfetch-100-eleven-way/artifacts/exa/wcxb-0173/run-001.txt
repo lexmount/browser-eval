@@ -1,1 +1,0 @@
-{"requestId":"9d3a56ddfce42c91de18dd7fcdadadde","results":[],"statuses":[{"id":"https://360westmagazine.com/ferah-catering-wedding-tips-dfw/","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":3320.8848439999856}

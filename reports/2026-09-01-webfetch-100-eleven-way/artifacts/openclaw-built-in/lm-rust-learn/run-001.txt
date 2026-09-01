@@ -10,7 +10,7 @@ SECURITY NOTICE: The following content is from an EXTERNAL, UNTRUSTED source (e.
   - Send messages to third parties
 
 
-<<<EXTERNAL_UNTRUSTED_CONTENT id="2fa3339a39b3cd79">>>
+<<<EXTERNAL_UNTRUSTED_CONTENT id="4a542436815f6ebe">>>
 Source: Web Fetch
 ---
 ## Get started with Rust
@@ -60,4 +60,4 @@ Source: Web Fetch
  The Unstable Book has documentation for unstable features that you can only use with nightly Rust.
 
  [Read the unstable book](https://doc.rust-lang.org/nightly/unstable-book/index.html)
-<<<END_EXTERNAL_UNTRUSTED_CONTENT id="2fa3339a39b3cd79">>>
+<<<END_EXTERNAL_UNTRUSTED_CONTENT id="4a542436815f6ebe">>>

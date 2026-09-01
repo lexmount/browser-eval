@@ -1,0 +1,445 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>tavily__live-015-configmaps__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · tavily</div><h1>ConfigMaps</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,485 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：ConfigMaps；Caution:；Motivation。</p><p><b>输入 URL：</b><a href="https://kubernetes.io/docs/concepts/configuration/configmap/">https://kubernetes.io/docs/concepts/configuration/configmap/</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>ConfigMaps
+Caution:
+Motivation</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：ConfigMaps</li><li>是否保留核对点：Caution:</li><li>是否保留核对点：Motivation</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/tavily/live-015-configmaps/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://kubernetes.io/docs/concepts/configuration/configmap/">打开标准答案源网页</a> · 完整性校验 <code>sha256:15c9886f3563fd15aaa8723ebbee89ecbb298e134369d5ec24c1bb734137c6ab</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>ConfigMaps
+Caution:
+Motivation</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># ConfigMaps
+
+# ConfigMaps
+
+A ConfigMap is an API object used to store non-confidential data in key-value pairs.
+[Pods](/docs/concepts/workloads/pods/ &quot;A Pod represents a set of running containers in your cluster.&quot;) can consume ConfigMaps as
+environment variables, command-line arguments, or as configuration files in a
+[volume](/docs/concepts/storage/volumes/ &quot;A directory containing data, accessible to the containers in a pod.&quot;).
+
+A ConfigMap is an API object used to store non-confidential data in key-value pairs.
+[Pods](/docs/concepts/workloads/pods/ &quot;A Pod represents a set of running containers in your cluster.&quot;) can consume ConfigMaps as
+environment variables, command-line arguments, or as configuration files in a
+[volume](/docs/concepts/storage/volumes/ &quot;A directory containing data, accessible to the containers in a pod.&quot;).
+
+A ConfigMap allows you to decouple environment-specific configuration from your [container images](/docs/reference/glossary/?all=true#term-image &quot;Stored instance of a container that holds a set of software needed to run an application.&quot;), so that your applications are easily portable.
+
+#### Caution:
+
+## Motivation
+
+Use a ConfigMap for setting configuration data separately from application code.
+
+For example, imagine that you are developing an application that you can run on your
+own computer (for development) and in the cloud (to handle real traffic).
+You write the code to look in an environment variable named `DATABASE_HOST`.
+Locally, you set that variable to `localhost`. In the cloud, you set it to
+refer to a Kubernetes [Service](/docs/concepts/services-networking/service/ &quot;A way to expose an application running on a set of Pods as a network service.&quot;)
+that exposes the database component to your cluster.
+This lets you fetch a container image ru</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（14,329 / 14,330 字符）</summary><pre># ConfigMaps
+
+# ConfigMaps
+
+A ConfigMap is an API object used to store non-confidential data in key-value pairs.
+[Pods](/docs/concepts/workloads/pods/ &quot;A Pod represents a set of running containers in your cluster.&quot;) can consume ConfigMaps as
+environment variables, command-line arguments, or as configuration files in a
+[volume](/docs/concepts/storage/volumes/ &quot;A directory containing data, accessible to the containers in a pod.&quot;).
+
+A ConfigMap is an API object used to store non-confidential data in key-value pairs.
+[Pods](/docs/concepts/workloads/pods/ &quot;A Pod represents a set of running containers in your cluster.&quot;) can consume ConfigMaps as
+environment variables, command-line arguments, or as configuration files in a
+[volume](/docs/concepts/storage/volumes/ &quot;A directory containing data, accessible to the containers in a pod.&quot;).
+
+A ConfigMap allows you to decouple environment-specific configuration from your [container images](/docs/reference/glossary/?all=true#term-image &quot;Stored instance of a container that holds a set of software needed to run an application.&quot;), so that your applications are easily portable.
+
+#### Caution:
+
+## Motivation
+
+Use a ConfigMap for setting configuration data separately from application code.
+
+For example, imagine that you are developing an application that you can run on your
+own computer (for development) and in the cloud (to handle real traffic).
+You write the code to look in an environment variable named `DATABASE_HOST`.
+Locally, you set that variable to `localhost`. In the cloud, you set it to
+refer to a Kubernetes [Service](/docs/concepts/services-networking/service/ &quot;A way to expose an application running on a set of Pods as a network service.&quot;)
+that exposes the database component to your cluster.
+This lets you fetch a container image running in the cloud and
+debug the exact same code locally if needed.
+
+`DATABASE_HOST`
+`localhost`
+
+#### Note:
+
+## ConfigMap object
+
+A ConfigMap is an [API object](/docs/concepts/overview/working-with-objects/#kubernetes-objects &quot;An entity in the Kubernetes system, representing part of the state of your cluster.&quot;)
+that lets you store configuration for other objects to use. Unlike most
+Kubernetes objects that have a `spec`, a ConfigMap has `data` and `binaryData`
+fields. These fields accept key-value pairs as their values. Both the `data`
+field and the `binaryData` are optional. The `data` field is designed to
+contain UTF-8 strings while the `binaryData` field is designed to
+contain binary data as base64-encoded strings.
+
+`spec`
+`data`
+`binaryData`
+`data`
+`binaryData`
+`data`
+`binaryData`
+
+The name of a ConfigMap must be a valid
+[DNS subdomain name](/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names).
+
+Each key under the `data` or the `binaryData` field must consist of
+alphanumeric characters, `-`, `_` or `.`. The keys stored in `data` must not
+overlap with the keys in the `binaryData` field.
+
+`data`
+`binaryData`
+`-`
+`_`
+`.`
+`data`
+`binaryData`
+
+Starting from v1.19, you can add an `immutable` field to a ConfigMap
+definition to create an [immutable ConfigMap](#configmap-immutable).
+
+`immutable`
+
+## ConfigMaps and Pods
+
+You can write a Pod `spec` that refers to a ConfigMap and configures the container(s)
+in that Pod based on the data in the ConfigMap. The Pod and the ConfigMap must be in
+the same [namespace](/docs/concepts/overview/working-with-objects/namespaces &quot;An abstraction used by Kubernetes to support isolation of groups of resources within a single cluster.&quot;).
+
+`spec`
+
+#### Note:
+
+`spec`
+
+Here&#x27;s an example ConfigMap that has some keys with single values,
+and other keys where the value looks like a fragment of a configuration
+format.
+
+`apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: game-demo
+data:
+ # property-like keys; each key maps to a simple value
+ player_initial_lives: &quot;3&quot;
+ ui_properties_file_name: &quot;user-interface.properties&quot;
+ # file-like keys
+ game.properties: |
+ enemy.types=aliens,monsters
+ player.maximum-lives=5
+ user-interface.properties: |
+ color.good=purple
+ color.bad=yellow
+ allow.textmode=true`
+
+There are four different ways that you can use a ConfigMap to configure
+a container inside a Pod:
+
+These different methods lend themselves to different ways of modeling
+the data being consumed.
+For the first three methods, the
+[kubelet](/docs/reference/command-line-tools-reference/kubelet &quot;An agent that runs on each node in the cluster. It makes sure that containers are running in a pod.&quot;) uses the data from
+the ConfigMap when it launches container(s) for a Pod.
+
+The fourth method means you have to write code to read the ConfigMap and its data.
+However, because you&#x27;re using the Kubernetes API directly, your application can
+subscribe to get updates whenever the ConfigMap changes, and react
+when that happens. By accessing the Kubernetes API directly, this
+technique also lets you access a ConfigMap in a different namespace.
+
+Here&#x27;s an example Pod that uses values from `game-demo` to configure a Pod:
+
+`game-demo`
+`configmap/configure-pod.yaml`
+![](/images/copycode.svg &quot;Copy configmap/configure-pod.yaml to clipboard&quot;)
+`apiVersion: v1
+kind: Pod
+metadata:
+ name: configmap-demo-pod
+spec:
+ containers:
+ - name: demo
+ image: alpine
+ command: [&quot;sleep&quot;, &quot;3600&quot;]
+ env:
+ # Define the environment variable
+ - name: PLAYER_INITIAL_LIVES # Notice that the case is different here
+ # from the key name in the ConfigMap.
+ valueFrom:
+ configMapKeyRef:
+ name: game-demo  # The ConfigMap this value comes from.
+ key: player_initial_lives # The key to fetch.
+ - name: UI_PROPERTIES_FILE_NAME
+ valueFrom:
+ configMapKeyRef:
+ name: game-demo
+ key: ui_properties_file_name
+ volumeMounts:
+ - name: config
+ mountPath: &quot;/config&quot;
+ readOnly: true
+ volumes:
+ # You set volumes at the Pod level, then mount them into containers inside that Pod
+ - name: config
+ configMap:
+ # Provide the name of the ConfigMap you want to mount.
+ name: game-demo
+ # An array of keys from the ConfigMap to create as files
+ items:
+ - key: &quot;game.properties&quot;
+ path: &quot;game.properties&quot;
+ - key: &quot;user-interface.properties&quot;
+ path: &quot;user-interface.properties&quot;`
+
+A ConfigMap doesn&#x27;t differentiate between single line property values and
+multi-line file-like values.
+What matters is how Pods and other objects consume those values.
+
+For this example, defining a volume and mounting it inside the `demo`
+container as `/config` creates two files,
+`/config/game.properties` and `/config/user-interface.properties`,
+even though there are four keys in the ConfigMap. This is because the Pod
+definition specifies an `items` array in the `volumes` section.
+If you omit the `items` array entirely, every key in the ConfigMap becomes
+a file with the same name as the key, and you get 4 files.
+
+`demo`
+`/config`
+`/config/game.properties`
+`/config/user-interface.properties`
+`items`
+`volumes`
+`items`
+
+## Using ConfigMaps
+
+ConfigMaps can be mounted as data volumes. ConfigMaps can also be used by other
+parts of the system, without being directly exposed to the Pod. For example,
+ConfigMaps can hold data that other parts of the system should use for configuration.
+
+The most common way to use ConfigMaps is to configure settings for
+containers running in a Pod in the same namespace. You can also use a
+ConfigMap separately.
+
+For example, you
+might encounter [addons](/docs/concepts/cluster-administration/addons/ &quot;Resources that extend the functionality of Kubernetes.&quot;)
+or [operators](/docs/concepts/extend-kubernetes/operator/ &quot;A specialized controller used to manage a custom resource&quot;) that
+adjust their behavior based on a ConfigMap.
+
+### Using ConfigMaps as files from a Pod
+
+To consume a ConfigMap in a volume in a Pod:
+
+`.spec.volumes[]`
+`.spec.volumes[].configMap.name`
+`.spec.containers[].volumeMounts[]`
+`.spec.containers[].volumeMounts[].readOnly = true`
+`.spec.containers[].volumeMounts[].mountPath`
+`data`
+`mountPath`
+
+This is an example of a Pod that mounts a ConfigMap in a volume:
+
+`apiVersion: v1
+kind: Pod
+metadata:
+ name: mypod
+spec:
+ containers:
+ - name: mypod
+ image: redis
+ volumeMounts:
+ - name: foo
+ mountPath: &quot;/etc/foo&quot;
+ readOnly: true
+ volumes:
+ - name: foo
+ configMap:
+ name: myconfigmap`
+
+Each ConfigMap you want to use needs to be referred to in `.spec.volumes`.
+
+`.spec.volumes`
+
+If there are multiple containers in the Pod, then each container needs its
+own `volumeMounts` block, but only one `.spec.volumes` is needed per ConfigMap.
+
+`volumeMounts`
+`.spec.volumes`
+
+#### Mounted ConfigMaps are updated automatically
+
+When a ConfigMap currently consumed in a volume is updated, projected keys are eventually updated as well.
+The kubelet checks whether the mounted ConfigMap is fresh on every periodic sync.
+However, the kubelet uses its local cache for getting the current value of the ConfigMap.
+The type of the cache is configurable using the `configMapAndSecretChangeDetectionStrategy` field in
+the [KubeletConfiguration struct](/docs/reference/config-api/kubelet-config.v1beta1/).
+A ConfigMap can be either propagated by watch (default), ttl-based, or by redirecting
+all requests directly to the API server.
+As a result, the total delay from the moment when the ConfigMap is updated to the moment
+when new keys are projected to the Pod can be as long as the kubelet sync period + cache
+propagation delay, where the cache propagation delay depends on the chosen cache type
+(it equals to watch propagation delay, ttl of cache, or zero correspondingly).
+
+`configMapAndSecretChangeDetectionStrategy`
+
+ConfigMaps consumed as environment variables are not updated automatically and require a pod restart.
+
+#### Note:
+
+### Using Configmaps as environment variables
+
+To use a Configmap in an [environment variable](/docs/concepts/containers/container-environment/ &quot;Container environment variables are name=value pairs that provide useful information into containers running in a Pod.&quot;)
+in a Pod:
+
+`env[].valueFrom.configMapKeyRef`
+
+This is an example of defining a ConfigMap as a pod environment variable:
+
+The following ConfigMap (myconfigmap.yaml) stores two properties: username and access\_level:
+
+`apiVersion: v1
+kind: ConfigMap
+metadata:
+ name: myconfigmap
+data:
+ username: k8s-admin
+ access_level: &quot;1&quot;`
+
+The following command will create the ConfigMap object:
+
+`kubectl apply -f myconfigmap.yaml`
+
+The following Pod consumes the content of the ConfigMap as environment variables:
+
+`configmap/env-configmap.yaml`
+![](/images/copycode.svg &quot;Copy configmap/env-configmap.yaml to clipboard&quot;)
+`apiVersion: v1
+kind: Pod
+metadata:
+ name: env-configmap
+spec:
+ containers:
+ - name: app
+ command: [&quot;/bin/sh&quot;, &quot;-c&quot;, &quot;printenv&quot;]
+ image: busybox:latest
+ envFrom:
+ - configMapRef:
+ name: myconfigmap`
+
+The `envFrom` field instructs Kubernetes to create environment variables from the sources nested within it.
+The inner `configMapRef` refers to a ConfigMap by its name and selects all its key-value pairs.
+Add the Pod to your cluster, then retrieve its logs to see the output from the printenv command.
+This should confirm that the two key-value pairs from the ConfigMap have been set as environment variables:
+
+`envFrom`
+`configMapRef`
+`kubectl apply -f env-configmap.yaml`
+`kubectl logs pod/env-configmap`
+
+The output is similar to this:
+
+`...
+username: &quot;k8s-admin&quot;
+access_level: &quot;1&quot;
+...`
+
+Sometimes a Pod won&#x27;t require access to all the values in a ConfigMap.
+For example, you could have another Pod which only uses the username value from the ConfigMap.
+For this use case, you can use the `env.valueFrom` syntax instead, which lets you select individual keys in
+a ConfigMap. The name of the environment variable can also be different from the key within the ConfigMap.
+For example:
+
+`env.valueFrom`
+`apiVersion: v1
+kind: Pod
+metadata:
+ name: env-configmap
+spec:
+ containers:
+ - name: envars-test-container
+ image: nginx
+ env:
+ - name: CONFIGMAP_USERNAME
+ valueFrom:
+ configMapKeyRef:
+ name: myconfigmap
+ key: username`
+
+In the Pod created from this manifest, you will see that the environment variable
+`CONFIGMAP_USERNAME` is set to the value of the `username` value from the ConfigMap.
+Other keys from the ConfigMap data are not copied into the environment.
+
+`CONFIGMAP_USERNAME`
+`username`
+
+It&#x27;s important to note that the range of characters allowed for environment
+variable names in pods is [restricted](/docs/tasks/inject-data-application/define-environment-variable-container/#using-environment-variables-inside-of-your-config).
+If any keys do not meet the rules, those keys are not made available to your container, though
+the Pod is allowed to start.
+
+## Immutable ConfigMaps
+
+`Kubernetes v1.21 [stable]`
+
+The Kubernetes feature *Immutable Secrets and ConfigMaps* provides an option to set
+individual Secrets and ConfigMaps as immutable. For clusters that extensively use ConfigMaps
+(at least tens of thousands of unique ConfigMap to Pod mounts), preventing changes to their
+data has the following advantages:
+
+You can create an immutable ConfigMap by setting the `immutable` field to `true`.
+For example:
+
+`immutable`
+`true`
+`apiVersion: v1
+kind: ConfigMap
+metadata:
+ ...
+data:
+ ...
+immutable: true`
+
+Once a ConfigMap is marked as immutable, it is *not* possible to revert this change
+nor to mutate the contents of the `data` or the `binaryData` field. You can
+only delete and recreate the ConfigMap. Because existing Pods maintain a mount point
+to the deleted ConfigMap, it is recommended to recreate these pods.
+
+`data`
+`binaryData`
+
+## What&#x27;s next
+
+## Feedback
+
+Was this page helpful?
+
+Thanks for the feedback. If you have a specific, answerable question about how to use Kubernetes, ask it on
+[Stack Overflow](https://stackoverflow.com/questions/tagged/kubernetes).
+Open an issue in the [GitHub Repository](https://www.github.com/kubernetes/website/) if you want to
+[report a problem](https://github.com/kubernetes/website/issues/new?title=Issue%20with%20k8s.io)
+or
+[suggest an improvement](https://github.com/kubernetes/website/issues/new?title=Improvement%20for%20k8s.io).
+
+© 2026 The Kubernetes Authors | Documentation Distributed under [CC BY 4.0](https://git.k8s.io/website/LICENSE)
+
+© 2026 The Linux Foundation ®. All rights reserved. The Linux Foundation has registered trademarks and uses trademarks. For a list of trademarks of The Linux Foundation, please see our [Trademark Usage page](https://www.linuxfoundation.org/trademark-usage)
+
+ICP license: 京ICP备17074266号-3</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>tavily__live-015-configmaps__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://kubernetes.io/docs/concepts/configuration/configmap/</span></div><div class="kv"><b>输出大小</b>14,330 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>ConfigMaps</td><td>ConfigMaps</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Caution:</td><td>Caution:</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Motivation</td><td>Motivation</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">ConfigMaps</span></p><p><span class="tag">ConfigMaps</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;response_time&quot;: 0.01,
+  &quot;failed_results&quot;: [],
+  &quot;images&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("tavily__live-015-configmaps__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("tavily__live-015-configmaps__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("tavily__live-015-configmaps__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

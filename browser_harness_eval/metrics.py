@@ -36,8 +36,14 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
     value = value.strip().strip("<>\"'")
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
-    absolute = urljoin(base_url, value)
-    parsed = urlsplit(absolute)
+    try:
+        absolute = urljoin(base_url, value)
+        parsed = urlsplit(absolute)
+    except ValueError:
+        # Provider text may contain URL-like prose such as an unmatched IPv6
+        # bracket. A malformed optional resource candidate must not abort the
+        # primary page-content evaluation.
+        return None
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
     return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, ""))

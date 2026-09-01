@@ -84,6 +84,16 @@ class MetricsTest(unittest.TestCase):
         )
         self.assertEqual(failed["resource_recall"], 0.0)
 
+    def test_malformed_resource_candidate_does_not_abort_content_evaluation(self) -> None:
+        result = evaluate_resources(
+            "See http://[broken and https://example.test/valid.png",
+            {"images": ["http://[also-broken", "/valid.png"]},
+            [{"id": "image", "kind": "image", "urls": ["/valid.png"]}],
+            base_url="https://example.test/page.html",
+        )
+        self.assertEqual(result["resource_recall"], 1.0)
+        self.assertEqual(result["resource_candidate_urls"], ["https://example.test/valid.png"])
+
 
 if __name__ == "__main__":
     unittest.main()

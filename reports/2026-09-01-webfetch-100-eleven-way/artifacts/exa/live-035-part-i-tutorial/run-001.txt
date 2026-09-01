@@ -1,0 +1,29 @@
+PostgreSQL: Documentation: 18: Part I. Tutorial
+
+August 13, 2026: PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!
+
+Documentation→ PostgreSQL 18
+
+Development Versions: 19/ devel
+
+| Part I. Tutorial | | | | |
+| --- | --- | --- | --- | --- |
+| Prev | Up | PostgreSQL 18.6 Documentation | Home | Next |
+
+---
+
+# Part I. Tutorial
+
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive treatment of the topics it covers.
+
+After you have successfully completed this tutorial you will want to read the Part II section to gain a better understanding of the SQL language, or Part IV for information about developing applications with PostgreSQL. Those who provision and manage their own PostgreSQL installation should also read Part III.
+
+---
+
+| Prev | Up | Next |
+| --- | --- | --- |
+| 5. Bug Reporting Guidelines | Home | Chapter 1. Getting Started |
+
+## Submit correction
+
+If you see anything in the documentation that is not correct, does not match your experience with the particular feature or requires further clarification, please use this form to report a documentation issue.

@@ -1,1 +1,1 @@
-Best headless browser for AI agents. Lite, Fast, High-Compatibility. Built in Rust Repository stats: stars 1.6k, forks 97, issues 13, pull requests 25.
+Best headless browser for AI agents. Lite, Fast, High-Compatibility. Built in Rust Repository stats: stars 1.6k, forks 98, issues 13, pull requests 25.

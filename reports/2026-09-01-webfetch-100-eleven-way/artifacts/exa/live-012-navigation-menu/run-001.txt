@@ -1,0 +1,106 @@
+# django/django
+
+The Web framework for perfectionists with deadlines.
+
+- Stars: 89564
+- Forks: 34216
+- Watchers: 89564
+- Open issues: 483
+- License: BSD 3-Clause "New" or "Revised" License
+- Homepage: https://www.djangoproject.com/
+- Default branch: main
+- Created: 2012-04-28T02:47:18Z
+
+## Languages
+
+- CSS
+- JavaScript
+- Jinja
+- Procfile
+- Python
+- Shell
+- Smarty
+
+## Topics
+
+- apps
+- django
+- framework
+- models
+- orm
+- python
+- templates
+- views
+- web
+
+## Top Contributors
+
+- timgraham (3535 contributions)
+- adrianholovaty (2802 contributions)
+- malcolmt (1872 contributions)
+- freakboy3742 (1741 contributions)
+- claudep (1722 contributions)
+- felixxm (1692 contributions)
+- aaugustin (1399 contributions)
+- jezdez (895 contributions)
+- jacobian (893 contributions)
+- charettes (761 contributions)
+
+---
+
+## README
+
+======
+Django
+======
+
+Django is a high-level Python web framework that encourages rapid development
+and clean, pragmatic design. Thanks for checking it out.
+
+All documentation is in the "``docs``" directory and online at
+https://docs.djangoproject.com/en/stable/. If you're just getting started,
+here's how we recommend you read the docs:
+
+* First, read ``docs/intro/install.txt`` for instructions on installing Django.
+
+* Next, work through the tutorials in order (``docs/intro/tutorial01.txt``,
+ ``docs/intro/tutorial02.txt``, etc.).
+
+* If you want to set up an actual deployment server, read
+ ``docs/howto/deployment/index.txt`` for instructions.
+
+* You'll probably want to read through the topical guides (in ``docs/topics``)
+ next; from there you can jump to the HOWTOs (in ``docs/howto``) for specific
+ problems, and check out the reference (``docs/ref``) for gory details.
+
+* See ``docs/README`` for instructions on building an HTML version of the docs.
+
+Docs are updated rigorously. If you find any problems in the docs, or think
+they should be clarified in any way, please take 30 seconds to
+`fill out a ticket `_. You can log in
+with your GitHub account, or with a DjangoProject account if you have one. Once
+you log in, a New Ticket button is available next to View Tickets.
+
+To get more help:
+
+* Join the `Django Discord community `_.
+
+* Join the community on the `Django Forum `_.
+
+To contribute to Django:
+
+* Check out https://docs.djangoproject.com/en/dev/internals/contributing/ for
+ information about getting involved.
+
+To run Django's test suite:
+
+* Follow the instructions in the "Unit tests" section of
+ ``docs/internals/contributing/writing-code/unit-tests.txt``, published online at
+ https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests
+
+Supporting the Development of Django
+====================================
+
+Django's development depends on your contributions.
+
+If you depend on Django, remember to support the Django Software Foundation: https://www.djangoproject.com/fundraising/

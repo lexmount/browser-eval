@@ -1,0 +1,681 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>exa__live-043-syntax__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · exa</div><h1>Syntax</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,994 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：CSS；Selector types；Separation of content from presentation。</p><p><b>输入 URL：</b><a href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">https://en.wikipedia.org/wiki/Cascading_Style_Sheets</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>CSS
+Selector types
+Separation of content from presentation</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：CSS</li><li>是否保留核对点：Selector types</li><li>是否保留核对点：Separation of content from presentation</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/exa/live-043-syntax/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://en.wikipedia.org/wiki/Cascading_Style_Sheets">打开标准答案源网页</a> · 完整性校验 <code>sha256:b857cec312d30e590fb831646c1d9c49ac6337cc93bbf99a507131ca83203649</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>CSS
+Selector types
+Separation of content from presentation</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>CSS
+
+Cascading Style Sheets (CSS) is a style sheet language used for specifying the presentation and styling of a document written in a markup language, such as HTML or XML(including XML dialects such as SVG, MathML, or XHTML). CSS is a cornerstone technology of the World Wide Web, alongside HTML and JavaScript.
+
+CSS is designed to enable the separation of content and presentation, including layout, colors, and fonts. This separation can improve content accessibility, since the content can be written without concern for its presentation; provide more flexibility and control in the specification of presentation characteristics; enable multiple web pages to share formatting by specifying the relevant CSS in a separate .css file, which reduces complexity and repetition in the structural content; and enable the .css file to be cached to improve the page load speed between the pages that share the file and its formatting.
+
+Separation of formatting and content also makes it feasible to present the same markup page in different styles for different rendering methods, such as on-screen, in print, by voice (via speech-based browser or screen reader), and on Braille-based tactile devices. CSS also has rules for alternative formatting if the content is accessed on a mobile device.
+
+The name cascading comes from the specified priority scheme to determine which declaration applies if more than one declaration of a property match a particular element. This cascading priority scheme is predictable.
+
+The CSS specifications are maintained by the World Wide Web Consortium(W3C). Internet media type (MIME type)`text/css` is registered for use with CSS by RFC 2318 (March 1998). The W3C operates a free CSS validation service for CSS documents.
+
+In addition to HTML, other markup languages sup</pre></div></div><details><summary>展开本页中的完整供应商输出（56,822 / 56,822 字符）</summary><pre>CSS
+
+Cascading Style Sheets (CSS) is a style sheet language used for specifying the presentation and styling of a document written in a markup language, such as HTML or XML(including XML dialects such as SVG, MathML, or XHTML). CSS is a cornerstone technology of the World Wide Web, alongside HTML and JavaScript.
+
+CSS is designed to enable the separation of content and presentation, including layout, colors, and fonts. This separation can improve content accessibility, since the content can be written without concern for its presentation; provide more flexibility and control in the specification of presentation characteristics; enable multiple web pages to share formatting by specifying the relevant CSS in a separate .css file, which reduces complexity and repetition in the structural content; and enable the .css file to be cached to improve the page load speed between the pages that share the file and its formatting.
+
+Separation of formatting and content also makes it feasible to present the same markup page in different styles for different rendering methods, such as on-screen, in print, by voice (via speech-based browser or screen reader), and on Braille-based tactile devices. CSS also has rules for alternative formatting if the content is accessed on a mobile device.
+
+The name cascading comes from the specified priority scheme to determine which declaration applies if more than one declaration of a property match a particular element. This cascading priority scheme is predictable.
+
+The CSS specifications are maintained by the World Wide Web Consortium(W3C). Internet media type (MIME type)`text/css` is registered for use with CSS by RFC 2318 (March 1998). The W3C operates a free CSS validation service for CSS documents.
+
+In addition to HTML, other markup languages support the use of CSS including XHTML, plain XML, SVG, and XUL. CSS is also used in the GTK widget toolkit.
+
+| Cascading Style Sheets (CSS) | - |
+| --- | --- |
+| Official logo since December 2024 | - |
+| Example of CSS source code | - |
+| Filename extension | .css |
+| Internet media type | text/css |
+| Uniform Type Identifier (UTI) | public.css |
+| Developed by | World Wide Web Consortium (W3C) |
+| Initial release | 17 December 1996; 29 years ago (1996-12-17) |
+| Latest release | CSS 3 is being developed as multiple separate modules. Regular snapshots summarize their status., 7 December 2023; 2 years ago (2023-12-07) |
+| Type of format | Style sheet language |
+| Container for | Style rules for HTML elements |
+| Contained by | HTML Documents |
+| Open format? | Yes |
+| Website | w3.org/TR/CSS/#css |
+
+## Syntax
+
+CSS has a simple syntax and uses a number of English keywords to specify the names of various style properties.
+
+### Style sheet
+
+A style sheet consists of a list of rules. Each rule or rule-set consists of one or more selectors, and a declaration block.
+
+### Selector
+
+In CSS, selectors declare which part of the markup a style applies to by matching tags and attributes in the markup itself.
+
+#### Selector types
+
+Selectors may apply to the following:
+
+elements specified by attribute, in particular:
+
+- id: an identifier unique within the document, denoted in the selector language by a hash prefix e.g.`#id`
+- class: an identifier that can annotate multiple elements in a document, denoted by a dot prefix e.g.`.classname`(the phrase &quot;CSS class&quot;, although sometimes used, is a misnomer, as element classes—specified with the HTML class attribute—is a markup feature that is distinct from browsers&#x27; CSS subsystems, and the related W3C/WHATWG standards work on document styles; see RDF and microformats for the origins of the &quot;class&quot; system of the Web content model)
+
+Classes and IDs are case-sensitive, start with letters, and can include alphanumeric characters, hyphens, and underscores. A class may apply to any number of instances of any element. An ID may only be applied to a single element.
+
+#### Pseudo-classes
+
+Pseudo-classes are used in CSS selectors to permit formatting based on information that is not contained in the document tree.
+
+One example of a widely used pseudo-class is`:hover`, which identifies content only when the user &quot;points to&quot; the visible element, usually by holding the mouse cursor over it. It is appended to a selector as in`a:hover` or`#elementid:hover`.
+
+A pseudo-class classifies document elements, such as`:link` or`:visited`, whereas a pseudo-element makes a selection that may consist of partial elements, such as`::first-line` or`::first-letter`. Note the distinction between the double-colon notation used for pseudo-elements and the single-colon notation used for pseudo-classes.
+
+#### Combinators
+
+Multiple simple selectors may be joined using combinators to specify elements by location, element type, id, class, or any combination thereof. The order of the selectors is important. For example,`div .myClass {color: red;}` applies to all elements of class myClass that are inside div elements, whereas`.myClass div {color: red;}` applies to all div elements that are inside elements of class myClass. This is not to be confused with concatenated identifiers such as`div.myClass {color: red;}` which applies to div elements of class myClass.
+
+#### Summary of selector syntax
+
+The following table provides a summary of selector syntax indicating usage and the version of CSS that introduced it.
+
+CSS selectors
+
+| Pattern | Matches | First definedin CSS level |
+| --- | --- | --- |
+| `E` | an element of type E | 1 |
+| `E:link` | an E element that is the source anchor of a hyperlink whose target is either not yet visited (:link) or already visited (:visited) | 1 |
+| `E:visited` | | |
+| `E:active` | an E element during certain user actions | 1 |
+| `E:hover` | | 2 |
+| `E:focus` | | |
+| `E::first-line` | the first formatted line of an E element | 1 |
+| `E::first-letter` | the first formatted letter of an E element | 1 |
+| `.c` | all elements with class=&quot;c&quot; | 1 |
+| `#myid` | the element with id=&quot;myid&quot; | 1 |
+| `E.warning` | an E element whose class is &quot;warning&quot; (the document language specifies how class is determined) | 1 |
+| `E#myid` | an E element with ID equal to &quot;myid&quot; | 1 |
+| `.c#myid` | the element with class=&quot;c&quot; and ID equal to &quot;myid&quot; | 1 |
+| `E F` | an F element descendant of an E element | 1 |
+| `*` | any element | 2 |
+| `E[foo]` | an E element with a &quot;foo&quot; attribute | 2 |
+| `E[foo=&quot;bar&quot;]` | an E element whose &quot;foo&quot; attribute value is exactly equal to &quot;bar&quot; | 2 |
+| `E[foo~=&quot;bar&quot;]` | an E element whose &quot;foo&quot; attribute value is a list of whitespace-separated values, one of which is exactly equal to &quot;bar&quot; | 2 |
+| `E[foo|=&quot;en&quot;]` | an E element whose &quot;foo&quot; attribute has a hyphen-separated list of values beginning (from the left) with &quot;en&quot; | 2 |
+| `E:first-child` | an E element, first child of its parent | 2 |
+| `E:lang(fr)` | an element of type E in language &quot;fr&quot; (the document language specifies how language is determined) | 2 |
+| `E::before` | generated content before an E element&#x27;s content | 2 |
+| `E::after` | generated content after an E element&#x27;s content | 2 |
+| `E &gt; F` | an F element child of an E element | 2 |
+| `E + F` | an F element immediately preceded by an E element | 2 |
+| `E[foo^=&quot;bar&quot;]` | an E element whose &quot;foo&quot; attribute value begins exactly with the string &quot;bar&quot; | 3 |
+| `E[foo$=&quot;bar&quot;]` | an E element whose &quot;foo&quot; attribute value ends exactly with the string &quot;bar&quot; | 3 |
+| `E[foo*=&quot;bar&quot;]` | an E element whose &quot;foo&quot; attribute value contains the substring &quot;bar&quot; | 3 |
+| `E:root` | an E element, root of the document | 3 |
+| `E:nth-child(n)` | an E element, the n-th child of its parent | 3 |
+| `E:nth-last-child(n)` | an E element, the n-th child of its parent, counting from the last one | 3 |
+| `E:nth-of-type(n)` | an E element, the n-th sibling of its type | 3 |
+| `E:nth-last-of-type(n)` | an E element, the n-th sibling of its type, counting from the last one | 3 |
+| `E:last-child` | an E element, last child of its parent | 3 |
+| `E:first-of-type` | an E element, first sibling of its type | 3 |
+| `E:last-of-type` | an E element, last sibling of its type | 3 |
+| `E:only-child` | an E element, only child of its parent | 3 |
+| `E:only-of-type` | an E element, only sibling of its type | 3 |
+| `E:empty` | an E element that has no children (including text nodes) | 3 |
+| `E:target` | an E element being the target of the referring URI | 3 |
+| `E:enabled` | a user interface element E that is enabled | 3 |
+| `E:disabled` | a user interface element E that is disabled | 3 |
+| `E:checked` | a user interface element E that is checked (for instance a radio button or checkbox) | 3 |
+| `E:not(s)` | an E element that does not match simple selector s | 3 |
+| `E ~ F` | an F element preceded by an E element | 3 |
+| `E:has(s)` | an E element that contains an element matching simple selector s | 4 |
+
+### Declaration block
+
+A declaration block consists of a pair of braces (`{}`) enclosing a semicolon-separated list of declarations.
+
+#### Declaration
+
+Each declaration itself consists of a property, a colon (`:`), and a value. Optional white-space may be around the declaration block, declarations, colons, and semi-colons for readability.
+
+#### Properties
+
+Properties are specified in the CSS standard. Each property has a set of possible values. Some properties can affect any type of element, and others apply only to particular groups of elements.
+
+#### Values
+
+Values may be keywords, such as &quot;center&quot; or &quot;inherit&quot;, or numerical values, such as`200px`(200 pixels),`50vw`(50 percent of the viewport width) or 80% (80 percent of the parent element&#x27;s width).
+
+Color values can be specified with keywords (e.g. &quot;`red`&quot;), hexadecimal values (e.g.`#FF0000`, also abbreviated as`#F00`), RGB values on a 0 to 255 scale (e.g.`rgb(255, 0, 0)`), RGBA values that specify both color and alpha transparency (e.g.`rgba(255, 0, 0, 0.8)`), or HSL or HSLA values (e.g.`hsl(0 100% 50%)`,`hsl(0 100% 50% / 0.8)`).
+
+Non-zero numeric values representing linear measures must include a length unit, which is either an alphabetic code or abbreviation, as in`200px` or`50vw`; or a percentage sign, as in`80%`. Some units –`cm`(centimetre);`in`(inch);`mm`(millimetre);`pc`(pica); and`pt`(point) – are absolute, which means that the rendered dimension does not depend upon the structure of the page; others –`em`(em);`ex`(ex) and`px`(pixel) – are relative, which means that factors such as the font size of a parent element can affect the rendered measurement. These eight units were a feature of CSS 1 and retained in all subsequent revisions. The proposed CSS Values and Units Module Level 3 will, if adopted as a W3C Recommendation, provide seven further length units:`ch`;`Q`;`rem`;`vh`;`vmax`;`vmin`; and`vw`.
+
+### Use
+
+Before CSS, nearly all presentational attributes of HTML documents were contained within the HTML markup. That is, all font colors, background styles, element alignments, borders, and sizes had to be explicitly described (often repeatedly) within the HTML. CSS lets authors move much of that information to another file, the style sheet, resulting in considerably simpler HTML. And additionally, as more and more devices are able to access responsive web pages, different screen sizes and layouts begin to appear. Customizing a website for each device size is costly and increasingly difficult. The modular nature of CSS means that styles can be reused in different parts of a site or even across sites, promoting consistency and efficiency.
+
+For example, headings (`h1` elements), sub-headings (`h2`), sub-sub-headings (`h3`), etc., are defined structurally using HTML. In print and on the screen, choice of font, size, color and emphasis for these elements is presentational.
+
+Before CSS, document authors who wanted to assign such typographic characteristics to, say, all`h2` headings had to repeat HTML presentational markup for each occurrence of that heading type. This made documents more complex, larger, and more error-prone and difficult to maintain. CSS allows the separation of presentation from structure. CSS can define color, font, text alignment, size, borders, spacing, layout and many other typographic characteristics, and can do so independently for on-screen and printed views. CSS also defines non-visual styles, such as reading speed and emphasis for aural text readers. The W3C has now deprecated the use of all presentational HTML markup.
+
+For example, under pre-CSS HTML, a heading element defined with red text would be written as:
+
+```
+&lt;h1&gt;&lt;font color=&quot;red&quot;&gt;Chapter 1.&lt;/font&gt;&lt;/h1&gt;
+
+```
+
+Using CSS, the same element can be coded using style properties instead of HTML presentational attributes:
+
+```
+&lt;h1 style=&quot;color: red;&quot;&gt;Chapter 1.&lt;/h1&gt;
+
+```
+
+The advantages of this may not be immediately clear but the power of CSS becomes more apparent when the style properties are placed in an internal style element or, even better, an external CSS file. For example, suppose the document contains the style element:
+
+```
+&lt;style&gt;
+    h1 {
+        color: red;
+    }
+&lt;/style&gt;
+
+```
+
+All`h1` elements in the document will then automatically become red without requiring any explicit code. If the author later wanted to make`h1` elements blue instead, this could be done by changing the style element to:
+
+```
+&lt;style&gt;
+    h1 {
+        color: blue;
+    }
+&lt;/style&gt;
+
+```
+
+rather than by laboriously going through the document and changing the color for each individual`h1` element.
+
+The styles can also be placed in an external CSS file, as described below, and loaded using syntax similar to:
+
+```
+&lt;link href=&quot;path/to/file.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;
+
+```
+
+This further decouples the styling from the HTML document and makes it possible to restyle multiple documents by simply editing a shared external CSS file.
+
+### Sources
+
+CSS, or Cascading Style Sheets, offers a flexible way to style web content, with styles originating from browser defaults, user preferences, or web designers. These styles can be applied inline, within an HTML document, or through external .css files for broader consistency. Not only does this simplify web development by promoting reusability and maintainability, it also improves site performance because styles can be offloaded into dedicated .css files that browsers can cache. Additionally, even if the styles cannot be loaded or are disabled, this separation maintains the accessibility and readability of the content, ensuring that the site is usable for all users, including those with disabilities. Its multi-faceted approach, including considerations for selector specificity, rule order, and media types, ensures that websites are visually coherent and adaptive across different devices and user needs, striking a balance between design intent and user accessibility.
+
+#### Multiple style sheets
+
+Multiple style sheets can be imported. Different styles can be applied depending on the output device being used; for example, the screen version can be quite different from the printed version, so authors can tailor the presentation appropriately for each medium.
+
+#### Cascading
+
+The style sheet with the highest priority controls the content display. Declarations not set in the highest priority source are passed on to a source of lower priority, such as the user agent style. The process is called cascading.
+
+One of the goals of CSS is to allow users greater control over presentation. Someone who finds red italic headings difficult to read may apply a different style sheet. Depending on the browser and the website, a user may choose from various style sheets provided by the designers, or may remove all added styles, and view the site using the browser&#x27;s default styling, or may override just the red italic heading style without altering other attributes. Browser extensions like Stylish and Stylus have been created to facilitate the management of such user style sheets. In the case of large projects, cascading can be used to determine which style has a higher priority when developers do integrate third-party styles that have conflicting priorities, and to further resolve those conflicts. Additionally, cascading can help create themed designs, which help designers fine-tune aspects of a design without compromising the overall layout.
+
+##### CSS priority scheme
+
+CSS priority scheme (highest to lowest)
+
+| Priority | CSS source type | Description |
+| --- | --- | --- |
+| 1 | Importance | The &quot;`!important`&quot; annotation overwrites the previous priority types |
+| 2 | Inline | A style applied to an HTML element via HTML &quot;style&quot; attribute |
+| 3 | Media Type | A property definition applies to all media types unless a media-specific CSS is defined |
+| 4 | User defined | Most browsers have the accessibility feature: a user-defined CSS |
+| 5 | Selector specificity | A specific contextual selector (`#heading p`) overwrites generic definition |
+| 6 | Rule order | Last rule declaration has a higher priority |
+| 7 | Parent inheritance | If a property is not specified, it is inherited from a parent element |
+| 8 | CSS property definition in HTML document | CSS rule or CSS inline style overwrites a default browser value |
+| 9 | Browser default | The lowest priority: browser default value is determined by W3C initial value specifications |
+
+### Specificity
+
+Specificity refers to the relative weights of various rules. It determines which styles apply to an element when more than one rule could apply. Based on the specification, a simple selector (e.g. H1) has a specificity of 1, class selectors have a specificity of 1,0, and ID selectors have a specificity of 1,0,0. Because the specificity values do not carry over as in the decimal system, commas are used to separate the &quot;digits&quot; (a CSS rule having 11 elements and 11 classes would have a specificity of 11,11, not 121).
+
+Thus the selectors of the following rule result in the indicated specificity:
+
+| Selectors | Specificity |
+| --- | --- |
+| `h1 {color: white;}` | 0, 0, 0, 1 |
+| `p em {color: green;}` | 0, 0, 0, 2 |
+| `.grape {color: red;}` | 0, 0, 1, 0 |
+| `p.bright {color: blue;}` | 0, 0, 1, 1 |
+| `p.bright em.dark {color: yellow;}` | 0, 0, 2, 2 |
+| `#id218 {color: brown;}` | 0, 1, 0, 0 |
+| `style=&quot; &quot;` | 1, 0, 0, 0 |
+
+#### Examples
+
+Consider this HTML fragment:
+
+```
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        &lt;style&gt;
+            #xyz { color: blue; }
+        &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;p id=&quot;xyz&quot; style=&quot;color: green;&quot;&gt;To demonstrate specificity&lt;/p&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+
+```
+
+In the above example, the declaration in the`style` attribute overrides the one in the` ` element because it has a higher specificity, and thus, the paragraph appears green:
+
+To demonstrate specificity
+
+### Inheritance
+
+Inheritance is a key feature in CSS; it relies on the ancestor-descendant relationship to operate. Inheritance is the mechanism by which properties are applied not only to a specified element but also to its descendants. Inheritance relies on the document tree, which is the hierarchy of XHTML elements in a page based on nesting. Descendant elements may inherit CSS property values from any ancestor element enclosing them. In general, descendant elements inherit text-related properties, but their box-related properties are not inherited. Properties that can be inherited are color, font, letter spacing, line-height, list-style, text-align, text-indent, text-transform, visibility, white-space, and word-spacing. Properties that cannot be inherited are background, border, display, float and clear, height, and width, margin, min- and max-height and -width, outline, overflow, padding, position, text-decoration, vertical-align, and z-index.
+
+Inheritance can be used to avoid declaring certain properties over and over again in a style sheet, allowing for shorter CSS.
+
+Inheritance in CSS is not the same as inheritance in class-based programming languages, where it is possible to define class B as &quot;like class A, but with modifications&quot;. With CSS, it is possible to style an element with &quot;class A, but with modifications&quot;. However, it is not possible to define a CSS class B like that, which could then be used to style multiple elements without having to repeat the modifications.
+
+#### Example
+
+Given the following style sheet:
+
+```
+p {
+   color: blue;
+}
+
+```
+
+Suppose there is a p element with an emphasizing element (` `) inside:
+
+```
+&lt;p&gt;
+   This is to &lt;em&gt;illustrate&lt;/em&gt; inheritance
+&lt;/p&gt;
+
+```
+
+If no color is assigned to the em element, the emphasized word &quot;illustrate&quot; inherits the color of the parent element, p. The style sheet p has the color blue, hence, the em element is likewise blue:
+
+This is to illustrate inheritance
+
+### Whitespace
+
+The whitespace between properties and selectors is ignored. This code snippet:
+
+```
+body{overflow:hidden;background:#000000;background-image:url(images/bg.gif);background-repeat:no-repeat;background-position:left top;}
+
+```
+
+is functionally equivalent to this one:
+
+```
+body {
+   overflow: hidden;
+   background-color: #000000;
+   background-image: url(images/bg.gif);
+   background-repeat: no-repeat;
+   background-position: left top;
+}
+
+```
+
+#### Indentation
+
+One common way to format CSS for readability is to indent each property and give it its own line. In addition to formatting CSS for readability, shorthand properties can be used to write out the code faster, which also gets processed more quickly when being rendered:
+
+```
+body {
+   overflow: hidden;
+   background: #000 url(images/bg.gif) no-repeat left top;
+}
+
+```
+
+Sometimes, multiple property values are indented onto their own line:
+
+```
+@font-face {
+   font-family: &#x27;Comic Sans&#x27;;
+   font-size: 20px;
+   src: url(&#x27;first.example.com&#x27;),
+        url(&#x27;second.example.com&#x27;),
+        url(&#x27;third.example.com&#x27;),
+        url(&#x27;fourth.example.com&#x27;);
+}
+
+```
+
+### Positioning
+
+CSS 2.1 defines three positioning schemes:
+
+Normal flowInline items are laid out in the same way as the letters in words in the text, one after the other across the available space until there is no more room, then starting a new line below. Block items stack vertically, like paragraphs and like the items in a bulleted list. Normal flow also includes the relative positioning of block or inline items and run-in boxes. FloatsA floated item is taken out of the normal flow and shifted to the left or right as far as possible in the space available. Other content then flows alongside the floated item. Absolute positioningAn absolutely positioned item has no place in, and no effect on, the normal flow of other items. It occupies its assigned position in its container independently of other items.
+
+#### Position property
+
+There are five possible values of the`position` property. If an item is positioned in any way other than`static`, then the further properties`top`,`bottom`,`left`, and`right` are used to specify offsets and positions.The element having position static is not affected by the`top`,`bottom`,`left` or`right` properties.
+
+##### Static
+
+The default value places the item in the normal flow.
+
+##### Relative
+
+The item is placed in the normal flow, and then shifted or offset from that position. Subsequent flow items are laid out as if the item had not been moved.
+
+##### Absolute
+
+Specifies absolute positioning. The element is positioned in relation to its nearest non-static ancestor.
+
+##### Fixed
+
+The item is absolutely positioned in a fixed position on the screen even as the rest of the document is scrolled
+
+#### Float and clear
+
+The`float` property may have one of three values. Absolutely positioned or fixed items cannot be floated. Other elements normally flow around floated items, unless they are prevented from doing so by their`clear` property.
+
+leftThe item floats to the left of the line that it would have appeared in; other items may flow around its right side. rightThe item floats to the right of the line that it would have appeared in; other items may flow around its left side. clearForces the element to appear underneath (&#x27;clear&#x27;) floated elements to the left (`clear:left`), right (`clear:right`) or both sides (`clear:both`).
+
+## History
+
+Håkon Wium Lie, chief technical officer of the Opera Software company and co-creator of the CSS web standards
+
+CSS was first proposed by Håkon Wium Lie on 10 October 1994. At the time, Lie was working with Tim Berners-Lee at CERN. Several other style sheet languages for the web were proposed around the same time, and discussions on public mailing lists and inside World Wide Web Consortium resulted in the first W3C CSS Recommendation (CSS1) being released in 1996. In particular, a proposal by Bert Bos was influential; he became co-author of CSS1, and is regarded as co-creator of CSS.
+
+Style sheets have existed in one form or another since the beginnings of Standard Generalized Markup Language (SGML) in the 1980s, and CSS was developed to provide style sheets for the web. One requirement for a web style sheet language was for style sheets to come from different sources on the web. Therefore, existing style sheet languages like DSSSL and FOSI were not suitable. CSS, on the other hand, let a document&#x27;s style be influenced by multiple style sheets by way of &quot;cascading&quot; styles.
+
+As HTML grew, it came to encompass a wider variety of stylistic capabilities to meet the demands of web developers. This evolution gave the designer more control over site appearance, at the cost of more complex HTML. Variations in web browser implementations, such as ViolaWWW and WorldWideWeb, made consistent site appearance difficult, and users had less control over how web content was displayed. The browser/editor developed by Tim Berners-Lee had style sheets that were hard-coded into the program. The style sheets could therefore not be linked to documents on the web. Robert Cailliau, also of CERN, wanted to separate the structure from the presentation so that different style sheets could describe different presentation for printing, screen-based presentations, and editors.
+
+Improving web presentation capabilities was a topic of interest to many in the web community and nine different style sheet languages were proposed on the www-style mailing list. Of these nine proposals, two were especially influential on what became CSS: Cascading HTML Style Sheets and Stream-based Style Sheet Proposal (SSP). Two browsers served as testbeds for the initial proposals; Lie worked with Yves Lafon to implement CSS in Dave Raggett&#x27;s Arena browser. Bert Bos implemented his own SSP proposal in the Argo browser. Thereafter, Lie and Bos worked together to develop the CSS standard (the &#x27;H&#x27; was removed from the name because these style sheets could also be applied to other markup languages besides HTML).
+
+Lie&#x27;s proposal was presented at the &quot; Mosaic and the Web&quot; conference (later called WWW2) in Chicago, Illinois in 1994, and again with Bert Bos in 1995. Around this time the W3C was already being established and took an interest in the development of CSS. It organized a workshop toward that end chaired by Steven Pemberton. This resulted in W3C adding work on CSS to the deliverables of the HTML editorial review board (ERB). Lie and Bos were the primary technical staff on this aspect of the project, with additional members, including Thomas Reardon of Microsoft, participating as well. In August 1996, Netscape Communication Corporation presented an alternative style sheet language called JavaScript Style Sheets(JSSS). The spec was never finished, and is deprecated. By the end of 1996, CSS was ready to become official, and the CSS level 1 Recommendation was published in December.
+
+Development of HTML, CSS, and the DOM had all been taking place in one group, the HTML Editorial Review Board (ERB). Early in 1997, the ERB was split into three working groups: HTML Working Group, chaired by Dan Connolly of W3C; DOM Working group, chaired by Lauren Wood of SoftQuad; and CSS Working Group, chaired by Chris Lilley of W3C.
+
+The CSS Working Group began tackling issues that had not been addressed with CSS level 1, resulting in the creation of CSS level 2 on November 4, 1997. It was published as a W3C Recommendation on May 12, 1998. CSS level 3, which was started in 1998, is still under development as of 2014.
+
+In 2005, the CSS Working Groups decided to enforce the requirements for standards more strictly. This meant that already published standards like CSS 2.1, CSS 3 Selectors, and CSS 3 Text were pulled back from Candidate Recommendation to Working Draft level.
+
+### Difficulty with adoption
+
+The CSS 1 specification was completed in 1996. Microsoft&#x27;s Internet Explorer 3 was released that year, featuring some limited support for CSS. IE 4 and Netscape 4.x added more support, but it was typically incomplete and had many bugs that prevented CSS from being usefully adopted. It was more than three years before any web browser achieved near-full implementation of the specification. Internet Explorer 5.0 for the Macintosh, shipped in March 2000, was the first browser to have full (better than 99 percent) CSS 1 support, surpassing Opera, which had been the leader since its introduction of CSS support fifteen months earlier. Other browsers followed soon afterward, and many of them additionally implemented parts of CSS 2.
+
+However, even when later &quot;version 5&quot; web browsers began to offer a fairly full implementation of CSS, they were still incorrect in certain areas. They were fraught with inconsistencies, bugs, and other quirks. Microsoft Internet Explorer 5. x for Windows, as opposed to the very different IE for Macintosh, had a flawed implementation of the CSS box model, as compared with the CSS standards. Such inconsistencies and variation in feature support made it difficult for designers to achieve a consistent appearance across browsers and platforms without the use of workarounds termed CSS hacks and filters. The IE Windows box model bugs were so serious that, when Internet Explorer 6 was released, Microsoft introduced a backward-compatible mode of CSS interpretation (&quot; quirks mode&quot;) alongside an alternative, corrected &quot;standards mode&quot;. Other non-Microsoft browsers also provided mode-switch capabilities. It, therefore, became necessary for authors of HTML files to ensure they contained special distinctive&quot;standards-compliant CSS intended&quot; marker to show that the authors intended CSS to be interpreted correctly, in compliance with standards, as opposed to being intended for the now long-obsolete IE5/Windows browser. Without this marker, web browsers with the &quot;quirks mode&quot;-switching capability will size objects in web pages as IE 5 on Windows would, rather than following CSS standards.
+
+Problems with the patchy adoption of CSS and errata in the original specification led the W3C to revise the CSS 2 standards into CSS 2.1, which moved nearer to a working snapshot of current CSS support in HTML browsers. Some CSS 2 properties that no browser successfully implemented were dropped, and in a few cases, defined behaviors were changed to bring the standard into line with the predominant existing implementations. CSS 2.1 became a Candidate Recommendation on February 25, 2004, but CSS 2.1 was pulled back to Working Draft status on June 13, 2005, and only returned to Candidate Recommendation status on July 19, 2007.
+
+In addition to these problems, the`.css` extension was used by a software product used to convert PowerPoint files into Compact Slide Show files, so some web servers served all`.css` as MIME type`application/x-pointplus` rather than`text/css`.
+
+### Vendor prefixes
+
+Individual browser vendors occasionally introduced new parameters ahead of standardization and universalization. To prevent interfering with future implementations, vendors prepended unique names to the parameters, such as`-moz-` for Mozilla Firefox,`-webkit-` named after the browsing engine of Apple Safari,`-o-` for Opera Browser and`-ms-` for Microsoft Internet Explorer and early versions of Microsoft Edge that use EdgeHTML.
+
+Occasionally, the parameters with vendor prefixes such as`-moz-radial-gradient` and`-webkit-linear-gradient` have slightly different syntax as compared to their non-vendor-prefix counterparts.
+
+Prefixed properties are rendered obsolete by the time of standardization. Programs are available to automatically add prefixes for older browsers and to point out standardized versions of prefixed parameters. Since prefixes are limited to a small subset of browsers, removing the prefix allows other browsers to see the functionality. An exception is certain obsolete`-webkit-` prefixed properties, which are so common and persistent on the web that other families of browsers have decided to support them for compatibility.
+
+CSS Snapshot 2021
+
+CSS has various levels and profiles. Each level of CSS builds upon the last, typically adding new features and typically denoted as CSS 1, CSS 2, CSS 3, and CSS 4. Profiles are typically a subset of one or more levels of CSS built for a particular device or user interface. Currently, there are profiles for mobile devices, printers, and television sets. Profiles should not be confused with media types, which were added in CSS 2.
+
+#### CSS 1
+
+The first CSS specification to become an official W3C Recommendation is CSS level 1, published on 17 December 1996. Håkon Wium Lie and Bert Bos are credited as the original developers. Among its capabilities are support for
+
+- elements depending on how they are placed relative to others in the document tree.
+- Font properties such as typeface and emphasis
+- Color of text, backgrounds, and other elements
+- Text attributes such as spacing between words, letters, and lines of text
+- Alignment of text, images, tables and other elements
+- Margin, border, padding, and positioning for most elements
+- Unique identification and generic classification of groups of attributes
+
+The W3C no longer maintains the CSS 1 Recommendation.
+
+#### CSS 2
+
+CSS level 2 specification was developed by the W3C and published as a recommendation in May 1998. A superset of CSS 1, CSS 2 includes a number of new capabilities like absolute, relative, and fixed positioning of elements and z-index, the concept of media types, support for aural style sheets (which were later replaced by the CSS 3 speech modules) and bidirectional text, and new font properties such as shadows.
+
+The W3C no longer maintains the CSS 2 recommendation.
+
+#### CSS 2.1
+
+CSS level 2 revision 1, often referred to as &quot;CSS 2.1&quot;, fixes errors in CSS 2, removes poorly supported or not fully interoperable features and adds already implemented browser extensions to the specification. To comply with the W3C Process for standardizing technical specifications, CSS 2.1 went back and forth between Working Draft status and Candidate Recommendation status for many years. CSS 2.1 first became a Candidate Recommendation on 25 February 2004, but it was reverted to a Working Draft on 13 June 2005 for further review. It returned to Candidate Recommendation on 19 July 2007 and then updated twice in 2009. However, because changes and clarifications were made, it again went back to Last Call Working Draft on 7 December 2010.
+
+CSS 2.1 went to Proposed Recommendation on 12 April 2011. After being reviewed by the W3C Advisory Committee, it was finally published as a W3C Recommendation on 7 June 2011.
+
+CSS 2.1 was planned as the first and final revision of level 2—but low-priority work on CSS 2.2 began in 2015.
+
+#### CSS 3
+
+Unlike CSS 2, which is a large single specification defining various features, CSS 3 is divided into several separate documents called &quot;modules&quot;. Each module adds new capabilities or extends features defined in CSS 2, preserving backward compatibility. Work on CSS level 3 started around the time of publication of the original CSS 2 recommendation. The earliest CSS 3 drafts were published in June 1999.
+
+Due to the modularization, different modules have different stability and statuses.
+
+Some modules have Candidate Recommendation(CR) status and are considered moderately stable. At CR stage, implementations are advised to drop vendor prefixes.
+
+Summary of main module-specifications
+
+| Module | Specification title | Status | Date |
+| --- | --- | --- | --- |
+| css3-background | CSS Backgrounds and Borders Module Level 3 | Candidate Rec. | Feb 2023 |
+| css-box-3 | CSS Box Model Module Level 3 | Recommendation | Apr 2023 |
+| css-cascade-3 | CSS Cascading and Inheritance Level 3 | Recommendation | Feb 2021 |
+| css-color-3 | CSS Color Module Level 3 | Recommendation | Jan 2022 |
+| css3-content | CSS Generated Content Module Level 3 | Working Draft | Aug 2019 |
+| css-fonts-3 | CSS Fonts Module Level 3 | Recommendation | Sep 2018 |
+| css3-gcpm | CSS Generated Content for Paged Media Module | Working Draft | May 2014 |
+| css3-layout | CSS Template Layout Module | Note | Mar 2015 |
+| css3-mediaqueries | Media Queries | Recommendation | Jun 2012 |
+| mediaqueries-4 | Media Queries Level 4 | Candidate Rec. | Dec 2021 |
+| css3-multicol | Multi-column Layout Module Level 1 | Candidate Rec. | Oct 2021 |
+| css3-page | CSS Paged Media Module Level 3 | Working Draft, and part migrated to css3-break | Oct 2018 |
+| css3-break | CSS Fragmentation Module Level 3 | Candidate Rec. | Dec 2018 |
+| selectors-3 | Selectors Level 3 | Recommendation | Nov 2018 |
+| selectors-4 | Selectors Level 4 | Working Draft | Nov 2022 |
+| css3-ui | CSS Basic User Interface Module Level 3 (CSS3 UI) | Recommendation | Jun 2018 |
+
+#### CSS 4
+
+Jen Simmons discussing the state of CSS in 2019, as several CSS 4 modules were being advanced
+
+There is no CSS4 specification, because CSS has been split into many separate modules which level independently.
+
+Modules that build on things from CSS Level 2 started at Level 3. Some of them have already reached Level 4 or are already approaching Level 5. Other modules that define entirely new functionality, such as Flexbox, have been designated as Level 1 and some of them are approaching Level 2.
+
+The CSS Working Group sometimes publishes &quot;Snapshots&quot;, a collection of whole modules and parts of other drafts that are considered stable enough to be implemented by browser developers. So far, five such &quot;best current practices&quot; documents have been published as Notes, in 2007, 2010, 2015, 2017, and 2018.
+
+Since these specification snapshots are primarily intended for developers, there has been a growing demand for a similar versioned reference document targeted at authors, which would present the state of interoperable implementations as meanwhile documented by sites like Can I Use... and the MDN Web Docs. A W3C Community Group has been established in early 2020 in order to discuss and define such a resource. The actual kind of versioning is also up to debate, which means that the document, once produced, might not be called &quot;CSS4&quot;.
+
+## Browser support
+
+Each web browser uses a layout engine to render web pages, and support for CSS functionality is not consistent between them. Because browsers do not parse CSS perfectly, multiple coding techniques have been developed to target specific browsers with workarounds (commonly known as CSS hacks or CSS filters). The adoption of new functionality in CSS can be hindered by a lack of support in major browsers. For example, Internet Explorer was slow to add support for many CSS 3 features, which slowed the adoption of those features and damaged the browser&#x27;s reputation among developers. Additionally, a proprietary syntax for the non-vendor-prefixed`filter` property was used in some versions. In order to ensure a consistent experience for their users, web developers often test their sites across multiple operating systems, browsers, and browser versions, increasing development time and complexity. Tools such as BrowserStack have been built to reduce the complexity of maintaining these environments.
+
+In addition to these testing tools, many sites maintain lists of browser support for specific CSS properties, including CanIUse and the MDN Web Docs. Additionally, CSS 3 defines feature queries, which provide an`@supports` directive that will allow developers to target browsers with support for certain functionality directly within their CSS. CSS that is not supported by older browsers can also sometimes be patched in using JavaScript polyfills, which are pieces of JavaScript code designed to make browsers behave consistently. These workarounds—and the need to support fallback functionality—can add complexity to development projects, and consequently, companies frequently define a list of browser versions that they will and will not support.
+
+As websites adopt newer code standards that are incompatible with older browsers, these browsers can be cut off from accessing many of the resources on the web (sometimes intentionally). However, many of the most popular sites on the internet are not just visually degraded on older browsers due to poor CSS support, but do not work at all, mostly due to the evolution of JavaScript and other web technologies.
+
+## Limitations
+
+Some noted limitations of the current capabilities of CSS include:
+
+### Cannot explicitly declare new scope independently of position
+
+Scoping rules for properties such as z-index look for the closest parent element with a`position: absolute` or`position: relative` declaration. This odd coupling has undesired effects. For example, it is impossible to avoid declaring a new scope when one is forced to adjust an element&#x27;s position, preventing one from using the desired scope of a parent element.
+
+### Pseudo-class dynamic behavior not controllable
+
+CSS implements pseudo-classes that allow a degree of user feedback by conditional application of alternative styles. One CSS pseudo-class, &quot;`:hover`&quot;, is dynamic (equivalent of JavaScript &quot;onmouseover&quot;) and has potential for misuse (e.g., implementing cursor-proximity popups), but CSS has no ability for a client to disable it (no &quot;disable&quot;-like property) or limit its effects (no &quot;nochange&quot;-like values for each property).
+
+### Cannot name rules
+
+There is no way to name a CSS rule, which would allow (for example) client-side scripts to refer to the rule even if its selector changes.
+
+### Cannot include styles from a rule into another rule
+
+CSS styles often must be duplicated in several rules to achieve the desired effect, causing additional maintenance and requiring more thorough testing. Some new CSS features were proposed to solve this but were abandoned afterward. Instead, authors may gain this ability by using more sophisticated stylesheet languages which compile to CSS, such as Sass, Less, or Stylus.
+
+### Cannot target specific text without altering markup
+
+Besides the`::first-letter` pseudo-element, one cannot target specific ranges of text without needing to utilize placeholder elements.
+
+## Advantages
+
+### Separation of content from presentation
+
+CSS facilitates the publication of content in multiple presentation formats by adjusting styles based on various nominal parameters. These parameters include explicit user preferences (such as themes or font size), compatibility with different web browsers, the type of device used to view the content (e.g., desktop, tablet, or mobile device), screen resolutions, the geographic location of the user, and many other variables. CSS also enables responsive design, ensuring that content dynamically adapts to different screen sizes and orientations, enhancing accessibility and user experience across a wide range of environments.
+
+### Site-wide consistency
+
+When CSS is used effectively, in terms of inheritance and &quot;cascading&quot;, a global style sheet can be used to affect and style elements site-wide. If the situation arises that the styling of the elements should be changed or adjusted, these changes can be made by editing rules in the global style sheet. Before CSS, this sort of maintenance was more difficult, expensive, and time-consuming.
+
+### Bandwidth
+
+A stylesheet, internal or external, specifies the style once for a range of HTML elements selected by`class`, type or relationship to others. This is much more efficient than repeating style information inline for each occurrence of the element. An external stylesheet is usually stored in the browser cache, and can therefore be used on multiple pages without being reloaded, further reducing data transfer over a network.
+
+### Page reformatting
+
+With a simple change of one line, a different style sheet can be used for the same page. This has advantages for accessibility, as well as providing the ability to tailor a page or site to different target devices. Furthermore, devices not able to understand the styling (such as older browsers) can still display the content.
+
+### Accessibility
+
+Without CSS, web designers must typically lay out their pages with techniques such as HTML tables that hinder accessibility for vision-impaired users (see Tableless web design § Accessibility).
+
+## Standardization
+
+### Frameworks
+
+CSS frameworks are prepared libraries that are meant to allow for easier, more standards-compliant styling of web pages using the Cascading Style Sheets language. CSS frameworks include Blueprint, Bootstrap, Foundation and Materialize. Like programming and scripting language libraries, CSS frameworks are usually incorporated as external .css sheets referenced in the HTML` `. They provide a number of ready-made options for designing and laying out the web page. Although many of these frameworks have been published, some authors use them mostly for rapid prototyping, or for learning from, and prefer to &#x27;handcraft&#x27; CSS that is appropriate to each published site without the design, maintenance and download overhead of having many unused features in the site&#x27;s styling.
+
+### Design methodologies
+
+As the size of CSS resources used in a project increases, a development team often needs to decide on a common design methodology to keep them organized. The goals are ease of development, ease of collaboration during development, and performance of the deployed stylesheets in the browser. Popular methodologies include OOCSS (object-oriented CSS), ACSS (atomic CSS), CSS (organic Cascade Style Sheet), SMACSS (scalable and modular architecture for CSS), and BEM (block, element, modifier).
+
+## See also
+
+- Flash of unstyled content
+- CSS-in-JS
+
+## References
+
+1. &quot;Minutes Telecon 2024-12-11&quot;. CSS WG Blog. W3C. 2024-12-12. Archived from the original on 2025-01-16. Retrieved 2025-01-16.
+2. &quot;CSS developer guide&quot;. MDN Web Docs. Archived from the original on 2015-09-25. Retrieved 2026-04-20.
+3. Flanagan, David (18 April 2011). JavaScript: the definitive guide. Beijing; Farnham: O&#x27;Reilly. p. 1. ISBN 978-1-4493-9385-4. OCLC 686709345. JavaScript is part of the triad of technologies that all Web developers must learn: HTML to specify the content of web pages, CSS to specify the presentation of web pages, and JavaScript to specify the behavior of web pages.
+4. &quot;What is CSS?&quot;. World Wide Web Consortium. Archived from the original on 2010-11-29. Retrieved 2010-12-01.
+5. Clark, Scott (23 July 2010).&quot;Web-based Mobile Apps of the Future Using HTML 5, CSS and JavaScript&quot;. HTML Goodies. HTMLGoodies. Archived from the original on 2014-10-20. Retrieved 2014-10-16.
+6. &quot;W3C CSS validation service&quot;. Archived from the original on 2011-02-14. Retrieved 2012-06-30.
+7. &quot;W3C CSS2.1 specification for pseudo-elements and pseudo-classes&quot;. World Wide Web Consortium. 7 June 2011. Archived from the original on 30 April 2012. Retrieved 30 April 2012.
+8. &quot;Selectors&quot;. Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. W3C. Archived from the original on 2006-04-23.
+9. &quot;Selectors Level 3&quot;. W3C. Archived from the original on 2014-06-03. Retrieved 2014-05-30.
+10. &quot;CSS Syntax Module Level 3&quot;. W3C. Archived from the original on 1 October 2023. Retrieved 1 October 2023.
+11. &quot;W3C CSS2.1 specification for rule sets, declaration blocks, and selectors&quot;. World Wide Web Consortium. 7 June 2011. Archived from the original on 28 March 2008. Retrieved 2009-06-20.
+12. &quot;Full property table&quot;. W3C. Archived from the original on 2014-05-30. Retrieved 2014-05-30.
+13. &quot;Index of CSS properties&quot;. W3C. Retrieved 2020-08-09.
+14. &quot;CSS Color&quot;. MDN Web Docs. 2024-04-05. Archived from the original on 2024-03-27. Retrieved 2024-04-05.
+15. &quot;6.1 Length units&quot;. Cascading Style Sheets, level 1. 17 December 1996. Archived from the original on 14 June 2019. Retrieved 20 June 2019.
+16. &quot;5. Distance Units: the type&quot;. CSS Values and Units Module Level 3. 6 June 2019. Archived from the original on 7 June 2019. Retrieved 20 June 2019.
+17. W3C HTML Working Group.&quot;HTML 5. A vocabulary and associated APIs for HTML and XHTML&quot;. World Wide Web Consortium. Archived from the original on 15 July 2014. Retrieved 28 June 2014.
+18. Meyer, Eric A. (2006). Cascading Style Sheets: The Definitive Guide(3rd ed.). O&#x27;Reilly Media, Inc. ISBN 0-596-52733-0. Archived from the original on 2014-02-15. Retrieved 2014-02-16.
+19. &quot;Assigning property values, Cascading, and Inheritance&quot;. Archived from the original on 2014-06-11. Retrieved 2014-06-10.
+20. &quot;Can a CSS class inherit one or more other classes?&quot;. StackOverflow. Archived from the original on 2017-10-14. Retrieved 2017-09-10.
+21. &quot;Shorthand properties&quot;. Tutorial. Mozilla Developers. 2017-12-07. Archived from the original on 2018-01-30. Retrieved 2018-01-30.
+22. Bos, Bert; et al. (7 December 2010).&quot;9.3 Positioning schemes&quot;. Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. W3C. Archived from the original on 18 February 2011. Retrieved 16 February 2011.
+23. Holzschlag, Molly E(2005). Spring into HTML and CSS. Pearson Education, Inc. ISBN 0-13-185586-7.
+24. Lie, Hakon W (10 October 1994).&quot;Cascading HTML style sheets – a proposal&quot;(Proposal). CERN. Archived from the original on 4 June 2014. Retrieved 25 May 2014.
+25. Lie, Håkon Wium; Bos, Bert(1999). Cascading Style Sheets, designing for the Web. Addison Wesley. ISBN 0-201-59625-3. Retrieved 23 June 2010.
+26. &quot;Cascading Style Sheets, level 1&quot;. World Wide Web Consortium. Archived from the original on 2014-04-09. Retrieved 2014-03-07.
+27. Bos, Bert(14 April 1995).&quot;Simple style sheets for SGML &amp; HTML on the web&quot;. World Wide Web Consortium. Archived from the original on 23 September 2009. Retrieved 20 June 2010.
+28. &quot;Cascading Style Sheets&quot;. University of Oslo. Archived from the original on 2006-09-06. Retrieved 3 September 2014.
+29. Petrie, Charles; Cailliau, Robert(November 1997).&quot;Interview Robert Cailliau on the WWW Proposal: &quot;How It Really Happened.&quot;&quot;. Institute of Electrical and Electronics Engineers. Archived from the original on 6 January 2011. Retrieved 18 August 2010.
+30. Bos, Bert(31 March 1995).&quot;Stream-based Style sheet Proposal&quot;. Archived from the original on 12 October 2014. Retrieved 3 September 2014.
+31. Nielsen, Henrik Frystyk(7 June 2002).&quot;Libwww Hackers&quot;. World Wide Web Consortium. Archived from the original on 2 December 2009. Retrieved 6 June 2010.
+32. &quot;Yves Lafon&quot;. World Wide Web Consortium. Archived from the original on 24 June 2010. Retrieved 17 June 2010.
+33. &quot;The W3C Team: Technology and Society&quot;. World Wide Web Consortium. 18 July 2008. Archived from the original on 28 May 2010. Retrieved 22 January 2011.
+34. Lou Montulli; Brendan Eich; Scott Furman; Donna Converse; Troy Chevalier(22 August 1996).&quot;JavaScript-Based Style Sheets&quot;. W3C. Archived from the original on 27 May 2010. Retrieved 23 June 2010.
+35. &quot;CSS software&quot;. W3C. Archived from the original on 2010-11-25. Retrieved 2011-01-15.
+36. Anne van Kesteren.&quot;CSS 2.1 – Anne&#x27;s Weblog&quot;. Archived from the original on 2005-12-10. Retrieved 2011-02-16.
+37. &quot;Archive of W3C News in 2007&quot;. World Wide Web Consortium. 21 December 2007. Archived from the original on 2011-06-28. Retrieved 2011-02-16.
+38. Nitot, Tristan (18 March 2002).&quot;Incorrect MIME Type for CSS Files&quot;. Mozilla Developer Center. Mozilla. Archived from the original on 2011-05-20. Retrieved 20 June 2010.
+39. McBride, Don (27 November 2009).&quot;File Types&quot;. Archived from the original on 29 October 2010. Retrieved 20 June 2010.
+40. &quot;css file extension details&quot;. File extension database. 12 March 2010. Archived from the original on 18 July 2011. Retrieved 20 June 2010.
+41. Kyrnin, Jennifer (2019-11-12).&quot;What Are CSS Vendor or Browser Prefixes?&quot;. Lifewire. Archived from the original on 2020-11-30. Retrieved 2026-04-20.
+42. &quot;Compatibility Standard&quot;. WHATWG. 24 January 2024. Archived from the original on Feb 4, 2024.
+43. &quot;CSS Snapshot 2023 – 2.4. CSS Levels&quot;. W3C. 7 December 2023. Archived from the original on Feb 8, 2024.
+44. Bos, Bert; Wium Lie, Håkon (1997). Cascading style sheets: designing for the Web(1st print. ed.). Harlow, England; Reading, MA.: Addison Wesley Longman. ISBN 0-201-41998-X.
+45. W3C: Cascading Style Sheets, level 1 Archived 2011-02-09 at the Wayback Machine CSS 1 specification
+46. W3C: Cascading Style Sheets level 1 specification Archived 2011-02-11 at the Wayback Machine CSS level 1 specification
+47. &quot;Aural style sheets&quot;. W3C. Archived from the original on 2014-10-26. Retrieved 2014-10-26.
+48. W3C: Cascading Style Sheets, level 2 Archived 2011-01-16 at the Wayback Machine CSS 2 specification (1998 recommendation)
+49. W3C: Cascading Style Sheets, level 2 revision 1 Archived 2011-11-09 at the Wayback Machine CSS 2.1 specification (W3C Proposed Recommendation)
+50. W3C: Cascading Style Sheets Standard Boasts Unprecedented Interoperability Archived 2011-06-10 at the Wayback Machine
+51. Bos, Bert(18 February 2011).&quot;Descriptions of all CSS specifications&quot;. World Wide Web Consortium. Archived from the original on 31 March 2011. Retrieved 3 March 2011.
+52. Bos, Bert(26 February 2011).&quot;CSS current work&quot;. World Wide Web Consortium. Archived from the original on 3 March 2011. Retrieved 3 March 2011.
+53. Etemad, Elika J.(12 December 2010).&quot;Cascading Style Sheets (CSS) Snapshot 2010&quot;. World Wide Web Consortium. Archived from the original on 16 March 2011. Retrieved 3 March 2011.
+54. &quot;All CSS specifications&quot;. W3C. 2014-05-22. Archived from the original on 2014-05-30. Retrieved 2014-05-30.
+55. Atkins, Tab Jr.&quot;A Word About CSS4&quot;. Archived from the original on 31 October 2012. Retrieved 18 October 2012.
+56. Andrew, Rachel.&quot;Why there is no CSS4 – explaining CSS Levels&quot;. Archived from the original on 8 July 2025. Retrieved 28 September 2025.
+57. &quot;CSS Flexible Box Layout Module Level 1&quot;. W3C. 19 November 2018. Archived from the original on 19 October 2012. Retrieved 18 October 2012.
+58. &quot;Cascading Style Sheets (CSS) Snapshot 2007&quot;. 12 May 2011. Archived from the original on 8 August 2016. Retrieved 18 July 2016.
+59. &quot;Cascading Style Sheets (CSS) Snapshot 2010&quot;. 12 May 2011. Archived from the original on 16 March 2011. Retrieved 3 March 2011.
+60. &quot;CSS Snapshot 2015&quot;. W3C. 13 October 2015. Archived from the original on 27 January 2017. Retrieved 13 February 2017.
+61. &quot;CSS Snapshot 2017&quot;. W3C. 31 January 2017. Archived from the original on 13 February 2017. Retrieved 13 February 2017.
+62. &quot;CSS Snapshot 2018&quot;. W3C. 22 January 2019. Archived from the original on 1 February 2019. Retrieved 2 January 2019.
+63. &quot;CSS&quot;. Can I Use… Support tables for HTML5, CSS3, etc. Archived from the original on 2018-02-19. Retrieved 2019-01-26.
+64. &quot;CSS&quot;. MDN Web Docs. 21 July 2023. Archived from the original on Nov 26, 2023.
+65. &quot;Call for Participation in CSS4 Community Group&quot;. W3C. 24 February 2020. Archived from the original on Feb 10, 2023. Retrieved 2020-02-27.
+66. Lazaris, Louis (2010-04-28).&quot;CSS3 Solutions for Internet Explorer&quot;. Smashing Magazine. Archived from the original on 2016-10-12. Retrieved 2016-10-12.
+67. Simmons, Jen (August 17, 2016).&quot;Using Feature Queries in CSS&quot;. Mozilla Hacks. Archived from the original on 2016-10-11. Retrieved 2016-10-12.
+68. Hutchinson, Lee (2019).&quot;Looking at the Web with Internet Explorer 6, one last time&quot;. Ars Technica. Archived from the original on 2016-10-12. Retrieved 2016-10-12.
+69. &quot;Pure CSS Popups&quot;. meyerweb.com. Archived from the original on 2009-12-09. Retrieved 2009-11-19.
+70. Tab Atkins Jr.&quot;CSS apply rule&quot;. GitHub. Archived from the original on 2016-02-22. Retrieved 2016-02-27.
+71. &quot;Why I Abandoned @apply — Tab Completion&quot;.
+72. Cederholm, Dan; Ethan Marcotte (2009). Handcrafted CSS: More Bulletproof Web Design. New Riders. p. 114. ISBN 978-0-321-64338-4. Archived from the original on 20 December 2012. Retrieved 19 June 2010.
+73. Antti, Hiljá.&quot;OOCSS, ACSS, BEM, SMACSS: what are they? What should I use?&quot;. clubmate.fi. Hiljá. Archived from the original on 2 June 2015. Retrieved 2 June 2015.
+
+## Further reading
+
+- Meyer, Eric A.; Weyl, Estelle (2023). Cascading Style Sheets: The Definitive Guide, Fifth Edition. O&#x27;Reilly Media, Inc. ISBN 978-1-09-811761-0.
+- Grant, Keith J. (2018). CSS in Depth. Manning Publications Co. ISBN 978-1-61729-345-0.
+- MDN CSS reference
+- MDN Getting Started with CSS
+
+## External links
+
+- Official website</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>exa__live-043-syntax__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://en.wikipedia.org/wiki/Cascading_Style_Sheets</span></div><div class="kv"><b>输出大小</b>56,822 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>CSS</td><td>CSS</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Selector types</td><td>Selector types</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Separation of content from presentation</td><td>Separation of content from presentation</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">CSS</span></p><p><span class="tag">CSS</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;b7a2fa370f5a34d8d5ebb2da3c9af3cc&quot;,
+  &quot;url_status&quot;: {
+    &quot;id&quot;: &quot;https://en.wikipedia.org/wiki/Cascading_Style_Sheets&quot;,
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;source&quot;: &quot;crawled&quot;
+  },
+  &quot;cost_dollars&quot;: {
+    &quot;total&quot;: 0.001,
+    &quot;contents&quot;: {
+      &quot;text&quot;: 0.001
+    }
+  },
+  &quot;extras&quot;: {},
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("exa__live-043-syntax__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("exa__live-043-syntax__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("exa__live-043-syntax__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

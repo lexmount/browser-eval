@@ -1,1 +1,0 @@
-HTTPError('403 Client Error: Forbidden for url: https://www.australianfrequentflyer.com.au/community/threads/why-you-should-not-book-flights-with-booking-com-or-gotogate-com.111478/')

@@ -1,0 +1,1196 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__live-048-websocket-api-websockets__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>WebSocket API (WebSockets)</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">5,554 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：WebSocket API (WebSockets)；Interfaces；Related HTTP headers。</p><p><b>输入 URL：</b><a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API">https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>WebSocket API (WebSockets)
+Interfaces
+Related HTTP headers</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：WebSocket API (WebSockets)</li><li>是否保留核对点：Interfaces</li><li>是否保留核对点：Related HTTP headers</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/live-048-websocket-api-websockets/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API">打开标准答案源网页</a> · 完整性校验 <code>sha256:10d9877cbe9c6cda108323e430c8d2c45cd53593f7c9e70396d250f9a9afe2f5</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>WebSocket API (WebSockets)
+Interfaces
+Related HTTP headers</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># WebSocket API (WebSockets)
+**Note:** This feature is available in [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API).
+The **WebSocket API** makes it possible to open a two-way interactive communication session between the user&#x27;s browser and a server. With this API, you can send messages to a server and receive responses without having to poll the server for a reply.
+The WebSocket API provides two alternative mechanisms for creating and using web socket connections: the [`WebSocket`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) interface and the [`WebSocketStream`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocketStream) interface.
+  * The `WebSocket` interface is stable and has good browser and server support. However it doesn&#x27;t support [backpressure](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts#backpressure). As a result, when messages arrive faster than the application can process them it will either fill up the device&#x27;s memory by buffering those messages, become unresponsive due to 100% CPU usage, or both.
+  * The `WebSocketStream` interface is a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)-based alternative to `WebSocket`. It uses the [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API) to handle receiving and sending messages, meaning that socket connections can take advantage of stream backpressure automatically, regulating the speed of reading or writing to avoid bottlenecks in the application. However, `WebSocketStream` is non-standard and currently only supported in one rendering engine.
+
+
+Additionally, the [WebTransport API](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API) is expected </pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（15,728 / 15,801 字符）</summary><pre># WebSocket API (WebSockets)
+**Note:** This feature is available in [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API).
+The **WebSocket API** makes it possible to open a two-way interactive communication session between the user&#x27;s browser and a server. With this API, you can send messages to a server and receive responses without having to poll the server for a reply.
+The WebSocket API provides two alternative mechanisms for creating and using web socket connections: the [`WebSocket`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket) interface and the [`WebSocketStream`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocketStream) interface.
+  * The `WebSocket` interface is stable and has good browser and server support. However it doesn&#x27;t support [backpressure](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts#backpressure). As a result, when messages arrive faster than the application can process them it will either fill up the device&#x27;s memory by buffering those messages, become unresponsive due to 100% CPU usage, or both.
+  * The `WebSocketStream` interface is a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)-based alternative to `WebSocket`. It uses the [Streams API](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API) to handle receiving and sending messages, meaning that socket connections can take advantage of stream backpressure automatically, regulating the speed of reading or writing to avoid bottlenecks in the application. However, `WebSocketStream` is non-standard and currently only supported in one rendering engine.
+
+
+Additionally, the [WebTransport API](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API) is expected to replace the WebSocket API for many applications. WebTransport is a versatile, low-level API that provides backpressure and many other features not supported by either `WebSocket` or `WebSocketStream`, such as unidirectional streams, out-of-order delivery, and unreliable data transmission via datagrams. WebTransport is more complex to use than WebSockets and its cross-browser support is not as wide, but it enables the implementation of sophisticated solutions. If standard WebSocket connections are a good fit for your use case and you need wide browser compatibility, you should employ the WebSockets API to get up and running quickly. However, if your application requires a non-standard custom solution, then you should use the WebTransport API.
+**Note:** If a page has an open WebSocket connection, the browser may not add it to the [bfcache](https://developer.mozilla.org/en-US/docs/Glossary/bfcache). It&#x27;s therefore good practice to close the connection when the user has finished with the page. See [working with the bfcache](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications#working_with_the_bfcache).
+##  [Interfaces](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#interfaces)
+
+[`WebSocket`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
+
+The primary interface for connecting to a WebSocket server and then sending and receiving data on the connection.
+
+[`WebSocketStream`](https://developer.mozilla.org/en-US/docs/Web/API/WebSocketStream)
+
+Promise-based interface for connecting to a WebSocket server; uses [streams](https://developer.mozilla.org/en-US/docs/Web/API/Streams_API) to send and receive data on the connection.
+
+[`CloseEvent`](https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent)
+
+The event sent by the WebSocket object when the connection closes.
+
+[`MessageEvent`](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)
+
+The event sent by the WebSocket object when a message is received from the server.
+##  [Related HTTP headers](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#related_http_headers)
+The HTTP headers are used in the [WebSocket handshake](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#the_websocket_handshake):
+
+[`Sec-WebSocket-Key`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Key)
+
+An HTTP request header that contains a [nonce](https://developer.mozilla.org/en-US/docs/Glossary/Nonce) from the client. This is used in the [WebSocket opening handshake](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers#the_websocket_handshake) to verify that the client explicitly intends to open a WebSocket. It is added automatically by the browser.
+
+[`Sec-WebSocket-Accept`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Accept)
+
+An HTTP [response header](https://developer.mozilla.org/en-US/docs/Glossary/Response_header) used in the _WebSocket opening handshake_ to indicate that the server is willing to upgrade to a WebSocket connection. The value in the directive is calculated from the value of `Sec-WebSocket-Key` in the corresponding request.
+
+[`Sec-WebSocket-Version`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Version)
+
+An HTTP header that in requests indicates the version of the WebSocket protocol understood by the client. In responses, it is sent only if the requested protocol version is not supported by the server, and lists the versions that the server supports.
+
+[`Sec-WebSocket-Protocol`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Protocol)
+
+An HTTP header that in requests indicates the sub-protocols supported by the client in preferred order. In responses, it indicates the sub-protocol selected by the server from the client&#x27;s preferences.
+
+[`Sec-WebSocket-Extensions`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Extensions)
+
+An HTTP header that in requests indicates the WebSocket extensions supported by the client in preferred order. In responses, it indicates the extension selected by the server from the client&#x27;s preferences.
+##  [Guides](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#guides)
+  * [Writing WebSocket client applications](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications)
+  * [Writing WebSocket servers](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers)
+  * [Writing a WebSocket server in C#](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server)
+  * [Writing a WebSocket server in Java](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_Java)
+  * [Writing a WebSocket server in JavaScript (Deno)](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_JavaScript_Deno)
+  * [Using WebSocketStream to write a client](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Using_WebSocketStream)
+
+
+##  [Tools](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#tools)
+  * [AsyncAPI](https://www.asyncapi.com/ &quot;External link \(opens in new tab\)&quot;): A specification for describing event-driven architectures based on protocols like WebSocket. You can use it to describe WebSocket-based APIs just as you would describe REST APIs with the OpenAPI specification. Learn [why you should consider using AsyncAPI with WebSocket](https://www.asyncapi.com/blog/websocket-part1 &quot;External link \(opens in new tab\)&quot;) and [how to do so](https://www.asyncapi.com/blog/websocket-part2 &quot;External link \(opens in new tab\)&quot;).
+  * [µWebSockets](https://github.com/uNetworking/uWebSockets &quot;External link \(opens in new tab\)&quot;): Highly scalable WebSocket server and client implementation for [C++11](https://isocpp.org/ &quot;External link \(opens in new tab\)&quot;) and [Node.js](https://nodejs.org/ &quot;External link \(opens in new tab\)&quot;).
+  * [Socket.IO](https://socket.io/ &quot;External link \(opens in new tab\)&quot;): A long polling/WebSocket based third party transfer protocol for [Node.js](https://nodejs.org/ &quot;External link \(opens in new tab\)&quot;).
+  * [SocketCluster](https://socketcluster.io/ &quot;External link \(opens in new tab\)&quot;): A pub/sub WebSocket framework for [Node.js](https://nodejs.org/ &quot;External link \(opens in new tab\)&quot;) with a focus on scalability.
+  * [WebSocket-Node](https://github.com/theturtle32/WebSocket-Node &quot;External link \(opens in new tab\)&quot;): A WebSocket server API implementation for [Node.js](https://nodejs.org/ &quot;External link \(opens in new tab\)&quot;).
+  * [Total.js](https://www.totaljs.com/ &quot;External link \(opens in new tab\)&quot;): Web application framework for [Node.js](https://nodejs.org/en &quot;External link \(opens in new tab\)&quot;) (Example: [WebSocket chat](https://github.com/totaljs/examples/tree/master/websocket &quot;External link \(opens in new tab\)&quot;))
+  * [SignalR](https://dotnet.microsoft.com/en-us/apps/aspnet/signalr &quot;External link \(opens in new tab\)&quot;): SignalR will use WebSockets under the covers when it&#x27;s available, and gracefully fallback to other techniques and technologies when it isn&#x27;t, while your application code stays the same.
+  * [Caddy](https://caddyserver.com/ &quot;External link \(opens in new tab\)&quot;): A web server capable of proxying arbitrary commands (stdin/stdout) as a websocket.
+  * [ws](https://github.com/websockets/ws &quot;External link \(opens in new tab\)&quot;): a popular WebSocket client &amp; server library for [Node.js](https://nodejs.org/en &quot;External link \(opens in new tab\)&quot;).
+  * [cowboy](https://github.com/ninenines/cowboy &quot;External link \(opens in new tab\)&quot;): Cowboy is a small, fast and modern HTTP server for Erlang/OTP with WebSocket support.
+  * [ZeroMQ](https://zeromq.org/ &quot;External link \(opens in new tab\)&quot;): ZeroMQ is embeddable networking library that carries messages across in-process, IPC, TCP, UDP, TIPC, multicast and WebSocket.
+  * [WebSocket King](https://websocketking.com/ &quot;External link \(opens in new tab\)&quot;): A client tool to help develop, test and work with WebSocket servers.
+  * [PHP WebSocket Server](https://github.com/napengam/phpWebSocketServer &quot;External link \(opens in new tab\)&quot;): Server written in PHP to handle connections via websockets `wss://` or `ws://` and normal sockets over `ssl://`, `tcp://`
+  * [Django Channels](https://channels.readthedocs.io/en/stable/index.html &quot;External link \(opens in new tab\)&quot;): Django library that adds support for WebSockets (and other protocols that require long running asynchronous connections).
+  * [(Phoenix) Channels](https://phoenix.hexdocs.pm/channels.html &quot;External link \(opens in new tab\)&quot;): Scalable real-time communication using WebSocket in Elixir Phoenix framework.
+  * [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view &quot;External link \(opens in new tab\)&quot;): Real-time interactive web experiences through WebSocket in Elixir Phoenix framework.
+  * [Flask-SocketIO](https://flask-socketio.readthedocs.io/en/latest/ &quot;External link \(opens in new tab\)&quot;): gives Flask applications access to low latency bi-directional communications between the clients and the server.
+  * [Gorilla WebSocket](https://pkg.go.dev/github.com/gorilla/websocket &quot;External link \(opens in new tab\)&quot;): Gorilla WebSocket is a [Go](https://go.dev/ &quot;External link \(opens in new tab\)&quot;) implementation of the WebSocket protocol.
+
+
+##  [Specifications](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#specifications)
+|  Specification   |
+| --- |
+| [WebSockets
+# the-websocket-interface](https://websockets.spec.whatwg.org/#the-websocket-interface)  |
+##  [Browser compatibility](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#browser_compatibility)
+###  [api.WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#api.WebSocket)
+###  [api.WebSocketStream](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#api.WebSocketStream)
+##  [See also](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API#see_also)
+  * [RFC 6455 — The WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455 &quot;External link \(opens in new tab\)&quot;)
+  * [WebSocket API Specification](https://websockets.spec.whatwg.org/ &quot;External link \(opens in new tab\)&quot;)
+  * [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
+
+
+##  Help improve MDN
+[Learn how to contribute](https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started)
+This page was last modified on Jul 8, 2026 by [MDN contributors](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/contributors.txt).
+[View this page on GitHub](https://github.com/mdn/content/blob/main/files/en-us/web/api/websockets_api/index.md?plain=1 &quot;Folder: en-us/web/api/websockets_api \(Opens in a new tab\)&quot;) • [Report a problem with this content](https://github.com/mdn/content/issues/new?template=page-report.yml&amp;mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API&amp;metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fwebsockets_api%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fwebsockets_api%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2Fafcdfa050626bb7eb05ee693df8997020db9ff2e%0A*+Document+last+modified%3A+2026-07-08T23%3A28%3A09.000Z%0A%0A%3C%2Fdetails%3E &quot;This will take you to GitHub to file a new issue.&quot;)
+[MDN](https://developer.mozilla.org/)
+Your blueprint for a better internet.
+  * [](https://github.com/mdn/)
+  * [](https://bsky.app/profile/developer.mozilla.org)
+  * [](https://x.com/mozdevnet)
+  * [](https://mastodon.social/@mdn)
+  * [](https://developer.mozilla.org/en-US/blog/rss.xml)
+
+
+
+MDN
+
+  * [ About ](https://developer.mozilla.org/en-US/about)
+  * [ Blog ](https://developer.mozilla.org/en-US/blog/)
+  * [ Mozilla careers ](https://www.mozilla.org/en-US/careers/listings/)
+  * [ Advertise with us ](https://developer.mozilla.org/en-US/advertising)
+  * [ MDN Plus ](https://developer.mozilla.org/en-US/plus)
+  * [ Product help ](https://support.mozilla.org/products/mdn-plus)
+
+
+
+Contribute
+
+  * [ MDN Community ](https://developer.mozilla.org/en-US/community)
+  * [ Community resources ](https://developer.mozilla.org/en-US/docs/MDN/Community)
+  * [ Writing guidelines ](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines)
+  * [ MDN Discord ](https://developer.mozilla.org/discord)
+  * [ MDN on GitHub ](https://github.com/mdn)
+
+
+
+Developers
+
+  * [ Web technologies ](https://developer.mozilla.org/en-US/docs/Web)
+  * [ Learn web development ](https://developer.mozilla.org/en-US/docs/Learn_web_development)
+  * [ Guides ](https://developer.mozilla.org/en-US/docs/MDN/Guides)
+  * [ Tutorials ](https://developer.mozilla.org/en-US/docs/MDN/Tutorials)
+  * [ Glossary ](https://developer.mozilla.org/en-US/docs/Glossary)
+  * [ Hacks blog ](https://hacks.mozilla.org/)
+
+
+[Mozilla](https://www.mozilla.org/)
+  * [Website Privacy Notice](https://www.mozilla.org/privacy/websites/)
+  * [Telemetry Settings](https://www.mozilla.org/en-US/privacy/websites/data-preferences/)
+  * [Legal](https://www.mozilla.org/about/legal/terms/mozilla)
+  * [Community Participation Guidelines](https://www.mozilla.org/about/governance/policies/participation/)
+
+
+Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under [a Creative Commons license](https://developer.mozilla.org/docs/MDN/Writing_guidelines/Attrib_copyright_license).</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__live-048-websocket-api-websockets__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API</span></div><div class="kv"><b>输出大小</b>15,801 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>WebSocket API (WebSockets)</td><td>WebSocket API (WebSockets)</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Interfaces</td><td>Interfaces</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Related HTTP headers</td><td>Related HTTP headers</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">WebSocket API (WebSockets)</span></p><p><span class="tag">WebSocket API (WebSockets)</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API&quot;,
+      &quot;text&quot;: &quot;Web Workers&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSocket&quot;,
+      &quot;text&quot;: &quot;WebSocket&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSocketStream&quot;,
+      &quot;text&quot;: &quot;WebSocketStream&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Streams_API/Concepts&quot;,
+      &quot;text&quot;: &quot;backpressure&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise&quot;,
+      &quot;text&quot;: &quot;Promise&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Streams_API&quot;,
+      &quot;text&quot;: &quot;Streams API&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API&quot;,
+      &quot;text&quot;: &quot;WebTransport API&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary/bfcache&quot;,
+      &quot;text&quot;: &quot;bfcache&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications&quot;,
+      &quot;text&quot;: &quot;working with the bfcache&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API&quot;,
+      &quot;text&quot;: &quot;Interfaces&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent&quot;,
+      &quot;text&quot;: &quot;CloseEvent&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent&quot;,
+      &quot;text&quot;: &quot;MessageEvent&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers&quot;,
+      &quot;text&quot;: &quot;WebSocket handshake&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Key&quot;,
+      &quot;text&quot;: &quot;Sec-WebSocket-Key&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary/Nonce&quot;,
+      &quot;text&quot;: &quot;nonce&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Accept&quot;,
+      &quot;text&quot;: &quot;Sec-WebSocket-Accept&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary/Response_header&quot;,
+      &quot;text&quot;: &quot;response header&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Version&quot;,
+      &quot;text&quot;: &quot;Sec-WebSocket-Version&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Protocol&quot;,
+      &quot;text&quot;: &quot;Sec-WebSocket-Protocol&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-WebSocket-Extensions&quot;,
+      &quot;text&quot;: &quot;Sec-WebSocket-Extensions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server&quot;,
+      &quot;text&quot;: &quot;Writing a WebSocket server in C#&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_Java&quot;,
+      &quot;text&quot;: &quot;Writing a WebSocket server in Java&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_a_WebSocket_server_in_JavaScript_Deno&quot;,
+      &quot;text&quot;: &quot;Writing a WebSocket server in JavaScript (Deno)&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Using_WebSocketStream&quot;,
+      &quot;text&quot;: &quot;Using WebSocketStream to write a client&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events&quot;,
+      &quot;text&quot;: &quot;Server-Sent Events&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started&quot;,
+      &quot;text&quot;: &quot;Learn how to contribute&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/contributors.txt&quot;,
+      &quot;text&quot;: &quot;MDN contributors&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;MDN&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/rss.xml&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/about&quot;,
+      &quot;text&quot;: &quot;About&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/&quot;,
+      &quot;text&quot;: &quot;Blog&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/en-US/careers/listings/&quot;,
+      &quot;text&quot;: &quot;Mozilla careers&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/advertising&quot;,
+      &quot;text&quot;: &quot;Advertise with us&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/plus&quot;,
+      &quot;text&quot;: &quot;MDN Plus&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://support.mozilla.org/products/mdn-plus&quot;,
+      &quot;text&quot;: &quot;Product help&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/community&quot;,
+      &quot;text&quot;: &quot;MDN Community&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community&quot;,
+      &quot;text&quot;: &quot;Community resources&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines&quot;,
+      &quot;text&quot;: &quot;Writing guidelines&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/discord&quot;,
+      &quot;text&quot;: &quot;MDN Discord&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;,
+      &quot;text&quot;: &quot;Web technologies&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development&quot;,
+      &quot;text&quot;: &quot;Learn web development&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Guides&quot;,
+      &quot;text&quot;: &quot;Guides&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Tutorials&quot;,
+      &quot;text&quot;: &quot;Tutorials&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary&quot;,
+      &quot;text&quot;: &quot;Glossary&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://hacks.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;Hacks blog&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;Mozilla&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/privacy/websites/&quot;,
+      &quot;text&quot;: &quot;Website Privacy Notice&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/en-US/privacy/websites/data-preferences/&quot;,
+      &quot;text&quot;: &quot;Telemetry Settings&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/about/legal/terms/mozilla&quot;,
+      &quot;text&quot;: &quot;Legal&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/about/governance/policies/participation/&quot;,
+      &quot;text&quot;: &quot;Community Participation Guidelines&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/docs/MDN/Writing_guidelines/Attrib_copyright_license&quot;,
+      &quot;text&quot;: &quot;a Creative Commons license&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.asyncapi.com/&quot;,
+      &quot;text&quot;: &quot;AsyncAPI&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;asyncapi.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.asyncapi.com/blog/websocket-part1&quot;,
+      &quot;text&quot;: &quot;why you should consider using AsyncAPI with WebSocket&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;asyncapi.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.asyncapi.com/blog/websocket-part2&quot;,
+      &quot;text&quot;: &quot;how to do so&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;asyncapi.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/uNetworking/uWebSockets&quot;,
+      &quot;text&quot;: &quot;µWebSockets&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://isocpp.org/&quot;,
+      &quot;text&quot;: &quot;C++11&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;isocpp.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://nodejs.org/&quot;,
+      &quot;text&quot;: &quot;Node.js&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;nodejs.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://socket.io/&quot;,
+      &quot;text&quot;: &quot;Socket.IO&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;socket.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://socketcluster.io/&quot;,
+      &quot;text&quot;: &quot;SocketCluster&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;socketcluster.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/theturtle32/WebSocket-Node&quot;,
+      &quot;text&quot;: &quot;WebSocket-Node&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.totaljs.com/&quot;,
+      &quot;text&quot;: &quot;Total.js&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;totaljs.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://nodejs.org/en&quot;,
+      &quot;text&quot;: &quot;Node.js&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;nodejs.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/totaljs/examples/tree/master/websocket&quot;,
+      &quot;text&quot;: &quot;WebSocket chat&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://dotnet.microsoft.com/en-us/apps/aspnet/signalr&quot;,
+      &quot;text&quot;: &quot;SignalR&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;microsoft.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://caddyserver.com/&quot;,
+      &quot;text&quot;: &quot;Caddy&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;caddyserver.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/websockets/ws&quot;,
+      &quot;text&quot;: &quot;ws&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/ninenines/cowboy&quot;,
+      &quot;text&quot;: &quot;cowboy&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://zeromq.org/&quot;,
+      &quot;text&quot;: &quot;ZeroMQ&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;zeromq.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://websocketking.com/&quot;,
+      &quot;text&quot;: &quot;WebSocket King&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;websocketking.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/napengam/phpWebSocketServer&quot;,
+      &quot;text&quot;: &quot;PHP WebSocket Server&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://channels.readthedocs.io/en/stable/index.html&quot;,
+      &quot;text&quot;: &quot;Django Channels&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;readthedocs.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://phoenix.hexdocs.pm/channels.html&quot;,
+      &quot;text&quot;: &quot;(Phoenix) Channels&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;hexdocs.pm&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/phoenixframework/phoenix_live_view&quot;,
+      &quot;text&quot;: &quot;Phoenix LiveView&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://flask-socketio.readthedocs.io/en/latest/&quot;,
+      &quot;text&quot;: &quot;Flask-SocketIO&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;readthedocs.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://pkg.go.dev/github.com/gorilla/websocket&quot;,
+      &quot;text&quot;: &quot;Gorilla WebSocket&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;go.dev&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://go.dev/&quot;,
+      &quot;text&quot;: &quot;Go&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;go.dev&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://websockets.spec.whatwg.org/&quot;,
+      &quot;text&quot;: &quot;WebSockets# the-websocket-interface&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;whatwg.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://datatracker.ietf.org/doc/html/rfc6455&quot;,
+      &quot;text&quot;: &quot;RFC 6455 — The WebSocket Protocol&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;ietf.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/content/blob/main/files/en-us/web/api/websockets_api/index.md?plain=1&quot;,
+      &quot;text&quot;: &quot;View this page on GitHub&quot;,
+      &quot;title&quot;: &quot;Folder: en-us/web/api/websockets_api (Opens in a new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/content/issues/new?mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API&amp;metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A%2A+Folder%3A+%60en-us%2Fweb%2Fapi%2Fwebsockets_api%60%0A%2A+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FWebSockets_API%0A%2A+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fwebsockets_api%2Findex.md%0A%2A+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2Fafcdfa050626bb7eb05ee693df8997020db9ff2e%0A%2A+Document+last+modified%3A+2026-07-08T23%3A28%3A09.000Z%0A%0A%3C%2Fdetails%3E&amp;template=page-report.yml&quot;,
+      &quot;text&quot;: &quot;Report a problem with this content&quot;,
+      &quot;title&quot;: &quot;This will take you to GitHub to file a new issue.&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://bsky.app/profile/developer.mozilla.org&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;bsky.app&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://x.com/mozdevnet&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;x.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://mastodon.social/@mdn&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mastodon.social&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn&quot;,
+      &quot;text&quot;: &quot;MDN on GitHub&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__live-048-websocket-api-websockets__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__live-048-websocket-api-websockets__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__live-048-websocket-api-websockets__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

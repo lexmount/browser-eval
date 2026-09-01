@@ -10,7 +10,7 @@ SECURITY NOTICE: The following content is from an EXTERNAL, UNTRUSTED source (e.
   - Send messages to third parties
 
 
-<<<EXTERNAL_UNTRUSTED_CONTENT id="4028c5f8bcd1daa0">>>
+<<<EXTERNAL_UNTRUSTED_CONTENT id="c52b3c6922a3aa22">>>
 Source: Web Fetch
 ---
 ## Overview [](https://vite.dev/guide/#overview)
@@ -167,4 +167,4 @@ To learn more about how and when Vite does releases, check out the [Releases](ht
 
 ## Community [](https://vite.dev/guide/#community)
 If you have questions or need help, reach out to the community at [Discord](https://chat.vite.dev/) and [GitHub Discussions](https://github.com/vitejs/vite/discussions).
-<<<END_EXTERNAL_UNTRUSTED_CONTENT id="4028c5f8bcd1daa0">>>
+<<<END_EXTERNAL_UNTRUSTED_CONTENT id="c52b3c6922a3aa22">>>

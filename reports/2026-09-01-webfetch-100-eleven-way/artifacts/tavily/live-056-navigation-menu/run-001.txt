@@ -1,0 +1,203 @@
+[Skip to content](#start-of-content)   
+ 
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno)
+
+Appearance settings
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno)
+
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=denoland%2Fdeno)
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[denoland](/denoland)   /  **[deno](/denoland/deno)**  Public
+
+* [Notifications](/login?return_to=%2Fdenoland%2Fdeno)  You must be signed in to change notification settings
+* [Fork 6.4k](/login?return_to=%2Fdenoland%2Fdeno)
+* [Star  108k](/login?return_to=%2Fdenoland%2Fdeno)
+
+[Branches](/denoland/deno/branches)[Tags](/denoland/deno/tags)
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+[17,293 Commits](/denoland/deno/commits/main/)
+
+17,293 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.cargo](/denoland/deno/tree/main/.cargo ".cargo") | [.cargo](/denoland/deno/tree/main/.cargo ".cargo") |  |  |
+| [.claude/skills](/denoland/deno/tree/main/.claude/skills "This path skips through empty directories") | [.claude/skills](/denoland/deno/tree/main/.claude/skills "This path skips through empty directories") |  |  |
+| [.devcontainer](/denoland/deno/tree/main/.devcontainer ".devcontainer") | [.devcontainer](/denoland/deno/tree/main/.devcontainer ".devcontainer") |  |  |
+| [.github](/denoland/deno/tree/main/.github ".github") | [.github](/denoland/deno/tree/main/.github ".github") |  |  |
+| [cli](/denoland/deno/tree/main/cli "cli") | [cli](/denoland/deno/tree/main/cli "cli") |  |  |
+| [doc](/denoland/deno/tree/main/doc "doc") | [doc](/denoland/deno/tree/main/doc "doc") |  |  |
+| [ext](/denoland/deno/tree/main/ext "ext") | [ext](/denoland/deno/tree/main/ext "ext") |  |  |
+| [libs](/denoland/deno/tree/main/libs "libs") | [libs](/denoland/deno/tree/main/libs "libs") |  |  |
+| [runtime](/denoland/deno/tree/main/runtime "runtime") | [runtime](/denoland/deno/tree/main/runtime "runtime") |  |  |
+| [tests](/denoland/deno/tree/main/tests "tests") | [tests](/denoland/deno/tree/main/tests "tests") |  |  |
+| [tools](/denoland/deno/tree/main/tools "tools") | [tools](/denoland/deno/tree/main/tools "tools") |  |  |
+| [.dprint.json](/denoland/deno/blob/main/.dprint.json ".dprint.json") | [.dprint.json](/denoland/deno/blob/main/.dprint.json ".dprint.json") |  |  |
+| [.editorconfig](/denoland/deno/blob/main/.editorconfig ".editorconfig") | [.editorconfig](/denoland/deno/blob/main/.editorconfig ".editorconfig") |  |  |
+| [.gitattributes](/denoland/deno/blob/main/.gitattributes ".gitattributes") | [.gitattributes](/denoland/deno/blob/main/.gitattributes ".gitattributes") |  |  |
+| [.gitignore](/denoland/deno/blob/main/.gitignore ".gitignore") | [.gitignore](/denoland/deno/blob/main/.gitignore ".gitignore") |  |  |
+| [.gitmodules](/denoland/deno/blob/main/.gitmodules ".gitmodules") | [.gitmodules](/denoland/deno/blob/main/.gitmodules ".gitmodules") |  |  |
+| [.rustfmt.toml](/denoland/deno/blob/main/.rustfmt.toml ".rustfmt.toml") | [.rustfmt.toml](/denoland/deno/blob/main/.rustfmt.toml ".rustfmt.toml") |  |  |
+| [CLAUDE.md](/denoland/deno/blob/main/CLAUDE.md "CLAUDE.md") | [CLAUDE.md](/denoland/deno/blob/main/CLAUDE.md "CLAUDE.md") |  |  |
+| [Cargo.lock](/denoland/deno/blob/main/Cargo.lock "Cargo.lock") | [Cargo.lock](/denoland/deno/blob/main/Cargo.lock "Cargo.lock") |  |  |
+| [Cargo.toml](/denoland/deno/blob/main/Cargo.toml "Cargo.toml") | [Cargo.toml](/denoland/deno/blob/main/Cargo.toml "Cargo.toml") |  |  |
+| [LICENSE.md](/denoland/deno/blob/main/LICENSE.md "LICENSE.md") | [LICENSE.md](/denoland/deno/blob/main/LICENSE.md "LICENSE.md") |  |  |
+| [README.md](/denoland/deno/blob/main/README.md "README.md") | [README.md](/denoland/deno/blob/main/README.md "README.md") |  |  |
+| [Releases.md](/denoland/deno/blob/main/Releases.md "Releases.md") | [Releases.md](/denoland/deno/blob/main/Releases.md "Releases.md") |  |  |
+| [flake.lock](/denoland/deno/blob/main/flake.lock "flake.lock") | [flake.lock](/denoland/deno/blob/main/flake.lock "flake.lock") |  |  |
+| [flake.nix](/denoland/deno/blob/main/flake.nix "flake.nix") | [flake.nix](/denoland/deno/blob/main/flake.nix "flake.nix") |  |  |
+| [import\_map.json](/denoland/deno/blob/main/import_map.json "import_map.json") | [import\_map.json](/denoland/deno/blob/main/import_map.json "import_map.json") |  |  |
+| [rust-toolchain.toml](/denoland/deno/blob/main/rust-toolchain.toml "rust-toolchain.toml") | [rust-toolchain.toml](/denoland/deno/blob/main/rust-toolchain.toml "rust-toolchain.toml") |  |  |
+| [x](/denoland/deno/blob/main/x "x") | [x](/denoland/deno/blob/main/x "x") |  |  |
+|  |
+
+## Repository files navigation
+
+# Deno
+
+[![](https://camo.githubusercontent.com/69dec5f20b91dd7ebfe556ca431485070b59e95fc904691eea61e6a7e36e3256/68747470733a2f2f696d672e736869656c64732e696f2f6372617465732f762f64656e6f2e737667)](https://crates.io/crates/deno) [![Twitter badge](https://camo.githubusercontent.com/ca4b887411e152b9da8effb7d5ba1246a2f5562b08f090df9cc1de093a694a2d/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f666f6c6c6f772f64656e6f5f6c616e642e7376673f7374796c653d736f6369616c266c6162656c3d466f6c6c6f77)](https://twitter.com/intent/follow?screen_name=deno_land) [![Bluesky badge](https://camo.githubusercontent.com/8200fd070bc6d20fd9ef6cbbb1956108e5b936ac65710f8031b48f916a3691c7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f466f6c6c6f772d7768697465736d6f6b653f6c6f676f3d626c7565736b79)](https://bsky.app/profile/deno.land) [![Discord badge](https://camo.githubusercontent.com/7f137fd30f0d082ccf1db9eb79d83cea1d1381fac746180afe75a2fff7f95b72/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3638343839383636353134333230363038343f6c6f676f3d646973636f7264267374796c653d736f6369616c)](https://discord.gg/deno) [![YouTube badge](https://camo.githubusercontent.com/364c81f143287abaf2f1a94d1965b049dfbd5c33c1cf9f4a57e6ddfeb4c1fb83/68747470733a2f2f696d672e736869656c64732e696f2f796f75747562652f6368616e6e656c2f73756273637269626572732f554371433247324d2d726734667a673165734b464c4649773f7374796c653d736f6369616c)](https://www.youtube.com/@deno_land)
+
+[Deno](https://deno.com) ([/ˈdiːnoʊ/](https://ipa-reader.com/?text=%CB%88di%CB%90no%CA%8A), pronounced `dee-no`) is a JavaScript, TypeScript, and WebAssembly runtime with secure defaults and a great developer experience. It's built on [V8](https://v8.dev/), [Rust](https://www.rust-lang.org/), and [Tokio](https://tokio.rs/).
+
+Learn more about the Deno runtime [in the documentation](https://docs.deno.com/runtime/manual).
+
+## Installation
+
+Install the Deno runtime on your system using one of the commands below. Note that there are a number of ways to install Deno - a comprehensive list of installation options can be found [here](https://docs.deno.com/runtime/manual/getting_started/installation).
+
+Shell (Mac, Linux):
+
+```
+|
+```
+
+PowerShell (Windows):
+
+```
+/// |
+```
+
+[Homebrew](https://formulae.brew.sh/formula/deno) (Mac):
+
+```
+brew install deno
+```
+
+[Chocolatey](https://community.chocolatey.org/packages/deno) (Windows):
+
+```
+choco install deno
+```
+
+[WinGet](https://winstall.app/apps/DenoLand.Deno) (Windows):
+
+```
+-- =
+```
+
+[Scoop](https://scoop.sh/#/apps?q=deno&id=678d8fb557b611df996989c675b1099630a5bbee) (Windows):
+
+```
+/
+```
+
+### Build and install from source
+
+Complete instructions for building Deno from source can be found [here](https://github.com/denoland/deno/blob/main/.github/CONTRIBUTING.md#building-from-source).
+
+## Your first Deno program
+
+Deno can be used for many different applications, but is most commonly used to build web servers. Create a file called `server.ts` and include the following TypeScript code:
+
+```
+Deno. serve((_req Request) =>{return new Response("Hello, world!");});
+```
+
+Run your server with the following command:
+
+```
+deno run --allow-net server.ts
+```
+
+This should start a local web server on <http://localhost:8000>.
+
+Learn more about writing and running Deno programs [in the docs](https://docs.deno.com/runtime/manual).
+
+## Additional resources
+
+* **[Deno Docs](https://docs.deno.com)**: official guides and reference docs for the Deno runtime, [Deno Deploy](https://deno.com/deploy), and beyond.
+* **[Deno Standard Library](https://jsr.io/@std)**: officially supported common utilities for Deno programs.
+* **[JSR](https://jsr.io/)**: The open-source package registry for modern JavaScript and TypeScript
+* **[Developer Blog](https://deno.com/blog)**: Product updates, tutorials, and more from the Deno team.
+
+## Contributing
+
+We appreciate your help! To contribute, please read our [contributing instructions](/denoland/deno/blob/main/.github/CONTRIBUTING.md).
+
+## About
+
+A modern runtime for JavaScript and TypeScript.
+
+### Topics
+
+[deno](/topics/deno)[javascript](/topics/javascript)[rust](/topics/rust)[typescript](/topics/typescript)
+
+### Resources
+
+[MIT license](#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/denoland/deno#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Custom properties](/denoland/deno/custom-properties)
+
+### Stars
+
+**108.3k** stars
+
+### Watchers
+
+**1.4k** watching
+
+### Forks
+
+[**6.4k** forks](/denoland/deno/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno&report=denoland+%28user%29)
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

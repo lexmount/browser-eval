@@ -1,8 +1,0 @@
-All Products | Gym & Fitness Apparel | Gymshark
-Gymshark's entire collection, including workout t-shirts, bottoms, tanks, hoodies and base layers. High quality activewear made for ultimate comfort.
-Collection slug: all-products.
-Women categories and collections: New Arrivals, Best Sellers, LilyLifts x Running, Everyday Seamless, Outerwear, Back In Stock, All Leggings, High-Waisted Leggings, Scrunch Butt Leggings, Flare Leggings, Leggings With Pockets, Seamless Leggings, Black Leggings, Tall Leggings, All Products, Sports Bras, T-Shirts & Tops, Shorts.
-Men categories and collections: New Arrivals, Best Sellers, Running, Train Collection, Outerwear, Back In Stock, T-Shirts & Tops, Tank Tops, Muscle Fit Shirts, Short Sleeve, Long Sleeve Tops, Oversized T-Shirts, Compression Fit T-Shirts, Black T-Shirts, All Products, Shorts, Hoodies & Sweatshirts, Joggers & Sweatpants.
-Accessories: All Accessories, All Socks.
-Related collections visible on the page: New Arrivals, Back in Stock, Best Sellers, Seasonal Accessories, Running Accessories, All Bags, Backpacks, Duffle Bags, Tote Bags, Crossbody Bags, Mini Bags.
-This snapshot appears to be a Gymshark collection landing page with large navigation and merchandising content. The HTML snapshot is truncated, so product-grid details may be incomplete in the captured source. The extracted text therefore preserves reliable page-level information: the page title, meta description, visible collection taxonomy, and related collection links present in the snapshot.

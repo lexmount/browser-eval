@@ -1,0 +1,109 @@
+---
+title: "curl - Documentation Overview"
+---
+
+[![](https://curl.se/logo/curl-white-symbol.svg)curl home](/) Menu
+
+- [Docs Overview](https://curl.se/docs/)
+- Project
+  - [Project overview](https://curl.se/docs/projdocs.html)
+  - [Bug Report](https://curl.se/docs/bugs.html)
+  - [Code of conduct](https://curl.se/docs/code-of-conduct.html)
+  - [Dependencies](https://curl.se/docs/libs.html)
+  - [Donate](https://curl.se/donation.html)
+  - [FAQ](https://curl.se/docs/faq.html)
+  - [Features](https://curl.se/docs/features.html)
+  - [Governance](https://curl.se/docs/governance.html)
+  - [History](https://curl.se/docs/history.html)
+  - [Install](https://curl.se/docs/install.html)
+  - [Known Bugs](https://curl.se/docs/knownbugs.html)
+  - [Known Risks](https://curl.se/docs/knownrisks.html)
+  - [Logo](https://curl.se/logo/)
+  - [TODO](https://curl.se/docs/todo.html)
+  - [website Info](https://curl.se/about.html)
+- Protocols
+  - [Protocols overview](https://curl.se/docs/protdocs.html)
+  - [CA Extract](https://curl.se/docs/caextract.html)
+  - [HTTP cookies](https://curl.se/docs/http-cookies.html)
+  - [HTTP/3](https://curl.se/docs/http3.html)
+  - [MQTT](https://curl.se/docs/mqtt.html)
+  - [SSL certs](https://curl.se/docs/sslcerts.html)
+  - [SSL libs compared](https://curl.se/docs/ssl-compared.html)
+  - [URL syntax](https://curl.se/docs/url-syntax.html)
+  - [WebSocket](https://curl.se/docs/websocket.html)
+- Releases
+  - [Releases overview](https://curl.se/docs/reldocs.html)
+  - [Changelog](https://curl.se/ch/)
+  - [Release Table](https://curl.se/docs/releases.html)
+  - [Version Numbering](https://curl.se/docs/versions.html)
+  - [Verify](https://curl.se/docs/verify.html)
+- Security
+  - [Security overview](https://curl.se/docs/secdocs.html)
+  - [Security Audits](https://curl.se/docs/audits.html)
+  - [curl CVEs](https://curl.se/docs/security.html)
+  - [Security advisory details](https://curl.se/dev/advisory.html)
+  - [Vulnerability table](https://curl.se/docs/vulnerabilities.html)
+  - [Vulnerability Disclosure Policy](https://curl.se/dev/vuln-disclosure.html)
+- Tool
+  - [Tool overview](https://curl.se/docs/tooldocs.html)
+  - [Comparison Table](https://curl.se/docs/comparison-table.html)
+  - [curl man page](https://curl.se/docs/manpage.html)
+  - [HTTP Scripting](https://curl.se/docs/httpscripting.html)
+  - [mk-ca-bundle](https://curl.se/docs/mk-ca-bundle.html)
+  - [Tutorial](https://curl.se/docs/tutorial.html)
+  - [When options were added](https://curl.se/docs/optionswhen.html)
+- Who and Why
+  - [Who and Why overview](https://curl.se/docs/whodocs.html)
+  - [Companies](https://curl.se/docs/companies.html)
+  - [Copyright](https://curl.se/docs/copyright.html)
+  - [Sponsors](https://curl.se/sponsors.html)
+  - [Thanks](https://curl.se/docs/thanks.html)
+  - [The name](https://curl.se/docs/thename.html)
+
+[curl](/) / **Documentation Overview**
+
+# Documentation Overview
+
+The main documentation is sub divided into several categories. Each category holds a number of documentation pages.
+
+## The book: Everything curl
+
+This is a detailed and totally free book, available [online](https://everything.curl.dev/) (and as a PDF as a link from there) that explains everything there is to know about curl, libcurl and the associated project.
+
+Learn how to use curl. How to use libcurl. How to build them from source or perhaps how the curl project accepts contributions. There is something for everyone in this, from the casual first-time users to the experienced libcurl hackers.
+
+## Presentations on Video
+
+We have a large selection of [video presentations](videos/) gathered about various areas in curl and related technologies.
+
+## [curl tool documentation](tooldocs.html)
+
+[Comparison Table](comparison-table.html), [curl man page](manpage.html), [HTTP Scripting](httpscripting.html), [mk-ca-bundle](mk-ca-bundle.html), [Tutorial](tutorial.html)
+
+## [The project](projdocs.html)
+
+[Bug Report](bugs.html), [Code of conduct](code-of-conduct.html), [Dependencies](libs.html), [Donate](https://curl.se/donation.html), [FAQ](faq.html), [Features](features.html), [History](history.html), [Install](install.html), [Known Bugs](knownbugs.html), [Logo](https://curl.se/logo/), [Surveys](survey/), [TODO](todo.html), [website Info](https://curl.se/about.html)
+
+## [Releases](reldocs.html)
+
+[Changelog](https://curl.se/ch/), [Release Table](releases.html), [Verify](verify.html). [Version numbering](versions.html).
+
+## Security
+
+[Security Audits](audits.html), [curl CVEs](security.html), [Security advisory details](https://curl.se/dev/advisory.html), [Vulnerability table](vulnerabilities.html), [Vulnerability Disclosure Policy](https://curl.se/dev/vuln-disclosure.html)
+
+## [Protocols](protdocs.html)
+
+[CA Extract](https://curl.se/docs/caextract.html), [HTTP Cookies](http-cookies.html), [HTTP/3](http3.html), [SSL Certs](sslcerts.html), [SSL libs compared](ssl-compared.html), [URL syntax](url-syntax.html)
+
+## [Who and Why](whodocs.html)
+
+[Companies](companies.html), [Copyright](copyright.html), [Sponsors](https://curl.se/sponsors.html), [Thanks](thanks.html), [The Name](thename.html)
+
+## [libcurl](https://curl.se/libcurl/)
+
+The libcurl sub section of the site is huge!
+
+## [Development](https://curl.se/dev/)
+
+Plenty of documentation and details if you want to work on curl or libcurl themselves.

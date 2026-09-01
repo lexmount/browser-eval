@@ -1,0 +1,415 @@
+[Skip to content](https://github.com/prettier/prettier#start-of-content)
+[](https://github.com/)
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier)
+Appearance settings
+  * Platform
+    * AI CODE CREATION
+      * [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+      * [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+      * [MCP RegistryIntegrate external tools](https://github.com/mcp)
+    * DEVELOPER WORKFLOWS
+      * [ActionsAutomate any workflow](https://github.com/features/actions)
+      * [CodespacesInstant dev environments](https://github.com/features/codespaces)
+      * [IssuesPlan and track work](https://github.com/features/issues)
+      * [Code ReviewManage code changes](https://github.com/features/code-review)
+      * [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+    * APPLICATION SECURITY
+      * [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+      * [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+      * [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+    * EXPLORE
+      * [Why GitHub](https://github.com/why-github)
+      * [Documentation](https://docs.github.com)
+      * [Blog](https://github.blog)
+      * [Changelog](https://github.blog/changelog)
+      * [Marketplace](https://github.com/marketplace)
+[View all features](https://github.com/features)
+  * Solutions
+    * BY COMPANY SIZE
+      * [Enterprises](https://github.com/enterprise)
+      * [Small and medium teams](https://github.com/team)
+      * [Startups](https://github.com/enterprise/startups)
+      * [Nonprofits](https://github.com/solutions/industry/nonprofits)
+    * BY USE CASE
+      * [App Modernization](https://github.com/solutions/use-case/app-modernization)
+      * [DevSecOps](https://github.com/solutions/use-case/devsecops)
+      * [DevOps](https://github.com/solutions/use-case/devops)
+      * [CI/CD](https://github.com/solutions/use-case/ci-cd)
+      * [View all use cases](https://github.com/solutions/use-case)
+    * BY INDUSTRY
+      * [Healthcare](https://github.com/solutions/industry/healthcare)
+      * [Financial services](https://github.com/solutions/industry/financial-services)
+      * [Manufacturing](https://github.com/solutions/industry/manufacturing)
+      * [Government](https://github.com/solutions/industry/government)
+      * [View all industries](https://github.com/solutions/industry)
+[View all solutions](https://github.com/solutions)
+  * Resources
+    * EXPLORE BY TOPIC
+      * [AI](https://github.com/resources/articles?topic=ai)
+      * [Software Development](https://github.com/resources/articles?topic=software-development)
+      * [DevOps](https://github.com/resources/articles?topic=devops)
+      * [Security](https://github.com/resources/articles?topic=security)
+      * [View all topics](https://github.com/resources/articles)
+    * EXPLORE BY TYPE
+      * [Customer stories](https://github.com/customer-stories)
+      * [Events & webinars](https://github.com/resources/events)
+      * [Ebooks & reports](https://github.com/resources/whitepapers)
+      * [Business insights](https://github.com/solutions/executive-insights)
+      * [GitHub Skills](https://skills.github.com)
+    * SUPPORT & SERVICES
+      * [Documentation](https://docs.github.com)
+      * [Customer support](https://support.github.com)
+      * [Community forum](https://github.com/orgs/community/discussions)
+      * [Trust center](https://github.com/trust-center)
+      * [Partners](https://github.com/partners)
+[View all resources](https://github.com/resources)
+  * Open Source
+    * COMMUNITY
+      * [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+    * PROGRAMS
+      * [Security Lab](https://securitylab.github.com)
+      * [Maintainer Community](https://maintainers.github.com)
+      * [GitHub Stars](https://stars.github.com)
+      * [Archive Program](https://archiveprogram.github.com)
+    * REPOSITORIES
+      * [Topics](https://github.com/topics)
+      * [Trending](https://github.com/trending)
+      * [Collections](https://github.com/collections)
+  * Enterprise
+    * ENTERPRISE SOLUTIONS
+      * [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+    * AVAILABLE ADD-ONS
+      * [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+      * [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+      * [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+  * [Pricing](https://github.com/pricing)
+
+
+Search`/`
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier)
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=prettier%2Fprettier)
+Appearance settings
+{{ message }}
+###  Uh oh! 
+There was an error while loading. [Please reload this page](https://github.com/prettier/prettier).
+[ prettier ](https://github.com/prettier) / **[prettier](https://github.com/prettier/prettier) ** Public
+  * Sponsor
+  * [ Notifications ](https://github.com/login?return_to=%2Fprettier%2Fprettier) You must be signed in to change notification settings
+  * [ Fork 5k ](https://github.com/login?return_to=%2Fprettier%2Fprettier)
+  * [ Star  52.2k ](https://github.com/login?return_to=%2Fprettier%2Fprettier)
+
+
+  * [ Code ](https://github.com/prettier/prettier)
+  * [ Issues 1.2k ](https://github.com/prettier/prettier/issues)
+  * [ Pull requests 258 ](https://github.com/prettier/prettier/pulls)
+  * [ Discussions ](https://github.com/prettier/prettier/discussions)
+  * [ Actions ](https://github.com/prettier/prettier/actions)
+  * [ Projects ](https://github.com/prettier/prettier/projects)
+  * [ Wiki ](https://github.com/prettier/prettier/wiki)
+  * [ Security and quality 0 ](https://github.com/prettier/prettier/security)
+  * [ Insights ](https://github.com/prettier/prettier/pulse)
+
+
+[](https://github.com/prettier/prettier)
+[**13** Branches](https://github.com/prettier/prettier/branches)[**189** Tags](https://github.com/prettier/prettier/tags)
+[](https://github.com/prettier/prettier/branches)[](https://github.com/prettier/prettier/tags)
+Go to file
+Code
+Open more actions menu
+[![renovate\[bot\]](https://avatars.githubusercontent.com/in/2740?v=4&size=40)](https://github.com/apps/renovate)[renovate[bot]](https://github.com/prettier/prettier/commits?author=renovate%5Bbot%5D)
+[Update flow-parser to v0.330.0 (](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e)[#19961](https://github.com/prettier/prettier/pull/19961)[)](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e)
+success
+Sep 1, 2026
+[dc8f866](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e) · Sep 1, 2026
+[11,791 Commits](https://github.com/prettier/prettier/commits/main/)
+Open commit details
+[](https://github.com/prettier/prettier/commits/main/)11,791 Commits  
+| Name  | Name  | Last commit message  | Last commit date  |  
+| --- | --- | --- | --- |  
+| [.github](https://github.com/prettier/prettier/tree/main/.github ".github")  | [.github](https://github.com/prettier/prettier/tree/main/.github ".github")  |  [Update github/codeql-action action to v4.37.9 (](https://github.com/prettier/prettier/commit/1815f922d050d918cffc890c05d78ca1c6970f78 "Update github/codeql-action action to v4.37.9 \(#19941\)")[#19941](https://github.com/prettier/prettier/pull/19941)[)](https://github.com/prettier/prettier/commit/1815f922d050d918cffc890c05d78ca1c6970f78 "Update github/codeql-action action to v4.37.9 \(#19941\)")  | Aug 29, 2026  |  
+| [.vscode](https://github.com/prettier/prettier/tree/main/.vscode ".vscode")  | [.vscode](https://github.com/prettier/prettier/tree/main/.vscode ".vscode")  |  [Update babel to v8.0.0-rc.1 (](https://github.com/prettier/prettier/commit/88ee8a5b3e5db04f012c18be28aec11ed23ba849 "Update babel to v8.0.0-rc.1 \(#18822\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker Cheung <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")[#18822](https://github.com/prettier/prettier/pull/18822)[)](https://github.com/prettier/prettier/commit/88ee8a5b3e5db04f012c18be28aec11ed23ba849 "Update babel to v8.0.0-rc.1 \(#18822\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker Cheung <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")  | Feb 1, 2026  |  
+| [.yarn](https://github.com/prettier/prettier/tree/main/.yarn ".yarn")  | [.yarn](https://github.com/prettier/prettier/tree/main/.yarn ".yarn")  |  [Update Yarn to v4.18.0 (](https://github.com/prettier/prettier/commit/2c700bc611291bec72b64ef0654beb424343408c "Update Yarn to v4.18.0 \(#19748\)")[#19748](https://github.com/prettier/prettier/pull/19748)[)](https://github.com/prettier/prettier/commit/2c700bc611291bec72b64ef0654beb424343408c "Update Yarn to v4.18.0 \(#19748\)")  | Jul 29, 2026  |  
+| [benchmarks](https://github.com/prettier/prettier/tree/main/benchmarks "benchmarks")  | [benchmarks](https://github.com/prettier/prettier/tree/main/benchmarks "benchmarks")  |  [Update](https://github.com/prettier/prettier/commit/7e4be2e1eba3fbc6e696c755f16a43c5a0ee4570 "Update `eslint-plugin-unicorn` to v66 \(#19356\)
+
+Co-authored-by: fisker <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>") `eslint-plugin-unicorn[](https://github.com/prettier/prettier/commit/7e4be2e1eba3fbc6e696c755f16a43c5a0ee4570 "Update `eslint-plugin-unicorn` to v66 \(#19356\)
+
+Co-authored-by: fisker <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")` [to v66 (](https://github.com/prettier/prettier/commit/7e4be2e1eba3fbc6e696c755f16a43c5a0ee4570 "Update `eslint-plugin-unicorn` to v66 \(#19356\)
+
+Co-authored-by: fisker <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")[#19356](https://github.com/prettier/prettier/pull/19356)[)](https://github.com/prettier/prettier/commit/7e4be2e1eba3fbc6e696c755f16a43c5a0ee4570 "Update `eslint-plugin-unicorn` to v66 \(#19356\)
+
+Co-authored-by: fisker <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")  | Jun 15, 2026  |  
+| [bin](https://github.com/prettier/prettier/tree/main/bin "bin")  | [bin](https://github.com/prettier/prettier/tree/main/bin "bin")  |  [Support Node.js nightly version in version check (](https://github.com/prettier/prettier/commit/714169932619f858eb1b17b5fd31d42c7df04bce "Support Node.js nightly version in version check \(#19837\)")[#19837](https://github.com/prettier/prettier/pull/19837)[)](https://github.com/prettier/prettier/commit/714169932619f858eb1b17b5fd31d42c7df04bce "Support Node.js nightly version in version check \(#19837\)")  | Aug 12, 2026  |  
+| [changelog_unreleased](https://github.com/prettier/prettier/tree/main/changelog_unreleased "changelog_unreleased")  | [changelog_unreleased](https://github.com/prettier/prettier/tree/main/changelog_unreleased "changelog_unreleased")  |  [Preserve empty lines after function calls in parenthesized values (](https://github.com/prettier/prettier/commit/5220adba96a35cf928aced475124a1aadce78225 "Preserve empty lines after function calls in parenthesized values \(#19960\)")[#1…](https://github.com/prettier/prettier/pull/19960)  | Sep 1, 2026  |  
+| [docs](https://github.com/prettier/prettier/tree/main/docs "docs")  | [docs](https://github.com/prettier/prettier/tree/main/docs "docs")  |  [docs: stop mentioning Stylelint on the install page (](https://github.com/prettier/prettier/commit/da6f89ed74c78d6f6ac21a584023f9749f4d25ee "docs: stop mentioning Stylelint on the install page \(#19794\)")[#19794](https://github.com/prettier/prettier/pull/19794)[)](https://github.com/prettier/prettier/commit/da6f89ed74c78d6f6ac21a584023f9749f4d25ee "docs: stop mentioning Stylelint on the install page \(#19794\)")  | Aug 26, 2026  |  
+| [packages](https://github.com/prettier/prettier/tree/main/packages "packages")  | [packages](https://github.com/prettier/prettier/tree/main/packages "packages")  | [Merge branch 'v3.9.x'](https://github.com/prettier/prettier/commit/8609180f56c2f4d497be650e7d0863667b139af1 "Merge branch 'v3.9.x'
+
+# Conflicts:
+#	package.json
+#	packages/plugin-yuku/README.md
+#	packages/plugin-yuku/package.json
+#	website/versioned_docs/version-stable/browser.md
+#	yarn.lock")  | Jul 21, 2026  |  
+| [scripts](https://github.com/prettier/prettier/tree/main/scripts "scripts")  | [scripts](https://github.com/prettier/prettier/tree/main/scripts "scripts")  |  [Lock file maintenance (](https://github.com/prettier/prettier/commit/d6316b4e17ccfc2eed28ed1b32d8fe0be22521c8 "Lock file maintenance \(#19952\)")[#19952](https://github.com/prettier/prettier/pull/19952)[)](https://github.com/prettier/prettier/commit/d6316b4e17ccfc2eed28ed1b32d8fe0be22521c8 "Lock file maintenance \(#19952\)")  | Aug 30, 2026  |  
+| [src](https://github.com/prettier/prettier/tree/main/src "src")  | [src](https://github.com/prettier/prettier/tree/main/src "src")  |  [Preserve empty lines after function calls in parenthesized values (](https://github.com/prettier/prettier/commit/5220adba96a35cf928aced475124a1aadce78225 "Preserve empty lines after function calls in parenthesized values \(#19960\)")[#1…](https://github.com/prettier/prettier/pull/19960)  | Sep 1, 2026  |  
+| [tests](https://github.com/prettier/prettier/tree/main/tests "tests")  | [tests](https://github.com/prettier/prettier/tree/main/tests "tests")  |  [Preserve empty lines after function calls in parenthesized values (](https://github.com/prettier/prettier/commit/5220adba96a35cf928aced475124a1aadce78225 "Preserve empty lines after function calls in parenthesized values \(#19960\)")[#1…](https://github.com/prettier/prettier/pull/19960)  | Sep 1, 2026  |  
+| [types/angular-html-parser](https://github.com/prettier/prettier/tree/main/types/angular-html-parser "This path skips through empty directories")  | [types/angular-html-parser](https://github.com/prettier/prettier/tree/main/types/angular-html-parser "This path skips through empty directories")  |  [Update dependency espree to v11.1.0 (](https://github.com/prettier/prettier/commit/809fa490a9c7552638decc7e16c4097705f47534 "Update dependency espree to v11.1.0 \(#18688\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker <lionkay@gmail.com>")[#18688](https://github.com/prettier/prettier/pull/18688)[)](https://github.com/prettier/prettier/commit/809fa490a9c7552638decc7e16c4097705f47534 "Update dependency espree to v11.1.0 \(#18688\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker <lionkay@gmail.com>")  | Jan 20, 2026  |  
+| [vendors](https://github.com/prettier/prettier/tree/main/vendors "vendors")  | [vendors](https://github.com/prettier/prettier/tree/main/vendors "vendors")  |  [Fix bundled @babel/code-frame for test (](https://github.com/prettier/prettier/commit/21a8c81940b4b90c7b8dd79b58482310e5940cba "Fix bundled @babel/code-frame for test \(#19340\)")[#19340](https://github.com/prettier/prettier/pull/19340)[)](https://github.com/prettier/prettier/commit/21a8c81940b4b90c7b8dd79b58482310e5940cba "Fix bundled @babel/code-frame for test \(#19340\)")  | Jun 10, 2026  |  
+| [website](https://github.com/prettier/prettier/tree/main/website "website")  | [website](https://github.com/prettier/prettier/tree/main/website "website")  |  [Lock file maintenance (](https://github.com/prettier/prettier/commit/d6316b4e17ccfc2eed28ed1b32d8fe0be22521c8 "Lock file maintenance \(#19952\)")[#19952](https://github.com/prettier/prettier/pull/19952)[)](https://github.com/prettier/prettier/commit/d6316b4e17ccfc2eed28ed1b32d8fe0be22521c8 "Lock file maintenance \(#19952\)")  | Aug 30, 2026  |  
+| [.codecov.yml](https://github.com/prettier/prettier/blob/main/.codecov.yml ".codecov.yml")  | [.codecov.yml](https://github.com/prettier/prettier/blob/main/.codecov.yml ".codecov.yml")  |  [Stop measuring patch in codecov config (](https://github.com/prettier/prettier/commit/4ee502aeba1bebbf2d5a2333d55b62f99553c6c0 "Stop measuring patch in codecov config \(#19732\)")[#19732](https://github.com/prettier/prettier/pull/19732)[)](https://github.com/prettier/prettier/commit/4ee502aeba1bebbf2d5a2333d55b62f99553c6c0 "Stop measuring patch in codecov config \(#19732\)")  | Jul 27, 2026  |  
+| [.editorconfig](https://github.com/prettier/prettier/blob/main/.editorconfig ".editorconfig")  | [.editorconfig](https://github.com/prettier/prettier/blob/main/.editorconfig ".editorconfig")  |  [renaming](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>") `jsfmt.spec.js[](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")` [to](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>") `format.test.js[](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")` [(](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")[#16244](https://github.com/prettier/prettier/pull/16244)[)](https://github.com/prettier/prettier/commit/16449ce9140cac682eab3fb11e15beed14960da6 "renaming `jsfmt.spec.js` to `format.test.js` \(#16244\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")  | May 6, 2024  |  
+| [.git-blame-ignore-revs](https://github.com/prettier/prettier/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs")  | [.git-blame-ignore-revs](https://github.com/prettier/prettier/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs")  | [Git blame ignore 3.9.0](https://github.com/prettier/prettier/commit/7bef7dba7e99423e8f781228e8a73163f26ca9e9 "Git blame ignore 3.9.0")  | Jun 27, 2026  |  
+| [.gitattributes](https://github.com/prettier/prettier/blob/main/.gitattributes ".gitattributes")  | [.gitattributes](https://github.com/prettier/prettier/blob/main/.gitattributes ".gitattributes")  |  [Update](https://github.com/prettier/prettier/commit/4f4d1979dd202b1cedf818b2dedcc5a424074502 "Update `.gitattributes` \(#19757\)") `.gitattributes[](https://github.com/prettier/prettier/commit/4f4d1979dd202b1cedf818b2dedcc5a424074502 "Update `.gitattributes` \(#19757\)")` [(](https://github.com/prettier/prettier/commit/4f4d1979dd202b1cedf818b2dedcc5a424074502 "Update `.gitattributes` \(#19757\)")[#19757](https://github.com/prettier/prettier/pull/19757)[)](https://github.com/prettier/prettier/commit/4f4d1979dd202b1cedf818b2dedcc5a424074502 "Update `.gitattributes` \(#19757\)")  | Jul 30, 2026  |  
+| [.gitignore](https://github.com/prettier/prettier/blob/main/.gitignore ".gitignore")  | [.gitignore](https://github.com/prettier/prettier/blob/main/.gitignore ".gitignore")  | [Remove .gitpod.yml](https://github.com/prettier/prettier/commit/45a738c7c0f9978f6f952ed781bac39f3051458b "Remove .gitpod.yml")  | Nov 29, 2025  |  
+| [.ignore](https://github.com/prettier/prettier/blob/main/.ignore ".ignore")  | [.ignore](https://github.com/prettier/prettier/blob/main/.ignore ".ignore")  |  [fix: Adjacent JSX elements should be allowed in mdx (](https://github.com/prettier/prettier/commit/998f98aaded4c3b2b627578098c7f0c92cda7385 "fix: Adjacent JSX elements should be allowed in mdx \(#6332\)
+
+* fix: adjacent JSX elements should be allowed in mdx
+
+* chore: update CHANGELOG.unreleased.md for PR
+
+* fix: adjacent JSX elements format issue of line
+
+* fix: get html text from ast correctly
+
+* fix: self closing issue
+
+* fix: finally find out how to get original text from position
+
+* chore: reset unnecessary changes
+
+* fix: additional text after jsx should also be allowed
+
+* fix: regression of empty text
+
+* docs: add missing links
+
+* fix linting...")[#6332](https://github.com/prettier/prettier/pull/6332)[)](https://github.com/prettier/prettier/commit/998f98aaded4c3b2b627578098c7f0c92cda7385 "fix: Adjacent JSX elements should be allowed in mdx \(#6332\)
+
+* fix: adjacent JSX elements should be allowed in mdx
+
+* chore: update CHANGELOG.unreleased.md for PR
+
+* fix: adjacent JSX elements format issue of line
+
+* fix: get html text from ast correctly
+
+* fix: self closing issue
+
+* fix: finally find out how to get original text from position
+
+* chore: reset unnecessary changes
+
+* fix: additional text after jsx should also be allowed
+
+* fix: regression of empty text
+
+* docs: add missing links
+
+* fix linting...")  | Jul 29, 2019  |  
+| [.prettierignore](https://github.com/prettier/prettier/blob/main/.prettierignore ".prettierignore")  | [.prettierignore](https://github.com/prettier/prettier/blob/main/.prettierignore ".prettierignore")  |  [Update babel to v8.0.0-rc.1 (](https://github.com/prettier/prettier/commit/88ee8a5b3e5db04f012c18be28aec11ed23ba849 "Update babel to v8.0.0-rc.1 \(#18822\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker Cheung <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")[#18822](https://github.com/prettier/prettier/pull/18822)[)](https://github.com/prettier/prettier/commit/88ee8a5b3e5db04f012c18be28aec11ed23ba849 "Update babel to v8.0.0-rc.1 \(#18822\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker Cheung <lionkay@gmail.com>
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")  | Feb 1, 2026  |  
+| [.yarnrc.yml](https://github.com/prettier/prettier/blob/main/.yarnrc.yml ".yarnrc.yml")  | [.yarnrc.yml](https://github.com/prettier/prettier/blob/main/.yarnrc.yml ".yarnrc.yml")  |  [Support](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)") `import defer[](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)")` [and](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)") `import source[](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)")` [in](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)") `meriyah[](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)")` [(](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)")[#19721](https://github.com/prettier/prettier/pull/19721)[)](https://github.com/prettier/prettier/commit/9df49a5516b0444d9cd7ac977eae1409384c1458 "Support `import defer` and `import source` in `meriyah` \(#19721\)")  | Jul 29, 2026  |  
+| [CHANGELOG.md](https://github.com/prettier/prettier/blob/main/CHANGELOG.md "CHANGELOG.md")  | [CHANGELOG.md](https://github.com/prettier/prettier/blob/main/CHANGELOG.md "CHANGELOG.md")  | [Release 3.9.6](https://github.com/prettier/prettier/commit/8f0c95057cc91d5836409466cd9d9af3bb901e84 "Release 3.9.6")  | Jul 21, 2026  |  
+| [CONTRIBUTING.md](https://github.com/prettier/prettier/blob/main/CONTRIBUTING.md "CONTRIBUTING.md")  | [CONTRIBUTING.md](https://github.com/prettier/prettier/blob/main/CONTRIBUTING.md "CONTRIBUTING.md")  |  [docs: point CONTRIBUTING at the current run-format-test.js path (](https://github.com/prettier/prettier/commit/ef8321e8c5a804a0247c47a5edb4870aa770fd49 "docs: point CONTRIBUTING at the current run-format-test.js path \(#19881\)
+
+Co-authored-by: fisker Cheung <lionkay@gmail.com>")[#19881](https://github.com/prettier/prettier/pull/19881)[)](https://github.com/prettier/prettier/commit/ef8321e8c5a804a0247c47a5edb4870aa770fd49 "docs: point CONTRIBUTING at the current run-format-test.js path \(#19881\)
+
+Co-authored-by: fisker Cheung <lionkay@gmail.com>")  | Aug 18, 2026  |  
+| [FUNDING.json](https://github.com/prettier/prettier/blob/main/FUNDING.json "FUNDING.json")  | [FUNDING.json](https://github.com/prettier/prettier/blob/main/FUNDING.json "FUNDING.json")  |  [Claim prettier/prettier on Drips (](https://github.com/prettier/prettier/commit/d498b6f2a532989b3e675b9ebc7133ff7eb49881 "Claim prettier/prettier on Drips \(#16195\)
+
+Adding this file to verify Open Source Collective's wallet address  on Drips. Open Source Collective will periodically collect and allocate funds from https://www.drips.network/app/projects/github/prettier/prettier to https://opencollective.com/prettier")[#16195](https://github.com/prettier/prettier/pull/16195)[)](https://github.com/prettier/prettier/commit/d498b6f2a532989b3e675b9ebc7133ff7eb49881 "Claim prettier/prettier on Drips \(#16195\)
+
+Adding this file to verify Open Source Collective's wallet address  on Drips. Open Source Collective will periodically collect and allocate funds from https://www.drips.network/app/projects/github/prettier/prettier to https://opencollective.com/prettier")  | Apr 4, 2024  |  
+| [LICENSE](https://github.com/prettier/prettier/blob/main/LICENSE "LICENSE")  | [LICENSE](https://github.com/prettier/prettier/blob/main/LICENSE "LICENSE")  |  [Update copyright line (](https://github.com/prettier/prettier/commit/633a12a29a2539772e7c4d8110869b51c631daa6 "Update copyright line \(#5455\)
+
+* Update copyright line
+
+* Update LICENSE")[#5455](https://github.com/prettier/prettier/pull/5455)[)](https://github.com/prettier/prettier/commit/633a12a29a2539772e7c4d8110869b51c631daa6 "Update copyright line \(#5455\)
+
+* Update copyright line
+
+* Update LICENSE")  | Jan 3, 2019  |  
+| [README.md](https://github.com/prettier/prettier/blob/main/README.md "README.md")  | [README.md](https://github.com/prettier/prettier/blob/main/README.md "README.md")  |  [Update badges (](https://github.com/prettier/prettier/commit/4665f2cbb2b766e9978018caff3cf75e37f4b30e "Update badges \(#17447\)")[#17447](https://github.com/prettier/prettier/pull/17447)[)](https://github.com/prettier/prettier/commit/4665f2cbb2b766e9978018caff3cf75e37f4b30e "Update badges \(#17447\)")  | May 8, 2025  |  
+| [commands.md](https://github.com/prettier/prettier/blob/main/commands.md "commands.md")  | [commands.md](https://github.com/prettier/prettier/blob/main/commands.md "commands.md")  |  [Major refactor (](https://github.com/prettier/prettier/commit/e240f15e75f5662fc89c415e92e87de5109c6536 "Major refactor \(#18381\)")[#18381](https://github.com/prettier/prettier/pull/18381)[)](https://github.com/prettier/prettier/commit/e240f15e75f5662fc89c415e92e87de5109c6536 "Major refactor \(#18381\)")  | Nov 30, 2025  |  
+| [cspell.json](https://github.com/prettier/prettier/blob/main/cspell.json "cspell.json")  | [cspell.json](https://github.com/prettier/prettier/blob/main/cspell.json "cspell.json")  |  [Allow recovery of invalid labels (](https://github.com/prettier/prettier/commit/bb52ae36d541534c99085b9bf401f28f7186c67b "Allow recovery of invalid labels \(#19920\)")[#19920](https://github.com/prettier/prettier/pull/19920)[)](https://github.com/prettier/prettier/commit/bb52ae36d541534c99085b9bf401f28f7186c67b "Allow recovery of invalid labels \(#19920\)")  | Aug 25, 2026  |  
+| [eslint.config.js](https://github.com/prettier/prettier/blob/main/eslint.config.js "eslint.config.js")  | [eslint.config.js](https://github.com/prettier/prettier/blob/main/eslint.config.js "eslint.config.js")  |  [Update dependency eslint-plugin-unicorn to v73 (](https://github.com/prettier/prettier/commit/b1d92d39e6cb987dd4f30645f03cebcb0883ff0d "Update dependency eslint-plugin-unicorn to v73 \(#19780\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")[#19780](https://github.com/prettier/prettier/pull/19780)[)](https://github.com/prettier/prettier/commit/b1d92d39e6cb987dd4f30645f03cebcb0883ff0d "Update dependency eslint-plugin-unicorn to v73 \(#19780\)
+
+Co-authored-by: fisker <lionkay@gmail.com>")  | Aug 4, 2026  |  
+| [index.js](https://github.com/prettier/prettier/blob/main/index.js "index.js")  | [index.js](https://github.com/prettier/prettier/blob/main/index.js "index.js")  |  [Use named export instead of default export (](https://github.com/prettier/prettier/commit/c1f6d021e54cf253fc7279df1924fe0064432bf9 "Use named export instead of default export \(#12740\)")[#12740](https://github.com/prettier/prettier/pull/12740)[)](https://github.com/prettier/prettier/commit/c1f6d021e54cf253fc7279df1924fe0064432bf9 "Use named export instead of default export \(#12740\)")  | May 5, 2022  |  
+| [jest.config.js](https://github.com/prettier/prettier/blob/main/jest.config.js "jest.config.js")  | [jest.config.js](https://github.com/prettier/prettier/blob/main/jest.config.js "jest.config.js")  |  [Fix HTML attribute name normalization (](https://github.com/prettier/prettier/commit/bfb1eacd89ba5b3b6fd5f2faf7908da8bbd558a2 "Fix HTML attribute name normalization \(#19709\)")[#19709](https://github.com/prettier/prettier/pull/19709)[)](https://github.com/prettier/prettier/commit/bfb1eacd89ba5b3b6fd5f2faf7908da8bbd558a2 "Fix HTML attribute name normalization \(#19709\)")  | Jul 25, 2026  |  
+| [knip.config.js](https://github.com/prettier/prettier/blob/main/knip.config.js "knip.config.js")  | [knip.config.js](https://github.com/prettier/prettier/blob/main/knip.config.js "knip.config.js")  |  [Add](https://github.com/prettier/prettier/commit/1ccdfcc15c3ae7826480e105be3824456944a623 "Add `yuku` parser \(#19628\)
+
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>") `yuku[](https://github.com/prettier/prettier/commit/1ccdfcc15c3ae7826480e105be3824456944a623 "Add `yuku` parser \(#19628\)
+
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")` [parser (](https://github.com/prettier/prettier/commit/1ccdfcc15c3ae7826480e105be3824456944a623 "Add `yuku` parser \(#19628\)
+
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")[#19628](https://github.com/prettier/prettier/pull/19628)[)](https://github.com/prettier/prettier/commit/1ccdfcc15c3ae7826480e105be3824456944a623 "Add `yuku` parser \(#19628\)
+
+Co-authored-by: autofix-ci\[bot\] <114827586+autofix-ci\[bot\]@users.noreply.github.com>")  | Jul 14, 2026  |  
+| [netlify.toml](https://github.com/prettier/prettier/blob/main/netlify.toml "netlify.toml")  | [netlify.toml](https://github.com/prettier/prettier/blob/main/netlify.toml "netlify.toml")  |  [Validate](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)") `doc[](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)")` [with](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)") `__js_expression[](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)")` [in playground (](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)")[#17668](https://github.com/prettier/prettier/pull/17668)[)](https://github.com/prettier/prettier/commit/0864823c5265f5fa775d0665b8b1396014f11aad "Validate `doc` with `__js_expression` in playground \(#17668\)")  | Aug 5, 2025  |  
+| [package.json](https://github.com/prettier/prettier/blob/main/package.json "package.json")  | [package.json](https://github.com/prettier/prettier/blob/main/package.json "package.json")  |  [Update flow-parser to v0.330.0 (](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e "Update flow-parser to v0.330.0 \(#19961\)")[#19961](https://github.com/prettier/prettier/pull/19961)[)](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e "Update flow-parser to v0.330.0 \(#19961\)")  | Sep 1, 2026  |  
+| [prettier.config.js](https://github.com/prettier/prettier/blob/main/prettier.config.js "prettier.config.js")  | [prettier.config.js](https://github.com/prettier/prettier/blob/main/prettier.config.js "prettier.config.js")  |  [Update docs to encourage user import plugin themself (](https://github.com/prettier/prettier/commit/d8bf3989bdfad25d22425eb50946378c4b86f0d0 "Update docs to encourage user import plugin themself \(#18411\)")[#18411](https://github.com/prettier/prettier/pull/18411)[)](https://github.com/prettier/prettier/commit/d8bf3989bdfad25d22425eb50946378c4b86f0d0 "Update docs to encourage user import plugin themself \(#18411\)")  | Dec 6, 2025  |  
+| [puppeteer.config.cjs](https://github.com/prettier/prettier/blob/main/puppeteer.config.cjs "puppeteer.config.cjs")  | [puppeteer.config.cjs](https://github.com/prettier/prettier/blob/main/puppeteer.config.cjs "puppeteer.config.cjs")  | [Skip puppeteer installation](https://github.com/prettier/prettier/commit/a1c271f39d3f96d55b600e11e96a96e779629787 "Skip puppeteer installation")  | Jan 23, 2026  |  
+| [standalone.js](https://github.com/prettier/prettier/blob/main/standalone.js "standalone.js")  | [standalone.js](https://github.com/prettier/prettier/blob/main/standalone.js "standalone.js")  |  [Use named export instead of default export (](https://github.com/prettier/prettier/commit/c1f6d021e54cf253fc7279df1924fe0064432bf9 "Use named export instead of default export \(#12740\)")[#12740](https://github.com/prettier/prettier/pull/12740)[)](https://github.com/prettier/prettier/commit/c1f6d021e54cf253fc7279df1924fe0064432bf9 "Use named export instead of default export \(#12740\)")  | May 5, 2022  |  
+| [tsconfig.json](https://github.com/prettier/prettier/blob/main/tsconfig.json "tsconfig.json")  | [tsconfig.json](https://github.com/prettier/prettier/blob/main/tsconfig.json "tsconfig.json")  |  [Update dependency typescript to v6 (](https://github.com/prettier/prettier/commit/8a18282ce8f4b4b4078f3c4d6c20e102a2260894 "Update dependency typescript to v6 \(#18971\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker <lionkay@gmail.com>")[#18971](https://github.com/prettier/prettier/pull/18971)[)](https://github.com/prettier/prettier/commit/8a18282ce8f4b4b4078f3c4d6c20e102a2260894 "Update dependency typescript to v6 \(#18971\)
+
+Co-authored-by: renovate\[bot\] <29139614+renovate\[bot\]@users.noreply.github.com>
+Co-authored-by: fisker <lionkay@gmail.com>")  | Apr 9, 2026  |  
+| [yarn.lock](https://github.com/prettier/prettier/blob/main/yarn.lock "yarn.lock")  | [yarn.lock](https://github.com/prettier/prettier/blob/main/yarn.lock "yarn.lock")  |  [Update flow-parser to v0.330.0 (](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e "Update flow-parser to v0.330.0 \(#19961\)")[#19961](https://github.com/prettier/prettier/pull/19961)[)](https://github.com/prettier/prettier/commit/dc8f866873cb24be403a821f831f2d8267df008e "Update flow-parser to v0.330.0 \(#19961\)")  | Sep 1, 2026  |  
+| View all files |  
+[![Prettier Banner](https://camo.githubusercontent.com/fa948058c8ea5db1ebb2133f7b4b54f36f39292d328f7470d0ca27e2e04f60dc/68747470733a2f2f756e706b672e636f6d2f70726574746965722d6c6f676f40312e302e332f696d616765732f70726574746965722d62616e6e65722d6c696768742e737667)](https://prettier.io)
+## Opinionated Code Formatter
+[](https://github.com/prettier/prettier#opinionated-code-formatter)
+_JavaScript · TypeScript · Flow · JSX · JSON_   
+_CSS · SCSS · Less_   
+_HTML · Vue · Angular_   
+_GraphQL · Markdown · YAML_   
+_[ Your favorite language? ](https://prettier.io/docs/plugins) _
+[ ![CI Status](https://camo.githubusercontent.com/4237883beb4df68a433b37fbdafa548e0f97de18330b0d339cf41d810b8833d1/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f70726574746965722f70726574746965722f6d61696e3f7374796c653d666c61742d737175617265266c6162656c3d4349)](https://github.com/prettier/prettier/actions?query=branch%3Amain) [ ![Coverage Status](https://camo.githubusercontent.com/bcf5c2d1f9807f67344b24ac270ea0cd3caa687298151107ff7fb68f32825851/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f70726574746965722f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://codecov.io/gh/prettier/prettier) [ ![Blazing Fast](https://camo.githubusercontent.com/eb4fdac0d5c3c4f12390b4112787bce2bdfebddaac0dc9cb555d91433fc371cf/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f73706565642d626c617a696e672532302546302539462539342541352d627269676874677265656e2e7376673f7374796c653d666c61742d737175617265)](https://x.com/acdlite/status/974390255393505280)   
+[ ![npm version](https://camo.githubusercontent.com/34bf491160d60a552c8e9b510963abd66c4b35557e8859c54e9f6169135b6f08/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/prettier) [ ![weekly downloads from npm](https://camo.githubusercontent.com/c391d8b06d931145da024db1172ae7b8b5af45a0be3c57c8eeafbb1f811f057e/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f64772f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/prettier) [ ![code style: prettier](https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265)](https://github.com/prettier/prettier#badge) [ ![Follow Prettier on X](https://camo.githubusercontent.com/51e8b38521aaadf5cdd26b3aa3ab6faced8236f6646066bc4bad4390c73693cc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f2534305072657474696572436f64652d3966396639663f7374796c653d666c61742d737175617265266c6f676f3d78266c6162656c436f6c6f723d353535)](https://x.com/intent/follow?screen_name=PrettierCode)
+## Intro
+[](https://github.com/prettier/prettier#intro)
+Prettier is an opinionated code formatter. It enforces a consistent style by parsing your code and re-printing it with its own rules that take the maximum line length into account, wrapping code when necessary.
+### Input
+[](https://github.com/prettier/prettier#input)
+
+```
+foo(reallyLongArg(), omgSoManyParameters(), IShouldRefactorThis(), isThereSeriouslyAnotherOne());
+```
+
+### Output
+[](https://github.com/prettier/prettier#output)
+
+```
+foo(
+  reallyLongArg(),
+  omgSoManyParameters(),
+  IShouldRefactorThis(),
+  isThereSeriouslyAnotherOne(),
+);
+```
+
+Prettier can be run [in your editor](https://prettier.io/docs/editors) on-save, in a [pre-commit hook](https://prettier.io/docs/precommit), or in [CI environments](https://prettier.io/docs/cli#list-different) to ensure your codebase has a consistent style without devs ever having to post a nit-picky comment on a code review ever again!
+* * *
+**[Documentation](https://prettier.io/docs/)**
+[Install](https://prettier.io/docs/install) · [Options](https://prettier.io/docs/options) · [CLI](https://prettier.io/docs/cli) · [API](https://prettier.io/docs/api)
+**[Playground](https://prettier.io/playground/)**
+* * *
+## Badge
+[](https://github.com/prettier/prettier#badge)
+Show the world you're using _Prettier_ → [![code style: prettier](https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265)](https://github.com/prettier/prettier)
+
+```
+[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+```
+
+## Contributing
+[](https://github.com/prettier/prettier#contributing)
+See [CONTRIBUTING.md](https://github.com/prettier/prettier/blob/main/CONTRIBUTING.md).
+## About
+Prettier is an opinionated code formatter.
+[prettier.io](https://prettier.io)
+[angular](https://github.com/topics/angular)[ast](https://github.com/topics/ast)[css](https://github.com/topics/css)[flow](https://github.com/topics/flow)[formatter](https://github.com/topics/formatter)[graphql](https://github.com/topics/graphql)[html](https://github.com/topics/html)[javascript](https://github.com/topics/javascript)[json](https://github.com/topics/json)[jsx](https://github.com/topics/jsx)[less](https://github.com/topics/less)[markdown](https://github.com/topics/markdown)[prettier](https://github.com/topics/prettier)[printer](https://github.com/topics/printer)[scss](https://github.com/topics/scss)[typescript](https://github.com/topics/typescript)[vue](https://github.com/topics/vue)[yaml](https://github.com/topics/yaml)
+[Readme](https://github.com/prettier/prettier#readme-ov-file)
+[MIT license](https://github.com/prettier/prettier#MIT-1-ov-file)
+[Code of conduct](https://github.com/prettier/prettier#coc-ov-file)
+[Contributing](https://github.com/prettier/prettier#contributing-ov-file)
+[Security policy](https://github.com/prettier/prettier#security-ov-file)
+[Activity](https://github.com/prettier/prettier/activity)
+[Custom properties](https://github.com/prettier/prettier/custom-properties)
+**52.2k** stars
+**455** watching
+[**5.0k** forks](https://github.com/prettier/prettier/forks)
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier&report=prettier+%28user%29)
+## [Releases](https://github.com/prettier/prettier/releases)144
+[ 3.9.6Latest Jul 21, 2026 ](https://github.com/prettier/prettier/releases/tag/3.9.6)
+[+ 143 releases](https://github.com/prettier/prettier/releases)
+## Sponsor this project
+  * [![@prettier](https://avatars.githubusercontent.com/u/25822731?s=64&v=4)](https://github.com/prettier)[**prettier**](https://github.com/prettier) Prettier[](https://github.com/sponsors/prettier)Sponsor @prettier
+
+
+  * ![](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)[opencollective.com/prettier](https://opencollective.com/prettier)
+  * ![](https://github.githubassets.com/assets/thanks_dev-0fe87803d1ed.svg)[thanks.dev/u/gh/prettier](https://thanks.dev/u/gh/prettier)
+  * ![](https://github.githubassets.com/assets/tidelift-8cea37dea8fc.svg)[tidelift.com/funding/github/npm/prettier](https://tidelift.com/funding/github/npm/prettier)
+
+
+[Learn more about GitHub Sponsors](https://github.com/sponsors)
+## [Used by](https://github.com/prettier/prettier/network/dependents)10M
+[ ![@baltcircle](https://avatars.githubusercontent.com/u/290164987?s=64&v=4)![@agentscope-ai](https://avatars.githubusercontent.com/u/211762292?s=64&v=4)![@Kynson](https://avatars.githubusercontent.com/u/46522440?s=64&v=4)![@GoogleCloudPlatform](https://avatars.githubusercontent.com/u/2810941?s=64&v=4)![@ayodejidev](https://avatars.githubusercontent.com/u/63319309?s=64&v=4) + 10,124,582](https://github.com/prettier/prettier/network/dependents)
+## [Contributors](https://github.com/prettier/prettier/graphs/contributors)803
+  * [![@fisker](https://avatars.githubusercontent.com/u/172584?s=64&v=4)](https://github.com/fisker)
+  * [![@dependabot\[bot\]](https://avatars.githubusercontent.com/in/29110?s=64&v=4)](https://github.com/dependabot\[bot\])
+  * [![@renovate\[bot\]](https://avatars.githubusercontent.com/in/2740?s=64&v=4)](https://github.com/renovate\[bot\])
+  * [![@vjeux](https://avatars.githubusercontent.com/u/197597?s=64&v=4)](https://github.com/vjeux)
+  * [![@sosukesuzuki](https://avatars.githubusercontent.com/u/14838850?s=64&v=4)](https://github.com/sosukesuzuki)
+  * [![@ikatyang](https://avatars.githubusercontent.com/u/8341033?s=64&v=4)](https://github.com/ikatyang)
+  * [![@dependabot-preview\[bot\]](https://avatars.githubusercontent.com/in/2141?s=64&v=4)](https://github.com/dependabot-preview\[bot\])
+  * [![@thorn0](https://avatars.githubusercontent.com/u/94334?s=64&v=4)](https://github.com/thorn0)
+  * [![@duailibe](https://avatars.githubusercontent.com/u/1574588?s=64&v=4)](https://github.com/duailibe)
+  * [![@azz](https://avatars.githubusercontent.com/u/1297597?s=64&v=4)](https://github.com/azz)
+  * [![@jlongster](https://avatars.githubusercontent.com/u/17031?s=64&v=4)](https://github.com/jlongster)
+  * [![@lydell](https://avatars.githubusercontent.com/u/2142817?s=64&v=4)](https://github.com/lydell)
+  * [![@autofix-ci\[bot\]](https://avatars.githubusercontent.com/in/243519?s=64&v=4)](https://github.com/autofix-ci\[bot\])
+  * [![@josephfrazier](https://avatars.githubusercontent.com/u/6473925?s=64&v=4)](https://github.com/josephfrazier)
+
+
+[+ 789 contributors](https://github.com/prettier/prettier/graphs/contributors)
+## Languages
+  * [JavaScript98.6%](https://github.com/prettier/prettier/search?l=javascript)
+  * [Other1.4%](https://github.com/prettier/prettier/search?l=Other)
+
+
+[ ](https://github.com) © 2026 GitHub, Inc. 
+  * [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+  * [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+  * [Security](https://github.com/security)
+  * [Status](https://www.githubstatus.com/)
+  * [Community](https://github.community/)
+  * [Docs](https://docs.github.com/)
+  * [Contact](https://support.github.com?tags=dotcom-footer)
+  * Manage cookies 
+  * Do not share my personal information 
+
+
+You can’t perform that action at this time. 

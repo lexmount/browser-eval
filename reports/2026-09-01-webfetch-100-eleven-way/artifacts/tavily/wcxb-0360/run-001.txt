@@ -1,1 +1,0 @@
-{"results":[],"failed_results":[{"url":"https://expatriates.stackexchange.com/questions/964/how-to-book-flights-when-moving-to-another-country","error":"Failed to fetch url"}],"response_time":0.23,"request_id":"f8518417-76b0-407e-b90c-daabf0b02bad"}

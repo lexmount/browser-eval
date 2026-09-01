@@ -1,0 +1,601 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>cowagent-built-in__live-035-part-i-tutorial__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · cowagent-built-in</div><h1>Part I. Tutorial</h1><div class="meta"><span class="pill warn">程序判断未通过</span><span class="pill">第 1 次</span><span class="pill">791 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：Part I. Tutorial；Submit correction；Copyright © 1996-2026 The PostgreSQL Global Development Group。</p><p><b>输入 URL：</b><a href="https://www.postgresql.org/docs/current/tutorial.html">https://www.postgresql.org/docs/current/tutorial.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Part I. Tutorial
+Submit correction
+Copyright © 1996-2026 The PostgreSQL Global Development Group</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：Part I. Tutorial</li><li>是否保留核对点：Submit correction</li><li>是否保留核对点：Copyright © 1996-2026 The PostgreSQL Global Development Group</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/cowagent-built-in/live-035-part-i-tutorial/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.postgresql.org/docs/current/tutorial.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:aaa24171c5619cf0c68701fd94232d22704f31619f82ffcb557b8e131a197cbd</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Part I. Tutorial
+Submit correction
+Copyright © 1996-2026 The PostgreSQL Global Development Group</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Title: PostgreSQL: Documentation: 18: Part I. Tutorial
+
+Content:
+PostgreSQL: Documentation: 18: Part I. Tutorial
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Home
+About
+Download
+Documentation
+Community
+Developers
+Support
+Donate
+Your account
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+August 13, 2026: PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!
+
+
+
+
+
+
+
+
+
+
+
+
+Documentation &amp;rarr; PostgreSQL 18
+
+
+
+
+
+
+Supported Versions:
+
+
+
+Current
+(18)
+
+
+/
+
+17
+
+
+/
+
+16
+
+
+/
+
+15
+
+
+/
+
+14
+
+
+
+
+
+
+
+
+Development Versions:
+
+
+19
+
+/
+devel
+
+
+
+
+
+
+
+Unsupported versions:
+
+
+13
+
+/
+12
+
+/
+11
+
+/
+10
+
+/
+9.6
+
+/
+9.5
+
+/
+9.4
+
+/
+9.3
+
+/
+9.2
+
+/
+9.1
+
+/
+9.0
+
+/
+8.4
+
+/
+8.3
+
+/
+8.2
+
+/
+8.1
+
+/
+8.0
+
+/
+7.4
+
+/
+7.3
+
+/
+7.2
+
+/
+7.1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Part I. Tutorial
+
+
+Prev
+Up
+PostgreSQL 18.6 Documentation
+Home
+Next
+
+
+
+
+
+
+
+Part I. Tutorial
+
+
+
+
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive treatment of the topics it covers.
+After you have successfully completed this tutorial you will want to read the Part II section to gain a better understanding of the SQL language, or Part IV for information about developing applications with PostgreSQL. Those who provision and manage their own PostgreSQL installation should also read Part III.
+
+Table of Contents
+
+1. Getting Started
+
+
+1.1. Installation
+1.2. Architectural Fundamentals
+1.3. Creating a Database
+1.4. Accessing a Database
+
+
+2. The SQL Language
+
+
+2.1. Introduction
+2.2. Concepts
+2.3. Creating a New Table
+2.4. Populating a Table </pre></div></div><details><summary>展开本页中的完整供应商输出（2,508 / 2,508 字符）</summary><pre>Title: PostgreSQL: Documentation: 18: Part I. Tutorial
+
+Content:
+PostgreSQL: Documentation: 18: Part I. Tutorial
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Home
+About
+Download
+Documentation
+Community
+Developers
+Support
+Donate
+Your account
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+August 13, 2026: PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!
+
+
+
+
+
+
+
+
+
+
+
+
+Documentation &amp;rarr; PostgreSQL 18
+
+
+
+
+
+
+Supported Versions:
+
+
+
+Current
+(18)
+
+
+/
+
+17
+
+
+/
+
+16
+
+
+/
+
+15
+
+
+/
+
+14
+
+
+
+
+
+
+
+
+Development Versions:
+
+
+19
+
+/
+devel
+
+
+
+
+
+
+
+Unsupported versions:
+
+
+13
+
+/
+12
+
+/
+11
+
+/
+10
+
+/
+9.6
+
+/
+9.5
+
+/
+9.4
+
+/
+9.3
+
+/
+9.2
+
+/
+9.1
+
+/
+9.0
+
+/
+8.4
+
+/
+8.3
+
+/
+8.2
+
+/
+8.1
+
+/
+8.0
+
+/
+7.4
+
+/
+7.3
+
+/
+7.2
+
+/
+7.1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Part I. Tutorial
+
+
+Prev
+Up
+PostgreSQL 18.6 Documentation
+Home
+Next
+
+
+
+
+
+
+
+Part I. Tutorial
+
+
+
+
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive treatment of the topics it covers.
+After you have successfully completed this tutorial you will want to read the Part II section to gain a better understanding of the SQL language, or Part IV for information about developing applications with PostgreSQL. Those who provision and manage their own PostgreSQL installation should also read Part III.
+
+Table of Contents
+
+1. Getting Started
+
+
+1.1. Installation
+1.2. Architectural Fundamentals
+1.3. Creating a Database
+1.4. Accessing a Database
+
+
+2. The SQL Language
+
+
+2.1. Introduction
+2.2. Concepts
+2.3. Creating a New Table
+2.4. Populating a Table With Rows
+2.5. Querying a Table
+2.6. Joins Between Tables
+2.7. Aggregate Functions
+2.8. Updates
+2.9. Deletions
+
+
+3. Advanced Features
+
+
+3.1. Introduction
+3.2. Views
+3.3. Foreign Keys
+3.4. Transactions
+3.5. Window Functions
+3.6. Inheritance
+3.7. Conclusion
+
+
+
+
+
+
+
+
+
+Prev
+Up
+Next
+
+
+5. Bug Reporting Guidelines
+Home
+Chapter 1. Getting Started
+
+
+
+
+
+
+Submit correction
+
+If you see anything in the documentation that is not correct, does not match
+your experience with the particular feature or requires further clarification,
+please use
+this form
+to report a documentation issue.
+
+
+
+
+
+
+
+
+
+
+
+Policies |
+Code of Conduct |
+About PostgreSQL |
+Contact
+Copyright &amp;copy; 1996-2026 The PostgreSQL Global Development Group</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="callout failure"><b>程序判断未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>cowagent-built-in__live-035-part-i-tutorial__r001</code></div><div class="kv"><b>HTTP 状态</b>—</div><div class="kv"><b>最终 URL</b><span class="break">https://www.postgresql.org/docs/current/tutorial.html</span></div><div class="kv"><b>输出大小</b>2,508 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>66.7%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>Part I. Tutorial</td><td>Part I. Tutorial</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Submit correction</td><td>Submit correction</td></tr><tr><td><code>anchor-3</code></td><td class="bad">未命中</td><td>Copyright © 1996-2026 The PostgreSQL Global Development Group</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Part I. Tutorial</span></p><p><span class="tag">Part I. Tutorial</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;tool_status&quot;: &quot;success&quot;,
+  &quot;source_file&quot;: &quot;/Users/lianglinkai/.codex/worktrees/8d3d/CowAgent/agent/tools/web_fetch/web_fetch.py&quot;,
+  &quot;cowagent_default_timeout_seconds&quot;: 30,
+  &quot;harness_timeout_seconds&quot;: 45.0,
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("cowagent-built-in__live-035-part-i-tutorial__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("cowagent-built-in__live-035-part-i-tutorial__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("cowagent-built-in__live-035-part-i-tutorial__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

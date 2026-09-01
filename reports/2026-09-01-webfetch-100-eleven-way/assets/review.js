@@ -28,6 +28,23 @@ function filterFailures() {
   document.querySelectorAll('#failure-rows tr').forEach(row=>{const show=(!provider||row.dataset.provider===provider)&&(!category||row.dataset.category===category)&&(!query||row.textContent.toLowerCase().includes(query));row.hidden=!show;if(show)visible++;});
   const count=document.getElementById('failure-count');if(count)count.textContent=`显示 ${visible} 条`;
 }
+function filterDatasetCases() {
+  const category=(document.getElementById('dataset-category')?.value||'').toLowerCase();
+  const review=(document.getElementById('dataset-review')?.value||'').toLowerCase();
+  const query=(document.getElementById('dataset-query')?.value||'').toLowerCase();
+  let visible=0;
+  document.querySelectorAll('#dataset-rows tr').forEach(row=>{const show=(!category||row.dataset.category===category)&&(!review||row.dataset.review===review)&&(!query||row.textContent.toLowerCase().includes(query));row.hidden=!show;if(show)visible++;});
+  const count=document.getElementById('dataset-count');if(count)count.textContent=`显示 ${visible} 条`;
+}
+function filterProviderCases() {
+  const transport=document.getElementById('provider-transport')?.value||'';
+  const content=document.getElementById('provider-content')?.value||'';
+  const facts=document.getElementById('provider-facts')?.value||'';
+  const query=(document.getElementById('provider-query')?.value||'').toLowerCase();
+  let visible=0;
+  document.querySelectorAll('#provider-case-rows tr').forEach(row=>{const show=(!transport||row.dataset.transport===transport)&&(!content||row.dataset.content===content)&&(!facts||row.dataset.facts===facts)&&(!query||row.textContent.toLowerCase().includes(query));row.hidden=!show;if(show)visible++;});
+  const count=document.getElementById('provider-case-count');if(count)count.textContent=`显示 ${visible} 条`;
+}
 function sortTable(tableId, column, type, initialDirection) {
   const table=document.getElementById(tableId); if(!table) return;
   const body=table.tBodies[0]; const header=table.tHead.rows[0].cells[column];

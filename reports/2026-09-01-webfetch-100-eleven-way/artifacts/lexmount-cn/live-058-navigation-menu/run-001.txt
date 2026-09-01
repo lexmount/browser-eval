@@ -1,0 +1,1 @@
+Apache Superset is a Data Visualization and Data Exploration Platform Repository stats: stars 74.6k, forks 18.2k, issues 194, pull requests 433.

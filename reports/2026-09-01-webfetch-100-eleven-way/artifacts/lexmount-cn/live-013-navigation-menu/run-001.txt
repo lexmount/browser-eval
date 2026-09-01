@@ -1,0 +1,1 @@
+web development for the rest of us. Contribute to sveltejs/svelte development by creating an account on GitHub. Repository stats: stars 88k, forks 5.2k, issues 929, pull requests 126.

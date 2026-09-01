@@ -1,0 +1,156 @@
+[Skip to content](https://github.com/postgres/postgres#start-of-content)
+
+You signed in with another tab or window. [Reload](https://github.com/postgres/postgres) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/postgres/postgres) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/postgres/postgres) to refresh your session.Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page](https://github.com/postgres/postgres).
+
+[postgres](https://github.com/postgres)/ **[postgres](https://github.com/postgres/postgres)** Public
+
+- [Notifications](https://github.com/login?return_to=%2Fpostgres%2Fpostgres) You must be signed in to change notification settings
+- [Fork\\
+5.9k](https://github.com/login?return_to=%2Fpostgres%2Fpostgres)
+- [Star\\
+22k](https://github.com/login?return_to=%2Fpostgres%2Fpostgres)
+
+
+master
+
+[**39** Branches](https://github.com/postgres/postgres/branches) [**692** Tags](https://github.com/postgres/postgres/tags)
+
+[Go to Branches page](https://github.com/postgres/postgres/branches)[Go to Tags page](https://github.com/postgres/postgres/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+[![petere](https://avatars.githubusercontent.com/u/105543?v=4&size=40)](https://github.com/petere)[petere](https://github.com/postgres/postgres/commits?author=petere)
+
+[pgcrypto: remove unused BF\_ASM macro](https://github.com/postgres/postgres/commit/a62fa616113e68735db3e1dc353e09e675d6df6c)
+
+Open commit detailssuccess
+
+33 minutes agoSep 1, 2026
+
+[a62fa61](https://github.com/postgres/postgres/commit/a62fa616113e68735db3e1dc353e09e675d6df6c) · 33 minutes agoSep 1, 2026
+
+## History
+
+[65,233 Commits](https://github.com/postgres/postgres/commits/master/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/postgres/postgres/commits/master/) 65,233 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](https://github.com/postgres/postgres/tree/master/.github ".github") | [.github](https://github.com/postgres/postgres/tree/master/.github ".github") | [ci: Generate crashlogs on Windows](https://github.com/postgres/postgres/commit/d374280e1837adc1f8218bb0d69ffbae5d808fc6 "ci: Generate crashlogs on Windows  This configures cdb.exe to log all crashes to \"<workspace>\crashlogs\crashlog-<pid-in-hex>.txt\" (as it was previously set up for cirrus-ci based CI). The upload logs step already collects these logs.  The logic is copied from the generation of Postgres CI Windows images for cirrus-ci [1].  Since this would be too long to include inline in pg-ci.yml, it is implemented as 'src/tools/ci/gha_setup_windows_debugger.ps1' script.  [1] https://github.com/anarazel/pg-vm-images/blob/main/scripts/windows_install_dbg.ps1  Author: Nazir Bilal Yavuz <byavuz81@gmail.com> Reviewed-by: Andres Freund <andres@anarazel.de> Discussion: https://postgr.es/m/CAN55FZ1BgsXSTzOpehnMa4NzWL8Aivsxx-di7-VT6bZ3j2Omow%40mail.gmail.com Discussion: https://postgr.es/m/iggjozfshwbqpv33x5jqwtju5k5zrkyu3257dlifxkhtpg7eoq@k2ccyrdi5dtu Backpatch-through: 19, where GHA CI was added") | 2 months agoJul 17, 2026 |
+| [config](https://github.com/postgres/postgres/tree/master/config "config") | [config](https://github.com/postgres/postgres/tree/master/config "config") | [Revert "Make PL/Tcl require Tcl 8.6 or later"](https://github.com/postgres/postgres/commit/f4f77f557bb1a173f82be42770a28758732f4cc0 "Revert \"Make PL/Tcl require Tcl 8.6 or later\"  This reverts commit b6d3ccf2f5f1a179e25e277bae3f432cc084ce58.  macOS still ships with Tcl 8.5.") | 2 months agoJul 16, 2026 |
+| [contrib](https://github.com/postgres/postgres/tree/master/contrib "contrib") | [contrib](https://github.com/postgres/postgres/tree/master/contrib "contrib") | [pgcrypto: remove unused BF\_ASM macro](https://github.com/postgres/postgres/commit/a62fa616113e68735db3e1dc353e09e675d6df6c "pgcrypto: remove unused BF_ASM macro  This has never been defined to anything but 0, and the _BF_body_r function it would call has never existed.  Author: Dagfinn Ilmari Mannsåker <ilmari@ilmari.org> Reviewed-by: Daniel Gustafsson <daniel@yesql.se> Discussion: https://www.postgresql.org/message-id/flat/87ldew2yqu.fsf%40wibble.ilmari.org") | 33 minutes agoSep 1, 2026 |
+| [doc](https://github.com/postgres/postgres/tree/master/doc "doc") | [doc](https://github.com/postgres/postgres/tree/master/doc "doc") | [doc: reformat GRAPH\_TABLE examples](https://github.com/postgres/postgres/commit/a20d3e35f2c00938c5329cbf570160184f4f0a69 "doc: reformat GRAPH_TABLE examples  The GRAPH_TABLE examples in ddl.sgml and queries.sgml were written as single long lines, making their structure harder to read in the generated documentation.  Reformat these examples so that the graph name, MATCH clause, and COLUMNS clause appear on separate lines, making them easier to read.  Author: Koshino Taiki <koshino@sraoss.co.jp> Reviewed-by: Ashutosh Bapat <ashutosh.bapat.oss@gmail.com> Reviewed-by: Fujii Masao <masao.fujii@gmail.com> Discussion: https://postgr.es/m/OS9P286MB64860BD6CD6D4B4B0E1CEDE894A32@OS9P286MB6486.JPNP286.PROD.OUTLOOK.COM Backpatch-through: 19") | 8 hours agoSep 1, 2026 |
+| [src](https://github.com/postgres/postgres/tree/master/src "src") | [src](https://github.com/postgres/postgres/tree/master/src "src") | [Wait for checksum state transition in test](https://github.com/postgres/postgres/commit/5313fc415d90d435b91f7c0786a1630e05440759 "Wait for checksum state transition in test  The test for disabling data checksums after a failure didn't wait for the state transition to complete before testing, which could lead to false negatives in testing.  Fix by passing the wait param when disabling.  Identified on buildfarm member culicidae.  Author: Daniel Gustafsson <daniel@yesql.se> Reported-by: Alexander Lakhin <exclusion@gmail.com> Reviewed-by: Alexander Lakhin <exclusion@gmail.com> Discussion: https://postgr.es/m/b2f34fd3-8e98-450e-9e8c-ac08238e9116@gmail.com Backpatch-through: 19") | 3 hours agoSep 1, 2026 |
+| [.dir-locals.el](https://github.com/postgres/postgres/blob/master/.dir-locals.el ".dir-locals.el") | [.dir-locals.el](https://github.com/postgres/postgres/blob/master/.dir-locals.el ".dir-locals.el") | [Make Emacs perl-mode indent more like perltidy.](https://github.com/postgres/postgres/commit/472e1e4cf64b81b1ecae900db8115deb250ba8bc "Make Emacs perl-mode indent more like perltidy.  This especially helps braces that surround code blocks.  Back-patch to v11, where commit 56fb890ace8ac0ca955ae0803c580c2074f876f6 first appeared; before that, settings were even more distant from perltidy.  Reviewed by Andrew Dunstan.  Discussion: https://postgr.es/m/20190103055355.GB267595@gust.leadboat.com") | 8 years agoJan 13, 2019 |
+| [.editorconfig](https://github.com/postgres/postgres/blob/master/.editorconfig ".editorconfig") | [.editorconfig](https://github.com/postgres/postgres/blob/master/.editorconfig ".editorconfig") | [Update .editorconfig and .gitattributes for postgresql.conf.sample.](https://github.com/postgres/postgres/commit/aeebb49b7cfeff525fafe8ae105e091c923193fb "Update .editorconfig and .gitattributes for postgresql.conf.sample.  This commit updates .editorconfig and .gitattributes in preparation for a follow-up commit that will modify this file to use spaces instead of tabs.  Reviewed-by: Tom Lane <tgl@sss.pgh.pa.us> Reviewed-by: Chao Li <li.evan.chao@gmail.com> Discussion: https://postgr.es/m/aReNUKdMgKxLqmq7%40nathan") | 10 months agoNov 18, 2025 |
+| [.git-blame-ignore-revs](https://github.com/postgres/postgres/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") | [.git-blame-ignore-revs](https://github.com/postgres/postgres/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") | [Add previous commit to .git-blame-ignore-revs](https://github.com/postgres/postgres/commit/4d85fd59c723e9bd9925e14ad8f3b5ce2e19318d "Add previous commit to .git-blame-ignore-revs") | 2 weeks agoAug 15, 2026 |
+| [.gitattributes](https://github.com/postgres/postgres/blob/master/.gitattributes ".gitattributes") | [.gitattributes](https://github.com/postgres/postgres/blob/master/.gitattributes ".gitattributes") | [Update .editorconfig and .gitattributes for postgresql.conf.sample.](https://github.com/postgres/postgres/commit/aeebb49b7cfeff525fafe8ae105e091c923193fb "Update .editorconfig and .gitattributes for postgresql.conf.sample.  This commit updates .editorconfig and .gitattributes in preparation for a follow-up commit that will modify this file to use spaces instead of tabs.  Reviewed-by: Tom Lane <tgl@sss.pgh.pa.us> Reviewed-by: Chao Li <li.evan.chao@gmail.com> Discussion: https://postgr.es/m/aReNUKdMgKxLqmq7%40nathan") | 10 months agoNov 18, 2025 |
+| [.gitignore](https://github.com/postgres/postgres/blob/master/.gitignore ".gitignore") | [.gitignore](https://github.com/postgres/postgres/blob/master/.gitignore ".gitignore") | [Update top-level .gitignore.](https://github.com/postgres/postgres/commit/d94f32d49f620fb08c1fd0e8c9345844ccd9b7c0 "Update top-level .gitignore.  Add a comment explaining our policy that we don't put excludes for nonstandard tools into committed .gitignore files.  Also, remove the entries about libraries with .sl extensions, since that convention was only used on now-desupported HP-UX.  Discussion: https://postgr.es/m/CAHxW8BAiyPwfXbN813GhorQozwMBs4f3DTxLkKNxiGQuJuw4Vw@mail.gmail.com") | 4 years agoDec 4, 2022 |
+| [.mailmap](https://github.com/postgres/postgres/blob/master/.mailmap ".mailmap") | [.mailmap](https://github.com/postgres/postgres/blob/master/.mailmap ".mailmap") | [Add a Git .mailmap file](https://github.com/postgres/postgres/commit/7bdaa4b54208afe0d0fc691877da920016db6987 "Add a Git .mailmap file  This adds a Git .mailmap to unify spellings of committer names.  Discussion: https://postgr.es/m/76773029-A7AD-4BAF-AFC2-E511D26E866D@yesql.se") | 2 years agoNov 5, 2024 |
+| [COPYRIGHT](https://github.com/postgres/postgres/blob/master/COPYRIGHT "COPYRIGHT") | [COPYRIGHT](https://github.com/postgres/postgres/blob/master/COPYRIGHT "COPYRIGHT") | [Update copyright for 2026](https://github.com/postgres/postgres/commit/451c43974f8e199097d97624a4952ad0973cea61 "Update copyright for 2026  Backpatch-through: 14") | 9 months agoJan 1, 2026 |
+| [GNUmakefile.in](https://github.com/postgres/postgres/blob/master/GNUmakefile.in "GNUmakefile.in") | [GNUmakefile.in](https://github.com/postgres/postgres/blob/master/GNUmakefile.in "GNUmakefile.in") | [Allow selecting the git revision to be packaged by "make dist".](https://github.com/postgres/postgres/commit/01df14763431df1506cbae206945cd165c66d1d3 "Allow selecting the git revision to be packaged by \"make dist\".  Commit 619bc23a1 changed \"make dist\" to invoke \"git archive\", but hard-wired the call to specify that the HEAD revision should be packaged.  Our tarball building process needs to be able to specify which git commit to package (notably, for packaging back branches).  While we could make that work with some hackery to operate in detached-HEAD state, it's a lot nicer just to expose git archive's ability to specify what to package.  Hence, invent a new make variable PG_GIT_REVISION.  This is undocumented, but so is \"make dist\".  Also make corresponding changes in the meson scripts.  We have no near-term intention of using that for package building, but it will likely happen eventually, so stay prepared.  Discussion: https://postgr.es/m/3552543.1713909947@sss.pgh.pa.us") | 2 years agoMay 3, 2024 |
+| [HISTORY](https://github.com/postgres/postgres/blob/master/HISTORY "HISTORY") | [HISTORY](https://github.com/postgres/postgres/blob/master/HISTORY "HISTORY") | [Canonicalize some URLs](https://github.com/postgres/postgres/commit/2102ba4b586350957bf95b371432583239000164 "Canonicalize some URLs") | 6 years agoFeb 10, 2020 |
+| [Makefile](https://github.com/postgres/postgres/blob/master/Makefile "Makefile") | [Makefile](https://github.com/postgres/postgres/blob/master/Makefile "Makefile") | [Restore AIX support.](https://github.com/postgres/postgres/commit/4a1b05caa55dc14a1f936af78d8d19c843bfd8b9 "Restore AIX support.  The concerns that led us to remove AIX support in commit 0b16bb877 have now been alleviated:  1. IBM has stepped forward to provide support, including buildfarm animal(s). 2. AIX 7.2 and later seem to be fine with large pg_attribute_aligned requirements.  Since 7.1 is now EOL anyway, we can just cease to support it. 3. Tossing xlc support overboard seems okay as well.  It's a bit sad to drop one of the few remaining non-gcc-alike compilers, but working around xlc's bugs and idiosyncrasies doesn't seem justified by the theoretical portability benefits. 4. Likewise, we can stop supporting 32-bit AIX builds.  This is not so much about whether we could build such executables as that they're too much of a pain to manage in the field, due to limited address space available for dynamic library loading. 5. We hit on a way to manage catalog column alignment that doesn't require continuing developer effort (see commit ecae09725).  Hence, this commit reverts 0b16bb877 and some follow-on commits such as e6bb491bf, except for not putting back XLC support nor the changes related to catalog column alignment.  Some other notable changes from the way things were in v16:  Prefer unnamed POSIX semaphores on AIX, rather than the default choice of SysV semaphores.  Include /opt/freeware/lib in -Wl,-blibpath, even when it is not mentioned anywhere in LDFLAGS.  Remove platform-specific adjustment of MEMSET_LOOP_LIMIT; maybe that's still the right thing, but it really ought to be re-tested.  Silence compiler warnings related to getpeereid(), wcstombs_l(), and PAM conversation procs.  Accept \"libpythonXXX.a\" as an okay name for the Python shared library (but only on AIX!).  Author: Aditya Kamath <Aditya.Kamath1@ibm.com> Author: Srirama Kucherlapati <sriram.rk@in.ibm.com> Co-authored-by: Peter Eisentraut <peter@eisentraut.org> Reviewed-by: Tom Lane <tgl@sss.pgh.pa.us> Discussion: https://postgr.es/m/CY5PR11MB63928CC05906F27FB10D74D0FD322@CY5PR11MB6392.namprd11.prod.outlook.com") | 7 months agoFeb 23, 2026 |
+| [README.md](https://github.com/postgres/postgres/blob/master/README.md "README.md") | [README.md](https://github.com/postgres/postgres/blob/master/README.md "README.md") | [Revise the style of a paragraph in README.md.](https://github.com/postgres/postgres/commit/84d80663199b98db32625b80b039a07487a11b47 "Revise the style of a paragraph in README.md.  Presently, one of the lines in README.md has trailing whitespace, which was added by commit 363eb05996 to maintain a line break that was in the non-Markdown version.  Instead of changing .gitattributes, let's match this paragraph's style with the style of the following paragraph, thereby removing the trailing whitespace.  Reported-by: Peter Eisentraut Reviewed-by: Daniel Gustafsson Discussion: https://postgr.es/m/c0a4e906-c6fe-4519-bd15-28dfcd03fdb2%40eisentraut.org") | 2 years agoMar 21, 2024 |
+| [aclocal.m4](https://github.com/postgres/postgres/blob/master/aclocal.m4 "aclocal.m4") | [aclocal.m4](https://github.com/postgres/postgres/blob/master/aclocal.m4 "aclocal.m4") | [autoconf: Move export\_dynamic determination to configure](https://github.com/postgres/postgres/commit/9db49fc5bfdc0126be03f4b8986013e59d93b91d "autoconf: Move export_dynamic determination to configure  Previously export_dynamic was set in src/makefiles/Makefile.$port. For solaris this required exporting with_gnu_ld. The determination of with_gnu_ld would be nontrivial to copy for meson PGXS compatibility.  It's also nice to delete libtool.m4.  This uses -Wl,--export-dynamic on all platforms, previously all platforms but FreeBSD used -Wl,-E. The likelihood of a name conflict seems lower with the longer spelling.  Discussion: https://postgr.es/m/20221005200710.luvw5evhwf6clig6@awork3.anarazel.de") | 4 years agoDec 7, 2022 |
+| [configure](https://github.com/postgres/postgres/blob/master/configure "configure") | [configure](https://github.com/postgres/postgres/blob/master/configure "configure") | [Revert "Make PL/Tcl require Tcl 8.6 or later"](https://github.com/postgres/postgres/commit/f4f77f557bb1a173f82be42770a28758732f4cc0 "Revert \"Make PL/Tcl require Tcl 8.6 or later\"  This reverts commit b6d3ccf2f5f1a179e25e277bae3f432cc084ce58.  macOS still ships with Tcl 8.5.") | 2 months agoJul 16, 2026 |
+| [configure.ac](https://github.com/postgres/postgres/blob/master/configure.ac "configure.ac") | [configure.ac](https://github.com/postgres/postgres/blob/master/configure.ac "configure.ac") | [Require ICU 55 or later](https://github.com/postgres/postgres/commit/4854b2373c738a3e2fe5a46c2667d908f7c7e13a "Require ICU 55 or later  Support for older versions is removed.  Since we no longer support RHEL 7, we don't need to support these old versions anymore.  This allows a fair amount of code cleanup, including some code blocks that specifically catered to old versions that probably received very little actual testing and use.  Reviewed-by: Jelte Fennema-Nio <postgres@jeltef.nl> Discussion: https://www.postgresql.org/message-id/flat/CA+hUKGL7trhWiJ4qxpksBztMMTWDyPnP1QN+Lq341V7QL775DA@mail.gmail.com") | 2 months agoJul 16, 2026 |
+| [meson.build](https://github.com/postgres/postgres/blob/master/meson.build "meson.build") | [meson.build](https://github.com/postgres/postgres/blob/master/meson.build "meson.build") | [meson: Fix ccache issues when using precompiled headers with gcc](https://github.com/postgres/postgres/commit/cf9d76d78d69aa0b11a50a50b31aa83506304cac "meson: Fix ccache issues when using precompiled headers with gcc  Unfortunately the combination of gcc, precompiled headers, ccache and meson currently is not safe without further options. The dependencies emitted by gcc are insufficient to trigger rebuilds when headers \"below\" the precompiled headers are changed. Whether that's a ccache, gcc or meson bug is debatable. Luckily gcc's -fpch-deps option fixes the issue.  This problem occasionally leads to build failures, e.g. if only c.h, postgres.h or pg_config_manual.h change. That's e.g. the case when creating a new major version branch.  Reviewed-by: Nazir Bilal Yavuz <byavuz81@gmail.com> Reviewed-by: Jelte Fennema-Nio <postgres@jeltef.nl> Discussion: https://postgr.es/m/CAN55FZ0tqR6Xz%3DiVFLc1BBoLOEHU775ARhcGYwggHA3XLA%3DoQg%40mail.gmail.com Discussion: https://postgr.es/m/CA+hUKG+s7Yvt0PUnSQUEjCjysV-7-51n9B1h468Le3VJi0x4ZQ@mail.gmail.com Discussion: https://postgr.es/m/phsrssp75npoyalqsolcd7fmnmlbzbmquc2p7w7mqjlw7432jk@bzskz3luyjvb Discussion: https://github.com/ccache/ccache/issues/1686 Backpatch-through: 16, where meson support was added") | 2 months agoJul 17, 2026 |
+| [meson\_options.txt](https://github.com/postgres/postgres/blob/master/meson_options.txt "meson_options.txt") | [meson\_options.txt](https://github.com/postgres/postgres/blob/master/meson_options.txt "meson_options.txt") | [Revert "Add built-in fuzzing harnesses for security testing."](https://github.com/postgres/postgres/commit/eec8e234bdcbe43e0407b03c44484bf75423d515 "Revert \"Add built-in fuzzing harnesses for security testing.\"  This reverts commit 4a18907b412e77684bf888ad6d1b4844d220196a.  inadvertenly pushed, mea culpa") | 5 months agoApr 10, 2026 |
+| View all files |
+
+## Repository files navigation
+
+# PostgreSQL Database Management System
+
+[Permalink: PostgreSQL Database Management System](https://github.com/postgres/postgres#postgresql-database-management-system)
+
+This directory contains the source code distribution of the PostgreSQL
+database management system.
+
+PostgreSQL is an advanced object-relational database management system
+that supports an extended subset of the SQL standard, including
+transactions, foreign keys, subqueries, triggers, user-defined types
+and functions. This distribution also contains C language bindings.
+
+Copyright and license information can be found in the file COPYRIGHT.
+
+General documentation about this version of PostgreSQL can be found at
+[https://www.postgresql.org/docs/devel/](https://www.postgresql.org/docs/devel/). In particular, information
+about building PostgreSQL from the source code can be found at
+[https://www.postgresql.org/docs/devel/installation.html](https://www.postgresql.org/docs/devel/installation.html).
+
+The latest version of this software, and related software, may be
+obtained at [https://www.postgresql.org/download/](https://www.postgresql.org/download/). For more information
+look at our web site located at [https://www.postgresql.org/](https://www.postgresql.org/).
+
+## About
+
+Mirror of the official PostgreSQL GIT repository. Note that this is just a \*mirror\* - we don't work with pull requests on github. To contribute, please see [https://wiki.postgresql.org/wiki/Submitting\_a\_Patch](https://wiki.postgresql.org/wiki/Submitting_a_Patch)
+
+[www.postgresql.org/](https://www.postgresql.org/)
+
+### Resources
+
+[Readme](https://github.com/postgres/postgres#readme-ov-file)
+
+[License](https://github.com/postgres/postgres#License-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/postgres/postgres#coc-ov-file)
+
+### Contributing
+
+[Contributing](https://github.com/postgres/postgres#contributing-ov-file)
+
+### Security policy
+
+[Security policy](https://github.com/postgres/postgres#security-ov-file)
+
+[Activity](https://github.com/postgres/postgres/activity)
+
+[Custom properties](https://github.com/postgres/postgres/custom-properties)
+
+### Stars
+
+**22.0k** stars
+
+### Watchers
+
+**574** watching
+
+### Forks
+
+[**5.9k** forks](https://github.com/postgres/postgres/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fpostgres%2Fpostgres&report=postgres+%28user%29)
+
+## Releases
+
+## Packages
+
+## Used by
+
+## Contributors
+
+## Languages
+
+You can’t perform that action at this time.

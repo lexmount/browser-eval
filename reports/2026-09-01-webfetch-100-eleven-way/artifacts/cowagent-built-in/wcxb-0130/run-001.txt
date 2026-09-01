@@ -1,1 +1,0 @@
-Error: HTTP 403 for URL: https://101blockchains.com/free-blockchain-course/

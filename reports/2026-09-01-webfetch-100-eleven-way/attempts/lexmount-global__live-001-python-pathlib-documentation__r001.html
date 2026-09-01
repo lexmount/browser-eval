@@ -1,0 +1,258 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-001-python-pathlib-documentation__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>Python pathlib documentation</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,530 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：pathlib — Object-oriented filesystem paths；This module offers classes representing filesystem paths；Basic use。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/pathlib.html">https://docs.python.org/3/library/pathlib.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>pathlib — Object-oriented filesystem paths
+This module offers classes representing filesystem paths
+Basic use</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：pathlib — Object-oriented filesystem paths</li><li>是否保留核对点：This module offers classes representing filesystem paths</li><li>是否保留核对点：Basic use</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-001-python-pathlib-documentation/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/pathlib.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:77f10dcdbdea93fa52f9700fd1c5da82b96c5bae30f649bd17f4db89b16ddfe7</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>pathlib — Object-oriented filesystem paths
+This module offers classes representing filesystem paths
+Basic use</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>pathlib — Object-oriented filesystem paths¶
+Added in version 3.4.
+Source code: Lib/pathlib/
+This module offers classes representing filesystem paths with semantics appropriate for different operating systems. Path classes are divided between pure paths, which provide purely computational operations without I/O, and concrete paths, which inherit from pure paths but also provide I/O operations.
+If you’ve never used this module before or just aren’t sure which class is right for your task, Path is most likely what you need. It instantiates a concrete path for the platform the code is running on.
+Pure paths are useful in some special cases; for example:
+If you want to manipulate Windows paths on a Unix machine (or vice versa). You cannot instantiate a WindowsPath when running on Unix, but you can instantiate PureWindowsPath.
+If you want to manipulate Windows paths on a Unix machine (or vice versa). You cannot instantiate a WindowsPath when running on Unix, but you can instantiate PureWindowsPath.
+You want to make sure that your code only manipulates paths without actually accessing the OS. In this case, instantiating one of the pure classes may be useful since those simply don’t have any OS-accessing operations.
+You want to make sure that your code only manipulates paths without actually accessing the OS. In this case, instantiating one of the pure classes may be useful since those simply don’t have any OS-accessing operations.
+See also
+PEP 428: The pathlib module – object-oriented filesystem paths.
+See also
+For low-level path manipulation on strings, you can also use the os.path module.
+Basic use¶
+Importing the main class:
+&gt;&gt;&gt; from pathlib import Path
+Listing subdirectories:
+&gt;&gt;&gt; p = Path(&#x27;.&#x27;) &gt;&gt;&gt; [x for x in p.iterdir() if x.is_dir()] [PosixPath(&#x27;.hg&#x27;), PosixPath(&#x27;docs&#x27;), </pre></div></div><details><summary>展开本页中的完整供应商输出（12,924 / 12,924 字符）</summary><pre>pathlib — Object-oriented filesystem paths¶
+Added in version 3.4.
+Source code: Lib/pathlib/
+This module offers classes representing filesystem paths with semantics appropriate for different operating systems. Path classes are divided between pure paths, which provide purely computational operations without I/O, and concrete paths, which inherit from pure paths but also provide I/O operations.
+If you’ve never used this module before or just aren’t sure which class is right for your task, Path is most likely what you need. It instantiates a concrete path for the platform the code is running on.
+Pure paths are useful in some special cases; for example:
+If you want to manipulate Windows paths on a Unix machine (or vice versa). You cannot instantiate a WindowsPath when running on Unix, but you can instantiate PureWindowsPath.
+If you want to manipulate Windows paths on a Unix machine (or vice versa). You cannot instantiate a WindowsPath when running on Unix, but you can instantiate PureWindowsPath.
+You want to make sure that your code only manipulates paths without actually accessing the OS. In this case, instantiating one of the pure classes may be useful since those simply don’t have any OS-accessing operations.
+You want to make sure that your code only manipulates paths without actually accessing the OS. In this case, instantiating one of the pure classes may be useful since those simply don’t have any OS-accessing operations.
+See also
+PEP 428: The pathlib module – object-oriented filesystem paths.
+See also
+For low-level path manipulation on strings, you can also use the os.path module.
+Basic use¶
+Importing the main class:
+&gt;&gt;&gt; from pathlib import Path
+Listing subdirectories:
+&gt;&gt;&gt; p = Path(&#x27;.&#x27;) &gt;&gt;&gt; [x for x in p.iterdir() if x.is_dir()] [PosixPath(&#x27;.hg&#x27;), PosixPath(&#x27;docs&#x27;), PosixPath(&#x27;dist&#x27;), PosixPath(&#x27;__pycache__&#x27;), PosixPath(&#x27;build&#x27;)]
+Listing Python source files in this directory tree:
+&gt;&gt;&gt; list(p.glob(&#x27;**/*.py&#x27;)) [PosixPath(&#x27;test_pathlib.py&#x27;), PosixPath(&#x27;setup.py&#x27;), PosixPath(&#x27;pathlib.py&#x27;), PosixPath(&#x27;docs/conf.py&#x27;), PosixPath(&#x27;build/lib/pathlib.py&#x27;)]
+Navigating inside a directory tree:
+&gt;&gt;&gt; p = Path(&#x27;/etc&#x27;) &gt;&gt;&gt; q = p / &#x27;init.d&#x27; / &#x27;reboot&#x27; &gt;&gt;&gt; q PosixPath(&#x27;/etc/init.d/reboot&#x27;) &gt;&gt;&gt; q.resolve() PosixPath(&#x27;/etc/rc.d/init.d/halt&#x27;)
+Querying path properties:
+&gt;&gt;&gt; q.exists() True &gt;&gt;&gt; q.is_dir() False
+Opening a file:
+&gt;&gt;&gt; with q.open() as f: f.readline() ... &#x27;#!/bin/bash\n&#x27;
+Exceptions¶
+An exception inheriting NotImplementedError that is raised when an unsupported operation is called on a path object. Added in version 3.13.
+An exception inheriting NotImplementedError that is raised when an unsupported operation is called on a path object.
+Added in version 3.13.
+Pure paths¶
+Pure path objects provide path-handling operations which don’t actually access a filesystem. There are three ways to access these classes, which we also call flavours:
+A generic class that represents the system’s path flavour (instantiating it creates either a PurePosixPath or a PureWindowsPath): &gt;&gt;&gt; PurePath(&#x27;setup.py&#x27;) # Running on a Unix machine PurePosixPath(&#x27;setup.py&#x27;) Each element of pathsegments can be either a string representing a path segment, or an object implementing the os.PathLike interface where the __fspath__() method returns a string, such as another path object: &gt;&gt;&gt; PurePath(&#x27;foo&#x27;, &#x27;some/path&#x27;, &#x27;bar&#x27;) PurePosixPath(&#x27;foo/some/path/bar&#x27;) &gt;&gt;&gt; PurePath(Path(&#x27;foo&#x27;), Path(&#x27;bar&#x27;)) PurePosixPath(&#x27;foo/bar&#x27;) When pathsegments is empty, the current directory is assumed: &gt;&gt;&gt; PurePath() PurePosixPath(&#x27;.&#x27;) If a segment is an absolute path, all previous segments are ignored (like os.path.join()): &gt;&gt;&gt; PurePath(&#x27;/etc&#x27;, &#x27;/usr&#x27;, &#x27;lib64&#x27;) PurePosixPath(&#x27;/usr/lib64&#x27;) &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Windows&#x27;, &#x27;d:bar&#x27;) PureWindowsPath(&#x27;d:bar&#x27;) On Windows, the drive is not reset when a rooted relative path segment (e.g., r&#x27;\foo&#x27;) is encountered: &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Windows&#x27;, &#x27;/Program Files&#x27;) PureWindowsPath(&#x27;c:/Program Files&#x27;) Spurious slashes and single dots are collapsed, but double dots (&#x27;..&#x27;) and leading double slashes (&#x27;//&#x27;) are not, since this would change the meaning of a path for various reasons (e.g. symbolic links, UNC paths): &gt;&gt;&gt; PurePath(&#x27;foo//bar&#x27;) PurePosixPath(&#x27;foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;//foo/bar&#x27;) PurePosixPath(&#x27;//foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;foo/./bar&#x27;) PurePosixPath(&#x27;foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;foo/../bar&#x27;) PurePosixPath(&#x27;foo/../bar&#x27;) (a naïve approach would make PurePosixPath(&#x27;foo/../bar&#x27;) equivalent to PurePosixPath(&#x27;bar&#x27;), which is wrong if foo is a symbolic link to another directory) Pure path objects implement the os.PathLike interface, allowing them to be used anywhere the interface is accepted. Changed in version 3.6: Added support for the os.PathLike interface.
+A generic class that represents the system’s path flavour (instantiating it creates either a PurePosixPath or a PureWindowsPath):
+&gt;&gt;&gt; PurePath(&#x27;setup.py&#x27;) # Running on a Unix machine PurePosixPath(&#x27;setup.py&#x27;)
+Each element of pathsegments can be either a string representing a path segment, or an object implementing the os.PathLike interface where the __fspath__() method returns a string, such as another path object:
+&gt;&gt;&gt; PurePath(&#x27;foo&#x27;, &#x27;some/path&#x27;, &#x27;bar&#x27;) PurePosixPath(&#x27;foo/some/path/bar&#x27;) &gt;&gt;&gt; PurePath(Path(&#x27;foo&#x27;), Path(&#x27;bar&#x27;)) PurePosixPath(&#x27;foo/bar&#x27;)
+When pathsegments is empty, the current directory is assumed:
+&gt;&gt;&gt; PurePath() PurePosixPath(&#x27;.&#x27;)
+If a segment is an absolute path, all previous segments are ignored (like os.path.join()):
+&gt;&gt;&gt; PurePath(&#x27;/etc&#x27;, &#x27;/usr&#x27;, &#x27;lib64&#x27;) PurePosixPath(&#x27;/usr/lib64&#x27;) &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Windows&#x27;, &#x27;d:bar&#x27;) PureWindowsPath(&#x27;d:bar&#x27;)
+On Windows, the drive is not reset when a rooted relative path segment (e.g., r&#x27;\foo&#x27;) is encountered:
+&gt;&gt;&gt; PureWindowsPath(&#x27;c:/Windows&#x27;, &#x27;/Program Files&#x27;) PureWindowsPath(&#x27;c:/Program Files&#x27;)
+Spurious slashes and single dots are collapsed, but double dots (&#x27;..&#x27;) and leading double slashes (&#x27;//&#x27;) are not, since this would change the meaning of a path for various reasons (e.g. symbolic links, UNC paths):
+&gt;&gt;&gt; PurePath(&#x27;foo//bar&#x27;) PurePosixPath(&#x27;foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;//foo/bar&#x27;) PurePosixPath(&#x27;//foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;foo/./bar&#x27;) PurePosixPath(&#x27;foo/bar&#x27;) &gt;&gt;&gt; PurePath(&#x27;foo/../bar&#x27;) PurePosixPath(&#x27;foo/../bar&#x27;)
+(a naïve approach would make PurePosixPath(&#x27;foo/../bar&#x27;) equivalent to PurePosixPath(&#x27;bar&#x27;), which is wrong if foo is a symbolic link to another directory)
+Pure path objects implement the os.PathLike interface, allowing them to be used anywhere the interface is accepted.
+Changed in version 3.6: Added support for the os.PathLike interface.
+A subclass of PurePath, this path flavour represents non-Windows filesystem paths: &gt;&gt;&gt; PurePosixPath(&#x27;/etc/hosts&#x27;) PurePosixPath(&#x27;/etc/hosts&#x27;) pathsegments is specified similarly to PurePath.
+A subclass of PurePath, this path flavour represents non-Windows filesystem paths:
+&gt;&gt;&gt; PurePosixPath(&#x27;/etc/hosts&#x27;) PurePosixPath(&#x27;/etc/hosts&#x27;)
+pathsegments is specified similarly to PurePath.
+A subclass of PurePath, this path flavour represents Windows filesystem paths, including UNC paths: &gt;&gt;&gt; PureWindowsPath(&#x27;c:/&#x27;, &#x27;Users&#x27;, &#x27;Ximénez&#x27;) PureWindowsPath(&#x27;c:/Users/Ximénez&#x27;) &gt;&gt;&gt; PureWindowsPath(&#x27;//server/share/file&#x27;) PureWindowsPath(&#x27;//server/share/file&#x27;) pathsegments is specified similarly to PurePath.
+A subclass of PurePath, this path flavour represents Windows filesystem paths, including UNC paths:
+&gt;&gt;&gt; PureWindowsPath(&#x27;c:/&#x27;, &#x27;Users&#x27;, &#x27;Ximénez&#x27;) PureWindowsPath(&#x27;c:/Users/Ximénez&#x27;) &gt;&gt;&gt; PureWindowsPath(&#x27;//server/share/file&#x27;) PureWindowsPath(&#x27;//server/share/file&#x27;)
+pathsegments is specified similarly to PurePath.
+Regardless of the system you’re running on, you can instantiate all of these classes, since they don’t provide any operation that does system calls.
+General properties¶
+Paths are immutable and hashable. Paths of a same flavour are comparable and orderable. These properties respect the flavour’s case-folding semantics:
+&gt;&gt;&gt; PurePosixPath(&#x27;foo&#x27;) == PurePosixPath(&#x27;FOO&#x27;) False &gt;&gt;&gt; PureWindowsPath(&#x27;foo&#x27;) == PureWindowsPath(&#x27;FOO&#x27;) True &gt;&gt;&gt; PureWindowsPath(&#x27;FOO&#x27;) in { PureWindowsPath(&#x27;foo&#x27;) } True &gt;&gt;&gt; PureWindowsPath(&#x27;C:&#x27;) &lt; PureWindowsPath(&#x27;d:&#x27;) True
+Paths of a different flavour compare unequal and cannot be ordered:
+&gt;&gt;&gt; PureWindowsPath(&#x27;foo&#x27;) == PurePosixPath(&#x27;foo&#x27;) False &gt;&gt;&gt; PureWindowsPath(&#x27;foo&#x27;) &lt; PurePosixPath(&#x27;foo&#x27;) Traceback (most recent call last): File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt; TypeError: &#x27;&lt;&#x27; not supported between instances of &#x27;PureWindowsPath&#x27; and &#x27;PurePosixPath&#x27;
+Operators¶
+The slash operator helps create child paths, like os.path.join(). If the argument is an absolute path, the previous path is ignored. On Windows, the drive is not reset when the argument is a rooted relative path (e.g., r&#x27;\foo&#x27;):
+&gt;&gt;&gt; p = PurePath(&#x27;/etc&#x27;) &gt;&gt;&gt; p PurePosixPath(&#x27;/etc&#x27;) &gt;&gt;&gt; p / &#x27;init.d&#x27; / &#x27;apache2&#x27; PurePosixPath(&#x27;/etc/init.d/apache2&#x27;) &gt;&gt;&gt; q = PurePath(&#x27;bin&#x27;) &gt;&gt;&gt; &#x27;/usr&#x27; / q PurePosixPath(&#x27;/usr/bin&#x27;) &gt;&gt;&gt; p / &#x27;/an_absolute_path&#x27; PurePosixPath(&#x27;/an_absolute_path&#x27;) &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Windows&#x27;, &#x27;/Program Files&#x27;) PureWindowsPath(&#x27;c:/Program Files&#x27;)
+A path object can be used anywhere an object implementing os.PathLike is accepted:
+&gt;&gt;&gt; import os &gt;&gt;&gt; p = PurePath(&#x27;/etc&#x27;) &gt;&gt;&gt; os.fspath(p) &#x27;/etc&#x27;
+The string representation of a path is the raw filesystem path itself (in native form, e.g. with backslashes under Windows), which you can pass to any function taking a file path as a string:
+&gt;&gt;&gt; p = PurePath(&#x27;/etc&#x27;) &gt;&gt;&gt; str(p) &#x27;/etc&#x27; &gt;&gt;&gt; p = PureWindowsPath(&#x27;c:/Program Files&#x27;) &gt;&gt;&gt; str(p) &#x27;c:\\Program Files&#x27;
+Similarly, calling bytes on a path gives the raw filesystem path as a bytes object, as encoded by os.fsencode():
+&gt;&gt;&gt; bytes(p) b&#x27;/etc&#x27;
+Note
+Calling bytes is only recommended under Unix. Under Windows, the unicode form is the canonical representation of filesystem paths.
+Accessing individual parts¶
+To access the individual “parts” (components) of a path, use the following property:
+A tuple giving access to the path’s various components: &gt;&gt;&gt; p = PurePath(&#x27;/usr/bin/python3&#x27;) &gt;&gt;&gt; p.parts (&#x27;/&#x27;, &#x27;usr&#x27;, &#x27;bin&#x27;, &#x27;python3&#x27;) &gt;&gt;&gt; p = PureWindowsPath(&#x27;c:/Program Files/PSF&#x27;) &gt;&gt;&gt; p.parts (&#x27;c:\\&#x27;, &#x27;Program Files&#x27;, &#x27;PSF&#x27;) (note how the drive and local root are regrouped in a single part)
+A tuple giving access to the path’s various components:
+&gt;&gt;&gt; p = PurePath(&#x27;/usr/bin/python3&#x27;) &gt;&gt;&gt; p.parts (&#x27;/&#x27;, &#x27;usr&#x27;, &#x27;bin&#x27;, &#x27;python3&#x27;) &gt;&gt;&gt; p = PureWindowsPath(&#x27;c:/Program Files/PSF&#x27;) &gt;&gt;&gt; p.parts (&#x27;c:\\&#x27;, &#x27;Program Files&#x27;, &#x27;PSF&#x27;)
+(note how the drive and local root are regrouped in a single part)
+Methods and properties¶
+Pure paths provide the following methods and properties:
+The implementation of the os.path module used for low-level path parsing and joining: either posixpath or ntpath. Added in version 3.13.
+The implementation of the os.path module used for low-level path parsing and joining: either posixpath or ntpath.
+Added in version 3.13.
+A string representing the drive letter or name, if any: &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Program Files/&#x27;).drive &#x27;c:&#x27; &gt;&gt;&gt; PureWindowsPath(&#x27;/Program Files/&#x27;).drive &#x27;&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;/etc&#x27;).drive &#x27;&#x27; UNC shares are also considered drives: &gt;&gt;&gt; PureWindowsPath(&#x27;//host/share/foo.txt&#x27;).drive &#x27;\\\\host\\share&#x27;
+A string representing the drive letter or name, if any:
+&gt;&gt;&gt; PureWindowsPath(&#x27;c:/Program Files/&#x27;).drive &#x27;c:&#x27; &gt;&gt;&gt; PureWindowsPath(&#x27;/Program Files/&#x27;).drive &#x27;&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;/etc&#x27;).drive &#x27;&#x27;
+UNC shares are also considered drives:
+&gt;&gt;&gt; PureWindowsPath(&#x27;//host/share/foo.txt&#x27;).drive &#x27;\\\\host\\share&#x27;
+A string representing the (local or global) root, if any: &gt;&gt;&gt; PureWindowsPath(&#x27;c:/Program Files/&#x27;).root &#x27;\\&#x27; &gt;&gt;&gt; PureWindowsPath(&#x27;c:Program Files/&#x27;).root &#x27;&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;/etc&#x27;).root &#x27;/&#x27; UNC shares always have a root: &gt;&gt;&gt; PureWindowsPath(&#x27;//host/share&#x27;).root &#x27;\\&#x27; If the path starts with more than two successive slashes, PurePosixPath collapses them: &gt;&gt;&gt; PurePosixPath(&#x27;//etc&#x27;).root &#x27;//&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;///etc&#x27;).root &#x27;/&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;////etc&#x27;).root &#x27;/&#x27; Note This behavior conforms to The Open Group Base Specifications Issue 6, paragraph 4.11 Pathname Resolution: “A pathname that begins with two successive slashes may be interpreted in an implementation-defined manner, although more than two leading slashes shall be treated as a single slash.”
+A string representing the (local or global) root, if any:
+&gt;&gt;&gt; PureWindowsPath(&#x27;c:/Program Files/&#x27;).root &#x27;\\&#x27; &gt;&gt;&gt; PureWindowsPath(&#x27;c:Program Files/&#x27;).root &#x27;&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;/etc&#x27;).root &#x27;/&#x27;
+UNC shares always have a root:
+&gt;&gt;&gt; PureWindowsPath(&#x27;//host/share&#x27;).root &#x27;\\&#x27;
+If the path starts with more than two successive slashes, PurePosixPath collapses them:
+&gt;&gt;&gt; PurePosixPath(&#x27;//etc&#x27;).root &#x27;//&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;///etc&#x27;).root &#x27;/&#x27; &gt;&gt;&gt; PurePosixPath(&#x27;////etc&#x27;).root &#x27;/&#x27;
+Note
+This behavior conforms to The Open Group Base Specifications Issue 6, paragraph 4.11 Pathname Resolution:
+“A pathname that begins with two successive slashes may be interpreted in an implementation-defined manner, although more than two leading slashes shall be treated as a single slash.”</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-001-python-pathlib-documentation__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/pathlib.html</span></div><div class="kv"><b>输出大小</b>12,924 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>pathlib — Object-oriented filesystem paths</td><td>pathlib — Object-oriented filesystem paths</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>This module offers classes representing filesystem paths</td><td>This module offers classes representing filesystem paths</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Basic use</td><td>Basic use</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">pathlib — Object-oriented filesystem paths</span></p><p><span class="tag">pathlib — Object-oriented filesystem paths</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;69de220e-91ee-449a-8aa0-d924357b8dae&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 806,
+  &quot;dom_id&quot;: &quot;268086&quot;,
+  &quot;links_count&quot;: 27,
+  &quot;images_count&quot;: 2,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../bugs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../genindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;hashable&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-hashable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;path-like object&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-path-like-object&quot;
+    },
+    {
+      &quot;text&quot;: &quot;slices&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-slice&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../improve-page-nojs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../py-modindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;NotImplementedError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#NotImplementedError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ValueError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#ValueError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;previous&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/filesys.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;File and Directory Access&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/filesys.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;os.PathLike&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.html#os.PathLike&quot;
+    },
+    {
+      &quot;text&quot;: &quot;__fspath__()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.html#os.PathLike.__fspath__&quot;
+    },
+    {
+      &quot;text&quot;: &quot;os.fsencode()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.html#os.fsencode&quot;
+    },
+    {
+      &quot;text&quot;: &quot;next&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.path.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;os.path&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.path.html#module-os.path&quot;
+    },
+    {
+      &quot;text&quot;: &quot;os.path.isreserved()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.path.html#os.path.isreserved&quot;
+    },
+    {
+      &quot;text&quot;: &quot;os.path.join()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/os.path.html#os.path.join&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytes&quot;
+    },
+    {
+      &quot;text&quot;: &quot;UNC paths&quot;,
+      &quot;href&quot;: &quot;https://en.wikipedia.org/wiki/Path_(computing)#UNC&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/library/pathlib.rst?plain=1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lib/pathlib/&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/tree/3.14/Lib/pathlib/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;PEP 428&quot;,
+      &quot;href&quot;: &quot;https://peps.python.org/pep-0428/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;4.11 Pathname Resolution&quot;,
+      &quot;href&quot;: &quot;https://pubs.opengroup.org/onlinepubs/009695399/basedefs/xbd_chap04.html#tag_04_11&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Python&quot;,
+      &quot;href&quot;: &quot;https://www.python.org/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3.14/_images/social_previews/summary_library_pathlib_12bf8fbf.png&quot;,
+      &quot;alt&quot;: &quot;Source code: Lib/pathlib/ This module offers classes representing filesystem paths with semantics appropriate for different operating systems. Path classes are divided between pure paths, which pro...&quot;
+    },
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3/library/../_images/pathlib-inheritance.png&quot;,
+      &quot;alt&quot;: &quot;Inheritance diagram showing the classes available in pathlib. The most basic class is PurePath, which has three direct subclasses: PurePosixPath, PureWindowsPath, and Path. Further to these four classes, there are two classes that use multiple inheritance: PosixPath subclasses PurePosixPath and Path, and WindowsPath subclasses PureWindowsPath and Path.&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-001-python-pathlib-documentation__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-001-python-pathlib-documentation__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-001-python-pathlib-documentation__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

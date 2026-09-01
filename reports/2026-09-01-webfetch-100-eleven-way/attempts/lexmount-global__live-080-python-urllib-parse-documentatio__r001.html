@@ -1,0 +1,245 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-080-python-urllib-parse-documentatio__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>Python urllib.parse documentation</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,102 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：urllib.parse — Parse URLs into components；break Uniform Resource Locator (URL) strings up in components；URL Parsing。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/urllib.parse.html">https://docs.python.org/3/library/urllib.parse.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>urllib.parse — Parse URLs into components
+break Uniform Resource Locator (URL) strings up in components
+URL Parsing</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：urllib.parse — Parse URLs into components</li><li>是否保留核对点：break Uniform Resource Locator (URL) strings up in components</li><li>是否保留核对点：URL Parsing</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-080-python-urllib-parse-documentatio/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/urllib.parse.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:59713023259b964e917b9de37b303daead008d270a370121b0c7cee20669211e</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>urllib.parse — Parse URLs into components
+break Uniform Resource Locator (URL) strings up in components
+URL Parsing</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>urllib.parse — Parse URLs into components¶
+Source code: Lib/urllib/parse.py
+This module defines a standard interface to break Uniform Resource Locator (URL) strings up in components (addressing scheme, network location, path etc.), to combine the components back into a URL string, and to convert a “relative URL” to an absolute URL given a “base URL.”
+The module has been designed to match the internet RFC on Relative Uniform Resource Locators. It supports the following URL schemes: file, ftp, gopher, hdl, http, https, imap, itms-services, mailto, mms, news, nntp, prospero, rsync, rtsp, rtsps, rtspu, sftp, shttp, sip, sips, snews, svn, svn+ssh, telnet, wais, ws, wss.
+CPython implementation detail: The inclusion of the itms-services URL scheme can prevent an app from passing Apple’s App Store review process for the macOS and iOS App Stores. Handling for the itms-services scheme is always removed on iOS; on macOS, it may be removed if CPython has been built with the --with-app-store-compliance option.
+The urllib.parse module defines functions that fall into two broad categories: URL parsing and URL quoting. These are covered in detail in the following sections.
+This module’s functions use the deprecated term netloc (or net_loc), which was introduced in RFC 1808. However, this term has been obsoleted by RFC 3986, which introduced the term authority as its replacement. The use of netloc is continued for backward compatibility.
+URL Parsing¶
+The URL parsing functions focus on splitting a URL string into its components, or on combining URL components into a URL string.
+Parse a URL into five components, returning a 5-item named tuple SplitResult or SplitResultBytes. This corresponds to the general structure of a URL: scheme://netloc/path?query#fragment. Each tuple item is a strin</pre></div></div><details><summary>展开本页中的完整供应商输出（20,544 / 20,544 字符）</summary><pre>urllib.parse — Parse URLs into components¶
+Source code: Lib/urllib/parse.py
+This module defines a standard interface to break Uniform Resource Locator (URL) strings up in components (addressing scheme, network location, path etc.), to combine the components back into a URL string, and to convert a “relative URL” to an absolute URL given a “base URL.”
+The module has been designed to match the internet RFC on Relative Uniform Resource Locators. It supports the following URL schemes: file, ftp, gopher, hdl, http, https, imap, itms-services, mailto, mms, news, nntp, prospero, rsync, rtsp, rtsps, rtspu, sftp, shttp, sip, sips, snews, svn, svn+ssh, telnet, wais, ws, wss.
+CPython implementation detail: The inclusion of the itms-services URL scheme can prevent an app from passing Apple’s App Store review process for the macOS and iOS App Stores. Handling for the itms-services scheme is always removed on iOS; on macOS, it may be removed if CPython has been built with the --with-app-store-compliance option.
+The urllib.parse module defines functions that fall into two broad categories: URL parsing and URL quoting. These are covered in detail in the following sections.
+This module’s functions use the deprecated term netloc (or net_loc), which was introduced in RFC 1808. However, this term has been obsoleted by RFC 3986, which introduced the term authority as its replacement. The use of netloc is continued for backward compatibility.
+URL Parsing¶
+The URL parsing functions focus on splitting a URL string into its components, or on combining URL components into a URL string.
+Parse a URL into five components, returning a 5-item named tuple SplitResult or SplitResultBytes. This corresponds to the general structure of a URL: scheme://netloc/path?query#fragment. Each tuple item is a string, possibly empty. The delimiters as shown above are not part of the result, except for a leading slash in the path component, which is retained if present. Additionally, the netloc property is broken down into these additional attributes added to the returned object: username, password, hostname, and port. Percent-encoded sequences are not decoded. For example: &gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; urlsplit(&quot;scheme://netloc/path?query#fragment&quot;) SplitResult(scheme=&#x27;scheme&#x27;, netloc=&#x27;netloc&#x27;, path=&#x27;/path&#x27;, query=&#x27;query&#x27;, fragment=&#x27;fragment&#x27;) &gt;&gt;&gt; o = urlsplit(&quot;http://docs.python.org:80/3/library/urllib.parse.html?&quot; ... &quot;highlight=params#url-parsing&quot;) &gt;&gt;&gt; o SplitResult(scheme=&#x27;http&#x27;, netloc=&#x27;docs.python.org:80&#x27;, path=&#x27;/3/library/urllib.parse.html&#x27;, query=&#x27;highlight=params&#x27;, fragment=&#x27;url-parsing&#x27;) &gt;&gt;&gt; o.scheme &#x27;http&#x27; &gt;&gt;&gt; o.netloc &#x27;docs.python.org:80&#x27; &gt;&gt;&gt; o.hostname &#x27;docs.python.org&#x27; &gt;&gt;&gt; o.port 80 &gt;&gt;&gt; o._replace(fragment=&quot;&quot;).geturl() &#x27;http://docs.python.org:80/3/library/urllib.parse.html?highlight=params&#x27; Following the syntax specifications in RFC 1808, urlsplit() recognizes a netloc only if it is properly introduced by ‘//’. Otherwise the input is presumed to be a relative URL and thus to start with a path component. &gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; urlsplit(&#x27;//www.cwi.nl:80/%7Eguido/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; urlsplit(&#x27;www.cwi.nl/%7Eguido/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;&#x27;, path=&#x27;www.cwi.nl/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; urlsplit(&#x27;help/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;&#x27;, path=&#x27;help/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) The scheme argument gives the default addressing scheme, to be used only if the URL does not specify one. It should be the same type (text or bytes) as urlstring, except that the default value &#x27;&#x27; is always allowed, and is automatically converted to b&#x27;&#x27; if appropriate. If the allow_fragments argument is false, fragment identifiers are not recognized. Instead, they are parsed as part of the path, parameters or query component, and fragment is set to the empty string in the return value. The return value is a named tuple, which means that its items can be accessed by index or as named attributes, which are: Attribute Index Value Value if not present scheme 0 URL scheme specifier scheme parameter netloc 1 Network location part empty string path 2 Hierarchical path empty string query 3 Query component empty string fragment 4 Fragment identifier empty string username User name None password Password None hostname Host name (lower case) None port Port number as integer, if present None Reading the port attribute will raise a ValueError if an invalid port is specified in the URL. See section Structured Parse Results for more information on the result object. Unmatched square brackets in the netloc attribute will raise a ValueError. Characters in the netloc attribute that decompose under NFKC normalization (as used by the IDNA encoding) into any of /, ?, #, @, or : will raise a ValueError. If the URL is decomposed before parsing, no error will be raised. Following some of the WHATWG spec that updates RFC 3986, leading C0 control and space characters are stripped from the URL. \n, \r and tab \t characters are removed from the URL at any position. As is the case with all named tuples, the subclass has a few additional methods and attributes that are particularly useful. One such method is _replace(). The _replace() method will return a new SplitResult object replacing specified fields with new values. &gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; u = urlsplit(&#x27;//www.cwi.nl:80/%7Eguido/Python.html&#x27;) &gt;&gt;&gt; u SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; u._replace(scheme=&#x27;http&#x27;) SplitResult(scheme=&#x27;http&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) Warning urlsplit() does not perform validation. See URL parsing security for details. Changed in version 3.2: Added IPv6 URL parsing capabilities. Changed in version 3.3: The fragment is now parsed for all URL schemes (unless allow_fragments is false), in accordance with RFC 3986. Previously, an allowlist of schemes that support fragments existed. Changed in version 3.6: Out-of-range port numbers now raise ValueError, instead of returning None. Changed in version 3.8: Characters that affect netloc parsing under NFKC normalization will now raise ValueError. Changed in version 3.10: ASCII newline and tab characters are stripped from the URL. Changed in version 3.12: Leading WHATWG C0 control and space characters are stripped from the URL.
+Parse a URL into five components, returning a 5-item named tuple SplitResult or SplitResultBytes. This corresponds to the general structure of a URL: scheme://netloc/path?query#fragment. Each tuple item is a string, possibly empty.
+The delimiters as shown above are not part of the result, except for a leading slash in the path component, which is retained if present.
+Additionally, the netloc property is broken down into these additional attributes added to the returned object: username, password, hostname, and port.
+Percent-encoded sequences are not decoded.
+For example:
+&gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; urlsplit(&quot;scheme://netloc/path?query#fragment&quot;) SplitResult(scheme=&#x27;scheme&#x27;, netloc=&#x27;netloc&#x27;, path=&#x27;/path&#x27;, query=&#x27;query&#x27;, fragment=&#x27;fragment&#x27;) &gt;&gt;&gt; o = urlsplit(&quot;http://docs.python.org:80/3/library/urllib.parse.html?&quot; ... &quot;highlight=params#url-parsing&quot;) &gt;&gt;&gt; o SplitResult(scheme=&#x27;http&#x27;, netloc=&#x27;docs.python.org:80&#x27;, path=&#x27;/3/library/urllib.parse.html&#x27;, query=&#x27;highlight=params&#x27;, fragment=&#x27;url-parsing&#x27;) &gt;&gt;&gt; o.scheme &#x27;http&#x27; &gt;&gt;&gt; o.netloc &#x27;docs.python.org:80&#x27; &gt;&gt;&gt; o.hostname &#x27;docs.python.org&#x27; &gt;&gt;&gt; o.port 80 &gt;&gt;&gt; o._replace(fragment=&quot;&quot;).geturl() &#x27;http://docs.python.org:80/3/library/urllib.parse.html?highlight=params&#x27;
+Following the syntax specifications in RFC 1808, urlsplit() recognizes a netloc only if it is properly introduced by ‘//’. Otherwise the input is presumed to be a relative URL and thus to start with a path component.
+&gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; urlsplit(&#x27;//www.cwi.nl:80/%7Eguido/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; urlsplit(&#x27;www.cwi.nl/%7Eguido/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;&#x27;, path=&#x27;www.cwi.nl/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; urlsplit(&#x27;help/Python.html&#x27;) SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;&#x27;, path=&#x27;help/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;)
+The scheme argument gives the default addressing scheme, to be used only if the URL does not specify one. It should be the same type (text or bytes) as urlstring, except that the default value &#x27;&#x27; is always allowed, and is automatically converted to b&#x27;&#x27; if appropriate.
+If the allow_fragments argument is false, fragment identifiers are not recognized. Instead, they are parsed as part of the path, parameters or query component, and fragment is set to the empty string in the return value.
+The return value is a named tuple, which means that its items can be accessed by index or as named attributes, which are:
+Attribute
+Index
+Value
+Value if not present
+scheme
+0
+URL scheme specifier
+scheme parameter
+netloc
+1
+Network location part
+empty string
+path
+2
+Hierarchical path
+empty string
+query
+3
+Query component
+empty string
+fragment
+4
+Fragment identifier
+empty string
+username
+User name
+None
+password
+Password
+None
+hostname
+Host name (lower case)
+None
+port
+Port number as integer, if present
+None
+Reading the port attribute will raise a ValueError if an invalid port is specified in the URL. See section Structured Parse Results for more information on the result object.
+Unmatched square brackets in the netloc attribute will raise a ValueError.
+Characters in the netloc attribute that decompose under NFKC normalization (as used by the IDNA encoding) into any of /, ?, #, @, or : will raise a ValueError. If the URL is decomposed before parsing, no error will be raised.
+Following some of the WHATWG spec that updates RFC 3986, leading C0 control and space characters are stripped from the URL. \n, \r and tab \t characters are removed from the URL at any position.
+As is the case with all named tuples, the subclass has a few additional methods and attributes that are particularly useful. One such method is _replace(). The _replace() method will return a new SplitResult object replacing specified fields with new values.
+&gt;&gt;&gt; from urllib.parse import urlsplit &gt;&gt;&gt; u = urlsplit(&#x27;//www.cwi.nl:80/%7Eguido/Python.html&#x27;) &gt;&gt;&gt; u SplitResult(scheme=&#x27;&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;) &gt;&gt;&gt; u._replace(scheme=&#x27;http&#x27;) SplitResult(scheme=&#x27;http&#x27;, netloc=&#x27;www.cwi.nl:80&#x27;, path=&#x27;/%7Eguido/Python.html&#x27;, query=&#x27;&#x27;, fragment=&#x27;&#x27;)
+Warning
+urlsplit() does not perform validation. See URL parsing security for details.
+Changed in version 3.2: Added IPv6 URL parsing capabilities.
+Changed in version 3.3: The fragment is now parsed for all URL schemes (unless allow_fragments is false), in accordance with RFC 3986. Previously, an allowlist of schemes that support fragments existed.
+Changed in version 3.6: Out-of-range port numbers now raise ValueError, instead of returning None.
+Changed in version 3.8: Characters that affect netloc parsing under NFKC normalization will now raise ValueError.
+Changed in version 3.10: ASCII newline and tab characters are stripped from the URL.
+Changed in version 3.12: Leading WHATWG C0 control and space characters are stripped from the URL.
+Parse a query string given as a string argument (data of type application/x-www-form-urlencoded). Data are returned as a dictionary. The dictionary keys are the unique query variable names and the values are lists of values for each name. The optional argument keep_blank_values is a flag indicating whether blank values in percent-encoded queries should be treated as blank strings. A true value indicates that blanks should be retained as blank strings. The default false value indicates that blank values are to be ignored and treated as if they were not included. The optional argument strict_parsing is a flag indicating what to do with parsing errors. If false (the default), errors are silently ignored. If true, errors raise a ValueError exception. The optional encoding and errors parameters specify how to decode percent-encoded sequences into Unicode characters, as accepted by the bytes.decode() method. The optional argument max_num_fields is the maximum number of fields to read. If set, then throws a ValueError if there are more than max_num_fields fields read. The optional argument separator is the symbol to use for separating the query arguments. It defaults to &amp;. Use the urllib.parse.urlencode() function (with the doseq parameter set to True) to convert such dictionaries into query strings. Changed in version 3.2: Add encoding and errors parameters. Changed in version 3.8: Added max_num_fields parameter. Changed in version 3.10: Added separator parameter with the default value of &amp;. Python versions earlier than Python 3.10 allowed using both ; and &amp; as query parameter separator. This has been changed to allow only a single separator key, with &amp; as the default separator. Deprecated since version 3.14: Accepting objects with false values (like 0 and []) except empty strings and byte-like objects and None is now deprecated.
+Parse a query string given as a string argument (data of type application/x-www-form-urlencoded). Data are returned as a dictionary. The dictionary keys are the unique query variable names and the values are lists of values for each name.
+The optional argument keep_blank_values is a flag indicating whether blank values in percent-encoded queries should be treated as blank strings. A true value indicates that blanks should be retained as blank strings. The default false value indicates that blank values are to be ignored and treated as if they were not included.
+The optional argument strict_parsing is a flag indicating what to do with parsing errors. If false (the default), errors are silently ignored. If true, errors raise a ValueError exception.
+The optional encoding and errors parameters specify how to decode percent-encoded sequences into Unicode characters, as accepted by the bytes.decode() method.
+The optional argument max_num_fields is the maximum number of fields to read. If set, then throws a ValueError if there are more than max_num_fields fields read.
+The optional argument separator is the symbol to use for separating the query arguments. It defaults to &amp;.
+Use the urllib.parse.urlencode() function (with the doseq parameter set to True) to convert such dictionaries into query strings.
+Changed in version 3.2: Add encoding and errors parameters.
+Changed in version 3.8: Added max_num_fields parameter.
+Changed in version 3.10: Added separator parameter with the default value of &amp;. Python versions earlier than Python 3.10 allowed using both ; and &amp; as query parameter separator. This has been changed to allow only a single separator key, with &amp; as the default separator.
+Deprecated since version 3.14: Accepting objects with false values (like 0 and []) except empty strings and byte-like objects and None is now deprecated.
+Parse a query string given as a string argument (data of type application/x-www-form-urlencoded). Data are returned as a list of name, value pairs. The optional argument keep_blank_values is a flag indicating whether blank values in percent-encoded queries should be treated as blank strings. A true value indicates that blanks should be retained as blank strings. The default false value indicates that blank values are to be ignored and treated as if they were not included. The optional argument strict_parsing is a flag indicating what to do with parsing errors. If false (the default), errors are silently ignored. If true, errors raise a ValueError exception. The optional encoding and errors parameters specify how to decode percent-encoded sequences into Unicode characters, as accepted by the bytes.decode() method. The optional argument max_num_fields is the maximum number of fields to read. If set, then throws a ValueError if there are more than max_num_fields fields read. The optional argument separator is the symbol to use for separating the query arguments. It defaults to &amp;. Use the urllib.parse.urlencode() function to convert such lists of pairs into query strings. Changed in version 3.2: Add encoding and errors parameters. Changed in version 3.8: Added max_num_fields parameter. Changed in version 3.10: Added separator parameter with the default value of &amp;. Python versions earlier than Python 3.10 allowed using both ; and &amp; as query parameter separator. This has been changed to allow only a single separator key, with &amp; as the default separator.
+Parse a query string given as a string argument (data of type application/x-www-form-urlencoded). Data are returned as a list of name, value pairs.
+The optional argument keep_blank_values is a flag indicating whether blank values in percent-encoded queries should be treated as blank strings. A true value indicates that blanks should be retained as blank strings. The default false value indicates that blank values are to be ignored and treated as if they were not included.
+The optional argument strict_parsing is a flag indicating what to do with parsing errors. If false (the default), errors are silently ignored. If true, errors raise a ValueError exception.
+The optional encoding and errors parameters specify how to decode percent-encoded sequences into Unicode characters, as accepted by the bytes.decode() method.
+The optional argument max_num_fields is the maximum number of fields to read. If set, then throws a ValueError if there are more than max_num_fields fields read.
+The optional argument separator is the symbol to use for separating the query arguments. It defaults to &amp;.
+Use the urllib.parse.urlencode() function to convert such lists of pairs into query strings.
+Changed in version 3.2: Add encoding and errors parameters.
+Changed in version 3.8: Added max_num_fields parameter.
+Changed in version 3.10: Added separator parameter with the default value of &amp;. Python versions earlier than Python 3.10 allowed using both ; and &amp; as query parameter separator. This has been changed to allow only a single separator key, with &amp; as the default separator.
+Construct a URL from a tuple as returned by urlsplit(). The parts argument can be any five-item iterable. This may result in a slightly different, but equivalent URL, if the URL that was parsed originally had unnecessary delimiters (for example, a ? with an empty query; the RFC states that these are equivalent).
+Construct a URL from a tuple as returned by urlsplit(). The parts argument can be any five-item iterable. This may result in a slightly different, but equivalent URL, if the URL that was parsed originally had unnecessary delimiters (for example, a ? with an empty query; the RFC states that these are equivalent).
+This is similar to urlsplit(), but additionally splits the path component on path and params. This function returns a 6-item named tuple ParseResult or ParseResultBytes. Its items are the same as for the urlsplit() result, except that params is inserted at index 3, between path and query. This function is based on obsoleted RFC 1738 and RFC 1808, which listed params as the main URL component. The more recent URL syntax allows parameters to be applied to each segment of the path portion of the URL (see RFC 3986). urlsplit() should generally be used instead of urlparse(). A separate function is needed to separate the path segments and parameters.
+This is similar to urlsplit(), but additionally splits the path component on path and params. This function returns a 6-item named tuple ParseResult or ParseResultBytes. Its items are the same as for the urlsplit() result, except that params is inserted at index 3, between path and query.
+This function is based on obsoleted RFC 1738 and RFC 1808, which listed params as the main URL component. The more recent URL syntax allows parameters to be applied to each segment of the path portion of the URL (see RFC 3986). urlsplit() should generally be used instead of urlparse(). A separate function is needed to separate the path segments and parameters.
+Combine the elements of a tuple as returned by urlparse() into a complete URL as a string. The parts argument can be any six-item iterable. This may result in a slightly different, but equivalent URL, if the URL that was parsed originally had unnecessary delimiters (for example, a ? with an empty query; the RFC states that these are equivalent).</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-080-python-urllib-parse-documentatio__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/urllib.parse.html</span></div><div class="kv"><b>输出大小</b>20,544 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>urllib.parse — Parse URLs into components</td><td>urllib.parse — Parse URLs into components</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>break Uniform Resource Locator (URL) strings up in components</td><td>break Uniform Resource Locator (URL) strings up in components</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>URL Parsing</td><td>URL Parsing</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">urllib.parse — Parse URLs into components</span></p><p><span class="tag">urllib.parse — Parse URLs into components</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;bd677a82-341d-48f5-a3b8-287ff5314582&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 673,
+  &quot;dom_id&quot;: &quot;268214&quot;,
+  &quot;links_count&quot;: 27,
+  &quot;images_count&quot;: 1,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;RFC 1738&quot;,
+      &quot;href&quot;: &quot;https://datatracker.ietf.org/doc/html/rfc1738.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;RFC 1808&quot;,
+      &quot;href&quot;: &quot;https://datatracker.ietf.org/doc/html/rfc1808.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;RFC 3986&quot;,
+      &quot;href&quot;: &quot;https://datatracker.ietf.org/doc/html/rfc3986.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../bugs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../genindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;named tuple&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-named-tuple&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../improve-page-nojs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../py-modindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;--with-app-store-compliance&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../using/configure.html#cmdoption-with-app-store-compliance&quot;
+    },
+    {
+      &quot;text&quot;: &quot;None&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/constants.html#None&quot;
+    },
+    {
+      &quot;text&quot;: &quot;TypeError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#TypeError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;UnicodeDecodeError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#UnicodeDecodeError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;ValueError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#ValueError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Internet Protocols and Support&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/internet.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytearray&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytearray&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytes&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes.decode()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytes.decode&quot;
+    },
+    {
+      &quot;text&quot;: &quot;str&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#str&quot;
+    },
+    {
+      &quot;text&quot;: &quot;tuple&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#tuple&quot;
+    },
+    {
+      &quot;text&quot;: &quot;next&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/urllib.error.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;previous&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/urllib.request.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/library/urllib.parse.rst?plain=1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lib/urllib/parse.py&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/tree/3.14/Lib/urllib/parse.py&quot;
+    },
+    {
+      &quot;text&quot;: &quot;WHATWG spec&quot;,
+      &quot;href&quot;: &quot;https://url.spec.whatwg.org/#concept-basic-url-parser&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Python&quot;,
+      &quot;href&quot;: &quot;https://www.python.org/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3.14/_images/social_previews/summary_library_urllib.parse_ce343eb8.png&quot;,
+      &quot;alt&quot;: &quot;Source code: Lib/urllib/parse.py This module defines a standard interface to break Uniform Resource Locator (URL) strings up in components (addressing scheme, network location, path etc.), to combi...&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-080-python-urllib-parse-documentatio__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-080-python-urllib-parse-documentatio__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-080-python-urllib-parse-documentatio__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

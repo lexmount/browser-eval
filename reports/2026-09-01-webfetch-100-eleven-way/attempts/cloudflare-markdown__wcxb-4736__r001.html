@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>cloudflare-markdown__wcxb-4736__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
-<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
-<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · cloudflare-markdown</div><h1>WCXB collection · Decorative Candles</h1><div class="meta"><span class="pill warn">程序判断未通过</span><span class="pill">第 1 次</span><span class="pill">5,444 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · cloudflare-markdown</div><h1>WCXB collection · Decorative Candles</h1><div class="meta"><span class="pill warn">程序判断未通过</span><span class="pill">第 1 次</span><span class="pill">10,403 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
 <section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 collection 页面并返回主要内容。必须覆盖三个冻结正文片段，并排除导航、登录、版权或购买控件等样板噪声。</p><p><b>输入 URL：</b><a href="https://www.anthropologie.com/collection-decorative-candles">https://www.anthropologie.com/collection-decorative-candles</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Espresso Martini Glass Candle
 $24.50
 
@@ -66,7 +66,7 @@ $23.00
 
 Ruffle Top Fruity Hibiscus &amp; Pink Guava Glass Candle
 $38.00</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否取得目标页面而非登录、挑战或错误页</li><li>是否覆盖三个冻结正文片段</li><li>是否排除列出的样板噪声</li><li>若 live 页面已变化，是否标记为标准答案漂移</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
-<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/cloudflare-markdown/wcxb-4736/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.anthropologie.com/collection-decorative-candles">打开标准答案源网页</a> · 完整性校验 <code>sha256:72c925bd8dc6d55009234f95bedcf790513512549b6c4bf79721c08a0695a2b8</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Espresso Martini Glass Candle
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/cloudflare-markdown/wcxb-4736/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.anthropologie.com/collection-decorative-candles">打开标准答案源网页</a> · 完整性校验 <code>sha256:ad229471a13b57b9d193befbd1c8cdf5800137c215566aedb670e89ee541cb1f</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Espresso Martini Glass Candle
 $24.50
 
 Romy Clover Floral Fresh Grass &amp; Hyacinth Glass Lidded Candle
@@ -131,16 +131,561 @@ $23.00
 
 Ruffle Top Fruity Hibiscus &amp; Pink Guava Glass Candle
 $38.00</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>---
-title: anthropologie.com
----</pre></div></div><details><summary>展开本页中的完整供应商输出（32 / 32 字符）</summary><pre>---
-title: anthropologie.com
----</pre></details></div></section>
-<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="callout failure"><b>程序判断未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>cloudflare-markdown__wcxb-4736__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.anthropologie.com/collection-decorative-candles</span></div><div class="kv"><b>输出大小</b>32 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>0.0%</div><div class="kv"><b>最小长度</b>未通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="bad">未命中</td><td>Espresso Martini Glass Candle</td><td>—</td></tr><tr><td><code>required-2</code></td><td class="bad">未命中</td><td>Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle</td><td>—</td></tr><tr><td><code>required-3</code></td><td class="bad">未命中</td><td>Nata Penne Pasta Shaped Wax Candle</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Decorative Candles</span><span class="tag">Espresso Martini Glass Candle</span></p><p><span class="empty">无</span></p><details><summary>方法返回的元数据</summary><pre>{
-  &quot;upstream_status&quot;: 403,
+title: &quot;Decorative Candles | Anthropologie&quot;
+meta:
+  description:
+  &quot;og:description&quot;:
+  &quot;og:title&quot;: &quot;Decorative Candles&quot;
+---
+
+[Skip to main content](#u-skip-anchor)
+
+limited time! Up to 40% Off Home
+
+[Shop now](https://www.anthropologie.com/labor-day-up-to-40-off-home) [See details](https://www.anthropologie.com/help/current-promotions)
+
+just added! NEW SALE STYLES
+
+[Shop now](https://www.anthropologie.com/sale-all)
+
+The Fall Dress Edit
+
+[slips, LBDs, knits &amp; more](https://www.anthropologie.com/new-clothes)
+
+Free Shipping On Orders $50+ [details](https://www.anthropologie.com/help/current-promotions)
+
+- also visit
+- [![Terrain Garden \&amp; Outdoor, opens in a new window](https://images.ctfassets.net/5de70he6op10/2Eltqde7FweVM2rgPvlj6Z/267f7985291fa044fc7015a4e8dedb81/BHLDN___Terrain_Logos_T-40.svg)opens in a new window](https://www.shopterrain.com?utm_medium=a_ref&amp;utm_source=anthro_en-us&amp;utm_campaign=topnav&amp;utm_term=link&amp;utm_content=terrain)
+
+- [Sign Up for SMS](https://www.anthropologie.com/help/sign-up)
+- [Gift Cards](https://www.anthropologie.com/gift-cards)
+- [Find a Store](https://www.anthropologie.com/stores)
+
+Sign In / Sign Up
+
+[![Anthropologie](https://images.ctfassets.net/5de70he6op10/53ZOE4rRqrxcvv0hg2eSLV/a849085e5f600c618132be2475017746/anthro-logo.svg)](https://www.anthropologie.com/?ref=logo)
+
+[![AnthroHome](https://images.ctfassets.net/5de70he6op10/iyOkdlCnbH40lXna86lHp/9eca4b850ad23667efb73d6390657b6b/AN___HomeLogo-Web.3.svg)](https://www.anthropologie.com/anthrohome?brand-switch=1&amp;ref=tab)
+
+Sign In / Sign Up
+
+- [New!](https://www.anthropologie.com/new-clothes)
+- [Top-Rated](https://www.anthropologie.com/top-rated-products)
+- [Dresses](https://www.anthropologie.com/dresses)
+- [Clothing](https://www.anthropologie.com/clothes)
+- [Shoes](https://www.anthrop</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（21,360 / 21,364 字符）</summary><pre>---
+title: &quot;Decorative Candles | Anthropologie&quot;
+meta:
+  description:
+  &quot;og:description&quot;:
+  &quot;og:title&quot;: &quot;Decorative Candles&quot;
+---
+
+[Skip to main content](#u-skip-anchor)
+
+limited time! Up to 40% Off Home
+
+[Shop now](https://www.anthropologie.com/labor-day-up-to-40-off-home) [See details](https://www.anthropologie.com/help/current-promotions)
+
+just added! NEW SALE STYLES
+
+[Shop now](https://www.anthropologie.com/sale-all)
+
+The Fall Dress Edit
+
+[slips, LBDs, knits &amp; more](https://www.anthropologie.com/new-clothes)
+
+Free Shipping On Orders $50+ [details](https://www.anthropologie.com/help/current-promotions)
+
+- also visit
+- [![Terrain Garden \&amp; Outdoor, opens in a new window](https://images.ctfassets.net/5de70he6op10/2Eltqde7FweVM2rgPvlj6Z/267f7985291fa044fc7015a4e8dedb81/BHLDN___Terrain_Logos_T-40.svg)opens in a new window](https://www.shopterrain.com?utm_medium=a_ref&amp;utm_source=anthro_en-us&amp;utm_campaign=topnav&amp;utm_term=link&amp;utm_content=terrain)
+
+- [Sign Up for SMS](https://www.anthropologie.com/help/sign-up)
+- [Gift Cards](https://www.anthropologie.com/gift-cards)
+- [Find a Store](https://www.anthropologie.com/stores)
+
+Sign In / Sign Up
+
+[![Anthropologie](https://images.ctfassets.net/5de70he6op10/53ZOE4rRqrxcvv0hg2eSLV/a849085e5f600c618132be2475017746/anthro-logo.svg)](https://www.anthropologie.com/?ref=logo)
+
+[![AnthroHome](https://images.ctfassets.net/5de70he6op10/iyOkdlCnbH40lXna86lHp/9eca4b850ad23667efb73d6390657b6b/AN___HomeLogo-Web.3.svg)](https://www.anthropologie.com/anthrohome?brand-switch=1&amp;ref=tab)
+
+Sign In / Sign Up
+
+- [New!](https://www.anthropologie.com/new-clothes)
+- [Top-Rated](https://www.anthropologie.com/top-rated-products)
+- [Dresses](https://www.anthropologie.com/dresses)
+- [Clothing](https://www.anthropologie.com/clothes)
+- [Shoes](https://www.anthropologie.com/shoes)
+- [Accessories](https://www.anthropologie.com/shoes-accessories)
+- [Weddings](https://www.anthropologie.com/bhldn-weddings)
+- [Home &amp; Furniture](https://www.anthropologie.com/house-home)
+- [Beauty](https://www.anthropologie.com/beauty-wellness)
+- [Maeve](https://www.anthropologie.com/maeve)
+- [Gifts &amp; Seasonal](https://www.anthropologie.com/all-gifts)
+- [Sale](https://www.anthropologie.com/sale-all)
+
+[Clear](#u-pwa-search-clear-anchor)
+
+Suggestions, trending searches, and preview results will populate after the search button.
+
+# Decorative Candles
+
+ 80 products
+
+Filter &amp; Sort
+
+Filter &amp; Sort
+
+80 products
+
+Sort
+
+- Featured
+- Price: Low to High
+- Price: High to Low
+- Newest
+- Bestselling
+- Ratings: High to Low
+- A-Z
+- Z-A
+
+Price
+
+Color
+
+In Stock
+
+Brand
+
+All Filters
+
+View
+
+346
+
+80 products
+
+Sort: Featured Price: Low to High Price: High to Low Newest Bestselling Ratings: High to Low A-Z Z-A
+
+-
+- 1  2
+- [Next ](https://www.anthropologie.com/collection-decorative-candles?page=2)
+
+[Top Rated![Haunted House Woody Honeycrisp \&amp; Pinecone Figural Glass Candle](https://images.urbndata.com/is/image/Anthropologie/108103862_001_g?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;Haunted House Woody Honeycrisp &amp; Pinecone Figural Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/haunted-house-woody-honeycrisp-pinecone-figural-glass-candle?color=001)
+
+Sale price: $40.60Original price: $58.00Limited Time!
+
+Quickshop
+
+![Honeycrisp \&amp; Pinecone](https://images.urbndata.com/is/image/Anthropologie/108103862_001_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated![Bistro Tile Amber Pumpkin \&amp; Spice 24k Gold Accent Ceramic Halloween Candle](https://images.urbndata.com/is/image/Anthropologie/107801433_010_g?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;Bistro Tile Amber Pumpkin &amp; Spice 24k Gold Accent Ceramic Halloween Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/bistro-tile-amber-pumpkin-spice-24k-gold-accent-ceramic-halloween-candle?color=010)
+
+Sale price: $37.80Original price: $54.00Limited Time!
+
+Quickshop
+
+![Amber Pumpkin \&amp; Spice](https://images.urbndata.com/is/image/Anthropologie/107801433_010_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[Top Rated![Pumpkin Sweet Vanilla Gourd Glass Candle](https://images.urbndata.com/is/image/Anthropologie/107877607_001_b14?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;Pumpkin Sweet Vanilla Gourd Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/pumpkin-sweet-vanilla-gourd-glass-candle?color=001)
+
+Sale price: $30.80 – $47.60Original price: $44.00 – $68.00Limited Time!
+
+Quickshop
+
+![Pumpkin Sweet Vanilla](https://images.urbndata.com/is/image/Anthropologie/107877607_001_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+![Pumpkin Sweet Vanilla](https://images.urbndata.com/is/image/Anthropologie/107877607_010_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+2 colors
+
+[Top Rated![The Gather Candle by Anthropologie: Fruity Hibiscus Tide](https://images.urbndata.com/is/image/Anthropologie/105823124_011_b15?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;The Gather Candle by Anthropologie: Fruity Hibiscus Tide&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-fruity-hibiscus-tide2?color=011)
+
+$26.00 – $48.00
+
+Quickshop
+
+![Hibiscus Tide](https://images.urbndata.com/is/image/Anthropologie/105823124_011_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[![Noir Luxe Gourmand Brown Sugar Latte Glass Candle](https://images.urbndata.com/is/image/Anthropologie/110422920_020_b?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;Noir Luxe Gourmand Brown Sugar Latte Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/noir-luxe-gourmand-brown-sugar-latte-glass-candle?color=020)
+
+$36.00
+
+Quickshop
+
+![Brown](https://images.urbndata.com/is/image/Anthropologie/110422920_020_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[![Cat on a Broom Shaped Wax Taper Candles, Set of 2](https://images.urbndata.com/is/image/Anthropologie/107305732_020_g?$an-category$&amp;qlt=80&amp;fit=constrain)&lt;h2&gt;Cat on a Broom Shaped Wax Taper Candles, Set of 2&lt;/h2&gt;](https://www.anthropologie.com/shop/cat-on-a-broom-shaped-wax-taper-candles-set-of-2?color=020)
+
+Sale price: $21.00Original price: $30.00Limited Time!
+
+Quickshop
+
+![Unscented](https://images.urbndata.com/is/image/Anthropologie/107305732_020_s?fit=constrain&amp;hei=56&amp;qlt=75)
+
+[&lt;h2&gt;Metal Walnut Gourmand Sugared Walnut &amp; Spice Figural Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/metal-walnut-gourmand-sugared-walnut-spice-figural-candle?color=007)
+
+Sale price: $38.40Original price: $64.00Limited Time!
+
+[&lt;h2&gt;Witches Hat Amber Pumpkin &amp; Spice Figural Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/witches-hat-amber-pumpkin-spice-figural-glass-candle?color=001)
+
+Sale price: $25.20Original price: $36.00Limited Time!
+
+[&lt;h2&gt;Fresh Off The Vine Figural Radish Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/fresh-off-the-vine-figural-radish-glass-candle?color=259)
+
+Sale price: $27.60Original price: $46.00Limited Time!
+
+[&lt;h2&gt;The Gather Candle by Anthropologie Figural Edition: Pumpkin Sweet Vanilla&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-figural-edition-pumpkin-sweet-vanilla?color=080)
+
+Sale price: $19.60 – $40.60Original price: $28.00 – $58.00Limited Time!
+
+[&lt;h2&gt;Gather Mini Candle by Anthropologie: Woody Warm Woods &amp; Santal&lt;/h2&gt;](https://www.anthropologie.com/shop/gather-mini-candle-by-anthropologie-woody-warm-woods-santal?color=020)
+
+Sale price: $15.60 – $28.80Original price: $26.00 – $48.00Limited Time!
+
+[&lt;h2&gt;Apothecary 18 Fruity Harvest Apple &amp; Vanilla Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/apothecary-18-fruity-harvest-apple-vanilla-glass-candle2?color=072)
+
+$46.00
+
+[&lt;h2&gt;Capri Blue Pumpkin Clove Glass Jar Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-jar-candle4?color=080)
+
+Sale price: $15.40 – $85.40Original price: $22.00 – $122.00Limited Time!
+
+[&lt;h2&gt;The Gather Candle by Anthropologie: Pumpkin Sweet Vanilla&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-pumpkin-sweet-vanilla3?color=080)
+
+Sale price: $12.00 – $64.80Original price: $20.00 – $108.00Limited Time!
+
+[&lt;h2&gt;The Gather Candle by Anthropologie: Honeycrisp Oakwood&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-honeycrisp-oakwood2?color=054)
+
+Sale price: $12.00 – $64.80Original price: $20.00 – $108.00Limited Time!
+
+[&lt;h2&gt;Amelie Woody Vanilla &amp; White Cedar&lt;/h2&gt;](https://www.anthropologie.com/shop/amelie-woody-vanilla-white-cedar?color=610)
+
+$68.00
+
+[&lt;h2&gt;Capri Blue Pumpkin Clove Glass Decorator Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-decorator-candle?color=080)
+
+Sale price: $30.80Original price: $44.00Limited Time!
+
+[&lt;h2&gt;Ghost Witch Shaped Wax Tapers&lt;/h2&gt;](https://www.anthropologie.com/shop/ghost-witch-shaped-wax-tapers?color=010)
+
+Sale price: $21.00Original price: $30.00Limited Time!
+
+[&lt;h2&gt;Fall Icon Cloche Pumpkin Sweet Vanilla Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/fall-icon-cloche-pumpkin-sweet-vanilla-glass-candle?color=089)
+
+Sale price: $23.80Original price: $34.00Limited Time!
+
+[&lt;h2&gt;Confetti Icon Dachshund Gourmand Pistachio Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/confetti-icon-dachshund-gourmand-pistachio-glass-candle?color=010)
+
+Sale price: $26.60Original price: $38.00Limited Time!
+
+[&lt;h2&gt;The Gather Candle by Anthropologie: Amber Pumpkin &amp; Spice&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-amber-pumpkin-spice2?color=010)
+
+Sale price: $12.00 – $24.00Original price: $20.00 – $40.00Limited Time!
+
+[&lt;h2&gt;Ghost Icon Cloche Gourmand Sugared Walnut &amp; Spice Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/ghost-icon-cloche-gourmand-sugared-walnut-spice-glass-candle?color=001)
+
+Sale price: $23.80Original price: $34.00Limited Time!
+
+[&lt;h2&gt;Bat Icon Cloche Pumpkin Oud Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/bat-icon-cloche-pumpkin-oud-glass-candle?color=040)
+
+Sale price: $23.80Original price: $34.00Limited Time!
+
+[&lt;h2&gt;Mini Pumpkin Sweet Vanilla Figural Glass Candle&lt;/h2&gt;
+
+](/shop/mini-pumpkin-sweet-vanilla-figural-glass-candle?color=080)
+
+Sale price: $12.60Original price: $18.00Limited Time!
+
+[&lt;h2&gt;Printed Mini Gather Candle by Anthropologie: Woody Sandalwood &amp; Vanilla&lt;/h2&gt;](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-woody-sandalwood-vanilla?color=046)
+
+Sale price: $14.40Original price: $24.00Limited Time!
+
+[&lt;h2&gt;Witches Hat Woody Honeycrisp &amp; Pinecone Figural Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/witches-hat-woody-honeycrisp-pinecone-figural-glass-candle?color=001)
+
+Sale price: $40.60Original price: $58.00Limited Time!
+
+[&lt;h2&gt;Newsstand Gourmand Cozy Matcha Ceramic Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/newsstand-gourmand-cozy-matcha-ceramic-candle?color=066)
+
+$44.00
+
+[&lt;h2&gt;54 Celsius The Lovers Glass Tarot Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/54-celsius-the-lovers-glass-tarot-candle?color=060)
+
+Sale price: $27.30Original price: $39.00Limited Time!
+
+[&lt;h2&gt;Newsstand Gourmand Salted Caramel Pretzel Ceramic Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/newsstand-gourmand-salted-caramel-pretzel-ceramic-candle?color=030)
+
+$44.00
+
+[&lt;h2&gt;Morning Sunshine Gourmand White Caramel Coffee Tinned Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/morning-sunshine-gourmand-white-caramel-coffee-tinned-candle?color=610)
+
+Sale price: $19.60Original price: $28.00Limited Time!
+
+[&lt;h2&gt;Amber Pumpkin &amp; Spice Copper Pumpkin Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/amber-pumpkin-spice-copper-pumpkin-candle?color=028)
+
+Sale price: $21.00Original price: $30.00Limited Time!
+
+[&lt;h2&gt;Printed Mini Gather Candle by Anthropologie: Fruity Honeycrisp &amp; Oakwood&lt;/h2&gt;](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-fruity-honeycrisp-oakwood?color=437)
+
+Sale price: $14.40Original price: $24.00Limited Time!
+
+[&lt;h2&gt;54 Celsius The Moon Glass Tarot Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/54-celsius-the-moon-glass-tarot-candle?color=040)
+
+Sale price: $27.30Original price: $39.00Limited Time!
+
+[&lt;h2&gt;The Gather Candle by Anthropologie: Woody White Pine &amp; Cashmere&lt;/h2&gt;](https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-woody-white-pine-cashmere?color=000)
+
+$24.00 – $42.00
+
+[&lt;h2&gt;Ciao Bella Gourmand Cozy Matcha Tinned Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/ciao-bella-gourmand-cozy-matcha-tinned-candle?color=030)
+
+Sale price: $16.80Original price: $28.00Limited Time!
+
+[&lt;h2&gt;Printed Mini Gather Candle by Anthropologie: Amber Pumpkin &amp; Spice&lt;/h2&gt;](https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-amber-pumpkin-spice?color=072)
+
+Sale price: $14.40Original price: $24.00Limited Time!
+
+[&lt;h2&gt;Poured New York Fruity Negroni Nights Marble Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/poured-new-york-fruity-negroni-nights-marble-candle?color=050)
+
+$110.00
+
+[&lt;h2&gt;Aperol Spritz Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/aperol-spritz-glass-candle?color=060)
+
+$36.00
+
+[&lt;h2&gt;mise en place Gourmand Gingerbread Mocha Ceramic Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/mise-en-place-gourmand-gingerbread-mocha-ceramic-candle?color=060)
+
+$38.00
+
+[&lt;h2&gt;Ice Cream Cone Taper Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/ice-cream-cone-taper-candle?color=000)
+
+$18.00
+
+[&lt;h2&gt;Happy Organics Blueberry Beeswax Candles, Set of 10&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-blueberry-beeswax-candles-set-of-10?color=000)
+
+$35.00
+
+Terrain
+
+[&lt;h2&gt;Dotted Rim Fruity Vanilla &amp; Dark Plum Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/dotted-rim-fruity-vanilla-dark-plum-glass-candle?color=259)
+
+$34.00
+
+[&lt;h2&gt;Ceramic Jar Candle, Chinoiserie&lt;/h2&gt;](https://www.anthropologie.com/shop/ceramic-jar-candle-chinoiserie?color=040)
+
+$78.00
+
+Terrain
+
+[&lt;h2&gt;Espresso Martini Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/espresso-martini-glass-candle?color=020)
+
+$35.00
+
+[&lt;h2&gt;Dotted Rim Fresh Vanilla Orchid &amp; Sea Salt Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/dotted-rim-fresh-vanilla-orchid-sea-salt-glass-candle?color=066)
+
+$34.00
+
+[&lt;h2&gt;54 Celsius The Magician Glass Tarot Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/54-celsius-the-magician-glass-tarot-candle?color=030)
+
+Sale price: $27.30Original price: $39.00Limited Time!
+
+[&lt;h2&gt;Poured New York Fresh Dirty Girl Martini Marble Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/poured-new-york-fresh-dirty-girl-martini-marble-candle?color=030)
+
+$110.00
+
+[&lt;h2&gt;Noir Luxe Gourmand Matcha Latte Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/noir-luxe-gourmand-matcha-latte-glass-candle?color=030)
+
+$36.00
+
+[&lt;h2&gt;Spring Swan Floral Fresh Grass &amp; Hyacinth Figural Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/spring-swan-floral-fresh-grass-hyacinth-figural-glass-candle?color=010)
+
+$34.00
+
+[&lt;h2&gt;Happy Organics Raspberry Beeswax Candles, Set of 10&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-raspberry-beeswax-candles-set-of-10?color=000)
+
+$35.00
+
+Terrain
+
+[&lt;h2&gt;Happy Organics Asparagus Beeswax Tapers, Set of 2&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-asparagus-beeswax-tapers-set-of-2?color=000)
+
+$32.00
+
+Terrain
+
+[&lt;h2&gt;Dotted Rim Fresh White Cashmere &amp; Musk Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/dotted-rim-fresh-white-cashmere-musk-glass-candle?color=011)
+
+$34.00
+
+[&lt;h2&gt;Dotted Rim Fruity Honeycrisp Oakwood Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/dotted-rim-fruity-honeycrisp-oakwood-glass-candle?color=001)
+
+$34.00
+
+[&lt;h2&gt;Happy Organics Snap Pea Beeswax Candles, Set of 5&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-snap-pea-beeswax-candles-set-of-5?color=000)
+
+$25.00
+
+Terrain
+
+[&lt;h2&gt;Cherie Floral Black Fig &amp; Olive Lidded Porcelain Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/cherie-floral-black-fig-olive-lidded-porcelain-candle?color=001)
+
+$27.00
+
+[&lt;h2&gt;Happy Organics Plum Beeswax Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-plum-beeswax-candle?color=000)
+
+$24.00
+
+Terrain
+
+[&lt;h2&gt;Poured New York Woody Bougie D&#x27;oud Marble Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/poured-new-york-woody-bougie-doud-marble-candle?color=001)
+
+$110.00
+
+[&lt;h2&gt;Happy Organics Zucchini Beeswax Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-zucchini-beeswax-candle?color=000)
+
+$28.00
+
+Terrain
+
+[&lt;h2&gt;Davie Ocho Candle Co. Poodle Decorative Shaped Wax Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/davie-ocho-candle-co-poodle-decorative-shaped-wax-candle2?color=010)
+
+$72.00
+
+[&lt;h2&gt;Merry Music Box Woody Fresh Balsam &amp; Cedarwood Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/merry-music-box-woody-fresh-balsam-cedarwood-glass-candle?color=070)
+
+$58.00
+
+[&lt;h2&gt;Paddywax Gourmand Smoked Pistachio Ceramic Cowboy Boot Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/paddywax-gourmand-smoked-pistachio-ceramic-cowboy-boot-candle?color=010)
+
+$32.00
+
+[&lt;h2&gt;Davie Ocho Cowboy Hat Decorative Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/davie-ocho-cowboy-hat-decorative-candle?color=010)
+
+$140.00
+
+[&lt;h2&gt;Davie Ocho Candle Co. Fruit Basket Decorative Shaped Wax Candle Set&lt;/h2&gt;](https://www.anthropologie.com/shop/davie-ocho-candle-co-fruit-basket-decorative-shaped-wax-candle-set2?color=000)
+
+$140.00
+
+[&lt;h2&gt;Dotted Rim Woody Juniper &amp; Cedar Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/dotted-rim-woody-juniper-cedar-glass-candle?color=020)
+
+$34.00
+
+[&lt;h2&gt;Happy Organics Celery Beeswax Tapers, Set of 2&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-celery-beeswax-tapers-set-of-2?color=030)
+
+$36.00
+
+Terrain
+
+[&lt;h2&gt;Davie Ocho Cowboy Boot Decorative Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/davie-ocho-cowboy-boot-decorative-candle?color=010)
+
+$125.00
+
+[&lt;h2&gt;Peony Blush Heart Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/peony-blush-heart-candle?color=031)
+
+$68.00
+
+Terrain
+
+[&lt;h2&gt;Figural Mini Cocktail Shaker Fruity Cranberry Fizz Metal Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/figural-mini-cocktail-shaker-fruity-cranberry-fizz-metal-candle?color=007)
+
+$28.00
+
+[&lt;h2&gt;Happy Organics Heirloom Tomato Beeswax Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/happy-organics-heirloom-tomato-beeswax-candle?color=000)
+
+$38.00
+
+Terrain
+
+[&lt;h2&gt;Poured New York Floral Cottage Proper Marble Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/poured-new-york-floral-cottage-proper-marble-candle?color=060)
+
+$110.00
+
+[&lt;h2&gt;Snowflake Icon Woody Juniper &amp; Cedar Glass Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/snowflake-icon-woody-juniper-cedar-glass-candle?color=048)
+
+$38.00
+
+[&lt;h2&gt;Poured New York City Fresh Bicoastal Lidded Stone Candle&lt;/h2&gt;](https://www.anthropologie.com/shop/poured-new-york-city-fresh-bicoastal-lidded-stone-candle?color=066)
+
+$110.00
+
+-
+- 1  2
+- [Next ](https://www.anthropologie.com/collection-decorative-candles?page=2)
+
+![Company Logo](https://cdn.cookielaw.org/logos/a9d3dc19-0c91-478e-9e19-de0cc524c81c/07aaf7bd-0c2d-49be-a492-bd1524c311dd/e403f2f2-46f5-4bac-b6cc-cb5b4063dba4/anthro-logo.png)
+
+## Manage Cookie Preferences
+
+Make selections below to opt-in for optional cookies.
+[Cookie use policy](https://www.anthropologie.com/cookies)
+
+Allow All
+
+### Manage Consent Preferences
+
+#### Strictly Necessary Cookies
+
+Always Active
+
+These cookies are necessary for the website to function and cannot be switched off in our systems. They are usually only set in response to actions made by you which amount to a request for services, such as setting your privacy preferences, logging in or filling in forms. You can set your browser to block or alert you about these cookies, but some parts of the site will not then work. These cookies do not store any personally identifiable information.
+
+#### Analytics
+
+Analytics
+
+Analytics cookies help us improve our website by collecting and reporting info on how you use it. They collect information in a way that does not directly identify anyone.
+
+#### Personalization
+
+Personalization
+
+Personalisation cookies collect information about your use of this site in order to display content and experiences that are relevant to you.
+
+#### Marketing
+
+Marketing
+
+Marketing cookies collect information about your use of this and other sites to enable display ads and other marketing that is more relevant to you.
+
+Back Button
+
+### Cookie List
+
+Search Icon
+
+Filter Icon
+
+Clear
+
+- checkbox label label
+
+Apply Cancel
+
+Consent Leg.Interest
+
+checkbox label label
+
+checkbox label label
+
+checkbox label label
+
+Confirm My Choices
+
+[![Powered by Onetrust](https://cdn.cookielaw.org/logos/static/powered_by_logo.svg &quot;Powered by OneTrust Opens in a new Tab&quot;)Powered by OneTrust Opens in a new Tab](https://www.onetrust.com/solutions/consent-and-preferences/?utm_source=cmp&amp;utm_medium=cmpbanner)
+
+Chat
+
+![](https://bat.bing.com/action/0?ti=5715115&amp;Ver=2&amp;mid=32ae5fbf-35de-495b-b721-8fdd06738962&amp;bo=2&amp;sid=f8bca590a5fe11f198a953ed01d3b3dc&amp;vid=f8bcc8a0a5fe11f1a0d5d5f93cc21dd1&amp;vids=1&amp;msclkid=N&amp;pi=918639831&amp;lg=en-US&amp;sw=800&amp;sh=600&amp;sc=24&amp;nwd=1&amp;tl=Decorative%20Candles%20%7C%20Anthropologie&amp;p=https%3A%2F%2Fwww.anthropologie.com%2Fcollection-decorative-candles&amp;r=&amp;lt=1718&amp;evt=pageLoad&amp;sv=2&amp;asc=G&amp;cdb=AQET&amp;rn=660094)
+
+![](https://ib.adnxs.com/setuid?entity=315&amp;code=EZDdUoueN1QYT4O4QcoYl6elg4IjuyN53NYyDQDml9Y&amp;consent=1)![](https://ash46.creativecdn.com/info?tk=zy_-rd--DcRdHQN_MHoRXHNnIqFtP8-JbAII-W1DvgwBY3Ga8zMUNkc7Q_LWvXHIqqT60tFYzJp-IxirHzj7QQA)![](https://cm.g.doubleclick.net/pixel?google_nid=rtb_house&amp;google_cm&amp;google_sc&amp;google_ula=5153224&amp;process_consent=T&amp;google_hm=EZDdUoueN1QYT4O4QcoYl6elg4IjuyN53NYyDQDml9Y&amp;pi=adx&amp;tdc=ash)![](https://ash46.creativecdn.com/info?tk=zy_-rd--DcRdHQN_MHoRXKprcgE6pW0wFIWCp_fZ83LX1r6aoXAd64ngU3tKvIHZrwcIHCA6R_js6wuX0bOdMgA)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="callout failure"><b>程序判断未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>cloudflare-markdown__wcxb-4736__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.anthropologie.com/collection-decorative-candles</span></div><div class="kv"><b>输出大小</b>21,364 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>33.3%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>required-1</code></td><td class="good">命中</td><td>Espresso Martini Glass Candle</td><td>Espresso Martini Glass Candle</td></tr><tr><td><code>required-2</code></td><td class="bad">未命中</td><td>Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle</td><td>—</td></tr><tr><td><code>required-3</code></td><td class="bad">未命中</td><td>Nata Penne Pasta Shaped Wax Candle</td><td>—</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Decorative Candles</span><span class="tag">Espresso Martini Glass Candle</span></p><p><span class="tag">Decorative Candles</span><span class="tag">Espresso Martini Glass Candle</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;upstream_status&quot;: 200,
   &quot;redirect_chain&quot;: null,
   &quot;errors&quot;: [],
   &quot;retry_after&quot;: null,
-  &quot;browser_ms_used&quot;: &quot;3657.860107421875&quot;,
+  &quot;browser_ms_used&quot;: &quot;9043.16259765625&quot;,
   &quot;configured_min_interval_seconds&quot;: 0.0,
   &quot;client_throttle_wait_ms&quot;: 0.0
 }</pre></details></div></section>

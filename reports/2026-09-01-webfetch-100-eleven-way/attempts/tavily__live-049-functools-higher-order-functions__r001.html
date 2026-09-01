@@ -1,0 +1,464 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>tavily__live-049-functools-higher-order-functions__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · tavily</div><h1>functools — Higher-order functions and operations on callable objects</h1><div class="meta"><span class="pill warn">程序判断未通过</span><span class="pill">第 1 次</span><span class="pill">1,330 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：functools — Higher-order functions and operations on callable objects；partial Objects；Table of Contents。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/functools.html">https://docs.python.org/3/library/functools.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>functools — Higher-order functions and operations on callable objects
+partial Objects
+Table of Contents</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：functools — Higher-order functions and operations on callable objects</li><li>是否保留核对点：partial Objects</li><li>是否保留核对点：Table of Contents</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/tavily/live-049-functools-higher-order-functions/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/functools.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:ebb9367e0c2c65abe59c525e13c49a1eeda647d3da270bc4d74ef6de5abfcaec</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>functools — Higher-order functions and operations on callable objects
+partial Objects
+Table of Contents</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>### Navigation
+
+* [index](../genindex.html &quot;General Index&quot;)
+* [modules](../py-modindex.html &quot;Python Module Index&quot;) |
+* [next](operator.html &quot;operator — Standard operators as functions&quot;) |
+* [previous](itertools.html &quot;itertools — Functions creating iterators for efficient looping&quot;) |
+* [Python](https://www.python.org/) »
+* [3.14.7 Documentation](../index.html) »
+* [The Python Standard Library](index.html) »
+* [Functional Programming Modules](functional.html) »
+* `functools` — Higher-order functions and operations on callable objects
+* |
+* |
+
+# `functools` — Higher-order functions and operations on callable objects[¶](#module-functools &quot;Link to this heading&quot;)
+
+**Source code:** [Lib/functools.py](https://github.com/python/cpython/tree/3.14/Lib/functools.py)
+
+---
+
+The `functools` module is for higher-order functions: functions that act on or return other functions. In general, any callable object can be treated as a function for the purposes of this module.
+
+The `functools` module defines the following functions:
+
+@functools.cache(*user\_function*)[¶](#functools.cache &quot;Link to this definition&quot;)
+:   Simple lightweight unbounded function cache. Sometimes called [“memoize”](https://en.wikipedia.org/wiki/Memoization).
+
+    Returns the same as `lru_cache(maxsize=None)`, creating a thin wrapper around a dictionary lookup for the function arguments. Because it never needs to evict old values, this is smaller and faster than [`@lru_cache`](#functools.lru_cache &quot;functools.lru_cache&quot;) with a size limit.
+
+    For example:
+
+    ```
+     @cache def  factorial(n): return n* factorial(n - 1) if n else 1&gt;&gt;&gt; factorial(10)# no previously cached result, makes 11 recursive calls 3628800&gt;&gt;&gt; factorial(5)# no new calls, just returns the cached result 120&gt;&gt;&gt; factorial(12)# two new recursive calls,</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（34,969 / 34,995 字符）</summary><pre>### Navigation
+
+* [index](../genindex.html &quot;General Index&quot;)
+* [modules](../py-modindex.html &quot;Python Module Index&quot;) |
+* [next](operator.html &quot;operator — Standard operators as functions&quot;) |
+* [previous](itertools.html &quot;itertools — Functions creating iterators for efficient looping&quot;) |
+* [Python](https://www.python.org/) »
+* [3.14.7 Documentation](../index.html) »
+* [The Python Standard Library](index.html) »
+* [Functional Programming Modules](functional.html) »
+* `functools` — Higher-order functions and operations on callable objects
+* |
+* |
+
+# `functools` — Higher-order functions and operations on callable objects[¶](#module-functools &quot;Link to this heading&quot;)
+
+**Source code:** [Lib/functools.py](https://github.com/python/cpython/tree/3.14/Lib/functools.py)
+
+---
+
+The `functools` module is for higher-order functions: functions that act on or return other functions. In general, any callable object can be treated as a function for the purposes of this module.
+
+The `functools` module defines the following functions:
+
+@functools.cache(*user\_function*)[¶](#functools.cache &quot;Link to this definition&quot;)
+:   Simple lightweight unbounded function cache. Sometimes called [“memoize”](https://en.wikipedia.org/wiki/Memoization).
+
+    Returns the same as `lru_cache(maxsize=None)`, creating a thin wrapper around a dictionary lookup for the function arguments. Because it never needs to evict old values, this is smaller and faster than [`@lru_cache`](#functools.lru_cache &quot;functools.lru_cache&quot;) with a size limit.
+
+    For example:
+
+    ```
+     @cache def  factorial(n): return n* factorial(n - 1) if n else 1&gt;&gt;&gt; factorial(10)# no previously cached result, makes 11 recursive calls 3628800&gt;&gt;&gt; factorial(5)# no new calls, just returns the cached result 120&gt;&gt;&gt; factorial(12)# two new recursive calls, factorial(10) is cached 479001600
+    ```
+
+    The cache is threadsafe so that the wrapped function can be used in multiple threads. This means that the underlying data structure will remain coherent during concurrent updates.
+
+    It is possible for the wrapped function to be called more than once if another thread makes an additional call before the initial call has been completed and cached.
+
+    Added in version 3.9.
+
+@functools.cached\_property(*func*)[¶](#functools.cached_property &quot;Link to this definition&quot;)
+:   Transform a method of a class into a property whose value is computed once and then cached as a normal attribute for the life of the instance. Similar to [`@property`](functions.html#property &quot;property&quot;), with the addition of caching. Useful for expensive computed properties of instances that are otherwise effectively immutable.
+
+    ```
+     class  DataSet: def  __init__(self, sequence_of_numbers): self. _data = tuple(sequence_of_numbers) @cached_property def  stdev(self): return statistics. stdev(self. _data)
+    ```
+
+    The mechanics of [`@cached_property`](#functools.cached_property &quot;functools.cached_property&quot;) are somewhat different from [`@property`](functions.html#property &quot;property&quot;). A regular property blocks attribute writes unless a setter is defined. In contrast, a *cached\_property* allows writes.
+
+    The *cached\_property* decorator only runs on lookups and only when an attribute of the same name doesn’t exist. When it does run, the *cached\_property* writes to the attribute with the same name. Subsequent attribute reads and writes take precedence over the *cached\_property* method and it works like a normal attribute.
+
+    The cached value can be cleared by deleting the attribute. This allows the *cached\_property* method to run again.
+
+    The *cached\_property* does not prevent a possible race condition in multi-threaded usage. The getter function could run more than once on the same instance, with the latest run setting the cached value. If the cached property is idempotent or otherwise not harmful to run more than once on an instance, this is fine. If synchronization is needed, implement the necessary locking inside the decorated getter function or around the cached property access.
+
+    Note, this decorator interferes with the operation of [**PEP 412**](https://peps.python.org/pep-0412/) key-sharing dictionaries. This means that instance dictionaries can take more space than usual.
+
+    Also, this decorator requires that the `__dict__` attribute on each instance be a mutable mapping. This means it will not work with some types, such as metaclasses (since the `__dict__` attributes on type instances are read-only proxies for the class namespace), and those that specify `__slots__` without including `__dict__` as one of the defined slots (as such classes don’t provide a `__dict__` attribute at all).
+
+    If a mutable mapping is not available or if space-efficient key sharing is desired, an effect similar to [`@cached_property`](#functools.cached_property &quot;functools.cached_property&quot;) can also be achieved by stacking [`@property`](functions.html#property &quot;property&quot;) on top of [`@lru_cache`](#functools.lru_cache &quot;functools.lru_cache&quot;). See [How do I cache method calls?](../faq/programming.html#faq-cache-method-calls) for more details on how this differs from `@cached_property`.
+
+    Added in version 3.8.
+
+    Changed in version 3.12: Prior to Python 3.12, `@cached_property` included an undocumented lock to ensure that in multi-threaded usage the getter function was guaranteed to run only once per instance. However, the lock was per-property, not per-instance, which could result in unacceptably high lock contention. In Python 3.12+ this locking is removed.
+
+functools.cmp\_to\_key(*func*)[¶](#functools.cmp_to_key &quot;Link to this definition&quot;)
+:   Transform an old-style comparison function to a [key function](../glossary.html#term-key-function). Used with tools that accept key functions (such as [`sorted()`](functions.html#sorted &quot;sorted&quot;), [`min()`](functions.html#min &quot;min&quot;), [`max()`](functions.html#max &quot;max&quot;), [`heapq.nlargest()`](heapq.html#heapq.nlargest &quot;heapq.nlargest&quot;), [`heapq.nsmallest()`](heapq.html#heapq.nsmallest &quot;heapq.nsmallest&quot;), [`itertools.groupby()`](itertools.html#itertools.groupby &quot;itertools.groupby&quot;)). This function is primarily used as a transition tool for programs being converted from Python 2 which supported the use of comparison functions.
+
+    A comparison function is any callable that accepts two arguments, compares them, and returns a negative number for less-than, zero for equality, or a positive number for greater-than. A key function is a callable that accepts one argument and returns another value to be used as the sort key.
+
+    Example:
+
+    ```
+     sorted(iterable, key = cmp_to_key(locale. strcoll))# locale-aware sort order
+    ```
+
+    For sorting examples and a brief sorting tutorial, see [Sorting Techniques](../howto/sorting.html#sortinghowto).
+
+    Added in version 3.2.
+
+@functools.lru\_cache(*user\_function*)[¶](#functools.lru_cache &quot;Link to this definition&quot;)
+
+@functools.lru\_cache(*maxsize=128*, *typed=False*)
+:   Decorator to wrap a function with a memoizing callable that saves up to the *maxsize* most recent calls. It can save time when an expensive or I/O bound function is periodically called with the same arguments.
+
+    The cache is threadsafe so that the wrapped function can be used in multiple threads. This means that the underlying data structure will remain coherent during concurrent updates.
+
+    It is possible for the wrapped function to be called more than once if another thread makes an additional call before the initial call has been completed and cached.
+
+    Since a dictionary is used to cache results, the positional and keyword arguments to the function must be [hashable](../glossary.html#term-hashable).
+
+    Distinct argument patterns may be considered to be distinct calls with separate cache entries. For example, `f(a=1,b=2)` and `f(b=2,a=1)` differ in their keyword argument order and may have two separate cache entries.
+
+    If *user\_function* is specified, it must be a callable. This allows the *lru\_cache* decorator to be applied directly to a user function, leaving the *maxsize* at its default value of 128:
+
+    ```
+     @lru_cache def  count_vowels(sentence): return sum(sentence. count(vowel) for vowel in &#x27;AEIOUaeiou&#x27;)
+    ```
+
+    If *maxsize* is set to `None`, the LRU feature is disabled and the cache can grow without bound.
+
+    If *typed* is set to true, function arguments of different types will be cached separately. If *typed* is false, the implementation will usually regard them as equivalent calls and only cache a single result. (Some types such as *str* and *int* may be cached separately even when *typed* is false.)
+
+    Note, type specificity applies only to the function’s immediate arguments rather than their contents. The scalar arguments, `Decimal(42)` and `Fraction(42)` are treated as distinct calls with distinct results. In contrast, the tuple arguments `(&#x27;answer&#x27;,Decimal(42))` and `(&#x27;answer&#x27;,Fraction(42))` are treated as equivalent.
+
+    The wrapped function is instrumented with a `cache_parameters()` function that returns a new [`dict`](stdtypes.html#dict &quot;dict&quot;) showing the values for *maxsize* and *typed*. This is for information purposes only. Mutating the values has no effect.
+
+    To help measure the effectiveness of the cache and tune the *maxsize* parameter, the wrapped function is instrumented with a `cache_info()` function that returns a [named tuple](../glossary.html#term-named-tuple) showing *hits*, *misses*, *maxsize* and *currsize*.
+
+    The decorator also provides a `cache_clear()` function for clearing or invalidating the cache.
+
+    The original underlying function is accessible through the `__wrapped__` attribute. This is useful for introspection, for bypassing the cache, or for rewrapping the function with a different cache.
+
+    The cache keeps references to the arguments and return values until they age out of the cache or until the cache is cleared.
+
+    If a method is cached, the `self` instance argument is included in the cache. See [How do I cache method calls?](../faq/programming.html#faq-cache-method-calls)
+
+    An [LRU (least recently used) cache](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_(LRU)) works best when the most recent calls are the best predictors of upcoming calls (for example, the most popular articles on a news server tend to change each day). The cache’s size limit assures that the cache does not grow without bound on long-running processes such as web servers.
+
+    In general, the LRU cache should only be used when you want to reuse previously computed values. Accordingly, it doesn’t make sense to cache functions with side-effects, functions that need to create distinct mutable objects on each call (such as generators and async functions), or impure functions such as time() or random().
+
+    Example of an LRU cache for static web content:
+
+    ```
+     @lru_cache(maxsize = 32) def  get_pep(num): &#x27;Retrieve text of a Python Enhancement Proposal&#x27; resource = f&#x27;https://peps.python.org/pep-{num: 04d} &#x27; try: with urllib. request. urlopen(resource) as s: return s. read() except urllib. error. HTTPError: return &#x27;Not Found&#x27;&gt;&gt;&gt; for n in 8, 290, 308, 320, 8, 218, 320, 279, 289, 320, 9991:... pep = get_pep(n)... print(n, len(pep))&gt;&gt;&gt; get_pep. cache_info() CacheInfo(hits = 3, misses = 8, maxsize = 32, currsize = 8)
+    ```
+
+    Example of efficiently computing [Fibonacci numbers](https://en.wikipedia.org/wiki/Fibonacci_number) using a cache to implement a [dynamic programming](https://en.wikipedia.org/wiki/Dynamic_programming) technique:
+
+    ```
+     @lru_cache(maxsize = None) def  fib(n): if n&lt; 2: return n return fib(n - 1) + fib(n - 2)&gt;&gt;&gt;[fib(n) for n in range(16)][0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610]&gt;&gt;&gt; fib. cache_info() CacheInfo(hits = 28, misses = 16, maxsize = None, currsize = 16)
+    ```
+
+    Added in version 3.2.
+
+    Changed in version 3.3: Added the *typed* option.
+
+    Changed in version 3.8: Added the *user\_function* option.
+
+    Changed in version 3.9: Added the function `cache_parameters()`
+
+@functools.total\_ordering[¶](#functools.total_ordering &quot;Link to this definition&quot;)
+:   Given a class defining one or more rich comparison ordering methods, this class decorator supplies the rest. This simplifies the effort involved in specifying all of the possible rich comparison operations:
+
+    The class must define one of [`__lt__()`](../reference/datamodel.html#object.__lt__ &quot;object.__lt__&quot;), [`__le__()`](../reference/datamodel.html#object.__le__ &quot;object.__le__&quot;), [`__gt__()`](../reference/datamodel.html#object.__gt__ &quot;object.__gt__&quot;), or [`__ge__()`](../reference/datamodel.html#object.__ge__ &quot;object.__ge__&quot;). In addition, the class should supply an [`__eq__()`](../reference/datamodel.html#object.__eq__ &quot;object.__eq__&quot;) method.
+
+    For example:
+
+    ```
+     @total_ordering class  Student: def  _is_valid_operand(self, other): return(hasattr(other, &quot;lastname&quot;) and hasattr(other, &quot;firstname&quot;)) def  __eq__(self, other): if not self. _is_valid_operand(other): return NotImplemented return((self. lastname. lower(), self. firstname. lower()) ==(other. lastname. lower(), other. firstname. lower())) def  __lt__(self, other): if not self. _is_valid_operand(other): return NotImplemented return((self. lastname. lower(), self. firstname. lower())&lt;(other. lastname. lower(), other. firstname. lower()))
+    ```
+
+    Note
+
+    While this decorator makes it easy to create well behaved totally ordered types, it *does* come at the cost of slower execution and more complex stack traces for the derived comparison methods. If performance benchmarking indicates this is a bottleneck for a given application, implementing all six rich comparison methods instead is likely to provide an easy speed boost.
+
+    Note
+
+    This decorator makes no attempt to override methods that have been declared in the class *or its superclasses*. Meaning that if a superclass defines a comparison operator, *total\_ordering* will not implement it again, even if the original method is abstract.
+
+    Added in version 3.2.
+
+    Changed in version 3.4: Returning `NotImplemented` from the underlying comparison function for unrecognised types is now supported.
+
+functools.Placeholder[¶](#functools.Placeholder &quot;Link to this definition&quot;)
+:   A singleton object used as a sentinel to reserve a place for positional arguments when calling [`partial()`](#functools.partial &quot;functools.partial&quot;) and [`partialmethod()`](#functools.partialmethod &quot;functools.partialmethod&quot;).
+
+    Added in version 3.14.
+
+functools.partial(*func*, */*, *\*args*, *\*\*keywords*)[¶](#functools.partial &quot;Link to this definition&quot;)
+:   Return a new [partial object](#partial-objects) which when called will behave like *func* called with the positional arguments *args* and keyword arguments *keywords*. If more arguments are supplied to the call, they are appended to *args*. If additional keyword arguments are supplied, they extend and override *keywords*. Roughly equivalent to:
+
+    ```
+     def  partial(func,/,* args,** keywords): def  newfunc(* more_args,** more_keywords): return func(* args,* more_args,**(keywords | more_keywords)) newfunc. func = func newfunc. args = args newfunc. keywords = keywords return newfunc
+    ```
+
+    The `partial()` function is used for partial function application which “freezes” some portion of a function’s arguments and/or keywords resulting in a new object with a simplified signature. For example, `partial()` can be used to create a callable that behaves like the [`int()`](functions.html#int &quot;int&quot;) function where the *base* argument defaults to `2`:
+
+    ```
+    &gt;&gt;&gt; basetwo = partial(int, base = 2)&gt;&gt;&gt; basetwo. __doc__ =&#x27;Convert base 2 string to an int.&#x27;&gt;&gt;&gt; basetwo(&#x27;10010&#x27;) 18
+    ```
+
+    If [`Placeholder`](#functools.Placeholder &quot;functools.Placeholder&quot;) sentinels are present in *args*, they will be filled first when `partial()` is called. This makes it possible to pre-fill any positional argument with a call to `partial()`; without `Placeholder`, only the chosen number of leading positional arguments can be pre-filled.
+
+    If any `Placeholder` sentinels are present, all must be filled at call time:
+
+    ```
+    &gt;&gt;&gt; say_to_world = partial(print, Placeholder, Placeholder,&quot;world!&quot;)&gt;&gt;&gt; say_to_world(&#x27;Hello&#x27;, &#x27;dear&#x27;)Hello dear world!
+    ```
+
+    Calling `say_to_world(&#x27;Hello&#x27;)` raises a [`TypeError`](exceptions.html#TypeError &quot;TypeError&quot;), because only one positional argument is provided, but there are two placeholders that must be filled in.
+
+    If `partial()` is applied to an existing [partial object](#partial-objects), `Placeholder` sentinels of the input object are filled in with new positional arguments. A placeholder can be retained by inserting a new `Placeholder` sentinel to the place held by a previous `Placeholder`:
+
+    ```
+    &gt;&gt;&gt; from  functools  import partial, Placeholder as _&gt;&gt;&gt; remove = partial(str. replace, _, _, &#x27;&#x27;)&gt;&gt;&gt; message =&#x27;Hello, dear dear world!&#x27;&gt;&gt;&gt; remove(message, &#x27; dear&#x27;)&#x27;Hello, world!&#x27;&gt;&gt;&gt; remove_dear = partial(remove, _, &#x27; dear&#x27;)&gt;&gt;&gt; remove_dear(message)&#x27;Hello, world!&#x27;&gt;&gt;&gt; remove_first_dear = partial(remove_dear, _, 1)&gt;&gt;&gt; remove_first_dear(message)&#x27;Hello, dear world!&#x27;
+    ```
+
+    `Placeholder` cannot be passed to `partial()` as a keyword argument.
+
+    Changed in version 3.14: Added support for [`Placeholder`](#functools.Placeholder &quot;functools.Placeholder&quot;) in positional arguments.
+
+*class* functools.partialmethod(*func*, */*, *\*args*, *\*\*keywords*)[¶](#functools.partialmethod &quot;Link to this definition&quot;)
+:   Return a new `partialmethod` descriptor which behaves like [`partial`](#functools.partial &quot;functools.partial&quot;) except that it is designed to be used as a method definition rather than being directly callable.
+
+    *func* must be a [descriptor](../glossary.html#term-descriptor) or a callable (objects which are both, like normal functions, are handled as descriptors).
+
+    When *func* is a descriptor (such as a normal Python function, [`classmethod()`](functions.html#classmethod &quot;classmethod&quot;), [`staticmethod()`](functions.html#staticmethod &quot;staticmethod&quot;), [`abstractmethod()`](abc.html#abc.abstractmethod &quot;abc.abstractmethod&quot;) or another instance of `partialmethod`), calls to `__get__` are delegated to the underlying descriptor, and an appropriate [partial object](#partial-objects) returned as the result.
+
+    When *func* is a non-descriptor callable, an appropriate bound method is created dynamically. This behaves like a normal Python function when used as a method: the *self* argument will be inserted as the first positional argument, even before the *args* and *keywords* supplied to the `partialmethod` constructor.
+
+    Example:
+
+    ```
+    &gt;&gt;&gt; class  Cell:... def  __init__(self):... self. _alive = False... @property... def  alive(self):... return self. _alive... def  set_state(self, state):... self. _alive = bool(state)... set_alive = partialmethod(set_state, True)... set_dead = partialmethod(set_state, False)...&gt;&gt;&gt; c = Cell()&gt;&gt;&gt; c. alive False&gt;&gt;&gt; c. set_alive()&gt;&gt;&gt; c. alive True
+    ```
+
+    Added in version 3.4.
+
+functools.reduce(*function*, *iterable*, */*[, *initial*])[¶](#functools.reduce &quot;Link to this definition&quot;)
+:   Apply *function* of two arguments cumulatively to the items of *iterable*, from left to right, so as to reduce the iterable to a single value. For example, `reduce(lambdax,y:x+y,[1,2,3,4,5])` calculates `((((1+2)+3)+4)+5)`. The left argument, *x*, is the accumulated value and the right argument, *y*, is the update value from the *iterable*. If the optional *initial* is present, it is placed before the items of the iterable in the calculation, and serves as a default when the iterable is empty. If *initial* is not given and *iterable* contains only one item, the first item is returned.
+
+    Roughly equivalent to:
+
+    ```
+     initial_missing = object() def  reduce(function, iterable,/, initial = initial_missing): it = iter(iterable) if initial is initial_missing: value = next(it) else: value = initial for element in it: value = function(value, element) return value
+    ```
+
+    See [`itertools.accumulate()`](itertools.html#itertools.accumulate &quot;itertools.accumulate&quot;) for an iterator that yields all intermediate values.
+
+    Changed in version 3.14: *initial* is now supported as a keyword argument.
+
+@functools.singledispatch[¶](#functools.singledispatch &quot;Link to this definition&quot;)
+:   Transform a function into a [single-dispatch](../glossary.html#term-single-dispatch) [generic function](../glossary.html#term-generic-function).
+
+    To define a generic function, decorate it with the `@singledispatch` decorator. When defining a function using `@singledispatch`, note that the dispatch happens on the type of the first argument:
+
+    ```
+    &gt;&gt;&gt; from  functools  import singledispatch&gt;&gt;&gt; @singledispatch... def  fun(arg, verbose = False):... if verbose:... print(&quot;Let me just say,&quot;, end = &quot; &quot;)... print(arg)
+    ```
+
+    To add overloaded implementations to the function, use the `register()` attribute of the generic function, which can be used as a decorator. For functions annotated with types, the decorator will infer the type of the first argument automatically:
+
+    ```
+    &gt;&gt;&gt; @fun. register... def  _(arg: int, verbose = False):... if verbose:... print(&quot;Strength in numbers, eh?&quot;, end = &quot; &quot;)... print(arg)...&gt;&gt;&gt; @fun. register... def  _(arg: list, verbose = False):... if verbose:... print(&quot;Enumerate this:&quot;)... for i, elem in enumerate(arg):... print(i, elem)
+    ```
+
+    [`typing.Union`](typing.html#typing.Union &quot;typing.Union&quot;) can also be used:
+
+    ```
+    &gt;&gt;&gt; @fun. register... def  _(arg: int | float, verbose = False):... if verbose:... print(&quot;Strength in numbers, eh?&quot;, end = &quot; &quot;)... print(arg)...&gt;&gt;&gt; from  typing  import Union&gt;&gt;&gt; @fun. register... def  _(arg: Union[list, set], verbose = False):... if verbose:... print(&quot;Enumerate this:&quot;)... for i, elem in enumerate(arg):... print(i, elem)...
+    ```
+
+    For code which doesn’t use type annotations, the appropriate type argument can be passed explicitly to the decorator itself:
+
+    ```
+    &gt;&gt;&gt; @fun. register(complex)... def  _(arg, verbose = False):... if verbose:... print(&quot;Better than complicated.&quot;, end = &quot; &quot;)... print(arg. real, arg. imag)...
+    ```
+
+    For code that dispatches on a collections type (e.g., `list`), but wants to typehint the items of the collection (e.g., `list[int]`), the dispatch type should be passed explicitly to the decorator itself with the typehint going into the function definition:
+
+    ```
+    &gt;&gt;&gt; @fun. register(list)... def  _(arg: list[int], verbose = False):... if verbose:... print(&quot;Enumerate this:&quot;)... for i, elem in enumerate(arg):... print(i, elem)
+    ```
+
+    Note
+
+    At runtime the function will dispatch on an instance of a list regardless of the type contained within the list i.e. `[1,2,3]` will be dispatched the same as `[&quot;foo&quot;,&quot;bar&quot;,&quot;baz&quot;]`. The annotation provided in this example is for static type checkers only and has no runtime impact.
+
+    To enable registering [lambdas](../glossary.html#term-lambda) and pre-existing functions, the [`register()`](#functools.singledispatch.register &quot;functools.singledispatch.register&quot;) attribute can also be used in a functional form:
+
+    ```
+    &gt;&gt;&gt; def  nothing(arg, verbose = False):... print(&quot;Nothing.&quot;)...&gt;&gt;&gt; fun. register(type(None), nothing)
+    ```
+
+    The [`register()`](#functools.singledispatch.register &quot;functools.singledispatch.register&quot;) attribute returns the undecorated function. This enables decorator stacking, [`pickling`](pickle.html#module-pickle &quot;pickle: Convert Python objects to streams of bytes and back.&quot;), and the creation of unit tests for each variant independently:
+
+    ```
+    &gt;&gt;&gt; @fun. register(float)... @fun. register(Decimal)... def  fun_num(arg, verbose = False):... if verbose:... print(&quot;Half of your number:&quot;, end = &quot; &quot;)... print(arg/ 2)...&gt;&gt;&gt; fun_num is fun False
+    ```
+
+    When called, the generic function dispatches on the type of the first argument:
+
+    ```
+    &gt;&gt;&gt; fun(&quot;Hello, world.&quot;)Hello, world.&gt;&gt;&gt; fun(&quot;test.&quot;, verbose = True)Let me just say, test.&gt;&gt;&gt; fun(42, verbose = True)Strength in numbers, eh? 42&gt;&gt;&gt; fun([&#x27;spam&#x27;, &#x27;spam&#x27;, &#x27;eggs&#x27;, &#x27;spam&#x27;], verbose = True)Enumerate this: 0 spam 1 spam 2 eggs 3 spam&gt;&gt;&gt; fun(None)Nothing.&gt;&gt;&gt; fun(1.23)0.615
+    ```
+
+    Where there is no registered implementation for a specific type, its method resolution order is used to find a more generic implementation. The original function decorated with `@singledispatch` is registered for the base [`object`](functions.html#object &quot;object&quot;) type, which means it is used if no better implementation is found.
+
+    If an implementation is registered to an [abstract base class](../glossary.html#term-abstract-base-class), virtual subclasses of the base class will be dispatched to that implementation:
+
+    ```
+    &gt;&gt;&gt; from  collections.abc  import Mapping&gt;&gt;&gt; @fun. register... def  _(arg: Mapping, verbose = False):... if verbose:... print(&quot;Keys &amp; Values&quot;)... for key, value in arg. items():... print(key,&quot;=&gt;&quot;, value)...&gt;&gt;&gt; fun({&quot;a&quot;: &quot;b&quot;})a =&gt; b
+    ```
+
+    To check which implementation the generic function will choose for a given type, use the `dispatch()` attribute:
+
+    ```
+    &gt;&gt;&gt; fun. dispatch(float) &gt;&gt;&gt; fun. dispatch(dict)# note: default implementation
+    ```
+
+    To access all registered implementations, use the read-only `registry` attribute:
+
+    ```
+    &gt;&gt;&gt; fun. registry. keys()dict_keys([, , , , , ])&gt;&gt;&gt; fun. registry[float] &gt;&gt;&gt; fun. registry[object]
+    ```
+
+    Added in version 3.4.
+
+    Changed in version 3.7: The [`register()`](#functools.singledispatch.register &quot;functools.singledispatch.register&quot;) attribute now supports using type annotations.
+
+    Changed in version 3.11: The [`register()`](#functools.singledispatch.register &quot;functools.singledispatch.register&quot;) attribute now supports [`typing.Union`](typing.html#typing.Union &quot;typing.Union&quot;) as a type annotation.
+
+*class* functools.singledispatchmethod(*func*)[¶](#functools.singledispatchmethod &quot;Link to this definition&quot;)
+:   Transform a method into a [single-dispatch](../glossary.html#term-single-dispatch) [generic function](../glossary.html#term-generic-function).
+
+    To define a generic method, decorate it with the `@singledispatchmethod` decorator. When defining a method using `@singledispatchmethod`, note that the dispatch happens on the type of the first non-*self* or non-*cls* argument:
+
+    ```
+     class  Negator: @singledispatchmethod def  neg(self, arg): raise NotImplementedError(&quot;Cannot negate a&quot;) @neg. register def  _(self, arg: int): return - arg @neg. register def  _(self, arg: bool): return not arg
+    ```
+
+    `@singledispatchmethod` supports nesting with other decorators such as [`@classmethod`](functions.html#classmethod &quot;classmethod&quot;). Note that to allow for `dispatcher.register`, `singledispatchmethod` must be the *outer most* decorator. Here is the `Negator` class with the `neg` methods bound to the class, rather than an instance of the class:
+
+    ```
+     class  Negator: @singledispatchmethod @classmethod def  neg(cls, arg): raise NotImplementedError(&quot;Cannot negate a&quot;) @neg. register @classmethod def  _(cls, arg: int): return - arg @neg. register @classmethod def  _(cls, arg: bool): return not arg
+    ```
+
+    The same pattern can be used for other similar decorators: [`@staticmethod`](functions.html#staticmethod &quot;staticmethod&quot;), [`@~abc.abstractmethod`](abc.html#abc.abstractmethod &quot;abc.abstractmethod&quot;), and others.
+
+    Added in version 3.8.
+
+functools.update\_wrapper(*wrapper*, *wrapped*, *assigned=WRAPPER\_ASSIGNMENTS*, *updated=WRAPPER\_UPDATES*)[¶](#functools.update_wrapper &quot;Link to this definition&quot;)
+:   Update a *wrapper* function to look like the *wrapped* function. The optional arguments are tuples to specify which attributes of the original function are assigned directly to the matching attributes on the wrapper function and which attributes of the wrapper function are updated with the corresponding attributes from the original function. The default values for these arguments are the module level constants `WRAPPER_ASSIGNMENTS` (which assigns to the wrapper function’s [`__module__`](../reference/datamodel.html#function.__module__ &quot;function.__module__&quot;), [`__name__`](../reference/datamodel.html#function.__name__ &quot;function.__name__&quot;), [`__qualname__`](../reference/datamodel.html#function.__qualname__ &quot;function.__qualname__&quot;), [`__annotations__`](../reference/datamodel.html#function.__annotations__ &quot;function.__annotations__&quot;), [`__type_params__`](../reference/datamodel.html#function.__type_params__ &quot;function.__type_params__&quot;), and [`__doc__`](../reference/datamodel.html#function.__doc__ &quot;function.__doc__&quot;), the documentation string) and `WRAPPER_UPDATES` (which updates the wrapper function’s [`__dict__`](../reference/datamodel.html#function.__dict__ &quot;function.__dict__&quot;), i.e. the instance dictionary).
+
+    To allow access to the original function for introspection and other purposes (e.g. bypassing a caching decorator such as [`@lru_cache`](#functools.lru_cache &quot;functools.lru_cache&quot;)), this function automatically adds a `__wrapped__` attribute to the wrapper that refers to the function being wrapped.
+
+    The main intended use for this function is in [decorator](../glossary.html#term-decorator) functions which wrap the decorated function and return the wrapper. If the wrapper function is not updated, the metadata of the returned function will reflect the wrapper definition rather than the original function definition, which is typically less than helpful.
+
+    `update_wrapper()` may be used with callables other than functions. Any attributes named in *assigned* or *updated* that are missing from the object being wrapped are ignored (i.e. this function will not attempt to set them on the wrapper function). [`AttributeError`](exceptions.html#AttributeError &quot;AttributeError&quot;) is still raised if the wrapper function itself is missing any attributes named in *updated*.
+
+    Changed in version 3.2: The `__wrapped__` attribute is now automatically added. The [`__annotations__`](../reference/datamodel.html#function.__annotations__ &quot;function.__annotations__&quot;) attribute is now copied by default. Missing attributes no longer trigger an [`AttributeError`](exceptions.html#AttributeError &quot;AttributeError&quot;).
+
+    Changed in version 3.4: The `__wrapped__` attribute now always refers to the wrapped function, even if that function defined a `__wrapped__` attribute. (see [bpo-17482](https://bugs.python.org/issue?@action=redirect&amp;bpo=17482))
+
+    Changed in version 3.12: The [`__type_params__`](../reference/datamodel.html#function.__type_params__ &quot;function.__type_params__&quot;) attribute is now copied by default.
+
+@functools.wraps(*wrapped*, *assigned=WRAPPER\_ASSIGNMENTS*, *updated=WRAPPER\_UPDATES*)[¶](#functools.wraps &quot;Link to this definition&quot;)
+:   This is a convenience function for invoking [`update_wrapper()`](#functools.update_wrapper &quot;functools.update_wrapper&quot;) as a function decorator when defining a wrapper function. It is equivalent to `partial(update_wrapper,wrapped=wrapped,assigned=assigned,updated=updated)`. For example:
+
+    ```
+    &gt;&gt;&gt; from  functools  import wraps&gt;&gt;&gt; def  my_decorator(f):... @wraps(f)... def  wrapper(* args,** kwds):... print(&#x27;Calling decorated function&#x27;)... return f(* args,** kwds)... return wrapper...&gt;&gt;&gt; @my_decorator... def  example():...  &quot;&quot;&quot;Docstring&quot;&quot;&quot;... print(&#x27;Called example function&#x27;)...&gt;&gt;&gt; example() Calling decorated function Called example function&gt;&gt;&gt; example. __name__ &#x27;example&#x27;&gt;&gt;&gt; example. __doc__ &#x27;Docstring&#x27;
+    ```
+
+    Without the use of this decorator factory, the name of the example function would have been `&#x27;wrapper&#x27;`, and the docstring of the original `example()` would have been lost.
+
+## [`partial`](#functools.partial &quot;functools.partial&quot;) Objects[¶](#partial-objects &quot;Link to this heading&quot;)
+
+[`partial`](#functools.partial &quot;functools.partial&quot;) objects are callable objects created by [`partial()`](#functools.partial &quot;functools.partial&quot;). They have three read-only attributes:
+
+partial.func[¶](#functools.partial.func &quot;Link to this definition&quot;)
+:   A callable object or function. Calls to the [`partial`](#functools.partial &quot;functools.partial&quot;) object will be forwarded to [`func`](#functools.partial.func &quot;functools.partial.func&quot;) with new arguments and keywords.
+
+partial.args[¶](#functools.partial.args &quot;Link to this definition&quot;)
+:   The leftmost positional arguments that will be prepended to the positional arguments provided to a [`partial`](#functools.partial &quot;functools.partial&quot;) object call.
+
+partial.keywords[¶](#functools.partial.keywords &quot;Link to this definition&quot;)
+:   The keyword arguments that will be supplied when the [`partial`](#functools.partial &quot;functools.partial&quot;) object is called.
+
+[`partial`](#functools.partial &quot;functools.partial&quot;) objects are like [function objects](../reference/datamodel.html#user-defined-funcs) in that they are callable, weak referenceable, and can have attributes. There are some important differences. For instance, the [`__name__`](stdtypes.html#definition.__name__ &quot;definition.__name__&quot;) and [`__doc__`](stdtypes.html#definition.__doc__ &quot;definition.__doc__&quot;) attributes are not created automatically.
+
+### [Table of Contents](../contents.html)
+
+* [`functools` — Higher-order functions and operations on callable objects](#)
+  + [`partial` Objects](#partial-objects)
+
+#### Previous topic
+
+[`itertools` — Functions creating iterators for efficient looping](itertools.html &quot;previous chapter&quot;)
+
+#### Next topic
+
+[`operator` — Standard operators as functions](operator.html &quot;next chapter&quot;)
+
+### This page
+
+* [Report a bug](../bugs.html)
+* [Improve this page](../improve-page-nojs.html)
+* [Show source](https://github.com/python/cpython/blob/main/Doc/library/functools.rst?plain=1)
+
+### Navigation
+
+* [index](../genindex.html &quot;General Index&quot;)
+* [modules](../py-modindex.html &quot;Python Module Index&quot;) |
+* [next](operator.html &quot;operator — Standard operators as functions&quot;) |
+* [previous](itertools.html &quot;itertools — Functions creating iterators for efficient looping&quot;) |
+* [Python](https://www.python.org/) »
+* [3.14.7 Documentation](../index.html) »
+* [The Python Standard Library](index.html) »
+* [Functional Programming Modules](functional.html) »
+* `functools` — Higher-order functions and operations on callable objects
+* |
+* |
+
+© [Copyright](../copyright.html) 2001 Python Software Foundation.
+ This page is licensed under the Python Software Foundation License Version 2.
+ Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+ See [History and License](/license.html) for more information.
+
+ The Python Software Foundation is a non-profit corporation. [Please donate.](https://www.python.org/psf/donations/)
+
+ Last updated on Aug 31, 2026 (13:23 UTC). [Found a bug](/bugs.html)?
+ Created using [Sphinx](https://www.sphinx-doc.org/) 8.2.3.
+
+</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="callout failure"><b>程序判断未通过</b><br>失败分类：<code>content_validation_failure</code><br>机器规则未找到全部必需内容；请人工对照标准答案复核。</div><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>tavily__live-049-functools-higher-order-functions__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/functools.html</span></div><div class="kv"><b>输出大小</b>34,995 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>33.3%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="bad">未命中</td><td>functools — Higher-order functions and operations on callable objects</td><td>—</td></tr><tr><td><code>anchor-2</code></td><td class="bad">未命中</td><td>partial Objects</td><td>—</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Table of Contents</td><td>Table of Contents</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">functools — Higher-order functions and operations on callable objects</span></p><p><span class="empty">无</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;response_time&quot;: 0.01,
+  &quot;failed_results&quot;: [],
+  &quot;images&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("tavily__live-049-functools-higher-order-functions__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("tavily__live-049-functools-higher-order-functions__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("tavily__live-049-functools-higher-order-functions__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

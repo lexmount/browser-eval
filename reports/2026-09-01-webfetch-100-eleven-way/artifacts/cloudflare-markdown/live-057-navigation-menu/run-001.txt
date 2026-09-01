@@ -1,0 +1,506 @@
+---
+title: "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. · GitHub"
+meta:
+  description: "Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. - spring-projects/spring-boot"
+  "og:description": "Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. - spring-projects/spring-boot"
+  "og:title": "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss."
+  "twitter:description": "Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. - spring-projects/spring-boot"
+  "twitter:title": "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss."
+---
+
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[Homepage](/)
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot)
+
+Appearance settings
+
+- Platform
+  - AI CODE CREATION
+    - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+    - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+    - [MCP RegistryIntegrate external tools](https://github.com/mcp)
+  - DEVELOPER WORKFLOWS
+    - [ActionsAutomate any workflow](https://github.com/features/actions)
+    - [CodespacesInstant dev environments](https://github.com/features/codespaces)
+    - [IssuesPlan and track work](https://github.com/features/issues)
+    - [Code ReviewManage code changes](https://github.com/features/code-review)
+    - [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+  - APPLICATION SECURITY
+    - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+    - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+    - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+  - EXPLORE
+    - [Why GitHub](https://github.com/why-github)
+    - [Documentation](https://docs.github.com)
+    - [Blog](https://github.blog)
+    - [Changelog](https://github.blog/changelog)
+    - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions
+  - BY COMPANY SIZE
+    - [Enterprises](https://github.com/enterprise)
+    - [Small and medium teams](https://github.com/team)
+    - [Startups](https://github.com/enterprise/startups)
+    - [Nonprofits](https://github.com/solutions/industry/nonprofits)
+  - BY USE CASE
+    - [App Modernization](https://github.com/solutions/use-case/app-modernization)
+    - [DevSecOps](https://github.com/solutions/use-case/devsecops)
+    - [DevOps](https://github.com/solutions/use-case/devops)
+    - [CI/CD](https://github.com/solutions/use-case/ci-cd)
+    - [View all use cases](https://github.com/solutions/use-case)
+  - BY INDUSTRY
+    - [Healthcare](https://github.com/solutions/industry/healthcare)
+    - [Financial services](https://github.com/solutions/industry/financial-services)
+    - [Manufacturing](https://github.com/solutions/industry/manufacturing)
+    - [Government](https://github.com/solutions/industry/government)
+    - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources
+  - EXPLORE BY TOPIC
+    - [AI](https://github.com/resources/articles?topic=ai)
+    - [Software Development](https://github.com/resources/articles?topic=software-development)
+    - [DevOps](https://github.com/resources/articles?topic=devops)
+    - [Security](https://github.com/resources/articles?topic=security)
+    - [View all topics](https://github.com/resources/articles)
+  - EXPLORE BY TYPE
+    - [Customer stories](https://github.com/customer-stories)
+    - [Events & webinars](https://github.com/resources/events)
+    - [Ebooks & reports](https://github.com/resources/whitepapers)
+    - [Business insights](https://github.com/solutions/executive-insights)
+    - [GitHub Skills](https://skills.github.com)
+  - SUPPORT & SERVICES
+    - [Documentation](https://docs.github.com)
+    - [Customer support](https://support.github.com)
+    - [Community forum](https://github.com/orgs/community/discussions)
+    - [Trust center](https://github.com/trust-center)
+    - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source
+  - COMMUNITY
+    - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+  - PROGRAMS
+    - [Security Lab](https://securitylab.github.com)
+    - [Maintainer Community](https://maintainers.github.com)
+    - [GitHub Stars](https://stars.github.com)
+    - [Archive Program](https://archiveprogram.github.com)
+  - REPOSITORIES
+    - [Topics](https://github.com/topics)
+    - [Trending](https://github.com/trending)
+    - [Collections](https://github.com/collections)
+- Enterprise
+  - ENTERPRISE SOLUTIONS
+    - [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+  - AVAILABLE ADD-ONS
+    - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+    - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+    - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot)
+
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=spring-projects%2Fspring-boot)
+
+Appearance settings
+
+You signed in with another tab or window. [Reload]() to refresh your session. You signed out in another tab or window. [Reload]() to refresh your session. You switched accounts on another tab or window. [Reload]() to refresh your session. Dismiss alert
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page]().
+
+[spring-projects](https://github.com/spring-projects) / **[spring-boot](https://github.com/spring-projects/spring-boot)** Public
+
+- [Notifications](https://github.com/login?return_to=%2Fspring-projects%2Fspring-boot) You must be signed in to change notification settings
+- [Fork 42.1k](https://github.com/login?return_to=%2Fspring-projects%2Fspring-boot)
+- [Star 81.4k](https://github.com/login?return_to=%2Fspring-projects%2Fspring-boot)
+
+- [Code](https://github.com/spring-projects/spring-boot)
+- [Issues 458](https://github.com/spring-projects/spring-boot/issues)
+- [Pull requests 36](https://github.com/spring-projects/spring-boot/pulls)
+- [Actions](https://github.com/spring-projects/spring-boot/actions)
+- [Wiki](https://github.com/spring-projects/spring-boot/wiki)
+- [Security and quality 0](https://github.com/spring-projects/spring-boot/security)
+- [Insights](https://github.com/spring-projects/spring-boot/pulse)
+
+Additional navigation options
+
+- [Code](https://github.com/spring-projects/spring-boot)
+- [Issues](https://github.com/spring-projects/spring-boot/issues)
+- [Pull requests](https://github.com/spring-projects/spring-boot/pulls)
+- [Actions](https://github.com/spring-projects/spring-boot/actions)
+- [Wiki](https://github.com/spring-projects/spring-boot/wiki)
+- [Security and quality](https://github.com/spring-projects/spring-boot/security)
+- [Insights](https://github.com/spring-projects/spring-boot/pulse)
+
+main
+
+[**25** Branches](https://github.com/spring-projects/spring-boot/branches) [**394** Tags](https://github.com/spring-projects/spring-boot/tags)
+
+[Go to Branches page](https://github.com/spring-projects/spring-boot/branches) [Go to Tags page](https://github.com/spring-projects/spring-boot/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+[![philwebb](https://avatars.githubusercontent.com/u/519772?v=4&size=40)](https://github.com/philwebb) [philwebb](https://github.com/spring-projects/spring-boot/commits?author=philwebb)
+
+[Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/32b235f4d7942a6fd245e55a8b5e0bbe19c99416)
+
+failure
+
+Sep 1, 2026
+
+[32b235f](https://github.com/spring-projects/spring-boot/commit/32b235f4d7942a6fd245e55a8b5e0bbe19c99416) · Sep 1, 2026
+
+## History
+
+[62,422 Commits](https://github.com/spring-projects/spring-boot/commits/main/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/spring-projects/spring-boot/commits/main/)62,422 Commits
+
+## Folders and files
+
+| Name | | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- | --- |
+| [.github](https://github.com/spring-projects/spring-boot/tree/main/.github) | | [.github](https://github.com/spring-projects/spring-boot/tree/main/.github) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/c4786891ba28da240e342cd50a90bc805b9389c0 "Merge branch '4.1.x'
+
+Closes gh-51480") | Aug 27, 2026 |
+| [.idea](https://github.com/spring-projects/spring-boot/tree/main/.idea) | | [.idea](https://github.com/spring-projects/spring-boot/tree/main/.idea) | [Harmonize copyright header configuration](/spring-projects/spring-boot/commit/8ad1475247d1689e32c6c5d390a87267d42dcf3b "Harmonize copyright header configuration
+
+Closes gh-50894") | Jun 30, 2026 |
+| [antora](https://github.com/spring-projects/spring-boot/tree/main/antora) | | [antora](https://github.com/spring-projects/spring-boot/tree/main/antora) | [Bump @antora/cli from 3.2.0-rc.2 to 3.2.0-rc.3 in /antora](/spring-projects/spring-boot/commit/19431312b65dce13a886b97c9ae9b1297f46275c "Bump @antora/cli from 3.2.0-rc.2 to 3.2.0-rc.3 in /antora
+
+Bumps [@antora/cli](https://gitlab.com/antora/antora) from 3.2.0-rc.2 to 3.2.0-rc.3.
+- [Changelog](https://gitlab.com/antora/antora/blob/main/CHANGELOG.adoc)
+- [Commits](https://gitlab.com/antora/antora/compare/v3.2.0-rc.2...v3.2.0-rc.3)
+
+---
+updated-dependencies:
+- dependency-name: \"@antora/cli\"
+  dependency-version: 3.2.0-rc.3
+  dependency-type: direct:production
+  update-type: version-update:semver-patch
+...
+
+See gh-51393
+
+Signed-off-by: dependabot[bot] <support@github.com>") | Aug 21, 2026 |
+| [build-plugin](https://github.com/spring-projects/spring-boot/tree/main/build-plugin) | | [build-plugin](https://github.com/spring-projects/spring-boot/tree/main/build-plugin) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/f6d986d0bdda769a44249e948c1838a53d9ad2c9) | Aug 25, 2026 |
+| [buildSrc](https://github.com/spring-projects/spring-boot/tree/main/buildSrc) | | [buildSrc](https://github.com/spring-projects/spring-boot/tree/main/buildSrc) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/32b235f4d7942a6fd245e55a8b5e0bbe19c99416) | Sep 1, 2026 |
+| [buildpack/spring-boot-buildpack-platform](https://github.com/spring-projects/spring-boot/tree/main/buildpack/spring-boot-buildpack-platform%20%22This%20path%20skips%20through%20empty%20directories%22) | | [buildpack/spring-boot-buildpack-platform](https://github.com/spring-projects/spring-boot/tree/main/buildpack/spring-boot-buildpack-platform%20%22This%20path%20skips%20through%20empty%20directories%22) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/0bcf6836d0fcbda9e5c078418061bba6ac6706c1 "Merge branch '4.1.x'
+
+Closes gh-51401") | Aug 21, 2026 |
+| [cli/spring-boot-cli](https://github.com/spring-projects/spring-boot/tree/main/cli/spring-boot-cli%20%22This%20path%20skips%20through%20empty%20directories%22) | | [cli/spring-boot-cli](https://github.com/spring-projects/spring-boot/tree/main/cli/spring-boot-cli%20%22This%20path%20skips%20through%20empty%20directories%22) | [Restore copyright headers of JSON shaded lib](/spring-projects/spring-boot/commit/bafc0ed6d26e9390fe964e62046185d4b14a8da4 "Restore copyright headers of JSON shaded lib
+
+Closes gh-50896") | Jun 30, 2026 |
+| [config](https://github.com/spring-projects/spring-boot/tree/main/config) | | [config](https://github.com/spring-projects/spring-boot/tree/main/config) | [Merge branch '4.0.x' into 4.1.x](/spring-projects/spring-boot/commit/914f39384c67a07e66b15ef3d45ea83b7d75182d "Merge branch '4.0.x' into 4.1.x
+
+Closes gh-51454") | Aug 25, 2026 |
+| [configuration-metadata](https://github.com/spring-projects/spring-boot/tree/main/configuration-metadata) | | [configuration-metadata](https://github.com/spring-projects/spring-boot/tree/main/configuration-metadata) | [Merge branch '4.0.x' into 4.1.x](/spring-projects/spring-boot/commit/b0c21aaab1b58ba6db8e004bf3cf1897bc2b382f "Merge branch '4.0.x' into 4.1.x
+
+Closes gh-51098") | Jul 22, 2026 |
+| [core](https://github.com/spring-projects/spring-boot/tree/main/core) | | [core](https://github.com/spring-projects/spring-boot/tree/main/core) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/ef4f1404a10172c232f9906e790ea5ce5801958f "Merge branch '4.1.x'
+
+Closes gh-51455") | Aug 25, 2026 |
+| [documentation](https://github.com/spring-projects/spring-boot/tree/main/documentation) | | [documentation](https://github.com/spring-projects/spring-boot/tree/main/documentation) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/32b235f4d7942a6fd245e55a8b5e0bbe19c99416) | Sep 1, 2026 |
+| [eclipse](https://github.com/spring-projects/spring-boot/tree/main/eclipse) | | [eclipse](https://github.com/spring-projects/spring-boot/tree/main/eclipse) | [Start development of Spring Boot 4.2.x](https://github.com/spring-projects/spring-boot/commit/6d28fc10f9386a039d6dbfe14ba8a240456abd93) | Jul 15, 2026 |
+| [git/hooks](https://github.com/spring-projects/spring-boot/tree/main/git/hooks%20%22This%20path%20skips%20through%20empty%20directories%22) | | [git/hooks](https://github.com/spring-projects/spring-boot/tree/main/git/hooks%20%22This%20path%20skips%20through%20empty%20directories%22) | [Start development of Spring Boot 4.2.x](https://github.com/spring-projects/spring-boot/commit/6d28fc10f9386a039d6dbfe14ba8a240456abd93) | Jul 15, 2026 |
+| [gradle](https://github.com/spring-projects/spring-boot/tree/main/gradle) | | [gradle](https://github.com/spring-projects/spring-boot/tree/main/gradle) | [Upgrade to Gradle 9.7.0](/spring-projects/spring-boot/commit/5184b0012d7a05cddd7a97d53dc899b49831e209 "Upgrade to Gradle 9.7.0
+
+Closes gh-51321") | Aug 10, 2026 |
+| [integration-test](https://github.com/spring-projects/spring-boot/tree/main/integration-test) | | [integration-test](https://github.com/spring-projects/spring-boot/tree/main/integration-test) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/862b763d004b1f8501fb3336552bdff3f5c0cdf7 "Merge branch '4.1.x'
+
+Closes gh-51458") | Aug 26, 2026 |
+| [loader](https://github.com/spring-projects/spring-boot/tree/main/loader) | | [loader](https://github.com/spring-projects/spring-boot/tree/main/loader) | [Merge branch '4.0.x' into 4.1.x](/spring-projects/spring-boot/commit/0a399e49da4288d2c5e7feb3ad0377c5efc6086c "Merge branch '4.0.x' into 4.1.x
+
+Closes gh-51089") | Jul 21, 2026 |
+| [module](https://github.com/spring-projects/spring-boot/tree/main/module) | | [module](https://github.com/spring-projects/spring-boot/tree/main/module) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/b28ee136986d0ce47bc8b9219b66574c2a37f0f6 "Merge branch '4.1.x'
+
+Closes gh-51514") | Aug 30, 2026 |
+| [platform](https://github.com/spring-projects/spring-boot/tree/main/platform) | | [platform](https://github.com/spring-projects/spring-boot/tree/main/platform) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/32b235f4d7942a6fd245e55a8b5e0bbe19c99416) | Sep 1, 2026 |
+| [smoke-test](https://github.com/spring-projects/spring-boot/tree/main/smoke-test) | | [smoke-test](https://github.com/spring-projects/spring-boot/tree/main/smoke-test) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/ffd91904092116b8d60747596afbe39de89cc7b1) | Aug 26, 2026 |
+| [starter](https://github.com/spring-projects/spring-boot/tree/main/starter) | | [starter](https://github.com/spring-projects/spring-boot/tree/main/starter) | [Polish "Add AMQP 1.0 RabbitMQ auto-configuration"](/spring-projects/spring-boot/commit/21f73909443f8094d8216612ec0a12437c840d07 "Polish \"Add AMQP 1.0 RabbitMQ auto-configuration\"
+
+See gh-49857") | Jul 15, 2026 |
+| [system-test](https://github.com/spring-projects/spring-boot/tree/main/system-test) | | [system-test](https://github.com/spring-projects/spring-boot/tree/main/system-test) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/ffd91904092116b8d60747596afbe39de89cc7b1) | Aug 26, 2026 |
+| [test-support](https://github.com/spring-projects/spring-boot/tree/main/test-support) | | [test-support](https://github.com/spring-projects/spring-boot/tree/main/test-support) | [Merge branch '4.1.x'](https://github.com/spring-projects/spring-boot/commit/ffd91904092116b8d60747596afbe39de89cc7b1) | Aug 26, 2026 |
+| [.editorconfig](https://github.com/spring-projects/spring-boot/blob/main/.editorconfig) | | [.editorconfig](https://github.com/spring-projects/spring-boot/blob/main/.editorconfig) | [Add more indentation settings to .editorconfig](/spring-projects/spring-boot/commit/bcec2bbb58015f2444c2ef54a5c8efea495e579e "Add more indentation settings to .editorconfig
+
+Closes gh-16203") | Mar 12, 2019 |
+| [.git-blame-ignore-revs](https://github.com/spring-projects/spring-boot/blob/main/.git-blame-ignore-revs) | | [.git-blame-ignore-revs](https://github.com/spring-projects/spring-boot/blob/main/.git-blame-ignore-revs) | [Merge branch '3.0.x'](https://github.com/spring-projects/spring-boot/commit/b70aed58068ef30b15cfe3d1fdcab0292c2af39f) | Feb 23, 2023 |
+| [.gitignore](https://github.com/spring-projects/spring-boot/blob/main/.gitignore) | | [.gitignore](https://github.com/spring-projects/spring-boot/blob/main/.gitignore) | [Upgrade to Kotlin 2.1.0](/spring-projects/spring-boot/commit/7035c0fa0a10c30016976e08a49c26f0d379ed86 "Upgrade to Kotlin 2.1.0
+
+This commit upgrades to Kotlin 2.1.0. Two related dependencies have been
+updated as well: Kotlin Coroutines to 1.10, and Kotlin Serialization to
+1.8.
+
+As of Kotlin 2, it is no longer possible to have a Java type and a
+Kotlin type with the same name. As our code samples follow that
+unfortunate pattern, this commit makes sure that the Kotlin sample code
+does not depend on any of the Java counterpart and configure the kotlin
+compilation plugin to ignore Java sources.
+
+The minimum version of Gradle is 7.6.4. It bundles a version of Kotlin
+that cannot compile a Kotlin build script when spring-core, compiled
+with Kotlin 2.1, is on the classpath. Using Gradle 8.12 to run the DSL
+tests avoids the problem.
+
+Closes gh-45486
+
+Co-authored-by: Andy Wilkinson <andy.wilkinson@broadcom.com>") | May 10, 2025 |
+| [.sdkmanrc](https://github.com/spring-projects/spring-boot/blob/main/.sdkmanrc) | | [.sdkmanrc](https://github.com/spring-projects/spring-boot/blob/main/.sdkmanrc) | [Upgrade to Java 25.0.4](/spring-projects/spring-boot/commit/8520a407862297878fc5ec6d973facdf70894660 "Upgrade to Java 25.0.4
+
+Closes gh-51292") | Aug 7, 2026 |
+| [CONTRIBUTING.adoc](https://github.com/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc) | | [CONTRIBUTING.adoc](https://github.com/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc) | [Merge branch '3.3.x' into 3.4.x](/spring-projects/spring-boot/commit/8829caceedd3cdfcdd026a92bc4ab6323f257adf "Merge branch '3.3.x' into 3.4.x
+
+Closes gh-43735") | Jan 8, 2025 |
+| [LICENSE.txt](https://github.com/spring-projects/spring-boot/blob/main/LICENSE.txt) | | [LICENSE.txt](https://github.com/spring-projects/spring-boot/blob/main/LICENSE.txt) | [Merge branch '1.4.x' into 1.5.x](https://github.com/spring-projects/spring-boot/commit/23d9998269b50554c93cd111996096fd9cea4843) | Mar 26, 2019 |
+| [README.adoc](https://github.com/spring-projects/spring-boot/blob/main/README.adoc) | | [README.adoc](https://github.com/spring-projects/spring-boot/blob/main/README.adoc) | [Remove outdated modules section from README](/spring-projects/spring-boot/commit/d87aa53f12be7d4cf3bc4cbfa5bc4f260f7d306e "Remove outdated modules section from README
+
+Closes gh-48291") | Dec 1, 2025 |
+| [SUPPORT.adoc](https://github.com/spring-projects/spring-boot/blob/main/SUPPORT.adoc) | | [SUPPORT.adoc](https://github.com/spring-projects/spring-boot/blob/main/SUPPORT.adoc) | [Polish](https://github.com/spring-projects/spring-boot/commit/70acb44d1b4e0c6398bdccfad8509a149f183df9) | Dec 1, 2025 |
+| [build.gradle](https://github.com/spring-projects/spring-boot/blob/main/build.gradle) | | [build.gradle](https://github.com/spring-projects/spring-boot/blob/main/build.gradle) | [Merge branch '3.5.x' into 4.0.x](/spring-projects/spring-boot/commit/add52b6ccd2778c7eab589d5c71dae74a6fb7d5a "Merge branch '3.5.x' into 4.0.x
+
+Closes gh-50439") | May 14, 2026 |
+| [gradle.properties](https://github.com/spring-projects/spring-boot/blob/main/gradle.properties) | | [gradle.properties](https://github.com/spring-projects/spring-boot/blob/main/gradle.properties) | [Merge branch '4.1.x'](/spring-projects/spring-boot/commit/d7025a8cbe571cd9903d82cb5afc157a75d5ec5d "Merge branch '4.1.x'
+
+Closes gh-51496") | Aug 28, 2026 |
+| [gradlew](https://github.com/spring-projects/spring-boot/blob/main/gradlew) | | [gradlew](https://github.com/spring-projects/spring-boot/blob/main/gradlew) | [Upgrade to Gradle 9.6.1](/spring-projects/spring-boot/commit/2eedeabe9ac1b70e7cbe7db012fbc1332ac9ef1d "Upgrade to Gradle 9.6.1
+
+This commit also suppresses new warnings from the Native Build Tools
+Plugin, see https://github.com/graalvm/native-build-tools/pull/903
+
+Closes gh-50793") | Jul 14, 2026 |
+| [gradlew.bat](https://github.com/spring-projects/spring-boot/blob/main/gradlew.bat) | | [gradlew.bat](https://github.com/spring-projects/spring-boot/blob/main/gradlew.bat) | [Upgrade to Gradle 9.6.1](/spring-projects/spring-boot/commit/2eedeabe9ac1b70e7cbe7db012fbc1332ac9ef1d "Upgrade to Gradle 9.6.1
+
+This commit also suppresses new warnings from the Native Build Tools
+Plugin, see https://github.com/graalvm/native-build-tools/pull/903
+
+Closes gh-50793") | Jul 14, 2026 |
+| [settings.gradle](https://github.com/spring-projects/spring-boot/blob/main/settings.gradle) | | [settings.gradle](https://github.com/spring-projects/spring-boot/blob/main/settings.gradle) | [Polish "Add AMQP 1.0 RabbitMQ auto-configuration"](/spring-projects/spring-boot/commit/21f73909443f8094d8216612ec0a12437c840d07 "Polish \"Add AMQP 1.0 RabbitMQ auto-configuration\"
+
+See gh-49857") | Jul 15, 2026 |
+| View all files | | |
+
+## Repository files navigation
+
+-
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [Apache-2.0 license](#)
+- [Security](#)
+
+More items
+
+# Spring Boot [![Build Status](https://github.com/spring-projects/spring-boot/actions/workflows/build-and-deploy-snapshot.yml/badge.svg?branch=main)](https://github.com/spring-projects/spring-boot/actions/workflows/build-and-deploy-snapshot.yml?query=branch%3Amain) [![Revved up by Develocity](https://camo.githubusercontent.com/a0b87d5889139df17ed11a57a167791006a861d4f72a1c7836ef9eb6457be32e/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f526576766564253230757025323062792d446576656c6f636974792d3036413043453f6c6f676f3d477261646c65266c6162656c436f6c6f723d303233303341)](https://ge.spring.io/scans?&search.rootProjectNames=Spring%20Boot%20Build&search.rootProjectNames=spring-boot-build)
+
+[Permalink: Spring Boot ](#spring-boot--)
+
+Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. It takes an opinionated view of the Spring platform so that new and existing users can quickly get to the bits they need.
+
+You can use Spring Boot to create stand-alone Java applications that can be started using `java -jar` or more traditional WAR deployments. We also provide a command-line tool that runs Spring scripts.
+
+Our primary goals are:
+
+- Provide a radically faster and widely accessible getting started experience for all Spring development.
+- Be opinionated, but get out of the way quickly as requirements start to diverge from the defaults.
+- Provide a range of non-functional features common to large classes of projects (for example, embedded servers, security, metrics, health checks, externalized configuration).
+- Absolutely no code generation and no requirement for XML configuration.
+
+## Installation and Getting Started
+
+[Permalink: Installation and Getting Started](#installation-and-getting-started)
+
+The [reference documentation](https://docs.spring.io/spring-boot) includes detailed [installation instructions](https://docs.spring.io/spring-boot/installing.html) as well as a comprehensive [`getting started`](https://docs.spring.io/spring-boot/tutorial/first-application/index.html) guide.
+
+Here is a quick teaser of a complete Spring Boot application in Java:
+
+```
+import org.springframework.boot.*;
+import org.springframework.boot.autoconfigure.*;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@SpringBootApplication
+public class Example {
+
+	@RequestMapping("/")
+	String home() {
+		return "Hello World!";
+	}
+
+	public static void main(String[] args) {
+		SpringApplication.run(Example.class, args);
+	}
+
+}
+```
+
+## Getting Help
+
+[Permalink: Getting Help](#getting-help)
+
+Are you having trouble with Spring Boot? We want to help!
+
+- Check the [reference documentation](https://docs.spring.io/spring-boot/), especially the [How-to’s](https://docs.spring.io/spring-boot/how-to/index.html) — they provide solutions to the most common questions.
+- Learn the Spring basics — Spring Boot builds on many other Spring projects; check the [spring.io](https://spring.io) website for a wealth of reference documentation. If you are new to Spring, try one of the [guides](https://spring.io/guides).
+- If you are upgrading, read the [release notes](https://github.com/spring-projects/spring-boot/wiki) for upgrade instructions and "new and noteworthy" features.
+- Ask a question — we monitor [stackoverflow.com](https://stackoverflow.com) for questions tagged with [`spring-boot`](https://stackoverflow.com/tags/spring-boot).
+- Report bugs with Spring Boot at [github.com/spring-projects/spring-boot/issues](https://github.com/spring-projects/spring-boot/issues).
+
+## Contributing
+
+[Permalink: Contributing](#contributing)
+
+We welcome contributions of all kinds! Please read our [contribution guidelines](https://github.com/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc) before submitting a pull request.
+
+## Reporting Issues
+
+[Permalink: Reporting Issues](#reporting-issues)
+
+Spring Boot uses GitHub’s integrated issue tracking system to record bugs and feature requests. If you want to raise an issue, please follow the recommendations below:
+
+- Before you log a bug, please search the [issue tracker](https://github.com/spring-projects/spring-boot/issues) to see if someone has already reported the problem.
+- If the issue doesn’t already exist, [create a new issue](https://github.com/spring-projects/spring-boot/issues/new).
+- Please provide as much information as possible with the issue report. We like to know the Spring Boot version, operating system, and JVM version you’re using.
+- If you need to paste code or include a stack trace, use Markdown. \`\`\` escapes before and after your text.
+- If possible, try to create a test case or project that replicates the problem and attach it to the issue.
+
+## Building from Source
+
+[Permalink: Building from Source](#building-from-source)
+
+You don’t need to build from source to use Spring Boot. If you want to try out the latest and greatest, Spring Boot can be built and published to your local Maven cache using the [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html). You also need JDK 25.
+
+```
+$ ./gradlew publishToMavenLocal
+```
+
+This command builds all modules and publishes them to your local Maven cache. It won’t run any of the tests. If you want to build everything, use the `build` task:
+
+```
+$ ./gradlew build
+```
+
+## Guides
+
+[Permalink: Guides](#guides)
+
+The [spring.io](https://spring.io/) site contains several guides that show how to use Spring Boot step-by-step:
+
+- [Building an Application with Spring Boot](https://spring.io/guides/gs/spring-boot/) is an introductory guide that shows you how to create an application, run it, and add some management services.
+- [Building a RESTful Web Service with Spring Boot Actuator](https://spring.io/guides/gs/actuator-service/) is a guide to creating a REST web service and also shows how the server can be configured.
+
+## License
+
+[Permalink: License](#license)
+
+Spring Boot is Open Source software released under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
+
+## About
+
+Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.
+
+[spring.io/projects/spring-boot](https://spring.io/projects/spring-boot)
+
+### Topics
+
+[framework](https://github.com/topics/framework) [java](https://github.com/topics/java) [spring](https://github.com/topics/spring) [spring-boot](https://github.com/topics/spring-boot)
+
+### Resources
+
+[Readme](#readme-ov-file)
+
+[Apache-2.0 license](#Apache-2.0-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/spring-projects/spring-boot#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Activity](https://github.com/spring-projects/spring-boot/activity)
+
+[Custom properties](https://github.com/spring-projects/spring-boot/custom-properties)
+
+### Stars
+
+**81.4k** stars
+
+### Watchers
+
+**3.3k** watching
+
+### Forks
+
+[**42.1k** forks](https://github.com/spring-projects/spring-boot/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot&report=spring-projects+%28user%29)
+
+## [Releases](https://github.com/spring-projects/spring-boot/releases)355 (355)
+
+[v4.1.1LatestAug 20, 2026](https://github.com/spring-projects/spring-boot/releases/tag/v4.1.1)
+
+[+ 354 releases](https://github.com/spring-projects/spring-boot/releases)
+
+## [Contributors](https://github.com/spring-projects/spring-boot/graphs/contributors)1,274 (1,274)
+
+- [![@wilkinsona](https://avatars.githubusercontent.com/u/914682?s=64&v=4)](https://github.com/wilkinsona)
+- [![@snicoll](https://avatars.githubusercontent.com/u/490484?s=64&v=4)](https://github.com/snicoll)
+- [![@philwebb](https://avatars.githubusercontent.com/u/519772?s=64&v=4)](https://github.com/philwebb)
+- [![@mhalbritter](https://avatars.githubusercontent.com/u/98899556?s=64&v=4)](https://github.com/mhalbritter)
+- [![@mbhave](https://avatars.githubusercontent.com/u/1761408?s=64&v=4)](https://github.com/mbhave)
+- [![@bclozel](https://avatars.githubusercontent.com/u/103264?s=64&v=4)](https://github.com/bclozel)
+- [![@scottfrederick](https://avatars.githubusercontent.com/u/60661?s=64&v=4)](https://github.com/scottfrederick)
+- [![@izeye](https://avatars.githubusercontent.com/u/1059363?s=64&v=4)](https://github.com/izeye)
+- [![@dreis2211](https://avatars.githubusercontent.com/u/6304496?s=64&v=4)](https://github.com/dreis2211)
+- [![@spring-builds](https://avatars.githubusercontent.com/u/1134463?s=64&v=4)](https://github.com/spring-builds)
+- [![@nosan](https://avatars.githubusercontent.com/u/5054994?s=64&v=4)](https://github.com/nosan)
+- [![@eddumelendez](https://avatars.githubusercontent.com/u/1810547?s=64&v=4)](https://github.com/eddumelendez)
+- [![@vpavic](https://avatars.githubusercontent.com/u/1149230?s=64&v=4)](https://github.com/vpavic)
+- [![@quaff](https://avatars.githubusercontent.com/u/143040?s=64&v=4)](https://github.com/quaff)
+
+[+ 1,260 contributors](https://github.com/spring-projects/spring-boot/graphs/contributors)
+
+## Languages
+
+- [Java99.5%](https://github.com/spring-projects/spring-boot/search?l=java)
+- [Kotlin0.2%](https://github.com/spring-projects/spring-boot/search?l=kotlin)
+- [HTML0.1%](https://github.com/spring-projects/spring-boot/search?l=html)
+- [JavaScript0.1%](https://github.com/spring-projects/spring-boot/search?l=javascript)
+- [Groovy0.1%](https://github.com/spring-projects/spring-boot/search?l=groovy)
+- [Shell0%](https://github.com/spring-projects/spring-boot/search?l=shell)
+
+## Footer
+
+[GitHub Homepage](https://github.com) © 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

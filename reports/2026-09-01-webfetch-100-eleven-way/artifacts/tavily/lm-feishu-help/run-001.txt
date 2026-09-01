@@ -1,1 +1,183 @@
-{"results":[],"failed_results":[{"url":"https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据","error":"Failed to fetch url"}],"response_time":6.22,"request_id":"c967e2c0-5c18-4571-b9dc-001f02420821"}
+[![Image 1](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/268ec674a56a4510889f7f5ca14f1ba1~tplv-jbbdkfciu3-image:0:0.image)](https://www.feishu.cn/)[帮助中心](https://www.feishu.cn/hc/zh-CN)
+
+新手入门
+
+使用飞书
+
+更多资源
+
+[智能助手](https://www.feishu.cn/hc/zh-CN/chat?referrer=/hc/zh-CN/articles/485770964672-%E7%AE%A1%E7%90%86%E8%80%85%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A-ai-%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE)
+
+[登录](https://login.feishu.cn/suite/passport/page/login/?app_id=11&redirect_uri=https%3A%2F%2Fwww.feishu.cn%2Fhc%2Fzh-CN%2Farticles%2F485770964672-%25E7%25AE%25A1%25E7%2590%2586%25E8%2580%2585%25E6%259F%25A5%25E7%259C%258B%25E4%25BC%2581%25E4%25B8%259A-ai-%25E5%258A%259F%25E8%2583%25BD%25E4%25BD%25BF%25E7%2594%25A8%25E6%2595%25B0%25E6%258D%25AE)
+
+# 管理员查看企业 AI 功能使用数据
+
+本文阅读时长：9 分钟
+
+一、功能简介​
+
+​
+
+🔖
+
+增值信息：飞书 AI 版本需企业管理员另外购买。如需购买，请[联系客服](https://applink.feishu.cn/client/web_url/open?width=640&height=480&mode=window&url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)或前往[飞书管理后台](https://feishu.cn/admin)>AI 使用管理>用量概览 自助购买。​
+
+内测信息：功能内测中。​
+
+谁能操作：超级管理员或拥有 AI 使用管理权限的管理员。​
+
+​
+
+飞书管理后台的 AI 使用数据功能帮助管理员全面了解企业内 AI 功能（知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、飞书 aily 工作流应用和企业工作伙伴）的综合使用情况，以及单个 AI 功能的使用情况。​
+
+管理员可通过 AI 功能的使用次数、使用人数、人均使用次数、使用渗透率等指标，分析不同团队或成员使用 AI 功能的差异，及时[调整 AI 权益的限额规则](https://www.feishu.cn/hc/zh-CN/articles/525309709150)，提升 AI 功能在企业中的应用价值。​
+
+例如，管理员根据 AI 使用数据发现部门 A 近期对知识问答功能的用量需求持续增加，可适当提升该部门对知识问答功能的用量额度。​
+
+二、操作流程​
+
+​
+
+🔖
+
+说明：支持查询 2025 年 8 月 1 日之后产生的数据。各项指标中，“人均可搜文档数”从 2025 年 11 月 1 日之后开始统计。​
+
+​
+
+查看整体使用数据​
+
+1.   进入[飞书管理后台](https://feishu.cn/admin)，点击 AI 使用管理>AI 使用数据。​
+
+*   ​250px|700px|reset ![Image 2](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/2bd69d27126445be819826979488f603~tplv-jbbdkfciu3-image:0:0.image)​​
+
+1.   在 AI 整体使用情况 模块中查看企业 AI 功能的综合使用情况；在 AI 功能使用情况 模块中点击 AI 功能名称标签页，查看对应 AI 功能的使用情况。​
+
+*   将鼠标悬停至指标名称右侧的​图标上，可查看对应说明。主要的指标说明如下：​
+
+*   使用次数：对应 AI 功能的实际使用次数。不同功能统计规则不同，请以实际显示的数据为准。​
+
+*   使用人数：使用过该 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。​
+
+*   使用渗透率：该 AI 功能的使用人数在企业飞书活跃人数中所占的比例。​
+
+*   人均使用次数：使用次数 ÷ 使用人数后得到的数值。​
+
+*   使用情况变化趋势：点击使用次数、使用人数、人均使用次数等数据卡片，设置时间范围，即可查看指定时间范围内对应指标的变化趋势。​
+
+*   注：支持查看 2 年内的变化趋势，时间范围最大可设置为 31 天。​
+
+*   使用排行 TOP 10：点击使用次数、使用人数、人均使用次数等数据卡片，可查看该指标下排行前 10 的成员、部门或应用。系统根据成员、部门或应用的单日数据由高到低进行排序。​
+
+*   注：不同 AI 功能标签页下展示的指标类型不同，请以实际页面显示为准。有关更多指标说明的具体信息，请参考本文“三、指标说明”。​
+
+查看使用详情​
+
+管理员可进一步查看成员或部门对 AI 功能的整体使用详情，以及对单个 AI 功能的使用详情。两者操作方式相同，下文以查看 AI 整体使用详情为例，介绍具体的操作步骤。​
+
+1.   进入[飞书管理后台](https://feishu.cn/admin)，点击 AI 使用管理>AI 使用数据。​
+
+1.   在 AI 使用数据页面点击 AI 整体使用情况 右侧的 详情。​
+
+*   ​250px|700px|reset ![Image 3](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/42dcc8b478ff4ec1bd02ddddc9fe6bc0~tplv-jbbdkfciu3-image:0:0.image)​​
+
+1.   点击 部门 或 成员 标签页，选择条件后进行查询。​
+
+*   按部门查询：选择部门和时间，点击 查询。所选的部门总数不可超过 100 个。​
+
+*   按成员查询：选择成员和时间，点击 查询。选择成员时，支持按成员、用户组、部门进行选择，所选的成员、用户组和部门总数不可超过 100 个。​
+
+1.   （可选）在查询结果中，点击指标名称右侧的​图标，可对这些成员的用量按升序或降序排列。​
+
+1.   （可选）点击 导出数据，可将查询记录导出至本地查看。​
+
+*   ​250px|700px|reset ![Image 4](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/a3d6e606342142b79304a6b8a1f2771e~tplv-jbbdkfciu3-image:0:0.image)​​
+
+1.   进一步查看成员或部门在指定时间范围内，对 AI 功能核心指标（使用次数、使用人数、使用渗透率、人均使用次数等）的每日变化趋势。​
+
+*   注：不同 AI 功能标签页下展示的指标类型不同，请以实际页面显示为准。有关更多指标说明的具体信息，请参考本文“三、指标说明”。​
+
+1.   点击查询记录右侧的 详情。​
+
+*   ​250px|700px|reset ![Image 5](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/3106432788dc4fc6934240be05f75cad~tplv-jbbdkfciu3-image:0:0.image)​​
+
+1.   在详情页面中点击 AI 功能名称标签页。​
+
+1.   选择时间范围。支持查看 2 年内的数据，时间范围最大可设置为 31 天。​
+
+三、指标说明​
+
+通用指标​
+
+使用次数、使用人数、使用渗透率、人均使用次数为 AI 整体使用情况和单个 AI 的使用情况中的通用指标，具体说明如下：​
+
+*   使用次数：使用对应 AI 功能的总次数。不同功能统计规则不同，请以实际显示的数据为准。​
+
+*   使用人数：使用对应 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。​
+
+*   使用渗透率：对应 AI 功能的使用人数在企业飞书活跃人数中所占的比例。​
+
+*   人均使用次数：使用次数 ÷ 使用人数后得到的数值。​
+
+注：AI 整体使用情况中包含知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、飞书 aily 工作流应用和企业工作伙伴功能的综合使用数据，不包含多维表格 AI 字段捷径的 使用数据。​
+
+单个 AI 功能专有指标​
+
+​
+
+AI 功能​指标名称​指标含义​
+知识问答​人均可搜文档数​企业内每位成员可搜索的文档数。​
+​文档数​
+
+​成员或部门作为文档所有者的文档总数。文档类型和位置说明如下：​
+
+*   文档类型：文档、电子表格、多维表格（包含问卷）、思维笔记、文件、幻灯片。​
+
+*   文档位置：云盘、我的文档库、知识库。​
+​文档密级打标率​成员或部门作为文档所有者的所有文档中，被设置密级标签的文档占比。​
+​文档安全等级占比​所有被设置了密级标签的文档中，不同密级标签对应的文档占比。​
+​引用文档 Top 10​知识问答结果中，引用次数排行前 10 的文档。​
+​引用 AI 智能纪要 Top 10​知识问答结果中，引用次数排行前 10 的 智能纪要。​
+智能纪要​
+
+​会议数​
+
+​成员或部门使用了智能纪要的会议数。​
+
+注：如果通过上传音视频文件、录音等方式生成妙记，也将计为 1 次。​
+​开启智能纪要的会议占比​开启智能纪要的会议数 ÷ 会议数后得到的数值。​
+飞书 aily 工作流应用​
+
+​飞书 aily 工作流应用使用次数 Top 10​所有飞书 aily 工作流应用中，使用次数排行前 10 的应用。​
+企业工作伙伴​企业工作伙伴使用次数 Top 10​所有企业工作伙伴中，使用次数排行前 10 的工作伙伴。​
+
+​
+
+四、常见问题​
+
+问：知识问答的使用数据中，为什么“人均可搜文档数”为 0？
+
+答：可能企业中当前无可搜文档，或管理员未对成员开启云文档的搜索权限。有关云文档权限的具体信息，请参考[管理员设置文档权限默认值](https://www.feishu.cn/hc/zh-CN/articles/265017155035-%E7%AE%A1%E7%90%86%E5%91%98%E8%AE%BE%E7%BD%AE%E6%96%87%E6%A1%A3%E6%9D%83%E9%99%90%E9%BB%98%E8%AE%A4%E5%80%BC)。​
+
+作者：飞书帮助中心
+
+最后更新于2026/08/19
+
+本文是否对你有帮助
+
+提交成功，感谢你的反馈！
+
+未能解决你的问题？请联系[在线客服](https://applink.feishu.cn/client/web_url/open?width=640&height=480&mode=window&url=https%3A%2F%2Flinkchat.feishu.cn%2Fim-linkchat%2Fredirect.html%3Fsource%3D5%26channelId%3D44)
+
+本篇目录
+
+简体中文
+
+English
+
+[](javascript:void(0);)[](https://weibo.com/u/7223713567)[](https://www.zhihu.com/org/fei-shu-27-96/activities)[](https://www.toutiao.com/c/user/3073831497904140/)[![Image 6: social](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/d58453d89da34a179ac64a94d4c136f5~tplv-jbbdkfciu3-image:0:0.image)](https://web.okjike.com/u/b02229cb-9242-4a7f-9ec7-8a8cacb2142c)
+
+Copyright © 2024 北京飞书科技有限公司[京ICP备16045432号-4](https://beian.miit.gov.cn/)[![Image 7](https://p1-hera.feishucdn.com/tos-cn-i-jbbdkfciu3/24fe94f4e7674d41af176c75560f3ba7~tplv-jbbdkfciu3-image:0:0.image) 京公网安备 11010802029085号](http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11010802029085)[增值电信业务经营许可证：京B2-20190249](https://tsm.miit.gov.cn/dxxzsp/)
+
+rangeDom
+
+rangeDom

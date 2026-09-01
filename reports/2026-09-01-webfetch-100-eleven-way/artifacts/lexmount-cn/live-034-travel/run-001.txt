@@ -1,0 +1,15 @@
+Travel | Travel | Books to Scrape - Sandbox
+Warning! This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+11 results.
+Products:
+1. It&#39;s Only the Himalayas - £45.17
+2. Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond - £49.43
+3. See America: A Celebration of Our National Parks &amp; Treasured Sites - £48.87
+4. Vagabonding: An Uncommon Guide to the Art of Long-Term World Travel - £36.94
+5. Under the Tuscan Sun - £37.33
+6. A Summer In Europe - £44.34
+7. The Great Railway Bazaar - £30.54
+8. A Year in Provence (Provence #1) - £56.88
+9. The Road to Little Dribbling: Adventures of an American in Britain (Notes From a Small Island #2) - £23.21
+10. Neither Here nor There: Travels in Europe - £38.95
+11. 1,000 Places to See Before You Die - £26.08

@@ -1,0 +1,1 @@
+The Web framework for perfectionists with deadlines. Repository stats: stars 89.6k, forks 34.2k, pull requests 477. README excerpt: Django is a high-level Python web framework that encourages rapid development and clean, pragmatic design. Thanks for checking it out.

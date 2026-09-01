@@ -1,0 +1,234 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-050-re-regular-expression-operations__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>re — Regular expression operations</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,190 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：re — Regular expression operations；Regular Expression Syntax；Module Contents。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/re.html">https://docs.python.org/3/library/re.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>re — Regular expression operations
+Regular Expression Syntax
+Module Contents</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：re — Regular expression operations</li><li>是否保留核对点：Regular Expression Syntax</li><li>是否保留核对点：Module Contents</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-050-re-regular-expression-operations/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/re.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:ff3b2f705bbfb4ddc6fbe8f65041f88fe81b10c3de9489d540d3f76c7b330c6d</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>re — Regular expression operations
+Regular Expression Syntax
+Module Contents</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>re — Regular expression operations¶
+Source code: Lib/re/
+This module provides regular expression matching operations similar to those found in Perl.
+Both patterns and strings to be searched can be Unicode strings (str) as well as 8-bit strings (bytes). However, Unicode strings and 8-bit strings cannot be mixed: that is, you cannot match a Unicode string with a bytes pattern or vice-versa; similarly, when asking for a substitution, the replacement string must be of the same type as both the pattern and the search string.
+Regular expressions use the backslash character (&#x27;\&#x27;) to indicate special forms or to allow special characters to be used without invoking their special meaning. This collides with Python’s usage of the same character for the same purpose in string literals; for example, to match a literal backslash, one might have to write &#x27;\\\\&#x27; as the pattern string, because the regular expression must be \\, and each backslash must be expressed as \\ inside a regular Python string literal. Also, please note that any invalid escape sequences in Python’s usage of the backslash in string literals now generate a SyntaxWarning and in the future this will become a SyntaxError. This behaviour will happen even if it is a valid escape sequence for a regular expression.
+The solution is to use Python’s raw string notation for regular expression patterns; backslashes are not handled in any special way in a string literal prefixed with &#x27;r&#x27;. So r&quot;\n&quot; is a two-character string containing &#x27;\&#x27; and &#x27;n&#x27;, while &quot;\n&quot; is a one-character string containing a newline. Usually patterns will be expressed in Python code using this raw string notation.
+It is important to note that most regular expression operations are available as module-level functions and methods on compiled regular expressio</pre></div></div><details><summary>展开本页中的完整供应商输出（26,636 / 26,636 字符）</summary><pre>re — Regular expression operations¶
+Source code: Lib/re/
+This module provides regular expression matching operations similar to those found in Perl.
+Both patterns and strings to be searched can be Unicode strings (str) as well as 8-bit strings (bytes). However, Unicode strings and 8-bit strings cannot be mixed: that is, you cannot match a Unicode string with a bytes pattern or vice-versa; similarly, when asking for a substitution, the replacement string must be of the same type as both the pattern and the search string.
+Regular expressions use the backslash character (&#x27;\&#x27;) to indicate special forms or to allow special characters to be used without invoking their special meaning. This collides with Python’s usage of the same character for the same purpose in string literals; for example, to match a literal backslash, one might have to write &#x27;\\\\&#x27; as the pattern string, because the regular expression must be \\, and each backslash must be expressed as \\ inside a regular Python string literal. Also, please note that any invalid escape sequences in Python’s usage of the backslash in string literals now generate a SyntaxWarning and in the future this will become a SyntaxError. This behaviour will happen even if it is a valid escape sequence for a regular expression.
+The solution is to use Python’s raw string notation for regular expression patterns; backslashes are not handled in any special way in a string literal prefixed with &#x27;r&#x27;. So r&quot;\n&quot; is a two-character string containing &#x27;\&#x27; and &#x27;n&#x27;, while &quot;\n&quot; is a one-character string containing a newline. Usually patterns will be expressed in Python code using this raw string notation.
+It is important to note that most regular expression operations are available as module-level functions and methods on compiled regular expressions. The functions are shortcuts that don’t require you to compile a regex object first, but miss some fine-tuning parameters.
+See also
+The third-party regex module, which has an API compatible with the standard library re module, but offers additional functionality and a more thorough Unicode support.
+Regular Expression Syntax¶
+A regular expression (or RE) specifies a set of strings that matches it; the functions in this module let you check if a particular string matches a given regular expression (or if a given regular expression matches a particular string, which comes down to the same thing).
+Regular expressions can be concatenated to form new regular expressions; if A and B are both regular expressions, then AB is also a regular expression. In general, if a string p matches A and another string q matches B, the string pq will match AB. This holds unless A or B contain low precedence operations; boundary conditions between A and B; or have numbered group references. Thus, complex expressions can easily be constructed from simpler primitive expressions like the ones described here. For details of the theory and implementation of regular expressions, consult the Friedl book [Frie09], or almost any textbook about compiler construction.
+A brief explanation of the format of regular expressions follows. For further information and a gentler presentation, consult the Regular expression HOWTO.
+Regular expressions can contain both special and ordinary characters. Most ordinary characters, like &#x27;A&#x27;, &#x27;a&#x27;, or &#x27;0&#x27;, are the simplest regular expressions; they simply match themselves. You can concatenate ordinary characters, so last matches the string &#x27;last&#x27;. (In the rest of this section, we’ll write RE’s in this special style, usually without quotes, and strings to be matched &#x27;in single quotes&#x27;.)
+Some characters, like &#x27;|&#x27; or &#x27;(&#x27;, are special. Special characters either stand for classes of ordinary characters, or affect how the regular expressions around them are interpreted.
+Repetition operators or quantifiers (*, +, ?, {m,n}, etc) cannot be directly nested. This avoids ambiguity with the non-greedy modifier suffix ?, and with other modifiers in other implementations. To apply a second repetition to an inner repetition, parentheses may be used. For example, the expression (?:a{6})* matches any multiple of six &#x27;a&#x27; characters.
+The special characters are:
+(Dot.) In the default mode, this matches any character except a newline. If the DOTALL flag has been specified, this matches any character including a newline. (?s:.) matches any character regardless of flags.
+(Dot.) In the default mode, this matches any character except a newline. If the DOTALL flag has been specified, this matches any character including a newline. (?s:.) matches any character regardless of flags.
+(Caret.) Matches the start of the string, and in MULTILINE mode also matches immediately after each newline.
+(Caret.) Matches the start of the string, and in MULTILINE mode also matches immediately after each newline.
+Matches the end of the string or just before the newline at the end of the string, and in MULTILINE mode also matches before a newline. foo matches both ‘foo’ and ‘foobar’, while the regular expression foo$ matches only ‘foo’. More interestingly, searching for foo.$ in &#x27;foo1\nfoo2\n&#x27; matches ‘foo2’ normally, but ‘foo1’ in MULTILINE mode; searching for a single $ in &#x27;foo\n&#x27; will find two (empty) matches: one just before the newline, and one at the end of the string.
+Matches the end of the string or just before the newline at the end of the string, and in MULTILINE mode also matches before a newline. foo matches both ‘foo’ and ‘foobar’, while the regular expression foo$ matches only ‘foo’. More interestingly, searching for foo.$ in &#x27;foo1\nfoo2\n&#x27; matches ‘foo2’ normally, but ‘foo1’ in MULTILINE mode; searching for a single $ in &#x27;foo\n&#x27; will find two (empty) matches: one just before the newline, and one at the end of the string.
+Causes the resulting RE to match 0 or more repetitions of the preceding RE, as many repetitions as are possible. ab* will match ‘a’, ‘ab’, or ‘a’ followed by any number of ‘b’s.
+Causes the resulting RE to match 0 or more repetitions of the preceding RE, as many repetitions as are possible. ab* will match ‘a’, ‘ab’, or ‘a’ followed by any number of ‘b’s.
+Causes the resulting RE to match 1 or more repetitions of the preceding RE. ab+ will match ‘a’ followed by any non-zero number of ‘b’s; it will not match just ‘a’.
+Causes the resulting RE to match 1 or more repetitions of the preceding RE. ab+ will match ‘a’ followed by any non-zero number of ‘b’s; it will not match just ‘a’.
+Causes the resulting RE to match 0 or 1 repetitions of the preceding RE. ab? will match either ‘a’ or ‘ab’.
+Causes the resulting RE to match 0 or 1 repetitions of the preceding RE. ab? will match either ‘a’ or ‘ab’.
+The &#x27;*&#x27;, &#x27;+&#x27;, and &#x27;?&#x27; quantifiers are all greedy; they match as much text as possible. Sometimes this behaviour isn’t desired; if the RE &lt;.*&gt; is matched against &#x27;&lt;a&gt; b &lt;c&gt;&#x27;, it will match the entire string, and not just &#x27;&lt;a&gt;&#x27;. Adding ? after the quantifier makes it perform the match in non-greedy or minimal fashion; as few characters as possible will be matched. Using the RE &lt;.*?&gt; will match only &#x27;&lt;a&gt;&#x27;.
+The &#x27;*&#x27;, &#x27;+&#x27;, and &#x27;?&#x27; quantifiers are all greedy; they match as much text as possible. Sometimes this behaviour isn’t desired; if the RE &lt;.*&gt; is matched against &#x27;&lt;a&gt; b &lt;c&gt;&#x27;, it will match the entire string, and not just &#x27;&lt;a&gt;&#x27;. Adding ? after the quantifier makes it perform the match in non-greedy or minimal fashion; as few characters as possible will be matched. Using the RE &lt;.*?&gt; will match only &#x27;&lt;a&gt;&#x27;.
+Like the &#x27;*&#x27;, &#x27;+&#x27;, and &#x27;?&#x27; quantifiers, those where &#x27;+&#x27; is appended also match as many times as possible. However, unlike the true greedy quantifiers, these do not allow back-tracking when the expression following it fails to match. These are known as possessive quantifiers. For example, a*a will match &#x27;aaaa&#x27; because the a* will match all 4 &#x27;a&#x27;s, but, when the final &#x27;a&#x27; is encountered, the expression is backtracked so that in the end the a* ends up matching 3 &#x27;a&#x27;s total, and the fourth &#x27;a&#x27; is matched by the final &#x27;a&#x27;. However, when a*+a is used to match &#x27;aaaa&#x27;, the a*+ will match all 4 &#x27;a&#x27;, but when the final &#x27;a&#x27; fails to find any more characters to match, the expression cannot be backtracked and will thus fail to match. x*+, x++ and x?+ are equivalent to (?&gt;x*), (?&gt;x+) and (?&gt;x?) correspondingly. Added in version 3.11.
+Like the &#x27;*&#x27;, &#x27;+&#x27;, and &#x27;?&#x27; quantifiers, those where &#x27;+&#x27; is appended also match as many times as possible. However, unlike the true greedy quantifiers, these do not allow back-tracking when the expression following it fails to match. These are known as possessive quantifiers. For example, a*a will match &#x27;aaaa&#x27; because the a* will match all 4 &#x27;a&#x27;s, but, when the final &#x27;a&#x27; is encountered, the expression is backtracked so that in the end the a* ends up matching 3 &#x27;a&#x27;s total, and the fourth &#x27;a&#x27; is matched by the final &#x27;a&#x27;. However, when a*+a is used to match &#x27;aaaa&#x27;, the a*+ will match all 4 &#x27;a&#x27;, but when the final &#x27;a&#x27; fails to find any more characters to match, the expression cannot be backtracked and will thus fail to match. x*+, x++ and x?+ are equivalent to (?&gt;x*), (?&gt;x+) and (?&gt;x?) correspondingly.
+Added in version 3.11.
+Specifies that exactly m copies of the previous RE should be matched; fewer matches cause the entire RE not to match. For example, a{6} will match exactly six &#x27;a&#x27; characters, but not five.
+Specifies that exactly m copies of the previous RE should be matched; fewer matches cause the entire RE not to match. For example, a{6} will match exactly six &#x27;a&#x27; characters, but not five.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible. For example, a{3,5} will match from 3 to 5 &#x27;a&#x27; characters. Omitting m specifies a lower bound of zero, and omitting n specifies an infinite upper bound. As an example, a{4,}b will match &#x27;aaaab&#x27; or a thousand &#x27;a&#x27; characters followed by a &#x27;b&#x27;, but not &#x27;aaab&#x27;. The comma may not be omitted or the modifier would be confused with the previously described form.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible. For example, a{3,5} will match from 3 to 5 &#x27;a&#x27; characters. Omitting m specifies a lower bound of zero, and omitting n specifies an infinite upper bound. As an example, a{4,}b will match &#x27;aaaab&#x27; or a thousand &#x27;a&#x27; characters followed by a &#x27;b&#x27;, but not &#x27;aaab&#x27;. The comma may not be omitted or the modifier would be confused with the previously described form.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as few repetitions as possible. This is the non-greedy version of the previous quantifier. For example, on the 6-character string &#x27;aaaaaa&#x27;, a{3,5} will match 5 &#x27;a&#x27; characters, while a{3,5}? will only match 3 characters.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as few repetitions as possible. This is the non-greedy version of the previous quantifier. For example, on the 6-character string &#x27;aaaaaa&#x27;, a{3,5} will match 5 &#x27;a&#x27; characters, while a{3,5}? will only match 3 characters.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible without establishing any backtracking points. This is the possessive version of the quantifier above. For example, on the 6-character string &#x27;aaaaaa&#x27;, a{3,5}+aa attempt to match 5 &#x27;a&#x27; characters, then, requiring 2 more &#x27;a&#x27;s, will need more characters than available and thus fail, while a{3,5}aa will match with a{3,5} capturing 5, then 4 &#x27;a&#x27;s by backtracking and then the final 2 &#x27;a&#x27;s are matched by the final aa in the pattern. x{m,n}+ is equivalent to (?&gt;x{m,n}). Added in version 3.11.
+Causes the resulting RE to match from m to n repetitions of the preceding RE, attempting to match as many repetitions as possible without establishing any backtracking points. This is the possessive version of the quantifier above. For example, on the 6-character string &#x27;aaaaaa&#x27;, a{3,5}+aa attempt to match 5 &#x27;a&#x27; characters, then, requiring 2 more &#x27;a&#x27;s, will need more characters than available and thus fail, while a{3,5}aa will match with a{3,5} capturing 5, then 4 &#x27;a&#x27;s by backtracking and then the final 2 &#x27;a&#x27;s are matched by the final aa in the pattern. x{m,n}+ is equivalent to (?&gt;x{m,n}).
+Added in version 3.11.
+Either escapes special characters (permitting you to match characters like &#x27;*&#x27;, &#x27;?&#x27;, and so forth), or signals a special sequence; special sequences are discussed below. If you’re not using a raw string to express the pattern, remember that Python also uses the backslash as an escape sequence in string literals; if the escape sequence isn’t recognized by Python’s parser, the backslash and subsequent character are included in the resulting string. However, if Python would recognize the resulting sequence, the backslash should be repeated twice. This is complicated and hard to understand, so it’s highly recommended that you use raw strings for all but the simplest expressions.
+Either escapes special characters (permitting you to match characters like &#x27;*&#x27;, &#x27;?&#x27;, and so forth), or signals a special sequence; special sequences are discussed below.
+If you’re not using a raw string to express the pattern, remember that Python also uses the backslash as an escape sequence in string literals; if the escape sequence isn’t recognized by Python’s parser, the backslash and subsequent character are included in the resulting string. However, if Python would recognize the resulting sequence, the backslash should be repeated twice. This is complicated and hard to understand, so it’s highly recommended that you use raw strings for all but the simplest expressions.
+Used to indicate a set of characters. In a set: Characters can be listed individually, e.g. [amk] will match &#x27;a&#x27;, &#x27;m&#x27;, or &#x27;k&#x27;. Ranges of characters can be indicated by giving two characters and separating them by a &#x27;-&#x27;, for example [a-z] will match any lowercase ASCII letter, [0-5][0-9] will match all the two-digits numbers from 00 to 59, and [0-9A-Fa-f] will match any hexadecimal digit. If - is escaped (e.g. [a\-z]) or if it’s placed as the first or last character (e.g. [-a] or [a-]), it will match a literal &#x27;-&#x27;. Special characters except backslash lose their special meaning inside sets. For example, [(+*)] will match any of the literal characters &#x27;(&#x27;, &#x27;+&#x27;, &#x27;*&#x27;, or &#x27;)&#x27;. Backslash either escapes characters which have special meaning in a set such as &#x27;-&#x27;, &#x27;]&#x27;, &#x27;^&#x27; and &#x27;\\&#x27; itself or signals a special sequence which represents a single character such as \xa0 or \n or a character class such as \w or \S (defined below). Note that \b represents a single “backspace” character, not a word boundary as outside a set, and numeric escapes such as \1 are always octal escapes, not group references. Special sequences which do not match a single character such as \A and \z are not allowed. Characters that are not within a range can be matched by complementing the set. If the first character of the set is &#x27;^&#x27;, all the characters that are not in the set will be matched. For example, [^5] will match any character except &#x27;5&#x27;, and [^^] will match any character except &#x27;^&#x27;. ^ has no special meaning if it’s not the first character in the set. To match a literal &#x27;]&#x27; inside a set, precede it with a backslash, or place it at the beginning of the set. For example, both [()[\]{}] and []()[{}] will match a right bracket, as well as left bracket, braces, and parentheses. Support of nested sets and set operations as in Unicode Technical Standard #18 might be added in the future. This would change the syntax, so to facilitate this change a FutureWarning will be raised in ambiguous cases for the time being. That includes sets starting with a literal &#x27;[&#x27; or containing literal character sequences &#x27;--&#x27;, &#x27;&amp;&amp;&#x27;, &#x27;~~&#x27;, and &#x27;||&#x27;. To avoid a warning escape them with a backslash. Changed in version 3.7: FutureWarning is raised if a character set contains constructs that will change semantically in the future.
+Used to indicate a set of characters. In a set:
+Characters can be listed individually, e.g. [amk] will match &#x27;a&#x27;, &#x27;m&#x27;, or &#x27;k&#x27;.
+Characters can be listed individually, e.g. [amk] will match &#x27;a&#x27;, &#x27;m&#x27;, or &#x27;k&#x27;.
+Ranges of characters can be indicated by giving two characters and separating them by a &#x27;-&#x27;, for example [a-z] will match any lowercase ASCII letter, [0-5][0-9] will match all the two-digits numbers from 00 to 59, and [0-9A-Fa-f] will match any hexadecimal digit. If - is escaped (e.g. [a\-z]) or if it’s placed as the first or last character (e.g. [-a] or [a-]), it will match a literal &#x27;-&#x27;.
+Ranges of characters can be indicated by giving two characters and separating them by a &#x27;-&#x27;, for example [a-z] will match any lowercase ASCII letter, [0-5][0-9] will match all the two-digits numbers from 00 to 59, and [0-9A-Fa-f] will match any hexadecimal digit. If - is escaped (e.g. [a\-z]) or if it’s placed as the first or last character (e.g. [-a] or [a-]), it will match a literal &#x27;-&#x27;.
+Special characters except backslash lose their special meaning inside sets. For example, [(+*)] will match any of the literal characters &#x27;(&#x27;, &#x27;+&#x27;, &#x27;*&#x27;, or &#x27;)&#x27;.
+Special characters except backslash lose their special meaning inside sets. For example, [(+*)] will match any of the literal characters &#x27;(&#x27;, &#x27;+&#x27;, &#x27;*&#x27;, or &#x27;)&#x27;.
+Backslash either escapes characters which have special meaning in a set such as &#x27;-&#x27;, &#x27;]&#x27;, &#x27;^&#x27; and &#x27;\\&#x27; itself or signals a special sequence which represents a single character such as \xa0 or \n or a character class such as \w or \S (defined below). Note that \b represents a single “backspace” character, not a word boundary as outside a set, and numeric escapes such as \1 are always octal escapes, not group references. Special sequences which do not match a single character such as \A and \z are not allowed.
+Backslash either escapes characters which have special meaning in a set such as &#x27;-&#x27;, &#x27;]&#x27;, &#x27;^&#x27; and &#x27;\\&#x27; itself or signals a special sequence which represents a single character such as \xa0 or \n or a character class such as \w or \S (defined below). Note that \b represents a single “backspace” character, not a word boundary as outside a set, and numeric escapes such as \1 are always octal escapes, not group references. Special sequences which do not match a single character such as \A and \z are not allowed.
+Characters that are not within a range can be matched by complementing the set. If the first character of the set is &#x27;^&#x27;, all the characters that are not in the set will be matched. For example, [^5] will match any character except &#x27;5&#x27;, and [^^] will match any character except &#x27;^&#x27;. ^ has no special meaning if it’s not the first character in the set.
+Characters that are not within a range can be matched by complementing the set. If the first character of the set is &#x27;^&#x27;, all the characters that are not in the set will be matched. For example, [^5] will match any character except &#x27;5&#x27;, and [^^] will match any character except &#x27;^&#x27;. ^ has no special meaning if it’s not the first character in the set.
+To match a literal &#x27;]&#x27; inside a set, precede it with a backslash, or place it at the beginning of the set. For example, both [()[\]{}] and []()[{}] will match a right bracket, as well as left bracket, braces, and parentheses.
+To match a literal &#x27;]&#x27; inside a set, precede it with a backslash, or place it at the beginning of the set. For example, both [()[\]{}] and []()[{}] will match a right bracket, as well as left bracket, braces, and parentheses.
+Support of nested sets and set operations as in Unicode Technical Standard #18 might be added in the future. This would change the syntax, so to facilitate this change a FutureWarning will be raised in ambiguous cases for the time being. That includes sets starting with a literal &#x27;[&#x27; or containing literal character sequences &#x27;--&#x27;, &#x27;&amp;&amp;&#x27;, &#x27;~~&#x27;, and &#x27;||&#x27;. To avoid a warning escape them with a backslash.
+Support of nested sets and set operations as in Unicode Technical Standard #18 might be added in the future. This would change the syntax, so to facilitate this change a FutureWarning will be raised in ambiguous cases for the time being. That includes sets starting with a literal &#x27;[&#x27; or containing literal character sequences &#x27;--&#x27;, &#x27;&amp;&amp;&#x27;, &#x27;~~&#x27;, and &#x27;||&#x27;. To avoid a warning escape them with a backslash.
+Changed in version 3.7: FutureWarning is raised if a character set contains constructs that will change semantically in the future.
+A|B, where A and B can be arbitrary REs, creates a regular expression that will match either A or B. An arbitrary number of REs can be separated by the &#x27;|&#x27; in this way. This can be used inside groups (see below) as well. As the target string is scanned, REs separated by &#x27;|&#x27; are tried from left to right. When one pattern completely matches, that branch is accepted. This means that once A matches, B will not be tested further, even if it would produce a longer overall match. In other words, the &#x27;|&#x27; operator is never greedy. To match a literal &#x27;|&#x27;, use \|, or enclose it inside a character class, as in [|].
+A|B, where A and B can be arbitrary REs, creates a regular expression that will match either A or B. An arbitrary number of REs can be separated by the &#x27;|&#x27; in this way. This can be used inside groups (see below) as well. As the target string is scanned, REs separated by &#x27;|&#x27; are tried from left to right. When one pattern completely matches, that branch is accepted. This means that once A matches, B will not be tested further, even if it would produce a longer overall match. In other words, the &#x27;|&#x27; operator is never greedy. To match a literal &#x27;|&#x27;, use \|, or enclose it inside a character class, as in [|].
+Matches whatever regular expression is inside the parentheses, and indicates the start and end of a group; the contents of a group can be retrieved after a match has been performed, and can be matched later in the string with the \number special sequence, described below. To match the literals &#x27;(&#x27; or &#x27;)&#x27;, use \( or \), or enclose them inside a character class: [(], [)].
+Matches whatever regular expression is inside the parentheses, and indicates the start and end of a group; the contents of a group can be retrieved after a match has been performed, and can be matched later in the string with the \number special sequence, described below. To match the literals &#x27;(&#x27; or &#x27;)&#x27;, use \( or \), or enclose them inside a character class: [(], [)].
+This is an extension notation (a &#x27;?&#x27; following a &#x27;(&#x27; is not meaningful otherwise). The first character after the &#x27;?&#x27; determines what the meaning and further syntax of the construct is. Extensions usually do not create a new group; (?P&lt;name&gt;...) is the only exception to this rule. Following are the currently supported extensions.
+This is an extension notation (a &#x27;?&#x27; following a &#x27;(&#x27; is not meaningful otherwise). The first character after the &#x27;?&#x27; determines what the meaning and further syntax of the construct is. Extensions usually do not create a new group; (?P&lt;name&gt;...) is the only exception to this rule. Following are the currently supported extensions.
+(One or more letters from the set &#x27;a&#x27;, &#x27;i&#x27;, &#x27;L&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;u&#x27;, &#x27;x&#x27;.) The group matches the empty string; the letters set the corresponding flags for the entire regular expression: re.A (ASCII-only matching) re.I (ignore case) re.L (locale dependent) re.M (multi-line) re.S (dot matches all) re.U (Unicode matching) re.X (verbose) (The flags are described in Module Contents.) This is useful if you wish to include the flags as part of the regular expression, instead of passing a flag argument to the re.compile() function. Flags should be used first in the expression string. Changed in version 3.11: This construction can only be used at the start of the expression.
+(One or more letters from the set &#x27;a&#x27;, &#x27;i&#x27;, &#x27;L&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;u&#x27;, &#x27;x&#x27;.) The group matches the empty string; the letters set the corresponding flags for the entire regular expression:
+re.A (ASCII-only matching)
+re.A (ASCII-only matching)
+re.I (ignore case)
+re.I (ignore case)
+re.L (locale dependent)
+re.L (locale dependent)
+re.M (multi-line)
+re.M (multi-line)
+re.S (dot matches all)
+re.S (dot matches all)
+re.U (Unicode matching)
+re.U (Unicode matching)
+re.X (verbose)
+re.X (verbose)
+(The flags are described in Module Contents.) This is useful if you wish to include the flags as part of the regular expression, instead of passing a flag argument to the re.compile() function. Flags should be used first in the expression string.
+Changed in version 3.11: This construction can only be used at the start of the expression.
+A non-capturing version of regular parentheses. Matches whatever regular expression is inside the parentheses, but the substring matched by the group cannot be retrieved after performing a match or referenced later in the pattern.
+A non-capturing version of regular parentheses. Matches whatever regular expression is inside the parentheses, but the substring matched by the group cannot be retrieved after performing a match or referenced later in the pattern.
+(Zero or more letters from the set &#x27;a&#x27;, &#x27;i&#x27;, &#x27;L&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;u&#x27;, &#x27;x&#x27;, optionally followed by &#x27;-&#x27; followed by one or more letters from the &#x27;i&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;x&#x27;.) The letters set or remove the corresponding flags for the part of the expression: re.A (ASCII-only matching) re.I (ignore case) re.L (locale dependent) re.M (multi-line) re.S (dot matches all) re.U (Unicode matching) re.X (verbose) (The flags are described in Module Contents.) The letters &#x27;a&#x27;, &#x27;L&#x27; and &#x27;u&#x27; are mutually exclusive when used as inline flags, so they can’t be combined or follow &#x27;-&#x27;. Instead, when one of them appears in an inline group, it overrides the matching mode in the enclosing group. In Unicode patterns (?a:...) switches to ASCII-only matching, and (?u:...) switches to Unicode matching (default). In bytes patterns (?L:...) switches to locale dependent matching, and (?a:...) switches to ASCII-only matching (default). This override is only in effect for the narrow inline group, and the original matching mode is restored outside of the group. Added in version 3.6. Changed in version 3.7: The letters &#x27;a&#x27;, &#x27;L&#x27; and &#x27;u&#x27; also can be used in a group.
+(Zero or more letters from the set &#x27;a&#x27;, &#x27;i&#x27;, &#x27;L&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;u&#x27;, &#x27;x&#x27;, optionally followed by &#x27;-&#x27; followed by one or more letters from the &#x27;i&#x27;, &#x27;m&#x27;, &#x27;s&#x27;, &#x27;x&#x27;.) The letters set or remove the corresponding flags for the part of the expression:
+re.A (ASCII-only matching)
+re.A (ASCII-only matching)
+re.I (ignore case)
+re.I (ignore case)
+re.L (locale dependent)
+re.L (locale dependent)
+re.M (multi-line)
+re.M (multi-line)
+re.S (dot matches all)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-050-re-regular-expression-operations__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/re.html</span></div><div class="kv"><b>输出大小</b>26,636 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>re — Regular expression operations</td><td>re — Regular expression operations</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Regular Expression Syntax</td><td>Regular Expression Syntax</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Module Contents</td><td>Module Contents</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">re — Regular expression operations</span></p><p><span class="tag">re — Regular expression operations</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;e6317732-ed37-49a2-8914-6e4b2b8058a5&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 801,
+  &quot;dom_id&quot;: &quot;268178&quot;,
+  &quot;links_count&quot;: 25,
+  &quot;images_count&quot;: 1,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../bugs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../genindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Regular expression HOWTO&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../howto/regex.html#regex-howto&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../improve-page-nojs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../py-modindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;escape sequences&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/lexical_analysis.html#escape-sequences&quot;
+    },
+    {
+      &quot;text&quot;: &quot;next&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/difflib.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;enum.IntFlag&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/enum.html#enum.IntFlag&quot;
+    },
+    {
+      &quot;text&quot;: &quot;FutureWarning&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#FutureWarning&quot;
+    },
+    {
+      &quot;text&quot;: &quot;SyntaxError&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#SyntaxError&quot;
+    },
+    {
+      &quot;text&quot;: &quot;SyntaxWarning&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/exceptions.html#SyntaxWarning&quot;
+    },
+    {
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;bytes&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#bytes&quot;
+    },
+    {
+      &quot;text&quot;: &quot;str&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#str&quot;
+    },
+    {
+      &quot;text&quot;: &quot;str.isalnum()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#str.isalnum&quot;
+    },
+    {
+      &quot;text&quot;: &quot;str.isspace()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#str.isspace&quot;
+    },
+    {
+      &quot;text&quot;: &quot;previous&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/string.templatelib.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Text Processing Services&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/text.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/library/re.rst?plain=1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lib/re/&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/tree/3.14/Lib/re/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;regex&quot;,
+      &quot;href&quot;: &quot;https://pypi.org/project/regex/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Unicode Technical Standard #18&quot;,
+      &quot;href&quot;: &quot;https://unicode.org/reports/tr18/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Python&quot;,
+      &quot;href&quot;: &quot;https://www.python.org/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;[Nd]&quot;,
+      &quot;href&quot;: &quot;https://www.unicode.org/versions/Unicode15.0.0/ch04.pdf#G134153&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3.14/_images/social_previews/summary_library_re_49568c13.png&quot;,
+      &quot;alt&quot;: &quot;Source code: Lib/re/ This module provides regular expression matching operations similar to those found in Perl. Both patterns and strings to be searched can be Unicode strings ( str) as well as 8-...&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-050-re-regular-expression-operations__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-050-re-regular-expression-operations__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-050-re-regular-expression-operations__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

@@ -1,0 +1,490 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>firecrawl__live-053-dns-for-services-and-pods__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · firecrawl</div><h1>DNS for Services and Pods</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">3,283 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：DNS for Services and Pods；Namespaces of Services；DNS Records。</p><p><b>输入 URL：</b><a href="https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/">https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>DNS for Services and Pods
+Namespaces of Services
+DNS Records</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：DNS for Services and Pods</li><li>是否保留核对点：Namespaces of Services</li><li>是否保留核对点：DNS Records</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/firecrawl/live-053-dns-for-services-and-pods/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/">打开标准答案源网页</a> · 完整性校验 <code>sha256:01d3f071a1810b62cf7b6844a3f67226faea4d75f89de7ff8b490649a61a1536</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>DNS for Services and Pods
+Namespaces of Services
+DNS Records</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># DNS for Services and Pods
+
+Your workload can discover Services within your cluster using DNS; this page explains how that works.
+
+Kubernetes creates DNS records for Services and Pods. You can contact
+Services with consistent DNS names instead of IP addresses.
+
+Kubernetes publishes information about Pods and Services which is used
+to program DNS. kubelet configures Pods&#x27; DNS so that running containers
+can look up Services by name rather than IP.
+
+Services defined in the cluster are assigned DNS names. By default, a
+client Pod&#x27;s DNS search list includes the Pod&#x27;s own namespace and the
+cluster&#x27;s default domain.
+
+### Namespaces of Services [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#namespaces-of-services)
+
+A DNS query may return different results based on the namespace of the Pod making
+it. DNS queries that don&#x27;t specify a namespace are limited to the Pod&#x27;s
+namespace. Access Services in other namespaces by specifying it in the DNS query.
+
+For example, consider a Pod in a `test` namespace. A `data` Service is in
+the `prod` namespace.
+
+A query for `data` returns no results, because it uses the Pod&#x27;s `test` namespace.
+
+A query for `data.prod` returns the intended result, because it specifies the
+namespace.
+
+DNS queries may be expanded using the Pod&#x27;s `/etc/resolv.conf`. kubelet
+configures this file for each Pod. For example, a query for just `data` may be
+expanded to `data.test.svc.cluster.local`. The values of the `search` option
+are used to expand queries. To learn more about DNS queries, see
+[the `resolv.conf` manual page](https://www.man7.org/linux/man-pages/man5/resolv.conf.5.html).
+
+```
+nameserver 10.32.0.10
+search &lt;namespace&gt;.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+In summary, a Pod in t</pre></div></div><details><summary>展开本页中的完整供应商输出（17,906 / 17,906 字符）</summary><pre># DNS for Services and Pods
+
+Your workload can discover Services within your cluster using DNS; this page explains how that works.
+
+Kubernetes creates DNS records for Services and Pods. You can contact
+Services with consistent DNS names instead of IP addresses.
+
+Kubernetes publishes information about Pods and Services which is used
+to program DNS. kubelet configures Pods&#x27; DNS so that running containers
+can look up Services by name rather than IP.
+
+Services defined in the cluster are assigned DNS names. By default, a
+client Pod&#x27;s DNS search list includes the Pod&#x27;s own namespace and the
+cluster&#x27;s default domain.
+
+### Namespaces of Services [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#namespaces-of-services)
+
+A DNS query may return different results based on the namespace of the Pod making
+it. DNS queries that don&#x27;t specify a namespace are limited to the Pod&#x27;s
+namespace. Access Services in other namespaces by specifying it in the DNS query.
+
+For example, consider a Pod in a `test` namespace. A `data` Service is in
+the `prod` namespace.
+
+A query for `data` returns no results, because it uses the Pod&#x27;s `test` namespace.
+
+A query for `data.prod` returns the intended result, because it specifies the
+namespace.
+
+DNS queries may be expanded using the Pod&#x27;s `/etc/resolv.conf`. kubelet
+configures this file for each Pod. For example, a query for just `data` may be
+expanded to `data.test.svc.cluster.local`. The values of the `search` option
+are used to expand queries. To learn more about DNS queries, see
+[the `resolv.conf` manual page](https://www.man7.org/linux/man-pages/man5/resolv.conf.5.html).
+
+```
+nameserver 10.32.0.10
+search &lt;namespace&gt;.svc.cluster.local svc.cluster.local cluster.local
+options ndots:5
+```
+
+In summary, a Pod in the _test_ namespace can successfully resolve either
+`data.prod` or `data.prod.svc.cluster.local`.
+
+### DNS Records [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#dns-records)
+
+What objects get DNS records?
+
+1. Services
+2. Pods
+
+The following sections detail the supported DNS record types and layout that is
+supported. Any other layout or names or queries that happen to work are
+considered implementation details and are subject to change without warning.
+For more up-to-date specification, see
+[Kubernetes DNS-Based Service Discovery](https://github.com/kubernetes/dns/blob/master/docs/specification.md).
+
+## Services [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#services)
+
+### A/AAAA records [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#a-aaaa-records)
+
+&quot;Normal&quot; (not headless) Services are assigned DNS A and/or AAAA records,
+depending on the IP family or families of the Service, with a name of the form
+`my-svc.my-namespace.svc.cluster-domain.example`. This resolves to the cluster IP
+of the Service.
+
+[Headless Services](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services)
+(without a cluster IP) are also assigned DNS A and/or AAAA records,
+with a name of the form `my-svc.my-namespace.svc.cluster-domain.example`. Unlike normal
+Services, this resolves to the set of IPs of all of the Pods selected by the Service.
+Clients are expected to consume the set or else use standard round-robin
+selection from the set.
+
+### SRV records [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#srv-records)
+
+SRV Records are created for named ports that are part of normal or headless
+services.
+
+- For each named port, the SRV record has the form
+`_port-name._port-protocol.my-svc.my-namespace.svc.cluster-domain.example`.
+- For a regular Service, this resolves to the port number and the domain name:
+`my-svc.my-namespace.svc.cluster-domain.example`.
+- For a headless Service, this resolves to multiple answers, one for each Pod
+that is backing the Service, and contains the port number and the domain name of the Pod
+of the form `hostname.my-svc.my-namespace.svc.cluster-domain.example`.
+
+## Pods [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#pods)
+
+### A/AAAA records [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#a-aaaa-records-1)
+
+Kube-DNS versions, prior to the implementation of the
+[DNS specification](https://github.com/kubernetes/dns/blob/master/docs/specification.md),
+had the following DNS resolution:
+
+```
+&lt;pod-IPv4-address&gt;.&lt;namespace&gt;.pod.&lt;cluster-domain&gt;
+```
+
+For example, if a Pod in the `default` namespace has the IP address 172.17.0.3,
+and the domain name for your cluster is `cluster.local`, then the Pod has a DNS name:
+
+```
+172-17-0-3.default.pod.cluster.local
+```
+
+Some cluster DNS mechanisms, like [CoreDNS](https://coredns.io/), also provide `A` records for:
+
+```
+&lt;pod-ipv4-address&gt;.&lt;service-name&gt;.&lt;my-namespace&gt;.svc.&lt;cluster-domain.example&gt;
+```
+
+For example, if a Pod in the `cafe` namespace has the IP address 172.17.0.3,
+is an endpoint of a Service named `barista`, and the domain name for your cluster is
+`cluster.local`, then the Pod would have this service-scoped DNS `A` record.
+
+```
+172-17-0-3.barista.cafe.svc.cluster.local
+```
+
+### Pod&#x27;s hostname and subdomain fields [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#pod-hostname-and-subdomain-field)
+
+Currently when a Pod is created, its hostname (as observed from within the Pod)
+is the Pod&#x27;s `metadata.name` value.
+
+The Pod spec has an optional `hostname` field, which can be used to specify a
+different hostname. When specified, it takes precedence over the Pod&#x27;s name to be
+the hostname of the Pod (again, as observed from within the Pod). For example,
+given a Pod with `spec.hostname` set to `&quot;my-host&quot;`, the Pod will have its
+hostname set to `&quot;my-host&quot;`.
+
+The Pod spec also has an optional `subdomain` field which can be used to indicate
+that the pod is part of sub-group of the namespace. For example, a Pod with `spec.hostname`
+set to `&quot;foo&quot;`, and `spec.subdomain` set to `&quot;bar&quot;`, in namespace `&quot;my-namespace&quot;`, will
+have its hostname set to `&quot;foo&quot;` and its fully qualified domain name (FQDN) set to
+`&quot;foo.bar.my-namespace.svc.cluster.local&quot;` (once more, as observed from within
+the Pod).
+
+If there exists a headless Service in the same namespace as the Pod, with
+the same name as the subdomain, the cluster&#x27;s DNS Server also returns A and/or AAAA
+records for the Pod&#x27;s fully qualified hostname.
+
+Example:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: busybox-subdomain
+spec:
+  selector:
+    name: busybox
+  clusterIP: None
+  ports:
+  - name: foo # name is not required for single-port Services
+    port: 1234
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox1
+  labels:
+    name: busybox
+spec:
+  hostname: busybox-1
+  subdomain: busybox-subdomain
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - &quot;3600&quot;
+    name: busybox
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox2
+  labels:
+    name: busybox
+spec:
+  hostname: busybox-2
+  subdomain: busybox-subdomain
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - &quot;3600&quot;
+    name: busybox
+```
+
+Given the above Service `&quot;busybox-subdomain&quot;` and the Pods which set `spec.subdomain`
+to `&quot;busybox-subdomain&quot;`, the first Pod will see its own FQDN as
+`&quot;busybox-1.busybox-subdomain.my-namespace.svc.cluster-domain.example&quot;`. DNS serves
+A and/or AAAA records at that name, pointing to the Pod&#x27;s IP. Both Pods &quot;`busybox1`&quot; and
+&quot;`busybox2`&quot; will have their own address records.
+
+An [EndpointSlice](https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/) can specify
+the DNS hostname for any endpoint addresses, along with its IP.
+
+#### Note:
+
+A and AAAA records are not created for Pod names since `hostname` is missing for the Pod.
+A Pod with no `hostname` but with `subdomain` will only create the
+A or AAAA record for the headless Service (`busybox-subdomain.my-namespace.svc.cluster-domain.example`),
+pointing to the Pods&#x27; IP addresses. Also, the Pod needs to be ready in order to have a
+record unless `publishNotReadyAddresses=True` is set on the Service.
+
+### Pod&#x27;s setHostnameAsFQDN field [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#pod-sethostnameasfqdn-field)
+
+Feature state:Stable since Kubernetes v1.22
+
+When a Pod is configured to have fully qualified domain name (FQDN), its
+hostname is the short hostname. For example, if you have a Pod with the fully
+qualified domain name `busybox-1.busybox-subdomain.my-namespace.svc.cluster-domain.example`,
+then by default the `hostname` command inside that Pod returns `busybox-1` and the
+`hostname --fqdn` command returns the FQDN.
+
+When you set `setHostnameAsFQDN: true` in the Pod spec, the kubelet writes the Pod&#x27;s FQDN
+into the hostname for that Pod&#x27;s namespace. In this case, both `hostname` and `hostname --fqdn`
+return the Pod&#x27;s FQDN.
+
+#### Note:
+
+In Linux, the hostname field of the kernel (the `nodename` field of `struct utsname`) is limited to 64 characters.
+
+If a Pod enables this feature and its FQDN is longer than 64 character, it will fail to start.
+The Pod will remain in `Pending` status (`ContainerCreating` as seen by `kubectl`) generating
+error events, such as Failed to construct FQDN from Pod hostname and cluster domain,
+FQDN `long-FQDN` is too long (64 characters is the max, 70 characters requested).
+One way of improving user experience for this scenario is to create an
+[admission webhook controller](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#what-are-admission-webhooks)
+to control FQDN size when users create top level objects, for example, Deployment.
+
+### Pod&#x27;s DNS Policy [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#pod-s-dns-policy)
+
+DNS policies can be set on a per-Pod basis. Currently Kubernetes supports the
+following Pod-specific DNS policies. These policies are specified in the
+`dnsPolicy` field of a Pod Spec.
+
+- &quot;`Default`&quot;: The Pod inherits the name resolution configuration from the node
+that the Pods run on.
+See [related discussion](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/)
+for more details.
+
+- &quot;`ClusterFirst`&quot;: Any DNS query that does not match the configured cluster
+domain suffix, such as &quot;`www.kubernetes.io`&quot;, is forwarded to an upstream
+nameserver by the DNS server. Cluster administrators may have extra
+stub-domain and upstream DNS servers configured.
+See [related discussion](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/)
+for details on how DNS queries are handled in those cases.
+
+- &quot;`ClusterFirstWithHostNet`&quot;: For Pods running with hostNetwork, you should
+explicitly set its DNS policy to &quot;`ClusterFirstWithHostNet`&quot;. Otherwise, Pods
+running with hostNetwork and `&quot;ClusterFirst&quot;` will fallback to the behavior
+of the `&quot;Default&quot;` policy.
+
+
+
+#### Note:
+
+This is not supported on Windows. See [below](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#dns-windows) for details.
+
+- &quot;`None`&quot;: It allows a Pod to ignore DNS settings from the Kubernetes
+environment. All DNS settings are supposed to be provided using the
+`dnsConfig` field in the Pod Spec.
+See [Pod&#x27;s DNS config](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config) subsection below.
+
+
+#### Note:
+
+&quot;Default&quot; is not the default DNS policy. If `dnsPolicy` is not
+explicitly specified, then &quot;ClusterFirst&quot; is used.
+
+The example below shows a Pod with its DNS policy set to
+&quot;`ClusterFirstWithHostNet`&quot; because it has `hostNetwork` set to `true`.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+  - image: busybox:1.28
+    command:
+      - sleep
+      - &quot;3600&quot;
+    imagePullPolicy: IfNotPresent
+    name: busybox
+  restartPolicy: Always
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+```
+
+### Pod&#x27;s DNS Config [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#pod-dns-config)
+
+Feature state:Stable since Kubernetes v1.14
+
+Pod&#x27;s DNS Config allows users more control on the DNS settings for a Pod.
+
+The `dnsConfig` field is optional and it can work with any `dnsPolicy` settings.
+However, when a Pod&#x27;s `dnsPolicy` is set to &quot;`None`&quot;, the `dnsConfig` field has
+to be specified.
+
+Below are the properties a user can specify in the `dnsConfig` field:
+
+- `nameservers`: a list of IP addresses that will be used as DNS servers for the
+Pod. There can be at most 3 IP addresses specified. When the Pod&#x27;s `dnsPolicy`
+is set to &quot;`None`&quot;, the list must contain at least one IP address, otherwise
+this property is optional.
+The servers listed will be combined to the base nameservers generated from the
+specified DNS policy with duplicate addresses removed.
+- `searches`: a list of DNS search domains for hostname lookup in the Pod.
+This property is optional. When specified, the provided list will be merged
+into the base search domain names generated from the chosen DNS policy.
+Duplicate domain names are removed.
+Kubernetes allows up to 32 search domains.
+- `options`: an optional list of objects where each object may have a `name`
+property (required) and a `value` property (optional). The contents in this
+property will be merged to the options generated from the specified DNS policy.
+Duplicate entries are removed.
+
+The following is an example Pod with custom DNS settings:
+
+[`service/networking/custom-dns.yaml`](https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/service/networking/custom-dns.yaml)![](https://kubernetes.io/images/copycode.svg)
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: default
+  name: dns-example
+spec:
+  containers:
+    - name: test
+      image: nginx
+  dnsPolicy: &quot;None&quot;
+  dnsConfig:
+    nameservers:
+      - 192.0.2.1 # this is an example
+    searches:
+      - ns1.svc.cluster-domain.example
+      - my.dns.search.suffix
+    options:
+      - name: ndots
+        value: &quot;2&quot;
+      - name: edns0
+```
+
+When the Pod above is created, the container `test` gets the following contents
+in its `/etc/resolv.conf` file:
+
+```
+nameserver 192.0.2.1
+search ns1.svc.cluster-domain.example my.dns.search.suffix
+options ndots:2 edns0
+```
+
+For IPv6 setup, search path and name server should be set up like this:
+
+```shell
+kubectl exec -it dns-example -- cat /etc/resolv.conf
+```
+
+The output is similar to this:
+
+```
+nameserver 2001:db8:30::a
+search default.svc.cluster-domain.example svc.cluster-domain.example cluster-domain.example
+options ndots:5
+```
+
+## DNS search domain list limits [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#dns-search-domain-list-limits)
+
+Feature state:Stable since Kubernetes v1.28
+
+Kubernetes itself does not limit the DNS Config until the length of the search
+domain list exceeds 32 or the total length of all search domains exceeds 2048.
+This limit applies to the node&#x27;s resolver configuration file, the Pod&#x27;s DNS
+Config, and the merged DNS Config respectively.
+
+#### Note:
+
+Some container runtimes of earlier versions may have their own restrictions on
+the number of DNS search domains. Depending on the container runtime
+environment, the pods with a large number of DNS search domains may get stuck in
+the pending state.
+
+It is known that containerd v1.5.5 or earlier and CRI-O v1.21 or earlier have
+this problem.
+
+## DNS resolution on Windows nodes [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#dns-windows)
+
+- `ClusterFirstWithHostNet` is not supported for Pods that run on Windows nodes.
+Windows treats all names with a `.` as a FQDN and skips FQDN resolution.
+- On Windows, there are multiple DNS resolvers that can be used. As these come with
+slightly different behaviors, using the
+[`Resolve-DNSName`](https://docs.microsoft.com/powershell/module/dnsclient/resolve-dnsname)
+powershell cmdlet for name query resolutions is recommended.
+- On Linux, you have a DNS suffix list, which is used after resolution of a name as fully
+qualified has failed.
+On Windows, you can only have 1 DNS suffix, which is the DNS suffix associated with that
+Pod&#x27;s namespace (example: `mydns.svc.cluster.local`). Windows can resolve FQDNs, Services,
+or network name which can be resolved with this single suffix. For example, a Pod spawned
+in the `default` namespace, will have the DNS suffix `default.svc.cluster.local`.
+Inside a Windows Pod, you can resolve both `kubernetes.default.svc.cluster.local`
+and `kubernetes`, but not the partially qualified names (`kubernetes.default` or
+`kubernetes.default.svc`).
+
+## What&#x27;s next [Heading self-link](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/\#what-s-next)
+
+For guidance on administering DNS configurations, check
+[Configure DNS Service](https://kubernetes.io/docs/tasks/administer-cluster/dns-custom-nameservers/).
+
+## Feedback
+
+Was this page helpful?
+
+YesNo
+
+Thanks for the feedback. If you have a specific, answerable question about how to use Kubernetes, ask it on
+[Stack Overflow](https://stackoverflow.com/questions/tagged/kubernetes).
+Open an issue in the [GitHub Repository](https://www.github.com/kubernetes/website/) if you want to
+[report a problem](https://github.com/kubernetes/website/issues/new?title=Issue%20with%20k8s.io/docs/concepts/services-networking/dns-pod-service/)
+or
+[suggest an improvement](https://github.com/kubernetes/website/issues/new?title=Improvement%20for%20k8s.io/docs/concepts/services-networking/dns-pod-service/).
+
+Last modified July 29, 2025 at 9:29 AM PST: [Add documentation for the HostnameOverride Feature Gate (9e0fdab8b3)](https://github.com/kubernetes/website/commit/9e0fdab8b3ce8e83d3f6b0fae55b52f6c118ec7a)</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>firecrawl__live-053-dns-for-services-and-pods__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/</span></div><div class="kv"><b>输出大小</b>17,906 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>DNS for Services and Pods</td><td>DNS for Services and Pods</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Namespaces of Services</td><td>Namespaces of Services</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>DNS Records</td><td>DNS Records</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">DNS for Services and Pods</span></p><p><span class="tag">DNS for Services and Pods</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;upstream_status&quot;: 200,
+  &quot;cache_state&quot;: null,
+  &quot;proxy_used&quot;: &quot;basic&quot;,
+  &quot;credits_used&quot;: 1,
+  &quot;reason&quot;: null,
+  &quot;retry_after_seconds&quot;: null,
+  &quot;links&quot;: [],
+  &quot;images&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 6.1,
+  &quot;client_throttle_wait_ms&quot;: 5587.55
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("firecrawl__live-053-dns-for-services-and-pods__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("firecrawl__live-053-dns-for-services-and-pods__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("firecrawl__live-053-dns-for-services-and-pods__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

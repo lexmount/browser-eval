@@ -1,0 +1,326 @@
+[Skip to content](https://github.com/scrapy/scrapy#start-of-content)
+[](https://github.com/)
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)
+Appearance settings
+  * Platform
+    * AI CODE CREATION
+      * [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+      * [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+      * [MCP RegistryIntegrate external tools](https://github.com/mcp)
+    * DEVELOPER WORKFLOWS
+      * [ActionsAutomate any workflow](https://github.com/features/actions)
+      * [CodespacesInstant dev environments](https://github.com/features/codespaces)
+      * [IssuesPlan and track work](https://github.com/features/issues)
+      * [Code ReviewManage code changes](https://github.com/features/code-review)
+      * [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+    * APPLICATION SECURITY
+      * [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+      * [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+      * [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+    * EXPLORE
+      * [Why GitHub](https://github.com/why-github)
+      * [Documentation](https://docs.github.com)
+      * [Blog](https://github.blog)
+      * [Changelog](https://github.blog/changelog)
+      * [Marketplace](https://github.com/marketplace)
+[View all features](https://github.com/features)
+  * Solutions
+    * BY COMPANY SIZE
+      * [Enterprises](https://github.com/enterprise)
+      * [Small and medium teams](https://github.com/team)
+      * [Startups](https://github.com/enterprise/startups)
+      * [Nonprofits](https://github.com/solutions/industry/nonprofits)
+    * BY USE CASE
+      * [App Modernization](https://github.com/solutions/use-case/app-modernization)
+      * [DevSecOps](https://github.com/solutions/use-case/devsecops)
+      * [DevOps](https://github.com/solutions/use-case/devops)
+      * [CI/CD](https://github.com/solutions/use-case/ci-cd)
+      * [View all use cases](https://github.com/solutions/use-case)
+    * BY INDUSTRY
+      * [Healthcare](https://github.com/solutions/industry/healthcare)
+      * [Financial services](https://github.com/solutions/industry/financial-services)
+      * [Manufacturing](https://github.com/solutions/industry/manufacturing)
+      * [Government](https://github.com/solutions/industry/government)
+      * [View all industries](https://github.com/solutions/industry)
+[View all solutions](https://github.com/solutions)
+  * Resources
+    * EXPLORE BY TOPIC
+      * [AI](https://github.com/resources/articles?topic=ai)
+      * [Software Development](https://github.com/resources/articles?topic=software-development)
+      * [DevOps](https://github.com/resources/articles?topic=devops)
+      * [Security](https://github.com/resources/articles?topic=security)
+      * [View all topics](https://github.com/resources/articles)
+    * EXPLORE BY TYPE
+      * [Customer stories](https://github.com/customer-stories)
+      * [Events & webinars](https://github.com/resources/events)
+      * [Ebooks & reports](https://github.com/resources/whitepapers)
+      * [Business insights](https://github.com/solutions/executive-insights)
+      * [GitHub Skills](https://skills.github.com)
+    * SUPPORT & SERVICES
+      * [Documentation](https://docs.github.com)
+      * [Customer support](https://support.github.com)
+      * [Community forum](https://github.com/orgs/community/discussions)
+      * [Trust center](https://github.com/trust-center)
+      * [Partners](https://github.com/partners)
+[View all resources](https://github.com/resources)
+  * Open Source
+    * COMMUNITY
+      * [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+    * PROGRAMS
+      * [Security Lab](https://securitylab.github.com)
+      * [Maintainer Community](https://maintainers.github.com)
+      * [GitHub Stars](https://stars.github.com)
+      * [Archive Program](https://archiveprogram.github.com)
+    * REPOSITORIES
+      * [Topics](https://github.com/topics)
+      * [Trending](https://github.com/trending)
+      * [Collections](https://github.com/collections)
+  * Enterprise
+    * ENTERPRISE SOLUTIONS
+      * [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+    * AVAILABLE ADD-ONS
+      * [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+      * [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+      * [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+  * [Pricing](https://github.com/pricing)
+
+
+Search`/`
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=scrapy%2Fscrapy)
+Appearance settings
+{{ message }}
+###  Uh oh! 
+There was an error while loading. [Please reload this page](https://github.com/scrapy/scrapy).
+[ scrapy ](https://github.com/scrapy) / **[scrapy](https://github.com/scrapy/scrapy) ** Public
+  * [ Notifications ](https://github.com/login?return_to=%2Fscrapy%2Fscrapy) You must be signed in to change notification settings
+  * [ Fork 11.9k ](https://github.com/login?return_to=%2Fscrapy%2Fscrapy)
+  * [ Star  64.2k ](https://github.com/login?return_to=%2Fscrapy%2Fscrapy)
+
+
+  * [ Code ](https://github.com/scrapy/scrapy)
+  * [ Issues 233 ](https://github.com/scrapy/scrapy/issues)
+  * [ Pull requests 208 ](https://github.com/scrapy/scrapy/pulls)
+  * [ Discussions ](https://github.com/scrapy/scrapy/discussions)
+  * [ Actions ](https://github.com/scrapy/scrapy/actions)
+  * [ Projects ](https://github.com/scrapy/scrapy/projects)
+  * [ Wiki ](https://github.com/scrapy/scrapy/wiki)
+  * [ Security and quality 12 ](https://github.com/scrapy/scrapy/security)
+  * [ Insights ](https://github.com/scrapy/scrapy/pulse)
+
+
+[](https://github.com/scrapy/scrapy)
+[**44** Branches](https://github.com/scrapy/scrapy/branches)[**133** Tags](https://github.com/scrapy/scrapy/tags)
+[](https://github.com/scrapy/scrapy/branches)[](https://github.com/scrapy/scrapy/tags)
+Go to file
+Code
+Open more actions menu
+[![AdrianAtZyte](https://avatars.githubusercontent.com/u/264231240?v=4&size=40)](https://github.com/AdrianAtZyte)[AdrianAtZyte](https://github.com/scrapy/scrapy/commits?author=AdrianAtZyte)
+[Document additional request metadata keys (](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0)[#7933](https://github.com/scrapy/scrapy/pull/7933)[)](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0)
+failure
+Sep 1, 2026
+[7133d11](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0) · Sep 1, 2026
+[11,422 Commits](https://github.com/scrapy/scrapy/commits/master/)
+Open commit details
+[](https://github.com/scrapy/scrapy/commits/master/)11,422 Commits  
+| Name  | Name  | Last commit message  | Last commit date  |  
+| --- | --- | --- | --- |  
+| [.github](https://github.com/scrapy/scrapy/tree/master/.github ".github")  | [.github](https://github.com/scrapy/scrapy/tree/master/.github ".github")  |  [Add timeout-minutes to CI jobs that lacked one (](https://github.com/scrapy/scrapy/commit/96823bb31dbe1d1f4d0d93e28c7c8bfae31955e9 "Add timeout-minutes to CI jobs that lacked one \(#8076\)")[#8076](https://github.com/scrapy/scrapy/pull/8076)[)](https://github.com/scrapy/scrapy/commit/96823bb31dbe1d1f4d0d93e28c7c8bfae31955e9 "Add timeout-minutes to CI jobs that lacked one \(#8076\)")  | Aug 24, 2026  |  
+| [docs](https://github.com/scrapy/scrapy/tree/master/docs "docs")  | [docs](https://github.com/scrapy/scrapy/tree/master/docs "docs")  |  [Document additional request metadata keys (](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")[#7933](https://github.com/scrapy/scrapy/pull/7933)[)](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")  | Sep 1, 2026  |  
+| [extras](https://github.com/scrapy/scrapy/tree/master/extras "extras")  | [extras](https://github.com/scrapy/scrapy/tree/master/extras "extras")  | [Deprecate the download_delay spider attribute, and fix the suggested …](https://github.com/scrapy/scrapy/commit/54da6c88aa5fb9812f7eb3baf7609c12b65a29f8 "Deprecate the download_delay spider attribute, and fix the suggested replacement for max_concurrent_requests \(#7833\)
+
+* Deprecate the download_delay and max_concurrent_requests spider attributes
+
+* Fix the deprecation entry of max_concurrent_requests")  | Aug 3, 2026  |  
+| [scrapy](https://github.com/scrapy/scrapy/tree/master/scrapy "scrapy")  | [scrapy](https://github.com/scrapy/scrapy/tree/master/scrapy "scrapy")  |  [Document additional request metadata keys (](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")[#7933](https://github.com/scrapy/scrapy/pull/7933)[)](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")  | Sep 1, 2026  |  
+| [sep](https://github.com/scrapy/scrapy/tree/master/sep "sep")  | [sep](https://github.com/scrapy/scrapy/tree/master/sep "sep")  |  [Add sphinx-lint. (](https://github.com/scrapy/scrapy/commit/95172659af21c11e4e25001673ea30f2e15635cb "Add sphinx-lint. \(#6920\)")[#6920](https://github.com/scrapy/scrapy/pull/6920)[)](https://github.com/scrapy/scrapy/commit/95172659af21c11e4e25001673ea30f2e15635cb "Add sphinx-lint. \(#6920\)")  | Jun 27, 2025  |  
+| [tests](https://github.com/scrapy/scrapy/tree/master/tests "tests")  | [tests](https://github.com/scrapy/scrapy/tree/master/tests "tests")  |  [Document additional request metadata keys (](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")[#7933](https://github.com/scrapy/scrapy/pull/7933)[)](https://github.com/scrapy/scrapy/commit/7133d115c86276cb09dec0048da9c0dcee99a2d0 "Document additional request metadata keys \(#7933\)")  | Sep 1, 2026  |  
+| [tests_typing](https://github.com/scrapy/scrapy/tree/master/tests_typing "tests_typing")  | [tests_typing](https://github.com/scrapy/scrapy/tree/master/tests_typing "tests_typing")  |  [Next refactoring pass of test_utils_*. (](https://github.com/scrapy/scrapy/commit/e7d8b34e73ef2598b27ea0bca31a292e008fff76 "Next refactoring pass of test_utils_*. \(#7797\)")[#7797](https://github.com/scrapy/scrapy/pull/7797)[)](https://github.com/scrapy/scrapy/commit/e7d8b34e73ef2598b27ea0bca31a292e008fff76 "Next refactoring pass of test_utils_*. \(#7797\)")  | Jul 28, 2026  |  
+| [.git-blame-ignore-revs](https://github.com/scrapy/scrapy/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs")  | [.git-blame-ignore-revs](https://github.com/scrapy/scrapy/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs")  |  [Update tool versions (](https://github.com/scrapy/scrapy/commit/804ae167dfaf14d7bf9643ba11154010126394d4 "Update tool versions \(#7127\)")[#7127](https://github.com/scrapy/scrapy/pull/7127)[)](https://github.com/scrapy/scrapy/commit/804ae167dfaf14d7bf9643ba11154010126394d4 "Update tool versions \(#7127\)")  | Oct 27, 2025  |  
+| [.gitattributes](https://github.com/scrapy/scrapy/blob/master/.gitattributes ".gitattributes")  | [.gitattributes](https://github.com/scrapy/scrapy/blob/master/.gitattributes ".gitattributes")  | [Maybe the problem is not in the code after all](https://github.com/scrapy/scrapy/commit/24ba5a71aca9b368eee21bd7d9043a7d26dba403 "Maybe the problem is not in the code after all")  | Aug 13, 2020  |  
+| [.gitignore](https://github.com/scrapy/scrapy/blob/master/.gitignore ".gitignore")  | [.gitignore](https://github.com/scrapy/scrapy/blob/master/.gitignore ".gitignore")  |  [Add llms.txt and llms-full.txt generation (](https://github.com/scrapy/scrapy/commit/f8d103a65a5d5a424d3100db37ed2e5ff8738b2b "Add llms.txt and llms-full.txt generation \(#7380\)")[#7380](https://github.com/scrapy/scrapy/pull/7380)[)](https://github.com/scrapy/scrapy/commit/f8d103a65a5d5a424d3100db37ed2e5ff8738b2b "Add llms.txt and llms-full.txt generation \(#7380\)")  | Apr 6, 2026  |  
+| [.pre-commit-config.yaml](https://github.com/scrapy/scrapy/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml")  | [.pre-commit-config.yaml](https://github.com/scrapy/scrapy/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml")  |  [sphinx-scrapy: 0.8.13 → 0.9.0 (](https://github.com/scrapy/scrapy/commit/22d93cf1daca91a26c137411e3c45b1b4a7b0b15 "sphinx-scrapy: 0.8.13 → 0.9.0 \(#8088\)")[#8088](https://github.com/scrapy/scrapy/pull/8088)[)](https://github.com/scrapy/scrapy/commit/22d93cf1daca91a26c137411e3c45b1b4a7b0b15 "sphinx-scrapy: 0.8.13 → 0.9.0 \(#8088\)")  | Aug 26, 2026  |  
+| [.readthedocs.yml](https://github.com/scrapy/scrapy/blob/master/.readthedocs.yml ".readthedocs.yml")  | [.readthedocs.yml](https://github.com/scrapy/scrapy/blob/master/.readthedocs.yml ".readthedocs.yml")  |  [Add Python 3.14 to CI. (](https://github.com/scrapy/scrapy/commit/2798c03bb006b2041734d71a0046252e1239d631 "Add Python 3.14 to CI. \(#6604\)
+
+* Add Python 3.14 \(alpha3\) to CI.
+
+* Disable mitmproxy on 3.14 for now.
+
+* 3.14.0-alpha.4.
+
+* 3.14.0-alpha.5
+
+* 3.14.0-beta2.
+
+* 3.14 release.
+
+* Fix test_non_pickable_object.
+
+* Fix handling of file:/path feed URIs.
+
+* Better mocking of streams for TextTestResult.
+
+* Do not use .php in test_file_path\(\) as it's now a known extension.
+
+* Fix the URL in TestFeedExporterSignals.
+
+* Fix typing.
+
+* Bump more envs to 3.14.
+
+* Silence pylint.
+
+* Fix another test for .php handling change.
+
+* Remove test_install_asyncio_reactor.
+
+* More bumps to 3.14.
+
+* Revert docs-tests to use 3.13.
+
+* Debug options for Windows.
+
+* Re-enable xdist.
+
+* Revert Windows PYTEST_ADDOPTS.
+
+* Silence loop policy deprecation warnings.
+
+* Restore a lost pylint suppression.
+
+* Update asyncio_enabled_reactor_same_loop.py to new Twisted.
+
+* Fix RobotFileParser tests for Python 3.14.5.")[#6604](https://github.com/scrapy/scrapy/pull/6604)[)](https://github.com/scrapy/scrapy/commit/2798c03bb006b2041734d71a0046252e1239d631 "Add Python 3.14 to CI. \(#6604\)
+
+* Add Python 3.14 \(alpha3\) to CI.
+
+* Disable mitmproxy on 3.14 for now.
+
+* 3.14.0-alpha.4.
+
+* 3.14.0-alpha.5
+
+* 3.14.0-beta2.
+
+* 3.14 release.
+
+* Fix test_non_pickable_object.
+
+* Fix handling of file:/path feed URIs.
+
+* Better mocking of streams for TextTestResult.
+
+* Do not use .php in test_file_path\(\) as it's now a known extension.
+
+* Fix the URL in TestFeedExporterSignals.
+
+* Fix typing.
+
+* Bump more envs to 3.14.
+
+* Silence pylint.
+
+* Fix another test for .php handling change.
+
+* Remove test_install_asyncio_reactor.
+
+* More bumps to 3.14.
+
+* Revert docs-tests to use 3.13.
+
+* Debug options for Windows.
+
+* Re-enable xdist.
+
+* Revert Windows PYTEST_ADDOPTS.
+
+* Silence loop policy deprecation warnings.
+
+* Restore a lost pylint suppression.
+
+* Update asyncio_enabled_reactor_same_loop.py to new Twisted.
+
+* Fix RobotFileParser tests for Python 3.14.5.")  | May 12, 2026  |  
+| [AUTHORS](https://github.com/scrapy/scrapy/blob/master/AUTHORS "AUTHORS")  | [AUTHORS](https://github.com/scrapy/scrapy/blob/master/AUTHORS "AUTHORS")  | [Scrapinghub → Zyte](https://github.com/scrapy/scrapy/commit/f30f53b3cc958770406628411db3d93c925db59e "Scrapinghub → Zyte")  | Feb 2, 2021  |  
+| [CITATION.cff](https://github.com/scrapy/scrapy/blob/master/CITATION.cff "CITATION.cff")  | [CITATION.cff](https://github.com/scrapy/scrapy/blob/master/CITATION.cff "CITATION.cff")  |  [Add CITATION.cff (](https://github.com/scrapy/scrapy/commit/4cfe7a08cdbe502cea477f67958bdc51c60a13c4 "Add CITATION.cff \(#7519\)")[#7519](https://github.com/scrapy/scrapy/pull/7519)[)](https://github.com/scrapy/scrapy/commit/4cfe7a08cdbe502cea477f67958bdc51c60a13c4 "Add CITATION.cff \(#7519\)")  | May 14, 2026  |  
+| [CODE_OF_CONDUCT.md](https://github.com/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [CODE_OF_CONDUCT.md](https://github.com/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [Update Code of Conduct to Contributor Covenant v2.1](https://github.com/scrapy/scrapy/commit/9f45be439de8a3b9a6d201c33e98b408a73c02bb "Update Code of Conduct to Contributor Covenant v2.1")  | Oct 28, 2022  |  
+| [CONTRIBUTING.md](https://github.com/scrapy/scrapy/blob/master/CONTRIBUTING.md "CONTRIBUTING.md")  | [CONTRIBUTING.md](https://github.com/scrapy/scrapy/blob/master/CONTRIBUTING.md "CONTRIBUTING.md")  | [Be consistent with domain used for links to documentation website](https://github.com/scrapy/scrapy/commit/65d631329a1434ec013f24341e4b8520241aec70 "Be consistent with domain used for links to documentation website")  | Jan 31, 2019  |  
+| [INSTALL.md](https://github.com/scrapy/scrapy/blob/master/INSTALL.md "INSTALL.md")  | [INSTALL.md](https://github.com/scrapy/scrapy/blob/master/INSTALL.md "INSTALL.md")  | [Update and rename INSTALL to INSTALL.md](https://github.com/scrapy/scrapy/commit/e60e8224a23ddd4fd98c54318d128f6744f40a6a "Update and rename INSTALL to INSTALL.md")  | Oct 6, 2022  |  
+| [LICENSE](https://github.com/scrapy/scrapy/blob/master/LICENSE "LICENSE")  | [LICENSE](https://github.com/scrapy/scrapy/blob/master/LICENSE "LICENSE")  | [added oxford commas to LICENSE](https://github.com/scrapy/scrapy/commit/9bd5444a42e82a05d2791fd10a205a9dd99303a6 "added oxford commas to LICENSE")  | Jun 2, 2018  |  
+| [NEWS](https://github.com/scrapy/scrapy/blob/master/NEWS "NEWS")  | [NEWS](https://github.com/scrapy/scrapy/blob/master/NEWS "NEWS")  | [added NEWS file pointing to docs/news.rst](https://github.com/scrapy/scrapy/commit/f5b87dbef8f3c657e31eeb026d8a77b0ccc77c29 "added NEWS file pointing to docs/news.rst")  | Apr 29, 2012  |  
+| [README.rst](https://github.com/scrapy/scrapy/blob/master/README.rst "README.rst")  | [README.rst](https://github.com/scrapy/scrapy/blob/master/README.rst "README.rst")  |  [Use a single badge for all tests (](https://github.com/scrapy/scrapy/commit/ea7c0af2f96400be88513172ea55579997e1b892 "Use a single badge for all tests \(#7836\)")[#7836](https://github.com/scrapy/scrapy/pull/7836)[)](https://github.com/scrapy/scrapy/commit/ea7c0af2f96400be88513172ea55579997e1b892 "Use a single badge for all tests \(#7836\)")  | Jul 31, 2026  |  
+| [SECURITY.md](https://github.com/scrapy/scrapy/blob/master/SECURITY.md "SECURITY.md")  | [SECURITY.md](https://github.com/scrapy/scrapy/blob/master/SECURITY.md "SECURITY.md")  | [Bump version: 2.17.0 → 2.18.0](https://github.com/scrapy/scrapy/commit/2216063c063027d541eafbf5e098557ce732528f "Bump version: 2.17.0 → 2.18.0")  | Aug 20, 2026  |  
+| [codecov.yml](https://github.com/scrapy/scrapy/blob/master/codecov.yml "codecov.yml")  | [codecov.yml](https://github.com/scrapy/scrapy/blob/master/codecov.yml "codecov.yml")  | [codecov config: disable project check, tweak PR comments](https://github.com/scrapy/scrapy/commit/9ce03d096d7ed569071a1951d9e327d7294e1a83 "codecov config: disable project check, tweak PR comments")  | May 18, 2017  |  
+| [conftest.py](https://github.com/scrapy/scrapy/blob/master/conftest.py "conftest.py")  | [conftest.py](https://github.com/scrapy/scrapy/blob/master/conftest.py "conftest.py")  | [Interleave subprocess-heavy tests to avoid an xdist scheduling stragg…](https://github.com/scrapy/scrapy/commit/4ab7cf3df8ec480c654b1d98eba8fd96806b5973 "Interleave subprocess-heavy tests to avoid an xdist scheduling straggler \(#8039\)")  | Aug 23, 2026  |  
+| [pyproject.toml](https://github.com/scrapy/scrapy/blob/master/pyproject.toml "pyproject.toml")  | [pyproject.toml](https://github.com/scrapy/scrapy/blob/master/pyproject.toml "pyproject.toml")  |  [Type scrapy/settings/default_settings.py, drop mypy override (](https://github.com/scrapy/scrapy/commit/941d7eb41900a87d9e59a25ae30aeec6c5ff87a7 "Type scrapy/settings/default_settings.py, drop mypy override \(#8077\)")[#8077](https://github.com/scrapy/scrapy/pull/8077)[)](https://github.com/scrapy/scrapy/commit/941d7eb41900a87d9e59a25ae30aeec6c5ff87a7 "Type scrapy/settings/default_settings.py, drop mypy override \(#8077\)")  | Aug 25, 2026  |  
+| [tox.ini](https://github.com/scrapy/scrapy/blob/master/tox.ini "tox.ini")  | [tox.ini](https://github.com/scrapy/scrapy/blob/master/tox.ini "tox.ini")  |  [sphinx-scrapy: 0.8.13 → 0.9.0 (](https://github.com/scrapy/scrapy/commit/22d93cf1daca91a26c137411e3c45b1b4a7b0b15 "sphinx-scrapy: 0.8.13 → 0.9.0 \(#8088\)")[#8088](https://github.com/scrapy/scrapy/pull/8088)[)](https://github.com/scrapy/scrapy/commit/22d93cf1daca91a26c137411e3c45b1b4a7b0b15 "sphinx-scrapy: 0.8.13 → 0.9.0 \(#8088\)")  | Aug 26, 2026  |  
+| View all files |  
+[![Scrapy](https://raw.githubusercontent.com/scrapy/scrapy/master/docs/_static/logo.svg) ](https://scrapy.org)
+[![PyPI Version](https://camo.githubusercontent.com/c6e5cf8390893a8a251117f8ed53e246bf4ac6e4ec4ed9e1e7244d313bf6b316/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f5363726170792e737667) ](https://pypi.org/pypi/Scrapy) [![Supported Python Versions](https://camo.githubusercontent.com/126656e2f64dc33e98e0788a9d4af3170c84e9941a568ae6e6732de34402997e/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f5363726170792e737667) ](https://pypi.org/pypi/Scrapy) [![Tests](https://camo.githubusercontent.com/c92c37b9d53e255045df9e947105992ed7c19be57624160c2556835806e7618e/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f7363726170792f7363726170792f6d61737465723f6c6162656c3d7465737473)](https://github.com/scrapy/scrapy/actions?query=branch%3Amaster) [![Coverage report](https://camo.githubusercontent.com/d7ed79d0e710327ba38026e9137c069c1682689d91f9753743c1ee8eb8f80be3/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f7363726170792f7363726170792f6d61737465722e737667) ](https://codecov.io/github/scrapy/scrapy?branch=master) [![Conda Version](https://camo.githubusercontent.com/243d9a22e34216cb3bc6492290e30eef6cc7494827e86e780135314d2b4ecda3/68747470733a2f2f616e61636f6e64612e6f72672f636f6e64612d666f7267652f7363726170792f6261646765732f76657273696f6e2e737667) ](https://anaconda.org/conda-forge/scrapy) [![Ask DeepWiki](https://camo.githubusercontent.com/0f5ae213ac378635adeb5d7f13cef055ad2f7d9a47b36de7b1c67dbe09f609ca/68747470733a2f2f6465657077696b692e636f6d2f62616467652e737667) ](https://deepwiki.com/scrapy/scrapy)
+[Scrapy](https://scrapy.org/) is a web scraping framework to extract structured data from websites. It is cross-platform, and requires Python 3.10+. It is maintained by [Zyte](https://www.zyte.com/) (formerly Scrapinghub) and [many other contributors](https://github.com/scrapy/scrapy/graphs/contributors).
+Install with:
+
+```
+pip install scrapy
+```
+
+And follow the [documentation](https://docs.scrapy.org/en/latest/) to learn how to use it.
+If you wish to contribute, see [Contributing](https://docs.scrapy.org/en/master/contributing.html).
+## About
+Scrapy, a fast high-level web crawling & scraping framework for Python.
+[scrapy.org](https://scrapy.org)
+[crawler](https://github.com/topics/crawler)[crawling](https://github.com/topics/crawling)[framework](https://github.com/topics/framework)[hacktoberfest](https://github.com/topics/hacktoberfest)[python](https://github.com/topics/python)[scraping](https://github.com/topics/scraping)[web-scraping](https://github.com/topics/web-scraping)[web-scraping-python](https://github.com/topics/web-scraping-python)
+[Readme](https://github.com/scrapy/scrapy#readme-ov-file)
+[BSD-3-Clause license](https://github.com/scrapy/scrapy#BSD-3-Clause-1-ov-file)
+[Code of conduct](https://github.com/scrapy/scrapy#coc-ov-file)
+[Contributing](https://github.com/scrapy/scrapy#contributing-ov-file)
+[Security policy](https://github.com/scrapy/scrapy#security-ov-file)
+Cite this repository
+[Activity](https://github.com/scrapy/scrapy/activity)
+[Custom properties](https://github.com/scrapy/scrapy/custom-properties)
+**64.2k** stars
+**1.8k** watching
+[**11.9k** forks](https://github.com/scrapy/scrapy/forks)
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy&report=scrapy+%28user%29)
+## [Releases](https://github.com/scrapy/scrapy/releases)53
+[ 2.18.0Latest Aug 20, 2026 ](https://github.com/scrapy/scrapy/releases/tag/2.18.0)
+[+ 52 releases](https://github.com/scrapy/scrapy/releases)
+## [Used by](https://github.com/scrapy/scrapy/network/dependents)55K
+[ ![@HMB-research](https://avatars.githubusercontent.com/u/72566242?s=64&v=4)![@nnethery](https://avatars.githubusercontent.com/u/11582381?s=64&v=4)![@BlockOnMate-Projects](https://avatars.githubusercontent.com/u/321722324?s=64&v=4)![@botanica-consulting](https://avatars.githubusercontent.com/u/67003294?s=64&v=4)![@PavloSEO](https://avatars.githubusercontent.com/u/163634520?s=64&v=4) + 55,427](https://github.com/scrapy/scrapy/network/dependents)
+## [Contributors](https://github.com/scrapy/scrapy/graphs/contributors)630
+  * [![@pablohoffman](https://avatars.githubusercontent.com/u/185212?s=64&v=4)](https://github.com/pablohoffman)
+  * [![@wRAR](https://avatars.githubusercontent.com/u/241039?s=64&v=4)](https://github.com/wRAR)
+  * [![@dangra](https://avatars.githubusercontent.com/u/37369?s=64&v=4)](https://github.com/dangra)
+  * [![@kmike](https://avatars.githubusercontent.com/u/107893?s=64&v=4)](https://github.com/kmike)
+  * [![@Gallaecio](https://avatars.githubusercontent.com/u/705211?s=64&v=4)](https://github.com/Gallaecio)
+  * [![@elacuesta](https://avatars.githubusercontent.com/u/1731933?s=64&v=4)](https://github.com/elacuesta)
+  * [![@redapple](https://avatars.githubusercontent.com/u/886296?s=64&v=4)](https://github.com/redapple)
+  * [![@void](https://avatars.githubusercontent.com/u/25639?s=64&v=4)](https://github.com/void)
+  * [![@AdrianAtZyte](https://avatars.githubusercontent.com/u/264231240?s=64&v=4)](https://github.com/AdrianAtZyte)
+  * [![@curita](https://avatars.githubusercontent.com/u/213781?s=64&v=4)](https://github.com/curita)
+  * [![@eliasdorneles](https://avatars.githubusercontent.com/u/37565?s=64&v=4)](https://github.com/eliasdorneles)
+  * [![@lopuhin](https://avatars.githubusercontent.com/u/424613?s=64&v=4)](https://github.com/lopuhin)
+  * [![@Laerte](https://avatars.githubusercontent.com/u/5853172?s=64&v=4)](https://github.com/Laerte)
+  * [![@whalebot-helmsman](https://avatars.githubusercontent.com/u/1234272?s=64&v=4)](https://github.com/whalebot-helmsman)
+
+
+[+ 616 contributors](https://github.com/scrapy/scrapy/graphs/contributors)
+## Languages
+  * [Python97.6%](https://github.com/scrapy/scrapy/search?l=python)
+  * [HTML2%](https://github.com/scrapy/scrapy/search?l=html)
+  * [Other0.4%](https://github.com/scrapy/scrapy/search?l=Other)
+
+
+[ ](https://github.com) © 2026 GitHub, Inc. 
+  * [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+  * [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+  * [Security](https://github.com/security)
+  * [Status](https://www.githubstatus.com/)
+  * [Community](https://github.community/)
+  * [Docs](https://docs.github.com/)
+  * [Contact](https://support.github.com?tags=dotcom-footer)
+  * Manage cookies 
+  * Do not share my personal information 
+
+
+You can’t perform that action at this time. 

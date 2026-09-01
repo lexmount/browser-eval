@@ -227,9 +227,9 @@ On this page
 
 [![BairesDev](https://images.opencollective.com/bairesdev/48bb773/logo/460.png)](https://bairesdev.com/sponsoring-open-source-projects)
 
-[![ads via Carbon](https://srv.carbonads.net/static/30242/622cd9813ee8ba51d6b762bf015c127a27a1e093)](https://srv.carbonads.net/ads/click/x/GTND427YFT7D653YCES4YKQUFTADEKQYCYYDVZ3JCAADE27ECTYD65QKCWSI4K7WCTYIP53UC6YDLKQEFT7IE53KC6SIE53LCEAIKK3EHJNCLSIZ) [Transform your applications and workflows into powerful agentic systems at global scale.](https://srv.carbonads.net/ads/click/x/GTND427YFT7D653YCES4YKQUFTADEKQYCYYDVZ3JCAADE27ECTYD65QKCWSI4K7WCTYIP53UC6YDLKQEFT7IE53KC6SIE53LCEAIKK3EHJNCLSIZ) [ads via Carbon](http://carbonads.net/?utm_source=vitejsdev&utm_medium=ad_via_link&utm_campaign=in_unit&utm_term=carbon)
+[![ads via Carbon](https://srv.carbonads.net/static/30242/e1130b06f0096fbbd01a8d15bca68e6092cdebef)](https://srv.carbonads.net/ads/click/x/GTND427YFT7D453MCE74YKQUFTADEK3YCE7DEZ3JCAADE2J7FTYDKK3KC6YD62QJCT7DK23NCYADL2JYF67IP53WHEYI553YCVSDVK3ECTNCYBZ52K) [Future-proof infrastructure. Powerful data & analytics. No ops, just code.](https://srv.carbonads.net/ads/click/x/GTND427YFT7D453MCE74YKQUFTADEK3YCE7DEZ3JCAADE2J7FTYDKK3KC6YD62QJCT7DK23NCYADL2JYF67IP53WHEYI553YCVSDVK3ECTNCYBZ52K) [ads via Carbon](http://carbonads.net/?utm_source=vitejsdev&utm_medium=ad_via_link&utm_campaign=in_unit&utm_term=carbon)
 
-![ads via Carbon](https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481145;dc_trk_aid=647426659;dc_trk_cid=246706990;ord=178825255;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?)
+![ads via Carbon](https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481133;dc_trk_aid=647264805;dc_trk_cid=246706990;ord=178826502;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?)
 
 Are you an LLM? You can read better optimized documentation at /guide.md for this page in Markdown format
 

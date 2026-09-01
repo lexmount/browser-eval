@@ -1,0 +1,807 @@
+---
+title: "Tavily Extract - Tavily Docs"
+meta:
+  description: "Extract web page content from one or more specified URLs using Tavily Extract."
+  "og:description": "Extract web page content from one or more specified URLs using Tavily Extract."
+  "og:title": "Tavily Extract - Tavily Docs"
+  "twitter:description": "Extract web page content from one or more specified URLs using Tavily Extract."
+  "twitter:title": "Tavily Extract - Tavily Docs"
+---
+
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: /llms.txt
+>
+> Use this file to discover all available pages before exploring further.
+
+[Skip to main content](#content-area)
+
+[Tavily Docs home page![light logo](https://mintcdn.com/tavilyai/W9s9i1gwaZpOi3B0/logo/light.svg?fit=max&auto=format&n=W9s9i1gwaZpOi3B0&q=85&s=57062dc27e5e05238a1bf25b21e5d8ed)![dark logo](https://mintcdn.com/tavilyai/W9s9i1gwaZpOi3B0/logo/dark.svg?fit=max&auto=format&n=W9s9i1gwaZpOi3B0&q=85&s=02810b55bc2437d60278e931f6007653)](https://tavily.com/)
+
+Search...Ctrl KAsk AssistantCTRL I
+
+- [Support](mailto:support@tavily.com)
+- [Get an API key](https://app.tavily.com)
+- [Get an API key](https://app.tavily.com)
+
+Search...
+
+NavigationCore Endpoints Tavily Extract
+
+[Home](https://docs.tavily.com/welcome) [Agents](https://docs.tavily.com/agents) [Introduction](https://docs.tavily.com/documentation/about) [API & SDKs](https://docs.tavily.com/documentation/api-reference/introduction) [Ecosystem](https://docs.tavily.com/documentation/mcp) [Examples](https://docs.tavily.com/examples/hub) [Changelog](https://docs.tavily.com/changelog) [Help](https://docs.tavily.com/documentation/help)
+
+- [API Playground](https://app.tavily.com/playground)
+- [Community](https://discord.gg/TPu2gkaWp2)
+- [Blog](https://tavily.com/blog)
+
+### API Reference
+
+- [Introduction](https://docs.tavily.com/documentation/api-reference/introduction)
+
+### Core Endpoints
+
+- [POSTSearch](https://docs.tavily.com/documentation/api-reference/endpoint/search)
+- [POSTExtract](https://docs.tavily.com/documentation/api-reference/endpoint/extract)
+- [POSTCrawl](https://docs.tavily.com/documentation/api-reference/endpoint/crawl)
+- [POSTMap](https://docs.tavily.com/documentation/api-reference/endpoint/map)
+
+### Research Endpoint
+
+- [POSTCreate Research Task](https://docs.tavily.com/documentation/api-reference/endpoint/research)
+- [GETGet Research Task Status](https://docs.tavily.com/documentation/api-reference/endpoint/research-get)
+- [Streaming](https://docs.tavily.com/documentation/api-reference/endpoint/research-streaming)
+
+### Account
+
+- [GETUsage](https://docs.tavily.com/documentation/api-reference/endpoint/usage)
+- [POSTLogs](https://docs.tavily.com/documentation/api-reference/endpoint/logs)
+
+### Enterprise API Reference
+
+- API Key Generator
+- [POSTOrganization Usage](https://docs.tavily.com/documentation/enterprise/org-usage)
+
+### Python SDK
+
+- [Quickstart](https://docs.tavily.com/sdk/python/quick-start)
+- [SDK Reference](https://docs.tavily.com/sdk/python/reference)
+
+### JavaScript SDK
+
+- [Quickstart](https://docs.tavily.com/sdk/javascript/quick-start)
+- [SDK Reference](https://docs.tavily.com/sdk/javascript/reference)
+
+### Best Practices
+
+- [Search](https://docs.tavily.com/documentation/best-practices/best-practices-search)
+- [Extract](https://docs.tavily.com/documentation/best-practices/best-practices-extract)
+- [Crawl](https://docs.tavily.com/documentation/best-practices/best-practices-crawl)
+- [Research](https://docs.tavily.com/documentation/best-practices/best-practices-research)
+- [API Key Management](https://docs.tavily.com/documentation/best-practices/api-key-management)
+
+Python SDK
+
+Python
+
+```
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.extract("https://en.wikipedia.org/wiki/Artificial_intelligence")
+
+print(response)
+```
+
+```
+const { tavily } = require("@tavily/core");
+
+const tvly = tavily({ apiKey: "tvly-YOUR_API_KEY" });
+const response = await tvly.extract("https://en.wikipedia.org/wiki/Artificial_intelligence");
+
+console.log(response);
+```
+
+```
+curl --request POST \
+  --url https://api.tavily.com/extract \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '
+{
+  "urls": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+  "query": "<string>",
+  "chunks_per_source": 3,
+  "extract_depth": "basic",
+  "include_images": false,
+  "include_favicon": false,
+  "format": "markdown",
+  "timeout": "None",
+  "include_usage": false
+}
+'
+```
+
+```
+<?php
+
+$curl = curl_init();
+
+curl_setopt_array($curl, [
+  CURLOPT_URL => "https://api.tavily.com/extract",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "POST",
+  CURLOPT_POSTFIELDS => json_encode([
+    'urls' => 'https://en.wikipedia.org/wiki/Artificial_intelligence',
+    'query' => '<string>',
+    'chunks_per_source' => 3,
+    'extract_depth' => 'basic',
+    'include_images' => false,
+    'include_favicon' => false,
+    'format' => 'markdown',
+    'timeout' => 'None',
+    'include_usage' => false
+  ]),
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer <token>",
+    "Content-Type: application/json"
+  ],
+]);
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+```
+
+```
+package main
+
+import (
+	"fmt"
+	"strings"
+	"net/http"
+	"io"
+)
+
+func main() {
+
+	url := "https://api.tavily.com/extract"
+
+	payload := strings.NewReader("{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Authorization", "Bearer <token>")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	fmt.Println(string(body))
+
+}
+```
+
+```
+HttpResponse<String> response = Unirest.post("https://api.tavily.com/extract")
+  .header("Authorization", "Bearer <token>")
+  .header("Content-Type", "application/json")
+  .body("{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}")
+  .asString();
+```
+
+```
+require 'uri'
+require 'net/http'
+
+url = URI("https://api.tavily.com/extract")
+
+http = Net::HTTP.new(url.host, url.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(url)
+request["Authorization"] = 'Bearer <token>'
+request["Content-Type"] = 'application/json'
+request.body = "{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}"
+
+response = http.request(request)
+puts response.read_body
+```
+
+200 400 401 429 432 433 500
+
+```
+{
+  "results": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "raw_content": "\"Jump to content\\nMain menu\\nSearch\\nAppearance\\nDonate\\nCreate account\\nLog in\\nPersonal tools\\n        Photograph your local culture, help Wikipedia and win!\\nToggle the table of contents\\nArtificial intelligence\\n161 languages\\nArticle\\nTalk\\nRead\\nView source\\nView history\\nTools\\nFrom Wikipedia, the free encyclopedia\\n\\\"AI\\\" redirects here. For other uses, see AI (disambiguation) and Artificial intelligence (disambiguation).\\nPart of a series on\\nArtificial intelligence (AI)\\nshow\\nMajor goals\\nshow\\nApproaches\\nshow\\nApplications\\nshow\\nPhilosophy\\nshow\\nHistory\\nshow\\nGlossary\\nvte\\nArtificial intelligence (AI), in its broadest sense, is intelligence exhibited by machines, particularly computer systems. It is a field of research in computer science that develops and studies methods and software that enable machines to perceive their environment and use learning and intelligence to take actions that maximize their chances of achieving defined goals.[1] Such machines may be called AIs.\\nHigh-profile applications of AI include advanced web search engines (e.g., Google Search); recommendation systems (used by YouTube, Amazon, and Netflix); virtual assistants (e.g., Google Assistant, Siri, and Alexa); autonomous vehicles (e.g., Waymo); generative and creative tools (e.g., ChatGPT and AI art); and superhuman play and analysis in strategy games (e.g., chess and Go)...................",
+      "images": [],
+      "favicon": "https://en.wikipedia.org/static/favicon/wikipedia.ico"
+    }
+  ],
+  "failed_results": [],
+  "response_time": 0.02,
+  "usage": {
+    "credits": 1
+  },
+  "request_id": "123e4567-e89b-12d3-a456-426614174111"
+}
+```
+
+```
+{
+  "detail": {
+    "error": "<400 Bad Request, (e.g Max 20 URLs are allowed.)>"
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Unauthorized: missing or invalid API key."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Your request has been blocked due to excessive requests. Please reduce rate of requests."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "<432 Custom Forbidden Error (e.g This request exceeds your plan's set usage limit. Please upgrade your plan or contact support@tavily.com)>"
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "This request exceeds the pay-as-you-go limit. You can increase your limit on the Tavily dashboard."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Internal Server Error"
+  }
+}
+```
+
+Core Endpoints
+
+# Tavily Extract
+
+Copy pageCopy page
+
+Extract web page content from one or more specified URLs using Tavily Extract.
+
+Copy pageCopy page
+
+POST
+
+/
+
+extract
+
+Python SDK
+
+Python
+
+```
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="tvly-YOUR_API_KEY")
+response = tavily_client.extract("https://en.wikipedia.org/wiki/Artificial_intelligence")
+
+print(response)
+```
+
+```
+const { tavily } = require("@tavily/core");
+
+const tvly = tavily({ apiKey: "tvly-YOUR_API_KEY" });
+const response = await tvly.extract("https://en.wikipedia.org/wiki/Artificial_intelligence");
+
+console.log(response);
+```
+
+```
+curl --request POST \
+  --url https://api.tavily.com/extract \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '
+{
+  "urls": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+  "query": "<string>",
+  "chunks_per_source": 3,
+  "extract_depth": "basic",
+  "include_images": false,
+  "include_favicon": false,
+  "format": "markdown",
+  "timeout": "None",
+  "include_usage": false
+}
+'
+```
+
+```
+<?php
+
+$curl = curl_init();
+
+curl_setopt_array($curl, [
+  CURLOPT_URL => "https://api.tavily.com/extract",
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_ENCODING => "",
+  CURLOPT_MAXREDIRS => 10,
+  CURLOPT_TIMEOUT => 30,
+  CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+  CURLOPT_CUSTOMREQUEST => "POST",
+  CURLOPT_POSTFIELDS => json_encode([
+    'urls' => 'https://en.wikipedia.org/wiki/Artificial_intelligence',
+    'query' => '<string>',
+    'chunks_per_source' => 3,
+    'extract_depth' => 'basic',
+    'include_images' => false,
+    'include_favicon' => false,
+    'format' => 'markdown',
+    'timeout' => 'None',
+    'include_usage' => false
+  ]),
+  CURLOPT_HTTPHEADER => [
+    "Authorization: Bearer <token>",
+    "Content-Type: application/json"
+  ],
+]);
+
+$response = curl_exec($curl);
+$err = curl_error($curl);
+
+curl_close($curl);
+
+if ($err) {
+  echo "cURL Error #:" . $err;
+} else {
+  echo $response;
+}
+```
+
+```
+package main
+
+import (
+	"fmt"
+	"strings"
+	"net/http"
+	"io"
+)
+
+func main() {
+
+	url := "https://api.tavily.com/extract"
+
+	payload := strings.NewReader("{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Authorization", "Bearer <token>")
+	req.Header.Add("Content-Type", "application/json")
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := io.ReadAll(res.Body)
+
+	fmt.Println(string(body))
+
+}
+```
+
+```
+HttpResponse<String> response = Unirest.post("https://api.tavily.com/extract")
+  .header("Authorization", "Bearer <token>")
+  .header("Content-Type", "application/json")
+  .body("{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}")
+  .asString();
+```
+
+```
+require 'uri'
+require 'net/http'
+
+url = URI("https://api.tavily.com/extract")
+
+http = Net::HTTP.new(url.host, url.port)
+http.use_ssl = true
+
+request = Net::HTTP::Post.new(url)
+request["Authorization"] = 'Bearer <token>'
+request["Content-Type"] = 'application/json'
+request.body = "{\n  \"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n  \"query\": \"<string>\",\n  \"chunks_per_source\": 3,\n  \"extract_depth\": \"basic\",\n  \"include_images\": false,\n  \"include_favicon\": false,\n  \"format\": \"markdown\",\n  \"timeout\": \"None\",\n  \"include_usage\": false\n}"
+
+response = http.request(request)
+puts response.read_body
+```
+
+200 400 401 429 432 433 500
+
+```
+{
+  "results": [
+    {
+      "url": "https://en.wikipedia.org/wiki/Artificial_intelligence",
+      "raw_content": "\"Jump to content\\nMain menu\\nSearch\\nAppearance\\nDonate\\nCreate account\\nLog in\\nPersonal tools\\n        Photograph your local culture, help Wikipedia and win!\\nToggle the table of contents\\nArtificial intelligence\\n161 languages\\nArticle\\nTalk\\nRead\\nView source\\nView history\\nTools\\nFrom Wikipedia, the free encyclopedia\\n\\\"AI\\\" redirects here. For other uses, see AI (disambiguation) and Artificial intelligence (disambiguation).\\nPart of a series on\\nArtificial intelligence (AI)\\nshow\\nMajor goals\\nshow\\nApproaches\\nshow\\nApplications\\nshow\\nPhilosophy\\nshow\\nHistory\\nshow\\nGlossary\\nvte\\nArtificial intelligence (AI), in its broadest sense, is intelligence exhibited by machines, particularly computer systems. It is a field of research in computer science that develops and studies methods and software that enable machines to perceive their environment and use learning and intelligence to take actions that maximize their chances of achieving defined goals.[1] Such machines may be called AIs.\\nHigh-profile applications of AI include advanced web search engines (e.g., Google Search); recommendation systems (used by YouTube, Amazon, and Netflix); virtual assistants (e.g., Google Assistant, Siri, and Alexa); autonomous vehicles (e.g., Waymo); generative and creative tools (e.g., ChatGPT and AI art); and superhuman play and analysis in strategy games (e.g., chess and Go)...................",
+      "images": [],
+      "favicon": "https://en.wikipedia.org/static/favicon/wikipedia.ico"
+    }
+  ],
+  "failed_results": [],
+  "response_time": 0.02,
+  "usage": {
+    "credits": 1
+  },
+  "request_id": "123e4567-e89b-12d3-a456-426614174111"
+}
+```
+
+```
+{
+  "detail": {
+    "error": "<400 Bad Request, (e.g Max 20 URLs are allowed.)>"
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Unauthorized: missing or invalid API key."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Your request has been blocked due to excessive requests. Please reduce rate of requests."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "<432 Custom Forbidden Error (e.g This request exceeds your plan's set usage limit. Please upgrade your plan or contact support@tavily.com)>"
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "This request exceeds the pay-as-you-go limit. You can increase your limit on the Tavily dashboard."
+  }
+}
+```
+
+```
+{
+  "detail": {
+    "error": "Internal Server Error"
+  }
+}
+```
+
+#### Authorizations
+
+[​](#authorization-authorization)
+
+Authorization
+
+string
+
+header
+
+required
+
+Bearer authentication header in the form Bearer , where is your Tavily API key (e.g., Bearer tvly-YOUR\_API\_KEY).
+
+#### Body
+
+application/json
+
+Parameters for the Tavily Extract request.
+
+[​](#body-urls-one-of-0)
+
+urls
+
+string string\[]stringstring\[]
+
+required
+
+The URL to extract content from.
+
+Example:
+
+`"https://en.wikipedia.org/wiki/Artificial_intelligence"`
+
+[​](#body-query)
+
+query
+
+string
+
+User intent for reranking extracted content chunks. When provided, chunks are reranked based on relevance to this query.
+
+[​](#body-chunks-per-source)
+
+chunks\_per\_source
+
+integer
+
+default:3
+
+Chunks are short content snippets (maximum 500 characters each) pulled directly from the source. Use `chunks_per_source` to define the maximum number of relevant chunks returned per source and to control the `raw_content` length. Chunks will appear in the `raw_content` field as: `<chunk 1> [...] <chunk 2> [...] <chunk 3>`. Available only when `query` is provided. Must be between 1 and 5.
+
+Required range: `1 <= x <= 5`
+
+[​](#body-extract-depth)
+
+extract\_depth
+
+enum\<string>
+
+default:basic
+
+The depth of the extraction process. `advanced` extraction retrieves more data, including tables and embedded content, with higher success but may increase latency.`basic` extraction costs 1 credit per 5 successful URL extractions, while `advanced` extraction costs 2 credits per 5 successful URL extractions.
+
+Available options:
+
+`basic`,
+
+`advanced`
+
+[​](#body-include-images)
+
+include\_images
+
+boolean
+
+default:false
+
+Include a list of images extracted from the URLs in the response. Default is false.
+
+[​](#body-include-favicon)
+
+include\_favicon
+
+boolean
+
+default:false
+
+Whether to include the favicon URL for each result.
+
+[​](#body-format)
+
+format
+
+enum\<string>
+
+default:markdown
+
+The format of the extracted web page content. `markdown` returns content in markdown format. `text` returns plain text and may increase latency.
+
+Available options:
+
+`markdown`,
+
+`text`
+
+[​](#body-timeout)
+
+timeout
+
+number\<float>
+
+default:None
+
+Maximum time in seconds to wait for the URL extraction before timing out. Must be between 1.0 and 60.0 seconds. If not specified, default timeouts are applied based on extract\_depth: 10 seconds for basic extraction and 30 seconds for advanced extraction.
+
+Required range: `1 <= x <= 60`
+
+[​](#body-include-usage)
+
+include\_usage
+
+boolean
+
+default:false
+
+Whether to include credit usage information in the response. `NOTE:`The value may be 0 if the total successful URL extractions has not yet reached 5 calls. See our [Credits & Pricing documentation](https://docs.tavily.com/documentation/api-credits) for details.
+
+#### Response
+
+200
+
+application/json
+
+Extraction results returned successfully
+
+[​](#response-results)
+
+results
+
+object\[]
+
+A list of extracted content from the provided URLs.
+
+Show child attributes
+
+[​](#response-failed-results)
+
+failed\_results
+
+object\[]
+
+A list of URLs that could not be processed.
+
+Show child attributes
+
+Example:
+
+```
+
+[]
+
+
+```
+
+[​](#response-response-time)
+
+response\_time
+
+number\<float>
+
+Time in seconds it took to complete the request.
+
+Example:
+
+`0.02`
+
+[​](#response-usage)
+
+usage
+
+object
+
+Credit usage details for the request.
+
+Example:
+
+```
+
+{ "credits": 1 }
+
+
+```
+
+[​](#response-request-id)
+
+request\_id
+
+string
+
+A unique request identifier you can share with customer support to help resolve issues with specific requests.
+
+Example:
+
+`"123e4567-e89b-12d3-a456-426614174111"`
+
+[Tavily SearchPrevious](https://docs.tavily.com/documentation/api-reference/endpoint/search) [Tavily CrawlNext](https://docs.tavily.com/documentation/api-reference/endpoint/crawl)
+
+[Tavily Docs home page![light logo](https://mintcdn.com/tavilyai/W9s9i1gwaZpOi3B0/logo/light.svg?fit=max&auto=format&n=W9s9i1gwaZpOi3B0&q=85&s=57062dc27e5e05238a1bf25b21e5d8ed)![dark logo](https://mintcdn.com/tavilyai/W9s9i1gwaZpOi3B0/logo/dark.svg?fit=max&auto=format&n=W9s9i1gwaZpOi3B0&q=85&s=02810b55bc2437d60278e931f6007653)](https://tavily.com/)
+
+[linkedin](https://linkedin.com/company/tavily) [x](https://x.com/tavilyai) [github](https://github.com/tavily-ai) [youtube](https://www.youtube.com/@TavilyAI)
+
+Resources
+
+[About](https://docs.tavily.com/documentation/about) [Tavily Search Crawler](https://docs.tavily.com/documentation/search-crawler) [Tavily Status](https://status.tavily.com/)
+
+Legal
+
+[Security & Compliance](https://trust.tavily.com/) [Privacy Policy](https://www.tavily.com/privacy) [Website Terms of Use](https://www.tavily.com/website-terms) [Platform Terms of Use](https://www.tavily.com/terms) [Cookie Notice](https://www.tavily.com/cookie-policy) [Accessibility Menu](#) [Your Privacy Rights](#)
+
+[linkedin](https://linkedin.com/company/tavily) [x](https://x.com/tavilyai) [github](https://github.com/tavily-ai) [youtube](https://www.youtube.com/@TavilyAI)
+
+[Powered byThis documentation is built and hosted on Mintlify, a developer documentation platform](https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=tavilyai)
+
+Assistant
+
+Responses are generated using AI and may contain mistakes.
+
+![Tavily](https://cdn.cookielaw.org/logos/f511015a-a7df-4ef8-b5f1-b3097a2e8b5a/019a509d-3ef2-7496-b855-4b8618e86334/8eed9f5a-5e6b-45e6-9868-0af340d198d0/Dark_Tavily_Symbol.png "Tavily")
+
+We process your personal information to measure and improve our sites and service, to assist our marketing campaigns and to provide personalised content and advertising. By clicking the button on the right, you can exercise your privacy rights. For more information see our privacy notice [Cookie Notice](https://www.tavily.com/cookie-policy)
+
+Your Privacy Rights Reject All Accept Cookies
+
+![tavily-logo](https://cdn.cookielaw.org/logos/f511015a-a7df-4ef8-b5f1-b3097a2e8b5a/019a509d-3ef2-7496-b855-4b8618e86334/5e89a087-01b9-4763-bbc6-6f7a4b155b65/Dark_Tavily_Logo.png)
+
+## Do Not Sell or Share My Personal Data
+
+When you visit our website, we store cookies on your browser to collect information. The information collected might relate to you, your preferences or your device, and is mostly used to make the site work as you expect it to and to provide a more personalized web experience. However, you can choose not to allow certain types of cookies, which may impact your experience of the site and the services we are able to offer. Click on the different category headings to find out more and change our default settings according to your preference. You cannot opt-out of our First Party Strictly Necessary Cookies as they are deployed in order to ensure the proper functioning of our website (such as prompting the cookie banner and remembering your settings, to log into your account, to redirect you when you log out, etc.). For more information about the First and Third Party Cookies used please follow this link.  
+[Cookie Notice](https://www.tavily.com/cookie-policy)
+
+Allow All
+
+### Manage Consent Preferences
+
+#### Strictly Necessary Cookies
+
+Always Active
+
+These cookies are necessary for the website to function and cannot be switched off in our systems. They are usually only set in response to actions made by you which amount to a request for services, such as setting your privacy preferences, logging in or filling in forms. You can set your browser to block or alert you about these cookies, but some parts of the site will not then work. These cookies do not store any personally identifiable information.
+
+#### Opt Out of Sale of Sharing/Targeted Advertising
+
+Opt Out of Sale of Sharing/Targeted Advertising
+
+As a California consumer, you have the right to opt-out from the sale or sharing of your personal information at any time across business platform, services, businesses and devices. You can opt-out of the sale and sharing of your personal information by using this toggle switch. As a Virginia, Utah, Colorado and Connecticut consumer, you have the right to opt-out from the sale of your personal data and the processing of your personal data for targeted advertising. You can opt-out of the sale of your personal data and targeted advertising by using this toggle switch. For more information on your rights as a United States consumer see our privacy notice.
+
+- ##### Performance CookiesSwitch Label label
+
+  These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site. All information these cookies collect is aggregated and therefore anonymous. If you do not allow these cookies we will not know when you have visited our site, and will not be able to monitor its performance.
+
+- ##### Targeting CookiesSwitch Label label
+
+  These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites. They do not store directly personal information, but are based on uniquely identifying your browser and internet device. If you do not allow these cookies, you will experience less targeted advertising.
+
+Back Button
+
+### Cookie List
+
+Search Icon
+
+Filter Icon
+
+Clear
+
+- checkbox label label
+
+Apply Cancel
+
+Consent Leg.Interest
+
+checkbox label label
+
+checkbox label label
+
+checkbox label label
+
+Reject All Confirm My Choices
+
+[![Powered by Onetrust](https://cdn.cookielaw.org/logos/static/powered_by_logo.svg "Powered by OneTrust Opens in a new Tab")Powered by OneTrust Opens in a new Tab](https://www.onetrust.com/solutions/consent-and-preferences/)

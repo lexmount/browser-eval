@@ -451,7 +451,7 @@ The Python Software Foundation is a non-profit corporation.
 Please donate.
 
 
-Last updated on Aug 31, 2026 (22:22 UTC).
+Last updated on Sep 01, 2026 (10:58 UTC).
 
 Found a bug?
 

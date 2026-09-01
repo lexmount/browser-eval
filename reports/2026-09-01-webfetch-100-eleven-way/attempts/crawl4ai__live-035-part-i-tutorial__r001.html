@@ -1,0 +1,1003 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__live-035-part-i-tutorial__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>Part I. Tutorial</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">5,697 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：Part I. Tutorial；Submit correction；Copyright © 1996-2026 The PostgreSQL Global Development Group。</p><p><b>输入 URL：</b><a href="https://www.postgresql.org/docs/current/tutorial.html">https://www.postgresql.org/docs/current/tutorial.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Part I. Tutorial
+Submit correction
+Copyright © 1996-2026 The PostgreSQL Global Development Group</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：Part I. Tutorial</li><li>是否保留核对点：Submit correction</li><li>是否保留核对点：Copyright © 1996-2026 The PostgreSQL Global Development Group</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/live-035-part-i-tutorial/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://www.postgresql.org/docs/current/tutorial.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:f5c49f85fbf0f5d0bb56ac0ce175c460ffc5aed355bcfe15826b3bdd8e88d52b</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Part I. Tutorial
+Submit correction
+Copyright © 1996-2026 The PostgreSQL Global Development Group</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>[ ![PostgreSQL Elephant Logo](https://www.postgresql.org/media/img/about/press/elephant.png) ](https://www.postgresql.org/)
+  * [Home](https://www.postgresql.org/ &quot;Home&quot;)
+  * [About](https://www.postgresql.org/about/ &quot;About&quot;)
+  * [Download](https://www.postgresql.org/download/ &quot;Download&quot;)
+  * [Documentation](https://www.postgresql.org/docs/ &quot;Documentation&quot;)
+  * [Community](https://www.postgresql.org/community/ &quot;Community&quot;)
+  * [Developers](https://www.postgresql.org/developer/ &quot;Developers&quot;)
+  * [Support](https://www.postgresql.org/support/ &quot;Support&quot;)
+  * [Donate](https://www.postgresql.org/about/donate/ &quot;Donate&quot;)
+  * [Your account](https://www.postgresql.org/account/ &quot;Your account&quot;)
+
+
+August 13, 2026: [PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!](https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/)
+[Documentation](https://www.postgresql.org/docs/ &quot;Documentation&quot;) → [PostgreSQL 18](https://www.postgresql.org/docs/18/index.html)
+Supported Versions: [Current](https://www.postgresql.org/docs/current/tutorial.html &quot;PostgreSQL 18 - Part I. Tutorial&quot;) ([18](https://www.postgresql.org/docs/18/tutorial.html &quot;PostgreSQL 18 - Part I. Tutorial&quot;)) / [17](https://www.postgresql.org/docs/17/tutorial.html &quot;PostgreSQL 17 - Part I. Tutorial&quot;) / [16](https://www.postgresql.org/docs/16/tutorial.html &quot;PostgreSQL 16 - Part I. Tutorial&quot;) / [15](https://www.postgresql.org/docs/15/tutorial.html &quot;PostgreSQL 15 - Part I. Tutorial&quot;) / [14](https://www.postgresql.org/docs/14/tutorial.html &quot;PostgreSQL 14 - Part I. Tutorial&quot;)
+Development Versions: [19](https://www.postgresql.org/docs/19/tutorial.html &quot;PostgreSQL 19 - Part I. Tutorial&quot;) / [devel](https://www.postgresql.org/docs/devel/tutorial.html &quot;PostgreSQL devel - Part I. Tut</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（8,337 / 8,373 字符）</summary><pre>[ ![PostgreSQL Elephant Logo](https://www.postgresql.org/media/img/about/press/elephant.png) ](https://www.postgresql.org/)
+  * [Home](https://www.postgresql.org/ &quot;Home&quot;)
+  * [About](https://www.postgresql.org/about/ &quot;About&quot;)
+  * [Download](https://www.postgresql.org/download/ &quot;Download&quot;)
+  * [Documentation](https://www.postgresql.org/docs/ &quot;Documentation&quot;)
+  * [Community](https://www.postgresql.org/community/ &quot;Community&quot;)
+  * [Developers](https://www.postgresql.org/developer/ &quot;Developers&quot;)
+  * [Support](https://www.postgresql.org/support/ &quot;Support&quot;)
+  * [Donate](https://www.postgresql.org/about/donate/ &quot;Donate&quot;)
+  * [Your account](https://www.postgresql.org/account/ &quot;Your account&quot;)
+
+
+August 13, 2026: [PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!](https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/)
+[Documentation](https://www.postgresql.org/docs/ &quot;Documentation&quot;) → [PostgreSQL 18](https://www.postgresql.org/docs/18/index.html)
+Supported Versions: [Current](https://www.postgresql.org/docs/current/tutorial.html &quot;PostgreSQL 18 - Part I. Tutorial&quot;) ([18](https://www.postgresql.org/docs/18/tutorial.html &quot;PostgreSQL 18 - Part I. Tutorial&quot;)) / [17](https://www.postgresql.org/docs/17/tutorial.html &quot;PostgreSQL 17 - Part I. Tutorial&quot;) / [16](https://www.postgresql.org/docs/16/tutorial.html &quot;PostgreSQL 16 - Part I. Tutorial&quot;) / [15](https://www.postgresql.org/docs/15/tutorial.html &quot;PostgreSQL 15 - Part I. Tutorial&quot;) / [14](https://www.postgresql.org/docs/14/tutorial.html &quot;PostgreSQL 14 - Part I. Tutorial&quot;)
+Development Versions: [19](https://www.postgresql.org/docs/19/tutorial.html &quot;PostgreSQL 19 - Part I. Tutorial&quot;) / [devel](https://www.postgresql.org/docs/devel/tutorial.html &quot;PostgreSQL devel - Part I. Tutorial&quot;)
+Unsupported versions: [13](https://www.postgresql.org/docs/13/tutorial.html &quot;PostgreSQL 13 - Part I. Tutorial&quot;) / [12](https://www.postgresql.org/docs/12/tutorial.html &quot;PostgreSQL 12 - Part I. Tutorial&quot;) / [11](https://www.postgresql.org/docs/11/tutorial.html &quot;PostgreSQL 11 - Part I. Tutorial&quot;) / [10](https://www.postgresql.org/docs/10/tutorial.html &quot;PostgreSQL 10 - Part I. Tutorial&quot;) / [9.6](https://www.postgresql.org/docs/9.6/tutorial.html &quot;PostgreSQL 9.6 - Part I. Tutorial&quot;) / [9.5](https://www.postgresql.org/docs/9.5/tutorial.html &quot;PostgreSQL 9.5 - Part I. Tutorial&quot;) / [9.4](https://www.postgresql.org/docs/9.4/tutorial.html &quot;PostgreSQL 9.4 - Part I. Tutorial&quot;) / [9.3](https://www.postgresql.org/docs/9.3/tutorial.html &quot;PostgreSQL 9.3 - Part I. Tutorial&quot;) / [9.2](https://www.postgresql.org/docs/9.2/tutorial.html &quot;PostgreSQL 9.2 - Part I. Tutorial&quot;) / [9.1](https://www.postgresql.org/docs/9.1/tutorial.html &quot;PostgreSQL 9.1 - Part I. Tutorial&quot;) / [9.0](https://www.postgresql.org/docs/9.0/tutorial.html &quot;PostgreSQL 9.0 - Part I. Tutorial&quot;) / [8.4](https://www.postgresql.org/docs/8.4/tutorial.html &quot;PostgreSQL 8.4 - Part I. Tutorial&quot;) / [8.3](https://www.postgresql.org/docs/8.3/tutorial.html &quot;PostgreSQL 8.3 - Part I. Tutorial&quot;) / [8.2](https://www.postgresql.org/docs/8.2/tutorial.html &quot;PostgreSQL 8.2 - Part I. Tutorial&quot;) / [8.1](https://www.postgresql.org/docs/8.1/tutorial.html &quot;PostgreSQL 8.1 - Part I. Tutorial&quot;) / [8.0](https://www.postgresql.org/docs/8.0/tutorial.html &quot;PostgreSQL 8.0 - Part I. Tutorial&quot;) / [7.4](https://www.postgresql.org/docs/7.4/tutorial.html &quot;PostgreSQL 7.4 - Part I. Tutorial&quot;) / [7.3](https://www.postgresql.org/docs/7.3/tutorial.html &quot;PostgreSQL 7.3 - Part I. Tutorial&quot;) / [7.2](https://www.postgresql.org/docs/7.2/tutorial.html &quot;PostgreSQL 7.2 - Part I. Tutorial&quot;) / [7.1](https://www.postgresql.org/docs/7.1/tutorial.html &quot;PostgreSQL 7.1 - Part I. Tutorial&quot;)
+| Part I. Tutorial  |
+| --- |
+|  [Prev](https://www.postgresql.org/docs/current/bug-reporting.html &quot;5. Bug Reporting Guidelines&quot;)  | [Up](https://www.postgresql.org/docs/current/index.html &quot;PostgreSQL 18.6 Documentation&quot;)  | PostgreSQL 18.6 Documentation  | [Home](https://www.postgresql.org/docs/current/index.html &quot;PostgreSQL 18.6 Documentation&quot;)  |  [Next](https://www.postgresql.org/docs/current/tutorial-start.html &quot;Chapter 1. Getting Started&quot;)  |
+* * *
+# Part I. Tutorial
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive treatment of the topics it covers.
+After you have successfully completed this tutorial you will want to read the [Part II](https://www.postgresql.org/docs/current/sql.html &quot;Part II. The SQL Language&quot;) section to gain a better understanding of the SQL language, or [Part IV](https://www.postgresql.org/docs/current/client-interfaces.html &quot;Part IV. Client Interfaces&quot;) for information about developing applications with PostgreSQL. Those who provision and manage their own PostgreSQL installation should also read [Part III](https://www.postgresql.org/docs/current/admin.html &quot;Part III. Server Administration&quot;).
+**Table of Contents**
+
+[1. Getting Started](https://www.postgresql.org/docs/current/tutorial-start.html)
+
+
+[1.1. Installation](https://www.postgresql.org/docs/current/tutorial-install.html)
+
+
+[1.2. Architectural Fundamentals](https://www.postgresql.org/docs/current/tutorial-arch.html)
+
+
+[1.3. Creating a Database](https://www.postgresql.org/docs/current/tutorial-createdb.html)
+
+
+[1.4. Accessing a Database](https://www.postgresql.org/docs/current/tutorial-accessdb.html)
+
+
+[2. The SQL Language](https://www.postgresql.org/docs/current/tutorial-sql.html)
+
+
+[2.1. Introduction](https://www.postgresql.org/docs/current/tutorial-sql-intro.html)
+
+
+[2.2. Concepts](https://www.postgresql.org/docs/current/tutorial-concepts.html)
+
+
+[2.3. Creating a New Table](https://www.postgresql.org/docs/current/tutorial-table.html)
+
+
+[2.4. Populating a Table With Rows](https://www.postgresql.org/docs/current/tutorial-populate.html)
+
+
+[2.5. Querying a Table](https://www.postgresql.org/docs/current/tutorial-select.html)
+
+
+[2.6. Joins Between Tables](https://www.postgresql.org/docs/current/tutorial-join.html)
+
+
+[2.7. Aggregate Functions](https://www.postgresql.org/docs/current/tutorial-agg.html)
+
+
+[2.8. Updates](https://www.postgresql.org/docs/current/tutorial-update.html)
+
+
+[2.9. Deletions](https://www.postgresql.org/docs/current/tutorial-delete.html)
+
+
+[3. Advanced Features](https://www.postgresql.org/docs/current/tutorial-advanced.html)
+
+
+[3.1. Introduction](https://www.postgresql.org/docs/current/tutorial-advanced-intro.html)
+
+
+[3.2. Views](https://www.postgresql.org/docs/current/tutorial-views.html)
+
+
+[3.3. Foreign Keys](https://www.postgresql.org/docs/current/tutorial-fk.html)
+
+
+[3.4. Transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html)
+
+
+[3.5. Window Functions](https://www.postgresql.org/docs/current/tutorial-window.html)
+
+
+[3.6. Inheritance](https://www.postgresql.org/docs/current/tutorial-inheritance.html)
+
+
+[3.7. Conclusion](https://www.postgresql.org/docs/current/tutorial-conclusion.html)
+
+* * *
+|  [Prev](https://www.postgresql.org/docs/current/bug-reporting.html &quot;5. Bug Reporting Guidelines&quot;)  | [Up](https://www.postgresql.org/docs/current/index.html &quot;PostgreSQL 18.6 Documentation&quot;)  |  [Next](https://www.postgresql.org/docs/current/tutorial-start.html &quot;Chapter 1. Getting Started&quot;)  |
+| --- | --- | --- |
+| 5. Bug Reporting Guidelines   | [Home](https://www.postgresql.org/docs/current/index.html &quot;PostgreSQL 18.6 Documentation&quot;)  |  Chapter 1. Getting Started  |
+## Submit correction
+If you see anything in the documentation that is not correct, does not match your experience with the particular feature or requires further clarification, please use [this form](https://www.postgresql.org/account/comments/new/18/tutorial.html/) to report a documentation issue.
+[Policies](https://www.postgresql.org/about/policies/) | [Code of Conduct](https://www.postgresql.org/about/policies/coc/) | [About PostgreSQL](https://www.postgresql.org/about/) | [Contact](https://www.postgresql.org/about/contact/)
+
+Copyright © 1996-2026 The PostgreSQL Global Development Group</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__live-035-part-i-tutorial__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://www.postgresql.org/docs/current/tutorial.html</span></div><div class="kv"><b>输出大小</b>8,373 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>Part I. Tutorial</td><td>Part I. Tutorial</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Submit correction</td><td>Submit correction</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Copyright © 1996-2026 The PostgreSQL Global Development Group</td><td>Copyright © 1996-2026 The PostgreSQL Global Development Group</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Part I. Tutorial</span></p><p><span class="tag">Part I. Tutorial</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;/media/img/about/press/elephant.png&quot;,
+      &quot;data&quot;: &quot;&quot;,
+      &quot;alt&quot;: &quot;PostgreSQL Elephant Logo&quot;,
+      &quot;desc&quot;: &quot;Home\n                About\n                Download\n                Documentation\n                Community\n                Developers\n                Support\n                Donate\n                Your account&quot;,
+      &quot;score&quot;: 3,
+      &quot;type&quot;: &quot;image&quot;,
+      &quot;group_id&quot;: 0,
+      &quot;format&quot;: &quot;png&quot;,
+      &quot;width&quot;: null
+    }
+  ],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/&quot;,
+      &quot;text&quot;: &quot;About&quot;,
+      &quot;title&quot;: &quot;About&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/download/&quot;,
+      &quot;text&quot;: &quot;Download&quot;,
+      &quot;title&quot;: &quot;Download&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/&quot;,
+      &quot;text&quot;: &quot;Documentation&quot;,
+      &quot;title&quot;: &quot;Documentation&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/community/&quot;,
+      &quot;text&quot;: &quot;Community&quot;,
+      &quot;title&quot;: &quot;Community&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/developer/&quot;,
+      &quot;text&quot;: &quot;Developers&quot;,
+      &quot;title&quot;: &quot;Developers&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/support/&quot;,
+      &quot;text&quot;: &quot;Support&quot;,
+      &quot;title&quot;: &quot;Support&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/donate/&quot;,
+      &quot;text&quot;: &quot;Donate&quot;,
+      &quot;title&quot;: &quot;Donate&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/account/&quot;,
+      &quot;text&quot;: &quot;Your account&quot;,
+      &quot;title&quot;: &quot;Your account&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/&quot;,
+      &quot;text&quot;: &quot;PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/18/index.html&quot;,
+      &quot;text&quot;: &quot;PostgreSQL 18&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial.html&quot;,
+      &quot;text&quot;: &quot;Current&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 18 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/18/tutorial.html&quot;,
+      &quot;text&quot;: &quot;18&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 18 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/17/tutorial.html&quot;,
+      &quot;text&quot;: &quot;17&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 17 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/16/tutorial.html&quot;,
+      &quot;text&quot;: &quot;16&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 16 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/15/tutorial.html&quot;,
+      &quot;text&quot;: &quot;15&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 15 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/14/tutorial.html&quot;,
+      &quot;text&quot;: &quot;14&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 14 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/19/tutorial.html&quot;,
+      &quot;text&quot;: &quot;19&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 19 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/devel/tutorial.html&quot;,
+      &quot;text&quot;: &quot;devel&quot;,
+      &quot;title&quot;: &quot;PostgreSQL devel - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/13/tutorial.html&quot;,
+      &quot;text&quot;: &quot;13&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 13 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/12/tutorial.html&quot;,
+      &quot;text&quot;: &quot;12&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 12 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/11/tutorial.html&quot;,
+      &quot;text&quot;: &quot;11&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 11 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/10/tutorial.html&quot;,
+      &quot;text&quot;: &quot;10&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 10 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.6/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.6&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.6 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.5/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.5&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.5 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.4/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.4&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.4 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.3/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.3&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.3 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.2/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.2&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.2 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.1/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.1&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.1 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/9.0/tutorial.html&quot;,
+      &quot;text&quot;: &quot;9.0&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 9.0 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/8.4/tutorial.html&quot;,
+      &quot;text&quot;: &quot;8.4&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 8.4 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/8.3/tutorial.html&quot;,
+      &quot;text&quot;: &quot;8.3&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 8.3 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/8.2/tutorial.html&quot;,
+      &quot;text&quot;: &quot;8.2&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 8.2 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/8.1/tutorial.html&quot;,
+      &quot;text&quot;: &quot;8.1&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 8.1 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/8.0/tutorial.html&quot;,
+      &quot;text&quot;: &quot;8.0&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 8.0 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/7.4/tutorial.html&quot;,
+      &quot;text&quot;: &quot;7.4&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 7.4 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/7.3/tutorial.html&quot;,
+      &quot;text&quot;: &quot;7.3&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 7.3 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/7.2/tutorial.html&quot;,
+      &quot;text&quot;: &quot;7.2&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 7.2 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/7.1/tutorial.html&quot;,
+      &quot;text&quot;: &quot;7.1&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 7.1 - Part I. Tutorial&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/bug-reporting.html&quot;,
+      &quot;text&quot;: &quot;Prev&quot;,
+      &quot;title&quot;: &quot;5. Bug Reporting Guidelines&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/index.html&quot;,
+      &quot;text&quot;: &quot;Up&quot;,
+      &quot;title&quot;: &quot;PostgreSQL 18.6 Documentation&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-start.html&quot;,
+      &quot;text&quot;: &quot;Next&quot;,
+      &quot;title&quot;: &quot;Chapter 1. Getting Started&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/sql.html&quot;,
+      &quot;text&quot;: &quot;Part II&quot;,
+      &quot;title&quot;: &quot;Part II. The SQL Language&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/client-interfaces.html&quot;,
+      &quot;text&quot;: &quot;Part IV&quot;,
+      &quot;title&quot;: &quot;Part IV. Client Interfaces&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/admin.html&quot;,
+      &quot;text&quot;: &quot;Part III&quot;,
+      &quot;title&quot;: &quot;Part III. Server Administration&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-install.html&quot;,
+      &quot;text&quot;: &quot;1.1. Installation&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-arch.html&quot;,
+      &quot;text&quot;: &quot;1.2. Architectural Fundamentals&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-createdb.html&quot;,
+      &quot;text&quot;: &quot;1.3. Creating a Database&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-accessdb.html&quot;,
+      &quot;text&quot;: &quot;1.4. Accessing a Database&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-sql.html&quot;,
+      &quot;text&quot;: &quot;2. The SQL Language&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-sql-intro.html&quot;,
+      &quot;text&quot;: &quot;2.1. Introduction&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-concepts.html&quot;,
+      &quot;text&quot;: &quot;2.2. Concepts&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-table.html&quot;,
+      &quot;text&quot;: &quot;2.3. Creating a New Table&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-populate.html&quot;,
+      &quot;text&quot;: &quot;2.4. Populating a Table With Rows&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-select.html&quot;,
+      &quot;text&quot;: &quot;2.5. Querying a Table&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-join.html&quot;,
+      &quot;text&quot;: &quot;2.6. Joins Between Tables&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-agg.html&quot;,
+      &quot;text&quot;: &quot;2.7. Aggregate Functions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-update.html&quot;,
+      &quot;text&quot;: &quot;2.8. Updates&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-delete.html&quot;,
+      &quot;text&quot;: &quot;2.9. Deletions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-advanced.html&quot;,
+      &quot;text&quot;: &quot;3. Advanced Features&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-advanced-intro.html&quot;,
+      &quot;text&quot;: &quot;3.1. Introduction&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-views.html&quot;,
+      &quot;text&quot;: &quot;3.2. Views&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-fk.html&quot;,
+      &quot;text&quot;: &quot;3.3. Foreign Keys&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-transactions.html&quot;,
+      &quot;text&quot;: &quot;3.4. Transactions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-window.html&quot;,
+      &quot;text&quot;: &quot;3.5. Window Functions&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-inheritance.html&quot;,
+      &quot;text&quot;: &quot;3.6. Inheritance&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/docs/current/tutorial-conclusion.html&quot;,
+      &quot;text&quot;: &quot;3.7. Conclusion&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/account/comments/new/18/tutorial.html/&quot;,
+      &quot;text&quot;: &quot;this form&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/policies/&quot;,
+      &quot;text&quot;: &quot;Policies&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/policies/coc/&quot;,
+      &quot;text&quot;: &quot;Code of Conduct&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.postgresql.org/about/contact/&quot;,
+      &quot;text&quot;: &quot;Contact&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;postgresql.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__live-035-part-i-tutorial__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__live-035-part-i-tutorial__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__live-035-part-i-tutorial__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

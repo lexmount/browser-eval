@@ -468,7 +468,9 @@ For a complete list of all available HTML tags, visit our [HTML Tag Reference](h
 
 [Sign in to track progress](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fpathfinder.w3schools.com&origin=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml_tables.asp "Sign in to track your progress")
 
-[![Get Certified Offer](https://www.w3schools.com/images/img_2026_spring_getcertified_300.webp)](https://campus.w3schools.com/collections/course-catalog)
+[![Get Certified Offer](https://www.w3schools.com/images/img_2026_spring_fullaccess_300.png)](https://campus.w3schools.com/products/w3schools-full-access-course)
+
+[![](https://www.w3schools.com/images/w3schools_logo_200.png)![](https://www.w3schools.com/tools/screenshots/showcase/tool_meme_generator_square.png)W3Schools Tools![](https://www.w3schools.com/images/w3schools_logo_200.png)Morse Code TranslatorConvert plain text into International Morse code and decode Morse back into text. You can also play the Morse code as...Open Tool](https://www.w3schools.com/tools/tool_morse_code.php)
 
 [W3Schools on YouTube](https://www.youtube.com/@w3schools "W3Schools on YouTube")[W3Schools on LinkedIn](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn")[Join the W3schools community on Discord](https://discord.com/invite/w3schools "Join the W3schools community on Discord")[W3Schools on Facebook](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook")[W3Schools on Instagram](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram")[New: W3Schools on TikTok](https://www.tiktok.com/@w3schools.com "New: W3Schools on TikTok")
 

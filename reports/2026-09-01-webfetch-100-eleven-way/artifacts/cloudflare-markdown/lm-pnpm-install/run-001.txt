@@ -67,7 +67,7 @@ On this page
 
 # Installation
 
-[![](https://srv.buysellads.com/static/30242/a719f75f8b6a44161528117f997a5d75d3ea8145)Innovate faster with enterprise-ready AI, enhanced by Gemini models. Get started for free.Start Free Google Cloud — Unify Your Entire AI Workflow](https://srv.buysellads.com/ads/click/x/GTND427YFT7DCKJJCV74YKQUFTADEKQYCYYDCZ3JCAADE2J7F6AIL27KCKSDTKQJCE7D4KQUCVAI52QLCYYI4K3KC6SIE53LCEAIKK3EHJNCLSIZ?segment=placement:pnpmio "Google Cloud — Unify Your Entire AI Workflow") ![](https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481178;dc_trk_aid=647426659;dc_trk_cid=246706990;ord=1788252565;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?)
+[![](https://srv.buysellads.com/static/30242/a719f75f8b6a44161528117f997a5d75d3ea8145)Analyze with built-in data and AI governance in Google Cloud's data platform.Start Free Google Cloud — Create ML Models With SQL](https://srv.buysellads.com/ads/click/x/GTND427YFT7DV2JMCV74YKQUFTADEK3YCE7D5Z3JCAADE2J7CAADE53KC6SIPKJLF6SIV2QYCVYIC27NCYSD653EHEYI553YCVSDVK3ECTNCYBZ52K?segment=placement:pnpmio "Google Cloud — Create ML Models With SQL") ![](https://ad.doubleclick.net/ddm/trackimp/N5295.3091281BUYSELLADS/B34721851.453481127;dc_trk_aid=647254185;dc_trk_cid=246706990;ord=1788265021;dc_lat=;dc_rdid=;tag_for_child_directed_treatment=;tfua=;gdpr=$;gdpr_consent=$;ltd=;dc_tdv=1?)
 
 ## Prerequisites ​
 

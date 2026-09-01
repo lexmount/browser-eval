@@ -1,0 +1,323 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>lexmount-global__live-006-python-typing-documentation__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · lexmount-global</div><h1>Python typing documentation</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">1,515 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：typing — Support for type hints；runtime support for type hints；Type aliases。</p><p><b>输入 URL：</b><a href="https://docs.python.org/3/library/typing.html">https://docs.python.org/3/library/typing.html</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>typing — Support for type hints
+runtime support for type hints
+Type aliases</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：typing — Support for type hints</li><li>是否保留核对点：runtime support for type hints</li><li>是否保留核对点：Type aliases</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/lexmount-global/live-006-python-typing-documentation/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://docs.python.org/3/library/typing.html">打开标准答案源网页</a> · 完整性校验 <code>sha256:597edca23225d769db2dea509644d87baaf42e96cc95dbb69dd9fbb1230557b0</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>typing — Support for type hints
+runtime support for type hints
+Type aliases</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>typing — Support for type hints¶
+Added in version 3.5.
+Source code: Lib/typing.py
+Note
+The Python runtime does not enforce function and variable type annotations. They can be used by third party tools such as type checkers, IDEs, linters, etc.
+This module provides runtime support for type hints.
+Consider the function below:
+def surface_area_of_cube(edge_length: float) -&gt; str: return f&quot;The surface area of the cube is {6 * edge_length ** 2}.&quot;
+The function surface_area_of_cube takes an argument expected to be an instance of float, as indicated by the type hint edge_length: float. The function is expected to return an instance of str, as indicated by the -&gt; str hint.
+While type hints can be simple classes like float or str, they can also be more complex. The typing module provides a vocabulary of more advanced type hints.
+New features are frequently added to the typing module. The typing_extensions package provides backports of these new features to older versions of Python.
+See also
+A quick overview of type hints (hosted at the mypy docs)
+A quick overview of type hints (hosted at the mypy docs)
+The Python typing system is standardised via PEPs, so this reference should broadly apply to most Python type checkers. (Some parts may still be specific to mypy.)
+The Python typing system is standardised via PEPs, so this reference should broadly apply to most Python type checkers. (Some parts may still be specific to mypy.)
+Type-checker-agnostic documentation written by the community detailing type system features, useful typing related tools and typing best practices.
+Type-checker-agnostic documentation written by the community detailing type system features, useful typing related tools and typing best practices.
+Specification for the Python Type System¶
+The canonical, up-to-date</pre></div></div><details><summary>展开本页中的完整供应商输出（14,382 / 14,382 字符）</summary><pre>typing — Support for type hints¶
+Added in version 3.5.
+Source code: Lib/typing.py
+Note
+The Python runtime does not enforce function and variable type annotations. They can be used by third party tools such as type checkers, IDEs, linters, etc.
+This module provides runtime support for type hints.
+Consider the function below:
+def surface_area_of_cube(edge_length: float) -&gt; str: return f&quot;The surface area of the cube is {6 * edge_length ** 2}.&quot;
+The function surface_area_of_cube takes an argument expected to be an instance of float, as indicated by the type hint edge_length: float. The function is expected to return an instance of str, as indicated by the -&gt; str hint.
+While type hints can be simple classes like float or str, they can also be more complex. The typing module provides a vocabulary of more advanced type hints.
+New features are frequently added to the typing module. The typing_extensions package provides backports of these new features to older versions of Python.
+See also
+A quick overview of type hints (hosted at the mypy docs)
+A quick overview of type hints (hosted at the mypy docs)
+The Python typing system is standardised via PEPs, so this reference should broadly apply to most Python type checkers. (Some parts may still be specific to mypy.)
+The Python typing system is standardised via PEPs, so this reference should broadly apply to most Python type checkers. (Some parts may still be specific to mypy.)
+Type-checker-agnostic documentation written by the community detailing type system features, useful typing related tools and typing best practices.
+Type-checker-agnostic documentation written by the community detailing type system features, useful typing related tools and typing best practices.
+Specification for the Python Type System¶
+The canonical, up-to-date specification of the Python type system can be found at Specification for the Python type system.
+Type aliases¶
+A type alias is defined using the type statement, which creates an instance of TypeAliasType. In this example, Vector and list[float] will be treated equivalently by static type checkers:
+type Vector = list[float] def scale(scalar: float, vector: Vector) -&gt; Vector: return [scalar * num for num in vector] # passes type checking; a list of floats qualifies as a Vector. new_vector = scale(2.0, [1.0, -4.2, 5.4])
+Type aliases are useful for simplifying complex type signatures. For example:
+from collections.abc import Sequence type ConnectionOptions = dict[str, str] type Address = tuple[str, int] type Server = tuple[Address, ConnectionOptions] def broadcast_message(message: str, servers: Sequence[Server]) -&gt; None: ... # The static type checker will treat the previous type signature as # being exactly equivalent to this one. def broadcast_message( message: str, servers: Sequence[tuple[tuple[str, int], dict[str, str]]] ) -&gt; None: ...
+The type statement is new in Python 3.12. For backwards compatibility, type aliases can also be created through simple assignment:
+Vector = list[float]
+Or marked with TypeAlias to make it explicit that this is a type alias, not a normal variable assignment:
+from typing import TypeAlias Vector: TypeAlias = list[float]
+NewType¶
+Use the NewType helper to create distinct types:
+from typing import NewType UserId = NewType(&#x27;UserId&#x27;, int) some_id = UserId(524313)
+The static type checker will treat the new type as if it were a subclass of the original type. This is useful in helping catch logical errors:
+def get_user_name(user_id: UserId) -&gt; str: ... # passes type checking user_a = get_user_name(UserId(42351)) # fails type checking; an int is not a UserId user_b = get_user_name(-1)
+You may still perform all int operations on a variable of type UserId, but the result will always be of type int. This lets you pass in a UserId wherever an int might be expected, but will prevent you from accidentally creating a UserId in an invalid way:
+# &#x27;output&#x27; is of type &#x27;int&#x27;, not &#x27;UserId&#x27; output = UserId(23413) + UserId(54341)
+Note that these checks are enforced only by the static type checker. At runtime, the statement Derived = NewType(&#x27;Derived&#x27;, Base) will make Derived a callable that immediately returns whatever parameter you pass it. That means the expression Derived(some_value) does not create a new class or introduce much overhead beyond that of a regular function call.
+More precisely, the expression some_value is Derived(some_value) is always true at runtime.
+It is invalid to create a subtype of Derived:
+from typing import NewType UserId = NewType(&#x27;UserId&#x27;, int) # Fails at runtime and does not pass type checking class AdminUserId(UserId): pass
+However, it is possible to create a NewType based on a ‘derived’ NewType:
+from typing import NewType UserId = NewType(&#x27;UserId&#x27;, int) ProUserId = NewType(&#x27;ProUserId&#x27;, UserId)
+and typechecking for ProUserId will work as expected.
+See PEP 484 for more details.
+Note
+Recall that the use of a type alias declares two types to be equivalent to one another. Doing type Alias = Original will make the static type checker treat Alias as being exactly equivalent to Original in all cases. This is useful when you want to simplify complex type signatures.
+In contrast, NewType declares one type to be a subtype of another. Doing Derived = NewType(&#x27;Derived&#x27;, Original) will make the static type checker treat Derived as a subclass of Original, which means a value of type Original cannot be used in places where a value of type Derived is expected. This is useful when you want to prevent logic errors with minimal runtime cost.
+Added in version 3.5.2.
+Changed in version 3.10: NewType is now a class rather than a function. As a result, there is some additional runtime cost when calling NewType over a regular function.
+Changed in version 3.11: The performance of calling NewType has been restored to its level in Python 3.9.
+Annotating callable objects¶
+Functions – or other callable objects – can be annotated using collections.abc.Callable or deprecated typing.Callable. Callable[[int], str] signifies a function that takes a single parameter of type int and returns a str.
+For example:
+from collections.abc import Callable, Awaitable def feeder(get_next_item: Callable[[], str]) -&gt; None: ... # Body def async_query(on_success: Callable[[int], None], on_error: Callable[[int, Exception], None]) -&gt; None: ... # Body async def on_update(value: str) -&gt; None: ... # Body callback: Callable[[str], Awaitable[None]] = on_update
+The subscription syntax must always be used with exactly two values: the argument list and the return type. The argument list must be a list of types, a ParamSpec, Concatenate, or an ellipsis (...). The return type must be a single type.
+If a literal ellipsis ... is given as the argument list, it indicates that a callable with any arbitrary parameter list would be acceptable:
+def concat(x: str, y: str) -&gt; str: return x + y x: Callable[..., str] x = str # OK x = concat # Also OK
+Callable cannot express complex signatures such as functions that take a variadic number of arguments, overloaded functions, or functions that have keyword-only parameters. However, these signatures can be expressed by defining a Protocol class with a __call__() method:
+from collections.abc import Iterable from typing import Protocol class Combiner(Protocol): def __call__(self, *vals: bytes, maxlen: int | None = None) -&gt; list[bytes]: ... def batch_proc(data: Iterable[bytes], cb_results: Combiner) -&gt; bytes: for item in data: ... def good_cb(*vals: bytes, maxlen: int | None = None) -&gt; list[bytes]: ... def bad_cb(*vals: bytes, maxitems: int | None) -&gt; list[bytes]: ... batch_proc([], good_cb) # OK batch_proc([], bad_cb) # Error! Argument 2 has incompatible type because of # different name and kind in the callback
+Callables which take other callables as arguments may indicate that their parameter types are dependent on each other using ParamSpec. Additionally, if that callable adds or removes arguments from other callables, the Concatenate operator may be used. They take the form Callable[ParamSpecVariable, ReturnType] and Callable[Concatenate[Arg1Type, Arg2Type, ..., ParamSpecVariable], ReturnType] respectively.
+Changed in version 3.10: Callable now supports ParamSpec and Concatenate. See PEP 612 for more details.
+See also
+The documentation for ParamSpec and Concatenate provides examples of usage in Callable.
+Generics¶
+Since type information about objects kept in containers cannot be statically inferred in a generic way, many container classes in the standard library support subscription to denote the expected types of container elements.
+from collections.abc import Mapping, Sequence class Employee: ... # Sequence[Employee] indicates that all elements in the sequence # must be instances of &quot;Employee&quot;. # Mapping[str, str] indicates that all keys and all values in the mapping # must be strings. def notify_by_email(employees: Sequence[Employee], overrides: Mapping[str, str]) -&gt; None: ...
+Generic functions and classes can be parameterized by using type parameter syntax:
+from collections.abc import Sequence def first[T](l: Sequence[T]) -&gt; T: # Function is generic over the TypeVar &quot;T&quot; return l[0]
+Or by using the TypeVar factory directly:
+from collections.abc import Sequence from typing import TypeVar U = TypeVar(&#x27;U&#x27;) # Declare type variable &quot;U&quot; def second(l: Sequence[U]) -&gt; U: # Function is generic over the TypeVar &quot;U&quot; return l[1]
+Changed in version 3.12: Syntactic support for generics is new in Python 3.12.
+Annotating tuples¶
+For most containers in Python, the typing system assumes that all elements in the container will be of the same type. For example:
+from collections.abc import Mapping # Type checker will infer that all elements in ``x`` are meant to be ints x: list[int] = [] # Type checker error: ``list`` only accepts a single type argument: y: list[int, str] = [1, &#x27;foo&#x27;] # Type checker will infer that all keys in ``z`` are meant to be strings, # and that all values in ``z`` are meant to be either strings or ints z: Mapping[str, str | int] = {}
+list only accepts one type argument, so a type checker would emit an error on the y assignment above. Similarly, Mapping only accepts two type arguments: the first indicates the type of the keys, and the second indicates the type of the values.
+Unlike most other Python containers, however, it is common in idiomatic Python code for tuples to have elements which are not all of the same type. For this reason, tuples are special-cased in Python’s typing system. tuple accepts any number of type arguments:
+# OK: ``x`` is assigned to a tuple of length 1 where the sole element is an int x: tuple[int] = (5,) # OK: ``y`` is assigned to a tuple of length 2; # element 1 is an int, element 2 is a str y: tuple[int, str] = (5, &quot;foo&quot;) # Error: the type annotation indicates a tuple of length 1, # but ``z`` has been assigned to a tuple of length 3 z: tuple[int] = (1, 2, 3)
+To denote a tuple which could be of any length, and in which all elements are of the same type T, use the literal ellipsis ...: tuple[T, ...]. To denote an empty tuple, use tuple[()]. Using plain tuple as an annotation is equivalent to using tuple[Any, ...]:
+x: tuple[int, ...] = (1, 2) # These reassignments are OK: ``tuple[int, ...]`` indicates x can be of any length x = (1, 2, 3) x = () # This reassignment is an error: all elements in ``x`` must be ints x = (&quot;foo&quot;, &quot;bar&quot;) # ``y`` can only ever be assigned to an empty tuple y: tuple[()] = () z: tuple = (&quot;foo&quot;, &quot;bar&quot;) # These reassignments are OK: plain ``tuple`` is equivalent to ``tuple[Any, ...]`` z = (1, 2, 3) z = ()
+The type of class objects¶
+A variable annotated with C may accept a value of type C. In contrast, a variable annotated with type[C] (or deprecated typing.Type[C]) may accept values that are classes themselves – specifically, it will accept the class object of C. For example:
+a = 3 # Has type ``int`` b = int # Has type ``type[int]`` c = type(a) # Also has type ``type[int]``
+Note that type[C] is covariant:
+class User: ... class ProUser(User): ... class TeamUser(User): ... def make_new_user(user_class: type[User]) -&gt; User: # ... return user_class() make_new_user(User) # OK make_new_user(ProUser) # Also OK: ``type[ProUser]`` is a subtype of ``type[User]`` make_new_user(TeamUser) # Still fine make_new_user(User()) # Error: expected ``type[User]`` but got ``User`` make_new_user(int) # Error: ``type[int]`` is not a subtype of ``type[User]``
+The only legal parameters for type are classes, Any, type variables, and unions of any of these types. For example:
+def new_non_team_user(user_class: type[BasicUser | ProUser]): ... new_non_team_user(BasicUser) # OK new_non_team_user(ProUser) # OK new_non_team_user(TeamUser) # Error: ``type[TeamUser]`` is not a subtype # of ``type[BasicUser | ProUser]`` new_non_team_user(User) # Also an error
+type[Any] is equivalent to type, which is the root of Python’s metaclass hierarchy.
+Annotating generators and coroutines¶
+A generator can be annotated using the generic type Generator[YieldType, SendType, ReturnType]. For example:
+def echo_round() -&gt; Generator[int, float, str]: sent = yield 0 while sent &gt;= 0: sent = yield round(sent) return &#x27;Done&#x27;
+Note that unlike many other generic classes in the standard library, the SendType of Generator behaves contravariantly, not covariantly or invariantly.
+The SendType and ReturnType parameters default to None:
+def infinite_stream(start: int) -&gt; Generator[int]: while True: yield start start += 1
+It is also possible to set these types explicitly:
+def infinite_stream(start: int) -&gt; Generator[int, None, None]: while True: yield start start += 1
+Simple generators that only ever yield values can also be annotated as having a return type of either Iterable[YieldType] or Iterator[YieldType]:
+def infinite_stream(start: int) -&gt; Iterator[int]: while True: yield start start += 1
+Async generators are handled in a similar fashion, but don’t expect a ReturnType type argument (AsyncGenerator[YieldType, SendType]). The SendType argument defaults to None, so the following definitions are equivalent:
+async def infinite_stream(start: int) -&gt; AsyncGenerator[int]: while True: yield start start = await increment(start) async def infinite_stream(start: int) -&gt; AsyncGenerator[int, None]: while True: yield start start = await increment(start)
+As in the synchronous case, AsyncIterable[YieldType] and AsyncIterator[YieldType] are available as well:</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>lexmount-global__live-006-python-typing-documentation__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://docs.python.org/3/library/typing.html</span></div><div class="kv"><b>输出大小</b>14,382 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>typing — Support for type hints</td><td>typing — Support for type hints</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>runtime support for type hints</td><td>runtime support for type hints</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Type aliases</td><td>Type aliases</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">typing — Support for type hints</span></p><p><span class="tag">typing — Support for type hints</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;2f57f723-f82d-43d0-9f53-1363eecc695a&quot;,
+  &quot;engine&quot;: &quot;lightmount_lite&quot;,
+  &quot;upstream_status&quot;: 200,
+  &quot;server_elapsed_ms&quot;: 816,
+  &quot;dom_id&quot;: &quot;268095&quot;,
+  &quot;links_count&quot;: 44,
+  &quot;images_count&quot;: 1,
+  &quot;links&quot;: [
+    {
+      &quot;text&quot;: &quot;Report a bug&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../bugs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;index&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../genindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;callable&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-callable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;hashable&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-hashable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;type checkers&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-static-type-checker&quot;
+    },
+    {
+      &quot;text&quot;: &quot;type hint&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../glossary.html#term-type-hint&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Improve this page&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../improve-page-nojs.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;3.14.7 Documentation&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;modules&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../py-modindex.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;type parameter syntax&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/compound_stmts.html#type-params&quot;
+    },
+    {
+      &quot;text&quot;: &quot;metaclass hierarchy&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/datamodel.html#metaclasses&quot;
+    },
+    {
+      &quot;text&quot;: &quot;__call__()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/datamodel.html#object.__call__&quot;
+    },
+    {
+      &quot;text&quot;: &quot;__class_getitem__()&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/datamodel.html#object.__class_getitem__&quot;
+    },
+    {
+      &quot;text&quot;: &quot;type&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/../reference/simple_stmts.html#type&quot;
+    },
+    {
+      &quot;text&quot;: &quot;AsyncGenerator[YieldType, SendType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncGenerator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;AsyncIterable[YieldType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncIterable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;AsyncIterator[YieldType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncIterator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;collections.abc.Callable&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Coroutine[YieldType, SendType, ReturnType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Coroutine&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generator&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Generator[YieldType, SendType, ReturnType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Generator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Iterable[YieldType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Iterator[YieldType]&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Mapping&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Development Tools&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/development.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;previous&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/development.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;float&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/functions.html#float&quot;
+    },
+    {
+      &quot;text&quot;: &quot;int&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/functions.html#int&quot;
+    },
+    {
+      &quot;text&quot;: &quot;type&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/functions.html#type&quot;
+    },
+    {
+      &quot;text&quot;: &quot;The Python Standard Library&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;next&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/pydoc.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;list&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#list&quot;
+    },
+    {
+      &quot;text&quot;: &quot;str&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#str&quot;
+    },
+    {
+      &quot;text&quot;: &quot;tuple&quot;,
+      &quot;href&quot;: &quot;https://docs.python.org/3/library/stdtypes.html#tuple&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Show source&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/blob/main/Doc/library/typing.rst?plain=1&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Lib/typing.py&quot;,
+      &quot;href&quot;: &quot;https://github.com/python/cpython/tree/3.14/Lib/typing.py&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Typing cheat sheet&quot;,
+      &quot;href&quot;: &quot;https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;the mypy docs&quot;,
+      &quot;href&quot;: &quot;https://mypy.readthedocs.io/en/stable/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;PEP 484&quot;,
+      &quot;href&quot;: &quot;https://peps.python.org/pep-0484/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;PEP 612&quot;,
+      &quot;href&quot;: &quot;https://peps.python.org/pep-0612/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;typing_extensions&quot;,
+      &quot;href&quot;: &quot;https://pypi.org/project/typing_extensions/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Static Typing with Python&quot;,
+      &quot;href&quot;: &quot;https://typing.python.org/en/latest/&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Specification for the Python type system&quot;,
+      &quot;href&quot;: &quot;https://typing.python.org/en/latest/spec/index.html&quot;
+    },
+    {
+      &quot;text&quot;: &quot;Python&quot;,
+      &quot;href&quot;: &quot;https://www.python.org/&quot;
+    }
+  ],
+  &quot;images&quot;: [
+    {
+      &quot;src&quot;: &quot;https://docs.python.org/3.14/_images/social_previews/summary_library_typing_cafdca99.png&quot;,
+      &quot;alt&quot;: &quot;Source code: Lib/typing.py This module provides runtime support for type hints. Consider the function below: The function surface_area_of_cube takes an argument expected to be an instance of float,...&quot;
+    }
+  ],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("lexmount-global__live-006-python-typing-documentation__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("lexmount-global__live-006-python-typing-documentation__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("lexmount-global__live-006-python-typing-documentation__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

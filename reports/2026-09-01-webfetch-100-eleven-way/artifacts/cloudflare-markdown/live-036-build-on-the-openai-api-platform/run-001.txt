@@ -1,0 +1,26 @@
+---
+title: "OpenAI Platform"
+meta:
+  "og:title": "OpenAI Platform"
+  "twitter:title": "OpenAI Platform"
+---
+
+[OpenAI Platform home](/)
+
+# Build on the OpenAI API Platform
+
+Sign up or login with an OpenAI account to build with the OpenAI API.
+
+Email address
+
+Continue
+
+Or
+
+Continue with GoogleContinue with AppleContinue with MicrosoftContinue with phone
+
+[Terms of Use](https://openai.com/policies/terms-of-use) [Privacy Policy](https://openai.com/policies/privacy-policy)
+
+[<h6>Developer Docs</h6>Get started with the OpenAI API](https://developers.openai.com/api/docs) [<h6>API Reference</h6>Explore endpoints and parameters](https://developers.openai.com/api/reference/overview) [<h6>Starter Apps</h6>Sample apps built with the API](https://developers.openai.com/resources/code) [<h6>Cookbooks</h6>
+
+Practical examples and best practices](https://cookbook.openai.com)

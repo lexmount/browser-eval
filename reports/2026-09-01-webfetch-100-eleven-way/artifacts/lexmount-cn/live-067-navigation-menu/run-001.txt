@@ -1,0 +1,1 @@
+RAGFlow is a leading open-source Retrieval-Augmented Generation (RAG) engine that fuses cutting-edge RAG with Agent capabilities to create a superior context layer for LLMs Repository stats: stars 89.8k, forks 10.6k, issues 1.2k, pull requests 474.

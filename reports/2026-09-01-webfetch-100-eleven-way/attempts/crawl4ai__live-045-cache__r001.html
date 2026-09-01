@@ -1,0 +1,893 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>crawl4ai__live-045-cache__r001</title><script>document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light'</script><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap" aria-label="报告导航"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../market/index.html">业界方法</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">评测方法</a><a href="../analysis/index.html">结果分析</a><a href="../capabilities/index.html">文档与资源榜</a><a href="../execution/index.html">复现</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleTheme()" aria-pressed="false">切换深色</button></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · crawl4ai</div><h1>Cache</h1><div class="meta"><span class="pill good">程序判断通过</span><span class="pill">第 1 次</span><span class="pill">4,526 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定 URL，返回页面的可读正文。正文应至少包含以下三个核对点：Cache；Instance methods；Examples。</p><p><b>输入 URL：</b><a href="https://developer.mozilla.org/en-US/docs/Web/API/Cache">https://developer.mozilla.org/en-US/docs/Web/API/Cache</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Cache
+Instance methods
+Examples</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否保留核对点：Cache</li><li>是否保留核对点：Instance methods</li><li>是否保留核对点：Examples</li></ul><p class="tiny">参考答案用于人工理解正确结果；程序判断实际使用下方评分核对点与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/crawl4ai/live-045-cache/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Cache">打开标准答案源网页</a> · 完整性校验 <code>sha256:46ae882bbe4bbb8c8ad32bf46728dd072604ce86989130a2a5a79e9d5000266c</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Cache
+Instance methods
+Examples</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre># Cache
+Baseline  Widely available
+This feature is well established and works across many devices and browser versions. It’s been available across browsers since April 2018.
+  * [ Learn more ](https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility)
+  * [ See full compatibility ](https://developer.mozilla.org/en-US/docs/Web/API/Cache#browser_compatibility)
+
+
+**Secure context:** This feature is available only in [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts) (HTTPS), in some or all [supporting browsers](https://developer.mozilla.org/en-US/docs/Web/API/Cache#browser_compatibility).
+**Note:** This feature is available in [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API).
+The **`Cache`**interface provides a persistent storage mechanism for[`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) / [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object pairs that are cached in long lived memory. How long a `Cache` object lives is browser dependent, but a single origin&#x27;s scripts can typically rely on the presence of a previously populated `Cache` object. Note that the `Cache` interface is exposed to windowed scopes as well as workers. You don&#x27;t have to use it in conjunction with service workers, even though it is defined in the service worker spec.
+An origin can have multiple, named `Cache` objects. You are responsible for implementing how your script (e.g., in a [`ServiceWorker`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker)) handles `Cache` updates. Items in a `Cache` do not get updated unless explicitly requested; they don&#x27;t expire unless deleted. Use [`CacheStorage.open()`](https://developer.mozilla.org/en-US/docs/Web/API/</pre></div></div><p class="warn">页面预览截断至 200,000 字符；原始 artifact 保留完整内容。</p><details><summary>展开本页中的完整供应商输出（12,036 / 12,099 字符）</summary><pre># Cache
+Baseline  Widely available
+This feature is well established and works across many devices and browser versions. It’s been available across browsers since April 2018.
+  * [ Learn more ](https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility)
+  * [ See full compatibility ](https://developer.mozilla.org/en-US/docs/Web/API/Cache#browser_compatibility)
+
+
+**Secure context:** This feature is available only in [secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts) (HTTPS), in some or all [supporting browsers](https://developer.mozilla.org/en-US/docs/Web/API/Cache#browser_compatibility).
+**Note:** This feature is available in [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API).
+The **`Cache`**interface provides a persistent storage mechanism for[`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) / [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object pairs that are cached in long lived memory. How long a `Cache` object lives is browser dependent, but a single origin&#x27;s scripts can typically rely on the presence of a previously populated `Cache` object. Note that the `Cache` interface is exposed to windowed scopes as well as workers. You don&#x27;t have to use it in conjunction with service workers, even though it is defined in the service worker spec.
+An origin can have multiple, named `Cache` objects. You are responsible for implementing how your script (e.g., in a [`ServiceWorker`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker)) handles `Cache` updates. Items in a `Cache` do not get updated unless explicitly requested; they don&#x27;t expire unless deleted. Use [`CacheStorage.open()`](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open &quot;CacheStorage.open\(\)&quot;) to open a specific named `Cache` object and then call any of the `Cache` methods to maintain the `Cache`.
+You are also responsible for periodically purging cache entries. Each browser has a hard limit on the amount of cache storage that a given origin can use. `Cache` quota usage estimates are available via the [`StorageManager.estimate()`](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate) method. The browser does its best to manage disk space, but it may delete the `Cache` storage for an origin. The browser will generally delete all of the data for an origin or none of the data for an origin. Make sure to version caches by name and use the caches only from the version of the script that they can safely operate on. See [Deleting old caches](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers#deleting_old_caches) for more information.
+**Note:** The key matching algorithm depends on the [VARY header](https://www.fastly.com/blog/best-practices-using-vary-header &quot;External link \(opens in new tab\)&quot;) in the value. So matching a new key requires looking at both key and value for entries in the `Cache` object.
+**Note:** The caching API doesn&#x27;t honor HTTP caching headers.
+##  [Instance methods](https://developer.mozilla.org/en-US/docs/Web/API/Cache#instance_methods)
+
+[`Cache.match()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/match)
+
+Returns a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that resolves to the response associated with the first matching request in the `Cache` object.
+
+[`Cache.matchAll()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/matchAll)
+
+Returns a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that resolves to an array of all matching responses in the `Cache` object.
+
+[`Cache.add()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/add)
+
+Takes a URL, retrieves it and adds the resulting response object to the given cache. This is functionally equivalent to calling `fetch()`, then using `put()` to add the results to the cache.
+
+[`Cache.addAll()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/addAll)
+
+Takes an array of URLs, retrieves them, and adds the resulting response objects to the given cache.
+
+[`Cache.put()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/put)
+
+Takes both a request and its response and adds it to the given cache.
+
+[`Cache.delete()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete)
+
+Finds the `Cache` entry whose key is the request, returning a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that resolves to `true` if a matching `Cache` entry is found and deleted. If no `Cache` entry is found, the promise resolves to `false`.
+
+[`Cache.keys()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/keys)
+
+Returns a [`Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) that resolves to an array of `Cache` keys.
+##  [Examples](https://developer.mozilla.org/en-US/docs/Web/API/Cache#examples)
+This code snippet is from the [service worker selective caching sample](https://github.com/GoogleChrome/samples/blob/gh-pages/service-worker/selective-caching/service-worker.js &quot;External link \(opens in new tab\)&quot;). (see [selective caching live](https://googlechrome.github.io/samples/service-worker/selective-caching/ &quot;External link \(opens in new tab\)&quot;)) The code uses [`CacheStorage.open()`](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open) to open any `Cache` objects with a `Content-Type` header that starts with `font/`.
+The code then uses [`Cache.match()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/match) to see if there&#x27;s already a matching font in the cache, and if so, returns it. If there isn&#x27;t a matching font, the code fetches the font from the network and uses [`Cache.put()`](https://developer.mozilla.org/en-US/docs/Web/API/Cache/put) to cache the fetched resource.
+The code handles exceptions thrown from the [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch &quot;fetch\(\)&quot;) operation. Note that an HTTP error response (e.g., 404) will not trigger an exception. It will return a normal response object that has the appropriate error code.
+The code snippet also shows a best practice for versioning caches used by the service worker. Though there&#x27;s only one cache in this example, the same approach can be used for multiple caches. It maps a shorthand identifier for a cache to a specific, versioned cache name. The code also deletes all caches that aren&#x27;t named in `CURRENT_CACHES`.
+In the code example, `caches` is a property of the [`ServiceWorkerGlobalScope`](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope). It holds the `CacheStorage` object, by which it can access the [`CacheStorage`](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage) interface.
+**Note:** In Chrome, visit `chrome://inspect/#service-workers` and click on the &quot;inspect&quot; link below the registered service worker to view logging statements for the various actions the [`service-worker.js`](https://github.com/GoogleChrome/samples/blob/gh-pages/service-worker/selective-caching/service-worker.js &quot;External link \(opens in new tab\)&quot;) script is performing.
+###  [Cookies and Cache objects](https://developer.mozilla.org/en-US/docs/Web/API/Cache#cookies_and_cache_objects)
+The [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) requires [`Set-Cookie`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie) headers to be stripped before returning a [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) object from [`fetch()`](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch &quot;fetch\(\)&quot;). So a `Response` stored in a `Cache` won&#x27;t contain `Set-Cookie` headers, and therefore won&#x27;t cause any cookies to be stored.
+##  [Specifications](https://developer.mozilla.org/en-US/docs/Web/API/Cache#specifications)
+|  Specification   |
+| --- |
+| [Service Workers Nightly
+# cache-interface](https://w3c.github.io/ServiceWorker/#cache-interface)  |
+##  [Browser compatibility](https://developer.mozilla.org/en-US/docs/Web/API/Cache#browser_compatibility)
+##  [See also](https://developer.mozilla.org/en-US/docs/Web/API/Cache#see_also)
+  * [Using Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
+  * [Service workers basic code example](https://github.com/mdn/dom-examples/tree/main/service-worker/simple-service-worker &quot;External link \(opens in new tab\)&quot;)
+  * [Using web workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
+
+
+##  Help improve MDN
+[Learn how to contribute](https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started)
+This page was last modified on May 23, 2025 by [MDN contributors](https://developer.mozilla.org/en-US/docs/Web/API/Cache/contributors.txt).
+[View this page on GitHub](https://github.com/mdn/content/blob/main/files/en-us/web/api/cache/index.md?plain=1 &quot;Folder: en-us/web/api/cache \(Opens in a new tab\)&quot;) • [Report a problem with this content](https://github.com/mdn/content/issues/new?template=page-report.yml&amp;mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FCache&amp;metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fcache%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FCache%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fcache%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F4a0413ef319179b7d0d833c42a156629544c8248%0A*+Document+last+modified%3A+2025-05-23T12%3A39%3A21.000Z%0A%0A%3C%2Fdetails%3E &quot;This will take you to GitHub to file a new issue.&quot;)
+[MDN](https://developer.mozilla.org/)
+Your blueprint for a better internet.
+  * [](https://github.com/mdn/)
+  * [](https://bsky.app/profile/developer.mozilla.org)
+  * [](https://x.com/mozdevnet)
+  * [](https://mastodon.social/@mdn)
+  * [](https://developer.mozilla.org/en-US/blog/rss.xml)
+
+
+
+MDN
+
+  * [ About ](https://developer.mozilla.org/en-US/about)
+  * [ Blog ](https://developer.mozilla.org/en-US/blog/)
+  * [ Mozilla careers ](https://www.mozilla.org/en-US/careers/listings/)
+  * [ Advertise with us ](https://developer.mozilla.org/en-US/advertising)
+  * [ MDN Plus ](https://developer.mozilla.org/en-US/plus)
+  * [ Product help ](https://support.mozilla.org/products/mdn-plus)
+
+
+
+Contribute
+
+  * [ MDN Community ](https://developer.mozilla.org/en-US/community)
+  * [ Community resources ](https://developer.mozilla.org/en-US/docs/MDN/Community)
+  * [ Writing guidelines ](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines)
+  * [ MDN Discord ](https://developer.mozilla.org/discord)
+  * [ MDN on GitHub ](https://github.com/mdn)
+
+
+
+Developers
+
+  * [ Web technologies ](https://developer.mozilla.org/en-US/docs/Web)
+  * [ Learn web development ](https://developer.mozilla.org/en-US/docs/Learn_web_development)
+  * [ Guides ](https://developer.mozilla.org/en-US/docs/MDN/Guides)
+  * [ Tutorials ](https://developer.mozilla.org/en-US/docs/MDN/Tutorials)
+  * [ Glossary ](https://developer.mozilla.org/en-US/docs/Glossary)
+  * [ Hacks blog ](https://hacks.mozilla.org/)
+
+
+[Mozilla](https://www.mozilla.org/)
+  * [Website Privacy Notice](https://www.mozilla.org/privacy/websites/)
+  * [Telemetry Settings](https://www.mozilla.org/en-US/privacy/websites/data-preferences/)
+  * [Legal](https://www.mozilla.org/about/legal/terms/mozilla)
+  * [Community Participation Guidelines](https://www.mozilla.org/about/governance/policies/participation/)
+
+
+Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under [a Creative Commons license](https://developer.mozilla.org/docs/MDN/Writing_guidelines/Attrib_copyright_license).</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 程序判断（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>crawl4ai__live-045-cache__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://developer.mozilla.org/en-US/docs/Web/API/Cache</span></div><div class="kv"><b>输出大小</b>12,099 字符</div><div class="kv"><b>事实覆盖率（核对点命中率）</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>评分核对点逐条判定</h3><p class="sub">每个核对点对应标准答案中一项必须出现的事实；可接受表达命中任意一个即可。</p><div class="table-wrap"><table><thead><tr><th>核对点</th><th>程序状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>anchor-1</code></td><td class="good">命中</td><td>Cache</td><td>Cache</td></tr><tr><td><code>anchor-2</code></td><td class="good">命中</td><td>Instance methods</td><td>Instance methods</td></tr><tr><td><code>anchor-3</code></td><td class="good">命中</td><td>Examples</td><td>Examples</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Cache</span></p><p><span class="tag">Cache</span></p><details><summary>方法返回的元数据</summary><pre>{
+  &quot;implementation&quot;: &quot;crawl4ai.AsyncWebCrawler&quot;,
+  &quot;images&quot;: [],
+  &quot;videos&quot;: [],
+  &quot;audios&quot;: [],
+  &quot;internal_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility&quot;,
+      &quot;text&quot;: &quot;Learn more&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache&quot;,
+      &quot;text&quot;: &quot;See full compatibility&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts&quot;,
+      &quot;text&quot;: &quot;secure contexts&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API&quot;,
+      &quot;text&quot;: &quot;Web Workers&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Request&quot;,
+      &quot;text&quot;: &quot;Request&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Response&quot;,
+      &quot;text&quot;: &quot;Response&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorker&quot;,
+      &quot;text&quot;: &quot;ServiceWorker&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open&quot;,
+      &quot;text&quot;: &quot;CacheStorage.open()&quot;,
+      &quot;title&quot;: &quot;CacheStorage.open()&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/estimate&quot;,
+      &quot;text&quot;: &quot;StorageManager.estimate()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers&quot;,
+      &quot;text&quot;: &quot;Deleting old caches&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/match&quot;,
+      &quot;text&quot;: &quot;Cache.match()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise&quot;,
+      &quot;text&quot;: &quot;Promise&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/matchAll&quot;,
+      &quot;text&quot;: &quot;Cache.matchAll()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/add&quot;,
+      &quot;text&quot;: &quot;Cache.add()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/addAll&quot;,
+      &quot;text&quot;: &quot;Cache.addAll()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/put&quot;,
+      &quot;text&quot;: &quot;Cache.put()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/delete&quot;,
+      &quot;text&quot;: &quot;Cache.delete()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/keys&quot;,
+      &quot;text&quot;: &quot;Cache.keys()&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch&quot;,
+      &quot;text&quot;: &quot;fetch()&quot;,
+      &quot;title&quot;: &quot;fetch()&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope&quot;,
+      &quot;text&quot;: &quot;ServiceWorkerGlobalScope&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage&quot;,
+      &quot;text&quot;: &quot;CacheStorage&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API&quot;,
+      &quot;text&quot;: &quot;Fetch API&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie&quot;,
+      &quot;text&quot;: &quot;Set-Cookie&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers&quot;,
+      &quot;text&quot;: &quot;Using web workers&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started&quot;,
+      &quot;text&quot;: &quot;Learn how to contribute&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web/API/Cache/contributors.txt&quot;,
+      &quot;text&quot;: &quot;MDN contributors&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;MDN&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/rss.xml&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/about&quot;,
+      &quot;text&quot;: &quot;About&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/blog/&quot;,
+      &quot;text&quot;: &quot;Blog&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/en-US/careers/listings/&quot;,
+      &quot;text&quot;: &quot;Mozilla careers&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/advertising&quot;,
+      &quot;text&quot;: &quot;Advertise with us&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/plus&quot;,
+      &quot;text&quot;: &quot;MDN Plus&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://support.mozilla.org/products/mdn-plus&quot;,
+      &quot;text&quot;: &quot;Product help&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/community&quot;,
+      &quot;text&quot;: &quot;MDN Community&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Community&quot;,
+      &quot;text&quot;: &quot;Community resources&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines&quot;,
+      &quot;text&quot;: &quot;Writing guidelines&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/discord&quot;,
+      &quot;text&quot;: &quot;MDN Discord&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Web&quot;,
+      &quot;text&quot;: &quot;Web technologies&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Learn_web_development&quot;,
+      &quot;text&quot;: &quot;Learn web development&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Guides&quot;,
+      &quot;text&quot;: &quot;Guides&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/MDN/Tutorials&quot;,
+      &quot;text&quot;: &quot;Tutorials&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/en-US/docs/Glossary&quot;,
+      &quot;text&quot;: &quot;Glossary&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://hacks.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;Hacks blog&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/&quot;,
+      &quot;text&quot;: &quot;Mozilla&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/privacy/websites/&quot;,
+      &quot;text&quot;: &quot;Website Privacy Notice&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/en-US/privacy/websites/data-preferences/&quot;,
+      &quot;text&quot;: &quot;Telemetry Settings&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/about/legal/terms/mozilla&quot;,
+      &quot;text&quot;: &quot;Legal&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://www.mozilla.org/about/governance/policies/participation/&quot;,
+      &quot;text&quot;: &quot;Community Participation Guidelines&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://developer.mozilla.org/docs/MDN/Writing_guidelines/Attrib_copyright_license&quot;,
+      &quot;text&quot;: &quot;a Creative Commons license&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mozilla.org&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;external_links&quot;: [
+    {
+      &quot;href&quot;: &quot;https://www.fastly.com/blog/best-practices-using-vary-header&quot;,
+      &quot;text&quot;: &quot;VARY header&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;fastly.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/GoogleChrome/samples/blob/gh-pages/service-worker/selective-caching/service-worker.js&quot;,
+      &quot;text&quot;: &quot;service worker selective caching sample&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://googlechrome.github.io/samples/service-worker/selective-caching/&quot;,
+      &quot;text&quot;: &quot;selective caching live&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://w3c.github.io/ServiceWorker/&quot;,
+      &quot;text&quot;: &quot;Service Workers Nightly# cache-interface&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.io&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/dom-examples/tree/main/service-worker/simple-service-worker&quot;,
+      &quot;text&quot;: &quot;Service workers basic code example&quot;,
+      &quot;title&quot;: &quot;External link (opens in new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/content/blob/main/files/en-us/web/api/cache/index.md?plain=1&quot;,
+      &quot;text&quot;: &quot;View this page on GitHub&quot;,
+      &quot;title&quot;: &quot;Folder: en-us/web/api/cache (Opens in a new tab)&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/content/issues/new?mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FCache&amp;metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A%2A+Folder%3A+%60en-us%2Fweb%2Fapi%2Fcache%60%0A%2A+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FCache%0A%2A+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fcache%2Findex.md%0A%2A+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F4a0413ef319179b7d0d833c42a156629544c8248%0A%2A+Document+last+modified%3A+2025-05-23T12%3A39%3A21.000Z%0A%0A%3C%2Fdetails%3E&amp;template=page-report.yml&quot;,
+      &quot;text&quot;: &quot;Report a problem with this content&quot;,
+      &quot;title&quot;: &quot;This will take you to GitHub to file a new issue.&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn/&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://bsky.app/profile/developer.mozilla.org&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;bsky.app&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://x.com/mozdevnet&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;x.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://mastodon.social/@mdn&quot;,
+      &quot;text&quot;: &quot;&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;mastodon.social&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    },
+    {
+      &quot;href&quot;: &quot;https://github.com/mdn&quot;,
+      &quot;text&quot;: &quot;MDN on GitHub&quot;,
+      &quot;title&quot;: &quot;&quot;,
+      &quot;base_domain&quot;: &quot;github.com&quot;,
+      &quot;head_data&quot;: null,
+      &quot;head_extraction_status&quot;: null,
+      &quot;head_extraction_error&quot;: null,
+      &quot;intrinsic_score&quot;: 0.0,
+      &quot;contextual_score&quot;: null,
+      &quot;total_score&quot;: null
+    }
+  ],
+  &quot;worker_logs&quot;: [],
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号" required><label>最终结论</label><select name="decision" required><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness" required><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness" required><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability" required><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容" required></textarea><button class="button" type="button" onclick='saveReview("crawl4ai__live-045-cache__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("crawl4ai__live-045-cache__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("crawl4ai__live-045-cache__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

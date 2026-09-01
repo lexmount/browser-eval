@@ -5,7 +5,7 @@
 Version: 11 & 12
 On this page
 # Installation
-[ ![](https://srv.buysellads.com/static/30242/2b1c49c3b7f816cbc2da2f065ceea15b344363ef) One gateway for evey AI model Explore AI Gateway ](https://srv.buysellads.com/ads/click/x/GTND427YFT7DC2JUC6B4YKQUFTADEKQICKSDLZ3JCAADE2J7CVYI5KQKCVSIEK37F6AI4KQJCESIKKJEFTBIVK3KC6SIE53LCW7I6K3EHJNCLSIZ?segment=placement:pnpmio "Netlify — No keys, no lock-in")
+[ ![](https://srv.buysellads.com/static/30242/71f65f48775b601f7cb839975298a681fbcccd0b) Modern, dynamic and visually stunning websites created from a simple business description. Try Now ](https://srv.buysellads.com/ads/click/x/GTND427YFT7DV2JMCV74YKQUFTADEK3UCASICZ3JCAADE27EC6SI42QKCYBI4KQICKBDP537F6AD52JYF67D6KJKC6SIE53LCYBDTK3EHJNCLSIZ?segment=placement:pnpmio "Wegic — Real Websites Built with Wegic in Minutes")
 ## Prerequisites[​](https://pnpm.io/installation#prerequisites "Direct link to Prerequisites")
 If you don't use the standalone script or `@pnpm/exe` to install pnpm, then you need to have Node.js (at least v22) to be installed on your system.
 info

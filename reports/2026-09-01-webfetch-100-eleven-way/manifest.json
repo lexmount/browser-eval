@@ -1,52 +1,17 @@
 {
   "schema_version": 1,
   "tool": "web_fetch",
-  "started_at": "2026-09-01T08:37:07.846213+00:00",
+  "started_at": "2026-09-01T12:15:13.117329+00:00",
   "dataset": {
-    "id": "public-webfetch-v5.0-100-hil",
-    "name": "Web Fetch 100 条公开网页分层标准答案评测集",
+    "id": "public-webfetch-v7.0-100-live-verified",
+    "name": "Web Fetch 100 条当前有效网页能力评测集",
     "source": "/private/tmp/browser-harness-eval/datasets/public_webfetch_100.json",
     "case_count": 100
   },
   "providers": [
     {
-      "name": "cloudflare-markdown",
-      "type": "cloudflare_markdown",
-      "min_interval_seconds": 0.0
-    },
-    {
       "name": "cowagent-built-in",
       "type": "cowagent_builtin",
-      "min_interval_seconds": 0.0
-    },
-    {
-      "name": "crawl4ai",
-      "type": "crawl4ai",
-      "min_interval_seconds": 0.0
-    },
-    {
-      "name": "deepseek-harness-built-in",
-      "type": "deepseek_harness_builtin",
-      "min_interval_seconds": 0.0
-    },
-    {
-      "name": "exa",
-      "type": "exa_contents",
-      "min_interval_seconds": 0.0
-    },
-    {
-      "name": "firecrawl",
-      "type": "firecrawl",
-      "min_interval_seconds": 6.1
-    },
-    {
-      "name": "langchain-webbase",
-      "type": "langchain_webbase",
-      "min_interval_seconds": 0.0
-    },
-    {
-      "name": "lexmount-cn",
-      "type": "lexmount_cn",
       "min_interval_seconds": 0.0
     },
     {
@@ -55,20 +20,57 @@
       "min_interval_seconds": 0.0
     },
     {
+      "name": "lexmount-cn",
+      "type": "lexmount_cn",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "firecrawl",
+      "type": "firecrawl",
+      "min_interval_seconds": 6.1
+    },
+    {
+      "name": "tavily",
+      "type": "tavily_extract",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "exa",
+      "type": "exa_contents",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "cloudflare-markdown",
+      "type": "cloudflare_markdown",
+      "min_interval_seconds": 0.0
+    },
+    {
       "name": "openclaw-built-in",
       "type": "openclaw_builtin",
       "min_interval_seconds": 0.0
     },
     {
-      "name": "tavily",
-      "type": "tavily_extract",
+      "name": "deepseek-harness-built-in",
+      "type": "deepseek_harness_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "langchain-webbase",
+      "type": "langchain_webbase",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "crawl4ai",
+      "type": "crawl4ai",
       "min_interval_seconds": 0.0
     }
   ],
   "parameters": {
     "runs": 1,
     "timeout": 45.0,
-    "delay": 0.2
+    "delay": 0.5,
+    "provider_concurrency": 11,
+    "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
   },
   "environment": {
     "python": "3.9.6",
@@ -76,23 +78,7 @@
     "hostname": "8yg55-7.local"
   },
   "provider_config_source": "/private/tmp/browser-harness-eval/configs/providers.example.json",
-  "completed_at": "2026-09-01T08:42:06.643088+00:00",
+  "completed_at": "2026-09-01T12:37:16.691320+00:00",
   "attempt_count": 1100,
-  "rescored_at": "2026-09-01T10:20:44.054702+00:00",
-  "derived_from": {
-    "runs": [
-      "runs/2026-09-01-webfetch-100/cowagent-built-in",
-      "runs/2026-09-01-webfetch-100/lexmount-global",
-      "runs/2026-09-01-webfetch-100/lexmount-cn",
-      "runs/2026-09-01-webfetch-100/firecrawl",
-      "runs/2026-09-01-webfetch-100/tavily",
-      "runs/2026-09-01-webfetch-100/exa",
-      "runs/2026-09-01-webfetch-100/cloudflare-markdown",
-      "runs/2026-09-01-webfetch-100/openclaw-built-in",
-      "runs/2026-09-01-webfetch-100/deepseek-harness-built-in",
-      "runs/2026-09-01-webfetch-100/langchain-webbase",
-      "runs/2026-09-01-webfetch-100/crawl4ai"
-    ],
-    "reason": "merge independently preserved complete provider runs; later runs replace duplicate providers"
-  }
+  "rescored_at": "2026-09-01T12:54:23.449182+00:00"
 }

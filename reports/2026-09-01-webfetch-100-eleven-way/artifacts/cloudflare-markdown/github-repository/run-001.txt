@@ -114,7 +114,7 @@ There was an error while loading. [Please reload this page]().
 [lexmount](https://github.com/lexmount) / **[moli](https://github.com/lexmount/moli)** Public
 
 - [Notifications](https://github.com/login?return_to=%2Flexmount%2Fmoli) You must be signed in to change notification settings
-- [Fork 97](https://github.com/login?return_to=%2Flexmount%2Fmoli)
+- [Fork 98](https://github.com/login?return_to=%2Flexmount%2Fmoli)
 - [Star 1.6k](https://github.com/login?return_to=%2Flexmount%2Fmoli)
 
 - [Code](https://github.com/lexmount/moli)
@@ -139,7 +139,7 @@ Additional navigation options
 
 main
 
-[**221** Branches](https://github.com/lexmount/moli/branches) [**12** Tags](https://github.com/lexmount/moli/tags)
+[**222** Branches](https://github.com/lexmount/moli/branches) [**13** Tags](https://github.com/lexmount/moli/tags)
 
 [Go to Branches page](https://github.com/lexmount/moli/branches) [Go to Tags page](https://github.com/lexmount/moli/tags)
 
@@ -153,27 +153,27 @@ Open more actions menu
 
 [![ldm0](https://avatars.githubusercontent.com/u/31354274?v=4&size=40)](https://github.com/ldm0) [ldm0](https://github.com/lexmount/moli/commits?author=ldm0)
 
-[fix(runtime): retire parser continuation on navigation](https://github.com/lexmount/moli/commit/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42)
+[Remove renderer backqueries from inspector output routing](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7)
 
 pending
 
 Sep 1, 2026
 
-[bb9ecdd](https://github.com/lexmount/moli/commit/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42) · Sep 1, 2026
+[5c9ce1a](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7) · Sep 1, 2026
 
 ## History
 
-[510 Commits](https://github.com/lexmount/moli/commits/main/)
+[513 Commits](https://github.com/lexmount/moli/commits/main/)
 
 Open commit details
 
-[View commit history for this file.](https://github.com/lexmount/moli/commits/main/)510 Commits
+[View commit history for this file.](https://github.com/lexmount/moli/commits/main/)513 Commits
 
 ## Folders and files
 
 | Name | | Name | Last commit message | Last commit date |
 | --- | --- | --- | --- | --- |
-| [.cargo](https://github.com/lexmount/moli/tree/main/.cargo) | | [.cargo](https://github.com/lexmount/moli/tree/main/.cargo) | [build: configure RELR for Linux GNU artifacts](https://github.com/lexmount/moli/commit/c9f864e0be0b06f99fb7d00bf5b2a8493d5dd295) | Aug 30, 2026 |
+| [.cargo](https://github.com/lexmount/moli/tree/main/.cargo) | | [.cargo](https://github.com/lexmount/moli/tree/main/.cargo) | [fix(build): disable relr for old glibc](https://github.com/lexmount/moli/commit/e179383330985c717553dad907a3faadd82cfe11) | Sep 1, 2026 |
 | [.config](https://github.com/lexmount/moli/tree/main/.config) | | [.config](https://github.com/lexmount/moli/tree/main/.config) | [fix(test): remove nextest special-case](https://github.com/lexmount/moli/commit/b0f00e6358e3bc92e3b55789c273b95bf556a39b) | Aug 27, 2026 |
 | [.github](https://github.com/lexmount/moli/tree/main/.github) | | [.github](https://github.com/lexmount/moli/tree/main/.github) | [ci: publish aggregate regression report](https://github.com/lexmount/moli/commit/2e139811c5b52a84ada67ecff6d84d81306be1a5) | Aug 28, 2026 |
 | [assets](https://github.com/lexmount/moli/tree/main/assets) | | [assets](https://github.com/lexmount/moli/tree/main/assets) | [Add Lexbench-Headless-Browser benchmark results](https://github.com/lexmount/moli/commit/3d3a90bb5e7e99e81e528112721a8333d5e089d7) | Aug 19, 2026 |
@@ -230,11 +230,11 @@ Replace each owner-ready source's general two-channel OwnerTaskSource plus separ
 | [moli-playground](https://github.com/lexmount/moli/tree/main/moli-playground) | | [moli-playground](https://github.com/lexmount/moli/tree/main/moli-playground) | [docs(playground): explain the ChatGPT login bridge](https://github.com/lexmount/moli/commit/0c3a4068bf0d86b098d546b610a7f09964d2439d) | Aug 22, 2026 |
 | [moli-process-signal](https://github.com/lexmount/moli/tree/main/moli-process-signal) | | [moli-process-signal](https://github.com/lexmount/moli/tree/main/moli-process-signal) | [Public preview](https://github.com/lexmount/moli/commit/27b5135cb6cbb643e76f3685773987ea7e57abc1) | Aug 10, 2026 |
 | [moli-protocol-cdp](https://github.com/lexmount/moli/tree/main/moli-protocol-cdp) | | [moli-protocol-cdp](https://github.com/lexmount/moli/tree/main/moli-protocol-cdp) | [fix(devtools): unify synchronous Page IO responses](https://github.com/lexmount/moli/commit/a74431d2262cea88a5d915bae2bc4fecb8d1ed10) | Aug 20, 2026 |
-| [moli-protocol-server](https://github.com/lexmount/moli/tree/main/moli-protocol-server) | | [moli-protocol-server](https://github.com/lexmount/moli/tree/main/moli-protocol-server) | [fix(cdp): harden document and navigation lifecycles](https://github.com/lexmount/moli/commit/2a10f8efca822c03efec4ee5b2032ef7e18c7ff7) | Aug 31, 2026 |
+| [moli-protocol-server](https://github.com/lexmount/moli/tree/main/moli-protocol-server) | | [moli-protocol-server](https://github.com/lexmount/moli/tree/main/moli-protocol-server) | [Remove renderer backqueries from inspector output routing](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7) | Sep 1, 2026 |
 | [moli-protocol-webdriver-bidi](https://github.com/lexmount/moli/tree/main/moli-protocol-webdriver-bidi) | | [moli-protocol-webdriver-bidi](https://github.com/lexmount/moli/tree/main/moli-protocol-webdriver-bidi) | [chore: fix clippy and document required checks](https://github.com/lexmount/moli/commit/d51be5bfc4a1b2d7d5aba21c25668bd828bc9fd3) | Aug 12, 2026 |
 | [moli-protocol-webdriver-classic](https://github.com/lexmount/moli/tree/main/moli-protocol-webdriver-classic) | | [moli-protocol-webdriver-classic](https://github.com/lexmount/moli/tree/main/moli-protocol-webdriver-classic) | [Public preview](https://github.com/lexmount/moli/commit/27b5135cb6cbb643e76f3685773987ea7e57abc1) | Aug 10, 2026 |
-| [moli-protocol](https://github.com/lexmount/moli/tree/main/moli-protocol) | | [moli-protocol](https://github.com/lexmount/moli/tree/main/moli-protocol) | [refactor(cdp): stabilize target session routes](https://github.com/lexmount/moli/commit/81c161ee6684b87e4e9bf88e3356035644aa63c6) | Aug 31, 2026 |
-| [moli-renderer-v8](https://github.com/lexmount/moli/tree/main/moli-renderer-v8) | | [moli-renderer-v8](https://github.com/lexmount/moli/tree/main/moli-renderer-v8) | [fix(runtime): retire parser continuation on navigation](https://github.com/lexmount/moli/commit/bb9ecdd24c5d861b383cb3529ff60a9ffe85ed42) | Sep 1, 2026 |
+| [moli-protocol](https://github.com/lexmount/moli/tree/main/moli-protocol) | | [moli-protocol](https://github.com/lexmount/moli/tree/main/moli-protocol) | [Remove renderer backqueries from inspector output routing](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7) | Sep 1, 2026 |
+| [moli-renderer-v8](https://github.com/lexmount/moli/tree/main/moli-renderer-v8) | | [moli-renderer-v8](https://github.com/lexmount/moli/tree/main/moli-renderer-v8) | [Remove renderer backqueries from inspector output routing](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7) | Sep 1, 2026 |
 | [moli-robots](https://github.com/lexmount/moli/tree/main/moli-robots) | | [moli-robots](https://github.com/lexmount/moli/tree/main/moli-robots) | [fix(cli): enforce --obey-robots against robots.txt](https://github.com/lexmount/moli/commit/777ae9af3667c6c8bb947d9bb3f4d61b6ce4dd3f%20%22fix(cli): enforce --obey-robots against robots.txt
 
 `--obey-robots` parsed into `FetchConfig` and stopped there. Its only
@@ -303,14 +303,14 @@ This replaces the abandoned turn-exit replay path with an explicit shared-fetch/
 Stripped moli: 123,520,056 -> 123,515,960 bytes (-4,096 bytes, -0.0033%).") | Aug 25, 2026 |
 | [moli-wpt-compat](https://github.com/lexmount/moli/tree/main/moli-wpt-compat) | | [moli-wpt-compat](https://github.com/lexmount/moli/tree/main/moli-wpt-compat) | [refactor(navigation): allocate opaque document history ids](https://github.com/lexmount/moli/commit/8164cfd94d705497631f3e4006ef4ce885ccd0aa) | Aug 21, 2026 |
 | [moli-xpath](https://github.com/lexmount/moli/tree/main/moli-xpath) | | [moli-xpath](https://github.com/lexmount/moli/tree/main/moli-xpath) | [fix(xpath): apply a single leading minus sign](https://github.com/lexmount/moli/commit/afc28fc39414a3eab7d03df9e91eedd0c5f4977e) | Aug 27, 2026 |
-| [moli](https://github.com/lexmount/moli/tree/main/moli) | | [moli](https://github.com/lexmount/moli/tree/main/moli) | [chore(release): bump version to 1.1.0](https://github.com/lexmount/moli/commit/b79476012f1128534b58c4c4f96e574b6a1ccd42) | Aug 31, 2026 |
+| [moli](https://github.com/lexmount/moli/tree/main/moli) | | [moli](https://github.com/lexmount/moli/tree/main/moli) | [chore(release): bump version to 1.1.1](https://github.com/lexmount/moli/commit/f59af1589581b4b4adedd0939b7501a60745d10d) | Sep 1, 2026 |
 | [scripts](https://github.com/lexmount/moli/tree/main/scripts) | | [scripts](https://github.com/lexmount/moli/tree/main/scripts) | [Simplify repository license metadata](https://github.com/lexmount/moli/commit/107edf16801dea6682dc10c4cd4bd38071b61dec) | Aug 18, 2026 |
 | [skills](https://github.com/lexmount/moli/tree/main/skills) | | [skills](https://github.com/lexmount/moli/tree/main/skills) | [feat(fetch): evaluate page expressions](https://github.com/lexmount/moli/commit/addbb8e3fa2ebf41d97d8a4440169c25dc2d1660) | Aug 26, 2026 |
 | [tools/wptrunner-moli](https://github.com/lexmount/moli/tree/main/tools/wptrunner-moli%20%22This%20path%20skips%20through%20empty%20directories%22) | | [tools/wptrunner-moli](https://github.com/lexmount/moli/tree/main/tools/wptrunner-moli%20%22This%20path%20skips%20through%20empty%20directories%22) | [Public preview](https://github.com/lexmount/moli/commit/27b5135cb6cbb643e76f3685773987ea7e57abc1) | Aug 10, 2026 |
-| [vendor](https://github.com/lexmount/moli/tree/main/vendor) | | [vendor](https://github.com/lexmount/moli/tree/main/vendor) | [fix(v8): handle non-string function names](https://github.com/lexmount/moli/commit/2bead097731a4d74b1288eaa1cb0291eae3b58fe) | Aug 26, 2026 |
+| [vendor](https://github.com/lexmount/moli/tree/main/vendor) | | [vendor](https://github.com/lexmount/moli/tree/main/vendor) | [Remove renderer backqueries from inspector output routing](https://github.com/lexmount/moli/commit/5c9ce1adcd9e52ba67115bb3816e972fba967eb7) | Sep 1, 2026 |
 | [.gitignore](https://github.com/lexmount/moli/blob/main/.gitignore) | | [.gitignore](https://github.com/lexmount/moli/blob/main/.gitignore) | [fix(parser): expose CDATA from xml5ever](https://github.com/lexmount/moli/commit/91c281d2c7ae1b997c5ffb0ec6dea6be6a707a91) | Aug 12, 2026 |
 | [AGENTS.md](https://github.com/lexmount/moli/blob/main/AGENTS.md) | | [AGENTS.md](https://github.com/lexmount/moli/blob/main/AGENTS.md) | [Skip Rust checks for non-Rust changes](https://github.com/lexmount/moli/commit/4637e6df95a7e683b7902ef913cecdcae96d7fec) | Aug 18, 2026 |
-| [Cargo.lock](https://github.com/lexmount/moli/blob/main/Cargo.lock) | | [Cargo.lock](https://github.com/lexmount/moli/blob/main/Cargo.lock) | [chore(release): bump version to 1.1.0](https://github.com/lexmount/moli/commit/b79476012f1128534b58c4c4f96e574b6a1ccd42) | Aug 31, 2026 |
+| [Cargo.lock](https://github.com/lexmount/moli/blob/main/Cargo.lock) | | [Cargo.lock](https://github.com/lexmount/moli/blob/main/Cargo.lock) | [chore(release): bump version to 1.1.1](https://github.com/lexmount/moli/commit/f59af1589581b4b4adedd0939b7501a60745d10d) | Sep 1, 2026 |
 | [Cargo.toml](https://github.com/lexmount/moli/blob/main/Cargo.toml) | | [Cargo.toml](https://github.com/lexmount/moli/blob/main/Cargo.toml) | [build: use one codegen unit for release binaries](https://github.com/lexmount/moli/commit/fc61efed55ea2cf204e5a4081b3fe23b72946c06) | Sep 1, 2026 |
 | [LICENSE-APACHE](https://github.com/lexmount/moli/blob/main/LICENSE-APACHE) | | [LICENSE-APACHE](https://github.com/lexmount/moli/blob/main/LICENSE-APACHE) | [Public preview](https://github.com/lexmount/moli/commit/27b5135cb6cbb643e76f3685773987ea7e57abc1) | Aug 10, 2026 |
 | [LICENSE-MIT](https://github.com/lexmount/moli/blob/main/LICENSE-MIT) | | [LICENSE-MIT](https://github.com/lexmount/moli/blob/main/LICENSE-MIT) | [Public preview](https://github.com/lexmount/moli/commit/27b5135cb6cbb643e76f3685773987ea7e57abc1) | Aug 10, 2026 |
@@ -634,15 +634,15 @@ Apache-2.0 and 2 other licenses found
 
 ### Forks
 
-[**97** forks](https://github.com/lexmount/moli/forks)
+[**98** forks](https://github.com/lexmount/moli/forks)
 
 [Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Flexmount%2Fmoli&report=lexmount+%28user%29)
 
-## [Releases](https://github.com/lexmount/moli/releases)12 (12)
+## [Releases](https://github.com/lexmount/moli/releases)13 (13)
 
-[Moli v1.1.0LatestSep 1, 2026](https://github.com/lexmount/moli/releases/tag/v1.1.0)
+[Moli v1.1.1LatestSep 1, 2026](https://github.com/lexmount/moli/releases/tag/v1.1.1)
 
-[+ 11 releases](https://github.com/lexmount/moli/releases)
+[+ 12 releases](https://github.com/lexmount/moli/releases)
 
 ## [Contributors](https://github.com/lexmount/moli/graphs/contributors)10 (10)
 
