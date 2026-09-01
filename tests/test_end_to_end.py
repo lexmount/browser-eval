@@ -74,6 +74,10 @@ class EndToEndTest(unittest.TestCase):
             self.assertNotIn("逐案例人工复核", analysis)
             self.assertNotIn("标准答案漂移候选队列", analysis)
             self.assertIn("程序判断通过率", analysis)
+            homepage = report.read_text(encoding="utf-8")
+            self.assertIn("先看结论", homepage)
+            self.assertIn("本轮没有全能方法", homepage)
+            self.assertIn("请求成功不等于正文合格", homepage)
             self.assertIn("通过样本均值", analysis)
             self.assertIn(
                 '../attempts/fixture__fail__r001.html',
