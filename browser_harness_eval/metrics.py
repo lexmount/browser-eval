@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import hashlib
 import statistics
-from collections import defaultdict
+import unicodedata
+from collections import Counter, defaultdict
 from typing import Any
 
 
@@ -21,7 +22,28 @@ METRIC_DEFINITIONS = {
     "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
+    "word_f1": "仅对含完整人工正文的案例计算：供应商输出与标准正文的词袋 precision/recall 调和平均值。",
 }
+
+
+def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
+    predicted_words = Counter(re.findall(r"\w+", predicted.casefold()))
+    reference_words = Counter(re.findall(r"\w+", reference.casefold()))
+    if not reference_words:
+        return (1.0, 1.0, 1.0) if not predicted_words else (0.0, 1.0, 0.0)
+    if not predicted_words:
+        return 0.0, 0.0, 0.0
+    overlap = sum((predicted_words & reference_words).values())
+    precision = overlap / sum(predicted_words.values())
+    recall = overlap / sum(reference_words.values())
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    return round(precision, 4), round(recall, 4), round(f1, 4)
+
+
+def normalize_for_match(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-"}))
+    return re.sub(r"\s+", " ", normalized).strip()
 
 
 def evaluate_content(
@@ -32,14 +54,15 @@ def evaluate_content(
     forbidden_any: list[str] | None = None,
     min_content_chars: int = 1,
     fact_coverage_threshold: float = 1.0,
+    ground_truth_main_content: str = "",
 ) -> dict[str, Any]:
-    folded = content.casefold()
-    matched = [marker for marker in expected if marker.casefold() in folded]
+    folded = normalize_for_match(content)
+    matched = [marker for marker in expected if normalize_for_match(marker) in folded]
     facts = required_facts or []
     fact_results = []
     for index, fact in enumerate(facts):
         alternatives = [str(item) for item in fact.get("alternatives", [])]
-        hits = [item for item in alternatives if item.casefold() in folded]
+        hits = [item for item in alternatives if normalize_for_match(item) in folded]
         fact_results.append({
             "id": str(fact.get("id") or f"fact-{index + 1}"),
             "alternatives": alternatives,
@@ -48,13 +71,16 @@ def evaluate_content(
         })
     fact_hits = sum(item["pass"] for item in fact_results)
     fact_coverage = round(fact_hits / len(fact_results), 4) if fact_results else 1.0
-    forbidden = [item for item in (forbidden_any or []) if item.casefold() in folded]
+    forbidden = [item for item in (forbidden_any or []) if normalize_for_match(item) in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
     content_pass = legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold and not forbidden
+    word_precision = word_recall = word_f1 = None
+    if ground_truth_main_content:
+        word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
     return {
         "content_pass": content_pass,
         "legacy_marker_pass": legacy_pass,
@@ -77,6 +103,9 @@ def evaluate_content(
         "markdown_headings": len(re.findall(r"(?m)^#{1,6}\s+", content)),
         "markdown_links": len(re.findall(r"\[[^]]+]\(https?://", content)),
         "html_tags": len(re.findall(r"<[^>]+>", content)),
+        "word_precision": word_precision,
+        "word_recall": word_recall,
+        "word_f1": word_f1,
     }
 
 
@@ -117,6 +146,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "mean_fact_coverage": round(
                 statistics.mean(item["metrics"].get("fact_coverage", item["metrics"]["marker_recall"]) for item in items), 4
             ),
+            "mean_word_f1": _mean_present(item["metrics"].get("word_f1") for item in items),
             "p50_ms": percentile(content_successful_elapsed, 0.50),
             "p95_ms": percentile(content_successful_elapsed, 0.95),
             "transport_p50_ms": percentile(transport_successful_elapsed, 0.50),
@@ -143,6 +173,11 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             ),
         }
     return {"providers": provider_summary, "cases": case_summary}
+
+
+def _mean_present(values: Any) -> float | None:
+    present = [float(value) for value in values if value is not None]
+    return round(statistics.mean(present), 4) if present else None
 
 
 def _failure_counts(items: list[dict[str, Any]]) -> dict[str, int]:

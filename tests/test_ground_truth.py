@@ -21,6 +21,17 @@ class GroundTruthTest(unittest.TestCase):
                 self.assertTrue(fact.get("id"), case.id)
                 self.assertTrue(fact.get("alternatives"), f"{case.id}/{fact.get('id')}")
 
+    def test_expanded_suite_has_fifty_stratified_cases(self) -> None:
+        metadata, cases = load_dataset(Path("datasets/public_webfetch_50.json"))
+        self.assertEqual(len(cases), 50)
+        self.assertEqual(len({case.id for case in cases}), 50)
+        self.assertEqual(sum(case.id.startswith("wcxb-") for case in cases), 28)
+        self.assertEqual(sum(case.id.startswith("lm-") for case in cases), 12)
+        for case in cases:
+            self.assertGreaterEqual(len(case.required_facts), 2, case.id)
+            self.assertTrue(case.reference_answer, case.id)
+            self.assertGreaterEqual(len(case.human_review_checklist), 3, case.id)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -100,7 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
-    run.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch.json")
+    run.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_50.json")
     run.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
     run.add_argument("--runs", type=int, default=1)
@@ -118,11 +118,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts using a dataset version")
     rescore.add_argument("run_dir", type=Path)
-    rescore.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch.json")
+    rescore.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_50.json")
     rescore.set_defaults(handler=command_rescore)
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")
-    validate.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch.json")
+    validate.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_50.json")
     validate.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
     validate.add_argument("--providers", default="fixture")
     validate.add_argument("--env-file", type=Path)

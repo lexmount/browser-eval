@@ -64,7 +64,12 @@ def run_evaluation(
             "case_count": len(cases),
         },
         "providers": [
-            {"name": provider.name, "type": provider.type} for provider in providers
+            {
+                "name": provider.name,
+                "type": provider.type,
+                "min_interval_seconds": provider.min_interval_seconds,
+            }
+            for provider in providers
         ],
         "parameters": {"runs": runs, "timeout": timeout, "delay": delay},
         "environment": {
@@ -89,8 +94,15 @@ def run_evaluation(
                 raise ValueError(
                     f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
                 )
+            previous_request_completed: float | None = None
             for run_number in range(1, runs + 1):
                 for case in cases:
+                    throttle_wait_ms = 0.0
+                    if previous_request_completed is not None and provider.min_interval_seconds:
+                        remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
+                        if remaining > 0:
+                            throttle_wait_ms = round(remaining * 1000, 2)
+                            time.sleep(remaining)
                     attempt_id = f"{provider.name}__{case.id}__r{run_number:03d}"
                     begin = time.perf_counter()
                     started = utc_now()
@@ -105,6 +117,7 @@ def run_evaluation(
                             error_message=error_message,
                         )
                     elapsed_ms = round((time.perf_counter() - begin) * 1000, 2)
+                    previous_request_completed = time.monotonic()
                     artifact_rel = Path("artifacts") / provider.name / case.id / f"run-{run_number:03d}.txt"
                     artifact = output_dir / artifact_rel
                     artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -116,6 +129,7 @@ def run_evaluation(
                         forbidden_any=case.forbidden_any,
                         min_content_chars=case.min_content_chars,
                         fact_coverage_threshold=case.fact_coverage_threshold,
+                        ground_truth_main_content=case.ground_truth_main_content,
                     )
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
                     record = AttemptRecord(
@@ -137,7 +151,11 @@ def run_evaluation(
                         error_message=result.error_message,
                         artifact_path=artifact_rel.as_posix(),
                         metrics=measured,
-                        provider_metadata=result.metadata,
+                        provider_metadata={
+                            **result.metadata,
+                            "configured_min_interval_seconds": provider.min_interval_seconds,
+                            "client_throttle_wait_ms": throttle_wait_ms,
+                        },
                     ).to_dict()
                     records.append(record)
                     results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -191,6 +209,7 @@ def rescore_evaluation(
             forbidden_any=case.forbidden_any,
             min_content_chars=case.min_content_chars,
             fact_coverage_threshold=case.fact_coverage_threshold,
+            ground_truth_main_content=case.ground_truth_main_content,
         )
         record["metrics"]["deadline_overrun"] = previous_deadline
 

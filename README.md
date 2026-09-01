@@ -31,7 +31,7 @@ python3 -m unittest discover -s tests -v
 open runs/offline-smoke/report/index.html
 ```
 
-The fixture intentionally fails the JavaScript case, so the generated report
+The fixture intentionally fails configured cases, so the generated report
 contains both successful content and a complete failure diagnostic page.
 
 Run the small, credentialed real smoke suite (one `example.com` call per
@@ -60,6 +60,18 @@ The command performs the requests, persists every response or exception,
 calculates metrics and creates the report. Only Cloudflare `/markdown` is tested:
 it matches the readable-content contract. `/content` returns full rendered HTML
 and is deliberately excluded from this Web Fetch comparison.
+
+The example Cloudflare configuration applies a 10.5-second cooldown after each
+completed response. Cloudflare documents one Quick Action per 10 seconds on the
+Workers Free plan; a start-to-start interval still produced intermittent 429s
+in the measured account, while completion-plus-cooldown completed 10/10 calls
+without a 429. This client wait is recorded separately and excluded from content
+latency; the free-plan throughput ceiling remains a product constraint.
+
+Firecrawl Free documents 10 `/scrape` requests per minute. The example registry
+therefore also applies a 6.1-second completion cooldown. Higher paid plans should
+override these values to match their documented team-level limits; pacing is
+part of the account environment, not a supplier content-quality score.
 
 For a complete new-environment run, use the one-command reproducer. It validates
 credentials, runs the frozen dataset, builds the multi-page report and checks
@@ -120,6 +132,13 @@ The same registry is rendered at `report/accounts/index.html` in every report.
 
 ## Report structure
 
+The checked-in reference run is
+[`reports/2026-09-01-webfetch-50-final/index.html`](reports/2026-09-01-webfetch-50-final/index.html).
+It contains the frozen dataset, all 300 supplier attempts, raw artifacts,
+machine verdicts, HIL review controls and the derived-run provenance. The
+original six-way run and the paced Firecrawl replacement remain identified in
+the manifest; the report does not conceal the rate-limited observations.
+
 Every run produces a portable directory:
 
 ```text
@@ -153,13 +172,15 @@ minimum length, and no error/challenge marker. Main P50/P95 use only requests
 that also pass this content gate. Each attempt shows the full task, reference
 answer, supplier output, deterministic verdict, HIL form and SHA-256.
 
-The v3 ground truth was independently annotated from source pages before the
-supplier run. See [review protocol](docs/ground-truth-review.md). A second human
-review is required before external marketing or procurement use.
+The default v4 suite contains 50 cases: 10 protocol/capability cases, 28
+CC-BY-4.0 WCXB cases across seven page structures, and 12 concrete render-quality
+seeds from `lightmount-dark`. See [review protocol](docs/ground-truth-review.md).
+A second human review is required before external marketing or procurement use;
+live-page drift is excluded rather than counted as a supplier failure.
 
 ## Extend the harness
 
-To add a dataset, copy `datasets/public_webfetch.json` and define stable URLs,
+To add a dataset, copy `datasets/public_webfetch_50.json` and define stable URLs,
 capability categories, deterministic `expected_any` markers and policy scope.
 Do not mix public extraction, login flows and anti-bot unlocking into one score.
 

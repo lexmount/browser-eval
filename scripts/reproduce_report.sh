@@ -9,6 +9,7 @@ env_file=${WEBFETCH_ENV_FILE:-$HOME/.env}
 providers=cowagent-built-in,lexmount-global,firecrawl,tavily,exa,cloudflare-markdown
 
 python3 -m browser_harness_eval validate \
+  --dataset datasets/public_webfetch_50.json \
   --env-file "$env_file" \
   --providers "$providers"
 
@@ -18,7 +19,7 @@ if [[ "${WEBFETCH_RUN_SMOKE:-0}" == "1" ]]; then
 fi
 
 python3 -m browser_harness_eval run \
-  --dataset datasets/public_webfetch.json \
+  --dataset datasets/public_webfetch_50.json \
   --provider-config configs/providers.example.json \
   --env-file "$env_file" \
   --providers "$providers" \

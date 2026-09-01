@@ -33,9 +33,15 @@ class CloudflareMarkdownProvider(Provider):
             status_code=response.status,
             final_url=meta.get("finalUrl") or case.url,
             title=meta.get("title"),
-            error_type=None if ok else ("authentication" if response.status in (401, 403) else "api_error"),
+            error_type=None if ok else ("authentication" if response.status in (401, 403) else ("rate_limit" if response.status == 429 else "api_error")),
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
-            metadata={"upstream_status": meta.get("status"), "redirect_chain": meta.get("redirectChain"), "errors": errors},
+            metadata={
+                "upstream_status": meta.get("status"),
+                "redirect_chain": meta.get("redirectChain"),
+                "errors": errors,
+                "retry_after": response.headers.get("retry-after"),
+                "browser_ms_used": response.headers.get("x-browser-ms-used"),
+            },
         )
 
 

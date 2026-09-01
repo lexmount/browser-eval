@@ -50,6 +50,21 @@ class ProviderTest(unittest.TestCase):
         result = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
         self.assertTrue(result.ok)
 
+    def test_provider_exposes_plan_rate_interval(self) -> None:
+        provider = CloudflareMarkdownProvider(
+            "cf", {"api_token": "x", "account_id": "a", "min_interval_seconds": 10.5}
+        )
+        self.assertEqual(provider.min_interval_seconds, 10.5)
+
+    @patch("browser_harness_eval.providers.cloudflare.request")
+    def test_cloudflare_rate_limit_is_classified(self, mock_request) -> None:
+        mock_request.return_value = HttpResponse(
+            429, "u", {"retry-after": "10"}, b'{"success":false,"errors":[{"message":"Too many requests"}]}'
+        )
+        result = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
+        self.assertEqual(result.error_type, "rate_limit")
+        self.assertEqual(result.metadata["retry_after"], "10")
+
     @patch("browser_harness_eval.providers.cloudflare.request")
     def test_cloudflare_content_reads_rendered_html(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"<html>Example</html>"}')

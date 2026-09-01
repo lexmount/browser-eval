@@ -1,0 +1,133 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>exa__lm-node-intro__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../providers/index.html">结果</a><a href="../analysis/index.html">分析</a><a href="../review/index.html">人工复核</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · exa</div><h1>Node.js 入门</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">1,911 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取给定公开页面的主要可读正文；输出必须包含两个稳定主题标记，不能只是导航外壳、挑战页或错误页。</p><p><b>输入 URL：</b><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs">https://nodejs.org/en/learn/getting-started/introduction-to-nodejs</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>Node.js 入门
+页面主要内容应同时包含：Node.js；JavaScript。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否为目标页面而非错误页</li><li>是否包含 Node.js</li><li>是否包含 JavaScript</li><li>是否返回连贯正文而非导航外壳</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/exa/lm-node-intro/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs">打开标准答案源网页</a> · 完整性校验 <code>sha256:2d3b5d3bba7d01a26eef2e1a364c251ab7365e86e5e4b67b21d70cca2debd525</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>Node.js 入门
+页面主要内容应同时包含：Node.js；JavaScript。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Introduction to Node.js | Node.js Learn
+
+On this page
+
+- An Example Node.js Application
+
+# Introduction to Node.js
+
+Node.js is an open-source and cross-platform JavaScript runtime environment. It is a popular tool for almost any kind of project!
+
+Node.js runs the V8 JavaScript engine, the core of Google Chrome, outside of the browser. This allows Node.js to be very performant.
+
+A Node.js app runs in a single process, without creating a new thread for every request. Node.js provides a set of asynchronous I/O primitives in its standard library that prevent JavaScript code from blocking. In addition, libraries in Node.js are generally written using non-blocking paradigms. Accordingly, blocking behavior is the exception rather than the norm in Node.js.
+
+When Node.js performs an I/O operation, like reading from the network, accessing a database or the filesystem, instead of blocking the thread and wasting CPU cycles waiting, Node.js will resume the operations when the response comes back.
+
+This allows Node.js to handle thousands of concurrent connections with a single server without introducing the burden of managing thread concurrency, which could be a significant source of bugs.
+
+Node.js has a unique advantage because millions of frontend developers that write JavaScript for the browser are now able to write the server-side code in addition to the client-side code without the need to learn a completely different language.
+
+In Node.js the new ECMAScript standards can be used without problems, as you don&#x27;t have to wait for all your users to update their browsers - you are in charge of deciding which ECMAScript version to use by changing the Node.js version, and you can also enable specific experimental features by running Node.js with flags.
+
+## An Example Node.js Applicatio</pre></div></div><details><summary>展开本页中的完整供应商输出（3,689 / 3,689 字符）</summary><pre>Introduction to Node.js | Node.js Learn
+
+On this page
+
+- An Example Node.js Application
+
+# Introduction to Node.js
+
+Node.js is an open-source and cross-platform JavaScript runtime environment. It is a popular tool for almost any kind of project!
+
+Node.js runs the V8 JavaScript engine, the core of Google Chrome, outside of the browser. This allows Node.js to be very performant.
+
+A Node.js app runs in a single process, without creating a new thread for every request. Node.js provides a set of asynchronous I/O primitives in its standard library that prevent JavaScript code from blocking. In addition, libraries in Node.js are generally written using non-blocking paradigms. Accordingly, blocking behavior is the exception rather than the norm in Node.js.
+
+When Node.js performs an I/O operation, like reading from the network, accessing a database or the filesystem, instead of blocking the thread and wasting CPU cycles waiting, Node.js will resume the operations when the response comes back.
+
+This allows Node.js to handle thousands of concurrent connections with a single server without introducing the burden of managing thread concurrency, which could be a significant source of bugs.
+
+Node.js has a unique advantage because millions of frontend developers that write JavaScript for the browser are now able to write the server-side code in addition to the client-side code without the need to learn a completely different language.
+
+In Node.js the new ECMAScript standards can be used without problems, as you don&#x27;t have to wait for all your users to update their browsers - you are in charge of deciding which ECMAScript version to use by changing the Node.js version, and you can also enable specific experimental features by running Node.js with flags.
+
+## An Example Node.js Application
+
+The most common example Hello World of Node.js is a web server:
+
+CJSESM
+
+```cjs
+const { createServer } = require(&#x27;node:http&#x27;);
+
+const hostname = &#x27;127.0.0.1&#x27;;
+const port = 3000;
+
+const server = createServer((req, res) =&gt; {
+  res.statusCode = 200;
+  res.setHeader(&#x27;Content-Type&#x27;, &#x27;text/plain&#x27;);
+  res.end(&#x27;Hello World&#x27;);
+});
+
+server.listen(port, hostname, () =&gt; {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+```
+
+JavaScript
+
+Copy to clipboard
+
+To run this snippet, save it as a`server.js` file and run`node server.js` in your terminal. If you use the mjs version of the code, you should save it as a`server.mjs` file and run`node server.mjs` in your terminal.
+
+This code first includes the Node.js http module.
+
+Node.js has a fantastic standard library, including first-class support for networking.
+
+The`createServer()` method of`http` creates a new HTTP server and returns it.
+
+The server is set to listen on the specified port and host name. When the server is ready, the callback function is called, in this case informing us that the server is running.
+
+Whenever a new request is received, the request event is called, providing two objects: a request (an http.IncomingMessage object) and a response (an http.ServerResponse object).
+
+Those 2 objects are essential to handle the HTTP call.
+
+The first provides the request details. In this simple example, this is not used, but you could access the request headers and request data.
+
+The second is used to return data to the caller.
+
+In this case with:
+
+```js
+res.statusCode = 200;
+```
+
+we set the`statusCode` property to`200`, to indicate a successful response.
+
+We set the`Content-Type` header:
+
+```js
+res.setHeader(&#x27;Content-Type&#x27;, &#x27;text/plain&#x27;);
+```
+
+and we close the response, adding the content as an argument to`end()`:
+
+```js
+res.end(&#x27;Hello World&#x27;);
+```
+
+If you haven&#x27;t already done so, download Node.js.</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>exa__lm-node-intro__r001</code></div><div class="kv"><b>HTTP 状态</b>200</div><div class="kv"><b>最终 URL</b><span class="break">https://nodejs.org/en/learn/getting-started/introduction-to-nodejs</span></div><div class="kv"><b>输出大小</b>3,689 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>marker-1</code></td><td class="good">命中</td><td>Node.js</td><td>Node.js</td></tr><tr><td><code>marker-2</code></td><td class="good">命中</td><td>JavaScript</td><td>JavaScript</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">Node.js</span><span class="tag">JavaScript</span></p><p><span class="tag">Node.js</span><span class="tag">JavaScript</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;request_id&quot;: &quot;3e79d0626f75d3a69ada7d97a90048b9&quot;,
+  &quot;url_status&quot;: {
+    &quot;id&quot;: &quot;https://nodejs.org/en/learn/getting-started/introduction-to-nodejs&quot;,
+    &quot;status&quot;: &quot;success&quot;,
+    &quot;source&quot;: &quot;crawled&quot;
+  },
+  &quot;cost_dollars&quot;: {
+    &quot;total&quot;: 0.001,
+    &quot;contents&quot;: {
+      &quot;text&quot;: 0.001
+    }
+  },
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview("exa__lm-node-intro__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("exa__lm-node-intro__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("exa__lm-node-intro__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

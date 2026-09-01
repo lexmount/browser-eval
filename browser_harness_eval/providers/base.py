@@ -12,6 +12,11 @@ class Provider(ABC):
         self.config = config
         self.type = str(config.get("type", name))
 
+    @property
+    def min_interval_seconds(self) -> float:
+        """Minimum cooldown from one response completion to the next request start."""
+        return max(0.0, float(self.config.get("min_interval_seconds", 0)))
+
     @abstractmethod
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         raise NotImplementedError

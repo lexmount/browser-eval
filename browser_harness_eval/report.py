@@ -4,6 +4,7 @@ import html
 import json
 import re
 import shutil
+import statistics
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -68,11 +69,19 @@ def status(record: dict[str, Any]) -> tuple[str, str]:
 
 def layout(*, title: str, body: str, base: str, subtitle: str = "") -> str:
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)}</title><link rel="stylesheet" href="{base}assets/style.css"></head><body>
-<header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a><a href="{base}datasets/index.html">评测集</a><a href="{base}environment/index.html">环境</a><a href="{base}methodology/index.html">方法</a><a href="{base}providers/index.html">结果</a><a href="{base}analysis/index.html">分析</a><a href="{base}review/index.html">人工复核</a><a href="{base}execution/index.html">复现</a><a href="{base}market/index.html">市场</a><a href="{base}adoption/index.html">开源采用</a><a href="{base}integration/index.html">集成</a><a href="{base}accounts/index.html">账号</a></nav></header>
+<header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a><a href="{base}datasets/index.html">评测集</a><a href="{base}benchmarks/index.html">基准来源</a><a href="{base}environment/index.html">环境</a><a href="{base}methodology/index.html">方法</a><a href="{base}providers/index.html">结果</a><a href="{base}analysis/index.html">分析</a><a href="{base}review/index.html">人工复核</a><a href="{base}execution/index.html">复现</a><a href="{base}market/index.html">市场</a><a href="{base}adoption/index.html">开源采用</a><a href="{base}integration/index.html">集成</a><a href="{base}accounts/index.html">账号</a></nav></header>
 <main>{body}</main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="{base}assets/review.js"></script></body></html>"""
 
 
 def write_page(path: Path, content: str) -> None:
+    content = content.replace("冻结数据集 v3", "冻结当前版本数据集")
+    content = content.replace("等 10 类案例", "等多种案例")
+    content = content.replace("Integration from evidence", "基于实测证据的集成")
+    content = content.replace("版本化标准答案（Ground truth）", "版本化标准答案")
+    content = content.replace(
+        "<th>事实覆盖率</th><th>有效 P50</th><th>有效 P95</th>",
+        "<th>事实覆盖率</th><th>WCXB 词级 F1</th><th>有效 P50</th><th>有效 P95</th>",
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
@@ -89,6 +98,9 @@ def generate_report(run_dir: Path, dataset: dict[str, Any], records: list[dict[s
     (report_dir / "assets").mkdir(parents=True)
     (report_dir / "assets" / "style.css").write_text(STYLE, encoding="utf-8")
     (report_dir / "assets" / "review.js").write_text(REVIEW_JS, encoding="utf-8")
+    visual = Path(__file__).resolve().parents[1] / "report-assets" / "webfetch-50-evaluation-map.png"
+    if visual.exists():
+        shutil.copy2(visual, report_dir / "assets" / visual.name)
     shutil.copy2(run_dir / "results.jsonl", report_dir / "results.jsonl")
     shutil.copy2(run_dir / "summary.json", report_dir / "summary.json")
     shutil.copy2(run_dir / "manifest.json", report_dir / "manifest.json")
@@ -106,6 +118,7 @@ def generate_report(run_dir: Path, dataset: dict[str, Any], records: list[dict[s
 
     _write_index(report_dir, manifest, summary, records)
     _write_dataset_pages(report_dir, dataset, by_case)
+    _write_benchmark_page(report_dir, dataset)
     _write_provider_pages(report_dir, summary, by_provider)
     _write_metric_page(report_dir)
     _write_environment_page(report_dir, manifest)
@@ -140,7 +153,7 @@ def _write_index(report_dir: Path, manifest: dict[str, Any], summary: dict[str, 
         if providers[name]["attempts"] > 0
         and providers[name]["failure_types"].get("authentication") == providers[name]["attempts"]
     }
-    comparable = [r for r in records if method_info(r["provider_type"])["leaderboard"] == "readable-content" and r["provider"] not in blocked]
+    comparable = [r for r in records if method_info(r["provider_type"])["leaderboard"] == "可读正文" and r["provider"] not in blocked]
     score_records = comparable or records
     passing = sum(r["ok"] and r["metrics"]["content_pass"] for r in score_records)
     transport = sum(r["ok"] for r in score_records)
@@ -158,6 +171,10 @@ def _write_index(report_dir: Path, manifest: dict[str, Any], summary: dict[str, 
 <section class="section"><div class="wrap"><h2>一图读懂：如何证明“抓到了正确正文”</h2><div class="flow"><div class="card"><div class="eyebrow">1 · 题目</div><h3>相同公开 URL</h3><p class="sub">静态页、长文、技术文档、JS 渲染、PDF、重定向等 10 类案例。</p></div><div class="card"><div class="eyebrow">2 · 标准答案</div><h3>先标注再评分</h3><p class="sub">冻结参考正文、必需事实、错误页标记与人工检查清单。</p></div><div class="card"><div class="eyebrow">3 · 真实调用</div><h3>保存完整输出</h3><p class="sub">供应商输出逐字落盘，并用 SHA-256 防止预览与原文不一致。</p></div><div class="card"><div class="eyebrow">4 · 机器初判</div><h3>四道确定性规则</h3><p class="sub">显著标记、最小长度、全部事实组、无错误页标记。</p></div><div class="card"><div class="eyebrow">5 · 人工复核</div><h3>最终判定由人确认</h3><p class="sub">并排核对标准答案与输出，保存或导出复核 JSON。</p></div></div><div class="callout" style="margin-top:18px"><b>特殊案例：</b>JS 表示正文需执行 JavaScript 后才出现；PDF 表示必须抽取论文文字；重定向表示客户端跟随 HTTP 3xx 的 Location 并返回最终页正文，不是给出一个可点击链接。</div></div></section>
 <section class="section"><div class="wrap"><h2>提供方比较</h2><p class="sub">请求成功与机器内容初判分开统计；P50/P95 只使用“请求成功且机器内容初判通过”的有效调用，避免很快返回空壳或错误页反而获得速度优势。</p><div class="table-wrap"><table><thead><tr><th>方法</th><th>结果分组</th><th>调用次数</th><th>请求成功率</th><th>机器内容初判通过率</th><th>有效 P50</th><th>有效 P95</th><th>失败数</th><th>超时越界</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>
 <section class="section"><div class="wrap"><h2>报告导航</h2><div class="grid"><div class="card" style="grid-column:span 3"><h3>评测集</h3><p class="sub">逐案例查看能力、锚点和结果。</p><a href="datasets/index.html">打开评测集 →</a></div><div class="card" style="grid-column:span 3"><h3>提供方 / 方法</h3><p class="sub">逐方法查看性能与失败。</p><a href="providers/index.html">打开方法页 →</a></div><div class="card" style="grid-column:span 3"><h3>指标定义</h3><p class="sub">查看严格指标契约。</p><a href="metrics/index.html">打开指标页 →</a></div><div class="card" style="grid-column:span 3"><h3>账号准备</h3><p class="sub">注册地址、取 key 位置与环境变量。</p><a href="accounts/index.html">打开账号清单 →</a></div></div></div></section>"""
+    visual_path = report_dir / "assets" / "webfetch-50-evaluation-map.png"
+    if visual_path.exists():
+        visual_section = '<section class="section"><div class="wrap"><h2>一图读懂新版评测</h2><img class="visual-summary" src="assets/webfetch-50-evaluation-map.png" alt="50 条 Web Fetch 分层评测集、内容裁判与免费套餐节流边界"></div></section>'
+        body = body.replace("</section>", "</section>" + visual_section, 1)
     write_page(report_dir / "index.html", layout(title="Web Fetch 正式评测报告", body=body, base=""))
 
 
@@ -183,6 +200,24 @@ def _write_dataset_pages(report_dir: Path, dataset: dict[str, Any], by_case: dic
     write_page(report_dir / "datasets" / "index.html", layout(title="评测集", body=body, base="../"))
 
 
+def _write_benchmark_page(report_dir: Path, dataset: dict[str, Any]) -> None:
+    sources = "".join(
+        f"<tr><td><b>{esc(item.get('name'))}</b></td><td>{item.get('count','—')}</td><td>{esc(item.get('role'))}</td><td><code>{esc(item.get('commit','—'))}</code></td><td>{esc(item.get('license','—'))}</td></tr>"
+        for item in dataset.get("sources", [])
+    ) or '<tr><td colspan="5">该数据集未登记外部来源</td></tr>'
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">数据来源与方法审计</div><h1>为什么是这 50 条，而不是随意堆 URL</h1><p class="lead">主榜需要同时覆盖协议边界、七种页面结构和真实浏览器渲染差异；来源、版本、许可和不适用边界都必须可追溯。</p></div></section>
+<section class="section"><div class="wrap"><h2>组成</h2><div class="table-wrap"><table><thead><tr><th>来源</th><th>数量</th><th>在本评测中的作用</th><th>固定提交</th><th>许可</th></tr></thead><tbody>{sources}</tbody></table></div></div></section>
+<section class="section"><div class="wrap"><h2>与 lightmount-dark 的差异</h2><div class="table-wrap"><table><thead><tr><th>维度</th><th>lightmount-dark</th><th>本项目</th><th>决策</th></tr></thead><tbody>
+<tr><td>被测对象</td><td>Moli / Chromium / Lightpanda 浏览器引擎，输出 DOM/可见文本</td><td>托管 URL→可读正文 Web Fetch 服务</td><td>不把浏览器资源指标直接当供应商服务指标</td></tr>
+<tr><td>目标集</td><td>100 个热门站点 + 159 个历史失败长尾；另有 12 条渲染质量种子</td><td>10 条核心题 + 28 条 WCXB + 12 条渲染质量种子</td><td>借用 12 条具体内容页；保护站点另做稳定性分榜</td></tr>
+<tr><td>正确性</td><td>标题/关键词/最小文本和 challenge、app shell、timeout 分类；原报告明确不比较正文质量</td><td>完整参考答案、必需事实组、反向样板噪声、原始输出与人工复核</td><td>借用失败分类；补足正文完整性标准答案</td></tr>
+<tr><td>时延</td><td>同时展示全部行和成功行；失败/timeout 会抬高全部行尾延迟</td><td>主榜只统计内容通过调用，失败耗时仅作诊断</td><td>不能让快速错误页或 timeout 污染内容时延结论</td></tr>
+<tr><td>并发</td><td>Moli/Lightpanda 并发 20、Chromium 并发 2，适合引擎压力调查</td><td>供应商按相同案例顺序串行；套餐限流单列</td><td>先对齐输入与节流，再单独做吞吐压测</td></tr>
+</tbody></table></div></div></section>
+<section class="section"><div class="wrap"><h2>业界基准如何影响本设计</h2><div class="grid"><div class="card" style="grid-column:span 6"><h3>WCXB：直接采用</h3><p>2,008 页、1,613 个域名、七种结构类型，标准答案包含完整正文、必须出现片段和必须排除的样板噪声。本轮按类型各取 4 条，共 28 条，并固定到具体提交。</p><a href="https://github.com/Murrough-Foley/web-content-extraction-benchmark">WCXB 源仓库 →</a></div><div class="card" style="grid-column:span 6"><h3>LiveWeb-IE：采用标注原则</h3><p>它强调 live URL、稳定事实、自然语言任务和人工验证。本项目采用“页面漂移单独判定”，但不引入其图片/链接/XPath Agent 任务，因为那超出通用 Web Fetch 正文契约。</p><a href="https://arxiv.org/abs/2603.13773">LiveWeb-IE 论文 →</a></div><div class="card" style="grid-column:span 6"><h3>Readability / Dragnet：只作离线抽取参考</h3><p>二者主要在固定 HTML 上评正文抽取；不能覆盖云服务的网络、重定向、JavaScript、PDF、限流和认证。因此不直接替代端到端 live URL 主榜。</p></div><div class="card" style="grid-column:span 6"><h3>长尾失败集：单独分榜</h3><p>登录墙、CAPTCHA、WAF 和历史 4xx/5xx 很有诊断价值，但目标和合规边界不同。混入主榜会把“正文抽取质量”变成“反爬成功率”，结论不可解释。</p></div></div></div></section>"""
+    write_page(report_dir / "benchmarks" / "index.html", layout(title="基准来源", body=body, base="../"))
+
+
 def _write_provider_pages(report_dir: Path, summary: dict[str, Any], by_provider: dict[str, list[dict[str, Any]]]) -> None:
     index_rows = []
     for name, item in summary["providers"].items():
@@ -191,7 +226,7 @@ def _write_provider_pages(report_dir: Path, summary: dict[str, Any], by_provider
         credit_values = [record["provider_metadata"].get("credits_used") for record in attempts if record["provider_metadata"].get("credits_used") is not None]
         credits = sum(float(value) for value in credit_values) if credit_values else None
         credit_label = "—" if credits is None else f"{credits:g} credits"
-        index_rows.append(f"<tr><td><a href=\"{slug(name)}.html\"><b>{esc(name)}</b></a></td><td>{esc(item['provider_type'])}</td><td>{pct(item['transport_success_rate'])}</td><td>{pct(item['content_pass_rate'])}</td><td>{ms(item['p50_ms'])}</td><td>{ms(item['p95_ms'])}</td><td>{credit_label}</td></tr>")
+        index_rows.append(f"<tr><td><a href=\"{slug(name)}.html\"><b>{esc(name)}</b></a></td><td>{esc(item['provider_type'])}</td><td>{pct(item['transport_success_rate'])}</td><td>{pct(item['content_pass_rate'])}</td><td>{pct(item.get('mean_word_f1'))}</td><td>{ms(item['p50_ms'])}</td><td>{ms(item['p95_ms'])}</td><td>{credit_label}</td></tr>")
         attempt_rows = []
         for record in attempts:
             label, cls = status(record)
@@ -199,7 +234,7 @@ def _write_provider_pages(report_dir: Path, summary: dict[str, Any], by_provider
         failures = "".join(f"<li><code>{esc(kind)}</code>：{count}</li>" for kind, count in item["failure_types"].items()) or "<li>无</li>"
         body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">提供方方法 · {esc(item['provider_type'])}</div><h1>{esc(name)}</h1><p class="lead">{esc(method['contract'])}</p><div class="meta"><span class="pill">{esc(method['output'])}</span><span class="pill">{esc(method['leaderboard'])}</span></div></div></section><section class="section"><div class="wrap"><h2>公平性配置</h2><div class="attempt-grid"><div class="kv"><b>接口</b><code>{esc(method['endpoint'])}</code></div><div class="kv"><b>输出契约</b>{esc(method['output'])}</div><div class="kv"><b>新鲜度 / 等待</b>{esc(method['freshness'])}</div><div class="kv"><b>结果分组</b>{esc(method['leaderboard'])}</div></div></div></section><section class="section"><div class="wrap"><div class="grid"><div class="card kpi"><div class="eyebrow">请求成功率</div><div class="n">{pct(item['transport_success_rate'])}</div></div><div class="card kpi"><div class="eyebrow">机器内容初判</div><div class="n">{pct(item['content_pass_rate'])}</div></div><div class="card kpi"><div class="eyebrow">事实覆盖率</div><div class="n">{pct(item.get('mean_fact_coverage'))}</div></div><div class="card kpi"><div class="eyebrow">有效 P95</div><div class="n">{ms(item['p95_ms'])}</div></div></div><h3>失败分布</h3><ul>{failures}</ul><p>超时越界：<b>{item['deadline_overrun_count']}</b> · 供应商响应暴露用量：<b>{credit_label}</b></p></div></section><section class="section"><div class="wrap"><h2>逐次结果</h2><div class="table-wrap"><table><thead><tr><th>案例 / 次数</th><th>状态</th><th>耗时</th><th>字符</th><th>失败分类</th></tr></thead><tbody>{''.join(attempt_rows)}</tbody></table></div></div></section>"""
         write_page(report_dir / "providers" / f"{slug(name)}.html", layout(title=f"提供方：{name}", body=body, base="../"))
-    index_body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">提供方注册表</div><h1>Web Fetch 提供方 / 方法</h1><p class="lead">提供方是调用实现，和评测集、指标定义相互独立。同一数据集可重复运行不同提供方。</p></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>方法</th><th>类型</th><th>请求成功率</th><th>机器内容初判通过率</th><th>有效 P50</th><th>有效 P95</th><th>响应暴露用量</th></tr></thead><tbody>{''.join(index_rows)}</tbody></table></div></div></section>"""
+    index_body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">提供方注册表</div><h1>Web Fetch 提供方 / 方法</h1><p class="lead">提供方是调用实现，和评测集、指标定义相互独立。同一数据集可重复运行不同提供方。</p></div></section><section class="section"><div class="wrap"><div class="table-wrap"><table><thead><tr><th>方法</th><th>类型</th><th>请求成功率</th><th>机器内容初判通过率</th><th>WCXB 词级 F1</th><th>有效 P50</th><th>有效 P95</th><th>响应暴露用量</th></tr></thead><tbody>{''.join(index_rows)}</tbody></table></div></div></section>"""
     write_page(report_dir / "providers" / "index.html", layout(title="提供方", body=index_body, base="../"))
 
 
@@ -212,8 +247,10 @@ def _write_metric_page(report_dir: Path) -> None:
 def _write_environment_page(report_dir: Path, manifest: dict[str, Any]) -> None:
     env = manifest["environment"]
     params = manifest["parameters"]
-    providers = "".join(f"<tr><td>{esc(item['name'])}</td><td><code>{esc(item['type'])}</code></td><td>{esc(method_info(item['type'])['freshness'])}</td></tr>" for item in manifest["providers"])
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">执行环境</div><h1>评测环境</h1><p class="lead">环境信息来自运行时 manifest；凭据值不会写入报告。网络路径、服务负载和源站变化会影响绝对耗时，因此本轮只代表该时间与出口的观测。</p></div></section><section class="section"><div class="wrap"><div class="attempt-grid"><div class="kv"><b>开始时间（UTC）</b>{esc(manifest.get('started_at'))}</div><div class="kv"><b>完成时间（UTC）</b>{esc(manifest.get('completed_at'))}</div><div class="kv"><b>Python</b>{esc(env.get('python'))}</div><div class="kv"><b>平台</b>{esc(env.get('platform'))}</div><div class="kv"><b>主机</b>{esc(env.get('hostname'))}</div><div class="kv"><b>每案例运行次数</b>{params.get('runs')}</div><div class="kv"><b>Socket 超时</b>{params.get('timeout')} 秒</div><div class="kv"><b>调用间隔</b>{params.get('delay')} 秒</div></div><h3>运行方法</h3><div class="table-wrap"><table><thead><tr><th>名称</th><th>适配器类型</th><th>新鲜度 / 等待设置</th></tr></thead><tbody>{providers}</tbody></table></div><div class="callout" style="margin-top:18px">单轮、小样本适合功能定位，不足以给出供应商 SLA。正式采购结论应至少多时段重复 3–5 次，并在目标客户地域各设一个 runner。</div></div></section>"""
+    providers = "".join(f"<tr><td>{esc(item['name'])}</td><td><code>{esc(item['type'])}</code></td><td>{esc(method_info(item['type'])['freshness'])}</td><td>{esc(str(item.get('min_interval_seconds') or 0))} 秒</td></tr>" for item in manifest["providers"])
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">执行环境</div><h1>评测环境</h1><p class="lead">环境信息来自运行时 manifest；凭据值不会写入报告。网络路径、服务负载和源站变化会影响绝对耗时，因此本轮只代表该时间与出口的观测。</p></div></section><section class="section"><div class="wrap"><div class="attempt-grid"><div class="kv"><b>开始时间（UTC）</b>{esc(manifest.get('started_at'))}</div><div class="kv"><b>完成时间（UTC）</b>{esc(manifest.get('completed_at'))}</div><div class="kv"><b>Python</b>{esc(env.get('python'))}</div><div class="kv"><b>平台</b>{esc(env.get('platform'))}</div><div class="kv"><b>主机</b>{esc(env.get('hostname'))}</div><div class="kv"><b>每案例运行次数</b>{params.get('runs')}</div><div class="kv"><b>Socket 超时</b>{params.get('timeout')} 秒</div><div class="kv"><b>全局调用间隔</b>{params.get('delay')} 秒</div></div><h3>运行方法</h3><div class="table-wrap"><table><thead><tr><th>名称</th><th>适配器类型</th><th>新鲜度 / 等待设置</th><th>响应完成后的冷却时间</th></tr></thead><tbody>{providers}</tbody></table></div><div class="callout" style="margin-top:18px">Cloudflare Workers 免费套餐的 Quick Actions 限制为每 10 秒 1 次。实测表明只保证“请求开始间隔”仍会 429，因此适配器在上一响应完成后再冷却 10.5 秒。等待发生在内容计时之前；内容时延不含本地排队，套餐吞吐限制另行披露。</div><div class="callout" style="margin-top:18px">单轮、小样本适合功能定位，不足以给出供应商 SLA。正式采购结论应至少多时段重复 3–5 次，并在目标客户地域各设一个 runner。</div></div></section>"""
+    if manifest.get("derived_from"):
+        body += f"<section class=\"section\"><div class=\"wrap\"><h2>限流重测合并说明</h2><p>本报告是派生运行：原始六方结果完整保留，只有被账户限流污染的提供方记录由独立节流重测替换。基础运行、重测目录和时间保存在 manifest，不能删除原始运行来伪装成一次无事故执行。</p><details><summary>展开派生运行元数据</summary><pre>{esc(json.dumps(manifest['derived_from'], ensure_ascii=False, indent=2))}</pre></details></div></section>"
     write_page(report_dir / "environment" / "index.html", layout(title="评测环境", body=body, base="../"))
 
 
@@ -228,9 +265,9 @@ def _write_methodology_page(report_dir: Path, manifest: dict[str, Any]) -> None:
 
 
 def _write_analysis_page(report_dir: Path, summary: dict[str, Any], by_case: dict[str, list[dict[str, Any]]]) -> None:
-    comparable = [(name, item) for name, item in summary["providers"].items() if method_info(item["provider_type"])["leaderboard"] == "readable-content" and item["failure_types"].get("authentication") != item["attempts"]]
+    comparable = [(name, item) for name, item in summary["providers"].items() if method_info(item["provider_type"])["leaderboard"] == "可读正文" and item["failure_types"].get("authentication") != item["attempts"]]
     ranked = sorted(comparable, key=lambda pair: (-pair[1]["content_pass_rate"], -pair[1].get("mean_fact_coverage", 0), pair[1]["p50_ms"] or float("inf")))
-    rows = "".join(f"<tr><td>{index}</td><td><a href=\"../providers/{slug(name)}.html\"><b>{esc(name)}</b></a></td><td>{pct(item['transport_success_rate'])}</td><td>{pct(item['content_pass_rate'])}</td><td>{pct(item.get('mean_fact_coverage'))}</td><td>{ms(item['p50_ms'])}</td><td>{ms(item['p95_ms'])}</td></tr>" for index, (name, item) in enumerate(ranked, 1))
+    rows = "".join(f"<tr><td>{index}</td><td><a href=\"../providers/{slug(name)}.html\"><b>{esc(name)}</b></a></td><td>{pct(item['transport_success_rate'])}</td><td>{pct(item['content_pass_rate'])}</td><td>{pct(item.get('mean_fact_coverage'))}</td><td>{pct(item.get('mean_word_f1'))}</td><td>{ms(item['p50_ms'])}</td><td>{ms(item['p95_ms'])}</td></tr>" for index, (name, item) in enumerate(ranked, 1))
     case_rows = []
     for case_id, items in sorted(by_case.items()):
         cells = []
@@ -244,13 +281,50 @@ def _write_analysis_page(report_dir: Path, summary: dict[str, Any], by_case: dic
             if item["ok"] and item["metrics"]["content_pass"]:
                 continue
             misses = ", ".join(fact["id"] for fact in item["metrics"].get("fact_results", []) if not fact["pass"])
-            reason = item.get("error_message") or (f"missing facts: {misses}" if misses else "strict content validation failed")
+            forbidden = ", ".join(item["metrics"].get("forbidden_hits", []))
+            if item.get("error_message"):
+                reason = item["error_message"]
+            elif misses and forbidden:
+                reason = f"缺失事实组：{misses}；仍含样板/错误噪声：{forbidden}"
+            elif misses:
+                reason = f"缺失事实组：{misses}"
+            elif forbidden:
+                reason = f"正文已取回，但仍含样板/错误噪声：{forbidden}"
+            elif not item["metrics"].get("length_pass", True):
+                reason = "输出短于该案例的最低正文长度"
+            else:
+                reason = "确定性内容规则未通过"
             failure_rows.append(f"<tr><td><a href=\"../attempts/{slug(item['attempt_id'])}.html\">{esc(item['provider'])}</a></td><td>{esc(item['case_name'])}</td><td><code>{esc(item.get('error_type') or 'content_validation')}</code></td><td>{esc(reason)}</td></tr>")
     auth_failures = [r for items in by_case.values() for r in items if r.get("error_type") == "authentication"]
     auth_note = f"<div class=\"callout failure\"><b>认证失败也是实测结果：</b>{len(auth_failures)} 次。它只说明当前环境凭据不可用，不证明供应商产品能力差；修复凭据后必须重跑，不能人工补分。</div>" if auth_failures else ""
     rate_limited = [r for items in by_case.values() for r in items if r.get("status_code") == 429]
     rate_note = f"<div class=\"callout\"><b>账户限流污染本轮可用性：</b>{len(rate_limited)} 次 HTTP 429。当前报告按真实请求计为失败，但该比例不能直接外推为供应商内容能力；应在额度充足或限额重置后创建新 run 重测，不能删除本轮记录。</div>" if rate_limited else ""
     body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">结果分析</div><h1>评测结果分析</h1><p class="lead">排序优先机器内容初判通过率，其次事实覆盖率，再其次有效内容 P50。这样可以避免“很快返回错误页”胜出。</p></div></section><section class="section"><div class="wrap">{auth_note}{rate_note}<h2>主榜（可读正文契约）</h2><div class="table-wrap"><table><thead><tr><th>排名</th><th>方法</th><th>请求成功率</th><th>机器内容初判通过率</th><th>事实覆盖率</th><th>有效 P50</th><th>有效 P95</th></tr></thead><tbody>{rows}</tbody></table></div><p class="tiny">最终结论仍需人工复核；主榜耗时只统计机器内容初判通过的有效调用。</p></div></section><section class="section"><div class="wrap"><h2>失败根因明细</h2><div class="table-wrap"><table><thead><tr><th>方法</th><th>案例</th><th>分类</th><th>可操作原因</th></tr></thead><tbody>{''.join(failure_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>逐案例根因入口</h2><div class="table-wrap"><table><thead><tr><th>案例</th><th>方法状态与事实覆盖率</th></tr></thead><tbody>{''.join(case_rows)}</tbody></table></div></div></section><section class="section"><div class="wrap"><h2>结论边界</h2><ul><li>内容正确性由冻结标注和人工复核共同决定，输出越长不等于越完整；字符数只作诊断。</li><li>一次运行用于发现功能缺口，不代表长期稳定性或 SLA。</li><li>供应商公开 credits 与实际美元成本不是同一概念；没有公开价时不做价格胜负断言。</li><li>登录、保护站点与搜索召回需要独立数据集，不能从本轮外推。</li></ul></div></section>"""
+    drift_rows = []
+    for case_id, items in sorted(by_case.items()):
+        all_transport_failed = all(not item["ok"] for item in items)
+        no_provider_hit_fact = all(item["metrics"].get("fact_coverage", 0) == 0 for item in items)
+        if all_transport_failed or no_provider_hit_fact:
+            signal = "全部方法请求失败" if all_transport_failed else "全部方法事实覆盖率为 0"
+            drift_rows.append(f"<tr><td><a href=\"../datasets/{slug(case_id)}.html\">{esc(items[0]['case_name'])}</a></td><td>{signal}</td><td>人工打开源页；若内容已变选择“标准答案/页面已漂移”，若题目无效选择“案例无效”</td></tr>")
+    if drift_rows:
+        body += f"<section class=\"section\"><div class=\"wrap\"><h2>标准答案漂移候选队列</h2><p>这些信号不能自动证明供应商失败，也不能自动证明题目失效；它们只提高 HIL 复核优先级。</p><div class=\"table-wrap\"><table><thead><tr><th>案例</th><th>触发信号</th><th>复核动作</th></tr></thead><tbody>{''.join(drift_rows)}</tbody></table></div></div></section>"
+    segment_names = (
+        ("核心能力题", lambda value: not value.startswith(("wcxb-", "lm-"))),
+        ("WCXB 七类页面", lambda value: value.startswith("wcxb-")),
+        ("lightmount-dark 渲染题", lambda value: value.startswith("lm-")),
+    )
+    segment_rows = []
+    provider_names = sorted({item["provider"] for items in by_case.values() for item in items})
+    for provider in provider_names:
+        for segment_name, predicate in segment_names:
+            selected = [item for case_id, items in by_case.items() if predicate(case_id) for item in items if item["provider"] == provider]
+            passed = sum(item["ok"] and item["metrics"]["content_pass"] for item in selected)
+            transported = sum(item["ok"] for item in selected)
+            word_scores = [item["metrics"].get("word_f1") for item in selected if item["metrics"].get("word_f1") is not None]
+            mean_word = round(statistics.mean(word_scores), 4) if word_scores else None
+            segment_rows.append(f"<tr><td>{esc(provider)}</td><td>{segment_name}</td><td>{transported}/{len(selected)}</td><td>{passed}/{len(selected)}</td><td>{pct(mean_word)}</td></tr>")
+    body += f"<section class=\"section\"><div class=\"wrap\"><h2>按数据来源拆分结果</h2><p>核心题测协议与特殊能力；WCXB 重点测正文完整性和样板噪声；lightmount-dark 子集测渲染与文档模板。三者不能只看一个总分。</p><div class=\"table-wrap\"><table><thead><tr><th>方法</th><th>来源分段</th><th>请求成功</th><th>机器内容初判通过</th><th>词级 F1</th></tr></thead><tbody>{''.join(segment_rows)}</tbody></table></div></div></section>"
     write_page(report_dir / "analysis" / "index.html", layout(title="结果分析", body=body, base="../"))
 
 
@@ -411,7 +485,7 @@ def _write_attempt_pages(report_dir: Path, dataset: dict[str, Any], records: lis
 <section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>{esc(case.get('task_prompt',''))}</p><p><b>输入 URL：</b><a href="{esc(record['url'])}">{esc(record['url'])}</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>{esc(case.get('reference_answer',''))}</pre></div><div><h3>人工检查清单</h3><div class="card"><ul>{checklist}</ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
 <section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../{esc(record['artifact_path'])}" download>下载本次完整输出（.txt）</a> · <a href="{esc(record['url'])}">打开标准答案源网页</a> · 完整性校验 <code>sha256:{esc(record['metrics'].get('content_sha256',''))}</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>{esc(case.get('reference_answer',''))}</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>{esc(preview)}</pre></div></div>{truncation}<details><summary>展开本页中的完整供应商输出（{len(display):,} / {len(content):,} 字符）</summary><pre>{esc(display)}</pre></details></div></section>
 <section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2>{error}<div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>{esc(record['attempt_id'])}</code></div><div class="kv"><b>HTTP 状态</b>{esc(record['status_code']) or '—'}</div><div class="kv"><b>最终 URL</b><span class="break">{esc(record['final_url']) or '—'}</span></div><div class="kv"><b>输出大小</b>{record['metrics']['content_chars']:,} 字符</div><div class="kv"><b>事实覆盖率</b>{pct(record['metrics'].get('fact_coverage'))}</div><div class="kv"><b>最小长度</b>{'通过' if record['metrics'].get('length_pass',True) else '未通过'}</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody>{fact_rows or '<tr><td colspan="4">没有事实组</td></tr>'}</tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p>{expected}</p><p>{matched}</p><details><summary>供应商元数据</summary><pre>{metadata}</pre></details></div></section>
-<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview({aid})'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview({aid})'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview({aid}));</script>"""
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview({aid})'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview({aid})'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview({aid}));</script>"""
         write_page(report_dir / "attempts" / f"{slug(record['attempt_id'])}.html", layout(title=record["attempt_id"], body=body, base="../"))
 
 
@@ -422,5 +496,5 @@ def _write_review_page(report_dir: Path, dataset: dict[str, Any], records: list[
     for record in ordered:
         label, cls = status(record)
         rows.append(f"<tr><td><a href=\"../attempts/{slug(record['attempt_id'])}.html\"><b>{esc(record['provider'])}</b> · {esc(record['case_name'])}</a></td><td>{esc(cases[record['case_id']].get('task_prompt',''))}</td><td class=\"{cls}\">{label}</td><td>{pct(record['metrics'].get('fact_coverage'))}</td><td>{ms(record['elapsed_ms'])}</td></tr>")
-    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">Human in the loop</div><h1>人工复核队列</h1><p class="lead">机器初判仅用于排序和定位问题，最终质量结论由复核人逐条确认。未通过的调用排在前面；每条详情页都展示完整题目、标准答案、供应商输出和导出式复核表单。</p><div class="meta"><span class="pill">{len(records)} 条调用记录</span><span class="pill">数据集 {esc(dataset['id'])}</span></div></div></section><section class="section"><div class="wrap"><div class="callout"><b>保存方式：</b>“保存到当前浏览器”使用 localStorage，不会修改仓库；“导出 JSON”可交给第二人汇总。正式发布时应把复核 JSON 纳入版本控制并记录复核人、时间和理由。</div><button class="button" onclick="exportAllReviews()">导出当前浏览器中的全部复核 JSON</button><div class="table-wrap" style="margin-top:18px"><table><thead><tr><th>调用记录</th><th>题目摘要</th><th>机器初判</th><th>事实覆盖率</th><th>耗时</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
+    body = f"""<section class="hero"><div class="wrap"><div class="eyebrow">人工参与复核</div><h1>人工复核队列</h1><p class="lead">机器初判仅用于排序和定位问题，最终质量结论由复核人逐条确认。未通过的调用排在前面；每条详情页都展示完整题目、标准答案、供应商输出和导出式复核表单。</p><div class="meta"><span class="pill">{len(records)} 条调用记录</span><span class="pill">数据集 {esc(dataset['id'])}</span></div></div></section><section class="section"><div class="wrap"><div class="callout"><b>先判断案例是否仍有效：</b>如果 live 页面已经变化、下线或 WCXB 固定答案不再适用，应选择“标准答案/页面已漂移”或“案例无效”并排除本条，不能把它算成供应商失败。</div><div class="callout" style="margin-top:12px"><b>保存方式：</b>“保存到当前浏览器”使用 localStorage，不会修改仓库；“导出 JSON”可交给第二人汇总。正式发布时应把复核 JSON 纳入版本控制并记录复核人、时间和理由。</div><button class="button" onclick="exportAllReviews()">导出当前浏览器中的全部复核 JSON</button><div class="table-wrap" style="margin-top:18px"><table><thead><tr><th>调用记录</th><th>题目摘要</th><th>机器初判</th><th>事实覆盖率</th><th>耗时</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></section>"""
     write_page(report_dir / "review" / "index.html", layout(title="人工复核队列", body=body, base="../"))

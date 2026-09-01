@@ -1,0 +1,145 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>cowagent-built-in__lexmount-doc__r001</title><link rel="stylesheet" href="../assets/style.css"></head><body>
+<header class="top"><nav class="wrap"><a class="brand" href="../index.html">Web Fetch 评测</a><a href="../datasets/index.html">评测集</a><a href="../benchmarks/index.html">基准来源</a><a href="../environment/index.html">环境</a><a href="../methodology/index.html">方法</a><a href="../providers/index.html">结果</a><a href="../analysis/index.html">分析</a><a href="../review/index.html">人工复核</a><a href="../execution/index.html">复现</a><a href="../market/index.html">市场</a><a href="../adoption/index.html">开源采用</a><a href="../integration/index.html">集成</a><a href="../accounts/index.html">账号</a></nav></header>
+<main><section class="hero"><div class="wrap"><div class="eyebrow">调用详情 · cowagent-built-in</div><h1>Lexmount WebFetch quick start</h1><div class="meta"><span class="pill good">机器内容初判通过</span><span class="pill">第 1 次</span><span class="pill">514 ms</span><span class="pill" id="review-state">人工复核：未完成</span></div></div></section>
+<section class="section"><div class="wrap"><h2>1. 完整题目与标准答案</h2><div class="card"><h3>给参评方法的任务</h3><p>读取 Lexmount WebFetch 快速开始文档。输出必须保留调用端点、两个鉴权头以及正文响应字段，足以让工程师据此完成最小接入。</p><p><b>输入 URL：</b><a href="https://browser.lexmount.com/docs/webfetch/quickstart">https://browser.lexmount.com/docs/webfetch/quickstart</a></p></div><div class="compare" style="margin-top:14px"><div><h3>参考答案</h3><pre>调用 POST /v1/extract。请求使用 X-API-Key 和 X-Project-Id 进行鉴权；可读正文位于响应的 main_text 字段。</pre></div><div><h3>人工检查清单</h3><div class="card"><ul><li>是否包含 POST /v1/extract</li><li>是否同时包含 X-API-Key 与 X-Project-Id</li><li>是否包含 main_text 响应字段</li></ul><p class="tiny">参考答案用于人工理解正确结果；机器初判实际使用下方冻结事实组与规则。</p></div></div></div></div></section>
+<section class="section"><div class="wrap"><h2>2. 供应商实际输出</h2><p><a href="../artifacts/cowagent-built-in/lexmount-doc/run-001.txt" download>下载本次完整输出（.txt）</a> · <a href="https://browser.lexmount.com/docs/webfetch/quickstart">打开标准答案源网页</a> · 完整性校验 <code>sha256:e9ec39a8dc6560f4b1144ba1125f664cfb7a2c4e4c9d8a038983ef9e90428a08</code></p><div class="callout">这里的 .txt 是供应商返回内容，不是原网页文件。浏览器直接打开时会按纯文本显示；请用下方并排区域或“展开完整输出”核验。</div><div class="compare"><div><h3>标准答案</h3><pre>调用 POST /v1/extract。请求使用 X-API-Key 和 X-Project-Id 进行鉴权；可读正文位于响应的 main_text 字段。</pre></div><div><h3>供应商输出预览（前 1,800 字符）</h3><pre>Title: Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI Agents
+
+Content:
+Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI AgentsLexmount BrowserLexmount BrowserSearch docs⌘KHomepageChoose an APILexmount DocumentationBrowser SDKsPython SDKNode.js SDKWebFetch APIWebFetch APIToggle modeTable of ContentsQuick StartSend your first WebFetch request and understand the default response behavior.Copy MarkdownOpenUse Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+The most practical starting point is POST /v1/extract.
+Authentication
+
+The API is currently in internal testing
+External requests must include both X-API-Key and X-Project-Id
+Create or copy them from https://browser.lexmount.cn/settings/api-keys
+For overseas access, use https://browser.lexmount.com/settings/api-keys and replace the endpoint with https://api.lexmount.com
+
+Send Your First Request
+API_KEY=&amp;#x27;&lt;your-api-key&gt;&amp;#x27;
+PROJECT_ID=&amp;#x27;&lt;your-project-id&gt;&amp;#x27;
+
+curl -sS -X POST https://api.lexmount.cn/v1/extract \
+-H &amp;#x27;Content-Type: application/json&amp;#x27; \
+-H &quot;X-API-Key: $API_KEY&quot; \
+-H &quot;X-Project-Id: $PROJECT_ID&quot; \
+-d &amp;#x27;{
+&quot;extract&quot;: {
+&quot;url&quot;: &quot;https://example.com&quot;
+}
+}&amp;#x27;
+Typical response:
+{
+&quot;request_id&quot;: &quot;01964d0f-5f3a-7c3d-8a41-1234567890ab&quot;,
+&quot;result&quot;: {
+&quot;url&quot;: &quot;https://example.com&quot;,
+&quot;final_url&quot;: &quot;https://example.com&quot;,
+&quot;status_code&quot;: 200,
+&quot;title&quot;: &quot;Example Domain&quot;,
+&quot;description&quot;: &quot;Example Domain&quot;,
+&quot;main_text&quot;: &quot;Example Domain This domain is for use in illustrative examples in documents.&quot;,
+&quot;engine&quot;: &quot;http&quot;,
+&quot;dom_id&quot;: &quot;dom_123&quot;
+},
+&quot;metadata&quot;: {
+&quot;dom_id&quot;: &quot;dom_123&quot;,
+&quot;server_elapsed_ms&quot;: 1234
+}
+}
+Every JSON response also includes a top-level request_id. The same value is</pre></div></div><details><summary>展开本页中的完整供应商输出（3,159 / 3,159 字符）</summary><pre>Title: Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI Agents
+
+Content:
+Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI AgentsLexmount BrowserLexmount BrowserSearch docs⌘KHomepageChoose an APILexmount DocumentationBrowser SDKsPython SDKNode.js SDKWebFetch APIWebFetch APIToggle modeTable of ContentsQuick StartSend your first WebFetch request and understand the default response behavior.Copy MarkdownOpenUse Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.
+The most practical starting point is POST /v1/extract.
+Authentication
+
+The API is currently in internal testing
+External requests must include both X-API-Key and X-Project-Id
+Create or copy them from https://browser.lexmount.cn/settings/api-keys
+For overseas access, use https://browser.lexmount.com/settings/api-keys and replace the endpoint with https://api.lexmount.com
+
+Send Your First Request
+API_KEY=&amp;#x27;&lt;your-api-key&gt;&amp;#x27;
+PROJECT_ID=&amp;#x27;&lt;your-project-id&gt;&amp;#x27;
+
+curl -sS -X POST https://api.lexmount.cn/v1/extract \
+-H &amp;#x27;Content-Type: application/json&amp;#x27; \
+-H &quot;X-API-Key: $API_KEY&quot; \
+-H &quot;X-Project-Id: $PROJECT_ID&quot; \
+-d &amp;#x27;{
+&quot;extract&quot;: {
+&quot;url&quot;: &quot;https://example.com&quot;
+}
+}&amp;#x27;
+Typical response:
+{
+&quot;request_id&quot;: &quot;01964d0f-5f3a-7c3d-8a41-1234567890ab&quot;,
+&quot;result&quot;: {
+&quot;url&quot;: &quot;https://example.com&quot;,
+&quot;final_url&quot;: &quot;https://example.com&quot;,
+&quot;status_code&quot;: 200,
+&quot;title&quot;: &quot;Example Domain&quot;,
+&quot;description&quot;: &quot;Example Domain&quot;,
+&quot;main_text&quot;: &quot;Example Domain This domain is for use in illustrative examples in documents.&quot;,
+&quot;engine&quot;: &quot;http&quot;,
+&quot;dom_id&quot;: &quot;dom_123&quot;
+},
+&quot;metadata&quot;: {
+&quot;dom_id&quot;: &quot;dom_123&quot;,
+&quot;server_elapsed_ms&quot;: 1234
+}
+}
+Every JSON response also includes a top-level request_id. The same value is returned in the X-Request-ID response header for log correlation and support debugging.
+What You Get
+POST /v1/extract is the all-in-one endpoint. It handles:
+
+page fetching
+template matching
+background generation when needed
+final structured extraction
+
+Common fields in result include:
+
+title
+description
+main_text
+final_url
+author
+publish_time
+links
+images
+engine
+dom_id
+
+Top-level debugging fields:
+
+request_id
+
+When To Use Dump DOM
+Use POST /v1/dom/dump when you need the captured HTML itself, want to inspect rendering output, or want to reuse a dom_id in a later extraction request.
+curl -sS -X POST https://api.lexmount.cn/v1/dom/dump \
+-H &amp;#x27;Content-Type: application/json&amp;#x27; \
+-H &quot;X-API-Key: $API_KEY&quot; \
+-H &quot;X-Project-Id: $PROJECT_ID&quot; \
+-d &amp;#x27;{&quot;url&quot;:&quot;https://example.com&quot;}&amp;#x27; \
+| jq &amp;#x27;{final_url, engine, dom_id, html_len:(.html|length)}&amp;#x27;
+Optional Debug Fields
+POST /v1/extract does not return trace or raw_dom by default.
+
+If you need workflow diagnostics, see Enable Trace
+If you need raw_dom in the response, see Return Raw DOM
+
+Next
+
+See All-in-One Extract for the full /v1/extract request and response shape
+See Dump DOM for /v1/dom/dump options and reuse patterns
+See Common Errors for troubleshooting guidance
+Table of ContentsAuthenticationSend Your First RequestWhat You GetWhen To Use Dump DOMOptional Debug FieldsNext</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>3. 机器初判（不是最终结论）</h2><div class="attempt-grid" style="margin-top:16px"><div class="kv"><b>调用 ID</b><code>cowagent-built-in__lexmount-doc__r001</code></div><div class="kv"><b>HTTP 状态</b>—</div><div class="kv"><b>最终 URL</b><span class="break">https://browser.lexmount.com/docs/webfetch/quickstart</span></div><div class="kv"><b>输出大小</b>3,159 字符</div><div class="kv"><b>事实覆盖率</b>100.0%</div><div class="kv"><b>最小长度</b>通过</div></div><h3>事实组逐条判定</h3><div class="table-wrap"><table><thead><tr><th>事实组</th><th>机器状态</th><th>可接受表达</th><th>实际命中</th></tr></thead><tbody><tr><td><code>endpoint</code></td><td class="good">命中</td><td>POST /v1/extract / /v1/extract</td><td>POST /v1/extract / /v1/extract</td></tr><tr><td><code>api-key</code></td><td class="good">命中</td><td>X-API-Key</td><td>X-API-Key</td></tr><tr><td><code>project-id</code></td><td class="good">命中</td><td>X-Project-Id</td><td>X-Project-Id</td></tr><tr><td><code>content-field</code></td><td class="good">命中</td><td>main_text</td><td>main_text</td></tr></tbody></table></div><h3>显著标记：预期 / 实际命中</h3><p><span class="tag">WebFetch</span></p><p><span class="tag">WebFetch</span></p><details><summary>供应商元数据</summary><pre>{
+  &quot;tool_status&quot;: &quot;success&quot;,
+  &quot;source_file&quot;: &quot;/Users/lianglinkai/.codex/worktrees/8d3d/CowAgent/agent/tools/web_fetch/web_fetch.py&quot;,
+  &quot;cowagent_default_timeout_seconds&quot;: 30,
+  &quot;harness_timeout_seconds&quot;: 45.0,
+  &quot;configured_min_interval_seconds&quot;: 0.0,
+  &quot;client_throttle_wait_ms&quot;: 0.0
+}</pre></details></div></section>
+<section class="section"><div class="wrap"><h2>4. 人工二次复核（HIL）</h2><p class="lead">请先并排阅读标准答案与完整输出，再独立作出最终判断。人工结论可以推翻机器初判，但必须填写理由。</p><form id="hil-form" class="review-form"><label>复核人</label><input name="reviewer" placeholder="姓名或工号"><label>最终结论</label><select name="decision"><option value="">请选择</option><option value="pass">通过</option><option value="fail">不通过</option><option value="dataset_drift">标准答案/页面已漂移，排除本条</option><option value="invalid_case">案例无效，排除本条</option><option value="uncertain">不确定，需升级复核</option></select><label>正确性</label><select name="correctness"><option value="">请选择</option><option value="complete">正确</option><option value="partial">部分正确</option><option value="wrong">错误</option></select><label>完整性</label><select name="completeness"><option value="">请选择</option><option value="complete">完整</option><option value="partial">部分缺失</option><option value="empty">严重缺失</option></select><label>可读性</label><select name="readability"><option value="">请选择</option><option value="good">可直接供 Agent 使用</option><option value="noisy">可用但噪声较多</option><option value="unusable">不可用</option></select><label>复核说明（必填）</label><textarea name="notes" placeholder="说明命中、缺失或误判的具体内容"></textarea><button class="button" type="button" onclick='saveReview("cowagent-built-in__lexmount-doc__r001")'>保存到当前浏览器</button><button class="button" type="button" onclick='downloadReview("cowagent-built-in__lexmount-doc__r001")'>导出本条复核 JSON</button></form></div></section><script>window.addEventListener('DOMContentLoaded',()=>loadReview("cowagent-built-in__lexmount-doc__r001"));</script></main><footer class="footer"><div class="wrap">Web Fetch 可复现评测<br><span class="tiny">报告由持久化原始结果生成，不包含任何凭据。</span></div></footer><script src="../assets/review.js"></script></body></html>

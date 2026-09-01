@@ -1,9 +1,21 @@
 import unittest
 
-from browser_harness_eval.metrics import evaluate_content, summarize
+from browser_harness_eval.metrics import evaluate_content, normalize_for_match, summarize, word_overlap
 
 
 class MetricsTest(unittest.TestCase):
+    def test_word_overlap_penalizes_missing_and_boilerplate_words(self) -> None:
+        precision, recall, score = word_overlap("alpha beta beta navigation", "alpha beta beta gamma")
+        self.assertEqual((precision, recall), (0.75, 0.75))
+        self.assertEqual(score, 0.75)
+
+    def test_matching_normalizes_whitespace_and_typography(self) -> None:
+        self.assertEqual(normalize_for_match("A\nB — it’s ready"), "a b - it's ready")
+        result = evaluate_content(
+            "A B - it's ready", ["A\nB — it’s ready"],
+            required_facts=[{"id": "normalized", "alternatives": ["A\nB — it’s ready"]}],
+        )
+        self.assertTrue(result["content_pass"])
     def test_content_metrics_are_deterministic(self) -> None:
         result = evaluate_content("# Title\n[Link](https://example.com) Alpha", ["Alpha", "Beta"])
         self.assertTrue(result["content_pass"])

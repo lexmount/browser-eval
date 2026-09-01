@@ -1,10 +1,11 @@
 # 标准答案与人工复核协议
 
-Dataset: `public-webfetch-v3.0-hil`
+Dataset: `public-webfetch-v4.0-50-hil`
 
 Review date: 2026-09-01
 
-Annotator: Codex
+Sources: 10 条 Codex 首轮人工核心题；28 条 WCXB 固定提交人工复核答案；12 条
+`lightmount-dark` 渲染质量种子及本项目新增事实组。
 
 标准答案在供应商评分之前冻结。事实来自源网页，不从任何参评供应商输出反推。
 每个案例包含完整题目、参考答案、事实组、错误页标记、源页面证据和人工检查清单。
@@ -35,7 +36,7 @@ length and no registered error/challenge marker.
 {
   "attempt_id": "provider__case__r001",
   "reviewer": "reviewer-id",
-  "decision": "pass | fail | uncertain",
+  "decision": "pass | fail | dataset_drift | invalid_case | uncertain",
   "correctness": "complete | partial | wrong",
   "completeness": "complete | partial | empty",
   "readability": "good | noisy | unusable",

@@ -26,7 +26,8 @@
       "base_url": "https://api.firecrawl.dev",
       "api_key": "${FIRECRAWL_API_KEY:-}",
       "max_age": 0,
-      "max_bytes": 20000000
+      "max_bytes": 20000000,
+      "min_interval_seconds": 6.1
     },
     "tavily": {
       "type": "tavily_extract",
@@ -47,7 +48,8 @@
       "api_token": "${CLOUDFLARE_API_TOKEN}",
       "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
       "max_bytes": 20000000,
-      "wait_until": "networkidle2"
+      "wait_until": "networkidle2",
+      "min_interval_seconds": 10.5
     },
     "cloudflare-content": {
       "type": "cloudflare_content",
