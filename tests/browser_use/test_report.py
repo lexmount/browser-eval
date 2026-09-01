@@ -48,7 +48,10 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
     assert "结果正确率是主指标" in rendered
-    assert "配对比值 mean" in rendered
+    assert "Moli / Chromium 平均值" in rendered
+    assert rendered.index("Chromium P50") < rendered.index("Chromium 平均值")
+    assert rendered.index("Chromium 平均值") < rendered.index("Chromium P95")
+    assert rendered.index("Chromium P95") < rendered.index("Moli P50")
     assert (reports / "browser-use-evaluation-latest-suite.html").exists()
     assert (reports / "browser-use-evaluation-latest-method.html").exists()
     assert (reports / "browser-use-evaluation-latest-results.html").exists()
@@ -113,15 +116,24 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
         },
     )
     results = (reports / "browser-use-evaluation-latest-results.html").read_text(encoding="utf-8")
-    assert "<details" in results
-    assert "FULL STACK TRACE" in results
-    assert "完整执行轨迹" in results
-    assert "BrowserTool 方法" in results
-    assert 'id="f-status"' in results
-    assert 'id="f-combined"' in results
-    assert 'id="f-action"' in results
-    assert 'id="f-query"' in results
-    assert "ground truth 判定" in results
-    assert "unique-answer" in results
-    assert "未产生（过程失败）" in results
-    assert "未判定" in results
+    analysis = (reports / "browser-use-evaluation-latest-analysis.html").read_text(encoding="utf-8")
+    assert "执行记录与原始证据" not in results
+    assert "逐任务对比" not in results
+    assert "执行记录与原始证据" in analysis
+    assert "逐任务对比" in analysis
+    assert "<details" in analysis
+    assert "FULL STACK TRACE" in analysis
+    assert "完整执行轨迹" in analysis
+    assert "BrowserTool 方法" in analysis
+    assert 'id="f-status"' in analysis
+    assert 'id="f-combined"' in analysis
+    assert 'id="f-action"' in analysis
+    assert 'id="f-query"' in analysis
+    assert 'id="f-failures"' in analysis
+    assert 'aria-live="polite"' in analysis
+    assert "ground truth 判定" in analysis
+    assert "unique-answer" in analysis
+    assert "未产生（过程失败）" in analysis
+    assert "未判定" in analysis
+    assert "LLM 根因假设" not in analysis
+    assert "未启用 LLM" not in analysis
