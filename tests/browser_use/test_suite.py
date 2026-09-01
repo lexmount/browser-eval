@@ -109,3 +109,15 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     assert len(set(scenarios)) == 15
     assert all(task.step_count >= 4 for task in probes if task.complexity == "medium")
     assert all(task.step_count >= 5 for task in probes if task.complexity == "complex")
+
+
+def test_suite_sources_are_limited_to_declared_lexmount_repositories():
+    suite = load_suite("examples/browser_use/tasks.v4.json")
+    allowed = (
+        "https://github.com/lexmount/Lexbench-Headless-Browser",
+        "https://github.com/lexmount/moli",
+    )
+    assert all(
+        str(task.source.get("url") or "").startswith(allowed)
+        for task in suite.tasks
+    )

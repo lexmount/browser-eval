@@ -316,7 +316,7 @@ def _suite_page(manifest: dict[str, Any]) -> str:
             f'<section class="card"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><p>{_e(purpose)}</p><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次 BrowserTool 调用</span><span class="chip">结果唯一 · 参考路径固定</span>{chips}<details><summary>查看调用、标准答案与来源</summary>{call_html}<h3>参考执行路径</h3><p>本工具层微基准由程序重放以下路径，并检查全部调用成功：<code>{_e(" → ".join(truth.get("expected_actions") or []))}</code>。这不表示网页任务只有这一种解法；自由规划 Agent 应按必要里程碑、禁止动作和步数预算评价过程。</p><h3>标准答案</h3>{_table(["输出字段", "唯一预期值", "判定"], expected_rows, "机器判定答案")}<p><strong>推导：</strong>{_e(truth.get("derivation"))}</p><p><strong>任务来源：</strong>{source_html}</p><p><strong>覆盖范围：</strong>{_e(coverage)}</p><p><strong>待验证假设：</strong>{_e(hypothesis)}</p></details></section>'
         )
     return (
-        f'<section class="card note"><h2>评测集设计</h2><p>本轮共 {len(suite)} 个任务，按难度分为{difficulty_summary}。使用固定版本的自托管测试页面，覆盖读取、点击、输入、选择、键盘、异步状态、分页、历史、目录、表单、购物车和结算。任务结构参考并部分改编自 Lexbench-Headless-Browser；每题都标注参考执行路径、唯一预期输出、推导、来源、覆盖范围和待验证假设。</p><p><strong>答案唯一，路径未必唯一：</strong>标准答案是唯一字符串；<code>expected_actions</code> 是本轮由评测程序重放的参考路径，不声称是任务的唯一解。</p><p><strong>成功判定：</strong>程序对实际输出和标准答案做严格字符串相等判断，不使用 LLM-as-a-Judge。</p></section>'
+        f'<section class="card note"><h2>评测集设计</h2><p>本轮共 {len(suite)} 个任务，按难度分为{difficulty_summary}。使用固定版本的自托管测试页面，覆盖读取、点击、输入、选择、键盘、异步状态、分页、历史、目录、表单、购物车和结算。任务与覆盖面只参考并部分改编自 <code>lexmount/Lexbench-Headless-Browser</code> 和 <code>lexmount/moli</code> 两个仓库；前者提供场景与 fixture 依据，后者提供待验证的能力边界与实现线索。每题都标注参考执行路径、唯一预期输出、推导、来源、覆盖范围和待验证假设。</p><p><strong>答案唯一，路径未必唯一：</strong>标准答案是唯一字符串；<code>expected_actions</code> 是本轮由评测程序重放的参考路径，不声称是任务的唯一解。</p><p><strong>成功判定：</strong>程序对实际输出和标准答案做严格字符串相等判断，不使用 LLM-as-a-Judge。</p></section>'
         + "".join(cards)
     )
 
@@ -388,6 +388,17 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
     task_specs = {
         str(task.get("task_id")): task for task in manifest.get("suite") or []
     }
+    diagnostic_by_attempt = {
+        (
+            str(group.get("task_id")),
+            str(group.get("engine")),
+            int(attempt_ref.get("attempt") or 1),
+        ): str(group.get("category") or "其他")
+        for group in (
+            (((summary.get("failure_diagnostics") or {}).get("rule_engine") or {}).get("groups") or [])
+        )
+        for attempt_ref in (group.get("attempts") or [])
+    }
     blocks = []
     for task_id, task in (summary.get("by_task") or {}).items():
         title = TASK_META.get(str(task_id), (str(task.get("title") or task_id), ""))[0]
@@ -454,7 +465,14 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
                     ]],
                     "参考路径执行判定",
                 ) if process_validation else "<p>该历史样本未记录独立过程判定。</p>"
-                error_category = _classify(str(attempt.get("error") or "")) if status == "fail" else "无错误"
+                error_category = (
+                    diagnostic_by_attempt.get(
+                        (str(task_id), str(engine), attempt_number),
+                        _classify(str(attempt.get("error") or "")),
+                    )
+                    if status == "fail"
+                    else "无错误"
+                )
                 actions = sorted({str(c.get("action")) for c in attempt.get("trace") or [] if c.get("action") != "validate_assertions"})
                 tags = task.get("tags") or []
                 result_label = "正确" if result_status == "pass" else "错误"
