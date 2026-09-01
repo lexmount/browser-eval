@@ -11,27 +11,42 @@ class Links(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.values: list[str] = []
+        self.ids: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         for key, value in attrs:
             if key in {"href", "src"} and value:
                 self.values.append(value)
+            if key == "id" and value:
+                self.ids.add(value)
 
 
 def main() -> int:
     root = Path(sys.argv[1]).resolve()
     missing: list[str] = []
     pages = list(root.rglob("*.html"))
+    parsed_pages: dict[Path, Links] = {}
+
+    def parse_page(path: Path) -> Links:
+        if path not in parsed_pages:
+            parsed_pages[path] = Links()
+            parsed_pages[path].feed(path.read_text(encoding="utf-8", errors="replace"))
+        return parsed_pages[path]
+
     for page in pages:
-        parser = Links()
-        parser.feed(page.read_text(encoding="utf-8", errors="replace"))
+        parser = parse_page(page)
         for value in parser.values:
             parsed = urlsplit(value)
-            if parsed.scheme or value.startswith(("#", "mailto:")):
+            if parsed.scheme or value.startswith("mailto:"):
                 continue
-            target = (page.parent / unquote(parsed.path)).resolve()
+            target = page if not parsed.path else (page.parent / unquote(parsed.path)).resolve()
             if not target.exists():
                 missing.append(f"{page.relative_to(root)} -> {value}")
+                continue
+            if parsed.fragment and target.suffix.lower() in {".html", ".htm"}:
+                fragment = unquote(parsed.fragment)
+                if fragment not in parse_page(target).ids:
+                    missing.append(f"{page.relative_to(root)} -> {value} (missing fragment)")
     if missing:
         print("Broken local links:")
         print("\n".join(missing))
