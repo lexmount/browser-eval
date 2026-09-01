@@ -47,6 +47,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "结论与产品建议" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
+    assert "结果正确率是主指标" in rendered
+    assert "配对比值 mean" in rendered
     assert (reports / "browser-use-evaluation-latest-suite.html").exists()
     assert (reports / "browser-use-evaluation-latest-method.html").exists()
     assert (reports / "browser-use-evaluation-latest-results.html").exists()
@@ -116,6 +118,7 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert "完整执行轨迹" in results
     assert "BrowserTool 方法" in results
     assert 'id="f-status"' in results
+    assert 'id="f-combined"' in results
     assert 'id="f-action"' in results
     assert 'id="f-query"' in results
     assert "ground truth 判定" in results

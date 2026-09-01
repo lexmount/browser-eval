@@ -268,43 +268,78 @@ def _metric(values: Iterable[int | float]) -> dict[str, int | float | None]:
     }
 
 
+def _passed(row: dict[str, Any], dimension: str) -> bool:
+    field = f"{dimension}_status"
+    value = row.get(field)
+    if value is not None:
+        return value == "pass"
+    return row.get("status") == "pass"
+
+
 def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
     functional: dict[str, Any] = {}
     for engine in engines:
         engine_rows = [row for row in rows if row.get("engine") == engine]
         task_ids = list(dict.fromkeys(str(row["task_id"]) for row in engine_rows))
         first_rows = [row for row in engine_rows if not row.get("is_retry")]
-        first_passes = sum(row.get("status") == "pass" for row in first_rows)
-        final_passes = 0
-        recovered = 0
+        result_first_passes = sum(_passed(row, "result") for row in first_rows)
+        combined_first_passes = sum(_passed(row, "combined") for row in first_rows)
+        result_final_passes = 0
+        combined_final_passes = 0
+        result_recovered = 0
+        combined_recovered = 0
         for task_id in task_ids:
             attempts = [row for row in engine_rows if str(row["task_id"]) == task_id]
-            passed = any(row.get("status") == "pass" for row in attempts)
-            final_passes += int(passed)
-            recovered += int(
+            result_passed = any(_passed(row, "result") for row in attempts)
+            combined_passed = any(_passed(row, "combined") for row in attempts)
+            result_final_passes += int(result_passed)
+            combined_final_passes += int(combined_passed)
+            result_recovered += int(
                 bool(attempts)
-                and attempts[0].get("status") != "pass"
-                and passed
+                and not _passed(attempts[0], "result")
+                and result_passed
+            )
+            combined_recovered += int(
+                bool(attempts)
+                and not _passed(attempts[0], "combined")
+                and combined_passed
             )
         functional[engine] = {
             "tasks": len(task_ids),
             "attempts": len(task_ids),
             "physical_attempts": len(engine_rows),
             "retries": sum(bool(row.get("is_retry")) for row in engine_rows),
-            "first_passes": first_passes,
-            "first_pass_rate": first_passes / len(task_ids) if task_ids else None,
-            "recovered": recovered,
-            "final_passes": final_passes,
-            "passes": final_passes,
-            "final_pass_rate": final_passes / len(task_ids) if task_ids else None,
-            "pass_rate": final_passes / len(task_ids) if task_ids else None,
+            "result_first_passes": result_first_passes,
+            "result_first_pass_rate": result_first_passes / len(task_ids) if task_ids else None,
+            "result_recovered": result_recovered,
+            "result_final_passes": result_final_passes,
+            "result_final_pass_rate": (
+                result_final_passes / len(task_ids) if task_ids else None
+            ),
+            "combined_first_passes": combined_first_passes,
+            "combined_first_pass_rate": (
+                combined_first_passes / len(task_ids) if task_ids else None
+            ),
+            "combined_recovered": combined_recovered,
+            "combined_final_passes": combined_final_passes,
+            "combined_final_pass_rate": (
+                combined_final_passes / len(task_ids) if task_ids else None
+            ),
+            # Backward-compatible aliases use the primary, result-only metric.
+            "first_passes": result_first_passes,
+            "first_pass_rate": result_first_passes / len(task_ids) if task_ids else None,
+            "recovered": result_recovered,
+            "final_passes": result_final_passes,
+            "passes": result_final_passes,
+            "final_pass_rate": result_final_passes / len(task_ids) if task_ids else None,
+            "pass_rate": result_final_passes / len(task_ids) if task_ids else None,
             "duration_ms": _metric(
-                row["duration_ms"] for row in first_rows if row.get("status") == "pass"
+                row["duration_ms"] for row in first_rows if _passed(row, "result")
             ),
             "tool_output_tokens": _metric(
                 row["tool_output_tokens"]
                 for row in first_rows
-                if row.get("status") == "pass"
+                if _passed(row, "result")
                 and isinstance(row.get("tool_output_tokens"), (int, float))
             ),
         }
@@ -316,7 +351,7 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
     intersection = [
         bucket
         for bucket in grouped.values()
-        if all(engine in bucket and bucket[engine].get("status") == "pass" for engine in engines)
+        if all(engine in bucket and _passed(bucket[engine], "result") for engine in engines)
     ]
     metric_names = (
         "cpu_ms",
@@ -441,6 +476,10 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "error": row.get("error", ""),
                             "trace": row.get("trace") or [],
                             "validation": row.get("validation") or [],
+                            "process_validation": row.get("process_validation") or {},
+                            "result_status": row.get("result_status", row.get("status")),
+                            "process_status": row.get("process_status", row.get("status")),
+                            "combined_status": row.get("combined_status", row.get("status")),
                         }
                         for row in task_rows
                         if row.get("engine") == engine and row.get("status") == "fail"
@@ -457,6 +496,10 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "error": row.get("error", ""),
                             "trace": row.get("trace") or [],
                             "validation": row.get("validation") or [],
+                            "process_validation": row.get("process_validation") or {},
+                            "result_status": row.get("result_status", row.get("status")),
+                            "process_status": row.get("process_status", row.get("status")),
+                            "combined_status": row.get("combined_status", row.get("status")),
                         }
                         for row in task_rows
                         if row.get("engine") == engine
@@ -470,7 +513,8 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
     summary["retry_policy"] = {
         engine: {
             "retries": summary["functional"][engine]["retries"],
-            "recovered": summary["functional"][engine]["recovered"],
+            "result_recovered": summary["functional"][engine]["result_recovered"],
+            "combined_recovered": summary["functional"][engine]["combined_recovered"],
         }
         for engine in engines
     }

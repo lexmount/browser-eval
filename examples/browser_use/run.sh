@@ -10,6 +10,9 @@ SETTLE_MS="${BROWSER_USE_EVAL_SETTLE_MS:-1500}"
 CPUS="${BROWSER_USE_EVAL_CPUS:-2}"
 MEMORY="${BROWSER_USE_EVAL_MEMORY:-2g}"
 BUILD_IMAGES="${BROWSER_USE_EVAL_BUILD_IMAGES:-1}"
+LLM_DIAGNOSTICS="${BROWSER_USE_EVAL_LLM_DIAGNOSTICS:-0}"
+DIAGNOSIS_MODEL="${BROWSER_USE_EVAL_DIAGNOSIS_MODEL:-gpt-5.6-sol}"
+DIAGNOSIS_EFFORT="${BROWSER_USE_EVAL_DIAGNOSIS_REASONING_EFFORT:-low}"
 OUTPUT="${BROWSER_USE_EVAL_OUTPUT_DIR:-${ROOT}/artifacts/browser_use/latest}"
 REPORTS="${ROOT}/docs/reports"
 
@@ -49,6 +52,12 @@ else
   RUNNER=("${VENV}/bin/python")
 fi
 
+EXTRA_ARGS=(--diagnosis-model "${DIAGNOSIS_MODEL}" \
+  --diagnosis-reasoning-effort "${DIAGNOSIS_EFFORT}")
+if [[ "${LLM_DIAGNOSTICS}" == "1" ]]; then
+  EXTRA_ARGS+=(--llm-diagnostics)
+fi
+
 "${RUNNER[@]}" -m harness.browser_use.cli \
   --suite "${ROOT}/examples/browser_use/tasks.v4.json" \
   --output "${OUTPUT}" \
@@ -57,7 +66,8 @@ fi
   --sample-interval-ms "${SAMPLE_MS}" \
   --settle-ms "${SETTLE_MS}" \
   --cpus "${CPUS}" \
-  --memory "${MEMORY}"
+  --memory "${MEMORY}" \
+  "${EXTRA_ARGS[@]}"
 
 echo "Raw artifacts: ${OUTPUT}"
 echo "Latest report: ${REPORTS}/browser-use-evaluation-latest.html"

@@ -20,6 +20,7 @@ import docker
 import tiktoken
 from playwright.sync_api import Browser, Page, sync_playwright
 
+from .diagnostics import diagnose_summary
 from .executor import execute_steps, judge_outputs, validate_outputs
 from .metrics import (
     DockerStatsResources,
@@ -196,7 +197,7 @@ def _run_task(
     validation: list[dict[str, Any]] = []
     error = ""
     try:
-        outputs = execute_steps(page, task.tool_calls, trace=trace)
+        execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
         validation = judge_outputs(outputs, task.assertions)
         failures = validate_outputs(outputs, task.assertions)
         status = "pass" if not failures else "fail"
@@ -215,27 +216,44 @@ def _run_task(
     except Exception:
         status = "fail"
         error = traceback.format_exc()
+        validation = judge_outputs(outputs, task.assertions)
     finally:
         duration_ms = (time.perf_counter() - started) * 1000
         sampler.stop()
         page.remove_listener("framenavigated", record_origin)
     after = resources.counters()
+    expected_actions = list(task.ground_truth.get("expected_actions") or [])
+    tool_trace = [item for item in trace if item.get("action") != "validate_assertions"]
+    actual_actions = [str(item.get("action") or "") for item in tool_trace]
+    process_passed = actual_actions == expected_actions and all(
+        item.get("status") == "pass" for item in tool_trace
+    )
+    result_passed = bool(validation) and all(item.get("passed") is True for item in validation)
     return {
         "engine": engine,
         "task_id": task.task_id,
         "title": task.title,
         "complexity": task.complexity,
         "tags": list(task.tags),
-                "step_count": task.step_count,
+        "step_count": task.step_count,
         "attempt": attempt,
         "is_retry": is_retry,
         "status": status,
+        "result_status": "pass" if result_passed else "fail",
+        "process_status": "pass" if process_passed else "fail",
+        "combined_status": "pass" if result_passed and process_passed else "fail",
         "duration_ms": round(duration_ms, 3),
         "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),
         "error": error,
         "trace": trace,
         "validation": validation,
+        "process_validation": {
+            "expected_actions": expected_actions,
+            "actual_actions": actual_actions,
+            "all_calls_passed": all(item.get("status") == "pass" for item in tool_trace),
+            "passed": process_passed,
+        },
         "resource": _resource_result(resources, sampler, before, after, duration_ms),
     }
 
@@ -372,6 +390,9 @@ def run_evaluation(
     settle_ms: int = 1500,
     cpus: float = 2.0,
     memory: str = "2g",
+    llm_diagnostics: bool = False,
+    diagnosis_model: str = "gpt-5.6-sol",
+    diagnosis_reasoning_effort: str = "low",
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
@@ -468,6 +489,12 @@ def run_evaluation(
                     if row["status"] == "pass":
                         break
         summary = summarize_attempts(rows, engines=tuple(ENGINE_IMAGES))
+        diagnose_summary(
+            summary,
+            use_llm=llm_diagnostics,
+            model=diagnosis_model,
+            reasoning_effort=diagnosis_reasoning_effort,
+        )
         manifest = {
             "schema": "lex_browser_use_manifest/2",
             "run_id": run_id,
@@ -493,7 +520,12 @@ def run_evaluation(
                     "one declared CowAgent BrowserTool-equivalent call; implicit waits excluded"
                 ),
                 "llm_scope": (
-                    "none; deterministic BrowserTool-equivalent microbenchmark, not CowAgent E2E"
+                    "LLM never judges success; optional LLM only explains failed traces"
+                ),
+                "llm_failure_diagnostics": llm_diagnostics,
+                "diagnosis_model": diagnosis_model if llm_diagnostics else None,
+                "diagnosis_reasoning_effort": (
+                    diagnosis_reasoning_effort if llm_diagnostics else None
                 ),
                 "cold_start_excluded": True,
                 "state_reset_between_tasks": True,

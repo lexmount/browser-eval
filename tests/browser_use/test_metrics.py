@@ -181,3 +181,27 @@ def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
     assert summary["functional"]["moli"]["final_passes"] == 1
     assert summary["functional"]["moli"]["physical_attempts"] == 2
     assert summary["resource_comparison"]["intersection_attempts"] == 0
+
+
+def test_summary_reports_result_and_combined_correctness_independently():
+    rows = [
+        {
+            "engine": engine,
+            "task_id": "multi-path",
+            "complexity": "medium",
+            "attempt": 1,
+            "status": "pass",
+            "result_status": "pass",
+            "process_status": "fail" if engine == "moli" else "pass",
+            "combined_status": "fail" if engine == "moli" else "pass",
+            "duration_ms": 10,
+            "resource": {"cpu_ms": 1},
+        }
+        for engine in ("chromium", "moli")
+    ]
+
+    summary = summarize_attempts(rows, engines=("chromium", "moli"))
+
+    assert summary["functional"]["moli"]["result_first_passes"] == 1
+    assert summary["functional"]["moli"]["combined_first_passes"] == 0
+    assert summary["resource_comparison"]["intersection_attempts"] == 1

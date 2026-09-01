@@ -16,9 +16,10 @@ def execute_steps(
     tool_calls: Iterable[dict[str, Any]],
     *,
     trace: list[dict[str, Any]] | None = None,
+    outputs: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Execute declared calls; implicit readiness waits are internal and not calls."""
-    outputs: dict[str, str] = {}
+    captured = outputs if outputs is not None else {}
     records = trace if trace is not None else []
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
@@ -116,7 +117,7 @@ def execute_steps(
 
             save_as = call.get("save_as")
             if save_as:
-                outputs[str(save_as)] = observation
+                captured[str(save_as)] = observation
             record["status"] = "pass"
             record["output"] = observation
         except Exception as exc:
@@ -125,7 +126,7 @@ def execute_steps(
             raise
         finally:
             record["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)
-    return outputs
+    return captured
 
 
 def judge_outputs(

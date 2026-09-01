@@ -18,7 +18,7 @@ CPU cores, 6 GiB available memory, and Internet access.
 ```
 
 The command builds pinned browser images, installs the controller in a local
-virtual environment, runs the versioned 10-task public suite, and writes:
+virtual environment, runs the versioned 15-task deterministic suite, and writes:
 
 - raw reproducibility artifacts to `artifacts/browser_use/latest/` (ignored by Git)
 - latest-only Markdown and HTML reports to `docs/reports/`

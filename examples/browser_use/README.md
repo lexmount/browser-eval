@@ -70,8 +70,10 @@ Outputs:
   within-attempt P95, peak, retained memory, MiB-seconds, totals, and rates.
 - Each task runs once per engine. Only a failure triggers a retry (one by
   default). The report separates first-pass rate, retry recovery, and final
-  task success. Resource comparison uses only tasks both engines passed on the
-  first attempt; retries do not enter the normal-path resource baseline.
+  task success. Result correctness is the primary score; result plus completion
+  of the fixed reference path is reported separately. Resource comparison uses
+  only tasks both engines passed on the first attempt; retries and failed tasks
+  do not enter the normal-path resource baseline.
 - Cold start is intentionally separate from this warm-browser report.
 - State reset removes page/site history but cannot force a warm browser process
   to return allocator-reserved memory to its first-run footprint. The report's
@@ -82,6 +84,12 @@ BROWSER_USE_EVAL_FAILURE_RETRIES, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
 BROWSER_USE_EVAL_SETTLE_MS, BROWSER_USE_EVAL_CPUS, BROWSER_USE_EVAL_MEMORY, and
 BROWSER_USE_EVAL_OUTPUT_DIR.
 
+Rule-based failure classification is always enabled. Optional LLM root-cause
+analysis is enabled with `BROWSER_USE_EVAL_LLM_DIAGNOSTICS=1`; it uses
+`gpt-5.6-sol` with low reasoning by default and requires `OPENAI_API_KEY` plus
+`OPENAI_BASE_URL`. The LLM receives only failed-task evidence, produces a
+traceable hypothesis, and never changes pass/fail scoring.
+
 ## Browser-tool call count
 
 One step is one declared BrowserTool-equivalent call: navigate, click, fill,
@@ -89,10 +97,14 @@ get_text, snapshot, scroll, back, or forward. Internal page-readiness and
 locator waits are not separate steps.
 
 The suite has fifteen deterministic tasks: five simple, five medium, and five
-complex. Every task declares an exact action sequence, exact expected outputs,
-derivation, and source attribution. The runner judges both process and result
-programmatically; no LLM-as-a-Judge, fuzzy contains check, or minimum-length
-heuristic is used. Several scenarios are adapted from
+complex. Every task declares a fixed reference action sequence, exact expected
+outputs, derivation, and source attribution. Expected outputs are unique; the
+reference sequence is replayed by this provider-isolation microbenchmark but is
+not claimed to be the only possible solution path. The runner judges result
+correctness and result-plus-process correctness separately and programmatically;
+no LLM-as-a-Judge, fuzzy contains check, or minimum-length heuristic is used. A
+free-planning Agent evaluation should judge required milestones, forbidden
+shortcuts, and a step budget instead of exact sequence identity. Several scenarios are adapted from
 [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser).
 
 ## CubeSandbox
