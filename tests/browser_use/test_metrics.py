@@ -154,28 +154,30 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["by_task"]["b"]["representative_errors"]["moli"] == ["timeout"]
 
 
-def test_summary_reports_first_to_last_repeat_drift_on_matched_tasks():
-    rows = []
-    for engine, first, last in (("chromium", 100, 110), ("moli", 50, 50)):
-        for attempt, baseline, duration in ((1, first, 10), (2, last, 11)):
-            rows.append(
-                {
-                    "engine": engine,
-                    "task_id": "stable",
-                    "title": "Stable",
-                    "complexity": "step_01_05",
-                    "step_count": 2,
-                    "attempt": attempt,
-                    "status": "pass",
-                    "duration_ms": duration,
-                    "resource": {
-                        "memory_baseline_bytes": baseline,
-                        "memory_peak_bytes": baseline + 1,
-                    },
-                }
-            )
+def test_summary_separates_first_pass_retry_recovery_and_final_outcome():
+    rows = [
+        {
+            "engine": "chromium", "task_id": "stable", "complexity": "simple",
+            "attempt": 1, "is_retry": False, "status": "pass", "duration_ms": 10,
+            "resource": {},
+        },
+        {
+            "engine": "moli", "task_id": "stable", "complexity": "simple",
+            "attempt": 1, "is_retry": False, "status": "fail", "duration_ms": 9,
+            "resource": {},
+        },
+        {
+            "engine": "moli", "task_id": "stable", "complexity": "simple",
+            "attempt": 2, "is_retry": True, "status": "pass", "duration_ms": 11,
+            "resource": {},
+        },
+    ]
 
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
 
-    assert summary["repeat_drift"]["chromium"]["memory_baseline_ratio"] == 1.1
-    assert summary["repeat_drift"]["moli"]["memory_baseline_ratio"] == 1.0
+    assert summary["functional"]["chromium"]["first_passes"] == 1
+    assert summary["functional"]["moli"]["first_passes"] == 0
+    assert summary["functional"]["moli"]["recovered"] == 1
+    assert summary["functional"]["moli"]["final_passes"] == 1
+    assert summary["functional"]["moli"]["physical_attempts"] == 2
+    assert summary["resource_comparison"]["intersection_attempts"] == 0

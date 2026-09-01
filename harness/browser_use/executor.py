@@ -22,7 +22,14 @@ def execute_steps(
     records = trace if trace is not None else []
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
-        timeout = int(call.get("timeout_ms", 30_000))
+        default_timeout = (
+            30_000
+            if action == "navigate"
+            else 10_000
+            if action in {"back", "forward"}
+            else 5_000
+        )
+        timeout = int(call.get("timeout_ms", default_timeout))
         started = time.perf_counter()
         record = {
             "index": index,
@@ -65,7 +72,24 @@ def execute_steps(
                 )
                 observation = f"Selected option {call.get('value', '')}."
             elif action == "get_text":
-                observation = page.locator(call["selector"]).first.inner_text(timeout=timeout)
+                locator = page.locator(call["selector"]).first
+                expected_text = call.get("wait_for_text")
+                if isinstance(expected_text, str):
+                    wait_timeout = min(timeout, int(call.get("wait_timeout_ms", 5_000)))
+                    deadline = time.monotonic() + wait_timeout / 1000
+                    observation = ""
+                    while time.monotonic() < deadline:
+                        observation = locator.text_content(timeout=min(1_000, wait_timeout)) or ""
+                        if observation.strip() == expected_text:
+                            break
+                        time.sleep(0.05)
+                    else:
+                        raise TimeoutError(
+                            f"{call['selector']} did not become {expected_text!r}; "
+                            f"last value was {observation!r}"
+                        )
+                else:
+                    observation = locator.text_content(timeout=timeout) or ""
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "snapshot":
                 selector = str(call.get("selector") or "body")
@@ -104,15 +128,33 @@ def execute_steps(
     return outputs
 
 
-def validate_outputs(outputs: dict[str, str], assertions: Iterable[dict[str, Any]]) -> list[str]:
-    failures: list[str] = []
+def judge_outputs(
+    outputs: dict[str, str], assertions: Iterable[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
     for assertion in assertions:
         name = str(assertion.get("output") or "")
-        value = outputs.get(name, "")
-        expected = assertion.get("contains")
-        if isinstance(expected, str) and expected.casefold() not in value.casefold():
-            failures.append(f"{name} does not contain {expected!r}")
-        minimum = assertion.get("min_chars")
-        if isinstance(minimum, int) and len(value) < minimum:
-            failures.append(f"{name} has {len(value)} chars, expected at least {minimum}")
+        actual = outputs.get(name, "")
+        expected = assertion.get("equals")
+        passed = isinstance(expected, str) and actual == expected
+        checks.append(
+            {
+                "output": name,
+                "kind": "exact string equality",
+                "expected": expected,
+                "actual": actual,
+                "passed": passed,
+            }
+        )
+    return checks
+
+
+def validate_outputs(outputs: dict[str, str], assertions: Iterable[dict[str, Any]]) -> list[str]:
+    failures: list[str] = []
+    for check in judge_outputs(outputs, assertions):
+        if not check["passed"]:
+            failures.append(
+                f"{check['output']} exact mismatch: expected {check['expected']!r}, "
+                f"got {check['actual']!r}"
+            )
     return failures

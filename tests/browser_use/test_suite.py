@@ -7,35 +7,36 @@ import pytest
 from harness.browser_use.suite import load_suite
 
 
-def test_load_suite_assigns_non_overlapping_complexity_tiers(tmp_path):
+def _task(task_id, calls, expected="Example"):
+    return {
+        "id": task_id,
+        "title": task_id.title(),
+        "difficulty": "simple",
+        "tool_calls": calls,
+        "assertions": [{"output": "heading", "equals": expected}],
+        "ground_truth": {
+            "oracle": "deterministic_exact",
+            "expected_outputs": {"heading": expected},
+            "expected_actions": [call["action"] for call in calls],
+        },
+        "source": {"url": "https://example.com/source"},
+    }
+
+
+def test_load_suite_uses_declared_difficulty_and_ground_truth(tmp_path):
     path = tmp_path / "tasks.json"
     path.write_text(
         json.dumps(
             {
-                "schema": "lex_browser_use_tasks/2",
+                "schema": "lex_browser_use_tasks/3",
                 "tasks": [
-                    {
-                        "id": "simple",
-                        "title": "Simple",
-                        "tool_calls": [
+                    _task(
+                        "simple",
+                        [
                             {"action": "navigate", "url": "https://example.com", "save_as": "page"},
                             {"action": "get_text", "selector": "h1", "save_as": "heading"},
                         ],
-                        "assertions": [{"output": "heading", "contains": "Example"}],
-                    },
-                    {
-                        "id": "medium",
-                        "title": "Medium",
-                        "tool_calls": [
-                            {
-                                "action": "navigate",
-                                "url": "https://example.com",
-                                "save_as": f"page{i}",
-                            }
-                            for i in range(6)
-                        ],
-                        "assertions": [],
-                    },
+                    )
                 ],
             }
         ),
@@ -44,8 +45,8 @@ def test_load_suite_assigns_non_overlapping_complexity_tiers(tmp_path):
 
     suite = load_suite(path)
 
-    assert suite.tasks[0].complexity == "step_01_05"
-    assert suite.tasks[1].complexity == "step_06_10"
+    assert suite.tasks[0].complexity == "simple"
+    assert suite.tasks[0].ground_truth["expected_outputs"]["heading"] == "Example"
 
 
 def test_load_suite_rejects_unsupported_actions(tmp_path):
@@ -53,14 +54,9 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
     path.write_text(
         json.dumps(
             {
-                "schema": "lex_browser_use_tasks/2",
+                "schema": "lex_browser_use_tasks/3",
                 "tasks": [
-                    {
-                        "id": "bad",
-                        "title": "Bad",
-                        "tool_calls": [{"action": "shell", "command": "true"}],
-                        "assertions": [],
-                    }
+                    _task("bad", [{"action": "shell", "command": "true"}])
                 ],
             }
         ),
@@ -73,14 +69,15 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
 
 def test_load_suite_rejects_duplicate_task_ids(tmp_path):
     path = tmp_path / "tasks.json"
-    task = {
-        "id": "duplicate",
-        "title": "Duplicate",
-        "tool_calls": [{"action": "navigate", "url": "https://example.com", "save_as": "page"}],
-        "assertions": [],
-    }
+    task = _task(
+        "duplicate",
+        [
+            {"action": "navigate", "url": "https://example.com", "save_as": "page"},
+            {"action": "get_text", "selector": "h1", "save_as": "heading"},
+        ],
+    )
     path.write_text(
-        json.dumps({"schema": "lex_browser_use_tasks/2", "tasks": [task, task]}),
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [task, task]}),
         encoding="utf-8",
     )
 
@@ -88,14 +85,15 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
         load_suite(path)
 
 
-def test_public_suite_has_ten_distinct_real_tasks_and_no_fake_wait_steps():
-    suite = load_suite("examples/browser_use/tasks.v3.json")
+def test_suite_has_fifteen_ground_truth_tasks_balanced_by_difficulty():
+    suite = load_suite("examples/browser_use/tasks.v4.json")
 
-    assert len(suite.tasks) == 10
-    assert len({task.task_id for task in suite.tasks}) == 10
+    assert len(suite.tasks) == 15
+    assert len({task.task_id for task in suite.tasks}) == 15
     assert all(call["action"] != "wait" for task in suite.tasks for call in task.tool_calls)
-    primary_hosts = {task.tool_calls[0]["url"].split("/", 3)[2] for task in suite.tasks}
-    assert len(primary_hosts) == 10
-    assert sum(task.step_count <= 5 for task in suite.tasks) == 2
-    assert sum(6 <= task.step_count <= 10 for task in suite.tasks) == 4
-    assert sum(task.step_count >= 11 for task in suite.tasks) == 4
+    counts = {
+        difficulty: sum(task.complexity == difficulty for task in suite.tasks)
+        for difficulty in ("simple", "medium", "complex")
+    }
+    assert counts == {"simple": 5, "medium": 5, "complex": 5}
+    assert all(task.ground_truth["oracle"] == "deterministic_exact" for task in suite.tasks)

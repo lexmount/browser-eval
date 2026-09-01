@@ -1,0 +1,228 @@
+{
+  "schema": "lex_browser_use_tasks/3",
+  "tasks": [
+    {
+      "id": "core-title-exact", "title": "读取固定标题", "difficulty": "simple",
+      "tags": ["simple", "observation", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "get_text", "selector": "#title", "save_as": "answer"}
+      ],
+      "assertions": [{"output": "answer", "equals": "Lexmount Deterministic Browser Fixture"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "Lexmount Deterministic Browser Fixture"}, "expected_actions": ["navigate", "get_text"], "derivation": "固定版本 fixture 的唯一 h1 文本；逐字相等。"},
+      "source": {"kind": "adapted", "scenario": "nav_title_read", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_title_read.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "counter-double-click", "title": "连续点击两次并读取计数", "difficulty": "simple",
+      "tags": ["simple", "click", "state-mutation", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "click", "selector": "#inc"}, {"action": "click", "selector": "#inc"},
+        {"action": "get_text", "selector": "#count", "save_as": "answer", "wait_for_text": "2"}
+      ],
+      "assertions": [{"output": "answer", "equals": "2"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "2"}, "expected_actions": ["navigate", "click", "click", "get_text"], "derivation": "初始计数为 0，每次 click 同步加 1。"},
+      "source": {"kind": "adapted", "scenario": "dyn_counter_clicks", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_counter_clicks.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "fill-echo-exact", "title": "填写文本并读取同步回显", "difficulty": "simple",
+      "tags": ["simple", "fill", "form", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "fill", "selector": "#echo-in", "text": "moli-73"},
+        {"action": "get_text", "selector": "#echo-out", "save_as": "answer", "wait_for_text": "echo:moli-73"}
+      ],
+      "assertions": [{"output": "answer", "equals": "echo:moli-73"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "echo:moli-73"}, "expected_actions": ["navigate", "fill", "get_text"], "derivation": "input 事件按 echo:{输入值} 同步生成唯一结果。"},
+      "source": {"kind": "adapted", "scenario": "form_fill_readback", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_fill_readback.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "select-option-exact", "title": "选择下拉项并读取派生值", "difficulty": "simple",
+      "tags": ["simple", "select", "form", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "select", "selector": "#choice", "value": "gamma"},
+        {"action": "get_text", "selector": "#choice-out", "save_as": "answer", "wait_for_text": "choice:gamma"}
+      ],
+      "assertions": [{"output": "answer", "equals": "choice:gamma"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "choice:gamma"}, "expected_actions": ["navigate", "select", "get_text"], "derivation": "change 事件输出 choice:{value}。"},
+      "source": {"kind": "adapted", "scenario": "form_select_option", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_select_option.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "press-enter-exact", "title": "填写后按 Enter 触发结果", "difficulty": "simple",
+      "tags": ["simple", "fill", "keyboard", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "fill", "selector": "#enter-in", "text": "query-19"},
+        {"action": "press", "key": "Enter"},
+        {"action": "get_text", "selector": "#enter-out", "save_as": "answer", "wait_for_text": "entered:query-19:42"}
+      ],
+      "assertions": [{"output": "answer", "equals": "entered:query-19:42"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "entered:query-19:42"}, "expected_actions": ["navigate", "fill", "press", "get_text"], "derivation": "Enter handler 拼接输入和固定计算结果 42。"},
+      "source": {"kind": "adapted", "scenario": "form_press_enter_handler", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_press_enter_handler.scenario.json", "license": "Apache-2.0"}
+    },
+
+    {
+      "id": "dynamic-two-page-final", "title": "跨两次异步分页读取最终数据", "difficulty": "medium",
+      "tags": ["medium", "dynamic", "pagination", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/dynamic.html", "save_as": "page"},
+        {"action": "get_text", "selector": "#page", "save_as": "initial"},
+        {"action": "click", "selector": "#next"},
+        {"action": "get_text", "selector": "#page", "save_as": "middle", "wait_for_text": "page:2:middle-31"},
+        {"action": "click", "selector": "#next"},
+        {"action": "get_text", "selector": "#page", "save_as": "answer", "wait_for_text": "page:3:final-73"}
+      ],
+      "assertions": [{"output": "initial", "equals": "page:1:start"}, {"output": "middle", "equals": "page:2:middle-31"}, {"output": "answer", "equals": "page:3:final-73"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"initial": "page:1:start", "middle": "page:2:middle-31", "answer": "page:3:final-73"}, "expected_actions": ["navigate", "get_text", "click", "get_text", "click", "get_text"], "derivation": "两次点击分别触发固定延时状态 page:2 和 page:3。"},
+      "source": {"kind": "adapted", "scenario": "dyn_paging_final", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_paging_final.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "history-back-forward", "title": "跨页后退与前进恢复", "difficulty": "medium",
+      "tags": ["medium", "navigation", "history", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "get_text", "selector": "#title", "save_as": "first"},
+        {"action": "click", "selector": "#page-two"},
+        {"action": "get_text", "selector": "#title", "save_as": "second"},
+        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_value"},
+        {"action": "forward"}, {"action": "get_text", "selector": "#title", "save_as": "answer"}
+      ],
+      "assertions": [{"output": "first", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "second", "equals": "History Page Two"}, {"output": "back_value", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "answer", "equals": "History Page Two"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"first": "Lexmount Deterministic Browser Fixture", "second": "History Page Two", "back_value": "Lexmount Deterministic Browser Fixture", "answer": "History Page Two"}, "expected_actions": ["navigate", "get_text", "click", "get_text", "back", "get_text", "forward", "get_text"], "derivation": "固定两页文档的 h1 与浏览历史一一对应。"},
+      "source": {"kind": "adapted", "scenario": "nav_back_restores", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_back_restores.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "multi-field-form-receipt", "title": "填写多字段并生成唯一回执", "difficulty": "medium",
+      "tags": ["medium", "form", "multi-field", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/forms.html", "save_as": "page"},
+        {"action": "fill", "selector": "#first", "text": "Lex"}, {"action": "fill", "selector": "#last", "text": "Mount"},
+        {"action": "select", "selector": "#region", "value": "eu"},
+        {"action": "fill", "selector": "#note", "text": "provider-31"}, {"action": "click", "selector": "#submit"},
+        {"action": "get_text", "selector": "#result", "save_as": "answer", "wait_for_text": "receipt:Lex|Mount|eu|provider-31|73"}
+      ],
+      "assertions": [{"output": "answer", "equals": "receipt:Lex|Mount|eu|provider-31|73"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"answer": "receipt:Lex|Mount|eu|provider-31|73"}, "expected_actions": ["navigate", "fill", "fill", "select", "fill", "click", "get_text"], "derivation": "回执按四个字段和固定校验码 73 拼接。"},
+      "source": {"kind": "adapted", "scenario": "form_submit_roundtrip", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_submit_roundtrip.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "catalog-filter-detail", "title": "筛选目录并打开唯一详情", "difficulty": "medium",
+      "tags": ["medium", "catalog", "filter", "detail", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/catalog.html", "save_as": "page"},
+        {"action": "fill", "selector": "#filter", "text": "birch"},
+        {"action": "get_text", "selector": "#items", "save_as": "filtered", "wait_for_text": "birch:£17.00 details"},
+        {"action": "click", "selector": "#items button"},
+        {"action": "get_text", "selector": "#detail", "save_as": "answer", "wait_for_text": "detail:birch|£17.00|B-202"},
+        {"action": "fill", "selector": "#filter", "text": ""},
+        {"action": "get_text", "selector": "#page-label", "save_as": "page_label"}
+      ],
+      "assertions": [{"output": "filtered", "equals": "birch:£17.00 details"}, {"output": "answer", "equals": "detail:birch|£17.00|B-202"}, {"output": "page_label", "equals": "catalogue:page:1"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"filtered": "birch:£17.00 details", "answer": "detail:birch|£17.00|B-202", "page_label": "catalogue:page:1"}, "expected_actions": ["navigate", "fill", "get_text", "click", "get_text", "fill", "get_text"], "derivation": "固定目录中 birch 唯一，其价格和 SKU 固定。"},
+      "source": {"kind": "suite-original", "scenario": "catalog_filter_detail", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
+    },
+    {
+      "id": "dynamic-settle-and-late-click", "title": "等待最终阶段并点击延迟启用按钮", "difficulty": "medium",
+      "tags": ["medium", "dynamic", "waiting", "click", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/dynamic.html", "save_as": "page"},
+        {"action": "get_text", "selector": "#phase", "save_as": "phase", "wait_for_text": "phase:2:W7"},
+        {"action": "get_text", "selector": "#list", "save_as": "list", "wait_for_text": "alpha-11beta-23gamma-47"},
+        {"action": "click", "selector": "#late"},
+        {"action": "get_text", "selector": "#late-out", "save_as": "answer", "wait_for_text": "late:clicked:33"},
+        {"action": "snapshot", "selector": "body", "save_as": "final_state"}
+      ],
+      "assertions": [{"output": "phase", "equals": "phase:2:W7"}, {"output": "list", "equals": "alpha-11beta-23gamma-47"}, {"output": "answer", "equals": "late:clicked:33"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"phase": "phase:2:W7", "list": "alpha-11beta-23gamma-47", "answer": "late:clicked:33"}, "expected_actions": ["navigate", "get_text", "get_text", "click", "get_text", "snapshot"], "derivation": "三个计时器固定生成最终阶段、三项列表和按钮结果。"},
+      "source": {"kind": "adapted", "scenario": "wait_two_phase_settle", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/wait_two_phase_settle.scenario.json", "license": "Apache-2.0"}
+    },
+
+    {
+      "id": "app-login-filter-checkout", "title": "登录、筛选、加入两件商品并结算", "difficulty": "complex",
+      "tags": ["complex", "multi-step-flow", "cart", "checkout", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/app.html", "save_as": "page"},
+        {"action": "fill", "selector": "#user", "text": "eve-7"}, {"action": "click", "selector": "#login"},
+        {"action": "get_text", "selector": "#greet", "save_as": "greeting", "wait_for_text": "hi:eve-7"},
+        {"action": "fill", "selector": "#filter", "text": "widget"},
+        {"action": "get_text", "selector": "#filter-count", "save_as": "filtered", "wait_for_text": "widget:1"},
+        {"action": "click", "selector": "#add-widget-a"}, {"action": "fill", "selector": "#filter", "text": "gizmo"},
+        {"action": "click", "selector": "#add-gizmo-x"}, {"action": "get_text", "selector": "#cart-total", "save_as": "total", "wait_for_text": "total:14"},
+        {"action": "click", "selector": "#checkout"}, {"action": "get_text", "selector": "#receipt", "save_as": "answer", "wait_for_text": "order:14:2:LX73"}
+      ],
+      "assertions": [{"output": "greeting", "equals": "hi:eve-7"}, {"output": "filtered", "equals": "widget:1"}, {"output": "total", "equals": "total:14"}, {"output": "answer", "equals": "order:14:2:LX73"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"greeting": "hi:eve-7", "filtered": "widget:1", "total": "total:14", "answer": "order:14:2:LX73"}, "expected_actions": ["navigate", "fill", "click", "get_text", "fill", "get_text", "click", "fill", "click", "get_text", "click", "get_text"], "derivation": "5 + 9 = 14，购物车两项，回执格式固定。"},
+      "source": {"kind": "adapted", "scenario": "app_full_flow_aggregate", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/app_full_flow_aggregate.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "app-quantity-and-logout", "title": "同商品累加、结算并退出", "difficulty": "complex",
+      "tags": ["complex", "multi-step-flow", "quantity", "logout", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/app.html", "save_as": "page"},
+        {"action": "fill", "selector": "#user", "text": "kai-11"}, {"action": "click", "selector": "#login"},
+        {"action": "fill", "selector": "#filter", "text": "adapter"},
+        {"action": "get_text", "selector": "#filter-count", "save_as": "filtered", "wait_for_text": "adapter:1"},
+        {"action": "click", "selector": "#add-adapter-z"}, {"action": "click", "selector": "#add-adapter-z"},
+        {"action": "get_text", "selector": "#cart-count", "save_as": "count", "wait_for_text": "2"},
+        {"action": "get_text", "selector": "#cart-total", "save_as": "total", "wait_for_text": "total:26"},
+        {"action": "click", "selector": "#checkout"}, {"action": "get_text", "selector": "#receipt", "save_as": "receipt", "wait_for_text": "order:26:2:LX73"},
+        {"action": "click", "selector": "#logout"}, {"action": "get_text", "selector": "#greet", "save_as": "answer", "wait_for_text": "logged-out"}
+      ],
+      "assertions": [{"output": "filtered", "equals": "adapter:1"}, {"output": "count", "equals": "2"}, {"output": "total", "equals": "total:26"}, {"output": "receipt", "equals": "order:26:2:LX73"}, {"output": "answer", "equals": "logged-out"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"filtered": "adapter:1", "count": "2", "total": "total:26", "receipt": "order:26:2:LX73", "answer": "logged-out"}, "expected_actions": ["navigate", "fill", "click", "fill", "get_text", "click", "click", "get_text", "get_text", "click", "get_text", "click", "get_text"], "derivation": "13 × 2 = 26；退出状态固定。"},
+      "source": {"kind": "adapted", "scenario": "app_qty_accumulates", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/app_qty_accumulates.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "catalog-three-page-inspection", "title": "连续三页目录并检查末页商品", "difficulty": "complex",
+      "tags": ["complex", "pagination", "catalog", "detail", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/catalog.html", "save_as": "page"},
+        {"action": "get_text", "selector": "#page-label", "save_as": "page1"}, {"action": "snapshot", "selector": "#items", "save_as": "items1"},
+        {"action": "click", "selector": "#next"}, {"action": "get_text", "selector": "#page-label", "save_as": "page2", "wait_for_text": "catalogue:page:2"},
+        {"action": "snapshot", "selector": "#items", "save_as": "items2"}, {"action": "click", "selector": "#next"},
+        {"action": "get_text", "selector": "#page-label", "save_as": "page3", "wait_for_text": "catalogue:page:3"},
+        {"action": "fill", "selector": "#filter", "text": "hazel"},
+        {"action": "get_text", "selector": "#items", "save_as": "filtered", "wait_for_text": "hazel:£43.00 details"},
+        {"action": "click", "selector": "#items button"},
+        {"action": "get_text", "selector": "#detail", "save_as": "answer", "wait_for_text": "detail:hazel|£43.00|H-808"}
+      ],
+      "assertions": [{"output": "page1", "equals": "catalogue:page:1"}, {"output": "page2", "equals": "catalogue:page:2"}, {"output": "page3", "equals": "catalogue:page:3"}, {"output": "filtered", "equals": "hazel:£43.00 details"}, {"output": "answer", "equals": "detail:hazel|£43.00|H-808"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"page1": "catalogue:page:1", "page2": "catalogue:page:2", "page3": "catalogue:page:3", "filtered": "hazel:£43.00 details", "answer": "detail:hazel|£43.00|H-808"}, "expected_actions": ["navigate", "get_text", "snapshot", "click", "get_text", "snapshot", "click", "get_text", "fill", "get_text", "click", "get_text"], "derivation": "第三页 hazel 唯一，价格和 SKU 固定。"},
+      "source": {"kind": "adapted", "scenario": "dyn_paging_final", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/dyn_paging_final.scenario.json", "license": "Apache-2.0"}
+    },
+    {
+      "id": "form-submit-reset-resubmit", "title": "提交、重置并修改后再次提交", "difficulty": "complex",
+      "tags": ["complex", "form", "resubmission", "state-reset", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/forms.html", "save_as": "page"},
+        {"action": "fill", "selector": "#first", "text": "First"}, {"action": "fill", "selector": "#last", "text": "Run"},
+        {"action": "fill", "selector": "#note", "text": "v1"}, {"action": "click", "selector": "#submit"},
+        {"action": "get_text", "selector": "#result", "save_as": "first_receipt", "wait_for_text": "receipt:First|Run|cn|v1|73"},
+        {"action": "click", "selector": "#reset"}, {"action": "get_text", "selector": "#result", "save_as": "reset_state", "wait_for_text": "reset:ok"},
+        {"action": "fill", "selector": "#first", "text": "Second"}, {"action": "fill", "selector": "#last", "text": "Run"},
+        {"action": "select", "selector": "#region", "value": "eu"}, {"action": "fill", "selector": "#note", "text": "v2"},
+        {"action": "click", "selector": "#submit"}, {"action": "get_text", "selector": "#result", "save_as": "answer", "wait_for_text": "receipt:Second|Run|eu|v2|73"}
+      ],
+      "assertions": [{"output": "first_receipt", "equals": "receipt:First|Run|cn|v1|73"}, {"output": "reset_state", "equals": "reset:ok"}, {"output": "answer", "equals": "receipt:Second|Run|eu|v2|73"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"first_receipt": "receipt:First|Run|cn|v1|73", "reset_state": "reset:ok", "answer": "receipt:Second|Run|eu|v2|73"}, "expected_actions": ["navigate", "fill", "fill", "fill", "click", "get_text", "click", "get_text", "fill", "fill", "select", "fill", "click", "get_text"], "derivation": "两次回执及中间重置状态均是确定性字符串。"},
+      "source": {"kind": "suite-original", "scenario": "form_resubmit", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
+    },
+    {
+      "id": "three-page-history-and-scroll", "title": "三级历史恢复并验证长页底部", "difficulty": "complex",
+      "tags": ["complex", "navigation", "history", "scroll", "exact-oracle"],
+      "tool_calls": [
+        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
+        {"action": "scroll", "direction": "down", "amount": 1900}, {"action": "get_text", "selector": "#bottom", "save_as": "bottom"},
+        {"action": "click", "selector": "#page-two"}, {"action": "get_text", "selector": "#datum", "save_as": "second"},
+        {"action": "click", "selector": "#page-three"}, {"action": "get_text", "selector": "#datum", "save_as": "third"},
+        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_second"},
+        {"action": "back"}, {"action": "get_text", "selector": "#title", "save_as": "back_first"},
+        {"action": "forward"}, {"action": "get_text", "selector": "#datum", "save_as": "answer"}
+      ],
+      "assertions": [{"output": "bottom", "equals": "bottom:73"}, {"output": "second", "equals": "page-two:17"}, {"output": "third", "equals": "page-three:29"}, {"output": "back_second", "equals": "History Page Two"}, {"output": "back_first", "equals": "Lexmount Deterministic Browser Fixture"}, {"output": "answer", "equals": "page-two:17"}],
+      "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"bottom": "bottom:73", "second": "page-two:17", "third": "page-three:29", "back_second": "History Page Two", "back_first": "Lexmount Deterministic Browser Fixture", "answer": "page-two:17"}, "expected_actions": ["navigate", "scroll", "get_text", "click", "get_text", "click", "get_text", "back", "get_text", "back", "get_text", "forward", "get_text"], "derivation": "三个固定文档、两级历史与底部标记均为唯一值。"},
+      "source": {"kind": "adapted", "scenario": "nav_forward_after_back", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/nav_forward_after_back.scenario.json", "license": "Apache-2.0"}
+    }
+  ]
+}

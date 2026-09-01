@@ -65,7 +65,18 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     reports = tmp_path / "reports"
     write_latest_report(
         reports,
-        manifest={"run_id": "failed", "protocol": {"repeats": 3}, "suite": []},
+        manifest={
+            "run_id": "failed",
+            "protocol": {"primary_attempts": 1, "max_failure_retries": 1},
+            "suite": [
+                {
+                    "task_id": "task",
+                    "ground_truth": {
+                        "expected_outputs": {"answer": "unique-answer"}
+                    },
+                }
+            ],
+        },
         summary={
             "functional": {},
             "by_complexity": {},
@@ -103,3 +114,11 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert "<details" in results
     assert "FULL STACK TRACE" in results
     assert "完整执行轨迹" in results
+    assert "BrowserTool 方法" in results
+    assert 'id="f-status"' in results
+    assert 'id="f-action"' in results
+    assert 'id="f-query"' in results
+    assert "ground truth 判定" in results
+    assert "unique-answer" in results
+    assert "未产生（过程失败）" in results
+    assert "未判定" in results

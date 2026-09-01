@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from harness.browser_use.executor import execute_steps
+from harness.browser_use.executor import execute_steps, judge_outputs, validate_outputs
 
 
 class FakePage:
@@ -41,6 +41,10 @@ class FakePage:
                 page.calls.append(("get_text", selector))
                 return "Example Domain"
 
+            def text_content(self, **kwargs):
+                page.calls.append(("get_text", selector))
+                return "Example Domain"
+
             def select_option(self, value, **kwargs):
                 page.calls.append(("select", selector, value))
 
@@ -57,6 +61,7 @@ class FakePage:
 
     def press(self, key):
         self.calls.append(("press", key))
+
 
 
 def test_execute_steps_counts_only_declared_browser_operations():
@@ -99,3 +104,11 @@ def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     execute_steps(page, ({"action": "back"}, {"action": "forward"}))
 
     assert page.calls == [("back", "commit"), ("forward", "commit")]
+
+
+def test_exact_ground_truth_judge_reports_expected_and_actual():
+    assertions = [{"output": "answer", "equals": "unique-73"}]
+
+    assert validate_outputs({"answer": "unique-73"}, assertions) == []
+    assert "exact mismatch" in validate_outputs({"answer": "near-73"}, assertions)[0]
+    assert judge_outputs({"answer": "unique-73"}, assertions)[0]["passed"] is True

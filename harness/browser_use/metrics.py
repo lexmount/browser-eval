@@ -272,24 +272,47 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
     functional: dict[str, Any] = {}
     for engine in engines:
         engine_rows = [row for row in rows if row.get("engine") == engine]
-        passes = sum(row.get("status") == "pass" for row in engine_rows)
+        task_ids = list(dict.fromkeys(str(row["task_id"]) for row in engine_rows))
+        first_rows = [row for row in engine_rows if not row.get("is_retry")]
+        first_passes = sum(row.get("status") == "pass" for row in first_rows)
+        final_passes = 0
+        recovered = 0
+        for task_id in task_ids:
+            attempts = [row for row in engine_rows if str(row["task_id"]) == task_id]
+            passed = any(row.get("status") == "pass" for row in attempts)
+            final_passes += int(passed)
+            recovered += int(
+                bool(attempts)
+                and attempts[0].get("status") != "pass"
+                and passed
+            )
         functional[engine] = {
-            "attempts": len(engine_rows),
-            "passes": passes,
-            "pass_rate": passes / len(engine_rows) if engine_rows else None,
+            "tasks": len(task_ids),
+            "attempts": len(task_ids),
+            "physical_attempts": len(engine_rows),
+            "retries": sum(bool(row.get("is_retry")) for row in engine_rows),
+            "first_passes": first_passes,
+            "first_pass_rate": first_passes / len(task_ids) if task_ids else None,
+            "recovered": recovered,
+            "final_passes": final_passes,
+            "passes": final_passes,
+            "final_pass_rate": final_passes / len(task_ids) if task_ids else None,
+            "pass_rate": final_passes / len(task_ids) if task_ids else None,
             "duration_ms": _metric(
-                row["duration_ms"] for row in engine_rows if row.get("status") == "pass"
+                row["duration_ms"] for row in first_rows if row.get("status") == "pass"
             ),
             "tool_output_tokens": _metric(
                 row["tool_output_tokens"]
-                for row in engine_rows
+                for row in first_rows
                 if row.get("status") == "pass"
                 and isinstance(row.get("tool_output_tokens"), (int, float))
             ),
         }
-    grouped: dict[tuple[str, int], dict[str, dict[str, Any]]] = {}
+    grouped: dict[str, dict[str, dict[str, Any]]] = {}
     for row in rows:
-        grouped.setdefault((str(row["task_id"]), int(row["attempt"])), {})[str(row["engine"])] = row
+        if row.get("is_retry"):
+            continue
+        grouped.setdefault(str(row["task_id"]), {})[str(row["engine"])] = row
     intersection = [
         bucket
         for bucket in grouped.values()
@@ -399,6 +422,7 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                 "title": first.get("title", task_id),
                 "complexity": first.get("complexity"),
                 "step_count": first.get("step_count"),
+                "tags": first.get("tags") or [],
                 "representative_errors": {
                     engine: list(
                         dict.fromkeys(
@@ -413,8 +437,10 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                     engine: [
                         {
                             "attempt": row.get("attempt"),
+                            "is_retry": row.get("is_retry", False),
                             "error": row.get("error", ""),
                             "trace": row.get("trace") or [],
+                            "validation": row.get("validation") or [],
                         }
                         for row in task_rows
                         if row.get("engine") == engine and row.get("status") == "fail"
@@ -425,10 +451,12 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                     engine: [
                         {
                             "attempt": row.get("attempt"),
+                            "is_retry": row.get("is_retry", False),
                             "status": row.get("status"),
                             "duration_ms": row.get("duration_ms"),
                             "error": row.get("error", ""),
                             "trace": row.get("trace") or [],
+                            "validation": row.get("validation") or [],
                         }
                         for row in task_rows
                         if row.get("engine") == engine
@@ -439,46 +467,11 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
         )
         summary["by_task"][task_id] = task_summary
 
-    max_attempt = max((int(row.get("attempt") or 0) for row in rows), default=0)
-    repeat_drift: dict[str, Any] = {}
-    for engine in engines:
-        baseline_ratios: list[float] = []
-        duration_ratios: list[float] = []
-        for task_id in task_ids:
-            buckets = {
-                int(row["attempt"]): row
-                for row in rows
-                if row.get("engine") == engine and str(row.get("task_id")) == task_id
-            }
-            first = buckets.get(1)
-            last = buckets.get(max_attempt)
-            if max_attempt <= 1 or first is None or last is None:
-                continue
-            first_baseline = (first.get("resource") or {}).get("memory_baseline_bytes")
-            last_baseline = (last.get("resource") or {}).get("memory_baseline_bytes")
-            if (
-                isinstance(first_baseline, (int, float))
-                and first_baseline > 0
-                and isinstance(last_baseline, (int, float))
-            ):
-                baseline_ratios.append(float(last_baseline) / float(first_baseline))
-            if first.get("status") == "pass" and last.get("status") == "pass":
-                first_duration = first.get("duration_ms")
-                last_duration = last.get("duration_ms")
-                if (
-                    isinstance(first_duration, (int, float))
-                    and first_duration > 0
-                    and isinstance(last_duration, (int, float))
-                ):
-                    duration_ratios.append(float(last_duration) / float(first_duration))
-        repeat_drift[engine] = {
-            "first_attempt": 1 if max_attempt else None,
-            "last_attempt": max_attempt or None,
-            "paired_tasks": len(baseline_ratios),
-            "memory_baseline_ratio": (
-                statistics.median(baseline_ratios) if baseline_ratios else None
-            ),
-            "duration_ratio": statistics.median(duration_ratios) if duration_ratios else None,
+    summary["retry_policy"] = {
+        engine: {
+            "retries": summary["functional"][engine]["retries"],
+            "recovered": summary["functional"][engine]["recovered"],
         }
-    summary["repeat_drift"] = repeat_drift
+        for engine in engines
+    }
     return summary

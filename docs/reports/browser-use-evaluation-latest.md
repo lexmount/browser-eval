@@ -1,14 +1,14 @@
 # Chromium 与 Moli 浏览器工具调用评测
 
-运行编号：`a20e9b5a1878`
+运行编号：`897427526ea5`
 
 这是确定性的 BrowserTool 等价调用微基准，不调用 CowAgent、LiteLLM 或 Codex 模型。
 
-| 内核 | 成功/尝试 | 成功率 | P50 ms | mean ms | P95 ms |
-|---|---:|---:|---:|---:|---:|
-| chromium | 30/30 | 100.00% | 2,250.49 | 2,802.55 | 7,220.47 |
-| moli | 28/30 | 93.33% | 2,859.18 | 7,072.71 | 35,865.54 |
+| 内核 | 首次通过 | 重试恢复 | 最终通过 | 成功率 | P50 ms | P95 ms |
+|---|---:|---:|---:|---:|---:|---:|
+| chromium | 15/15 | 0 | 15/15 | 100.00% | 448.19 | 930.47 |
+| moli | 11/15 | 0 | 11/15 | 73.33% | 138.07 | 599.40 |
 
 ```bash
-BROWSER_USE_EVAL_REPEATS=3 ./examples/browser_use/run.sh
+BROWSER_USE_EVAL_FAILURE_RETRIES=1 ./examples/browser_use/run.sh
 ```

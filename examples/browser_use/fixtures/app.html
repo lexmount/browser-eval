@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Deterministic Mini App</title></head><body>
+<h1>Mini App</h1><input id="user"><button id="login">login</button><button id="logout">logout</button><div id="greet">locked</div>
+<input id="filter"><div id="filter-count">locked</div><ul id="products"></ul>
+<div id="cart-count">0</div><div id="cart-total">total:0</div><button id="checkout">checkout</button><div id="receipt">none</div>
+<script>
+const products=document.getElementById('products'),filter=document.getElementById('filter'),filterCount=document.getElementById('filter-count'),cartCount=document.getElementById('cart-count'),cartTotal=document.getElementById('cart-total'),greet=document.getElementById('greet'),user=document.getElementById('user'),receipt=document.getElementById('receipt');
+const stock=[['widget-a',5],['gizmo-x',9],['adapter-z',13]];let logged=false;let cart=JSON.parse(localStorage.getItem('eval-cart')||'[]');
+function render(){products.innerHTML='';if(!logged){filterCount.textContent='locked';return}let q=filter.value;let shown=stock.filter(x=>!q||x[0].includes(q));filterCount.textContent=`${q||'all'}:${shown.length}`;shown.forEach(x=>{let li=document.createElement('li');li.textContent=`${x[0]}:${x[1]} `;let b=document.createElement('button');b.id='add-'+x[0];b.textContent='add';b.onclick=()=>{cart.push(x);localStorage.setItem('eval-cart',JSON.stringify(cart));cartView()};li.appendChild(b);products.appendChild(li)})}
+function cartView(){cartCount.textContent=String(cart.length);cartTotal.textContent='total:'+cart.reduce((s,x)=>s+x[1],0)}
+document.getElementById('login').onclick=()=>{logged=true;greet.textContent='hi:'+user.value;render()};document.getElementById('logout').onclick=()=>{logged=false;greet.textContent='logged-out';render()};filter.oninput=render;document.getElementById('checkout').onclick=()=>receipt.textContent=`order:${cart.reduce((s,x)=>s+x[1],0)}:${cart.length}:LX73`;cartView();
+</script></body></html>

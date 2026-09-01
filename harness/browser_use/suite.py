@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "lex_browser_use_tasks/2"
+SCHEMA = "lex_browser_use_tasks/3"
+DIFFICULTIES = frozenset({"simple", "medium", "complex"})
 SUPPORTED_ACTIONS = frozenset(
     {
         "navigate",
@@ -38,6 +39,9 @@ class BrowserTask:
     tool_calls: tuple[dict[str, Any], ...]
     assertions: tuple[dict[str, Any], ...]
     tags: tuple[str, ...]
+    difficulty: str
+    ground_truth: dict[str, Any]
+    source: dict[str, Any]
 
     @property
     def step_count(self) -> int:
@@ -45,7 +49,7 @@ class BrowserTask:
 
     @property
     def complexity(self) -> str:
-        return complexity_tier(self.step_count)
+        return self.difficulty
 
 
 @dataclass(frozen=True)
@@ -60,7 +64,9 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
     action = str(step.get("action") or "")
     if action not in SUPPORTED_ACTIONS:
         raise ValueError(f"{task_id}: unsupported action {action!r} at step {index}")
-    if action == "navigate" and not str(step.get("url") or "").startswith(("http://", "https://")):
+    if action == "navigate" and not str(step.get("url") or "").startswith(
+        ("http://", "https://", "{fixture_origin}/")
+    ):
         raise ValueError(f"{task_id}: navigate step {index} requires an HTTP(S) URL")
     if action in {"click", "fill", "select"} and not (
         str(step.get("selector") or "") or isinstance(step.get("ref"), int)
@@ -104,6 +110,32 @@ def load_suite(path: str | Path) -> TaskSuite:
         tags = raw.get("tags") or []
         if not isinstance(assertions, list) or not isinstance(tags, list):
             raise ValueError(f"{task_id}: assertions and tags must be lists")
+        difficulty = str(raw.get("difficulty") or "").strip()
+        if difficulty not in DIFFICULTIES:
+            raise ValueError(f"{task_id}: difficulty must be simple, medium or complex")
+        ground_truth = raw.get("ground_truth")
+        if not isinstance(ground_truth, dict):
+            raise ValueError(f"{task_id}: ground_truth must be an object")
+        if ground_truth.get("oracle") != "deterministic_exact":
+            raise ValueError(f"{task_id}: ground_truth oracle must be deterministic_exact")
+        expected_outputs = ground_truth.get("expected_outputs")
+        if not isinstance(expected_outputs, dict) or not expected_outputs:
+            raise ValueError(f"{task_id}: ground_truth.expected_outputs is required")
+        for assertion in assertions:
+            if not isinstance(assertion, dict) or not isinstance(assertion.get("equals"), str):
+                raise ValueError(
+                    f"{task_id}: every assertion must use an exact string equals oracle"
+                )
+            output = str(assertion.get("output") or "")
+            if expected_outputs.get(output) != assertion.get("equals"):
+                raise ValueError(f"{task_id}: assertion and ground truth disagree for {output!r}")
+        expected_actions = ground_truth.get("expected_actions")
+        actual_actions = [step["action"] for step in steps]
+        if expected_actions != actual_actions:
+            raise ValueError(f"{task_id}: ground truth action sequence does not match tool_calls")
+        source = raw.get("source")
+        if not isinstance(source, dict) or not source.get("url"):
+            raise ValueError(f"{task_id}: source attribution is required")
         tasks.append(
             BrowserTask(
                 task_id=task_id,
@@ -111,6 +143,9 @@ def load_suite(path: str | Path) -> TaskSuite:
                 tool_calls=steps,
                 assertions=tuple(dict(item) for item in assertions),
                 tags=tuple(str(item) for item in tags),
+                difficulty=difficulty,
+                ground_truth=dict(ground_truth),
+                source=dict(source),
             )
         )
     return TaskSuite(schema=SCHEMA, tasks=tuple(tasks))

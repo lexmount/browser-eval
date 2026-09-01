@@ -5,11 +5,14 @@ from __future__ import annotations
 import hashlib
 import json
 import platform
+import threading
 import time
 import traceback
 import urllib.parse
 import urllib.request
 import uuid
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +20,7 @@ import docker
 import tiktoken
 from playwright.sync_api import Browser, Page, sync_playwright
 
-from .executor import execute_steps, validate_outputs
+from .executor import execute_steps, judge_outputs, validate_outputs
 from .metrics import (
     DockerStatsResources,
     ResourceSampler,
@@ -173,6 +176,8 @@ def _run_task(
     task: BrowserTask,
     attempt: int,
     sample_interval_ms: int,
+    *,
+    is_retry: bool = False,
 ) -> dict[str, Any]:
     def record_origin(frame: Any) -> None:
         if frame != page.main_frame:
@@ -188,9 +193,11 @@ def _run_task(
     started = time.perf_counter()
     outputs: dict[str, str] = {}
     trace: list[dict[str, Any]] = []
+    validation: list[dict[str, Any]] = []
     error = ""
     try:
         outputs = execute_steps(page, task.tool_calls, trace=trace)
+        validation = judge_outputs(outputs, task.assertions)
         failures = validate_outputs(outputs, task.assertions)
         status = "pass" if not failures else "fail"
         error = "; ".join(failures)
@@ -202,6 +209,7 @@ def _run_task(
                 "status": status,
                 "duration_ms": 0.0,
                 "output": "all assertions passed" if not failures else error,
+                "checks": validation,
             }
         )
     except Exception:
@@ -217,14 +225,17 @@ def _run_task(
         "task_id": task.task_id,
         "title": task.title,
         "complexity": task.complexity,
-        "step_count": task.step_count,
+        "tags": list(task.tags),
+                "step_count": task.step_count,
         "attempt": attempt,
+        "is_retry": is_retry,
         "status": status,
         "duration_ms": round(duration_ms, 3),
         "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),
         "error": error,
         "trace": trace,
+        "validation": validation,
         "resource": _resource_result(resources, sampler, before, after, duration_ms),
     }
 
@@ -252,6 +263,45 @@ def _start_browser_container(
         shm_size="512m",
         security_opt=["no-new-privileges"],
         network=network,
+        extra_hosts={"host.docker.internal": "host-gateway"},
+    )
+
+
+class _QuietFixtureHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:
+        return
+
+
+def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thread, str]:
+    handler = partial(_QuietFixtureHandler, directory=str(root))
+    server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
+    thread = threading.Thread(
+        target=server.serve_forever,
+        name="browser-eval-fixtures",
+        daemon=True,
+    )
+    thread.start()
+    origin = f"http://host.docker.internal:{server.server_port}"
+    return server, thread, origin
+
+
+def _materialize_task(task: BrowserTask, fixture_origin: str) -> BrowserTask:
+    calls = []
+    for call in task.tool_calls:
+        item = dict(call)
+        for key, value in tuple(item.items()):
+            if isinstance(value, str):
+                item[key] = value.replace("{fixture_origin}", fixture_origin)
+        calls.append(item)
+    return BrowserTask(
+        task_id=task.task_id,
+        title=task.title,
+        tool_calls=tuple(calls),
+        assertions=task.assertions,
+        tags=task.tags,
+        difficulty=task.difficulty,
+        ground_truth=task.ground_truth,
+        source=task.source,
     )
 
 
@@ -317,14 +367,14 @@ def run_evaluation(
     suite_path: str | Path,
     output_dir: str | Path,
     reports_dir: str | Path,
-    repeats: int = 3,
+    max_retries: int = 1,
     sample_interval_ms: int = 50,
     settle_ms: int = 1500,
     cpus: float = 2.0,
     memory: str = "2g",
 ) -> dict[str, Any]:
-    if repeats < 1:
-        raise ValueError("repeats must be positive")
+    if max_retries < 0:
+        raise ValueError("max_retries must be non-negative")
     suite = load_suite(suite_path)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -338,6 +388,9 @@ def run_evaluation(
     resources: dict[str, DockerStatsResources] = {}
     rows: list[dict[str, Any]] = []
     playwright = sync_playwright().start()
+    fixture_server, fixture_thread, fixture_origin = _start_fixture_server(
+        Path(suite_path).resolve().parent / "fixtures"
+    )
     try:
         for engine in ENGINE_IMAGES:
             network = client.networks.create(
@@ -370,10 +423,11 @@ def run_evaluation(
             pages[engine] = page
             visited_origins[engine] = set()
 
-        for attempt in range(1, repeats + 1):
-            engine_order = ("chromium", "moli") if attempt % 2 else ("moli", "chromium")
-            for task in suite.tasks:
-                for engine in engine_order:
+        for task_index, declared_task in enumerate(suite.tasks):
+            task = _materialize_task(declared_task, fixture_origin)
+            engine_order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
+            for engine in engine_order:
+                for attempt in range(1, max_retries + 2):
                     pages[engine] = _prepare_page(
                         pages[engine],
                         visited_origins[engine],
@@ -387,6 +441,7 @@ def run_evaluation(
                         task,
                         attempt,
                         sample_interval_ms,
+                        is_retry=attempt > 1,
                     )
                     rows.append(row)
                     print(
@@ -410,6 +465,8 @@ def run_evaluation(
                         ),
                         flush=True,
                     )
+                    if row["status"] == "pass":
+                        break
         summary = summarize_attempts(rows, engines=tuple(ENGINE_IMAGES))
         manifest = {
             "schema": "lex_browser_use_manifest/2",
@@ -425,6 +482,8 @@ def run_evaluation(
                     "tags": list(task.tags),
                     "tool_calls": list(task.tool_calls),
                     "assertions": list(task.assertions),
+                    "ground_truth": task.ground_truth,
+                    "source": task.source,
                 }
                 for task in suite.tasks
             ],
@@ -444,8 +503,10 @@ def run_evaluation(
                 ),
                 "sample_interval_ms": sample_interval_ms,
                 "post_reset_settle_ms": settle_ms,
-                "repeats": repeats,
-                "engine_order": "balanced alternating",
+                "primary_attempts_per_task": 1,
+                "max_failure_retries": max_retries,
+                "engine_order": "balanced by task index",
+                "fixture_origin": "temporary self-hosted deterministic fixture server",
                 "resource_scope": "browser container cgroup/network namespace",
                 "controller_excluded": True,
                 "cpus_per_browser": cpus,
@@ -454,6 +515,9 @@ def run_evaluation(
             },
             "environment": _environment(client, containers),
         }
+        smoke_path = Path(suite_path).resolve().parent / "agent_smoke.json"
+        if smoke_path.exists():
+            manifest["agent_smoke"] = json.loads(smoke_path.read_text(encoding="utf-8"))
         (output / "attempts.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
             encoding="utf-8",
@@ -467,4 +531,7 @@ def run_evaluation(
         write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:
+        fixture_server.shutdown()
+        fixture_server.server_close()
+        fixture_thread.join(timeout=2)
         _cleanup_runtime(browsers, playwright, containers, networks)

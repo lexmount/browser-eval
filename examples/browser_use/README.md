@@ -11,7 +11,8 @@ Requirements:
 - Linux with Docker Engine and cgroup v2, or Docker Desktop/Colima backed by a
   Linux VM
 - Python 3.11+ with venv support, at least 4 CPU cores, 6 GiB available memory,
-  and Internet access (install python3-venv on minimal Ubuntu)
+  and Internet access for dependency/image installation (the measured tasks use
+  local deterministic fixtures)
 - Docker access for the current user
 
 Run:
@@ -47,7 +48,8 @@ Outputs:
   memory, and 512 PID limits by default.
 - Each engine receives its own temporary Docker bridge with no peer containers;
   its CDP port is published only on host loopback. The bridge preserves public
-  web access without exposing CDP to containers on Docker's default bridge.
+  web access without exposing CDP to containers on Docker's default bridge. A
+  temporary read-only fixture server on the host supplies the measured pages.
 - Chromium runs as a non-root user with Docker isolation and
   no-new-privileges. Its unavailable nested setuid browser sandbox is disabled;
   the container boundary is therefore security-relevant and these evaluation
@@ -61,21 +63,22 @@ Outputs:
   Renderer GC runs, then only the old page is closed and a new blank page is
   created. A 1500 ms quiescence window follows. Page replacement, reset, and
   quiescence are excluded; the configured value is recorded in the manifest.
-- Attempt order alternates Chromium→Moli and Moli→Chromium.
+- Engine order alternates by task: Chromium→Moli, then Moli→Chromium.
 - CPU and network totals use per-container cumulative counter deltas from Docker
   Engine. Memory, PID/thread count, CPU utilization, and network rates use
   100 ms one-shot per-container samples. The report includes time-weighted mean,
   within-attempt P95, peak, retained memory, MiB-seconds, totals, and rates.
-- Functional scores report every attempt. Resource comparison uses only the
-  same task/attempt pairs passed by both engines.
+- Each task runs once per engine. Only a failure triggers a retry (one by
+  default). The report separates first-pass rate, retry recovery, and final
+  task success. Resource comparison uses only tasks both engines passed on the
+  first attempt; retries do not enter the normal-path resource baseline.
 - Cold start is intentionally separate from this warm-browser report.
 - State reset removes page/site history but cannot force a warm browser process
   to return allocator-reserved memory to its first-run footprint. The report's
-  first-versus-last drift check makes retained memory and runtime accumulation
-  visible instead of hiding them with browser restarts.
+  retained-memory and MiB-second metrics keep this visible.
 
-Each task runs three times by default. Override defaults with
-BROWSER_USE_EVAL_REPEATS, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
+Failures retry once by default. Override defaults with
+BROWSER_USE_EVAL_FAILURE_RETRIES, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
 BROWSER_USE_EVAL_SETTLE_MS, BROWSER_USE_EVAL_CPUS, BROWSER_USE_EVAL_MEMORY, and
 BROWSER_USE_EVAL_OUTPUT_DIR.
 
@@ -85,7 +88,12 @@ One step is one declared BrowserTool-equivalent call: navigate, click, fill,
 get_text, snapshot, scroll, back, or forward. Internal page-readiness and
 locator waits are not separate steps.
 
-The suite has ten public, no-login tasks with distinct primary sites and goals.
+The suite has fifteen deterministic tasks: five simple, five medium, and five
+complex. Every task declares an exact action sequence, exact expected outputs,
+derivation, and source attribution. The runner judges both process and result
+programmatically; no LLM-as-a-Judge, fuzzy contains check, or minimum-length
+heuristic is used. Several scenarios are adapted from
+[Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser).
 
 ## CubeSandbox
 

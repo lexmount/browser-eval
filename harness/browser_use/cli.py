@@ -12,7 +12,7 @@ def main() -> None:
     parser.add_argument("--suite", default="/work/tasks.v2.json")
     parser.add_argument("--output", default="/work/output")
     parser.add_argument("--reports", default="/work/reports")
-    parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--failure-retries", type=int, default=1)
     parser.add_argument("--sample-interval-ms", type=int, default=50)
     parser.add_argument("--settle-ms", type=int, default=1500)
     parser.add_argument("--cpus", type=float, default=2.0)
@@ -22,7 +22,7 @@ def main() -> None:
         suite_path=args.suite,
         output_dir=args.output,
         reports_dir=args.reports,
-        repeats=args.repeats,
+        max_retries=args.failure_retries,
         sample_interval_ms=args.sample_interval_ms,
         settle_ms=args.settle_ms,
         cpus=args.cpus,

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PYTHON="${BROWSER_USE_EVAL_PYTHON:-python3}"
 VENV="${BROWSER_USE_EVAL_VENV:-${ROOT}/.browser-use-eval-venv}"
-REPEATS="${BROWSER_USE_EVAL_REPEATS:-3}"
+FAILURE_RETRIES="${BROWSER_USE_EVAL_FAILURE_RETRIES:-1}"
 SAMPLE_MS="${BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS:-100}"
 SETTLE_MS="${BROWSER_USE_EVAL_SETTLE_MS:-1500}"
 CPUS="${BROWSER_USE_EVAL_CPUS:-2}"
@@ -50,10 +50,10 @@ else
 fi
 
 "${RUNNER[@]}" -m harness.browser_use.cli \
-  --suite "${ROOT}/examples/browser_use/tasks.v3.json" \
+  --suite "${ROOT}/examples/browser_use/tasks.v4.json" \
   --output "${OUTPUT}" \
   --reports "${REPORTS}" \
-  --repeats "${REPEATS}" \
+  --failure-retries "${FAILURE_RETRIES}" \
   --sample-interval-ms "${SAMPLE_MS}" \
   --settle-ms "${SETTLE_MS}" \
   --cpus "${CPUS}" \
