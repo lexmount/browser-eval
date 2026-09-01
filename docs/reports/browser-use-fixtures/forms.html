@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Deterministic Forms</title></head><body>
+<h1>Deterministic Form Workflow</h1>
+<input id="first" aria-label="first"><input id="last" aria-label="last">
+<select id="region"><option value="cn">China</option><option value="eu">Europe</option></select>
+<textarea id="note"></textarea><button id="submit">submit</button><button id="reset">reset</button>
+<div id="result">idle</div>
+<script>
+const first=document.getElementById('first'),last=document.getElementById('last'),region=document.getElementById('region'),note=document.getElementById('note'),result=document.getElementById('result');
+document.getElementById('submit').onclick=()=>result.textContent=`receipt:${first.value}|${last.value}|${region.value}|${note.value}|73`;
+document.getElementById('reset').onclick=()=>{first.value='';last.value='';note.value='';region.value='cn';result.textContent='reset:ok'};
+</script></body></html>

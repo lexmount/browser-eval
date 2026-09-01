@@ -21,10 +21,13 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
                     "step_count": 2,
                     "complexity": "simple",
                     "tool_calls": [
-                        {"action": "navigate", "url": "https://example.com", "save_as": "page"},
+                        {"action": "navigate", "url": "{fixture_origin}/core.html", "save_as": "page"},
                         {"action": "get_text", "selector": "h1", "save_as": "heading"},
                     ],
-                    "assertions": [{"output": "heading", "contains": "Example"}],
+                    "ground_truth": {
+                        "expected_outputs": {"heading": "Example"},
+                        "expected_actions": ["navigate", "get_text"],
+                    },
                     "source": {
                         "kind": "probe",
                         "scenario": "example",
@@ -53,7 +56,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
                     },
                     "paired_ratios": {
                         "metrics": {
-                            "duration_ms": {"p50": 0.5, "p95": 1.5, "mean": 0.8},
+                            "duration_ms": {"p50": 0.5, "p95": 9.9, "mean": 0.8},
                         }
                     },
                 },
@@ -67,7 +70,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "结论与产品建议" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
-    assert "结果正确率是主指标" in rendered
+    assert "结果正确率是默认 Provider 的第一决策指标" in rendered
     assert "评测集包含 1 个结果唯一的任务" in rendered
     assert rendered.index('<th colspan="3">P50</th>') < rendered.index('<th colspan="3">P95</th>')
     assert rendered.index('<th colspan="3">P95</th>') < rendered.index(
@@ -75,15 +78,25 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     )
     assert '<td class="better">50.00</td><td class="better">0.50×</td>' in rendered
     assert '<td class="better">200.00</td><td>300.00</td><td class="worse">1.50×</td>' in rendered
+    assert "9.90×" not in rendered
     assert '<td>150.00</td><td class="better">120.00</td><td class="better">0.80×</td>' in rendered
     assert (reports / "browser-use-evaluation-latest-suite.html").exists()
     assert (reports / "browser-use-evaluation-latest-method.html").exists()
-    assert (reports / "browser-use-evaluation-latest-results.html").exists()
+    assert not (reports / "browser-use-evaluation-latest-results.html").exists()
     assert (reports / "browser-use-evaluation-latest-analysis.html").exists()
     assert (reports / "browser-use-evaluation-latest-appendix.html").exists()
     assert (reports / "browser-use-evaluation-latest-data.json").exists()
+    assert "总体结果" not in rendered
+    assert "第 1/5 页" in rendered
     suite = (reports / "browser-use-evaluation-latest-suite.html").read_text(encoding="utf-8")
     assert "本轮共 1 个任务" in suite
+    assert "打开本地测试页面" in suite
+    assert 'href="browser-use-fixtures/core.html"' in suite
+    copied_fixture = (reports / "browser-use-fixtures/core.html").read_text(encoding="utf-8")
+    assert 'href="page2.html"' in copied_fixture
+    assert 'href="/page2.html"' not in copied_fixture
+    assert "navigate → get_text" in suite
+    assert "heading = Example" in suite
     assert "覆盖范围：</strong>静态标题读取" in suite
     assert "待验证假设：</strong>静态内容应作为动态控件的对照组" in suite
     method = (reports / "browser-use-evaluation-latest-method.html").read_text(encoding="utf-8")
@@ -185,11 +198,8 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
             },
         },
     )
-    results = (reports / "browser-use-evaluation-latest-results.html").read_text(encoding="utf-8")
     analysis = (reports / "browser-use-evaluation-latest-analysis.html").read_text(encoding="utf-8")
-    assert "执行记录与原始证据" not in results
-    assert "逐任务对比" not in results
-    assert "逐任务结果与原始证据" in analysis
+    assert "逐任务失败分析与原始证据" in analysis
     assert "逐任务对比" not in analysis
     assert "<details" in analysis
     assert "FULL STACK TRACE" in analysis
@@ -197,10 +207,11 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert 'class="record-grid-head"' in analysis
     assert 'class="execution-summary"' in analysis
     assert 'class="execution-body"' in analysis
-    assert 'class="failure-grid"' in analysis
-    assert 'class="failure-summary"' in analysis
-    assert "失败后实测 actionability probe" in analysis
-    assert analysis.count("查看该失败的完整执行记录") == 1
+    assert 'class="failure-grid"' not in analysis
+    assert 'class="failure-summary"' not in analysis
+    assert 'class="diagnosis-panel"' in analysis
+    assert "查看 actionability probe" in analysis
+    assert "查看完整异常" in analysis
     assert "BrowserTool 方法" in analysis
     assert 'id="f-status"' in analysis
     assert 'id="f-combined"' in analysis
@@ -223,4 +234,4 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert "首次执行" in analysis
     assert "失败重试 1" in analysis
     assert "重试 1 次仍失败" in analysis
-    assert 'href="#execution-task-moli"' in analysis
+    assert 'id="execution-task-moli"' in analysis

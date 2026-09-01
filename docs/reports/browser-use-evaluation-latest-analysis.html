@@ -1,314 +1,6 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>逐任务分析｜Chromium 与 Moli 评测</title><style>
-:root{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318}*{box-sizing:border-box}body{margin:0;background:#edf2f8;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}a{color:var(--accent)}header{background:#fff;border-bottom:1px solid var(--line)}.wrap,main,footer{max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}.brand{padding:22px 0 10px}.eyebrow{font-size:13px;color:var(--accent);font-weight:750}h1{font-size:30px;line-height:1.25;margin:5px 0}h2{font-size:22px;margin:0 0 12px}h3{font-size:17px;margin:18px 0 8px}p,ul,ol{margin:8px 0}.muted{color:var(--muted)}nav{display:flex;gap:4px;overflow:auto;padding-bottom:14px}nav a{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 10px;border-radius:8px}nav a.active{background:#e8eeff;color:#173fa8;font-weight:750}main{padding-top:20px;padding-bottom:40px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.metric{background:var(--panel);border-radius:10px;padding:16px}.metric strong{display:block;font-size:25px}.metric span{color:var(--muted)}.call{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}.chip{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}table{width:100%;border-collapse:collapse;min-width:760px}caption{text-align:left;padding:11px 12px;font-weight:750}th,td{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}th{background:var(--panel);font-size:13px}.resource-summary table{min-width:1060px}.resource-summary thead:first-of-type th{text-align:center}.resource-summary thead:first-of-type th:first-child{text-align:left}.better{color:var(--good);font-weight:800}.worse{color:var(--bad);font-weight:800}details{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}summary{cursor:pointer;font-weight:750}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}code{font-family:ui-monospace,monospace}.trace{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}.ok{color:var(--good)}.bad{color:var(--bad)}.note{border-left:5px solid var(--accent)}.pager{display:flex;justify-content:space-between;margin-top:22px}.filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}.filters label{font-size:12px;color:var(--muted);font-weight:700}.filters select,.filters input{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}.filters button{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}.filter-status{align-self:end;color:var(--muted)}.execution-card[hidden]{display:none}.record-grid,.failure-grid{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}.record-grid-head,.execution-summary{display:grid;grid-template-columns:minmax(260px,2.4fr) minmax(95px,.7fr) minmax(110px,.8fr) minmax(90px,.65fr) minmax(90px,.65fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:880px;padding:10px 12px}.record-grid-head,.failure-grid-head{background:var(--panel);font-size:13px;font-weight:800}.execution-card{border-top:1px solid var(--line)}.execution-card:first-of-type{border-top:0}.execution-card details{border:0;border-radius:0;padding:0;margin:0}.execution-card summary{list-style:none}.execution-card summary::-webkit-details-marker{display:none}.execution-summary::before{content:"▸";color:var(--accent);margin-right:-4px}.execution-card details[open] .execution-summary::before{content:"▾"}.execution-body{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:880px}.failure-grid-head,.failure-summary{display:grid;grid-template-columns:minmax(240px,2fr) minmax(90px,.6fr) minmax(90px,.6fr) minmax(130px,.9fr) minmax(150px,1fr) minmax(180px,1.2fr);gap:12px;align-items:center;min-width:880px;padding:10px 12px}.failure-record{border-top:1px solid var(--line)}.failure-record details{border:0;border-radius:0;padding:0;margin:0}.failure-record summary{list-style:none}.failure-record summary::-webkit-details-marker{display:none}.failure-summary::before{content:"▸";color:var(--accent);margin-right:-4px}.failure-record details[open] .failure-summary::before{content:"▾"}.failure-body{border-top:1px solid var(--line);padding:16px 20px;background:#fbfcff;min-width:880px}footer{padding-bottom:30px;color:var(--muted)}@media(max-width:760px){.grid{grid-template-columns:1fr}.filters{grid-template-columns:1fr 1fr}.card{padding:18px}h1{font-size:25px}}
-.execution-summary::before,.failure-summary::before{display:none}.execution-summary>span:first-child::before,.failure-summary>span:first-child::before{content:"▸";color:var(--accent);display:inline-block;width:16px}.execution-card details[open] .execution-summary>span:first-child::before,.failure-record details[open] .failure-summary>span:first-child::before{content:"▾"}
-</style></head><body><header><div class="wrap"><div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>Chromium 与 Moli 浏览器工具调用评测</h1><div class="muted">运行编号：865948bdd7ad · 第 5/6 页</div></div><nav aria-label="报告分页"><a href="browser-use-evaluation-latest.html" >1. 结论摘要</a><a href="browser-use-evaluation-latest-suite.html" >2. 评测集</a><a href="browser-use-evaluation-latest-method.html" >3. 环境与方法</a><a href="browser-use-evaluation-latest-results.html" >4. 总体结果</a><a href="browser-use-evaluation-latest-analysis.html" class=active aria-current=page>5. 逐任务分析</a><a href="browser-use-evaluation-latest-appendix.html" >6. 复现与附录</a></nav></div></header><main><section class="card note"><h2>分析范围</h2><p>正确率与资源汇总以“结论摘要”和“总体结果”为准。本页将逐任务结果、重试和原始证据合并为一个组件，再解释成功样本选择偏差、失败定位证据和待验证机制，不重复汇总表。</p></section><section class="card"><h2>性能解释边界</h2><p>本轮使用本地固定测试页面，两个浏览器进程均在预热后复用，任务之间清理浏览状态，并使用确定性调用链。资源表只保留双方成功任务：Moli 未通过的 10 个任务被排除，因此存在成功样本选择偏差。</p><p>性能结论只能表述为“在本轮 20 个双方首次均成功的任务中观察到相应配对分布”，不能外推为全部任务或所有网站上的固定优势。每个任务只有一个首次执行样本，也不足以建立稳定的性能置信区间。</p></section><section class="card"><h2>时序假设与放大性测试设计</h2><p><strong>已知实现事实：</strong>Moli 的 1 Hz 指 CDP screencast 帧的下采样节奏；调度器按 <code>everyNthFrame</code> 以秒为单位安排 screencast，不代表 JavaScript 动画帧只以 1 Hz 运行。Moli 的 <code>requestAnimationFrame</code> 源码目标间隔为 16 ms，两者是不同的调度路径。</p><p><strong>待验证假设：</strong>低频 screencast 或其触发的布局快照可能放大动态 DOM 更新后几何、可见性或命中测试状态陈旧的问题；这只是机制假设，不是本轮失败的既定根因。必须用失败现场的 actionability probe 和对照实验验证。</p><ol><li><strong>固定变量：</strong>对同一页面、同一选择器和同一 BrowserTool 调用，分别使用立即显现、双 rAF、定时器、DOM 替换、动画和视口进入等触发方式；评测集中的 <code>source.coverage</code> 与 <code>source.hypothesis</code> 明确记录每个 probe 的覆盖面。</li><li><strong>放大变量：</strong>围绕 16 ms 与 1 秒两个时间尺度改变显现延迟，并在可控条件下对比 screencast 订阅开启/关闭；每个组合使用预先固定的重复次数和相同超时。</li><li><strong>实测证据：</strong>失败时采集节点连接状态、disabled、display、visibility、opacity、pointer-events、矩形尺寸和 client rect 数量，并与对应成功样本及页面内时间戳对齐。</li><li><strong>判定规则：</strong>只有当 DOM/rAF 已按约 16 ms 完成、但几何或 actionability 状态稳定滞后且随 screencast 条件系统性变化时，才支持“screencast 放大时序问题”；否则应否定该解释并继续检查适配层、布局刷新或测试页面。</li></ol></section><section class="card"><h2>失败分布与定位依据</h2><p>错误类别由评测程序根据异常文本、失败步骤、BrowserTool 方法和选择器自动生成，不是人工或 LLM 判断；下方每个失败组同时承载定位依据与唯一的执行记录入口，不把失败现象写成已验证根因。</p><div class="table-wrap"><table><caption>程序化失败分类</caption><thead><tr><th>规则类别</th><th>去重失败组</th><th>实际失败次数</th></tr></thead><tbody><tr><td data-label="规则类别">DOM 存在但布局矩形为零</td><td data-label="去重失败组">8</td><td data-label="实际失败次数">16</td></tr><tr><td data-label="规则类别">锚点与 CSS 状态未生效</td><td data-label="去重失败组">1</td><td data-label="实际失败次数">2</td></tr><tr><td data-label="规则类别">交互目标超时/不可见</td><td data-label="去重失败组">1</td><td data-label="实际失败次数">2</td></tr></tbody></table></div><div class="failure-grid"><div class="failure-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>失败次数</span><span>失败调用</span><span>选择器</span><span>规则类别</span></div><div class="failure-record"><details><summary class="failure-summary"><span>筛选目录并打开唯一详情</span><span>moli</span><span>2 次</span><span>第 4 步 · click</span><span><code>#items button</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#items button&quot;).first
-    - locator resolved to &lt;button data-id=&quot;B-202&quot;&gt;details&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;details&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-catalog-filter-detail-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>登录、筛选、加入两件商品并结算</span><span>moli</span><span>2 次</span><span>第 7 步 · click</span><span><code>#add-widget-a</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#add-widget-a&quot;).first
-    - locator resolved to &lt;button id=&quot;add-widget-a&quot;&gt;add&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;add&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-app-login-filter-checkout-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>同商品累加、结算并退出</span><span>moli</span><span>2 次</span><span>第 6 步 · click</span><span><code>#add-adapter-z</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#add-adapter-z&quot;).first
-    - locator resolved to &lt;button id=&quot;add-adapter-z&quot;&gt;add&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;add&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-app-quantity-and-logout-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>连续三页目录并检查末页商品</span><span>moli</span><span>2 次</span><span>第 11 步 · click</span><span><code>#items button</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#items button&quot;).first
-    - locator resolved to &lt;button data-id=&quot;H-808&quot;&gt;details&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;details&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-catalog-three-page-inspection-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>通过页内锚点显现目标区域</span><span>moli</span><span>2 次</span><span>第 3 步 · get_text</span><span><code>#hash-out</code></span><span>锚点与 CSS 状态未生效</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</p><p><strong>程序化现象归纳：</strong>点击调用返回成功，但后续读取时 hash/:target 驱动的唯一可见状态未出现；现有证据不能区分事件、状态传播、读取或测试页面因素。</p><p><strong>失败后实测 actionability probe：</strong>本类失败未采集元素几何 probe；后续读取暴露了状态异常，但不能据此确定异常发生层。</p><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-hash-target-reveal-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>双 requestAnimationFrame 后填写显现输入框</span><span>moli</span><span>2 次</span><span>第 2 步 · fill</span><span><code>#raf-input</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.fill: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#raf-input&quot;).first
-    - locator resolved to &lt;input id=&quot;raf-input&quot;/&gt;
-    - fill(&quot;frame-37&quot;)
-  - attempting fill action
-    2 × waiting for element to be visible, enabled and editable
-      - element is not visible
-    - retrying fill action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and editable
-      - element is not visible
-    - retrying fill action
-      - waiting 100ms
-    10 × waiting for element to be visible, enabled and editable
-       - element is not visible
-     - retrying fill action
-       - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-double-raf-reveal-fill-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>同选择器替换后再次点击</span><span>moli</span><span>2 次</span><span>第 3 步 · click</span><span><code>#replace-action</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#replace-action&quot;).first
-    - locator resolved to &lt;button id=&quot;replace-action&quot;&gt;new action&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;new action&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-dom-replacement-click-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>等待模态对话框并确认</span><span>moli</span><span>2 次</span><span>第 5 步 · click</span><span><code>#dialog-confirm</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#dialog-confirm&quot;).first
-    - locator resolved to &lt;button id=&quot;dialog-confirm&quot;&gt;confirm dialog&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;confirm dialog&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-modal-dialog-confirm-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>等待遮罩移除后点击底层控件</span><span>moli</span><span>2 次</span><span>第 4 步 · click</span><span><code>#overlay-action</code></span><span>交互目标超时/不可见</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#overlay-action&quot;).first
-    - locator resolved to &lt;button id=&quot;overlay-action&quot;&gt;covered action&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is visible, enabled and stable
-      - scrolling into view if needed
-      - done scrolling
-      - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is visible, enabled and stable
-      - scrolling into view if needed
-      - done scrolling
-      - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is visible, enabled and stable
-      - scrolling into view if needed
-      - done scrolling
-      - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
-    - retrying click action
-      - waiting 500ms</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 1,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 21,
-    &quot;width&quot;: 102.6875,
-    &quot;x&quot;: 8,
-    &quot;y&quot;: 135.875
-  },
-  &quot;text&quot;: &quot;covered action&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-overlay-removal-click-moli">查看该失败的完整执行记录</a></p></div></details></div><div class="failure-record"><details><summary class="failure-summary"><span>滚动触发 IntersectionObserver 后点击虚拟控件</span><span>moli</span><span>2 次</span><span>第 5 步 · click</span><span><code>#io-action</code></span><span>DOM 存在但布局矩形为零</span></summary><div class="failure-body"><p><strong>程序证据：</strong>TimeoutError: Locator.click: Timeout 5000ms exceeded.
-Call log:
-  - waiting for locator(&quot;#io-action&quot;).first
-    - locator resolved to &lt;button id=&quot;io-action&quot;&gt;intersection action&lt;/button&gt;
-  - attempting click action
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-    - waiting 20ms
-    2 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 100ms
-    9 × waiting for element to be visible, enabled and stable
-      - element is not visible
-    - retrying click action
-      - waiting 500ms</p><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p><strong>失败后实测 actionability probe：</strong></p><pre>{
-  &quot;ariaDisabled&quot;: null,
-  &quot;clientRectCount&quot;: 0,
-  &quot;connected&quot;: true,
-  &quot;disabled&quot;: false,
-  &quot;display&quot;: &quot;inline-block&quot;,
-  &quot;found&quot;: true,
-  &quot;opacity&quot;: &quot;1&quot;,
-  &quot;pointerEvents&quot;: &quot;auto&quot;,
-  &quot;rect&quot;: {
-    &quot;height&quot;: 0,
-    &quot;width&quot;: 0,
-    &quot;x&quot;: 0,
-    &quot;y&quot;: 0
-  },
-  &quot;text&quot;: &quot;intersection action&quot;,
-  &quot;visibility&quot;: &quot;visible&quot;
-}</pre><p><strong>证据边界：</strong>这些数据只能定位失败发生的调用、目标状态和复现次数；在对照 probe 完成前，不能据此断言根因位于浏览器实现、适配层或测试页面。</p><p><a href="#execution-intersection-virtual-action-moli">查看该失败的完整执行记录</a></p></div></details></div></div></section><section class="card"><h2>逐任务结果与原始证据</h2><p>共 60 条“任务 × Provider”记录，底层包含 70 次实际执行。默认只展示最终失败记录；一次失败后的重试归入同一条任务记录，不再拆成独立结果。展开后可查看首次执行、重试、标准答案判定、参考路径判定和逐调用证据。</p><div class="filters" aria-label="执行样本筛选">
+:root{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318}*{box-sizing:border-box}body{margin:0;background:#edf2f8;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}a{color:var(--accent)}header{background:#fff;border-bottom:1px solid var(--line)}.wrap,main,footer{max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}.brand{padding:22px 0 10px}.eyebrow{font-size:13px;color:var(--accent);font-weight:750}h1{font-size:30px;line-height:1.25;margin:5px 0}h2{font-size:22px;margin:0 0 12px}h3{font-size:17px;margin:18px 0 8px}p,ul,ol{margin:8px 0}.muted{color:var(--muted)}nav{display:flex;gap:4px;overflow:auto;padding-bottom:14px}nav a{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 10px;border-radius:8px}nav a.active{background:#e8eeff;color:#173fa8;font-weight:750}main{padding-top:20px;padding-bottom:40px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.metric{background:var(--panel);border-radius:10px;padding:16px}.metric strong{display:block;font-size:25px}.metric span{color:var(--muted)}.call{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}.chip{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}.task-verification{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.task-verification>div,.diagnosis-facts>div{background:var(--panel);border-radius:9px;padding:11px 12px}.task-verification>div:last-child{grid-column:1/-1}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{display:block}.task-verification span,.diagnosis-facts span{margin-top:3px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}table{width:100%;border-collapse:collapse;min-width:760px}caption{text-align:left;padding:11px 12px;font-weight:750}th,td{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}th{background:var(--panel);font-size:13px}.resource-summary table{min-width:1060px}.resource-summary thead:first-of-type th{text-align:center}.resource-summary thead:first-of-type th:first-child{text-align:left}.better{color:var(--good);font-weight:800}.worse{color:var(--bad);font-weight:800}details{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}summary{cursor:pointer;font-weight:750}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}code{font-family:ui-monospace,monospace}.trace{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}.ok{color:var(--good)}.bad{color:var(--bad)}.note{border-left:5px solid var(--accent)}.pager{display:flex;justify-content:space-between;margin-top:22px}.filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}.filters label{font-size:12px;color:var(--muted);font-weight:700}.filters select,.filters input{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}.filters button{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}.filter-status{align-self:end;color:var(--muted)}.execution-card[hidden]{display:none}.record-grid{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}.record-grid-head,.execution-summary{display:grid;grid-template-columns:minmax(260px,2.4fr) minmax(95px,.7fr) minmax(110px,.8fr) minmax(90px,.65fr) minmax(90px,.65fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:880px;padding:10px 12px}.record-grid-head{background:var(--panel);font-size:13px;font-weight:800}.execution-card{border-top:1px solid var(--line)}.execution-card:first-of-type{border-top:0}.execution-card>details{border:0;border-radius:0;padding:0;margin:0}.execution-card>details>summary{list-style:none}.execution-card>details>summary::-webkit-details-marker{display:none}.execution-summary>span:first-child::before{content:"▸";color:var(--accent);display:inline-block;width:16px}.execution-card>details[open] .execution-summary>span:first-child::before{content:"▾"}.execution-body{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:880px}.diagnosis-panel{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}.diagnosis-panel h3{margin-top:0}.diagnosis-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.raw-evidence{background:#fff}footer{padding-bottom:30px;color:var(--muted)}@media(max-width:760px){.grid,.task-verification,.diagnosis-facts{grid-template-columns:1fr}.task-verification>div:last-child{grid-column:auto}.filters{grid-template-columns:1fr 1fr}.card{padding:18px}h1{font-size:25px}}
+</style></head><body><header><div class="wrap"><div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>Chromium 与 Moli 浏览器工具调用评测</h1><div class="muted">运行编号：865948bdd7ad · 第 4/5 页</div></div><nav aria-label="报告分页"><a href="browser-use-evaluation-latest.html" >1. 结论摘要</a><a href="browser-use-evaluation-latest-suite.html" >2. 评测集</a><a href="browser-use-evaluation-latest-method.html" >3. 环境与方法</a><a href="browser-use-evaluation-latest-analysis.html" class=active aria-current=page>4. 逐任务分析</a><a href="browser-use-evaluation-latest-appendix.html" >5. 复现与附录</a></nav></div></header><main><section class="card"><h2>时序假设与放大性测试设计</h2><p><strong>已知实现事实：</strong>Moli 的 1 Hz 指 CDP screencast 帧的下采样节奏；调度器按 <code>everyNthFrame</code> 以秒为单位安排 screencast，不代表 JavaScript 动画帧只以 1 Hz 运行。Moli 的 <code>requestAnimationFrame</code> 源码目标间隔为 16 ms，两者是不同的调度路径。</p><p><strong>待验证假设：</strong>低频 screencast 或其触发的布局快照可能放大动态 DOM 更新后几何、可见性或命中测试状态陈旧的问题；这只是机制假设，不是本轮失败的既定根因。</p><ol><li><strong>固定变量：</strong>对同一页面、同一选择器和同一 BrowserTool 调用，分别使用立即显现、双 rAF、定时器、DOM 替换、动画和视口进入等触发方式。</li><li><strong>放大变量：</strong>围绕 16 ms 与 1 秒两个时间尺度改变显现延迟，并在可控条件下对比 screencast 订阅开启/关闭。</li><li><strong>实测证据：</strong>失败时采集连接状态、样式、矩形尺寸和 client rect 数量，并与对应成功样本及页面内时间戳对齐。</li><li><strong>判定规则：</strong>只有 DOM/rAF 已完成、几何或 actionability 状态仍稳定滞后且随 screencast 条件系统性变化，才支持该假设；否则继续检查适配层、布局刷新或测试页面。</li></ol></section><section class="card"><h2>逐任务失败分析与原始证据</h2><p>错误类别由程序根据异常文本、失败步骤、BrowserTool 方法和选择器自动生成，不使用人工或 LLM 判断。共 60 条“任务 × Provider”记录、70 次实际执行；默认只展示最终失败记录，重试归入同一任务，不另占一行。</p><div class="table-wrap"><table><caption>程序化失败分布</caption><thead><tr><th>规则类别</th><th>去重失败组</th><th>实际失败次数</th></tr></thead><tbody><tr><td data-label="规则类别">DOM 存在但布局矩形为零</td><td data-label="去重失败组">8</td><td data-label="实际失败次数">16</td></tr><tr><td data-label="规则类别">锚点与 CSS 状态未生效</td><td data-label="去重失败组">1</td><td data-label="实际失败次数">2</td></tr><tr><td data-label="规则类别">交互目标超时/不可见</td><td data-label="去重失败组">1</td><td data-label="实际失败次数">2</td></tr></tbody></table></div><div class="filters" aria-label="执行样本筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option><option value="core-title-exact">读取固定标题</option><option value="counter-double-click">连续点击两次并读取计数</option><option value="fill-echo-exact">填写文本并读取同步回显</option><option value="select-option-exact">选择下拉项并读取派生值</option><option value="press-enter-exact">填写后按 Enter 触发结果</option><option value="dynamic-two-page-final">跨两次异步分页读取最终数据</option><option value="history-back-forward">跨页后退与前进恢复</option><option value="multi-field-form-receipt">填写多字段并生成唯一回执</option><option value="catalog-filter-detail">筛选目录并打开唯一详情</option><option value="dynamic-settle-and-late-click">等待最终阶段并点击延迟启用按钮</option><option value="app-login-filter-checkout">登录、筛选、加入两件商品并结算</option><option value="app-quantity-and-logout">同商品累加、结算并退出</option><option value="catalog-three-page-inspection">连续三页目录并检查末页商品</option><option value="form-submit-reset-resubmit">提交、重置并修改后再次提交</option><option value="three-page-history-and-scroll">三级历史恢复并验证长页底部</option><option value="checked-label-toggle">通过标签切换复选框状态</option><option value="native-details-toggle">展开原生 details 并读取内容</option><option value="dynamic-option-select">选择异步插入的下拉选项</option><option value="autofocus-keyboard-submit">向 autofocus 输入框键入并提交</option><option value="hash-target-reveal">通过页内锚点显现目标区域</option><option value="double-raf-reveal-fill">双 requestAnimationFrame 后填写显现输入框</option><option value="delayed-enabled-button">点击延迟解除 disabled 的按钮</option><option value="dom-replacement-click">同选择器替换后再次点击</option><option value="offscreen-auto-scroll-click">点击首屏外按钮并验证自动滚动</option><option value="shadow-dom-button">点击开放 Shadow DOM 内按钮</option><option value="modal-dialog-confirm">等待模态对话框并确认</option><option value="overlay-removal-click">等待遮罩移除后点击底层控件</option><option value="animated-stability-click">等待动画控件稳定后点击</option><option value="intersection-virtual-action">滚动触发 IntersectionObserver 后点击虚拟控件</option><option value="adopted-stylesheet-shadow-action">点击 adoptedStyleSheets 控制的 Shadow DOM 控件</option></select></label>
       <label>Provider<select id="f-engine"><option value="">全部 Provider</option><option>chromium</option><option>moli</option></select></label>
       <label>最终结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail" selected>错误</option></select></label>
@@ -989,7 +681,24 @@ detail:none</pre></div><div class="trace"><strong>调用 2 · fill · pass · 45
       &quot;equals&quot;: &quot;catalogue:page:1&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-catalog-filter-detail-moli" class="execution-card" data-task="catalog-filter-detail" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="medium,catalog,filter,detail,exact-oracle" data-duration="10116.797999999999"><details><summary class="execution-summary"><span>筛选目录并打开唯一详情</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,116.80 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,059.62 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-catalog-filter-detail-moli" class="execution-card" data-task="catalog-filter-detail" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="medium,catalog,filter,detail,exact-oracle" data-duration="10116.797999999999"><details><summary class="execution-summary"><span>筛选目录并打开唯一详情</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,116.80 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 4 步 · click</span></div><div><strong>选择器</strong><span><code>#items button</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;details&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,059.62 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1039,7 +748,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">birch:£17.00 details</td><td data-label="实际值">birch:£17.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:birch|£17.00|B-202</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">page_label</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → get_text → click → get_text → fill → get_text</td><td data-label="实际动作序列">navigate → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 42.62 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">birch:£17.00 details</td><td data-label="实际值">birch:£17.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:birch|£17.00|B-202</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">page_label</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → get_text → click → get_text → fill → get_text</td><td data-label="实际动作序列">navigate → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 42.62 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/catalog.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/catalog.html
@@ -1080,7 +789,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,057.18 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,057.18 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1130,7 +839,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">birch:£17.00 details</td><td data-label="实际值">birch:£17.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:birch|£17.00|B-202</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">page_label</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → get_text → click → get_text → fill → get_text</td><td data-label="实际动作序列">navigate → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 42.69 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">birch:£17.00 details</td><td data-label="实际值">birch:£17.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:birch|£17.00|B-202</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">page_label</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → get_text → click → get_text → fill → get_text</td><td data-label="实际动作序列">navigate → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 42.69 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/catalog.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/catalog.html
@@ -1352,7 +1061,24 @@ none</pre></div><div class="trace"><strong>调用 2 · fill · pass · 47.50 ms<
       &quot;equals&quot;: &quot;order:14:2:LX73&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-app-login-filter-checkout-moli" class="execution-card" data-task="app-login-filter-checkout" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="complex,multi-step-flow,cart,checkout,exact-oracle" data-duration="10260.154"><details><summary class="execution-summary"><span>登录、筛选、加入两件商品并结算</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,260.15 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,131.92 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-app-login-filter-checkout-moli" class="execution-card" data-task="app-login-filter-checkout" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="complex,multi-step-flow,cart,checkout,exact-oracle" data-duration="10260.154"><details><summary class="execution-summary"><span>登录、筛选、加入两件商品并结算</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,260.15 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 7 步 · click</span></div><div><strong>选择器</strong><span><code>#add-widget-a</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;add&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,131.92 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1402,7 +1128,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">greeting</td><td data-label="预期值">hi:eve-7</td><td data-label="实际值">hi:eve-7</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">widget:1</td><td data-label="实际值">widget:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:14</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">order:14:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text → fill → get_text → click → fill → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 60.65 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">greeting</td><td data-label="预期值">hi:eve-7</td><td data-label="实际值">hi:eve-7</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">widget:1</td><td data-label="实际值">widget:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:14</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">order:14:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text → fill → get_text → click → fill → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 60.65 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/app.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/app.html
@@ -1455,7 +1181,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,128.24 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,128.24 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1505,7 +1231,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">greeting</td><td data-label="预期值">hi:eve-7</td><td data-label="实际值">hi:eve-7</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">widget:1</td><td data-label="实际值">widget:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:14</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">order:14:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text → fill → get_text → click → fill → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 48.60 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">greeting</td><td data-label="预期值">hi:eve-7</td><td data-label="实际值">hi:eve-7</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">widget:1</td><td data-label="实际值">widget:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:14</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">order:14:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text → fill → get_text → click → fill → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 48.60 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/app.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/app.html
@@ -1639,7 +1365,24 @@ none</pre></div><div class="trace"><strong>调用 2 · fill · pass · 47.18 ms<
       &quot;equals&quot;: &quot;logged-out&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-app-quantity-and-logout-moli" class="execution-card" data-task="app-quantity-and-logout" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="complex,multi-step-flow,quantity,logout,exact-oracle" data-duration="10245.356"><details><summary class="execution-summary"><span>同商品累加、结算并退出</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,245.36 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,123.32 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-app-quantity-and-logout-moli" class="execution-card" data-task="app-quantity-and-logout" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate" data-tags="complex,multi-step-flow,quantity,logout,exact-oracle" data-duration="10245.356"><details><summary class="execution-summary"><span>同商品累加、结算并退出</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,245.36 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 6 步 · click</span></div><div><strong>选择器</strong><span><code>#add-adapter-z</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;add&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,123.32 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1689,7 +1432,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">adapter:1</td><td data-label="实际值">adapter:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">count</td><td data-label="预期值">2</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:26</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">receipt</td><td data-label="预期值">order:26:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">logged-out</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → fill → get_text → click → click → get_text → get_text → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 46.90 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">adapter:1</td><td data-label="实际值">adapter:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">count</td><td data-label="预期值">2</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:26</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">receipt</td><td data-label="预期值">order:26:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">logged-out</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → fill → get_text → click → click → get_text → get_text → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 46.90 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/app.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/app.html
@@ -1738,7 +1481,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,122.04 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,122.04 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1788,7 +1531,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">adapter:1</td><td data-label="实际值">adapter:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">count</td><td data-label="预期值">2</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:26</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">receipt</td><td data-label="预期值">order:26:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">logged-out</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → fill → get_text → click → click → get_text → get_text → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 47.82 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">filtered</td><td data-label="预期值">adapter:1</td><td data-label="实际值">adapter:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">count</td><td data-label="预期值">2</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">total</td><td data-label="预期值">total:26</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">receipt</td><td data-label="预期值">order:26:2:LX73</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">logged-out</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → fill → get_text → click → click → get_text → get_text → click → get_text → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 47.82 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/app.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/app.html
@@ -1916,7 +1659,24 @@ fir:£37.00 details</pre></div><div class="trace"><strong>调用 7 · click · p
       &quot;equals&quot;: &quot;detail:hazel|£43.00|H-808&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-catalog-three-page-inspection-moli" class="execution-card" data-task="catalog-three-page-inspection" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate,snapshot" data-tags="complex,pagination,catalog,detail,exact-oracle" data-duration="10347.123"><details><summary class="execution-summary"><span>连续三页目录并检查末页商品</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,347.12 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,167.75 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-catalog-three-page-inspection-moli" class="execution-card" data-task="catalog-three-page-inspection" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,get_text,navigate,snapshot" data-tags="complex,pagination,catalog,detail,exact-oracle" data-duration="10347.123"><details><summary class="execution-summary"><span>连续三页目录并检查末页商品</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,347.12 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 11 步 · click</span></div><div><strong>选择器</strong><span><code>#items button</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;details&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,167.75 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1966,7 +1726,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">page1</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值">catalogue:page:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page2</td><td data-label="预期值">catalogue:page:2</td><td data-label="实际值">catalogue:page:2</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page3</td><td data-label="预期值">catalogue:page:3</td><td data-label="实际值">catalogue:page:3</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">hazel:£43.00 details</td><td data-label="实际值">hazel:£43.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:hazel|£43.00|H-808</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click → get_text</td><td data-label="实际动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 49.61 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">page1</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值">catalogue:page:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page2</td><td data-label="预期值">catalogue:page:2</td><td data-label="实际值">catalogue:page:2</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page3</td><td data-label="预期值">catalogue:page:3</td><td data-label="实际值">catalogue:page:3</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">hazel:£43.00 details</td><td data-label="实际值">hazel:£43.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:hazel|£43.00|H-808</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click → get_text</td><td data-label="实际动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 49.61 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/catalog.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/catalog.html
@@ -2032,7 +1792,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,179.37 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,179.37 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2082,7 +1842,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">page1</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值">catalogue:page:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page2</td><td data-label="预期值">catalogue:page:2</td><td data-label="实际值">catalogue:page:2</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page3</td><td data-label="预期值">catalogue:page:3</td><td data-label="实际值">catalogue:page:3</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">hazel:£43.00 details</td><td data-label="实际值">hazel:£43.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:hazel|£43.00|H-808</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click → get_text</td><td data-label="实际动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 60.58 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">page1</td><td data-label="预期值">catalogue:page:1</td><td data-label="实际值">catalogue:page:1</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page2</td><td data-label="预期值">catalogue:page:2</td><td data-label="实际值">catalogue:page:2</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">page3</td><td data-label="预期值">catalogue:page:3</td><td data-label="实际值">catalogue:page:3</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">filtered</td><td data-label="预期值">hazel:£43.00 details</td><td data-label="实际值">hazel:£43.00 details</td><td data-label="结果">通过</td></tr><tr><td data-label="输出">answer</td><td data-label="预期值">detail:hazel|£43.00|H-808</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click → get_text</td><td data-label="实际动作序列">navigate → get_text → snapshot → click → get_text → snapshot → click → get_text → fill → get_text → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 60.58 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/catalog.html&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/catalog.html
@@ -2684,7 +2444,7 @@ target:hidden</pre></div><div class="trace"><strong>调用 2 · click · pass ·
       &quot;equals&quot;: &quot;target:visible:29&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-hash-target-reveal-moli" class="execution-card" data-task="hash-target-reveal" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="simple" data-error="锚点与 CSS 状态未生效" data-actions="click,get_text,navigate" data-tags="simple,target,css-state,navigation,exact-oracle" data-duration="10275.735"><details><summary class="execution-summary"><span>通过页内锚点显现目标区域</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,275.74 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,126.98 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-hash-target-reveal-moli" class="execution-card" data-task="hash-target-reveal" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="simple" data-error="锚点与 CSS 状态未生效" data-actions="click,get_text,navigate" data-tags="simple,target,css-state,navigation,exact-oracle" data-duration="10275.735"><details><summary class="execution-summary"><span>通过页内锚点显现目标区域</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,275.74 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>锚点与 CSS 状态未生效</span></div><div><strong>失败调用</strong><span>第 3 步 · get_text</span></div><div><strong>选择器</strong><span><code>#hash-out</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>点击调用返回成功，但后续读取时 hash/:target 驱动的唯一可见状态未出现；现有证据不能区分事件、状态传播、读取或测试页面因素。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><p class="muted">本组没有可用的 actionability probe。</p></section><section class="attempt-block"><h3>首次执行 · 5,126.98 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2692,7 +2452,7 @@ target:hidden</pre></div><div class="trace"><strong>调用 2 · click · pass ·
     raise TimeoutError(
     ...&lt;2 lines&gt;...
     )
-TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">target:visible:29</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → get_text</td><td data-label="实际动作序列">navigate → click → get_text</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 57.44 ms</strong><div>参数</div><pre>{
+TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">target:visible:29</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → get_text</td><td data-label="实际动作序列">navigate → click → get_text</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 57.44 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=hash&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=hash
@@ -2709,7 +2469,7 @@ target:hidden</pre></div><div class="trace"><strong>调用 2 · click · pass ·
   &quot;action&quot;: &quot;get_text&quot;,
   &quot;selector&quot;: &quot;#hash-out&quot;,
   &quot;wait_for_text&quot;: &quot;target:visible:29&quot;
-}</pre><div>完整输出</div><pre>（无输出）</pre><div>调用错误</div><pre>TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,148.75 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>（无输出）</pre><div>调用错误</div><pre>TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,148.75 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2717,7 +2477,7 @@ target:hidden</pre></div><div class="trace"><strong>调用 2 · click · pass ·
     raise TimeoutError(
     ...&lt;2 lines&gt;...
     )
-TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">target:visible:29</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → get_text</td><td data-label="实际动作序列">navigate → click → get_text</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 61.73 ms</strong><div>参数</div><pre>{
+TimeoutError: #hash-out did not become &#x27;target:visible:29&#x27;; last value was &#x27;target:hidden&#x27;</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">target:visible:29</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → get_text</td><td data-label="实际动作序列">navigate → click → get_text</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 61.73 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=hash&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=hash
@@ -2762,7 +2522,24 @@ raf:pending</pre></div><div class="trace"><strong>调用 2 · fill · pass · 47
       &quot;equals&quot;: &quot;raf:frame-37:17&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-double-raf-reveal-fill-moli" class="execution-card" data-task="double-raf-reveal-fill" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="fill,navigate" data-tags="medium,request-animation-frame,visibility,fill,exact-oracle" data-duration="10138.366"><details><summary class="execution-summary"><span>双 requestAnimationFrame 后填写显现输入框</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,138.37 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,068.64 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-double-raf-reveal-fill-moli" class="execution-card" data-task="double-raf-reveal-fill" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="fill,navigate" data-tags="medium,request-animation-frame,visibility,fill,exact-oracle" data-duration="10138.366"><details><summary class="execution-summary"><span>双 requestAnimationFrame 后填写显现输入框</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,138.37 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 2 步 · fill</span></div><div><strong>选择器</strong><span><code>#raf-input</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,068.64 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2819,7 +2596,7 @@ Call log:
        - element is not visible
      - retrying fill action
        - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">raf:frame-37:17</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text</td><td data-label="实际动作序列">navigate → fill</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 63.57 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">raf:frame-37:17</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text</td><td data-label="实际动作序列">navigate → fill</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 63.57 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=raf&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=raf
@@ -2849,7 +2626,7 @@ Call log:
     10 × waiting for element to be visible, enabled and editable
        - element is not visible
      - retrying fill action
-       - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,069.72 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+       - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,069.72 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2906,7 +2683,7 @@ Call log:
        - element is not visible
      - retrying fill action
        - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">raf:frame-37:17</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text</td><td data-label="实际动作序列">navigate → fill</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 64.91 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">raf:frame-37:17</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → get_text</td><td data-label="实际动作序列">navigate → fill</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 64.91 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=raf&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=raf
@@ -3019,7 +2796,24 @@ replace:pending</pre></div><div class="trace"><strong>调用 2 · click · pass 
       &quot;equals&quot;: &quot;replace:new:47&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-dom-replacement-click-moli" class="execution-card" data-task="dom-replacement-click" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="click,navigate" data-tags="medium,dom-replacement,locator,mutation,exact-oracle" data-duration="10250.361"><details><summary class="execution-summary"><span>同选择器替换后再次点击</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,250.36 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,123.79 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-dom-replacement-click-moli" class="execution-card" data-task="dom-replacement-click" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="medium" data-error="DOM 存在但布局矩形为零" data-actions="click,navigate" data-tags="medium,dom-replacement,locator,mutation,exact-oracle" data-duration="10250.361"><details><summary class="execution-summary"><span>同选择器替换后再次点击</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,250.36 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 3 步 · click</span></div><div><strong>选择器</strong><span><code>#replace-action</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;new action&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,123.79 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3069,7 +2863,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">replace:new:47</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → click → get_text</td><td data-label="实际动作序列">navigate → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 67.80 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">replace:new:47</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → click → get_text</td><td data-label="实际动作序列">navigate → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 67.80 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=replacement&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=replacement
@@ -3101,7 +2895,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,126.57 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,126.57 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3151,7 +2945,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">replace:new:47</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → click → get_text</td><td data-label="实际动作序列">navigate → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 67.79 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">replace:new:47</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → click → click → get_text</td><td data-label="实际动作序列">navigate → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 67.79 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=replacement&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=replacement
@@ -3330,7 +3124,24 @@ dialog:pending</pre></div><div class="trace"><strong>调用 2 · fill · pass ·
       &quot;equals&quot;: &quot;dialog:alice-63:safe:67&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-modal-dialog-confirm-moli" class="execution-card" data-task="modal-dialog-confirm" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,navigate,select" data-tags="complex,dialog,top-layer,async,exact-oracle" data-duration="10280.416000000001"><details><summary class="execution-summary"><span>等待模态对话框并确认</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,280.42 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,140.86 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-modal-dialog-confirm-moli" class="execution-card" data-task="modal-dialog-confirm" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,navigate,select" data-tags="complex,dialog,top-layer,async,exact-oracle" data-duration="10280.416000000001"><details><summary class="execution-summary"><span>等待模态对话框并确认</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,280.42 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 5 步 · click</span></div><div><strong>选择器</strong><span><code>#dialog-confirm</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;confirm dialog&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,140.86 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3380,7 +3191,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">dialog:alice-63:safe:67</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 69.29 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">dialog:alice-63:safe:67</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 69.29 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=modal&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=modal
@@ -3422,7 +3233,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,139.55 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,139.55 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3472,7 +3283,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">dialog:alice-63:safe:67</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 73.12 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">dialog:alice-63:safe:67</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 73.12 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=modal&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=modal
@@ -3546,7 +3357,24 @@ overlay:pending</pre></div><div class="trace"><strong>调用 2 · fill · pass �
       &quot;equals&quot;: &quot;overlay:cover-69:71&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-overlay-removal-click-moli" class="execution-card" data-task="overlay-removal-click" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="交互目标超时/不可见" data-actions="click,fill,navigate" data-tags="complex,overlay,hit-test,pointer-events,exact-oracle" data-duration="10299.243999999999"><details><summary class="execution-summary"><span>等待遮罩移除后点击底层控件</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,299.24 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,140.54 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-overlay-removal-click-moli" class="execution-card" data-task="overlay-removal-click" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="交互目标超时/不可见" data-actions="click,fill,navigate" data-tags="complex,overlay,hit-test,pointer-events,exact-oracle" data-duration="10299.243999999999"><details><summary class="execution-summary"><span>等待遮罩移除后点击底层控件</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,299.24 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>交互目标超时/不可见</span></div><div><strong>失败调用</strong><span>第 4 步 · click</span></div><div><strong>选择器</strong><span><code>#overlay-action</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 1,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 21,
+    &quot;width&quot;: 102.6875,
+    &quot;x&quot;: 8,
+    &quot;y&quot;: 135.875
+  },
+  &quot;text&quot;: &quot;covered action&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,140.54 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3605,7 +3433,7 @@ Call log:
       - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">overlay:cover-69:71</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 76.98 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">overlay:cover-69:71</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 76.98 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=overlay&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=overlay
@@ -3651,7 +3479,7 @@ Call log:
       - done scrolling
       - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,158.71 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,158.71 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3710,7 +3538,7 @@ Call log:
       - &lt;div id=&quot;overlay&quot;&gt;&lt;/div&gt; intercepts pointer events
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">overlay:cover-69:71</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 85.13 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">overlay:cover-69:71</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → click → click → get_text</td><td data-label="实际动作序列">navigate → fill → click → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 85.13 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=overlay&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=overlay
@@ -3856,7 +3684,24 @@ io:pending</pre></div><div class="trace"><strong>调用 2 · fill · pass · 49.
       &quot;equals&quot;: &quot;io:virtual-81:full:83&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-intersection-virtual-action-moli" class="execution-card" data-task="intersection-virtual-action" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,navigate,scroll,select" data-tags="complex,intersection-observer,virtualized,scroll,exact-oracle" data-duration="10200.368"><details><summary class="execution-summary"><span>滚动触发 IntersectionObserver 后点击虚拟控件</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,200.37 ms</span></summary><div class="execution-body"><section class="attempt-block"><h3>首次执行 · 5,102.28 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div><div id="execution-intersection-virtual-action-moli" class="execution-card" data-task="intersection-virtual-action" data-engine="moli" data-status="fail" data-combined-status="fail" data-complexity="complex" data-error="DOM 存在但布局矩形为零" data-actions="click,fill,navigate,scroll,select" data-tags="complex,intersection-observer,virtualized,scroll,exact-oracle" data-duration="10200.368"><details><summary class="execution-summary"><span>滚动触发 IntersectionObserver 后点击虚拟控件</span><span>moli</span><span class="bad">错误</span><span class="bad">错误</span><span>重试 1 次仍失败</span><span>10,200.37 ms</span></summary><div class="execution-body"><section class="diagnosis-panel"><h3>程序化失败定位</h3><div class="diagnosis-facts"><div><strong>规则类别</strong><span>DOM 存在但布局矩形为零</span></div><div><strong>失败调用</strong><span>第 5 步 · click</span></div><div><strong>选择器</strong><span><code>#io-action</code></span></div><div><strong>实际失败次数</strong><span>2 次</span></div></div><p><strong>程序化现象归纳：</strong>节点已连接、computed style 可见且未禁用，但 5 秒后仍无 client rect，因此 Playwright 无法执行 actionability 操作。</p><p class="muted">该分类由异常文本、失败步骤、BrowserTool 方法和选择器自动生成，只表示失败现象与定位线索，不等同于已验证根因。</p><details class="raw-evidence"><summary>查看 actionability probe</summary><pre>{
+  &quot;ariaDisabled&quot;: null,
+  &quot;clientRectCount&quot;: 0,
+  &quot;connected&quot;: true,
+  &quot;disabled&quot;: false,
+  &quot;display&quot;: &quot;inline-block&quot;,
+  &quot;found&quot;: true,
+  &quot;opacity&quot;: &quot;1&quot;,
+  &quot;pointerEvents&quot;: &quot;auto&quot;,
+  &quot;rect&quot;: {
+    &quot;height&quot;: 0,
+    &quot;width&quot;: 0,
+    &quot;x&quot;: 0,
+    &quot;y&quot;: 0
+  },
+  &quot;text&quot;: &quot;intersection action&quot;,
+  &quot;visibility&quot;: &quot;visible&quot;
+}</pre></details></section><section class="attempt-block"><h3>首次执行 · 5,102.28 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3906,7 +3751,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">io:virtual-81:full:83</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → scroll → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → scroll → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 81.14 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">io:virtual-81:full:83</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → scroll → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → scroll → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 81.14 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=intersection&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=intersection
@@ -3949,7 +3794,7 @@ Call log:
     9 × waiting for element to be visible, enabled and stable
       - element is not visible
     - retrying click action
-      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,098.09 ms · 失败</h3><h3>完整错误</h3><pre>Traceback (most recent call last):
+      - waiting 500ms</pre></div></section><section class="attempt-block"><h3>失败重试 1 · 5,098.09 ms · 失败</h3><details class="raw-evidence"><summary>查看完整异常</summary><pre>Traceback (most recent call last):
   File &quot;/private/tmp/browser-service-eval/harness/browser_use/runner.py&quot;, line 200, in _run_task
     execute_steps(page, task.tool_calls, trace=trace, outputs=outputs)
     ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3999,7 +3844,7 @@ Call log:
       - element is not visible
     - retrying click action
       - waiting 500ms
-</pre><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">io:virtual-81:full:83</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → scroll → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → scroll → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 77.67 ms</strong><div>参数</div><pre>{
+</pre></details><h3>标准答案判定</h3><div class="table-wrap"><table><caption>标准答案判定明细</caption><thead><tr><th>输出</th><th>预期值</th><th>实际值</th><th>结果</th></tr></thead><tbody><tr><td data-label="输出">answer</td><td data-label="预期值">io:virtual-81:full:83</td><td data-label="实际值"></td><td data-label="结果">失败</td></tr></tbody></table></div><h3>参考路径执行判定</h3><div class="table-wrap"><table><caption>参考路径执行判定</caption><thead><tr><th>参考动作序列</th><th>实际动作序列</th><th>全部调用成功</th><th>过程结果</th></tr></thead><tbody><tr><td data-label="参考动作序列">navigate → fill → select → scroll → click → get_text</td><td data-label="实际动作序列">navigate → fill → select → scroll → click</td><td data-label="全部调用成功">否</td><td data-label="过程结果">失败</td></tr></tbody></table></div><h3>完整执行轨迹</h3><div class="trace"><strong>调用 1 · navigate · pass · 77.67 ms</strong><div>参数</div><pre>{
   &quot;action&quot;: &quot;navigate&quot;,
   &quot;url&quot;: &quot;http://host.docker.internal:65302/interaction-space.html?scenario=intersection&quot;
 }</pre><div>完整输出</div><pre>Navigated to: http://host.docker.internal:65302/interaction-space.html?scenario=intersection
@@ -4126,4 +3971,4 @@ adopted:pending</pre></div><div class="trace"><strong>调用 2 · fill · pass �
       &quot;equals&quot;: &quot;adopted:style-91:89&quot;
     }
   ]
-}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div></div><script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error.split(',').includes(el.error.value))&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个任务 × Provider 记录`;}function clear(){for(const x of ids)el[x].value='';}function defaults(){clear();el.status.value='fail';apply();}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){clear();apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-all').onclick=()=>{clear();apply()};document.getElementById('f-reset').onclick=defaults;addEventListener('hashchange',reveal);apply();reveal()})()</script></section><section class="card"><h2>产品决策边界</h2><ol><li>默认 Provider 先看首次结果正确率，再看结果与过程均正确率、重试恢复、时延和成本。</li><li>资源结论只来自双方首次结果正确的同任务，不能外推成所有网站上的固定倍数。</li><li>当前固定参考路径适合隔离 Provider；自由规划 Agent 的过程评价必须改为里程碑和约束。</li><li>程序化错误分类和时序机制都只是定位线索，必须经失败 probe 与对照实验验证后才能形成根因结论。</li></ol></section><div class="pager"><a href="browser-use-evaluation-latest-results.html">← 总体结果</a><a href="browser-use-evaluation-latest-appendix.html">复现与附录 →</a></div></main><footer>报告只陈述本轮可追溯数据；浏览器微基准与 CowAgent 端到端评测分开解释。</footer></body></html>
+}</pre><div>完整输出</div><pre>all assertions passed</pre></div></section></div></details></div></div><script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error.split(',').includes(el.error.value))&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个任务 × Provider 记录`;}function clear(){for(const x of ids)el[x].value='';}function defaults(){clear();el.status.value='fail';apply();}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){clear();apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-all').onclick=()=>{clear();apply()};document.getElementById('f-reset').onclick=defaults;addEventListener('hashchange',reveal);apply();reveal()})()</script></section><div class="pager"><a href="browser-use-evaluation-latest-method.html">← 环境与方法</a><a href="browser-use-evaluation-latest-appendix.html">复现与附录 →</a></div></main><footer>报告只陈述本轮可追溯数据；浏览器微基准与 CowAgent 端到端评测分开解释。</footer></body></html>
