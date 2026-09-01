@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+from pathlib import Path
 
 import pytest
 
@@ -111,13 +113,32 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     assert all(task.step_count >= 5 for task in probes if task.complexity == "complex")
 
 
-def test_suite_sources_are_limited_to_declared_lexmount_repositories():
+def test_suite_preserves_existing_cases_and_adds_repository_derived_probes():
     suite = load_suite("examples/browser_use/tasks.v4.json")
-    allowed = (
-        "https://github.com/lexmount/Lexbench-Headless-Browser",
-        "https://github.com/lexmount/moli",
+    urls = [str(task.source.get("url") or "") for task in suite.tasks]
+    assert any(url.startswith("https://github.com/lexmount/browser-harness-eval") for url in urls)
+    assert any(url.startswith("https://github.com/lexmount/Lexbench-Headless-Browser") for url in urls)
+    assert any(url.startswith("https://github.com/lexmount/moli") for url in urls)
+
+
+def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
+    dataset_path = Path("examples/browser_use/tasks.v4.json")
+    evidence = json.loads(
+        Path("examples/browser_use/ground_truth_validation.json").read_text(encoding="utf-8")
     )
-    assert all(
-        str(task.source.get("url") or "").startswith(allowed)
-        for task in suite.tasks
-    )
+    assert evidence["dataset_sha256"] == hashlib.sha256(dataset_path.read_bytes()).hexdigest()
+    assert evidence["validator"] == "Codex Desktop in-app Browser Tool"
+    assert evidence["automatic_browser_replay"] == {
+        "passed": 30,
+        "total": 30,
+        "status": "pass",
+    }
+    assert evidence["human_review"]["status"] == "pending"
+
+    suite = load_suite(dataset_path)
+    observed = {row["task_id"]: row for row in evidence["results"]}
+    assert set(observed) == {task.task_id for task in suite.tasks}
+    for task in suite.tasks:
+        row = observed[task.task_id]
+        assert row["status"] == "pass"
+        assert row["observed"] == task.ground_truth["expected_outputs"]

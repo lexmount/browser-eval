@@ -81,6 +81,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert (reports / "browser-use-evaluation-latest-results.html").exists()
     assert (reports / "browser-use-evaluation-latest-analysis.html").exists()
     assert (reports / "browser-use-evaluation-latest-appendix.html").exists()
+    assert (reports / "browser-use-evaluation-latest-data.json").exists()
     suite = (reports / "browser-use-evaluation-latest-suite.html").read_text(encoding="utf-8")
     assert "本轮共 1 个任务" in suite
     assert "覆盖范围：</strong>静态标题读取" in suite
@@ -131,7 +132,10 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
                                 "connected": True,
                                 "visibility": "visible",
                             },
-                            "attempts": [{"attempt": 2, "is_retry": True}],
+                            "attempts": [
+                                {"attempt": 1, "is_retry": False},
+                                {"attempt": 2, "is_retry": True},
+                            ],
                         }
                     ]
                 }
@@ -143,7 +147,24 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
                     "failures": {
                         "moli": [
                             {
+                                "attempt": 1,
+                                "is_retry": False,
+                                "status": "fail",
+                                "result_status": "fail",
+                                "process_status": "fail",
+                                "combined_status": "fail",
+                                "duration_ms": 9,
+                                "error": "FIRST FULL STACK TRACE",
+                                "trace": [],
+                            },
+                            {
                                 "attempt": 2,
+                                "is_retry": True,
+                                "status": "fail",
+                                "result_status": "fail",
+                                "process_status": "fail",
+                                "combined_status": "fail",
+                                "duration_ms": 10,
                                 "error": "FULL STACK TRACE",
                                 "trace": [
                                     {
@@ -168,8 +189,8 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     analysis = (reports / "browser-use-evaluation-latest-analysis.html").read_text(encoding="utf-8")
     assert "执行记录与原始证据" not in results
     assert "逐任务对比" not in results
-    assert "执行记录与原始证据" in analysis
-    assert "逐任务对比" in analysis
+    assert "逐任务结果与原始证据" in analysis
+    assert "逐任务对比" not in analysis
     assert "<details" in analysis
     assert "FULL STACK TRACE" in analysis
     assert "完整执行轨迹" in analysis
@@ -185,7 +206,9 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert 'id="f-combined"' in analysis
     assert 'id="f-action"' in analysis
     assert 'id="f-query"' in analysis
-    assert 'id="f-failures"' in analysis
+    assert 'id="f-all"' in analysis
+    assert 'id="f-attempt"' not in analysis
+    assert '<option value="fail" selected>错误</option>' in analysis
     assert 'aria-live="polite"' in analysis
     assert "标准答案判定" in analysis
     assert "unique-answer" in analysis
@@ -196,3 +219,8 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert "时序假设与放大性测试设计" in analysis
     assert "CDP screencast 帧的下采样节奏" in analysis
     assert "目标间隔为 16 ms" in analysis
+    assert analysis.count('class="execution-card"') == 1
+    assert "首次执行" in analysis
+    assert "失败重试 1" in analysis
+    assert "重试 1 次仍失败" in analysis
+    assert 'href="#execution-task-moli"' in analysis

@@ -1,0 +1,3989 @@
+{
+  "schema": "lex_browser_use_report_audit/1",
+  "run_id": "865948bdd7ad",
+  "created_at": "2026-09-01T08:14:50Z",
+  "suite_sha256": "5769e75c4907c547f9a08bf5ef8860ff811f973262e92d66d99f076853831510",
+  "artifact_provenance": {
+    "artifact_directory": "artifacts/browser_use/latest",
+    "attempts_sha256": "aea7a6b26f19a69e0aca3a91c23f3e1c8e703d12b4c324b2a0b2a84475122389",
+    "summary_sha256": "924b698905cd484614d3e3bd6a45a82681f45e389a9b3271a5e0cd669a38121e"
+  },
+  "ground_truth_validation": {
+    "schema": "lex_browser_ground_truth_validation/1",
+    "dataset": "tasks.v4.json",
+    "dataset_sha256": "5769e75c4907c547f9a08bf5ef8860ff811f973262e92d66d99f076853831510",
+    "source_commit": "b9ef54ff554ce0fd64e439b5c1c641632a666249",
+    "validator": "Codex Desktop in-app Browser Tool",
+    "method": "按每题 tool_calls 顺序操作真实 fixture；get_text 使用 textContent；每题使用独立 localhost 子域隔离 localStorage、sessionStorage 与历史；实际输出与 expected_outputs 逐字比较。",
+    "started_at": "2026-09-01T08:58:28.227Z",
+    "finished_at": "2026-09-01T08:58:47.502Z",
+    "automatic_browser_replay": {
+      "passed": 30,
+      "total": 30,
+      "status": "pass"
+    },
+    "human_review": {
+      "status": "pending",
+      "reviewer": null,
+      "reviewed_at": null
+    }
+  },
+  "functional": {
+    "chromium": {
+      "tasks": 30,
+      "attempts": 30,
+      "physical_attempts": 30,
+      "retries": 0,
+      "result_first_passes": 30,
+      "result_first_pass_rate": 1.0,
+      "result_recovered": 0,
+      "result_final_passes": 30,
+      "result_final_pass_rate": 1.0,
+      "combined_first_passes": 30,
+      "combined_first_pass_rate": 1.0,
+      "combined_recovered": 0,
+      "combined_final_passes": 30,
+      "combined_final_pass_rate": 1.0,
+      "first_passes": 30,
+      "first_pass_rate": 1.0,
+      "recovered": 0,
+      "final_passes": 30,
+      "passes": 30,
+      "final_pass_rate": 1.0,
+      "pass_rate": 1.0,
+      "duration_ms": {
+        "n": 30,
+        "p50": 342.1575,
+        "median": 342.1575,
+        "mean": 391.14143333333334,
+        "p95": 793.831
+      },
+      "tool_output_tokens": {
+        "n": 30,
+        "p50": 65.0,
+        "median": 65.0,
+        "mean": 70.06666666666666,
+        "p95": 110.0
+      }
+    },
+    "moli": {
+      "tasks": 30,
+      "attempts": 30,
+      "physical_attempts": 40,
+      "retries": 10,
+      "result_first_passes": 20,
+      "result_first_pass_rate": 0.6666666666666666,
+      "result_recovered": 0,
+      "result_final_passes": 20,
+      "result_final_pass_rate": 0.6666666666666666,
+      "combined_first_passes": 20,
+      "combined_first_pass_rate": 0.6666666666666666,
+      "combined_recovered": 0,
+      "combined_final_passes": 20,
+      "combined_final_pass_rate": 0.6666666666666666,
+      "first_passes": 20,
+      "first_pass_rate": 0.6666666666666666,
+      "recovered": 0,
+      "final_passes": 20,
+      "passes": 20,
+      "final_pass_rate": 0.6666666666666666,
+      "pass_rate": 0.6666666666666666,
+      "duration_ms": {
+        "n": 20,
+        "p50": 134.76100000000002,
+        "median": 134.76100000000002,
+        "mean": 191.00074999999998,
+        "p95": 444.677
+      },
+      "tool_output_tokens": {
+        "n": 20,
+        "p50": 68.0,
+        "median": 68.0,
+        "mean": 67.4,
+        "p95": 92.0
+      }
+    }
+  },
+  "resource_comparison": {
+    "scope": "warm browser container only",
+    "functional_score_combined": false,
+    "intersection_attempts": 20,
+    "by_engine": {
+      "chromium": {
+        "cpu_ms": {
+          "n": 20,
+          "p50": 129.514,
+          "median": 129.514,
+          "mean": 134.21405,
+          "p95": 203.029
+        },
+        "cpu_average_utilization_pct": {
+          "n": 20,
+          "p50": 50.24039272731983,
+          "median": 50.24039272731983,
+          "mean": 49.2889596899962,
+          "p95": 73.61831408162587
+        },
+        "cpu_sampled_utilization_p95_pct": {
+          "n": 20,
+          "p50": 70.31683013414761,
+          "median": 70.31683013414761,
+          "mean": 75.42546134289321,
+          "p95": 93.78382623475858
+        },
+        "cpu_sampled_utilization_peak_pct": {
+          "n": 20,
+          "p50": 70.31683013414761,
+          "median": 70.31683013414761,
+          "mean": 75.42546134289321,
+          "p95": 93.78382623475858
+        },
+        "memory_baseline_bytes": {
+          "n": 20,
+          "p50": 258488320.0,
+          "median": 258488320.0,
+          "mean": 275251404.8,
+          "p95": 304025600.0
+        },
+        "memory_mean_bytes": {
+          "n": 20,
+          "p50": 269084511.5810424,
+          "median": 269084511.5810424,
+          "mean": 283382564.7371006,
+          "p95": 311142520.7047098
+        },
+        "memory_p50_bytes": {
+          "n": 20,
+          "p50": 268988416.0,
+          "median": 268988416.0,
+          "mean": 284929433.6,
+          "p95": 311709696.0
+        },
+        "memory_p95_bytes": {
+          "n": 20,
+          "p50": 273098752.0,
+          "median": 273098752.0,
+          "mean": 286478745.6,
+          "p95": 312750080.0
+        },
+        "memory_peak_bytes": {
+          "n": 20,
+          "p50": 273098752.0,
+          "median": 273098752.0,
+          "mean": 286478745.6,
+          "p95": 312750080.0
+        },
+        "memory_end_bytes": {
+          "n": 20,
+          "p50": 273098752.0,
+          "median": 273098752.0,
+          "mean": 286335385.6,
+          "p95": 312750080.0
+        },
+        "memory_end_delta_bytes": {
+          "n": 20,
+          "p50": 8607744.0,
+          "median": 8607744.0,
+          "mean": 11083980.8,
+          "p95": 17350656.0
+        },
+        "memory_retained_bytes": {
+          "n": 20,
+          "p50": 8607744.0,
+          "median": 8607744.0,
+          "mean": 11083980.8,
+          "p95": 17350656.0
+        },
+        "memory_peak_delta_bytes": {
+          "n": 20,
+          "p50": 8726528.0,
+          "median": 8726528.0,
+          "mean": 11227340.8,
+          "p95": 17350656.0
+        },
+        "memory_mib_seconds": {
+          "n": 20,
+          "p50": 80.36597069026294,
+          "median": 80.36597069026294,
+          "mean": 92.21321000421796,
+          "p95": 179.0594456629167
+        },
+        "network_rx_bytes": {
+          "n": 20,
+          "p50": 112835.5,
+          "median": 112835.5,
+          "mean": 145222.55,
+          "p95": 343516.0
+        },
+        "network_tx_bytes": {
+          "n": 20,
+          "p50": 6956.0,
+          "median": 6956.0,
+          "mean": 7883.0,
+          "p95": 15397.0
+        },
+        "network_rx_bytes_per_second": {
+          "n": 20,
+          "p50": 432323.73498714645,
+          "median": 432323.73498714645,
+          "mean": 530081.9337221743,
+          "p95": 1000591.4166143755
+        },
+        "network_tx_bytes_per_second": {
+          "n": 20,
+          "p50": 25196.4518646352,
+          "median": 25196.4518646352,
+          "mean": 28487.98934577198,
+          "p95": 39083.83253145261
+        },
+        "network_rx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 932503.5814172612,
+          "median": 932503.5814172612,
+          "mean": 1124402.5918992262,
+          "p95": 2829267.6548035224
+        },
+        "network_rx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 932503.5814172612,
+          "median": 932503.5814172612,
+          "mean": 1124402.5918992262,
+          "p95": 2829267.6548035224
+        },
+        "network_tx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 39797.08211453266,
+          "median": 39797.08211453266,
+          "mean": 44383.73658255533,
+          "p95": 77204.28647242676
+        },
+        "network_tx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 39797.08211453266,
+          "median": 39797.08211453266,
+          "mean": 44383.73658255533,
+          "p95": 77204.28647242676
+        },
+        "pids_current_mean": {
+          "n": 20,
+          "p50": 102.8375,
+          "median": 102.8375,
+          "mean": 104.30480158730158,
+          "p95": 109.75
+        },
+        "pids_current_p95": {
+          "n": 20,
+          "p50": 103.0,
+          "median": 103.0,
+          "mean": 104.55,
+          "p95": 110.0
+        },
+        "pids_current_peak": {
+          "n": 20,
+          "p50": 103.0,
+          "median": 103.0,
+          "mean": 104.55,
+          "p95": 110.0
+        },
+        "duration_ms": {
+          "n": 20,
+          "p50": 270.6925,
+          "median": 270.6925,
+          "mean": 341.50205,
+          "p95": 680.854
+        },
+        "tool_output_tokens": {
+          "n": 20,
+          "p50": 68.0,
+          "median": 68.0,
+          "mean": 67.7,
+          "p95": 92.0
+        }
+      },
+      "moli": {
+        "cpu_ms": {
+          "n": 20,
+          "p50": 71.8775,
+          "median": 71.8775,
+          "mean": 89.14345,
+          "p95": 131.56
+        },
+        "cpu_average_utilization_pct": {
+          "n": 20,
+          "p50": 66.25931050145694,
+          "median": 66.25931050145694,
+          "mean": 60.23400269824003,
+          "p95": 89.50247861683741
+        },
+        "cpu_sampled_utilization_p95_pct": {
+          "n": 20,
+          "p50": 79.02778480468739,
+          "median": 79.02778480468739,
+          "mean": 75.78033449319375,
+          "p95": 100.18234047394304
+        },
+        "cpu_sampled_utilization_peak_pct": {
+          "n": 20,
+          "p50": 79.02778480468739,
+          "median": 79.02778480468739,
+          "mean": 75.78033449319375,
+          "p95": 100.18234047394304
+        },
+        "memory_baseline_bytes": {
+          "n": 20,
+          "p50": 45398016.0,
+          "median": 45398016.0,
+          "mean": 43610112.0,
+          "p95": 67252224.0
+        },
+        "memory_mean_bytes": {
+          "n": 20,
+          "p50": 58244724.12793888,
+          "median": 58244724.12793888,
+          "mean": 54621127.57194344,
+          "p95": 84945370.05325939
+        },
+        "memory_p50_bytes": {
+          "n": 20,
+          "p50": 55248896.0,
+          "median": 55248896.0,
+          "mean": 55835238.4,
+          "p95": 89022464.0
+        },
+        "memory_p95_bytes": {
+          "n": 20,
+          "p50": 64804864.0,
+          "median": 64804864.0,
+          "mean": 61138944.0,
+          "p95": 93356032.0
+        },
+        "memory_peak_bytes": {
+          "n": 20,
+          "p50": 64804864.0,
+          "median": 64804864.0,
+          "mean": 61138944.0,
+          "p95": 93356032.0
+        },
+        "memory_end_bytes": {
+          "n": 20,
+          "p50": 62625792.0,
+          "median": 62625792.0,
+          "mean": 59661926.4,
+          "p95": 89022464.0
+        },
+        "memory_end_delta_bytes": {
+          "n": 20,
+          "p50": 14264320.0,
+          "median": 14264320.0,
+          "mean": 16051814.4,
+          "p95": 26509312.0
+        },
+        "memory_retained_bytes": {
+          "n": 20,
+          "p50": 14264320.0,
+          "median": 14264320.0,
+          "mean": 16051814.4,
+          "p95": 26509312.0
+        },
+        "memory_peak_delta_bytes": {
+          "n": 20,
+          "p50": 16857088.0,
+          "median": 16857088.0,
+          "mean": 17528832.0,
+          "p95": 27889664.0
+        },
+        "memory_mib_seconds": {
+          "n": 20,
+          "p50": 8.210978844182875,
+          "median": 8.210978844182875,
+          "mean": 10.467990518176668,
+          "p95": 24.221103375253048
+        },
+        "network_rx_bytes": {
+          "n": 20,
+          "p50": 374822.5,
+          "median": 374822.5,
+          "mean": 512967.7,
+          "p95": 1400603.0
+        },
+        "network_tx_bytes": {
+          "n": 20,
+          "p50": 22081.0,
+          "median": 22081.0,
+          "mean": 28848.1,
+          "p95": 55935.0
+        },
+        "network_rx_bytes_per_second": {
+          "n": 20,
+          "p50": 3110534.8536011456,
+          "median": 3110534.8536011456,
+          "mean": 3854629.0016592913,
+          "p95": 8231697.679387893
+        },
+        "network_tx_bytes_per_second": {
+          "n": 20,
+          "p50": 193888.12315755384,
+          "median": 193888.12315755384,
+          "mean": 196330.92819316618,
+          "p95": 316265.325182856
+        },
+        "network_rx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 3520241.4384105215,
+          "median": 3520241.4384105215,
+          "mean": 5165992.834914369,
+          "p95": 11191934.76562687
+        },
+        "network_rx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 3520241.4384105215,
+          "median": 3520241.4384105215,
+          "mean": 5165992.834914369,
+          "p95": 11191934.76562687
+        },
+        "network_tx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 226731.44080474298,
+          "median": 226731.44080474298,
+          "mean": 245107.2873195568,
+          "p95": 368311.6338712889
+        },
+        "network_tx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 226731.44080474298,
+          "median": 226731.44080474298,
+          "mean": 245107.2873195568,
+          "p95": 368311.6338712889
+        },
+        "pids_current_mean": {
+          "n": 20,
+          "p50": 12.0,
+          "median": 12.0,
+          "mean": 12.0,
+          "p95": 12.0
+        },
+        "pids_current_p95": {
+          "n": 20,
+          "p50": 12.0,
+          "median": 12.0,
+          "mean": 12.0,
+          "p95": 12.0
+        },
+        "pids_current_peak": {
+          "n": 20,
+          "p50": 12.0,
+          "median": 12.0,
+          "mean": 12.0,
+          "p95": 12.0
+        },
+        "duration_ms": {
+          "n": 20,
+          "p50": 134.76100000000002,
+          "median": 134.76100000000002,
+          "mean": 191.00074999999998,
+          "p95": 444.677
+        },
+        "tool_output_tokens": {
+          "n": 20,
+          "p50": 68.0,
+          "median": 68.0,
+          "mean": 67.4,
+          "p95": 92.0
+        }
+      }
+    },
+    "paired_ratios": {
+      "numerator_engine": "moli",
+      "denominator_engine": "chromium",
+      "formula": "per_task_ratio = numerator / denominator",
+      "p50_method": "statistics.median",
+      "p95_method": "nearest-rank: sorted_values[ceil(0.95*n)-1]",
+      "mean_method": "statistics.fmean",
+      "metrics": {
+        "cpu_ms": {
+          "n": 20,
+          "p50": 0.6451941064119513,
+          "median": 0.6451941064119513,
+          "mean": 0.6318834629690866,
+          "p95": 0.8556725763500708,
+          "values": [
+            {
+              "task_id": "counter-double-click",
+              "denominator": 125.324,
+              "numerator": 43.527,
+              "ratio": 0.3473157575564138
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 192.611,
+              "numerator": 71.086,
+              "ratio": 0.36906511050770724
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 137.276,
+              "numerator": 57.96,
+              "ratio": 0.42221509950756136
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 81.596,
+              "numerator": 35.506,
+              "ratio": 0.43514387960194123
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 80.165,
+              "numerator": 35.116,
+              "ratio": 0.4380465290338676
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 125.036,
+              "numerator": 56.313,
+              "ratio": 0.4503742922038453
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 81.316,
+              "numerator": 37.717,
+              "ratio": 0.46383245609720103
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 118.711,
+              "numerator": 62.502,
+              "ratio": 0.5265055470849374
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 81.291,
+              "numerator": 51.771,
+              "ratio": 0.6368601690224011
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 195.057,
+              "numerator": 125.305,
+              "ratio": 0.6424019645539509
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 203.029,
+              "numerator": 131.56,
+              "ratio": 0.6479862482699517
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 135.65,
+              "numerator": 90.43,
+              "ratio": 0.6666420936232953
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 160.423,
+              "numerator": 108.196,
+              "ratio": 0.6744419441102585
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 100.512,
+              "numerator": 73.706,
+              "ratio": 0.7333054759630692
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 133.704,
+              "numerator": 98.078,
+              "ratio": 0.7335457428349189
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 134.368,
+              "numerator": 101.748,
+              "ratio": 0.7572338652060014
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 148.817,
+              "numerator": 117.34,
+              "ratio": 0.78848518650423
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 88.362,
+              "numerator": 72.421,
+              "ratio": 0.8195943957809919
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 83.366,
+              "numerator": 71.334,
+              "ratio": 0.8556725763500708
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 277.667,
+              "numerator": 341.253,
+              "ratio": 1.229000925569117
+            }
+          ]
+        },
+        "cpu_average_utilization_pct": {
+          "n": 20,
+          "p50": 1.2485420791723278,
+          "median": 1.2485420791723278,
+          "mean": 1.2644245882557252,
+          "p95": 2.1323433594120536,
+          "values": [
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 18.364587807777166,
+              "numerator": 9.478767789211359,
+              "ratio": 0.5161437810870562
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 47.79411605981027,
+              "numerator": 26.597180295560136,
+              "ratio": 0.5564948677422139
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 60.49115433097461,
+              "numerator": 36.31223470818188,
+              "ratio": 0.6002899946246874
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 23.1522065320606,
+              "numerator": 14.055587507754266,
+              "ratio": 0.6070949431230427
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 73.61831408162587,
+              "numerator": 64.69612544389291,
+              "ratio": 0.8788047682287278
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 36.75164113725801,
+              "numerator": 32.866255025850656,
+              "ratio": 0.8942799289725204
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 95.93145984908355,
+              "numerator": 85.98494836979705,
+              "ratio": 0.8963164795476474
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 56.81609006583398,
+              "numerator": 67.82249555902096,
+              "ratio": 1.1937198684463086
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 66.58298069558847,
+              "numerator": 81.78671985391468,
+              "ratio": 1.2283427236133564
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 65.85455710997928,
+              "numerator": 81.05662751937798,
+              "ratio": 1.23084310451
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 65.26440265730082,
+              "numerator": 82.64046599866988,
+              "ratio": 1.2662410538346556
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 52.01346061540798,
+              "numerator": 70.21660101561866,
+              "ratio": 1.3499697998332831
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 49.03809789308506,
+              "numerator": 68.178538814677,
+              "ratio": 1.39031776810191
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 51.4426875615546,
+              "numerator": 74.22278788938445,
+              "ratio": 1.4428248485379374
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 64.037526958653,
+              "numerator": 102.97778653160744,
+              "ratio": 1.608084999879788
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 31.218987122623304,
+              "numerator": 50.210727399921915,
+              "ratio": 1.608339412252615
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 33.676588690622566,
+              "numerator": 58.375556020158626,
+              "ratio": 1.7334165451387784
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 25.090891282989535,
+              "numerator": 49.19571457191581,
+              "ratio": 1.9607001607498984
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 41.973764788760725,
+              "numerator": 89.50247861683741,
+              "ratio": 2.1323433594120536
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 26.66567855893461,
+              "numerator": 58.502455033447596,
+              "ratio": 2.193923357478025
+            }
+          ]
+        },
+        "cpu_sampled_utilization_p95_pct": {
+          "n": 20,
+          "p50": 1.0436835873267807,
+          "median": 1.0436835873267807,
+          "mean": 1.0205788122461659,
+          "p95": 1.4528511472981764,
+          "values": [
+            {
+              "task_id": "counter-double-click",
+              "denominator": 69.7079565019666,
+              "numerator": 36.757167138657756,
+              "ratio": 0.5273023193216223
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 120.72574362401632,
+              "numerator": 64.26944390739357,
+              "ratio": 0.5323590642568489
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 63.81874223610808,
+              "numerator": 38.722030329011865,
+              "ratio": 0.6067501328332867
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 69.62737902048292,
+              "numerator": 52.461203305253996,
+              "ratio": 0.7534565287861978
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 58.962843493466266,
+              "numerator": 49.22446877396534,
+              "ratio": 0.834838787573397
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 93.78382623475858,
+              "numerator": 83.00913572125161,
+              "ratio": 0.8851114211683379
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 86.25773219771636,
+              "numerator": 79.10883018782249,
+              "ratio": 0.9171216095328422
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 69.70173915190331,
+              "numerator": 64.8030721830288,
+              "ratio": 0.9297195876533485
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 69.24516170971417,
+              "numerator": 67.20426664245731,
+              "ratio": 0.9705265318635172
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 80.89739141857747,
+              "numerator": 78.73238291042615,
+              "ratio": 0.9732375980215582
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 80.70131826001138,
+              "numerator": 89.91172554667104,
+              "ratio": 1.1141295766320034
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 70.82419345183314,
+              "numerator": 79.8742901046673,
+              "ratio": 1.1277825586392176
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 69.80946681646208,
+              "numerator": 78.94673942155228,
+              "ratio": 1.1308887321702836
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 76.06654295525925,
+              "numerator": 86.12630827282788,
+              "ratio": 1.132249540030833
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 78.28220658882483,
+              "numerator": 90.1233431358674,
+              "ratio": 1.1512621713544409
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 67.57915629110221,
+              "numerator": 78.09360743831871,
+              "ratio": 1.155587191735936
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 74.06206723653403,
+              "numerator": 86.6279138348159,
+              "ratio": 1.1696664306999423
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 71.41249406703848,
+              "numerator": 85.55927138797989,
+              "ratio": 1.1980994713286603
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 68.95568115167829,
+              "numerator": 100.18234047394304,
+              "ratio": 1.4528511472981764
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 68.08758445041029,
+              "numerator": 125.86914914796256,
+              "ratio": 1.8486358440228685
+            }
+          ]
+        },
+        "cpu_sampled_utilization_peak_pct": {
+          "n": 20,
+          "p50": 1.0436835873267807,
+          "median": 1.0436835873267807,
+          "mean": 1.0205788122461659,
+          "p95": 1.4528511472981764,
+          "values": [
+            {
+              "task_id": "counter-double-click",
+              "denominator": 69.7079565019666,
+              "numerator": 36.757167138657756,
+              "ratio": 0.5273023193216223
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 120.72574362401632,
+              "numerator": 64.26944390739357,
+              "ratio": 0.5323590642568489
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 63.81874223610808,
+              "numerator": 38.722030329011865,
+              "ratio": 0.6067501328332867
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 69.62737902048292,
+              "numerator": 52.461203305253996,
+              "ratio": 0.7534565287861978
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 58.962843493466266,
+              "numerator": 49.22446877396534,
+              "ratio": 0.834838787573397
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 93.78382623475858,
+              "numerator": 83.00913572125161,
+              "ratio": 0.8851114211683379
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 86.25773219771636,
+              "numerator": 79.10883018782249,
+              "ratio": 0.9171216095328422
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 69.70173915190331,
+              "numerator": 64.8030721830288,
+              "ratio": 0.9297195876533485
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 69.24516170971417,
+              "numerator": 67.20426664245731,
+              "ratio": 0.9705265318635172
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 80.89739141857747,
+              "numerator": 78.73238291042615,
+              "ratio": 0.9732375980215582
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 80.70131826001138,
+              "numerator": 89.91172554667104,
+              "ratio": 1.1141295766320034
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 70.82419345183314,
+              "numerator": 79.8742901046673,
+              "ratio": 1.1277825586392176
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 69.80946681646208,
+              "numerator": 78.94673942155228,
+              "ratio": 1.1308887321702836
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 76.06654295525925,
+              "numerator": 86.12630827282788,
+              "ratio": 1.132249540030833
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 78.28220658882483,
+              "numerator": 90.1233431358674,
+              "ratio": 1.1512621713544409
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 67.57915629110221,
+              "numerator": 78.09360743831871,
+              "ratio": 1.155587191735936
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 74.06206723653403,
+              "numerator": 86.6279138348159,
+              "ratio": 1.1696664306999423
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 71.41249406703848,
+              "numerator": 85.55927138797989,
+              "ratio": 1.1980994713286603
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 68.95568115167829,
+              "numerator": 100.18234047394304,
+              "ratio": 1.4528511472981764
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 68.08758445041029,
+              "numerator": 125.86914914796256,
+              "ratio": 1.8486358440228685
+            }
+          ]
+        },
+        "memory_baseline_bytes": {
+          "n": 20,
+          "p50": 0.1633651305799568,
+          "median": 0.1633651305799568,
+          "mean": 0.1556295467034509,
+          "p95": 0.2213966909831313,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 253829120.0,
+              "numerator": 20176896.0,
+              "ratio": 0.0794900758431499
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 254849024.0,
+              "numerator": 24424448.0,
+              "ratio": 0.09583889165688937
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 256966656.0,
+              "numerator": 24682496.0,
+              "ratio": 0.09605330272889569
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 257417216.0,
+              "numerator": 26726400.0,
+              "ratio": 0.10382522356235878
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 256954368.0,
+              "numerator": 28127232.0,
+              "ratio": 0.10946391851178805
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 255299584.0,
+              "numerator": 29143040.0,
+              "ratio": 0.11415232074957082
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 256151552.0,
+              "numerator": 31076352.0,
+              "ratio": 0.12132017845435503
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 256987136.0,
+              "numerator": 33759232.0,
+              "ratio": 0.13136545480626705
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 258199552.0,
+              "numerator": 35278848.0,
+              "ratio": 0.1366340403255231
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 301002752.0,
+              "numerator": 47534080.0,
+              "ratio": 0.15791908772980254
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 260714496.0,
+              "numerator": 44011520.0,
+              "ratio": 0.16881117343011107
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 299790336.0,
+              "numerator": 51822592.0,
+              "ratio": 0.17286278367558852
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 257900544.0,
+              "numerator": 46784512.0,
+              "ratio": 0.18140524744298328
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 302178304.0,
+              "numerator": 56938496.0,
+              "ratio": 0.18842681703581207
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 301740032.0,
+              "numerator": 58425344.0,
+              "ratio": 0.19362808313084556
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 304025600.0,
+              "numerator": 60022784.0,
+              "ratio": 0.19742674301111485
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 303202304.0,
+              "numerator": 62513152.0,
+              "ratio": 0.20617637522965523
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 258777088.0,
+              "numerator": 54087680.0,
+              "ratio": 0.2090126309791383
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 303763456.0,
+              "numerator": 67252224.0,
+              "ratio": 0.2213966909831313
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 305278976.0,
+              "numerator": 69414912.0,
+              "ratio": 0.227381894782037
+            }
+          ]
+        },
+        "memory_mean_bytes": {
+          "n": 20,
+          "p50": 0.19769577595084376,
+          "median": 0.19769577595084376,
+          "mean": 0.18909349391052727,
+          "p95": 0.27301112641520603,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 258193408.0,
+              "numerator": 25946112.0,
+              "ratio": 0.10049099317051503
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 261315266.59541386,
+              "numerator": 29928464.332561072,
+              "ratio": 0.11453010274710955
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 261504000.48979965,
+              "numerator": 30552064.0,
+              "ratio": 0.11683210942385461
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 261864254.84377486,
+              "numerator": 33658880.0,
+              "ratio": 0.128535603380005
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 259949751.20044354,
+              "numerator": 34074624.0,
+              "ratio": 0.13108157958468497
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 262618979.60126996,
+              "numerator": 37129601.46686458,
+              "ratio": 0.14138201863108993
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 265078610.0387658,
+              "numerator": 39120287.57346242,
+              "ratio": 0.1475799483320867
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 264589186.34107986,
+              "numerator": 40784840.7161829,
+              "ratio": 0.1541440195655142
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 263355359.61228168,
+              "numerator": 45340505.198232606,
+              "ratio": 0.17216473310049216
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 306968921.22072786,
+              "numerator": 58875834.46102794,
+              "ratio": 0.19179737879292647
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 298796049.5548765,
+              "numerator": 60833134.637289464,
+              "ratio": 0.20359417310876102
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 304284918.5586582,
+              "numerator": 62285824.0,
+              "ratio": 0.20469573153686524
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 269242586.5528837,
+              "numerator": 57613613.79484982,
+              "ratio": 0.2139840302846502
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 307305939.1846392,
+              "numerator": 66974010.28602894,
+              "ratio": 0.21793919916981758
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 309981064.4177884,
+              "numerator": 73337019.65342036,
+              "ratio": 0.2365854823782968
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 308904935.3098513,
+              "numerator": 75682321.32778765,
+              "ratio": 0.2450019817646276
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 268926436.6092011,
+              "numerator": 66314381.61722681,
+              "ratio": 0.2465892994878508
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 310244195.52416086,
+              "numerator": 79730146.6383339,
+              "ratio": 0.2569915820782045
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 311142520.7047098,
+              "numerator": 84945370.05325939,
+              "ratio": 0.27301112641520603
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 313384910.3816864,
+              "numerator": 89295515.68234096,
+              "ratio": 0.2849387852579874
+            }
+          ]
+        },
+        "memory_p50_bytes": {
+          "n": 20,
+          "p50": 0.19410037323293516,
+          "median": 0.19410037323293516,
+          "mean": 0.19163263645161588,
+          "p95": 0.2856729758149317,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 253829120.0,
+              "numerator": 20176896.0,
+              "ratio": 0.0794900758431499
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 264597504.0,
+              "numerator": 24682496.0,
+              "ratio": 0.09328317775816963
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 265138176.0,
+              "numerator": 26726400.0,
+              "ratio": 0.10080177967279974
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 263229440.0,
+              "numerator": 29143040.0,
+              "ratio": 0.11071345211234732
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 262496256.0,
+              "numerator": 30707712.0,
+              "ratio": 0.11698342851792903
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 262975488.0,
+              "numerator": 37523456.0,
+              "ratio": 0.14268803638459263
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 266170368.0,
+              "numerator": 43601920.0,
+              "ratio": 0.16381207392702707
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 265285632.0,
+              "numerator": 44052480.0,
+              "ratio": 0.1660567881791653
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 306950144.0,
+              "numerator": 51822592.0,
+              "ratio": 0.16883064892779462
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 263991296.0,
+              "numerator": 45441024.0,
+              "ratio": 0.17213076600828536
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 308105216.0,
+              "numerator": 66572288.0,
+              "ratio": 0.216069980457585
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 269737984.0,
+              "numerator": 58675200.0,
+              "ratio": 0.21752664986181552
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 310083584.0,
+              "numerator": 68395008.0,
+              "ratio": 0.2205695868117933
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 308981760.0,
+              "numerator": 68911104.0,
+              "ratio": 0.22302644660966395
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 310231040.0,
+              "numerator": 77619200.0,
+              "ratio": 0.2501980459466596
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 268238848.0,
+              "numerator": 69791744.0,
+              "ratio": 0.26018507207427316
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 310960128.0,
+              "numerator": 80949248.0,
+              "ratio": 0.26032034563608103
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 311709696.0,
+              "numerator": 88924160.0,
+              "ratio": 0.2852787742605222
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 311623680.0,
+              "numerator": 89022464.0,
+              "ratio": 0.2856729758149317
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 314253312.0,
+              "numerator": 93966336.0,
+              "ratio": 0.2990146242277313
+            }
+          ]
+        },
+        "memory_p95_bytes": {
+          "n": 20,
+          "p50": 0.2194673784550376,
+          "median": 0.2194673784550376,
+          "mean": 0.20957164865842487,
+          "p95": 0.29858645670941797,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 262557696.0,
+              "numerator": 31715328.0,
+              "ratio": 0.12079374736743577
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 262692864.0,
+              "numerator": 34144256.0,
+              "ratio": 0.12997785885801602
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 264962048.0,
+              "numerator": 36421632.0,
+              "ratio": 0.13745980707395497
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 264036352.0,
+              "numerator": 38092800.0,
+              "ratio": 0.14427104340541713
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 263352320.0,
+              "numerator": 39006208.0,
+              "ratio": 0.148114161287814
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 265359360.0,
+              "numerator": 40591360.0,
+              "ratio": 0.1529675079107818
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 266829824.0,
+              "numerator": 43614208.0,
+              "ratio": 0.1634532727496009
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 264577024.0,
+              "numerator": 47763456.0,
+              "ratio": 0.18052760318295816
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 268902400.0,
+              "numerator": 49766400.0,
+              "ratio": 0.18507235338918507
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 309309440.0,
+              "numerator": 66576384.0,
+              "ratio": 0.2152420048996888
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 309178368.0,
+              "numerator": 69160960.0,
+              "ratio": 0.22369275201038644
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 310620160.0,
+              "numerator": 71630848.0,
+              "ratio": 0.23060592074899453
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 270946304.0,
+              "numerator": 63033344.0,
+              "ratio": 0.23264146094423196
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 307793920.0,
+              "numerator": 72749056.0,
+              "ratio": 0.2363563776698383
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 310665216.0,
+              "numerator": 80785408.0,
+              "ratio": 0.2600400812172033
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 312750080.0,
+              "numerator": 82616320.0,
+              "ratio": 0.264160827712658
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 275251200.0,
+              "numerator": 73814016.0,
+              "ratio": 0.26816964285714284
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 312545280.0,
+              "numerator": 90402816.0,
+              "ratio": 0.28924710045213287
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 312659968.0,
+              "numerator": 93356032.0,
+              "ratio": 0.29858645670941797
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 314585088.0,
+              "numerator": 97538048.0,
+              "ratio": 0.3100529927216385
+            }
+          ]
+        },
+        "memory_peak_bytes": {
+          "n": 20,
+          "p50": 0.2194673784550376,
+          "median": 0.2194673784550376,
+          "mean": 0.20957164865842487,
+          "p95": 0.29858645670941797,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 262557696.0,
+              "numerator": 31715328.0,
+              "ratio": 0.12079374736743577
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 262692864.0,
+              "numerator": 34144256.0,
+              "ratio": 0.12997785885801602
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 264962048.0,
+              "numerator": 36421632.0,
+              "ratio": 0.13745980707395497
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 264036352.0,
+              "numerator": 38092800.0,
+              "ratio": 0.14427104340541713
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 263352320.0,
+              "numerator": 39006208.0,
+              "ratio": 0.148114161287814
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 265359360.0,
+              "numerator": 40591360.0,
+              "ratio": 0.1529675079107818
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 266829824.0,
+              "numerator": 43614208.0,
+              "ratio": 0.1634532727496009
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 264577024.0,
+              "numerator": 47763456.0,
+              "ratio": 0.18052760318295816
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 268902400.0,
+              "numerator": 49766400.0,
+              "ratio": 0.18507235338918507
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 309309440.0,
+              "numerator": 66576384.0,
+              "ratio": 0.2152420048996888
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 309178368.0,
+              "numerator": 69160960.0,
+              "ratio": 0.22369275201038644
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 310620160.0,
+              "numerator": 71630848.0,
+              "ratio": 0.23060592074899453
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 270946304.0,
+              "numerator": 63033344.0,
+              "ratio": 0.23264146094423196
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 307793920.0,
+              "numerator": 72749056.0,
+              "ratio": 0.2363563776698383
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 310665216.0,
+              "numerator": 80785408.0,
+              "ratio": 0.2600400812172033
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 312750080.0,
+              "numerator": 82616320.0,
+              "ratio": 0.264160827712658
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 275251200.0,
+              "numerator": 73814016.0,
+              "ratio": 0.26816964285714284
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 312545280.0,
+              "numerator": 90402816.0,
+              "ratio": 0.28924710045213287
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 312659968.0,
+              "numerator": 93356032.0,
+              "ratio": 0.29858645670941797
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 314585088.0,
+              "numerator": 97538048.0,
+              "ratio": 0.3100529927216385
+            }
+          ]
+        },
+        "memory_end_bytes": {
+          "n": 20,
+          "p50": 0.21631991815953677,
+          "median": 0.21631991815953677,
+          "mean": 0.20465405221003247,
+          "p95": 0.2851482550511677,
+          "values": [
+            {
+              "task_id": "counter-double-click",
+              "denominator": 262508544.0,
+              "numerator": 30707712.0,
+              "ratio": 0.11697795253475636
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 262557696.0,
+              "numerator": 31715328.0,
+              "ratio": 0.12079374736743577
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 264597504.0,
+              "numerator": 36421632.0,
+              "ratio": 0.13764918961593833
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 264036352.0,
+              "numerator": 37539840.0,
+              "ratio": 0.1421767863237256
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 263352320.0,
+              "numerator": 39006208.0,
+              "ratio": 0.148114161287814
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 265359360.0,
+              "numerator": 40591360.0,
+              "ratio": 0.1529675079107818
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 266829824.0,
+              "numerator": 43614208.0,
+              "ratio": 0.1634532727496009
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 264577024.0,
+              "numerator": 45842432.0,
+              "ratio": 0.17326686689166176
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 268902400.0,
+              "numerator": 49766400.0,
+              "ratio": 0.18507235338918507
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 308105216.0,
+              "numerator": 66576384.0,
+              "ratio": 0.21608327461746055
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 270946304.0,
+              "numerator": 58675200.0,
+              "ratio": 0.21655656170161303
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 310620160.0,
+              "numerator": 68395008.0,
+              "ratio": 0.2201885672842355
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 309178368.0,
+              "numerator": 68911104.0,
+              "ratio": 0.2228846230277016
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 307793920.0,
+              "numerator": 72749056.0,
+              "ratio": 0.2363563776698383
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 310231040.0,
+              "numerator": 76480512.0,
+              "ratio": 0.24652759440190125
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 312750080.0,
+              "numerator": 80949248.0,
+              "ratio": 0.25883046296902623
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 275251200.0,
+              "numerator": 73383936.0,
+              "ratio": 0.2666071428571429
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 312659968.0,
+              "numerator": 88924160.0,
+              "ratio": 0.2844117223219315
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 312197120.0,
+              "numerator": 89022464.0,
+              "ratio": 0.2851482550511677
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 314253312.0,
+              "numerator": 93966336.0,
+              "ratio": 0.2990146242277313
+            }
+          ]
+        },
+        "memory_end_delta_bytes": {
+          "n": 20,
+          "p50": 1.5973847266047985,
+          "median": 1.5973847266047985,
+          "mean": 1.7194705497398963,
+          "p95": 2.735737106344135,
+          "values": [
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 49328128.0,
+              "numerator": 12488704.0,
+              "ratio": 0.253176118907249
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 7884800.0,
+              "numerator": 6463488.0,
+              "ratio": 0.8197402597402598
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 7659520.0,
+              "numerator": 6283264.0,
+              "ratio": 0.8203208556149733
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 9842688.0,
+              "numerator": 9854976.0,
+              "ratio": 1.0012484394506866
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 8052736.0,
+              "numerator": 9863168.0,
+              "ratio": 1.224821973550356
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 8728576.0,
+              "numerator": 11538432.0,
+              "ratio": 1.321914594087283
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 8441856.0,
+              "numerator": 11456512.0,
+              "ratio": 1.3571081999029597
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 10231808.0,
+              "numerator": 14663680.0,
+              "ratio": 1.433146517213771
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 17350656.0,
+              "numerator": 26599424.0,
+              "ratio": 1.5330500472143531
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 7630848.0,
+              "numerator": 11739136.0,
+              "ratio": 1.5383789586688137
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 6377472.0,
+              "numerator": 10563584.0,
+              "ratio": 1.6563904945407835
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 7942144.0,
+              "numerator": 13864960.0,
+              "ratio": 1.7457452294997422
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 11948032.0,
+              "numerator": 21639168.0,
+              "ratio": 1.811107302022626
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 8491008.0,
+              "numerator": 18055168.0,
+              "ratio": 2.1263868789194404
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 8724480.0,
+              "numerator": 20926464.0,
+              "ratio": 2.398591549295775
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 8896512.0,
+              "numerator": 21671936.0,
+              "ratio": 2.4360036832412524
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 8003584.0,
+              "numerator": 20926464.0,
+              "ratio": 2.6146366427840326
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 8175616.0,
+              "numerator": 21377024.0,
+              "ratio": 2.614729458917836
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 8974336.0,
+              "numerator": 24551424.0,
+              "ratio": 2.735737106344135
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 8994816.0,
+              "numerator": 26509312.0,
+              "ratio": 2.947176684881603
+            }
+          ]
+        },
+        "memory_retained_bytes": {
+          "n": 20,
+          "p50": 1.5973847266047985,
+          "median": 1.5973847266047985,
+          "mean": 1.7194705497398963,
+          "p95": 2.735737106344135,
+          "values": [
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 49328128.0,
+              "numerator": 12488704.0,
+              "ratio": 0.253176118907249
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 7884800.0,
+              "numerator": 6463488.0,
+              "ratio": 0.8197402597402598
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 7659520.0,
+              "numerator": 6283264.0,
+              "ratio": 0.8203208556149733
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 9842688.0,
+              "numerator": 9854976.0,
+              "ratio": 1.0012484394506866
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 8052736.0,
+              "numerator": 9863168.0,
+              "ratio": 1.224821973550356
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 8728576.0,
+              "numerator": 11538432.0,
+              "ratio": 1.321914594087283
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 8441856.0,
+              "numerator": 11456512.0,
+              "ratio": 1.3571081999029597
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 10231808.0,
+              "numerator": 14663680.0,
+              "ratio": 1.433146517213771
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 17350656.0,
+              "numerator": 26599424.0,
+              "ratio": 1.5330500472143531
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 7630848.0,
+              "numerator": 11739136.0,
+              "ratio": 1.5383789586688137
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 6377472.0,
+              "numerator": 10563584.0,
+              "ratio": 1.6563904945407835
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 7942144.0,
+              "numerator": 13864960.0,
+              "ratio": 1.7457452294997422
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 11948032.0,
+              "numerator": 21639168.0,
+              "ratio": 1.811107302022626
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 8491008.0,
+              "numerator": 18055168.0,
+              "ratio": 2.1263868789194404
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 8724480.0,
+              "numerator": 20926464.0,
+              "ratio": 2.398591549295775
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 8896512.0,
+              "numerator": 21671936.0,
+              "ratio": 2.4360036832412524
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 8003584.0,
+              "numerator": 20926464.0,
+              "ratio": 2.6146366427840326
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 8175616.0,
+              "numerator": 21377024.0,
+              "ratio": 2.614729458917836
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 8974336.0,
+              "numerator": 24551424.0,
+              "ratio": 2.735737106344135
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 8994816.0,
+              "numerator": 26509312.0,
+              "ratio": 2.947176684881603
+            }
+          ]
+        },
+        "memory_peak_delta_bytes": {
+          "n": 20,
+          "p50": 1.7784262657611842,
+          "median": 1.7784262657611842,
+          "mean": 1.8680172559359103,
+          "p95": 2.9850942569048664,
+          "values": [
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 50532352.0,
+              "numerator": 12488704.0,
+              "ratio": 0.24714274134716707
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 7884800.0,
+              "numerator": 7016448.0,
+              "ratio": 0.8898701298701299
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 9842688.0,
+              "numerator": 9854976.0,
+              "ratio": 1.0012484394506866
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 8052736.0,
+              "numerator": 9863168.0,
+              "ratio": 1.224821973550356
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 7843840.0,
+              "numerator": 9719808.0,
+              "ratio": 1.2391644908616188
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 8728576.0,
+              "numerator": 11538432.0,
+              "ratio": 1.321914594087283
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 7995392.0,
+              "numerator": 11739136.0,
+              "ratio": 1.4682377049180328
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 17350656.0,
+              "numerator": 27029504.0,
+              "ratio": 1.557837582625118
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 8441856.0,
+              "numerator": 14692352.0,
+              "ratio": 1.740417273168365
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 7942144.0,
+              "numerator": 13864960.0,
+              "ratio": 1.7457452294997422
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 11948032.0,
+              "numerator": 21639168.0,
+              "ratio": 1.811107302022626
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 10231808.0,
+              "numerator": 19021824.0,
+              "ratio": 1.8590872698158527
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 6377472.0,
+              "numerator": 12484608.0,
+              "ratio": 1.9576107899807322
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 8925184.0,
+              "numerator": 22360064.0,
+              "ratio": 2.505277650298302
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 8724480.0,
+              "numerator": 22593536.0,
+              "ratio": 2.5896713615023472
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 8003584.0,
+              "numerator": 20926464.0,
+              "ratio": 2.6146366427840326
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 8175616.0,
+              "numerator": 21626880.0,
+              "ratio": 2.6452905811623246
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 8896512.0,
+              "numerator": 26103808.0,
+              "ratio": 2.9341620626151013
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 9342976.0,
+              "numerator": 27889664.0,
+              "ratio": 2.9850942569048664
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 9306112.0,
+              "numerator": 28123136.0,
+              "ratio": 3.022007042253521
+            }
+          ]
+        },
+        "memory_mib_seconds": {
+          "n": 20,
+          "p50": 0.09444656278039432,
+          "median": 0.09444656278039432,
+          "mean": 0.11257201761479803,
+          "p95": 0.29690091052976714,
+          "values": [
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 111.66226448113798,
+              "numerator": 4.387910525764823,
+              "ratio": 0.03929627028570633
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 31.003258516112055,
+              "numerator": 1.3104129993430433,
+              "ratio": 0.04226694425239321
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 85.39512625290706,
+              "numerator": 3.823633638248907,
+              "ratio": 0.044775782951884106
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 30.874759616323217,
+              "numerator": 1.428660995458813,
+              "ratio": 0.04627278117182465
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 31.297960677229526,
+              "numerator": 1.550320194585879,
+              "ratio": 0.04953422398903443
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 208.30146635769253,
+              "numerator": 14.793407255148168,
+              "ratio": 0.0710192180296279
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 21.34321088215745,
+              "numerator": 1.543238455823257,
+              "ratio": 0.07230582428969848
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 87.02206358809553,
+              "numerator": 7.263013168604402,
+              "ratio": 0.08346174371344108
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 179.0594456629167,
+              "numerator": 15.131486789650353,
+              "ratio": 0.08450538162692466
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 75.00185934767353,
+              "numerator": 6.4578476763961135,
+              "ratio": 0.08610250109214697
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 60.553525562860614,
+              "numerator": 6.2243347063842975,
+              "ratio": 0.10279062446864165
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 38.288562748368804,
+              "numerator": 4.229555273711981,
+              "ratio": 0.11046524001197122
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 77.61023784416182,
+              "numerator": 9.15894451976135,
+              "ratio": 0.1180120661162273
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 170.90391382024282,
+              "numerator": 21.102169219710845,
+              "ratio": 0.12347387925771063
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 132.59436163084578,
+              "numerator": 17.25495865249945,
+              "ratio": 0.13013342679335607
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 77.7675674809086,
+              "numerator": 10.557937577654116,
+              "ratio": 0.1357627339989259
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 170.12100168660336,
+              "numerator": 24.221103375253048,
+              "ratio": 0.14237573923925703
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 129.20528675895775,
+              "numerator": 19.304733374898206,
+              "ratio": 0.14941132719215003
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 43.293953269546705,
+              "numerator": 12.854014146161605,
+              "ratio": 0.29690091052976714
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 82.96437389961729,
+              "numerator": 26.76212781847471,
+              "ratio": 0.3225737332852718
+            }
+          ]
+        },
+        "network_rx_bytes": {
+          "n": 20,
+          "p50": 3.435641171756326,
+          "median": 3.435641171756326,
+          "mean": 3.4303870793978923,
+          "p95": 4.056551356920032,
+          "values": [
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 165940.0,
+              "numerator": 422650.0,
+              "ratio": 2.547004941545137
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 131877.0,
+              "numerator": 391884.0,
+              "ratio": 2.9715871607634385
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 127593.0,
+              "numerator": 383357.0,
+              "ratio": 3.00453002907683
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 129214.0,
+              "numerator": 395583.0,
+              "ratio": 3.0614561889578527
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 122437.0,
+              "numerator": 382175.0,
+              "ratio": 3.1214012104184192
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 122513.0,
+              "numerator": 384499.0,
+              "ratio": 3.138434288606107
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 113281.0,
+              "numerator": 374808.0,
+              "ratio": 3.308657232898721
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 114325.0,
+              "numerator": 378704.0,
+              "ratio": 3.3125213207959763
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 112390.0,
+              "numerator": 374837.0,
+              "ratio": 3.3351454755761187
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 108071.0,
+              "numerator": 368508.0,
+              "ratio": 3.409869437684485
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 106603.0,
+              "numerator": 368997.0,
+              "ratio": 3.4614129058281664
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 106407.0,
+              "numerator": 368941.0,
+              "ratio": 3.467262492129277
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 105503.0,
+              "numerator": 369961.0,
+              "ratio": 3.506639621622134
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 103388.0,
+              "numerator": 366515.0,
+              "ratio": 3.5450439122528725
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 95115.0,
+              "numerator": 357911.0,
+              "ratio": 3.7629290858434525
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 94503.0,
+              "numerator": 357362.0,
+              "ratio": 3.7814884183570894
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 94231.0,
+              "numerator": 357584.0,
+              "ratio": 3.7947596863028092
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 89201.0,
+              "numerator": 351790.0,
+              "ratio": 3.943789867826594
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 518343.0,
+              "numerator": 2102685.0,
+              "ratio": 4.056551356920032
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 343516.0,
+              "numerator": 1400603.0,
+              "ratio": 4.077256954552335
+            }
+          ]
+        },
+        "network_tx_bytes": {
+          "n": 20,
+          "p50": 3.1430252273819512,
+          "median": 3.1430252273819512,
+          "mean": 3.604737804165528,
+          "p95": 6.085844848221086,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 6692.0,
+              "numerator": 11255.0,
+              "ratio": 1.6818589360430365
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 17736.0,
+              "numerator": 37986.0,
+              "ratio": 2.141745602165088
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 7220.0,
+              "numerator": 17600.0,
+              "ratio": 2.4376731301939056
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 8487.0,
+              "numerator": 22782.0,
+              "ratio": 2.684340756451043
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 9201.0,
+              "numerator": 26705.0,
+              "ratio": 2.902401912835561
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 4664.0,
+              "numerator": 13730.0,
+              "ratio": 2.9438250428816466
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 10974.0,
+              "numerator": 32322.0,
+              "ratio": 2.9453253143794424
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 7615.0,
+              "numerator": 22905.0,
+              "ratio": 3.0078791858174654
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 9068.0,
+              "numerator": 27379.0,
+              "ratio": 3.0192986325540363
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 4826.0,
+              "numerator": 14667.0,
+              "ratio": 3.03916286779942
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 10924.0,
+              "numerator": 35469.0,
+              "ratio": 3.246887586964482
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 4299.0,
+              "numerator": 14122.0,
+              "ratio": 3.2849499883693882
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 6170.0,
+              "numerator": 20732.0,
+              "ratio": 3.360129659643436
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 5415.0,
+              "numerator": 21380.0,
+              "ratio": 3.948291782086796
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 5262.0,
+              "numerator": 21159.0,
+              "ratio": 4.021094640820981
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 4604.0,
+              "numerator": 20469.0,
+              "ratio": 4.445916594265856
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 5715.0,
+              "numerator": 26484.0,
+              "ratio": 4.634120734908136
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 4200.0,
+              "numerator": 20611.0,
+              "ratio": 4.907380952380953
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 9191.0,
+              "numerator": 55935.0,
+              "ratio": 6.085844848221086
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 15397.0,
+              "numerator": 113270.0,
+              "ratio": 7.356627914528804
+            }
+          ]
+        },
+        "network_rx_bytes_per_second": {
+          "n": 20,
+          "p50": 6.869166443429638,
+          "median": 6.869166443429638,
+          "mean": 7.161122337543146,
+          "p95": 10.969338154170902,
+          "values": [
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 408668.5752511375,
+              "numerator": 1026984.4987305823,
+              "ratio": 2.5130009032367453
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 722255.976028249,
+              "numerator": 1855002.0939884393,
+              "ratio": 2.5683444035856424
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 189782.290619831,
+              "numerator": 665856.8000922694,
+              "ratio": 3.508529683763295
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 238937.1059853207,
+              "numerator": 864669.8251486365,
+              "ratio": 3.6188176867001904
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 1052660.4605673573,
+              "numerator": 5842777.807461881,
+              "ratio": 5.5504866253955925
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 430284.26820694824,
+              "numerator": 2734348.306020089,
+              "ratio": 6.354748495487604
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 298431.4619131707,
+              "numerator": 1949586.3640194174,
+              "ratio": 6.532777581562945
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 520097.93354987924,
+              "numerator": 3413246.721705067,
+              "ratio": 6.562700025374595
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 794174.1042152935,
+              "numerator": 5291011.779885061,
+              "ratio": 6.662281925086184
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 434363.20176734467,
+              "numerator": 2910289.040524383,
+              "ratio": 6.7001279774229205
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 783557.5405756033,
+              "numerator": 5514838.528905087,
+              "ratio": 7.038204909436356
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 1000591.4166143755,
+              "numerator": 7580893.87873201,
+              "ratio": 7.576413062169671
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 205073.2899979453,
+              "numerator": 1580462.8126953647,
+              "ratio": 7.706819414226006
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 406700.75678354636,
+              "numerator": 3357771.3216941864,
+              "ratio": 8.25612262993957
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 316921.4683017308,
+              "numerator": 2782520.7129060524,
+              "ratio": 8.779842930226813
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 212086.41680869597,
+              "numerator": 2072842.4021458623,
+              "ratio": 9.77357453313753
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 770298.1208514535,
+              "numerator": 7691772.572603361,
+              "ratio": 9.985448963709292
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 771151.946746801,
+              "numerator": 8231697.679387893,
+              "ratio": 10.674546973672722
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 767158.9754631214,
+              "numerator": 8415226.219862277,
+              "ratio": 10.969338154170902
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 278443.36419568094,
+              "numerator": 3310780.6666779085,
+              "ratio": 11.890319872558354
+            }
+          ]
+        },
+        "network_tx_bytes_per_second": {
+          "n": 20,
+          "p50": 7.8443350395207805,
+          "median": 7.8443350395207805,
+          "mean": 7.272708061314688,
+          "p95": 11.308797781537606,
+          "values": [
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 32890.09018924746,
+              "numerator": 72419.67615499228,
+              "ratio": 2.2018691872930156
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 78972.251455889,
+              "numerator": 186931.0219818172,
+              "ratio": 2.367046887174415
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 11184.485760598796,
+              "numerator": 38554.3615527296,
+              "ratio": 3.4471286725180175
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 28752.500870294174,
+              "numerator": 103344.53674629414,
+              "ratio": 3.594279927596322
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 12033.351105020927,
+              "numerator": 46622.578511209475,
+              "ratio": 3.8744467857965317
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 34770.221958018396,
+              "numerator": 212590.98962806846,
+              "ratio": 6.114168321523834
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 21172.867847419715,
+              "numerator": 132893.6265892369,
+              "ratio": 6.276600201112213
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 21918.644518522105,
+              "numerator": 142045.33397148023,
+              "ratio": 6.480571088757173
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 24720.499328461192,
+              "numerator": 176454.96816763308,
+              "ratio": 7.138001778324803
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 25672.404400809213,
+              "numerator": 195722.1532547894,
+              "ratio": 7.623834144986438
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 39083.83253145261,
+              "numerator": 315204.69704025163,
+              "ratio": 8.064835934055123
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 38058.608505836644,
+              "numerator": 316265.325182856,
+              "ratio": 8.309955029868046
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 35365.58958300007,
+              "numerator": 295490.55324466206,
+              "ratio": 8.355312515041508
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 21879.83444081065,
+              "numerator": 193194.59001282163,
+              "ratio": 8.8298012736546
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 20696.80188317407,
+              "numerator": 194581.65630228602,
+              "ratio": 9.40153253631304
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 34999.272378685986,
+              "numerator": 332341.0014902655,
+              "ratio": 9.495654592312496
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 18241.097380409814,
+              "numerator": 174767.6764012619,
+              "ratio": 9.580984781592974
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 19300.937069094667,
+              "numerator": 197360.38502847153,
+              "ratio": 10.225430212116066
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 26771.491604765793,
+              "numerator": 302753.38486842805,
+              "ratio": 11.308797781537606
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 23275.00410392841,
+              "numerator": 297080.0477337686,
+              "ratio": 12.763909574719547
+            }
+          ]
+        },
+        "network_rx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 3.8505617532492256,
+          "median": 3.8505617532492256,
+          "mean": 4.775558182568084,
+          "p95": 9.22254056114935,
+          "values": [
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 3242108.589040744,
+              "numerator": 11191934.76562687,
+              "ratio": 3.452054259829179
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 953491.0378193953,
+              "numerator": 3456589.9054553015,
+              "ratio": 3.625193912006154
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 933765.4121795275,
+              "numerator": 3428885.871641218,
+              "ratio": 3.6721063201920936
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 932190.894581839,
+              "numerator": 3446501.49185524,
+              "ratio": 3.6972057031315106
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 934474.0868275699,
+              "numerator": 3467163.9350939738,
+              "ratio": 3.710283660047321
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 932816.2682526832,
+              "numerator": 3463077.686044809,
+              "ratio": 3.7124970949871163
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 909724.2253707409,
+              "numerator": 3396608.7162942863,
+              "ratio": 3.7336685355499495
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 933665.7697758584,
+              "numerator": 3488617.2800610866,
+              "ratio": 3.7364733644445227
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 934115.3901750488,
+              "numerator": 3527207.588403981,
+              "ratio": 3.7759870199151724
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 895996.5386562495,
+              "numerator": 3404127.2022123397,
+              "ratio": 3.799263786574
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 850820.8554347554,
+              "numerator": 3319783.6246925374,
+              "ratio": 3.9018597199244516
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 880822.4430941625,
+              "numerator": 3513275.2884170623,
+              "ratio": 3.988630530434251
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 870252.5035273229,
+              "numerator": 3551173.9944445123,
+              "ratio": 4.080624853190115
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 857460.6482106019,
+              "numerator": 3554654.4567352775,
+              "ratio": 4.145559873975948
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 2829267.6548035224,
+              "numerator": 12832298.689675022,
+              "ratio": 4.535554869787021
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 977337.9978183716,
+              "numerator": 5147381.405614045,
+              "ratio": 5.266736192703145
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 1029094.3750189688,
+              "numerator": 5640567.85756101,
+              "ratio": 5.481098716001669
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 853904.9188400672,
+              "numerator": 7410600.294789109,
+              "ratio": 8.67848413949362
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 881920.575973499,
+              "numerator": 8133548.283627791,
+              "ratio": 9.22254056114935
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 854821.6525835951,
+              "numerator": 7945858.360041899,
+              "ratio": 9.295340538025098
+            }
+          ]
+        },
+        "network_rx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 3.8505617532492256,
+          "median": 3.8505617532492256,
+          "mean": 4.775558182568084,
+          "p95": 9.22254056114935,
+          "values": [
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 3242108.589040744,
+              "numerator": 11191934.76562687,
+              "ratio": 3.452054259829179
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 953491.0378193953,
+              "numerator": 3456589.9054553015,
+              "ratio": 3.625193912006154
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 933765.4121795275,
+              "numerator": 3428885.871641218,
+              "ratio": 3.6721063201920936
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 932190.894581839,
+              "numerator": 3446501.49185524,
+              "ratio": 3.6972057031315106
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 934474.0868275699,
+              "numerator": 3467163.9350939738,
+              "ratio": 3.710283660047321
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 932816.2682526832,
+              "numerator": 3463077.686044809,
+              "ratio": 3.7124970949871163
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 909724.2253707409,
+              "numerator": 3396608.7162942863,
+              "ratio": 3.7336685355499495
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 933665.7697758584,
+              "numerator": 3488617.2800610866,
+              "ratio": 3.7364733644445227
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 934115.3901750488,
+              "numerator": 3527207.588403981,
+              "ratio": 3.7759870199151724
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 895996.5386562495,
+              "numerator": 3404127.2022123397,
+              "ratio": 3.799263786574
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 850820.8554347554,
+              "numerator": 3319783.6246925374,
+              "ratio": 3.9018597199244516
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 880822.4430941625,
+              "numerator": 3513275.2884170623,
+              "ratio": 3.988630530434251
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 870252.5035273229,
+              "numerator": 3551173.9944445123,
+              "ratio": 4.080624853190115
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 857460.6482106019,
+              "numerator": 3554654.4567352775,
+              "ratio": 4.145559873975948
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 2829267.6548035224,
+              "numerator": 12832298.689675022,
+              "ratio": 4.535554869787021
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 977337.9978183716,
+              "numerator": 5147381.405614045,
+              "ratio": 5.266736192703145
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 1029094.3750189688,
+              "numerator": 5640567.85756101,
+              "ratio": 5.481098716001669
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 853904.9188400672,
+              "numerator": 7410600.294789109,
+              "ratio": 8.67848413949362
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 881920.575973499,
+              "numerator": 8133548.283627791,
+              "ratio": 9.22254056114935
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 854821.6525835951,
+              "numerator": 7945858.360041899,
+              "ratio": 9.295340538025098
+            }
+          ]
+        },
+        "network_tx_rate_p95_bytes_per_second": {
+          "n": 20,
+          "p50": 5.704608051138823,
+          "median": 5.704608051138823,
+          "mean": 5.768196373432955,
+          "p95": 8.99179924868319,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 77204.28647242676,
+              "numerator": 180461.6141358457,
+              "ratio": 2.337455889839704
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 77444.81032669786,
+              "numerator": 238579.2517324374,
+              "ratio": 3.0806357550105723
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 43753.67172570791,
+              "numerator": 145503.77100614124,
+              "ratio": 3.325521385229232
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 57250.12166973684,
+              "numerator": 218939.74012279074,
+              "ratio": 3.82426680917475
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 39992.585213096376,
+              "numerator": 155382.46901210913,
+              "ratio": 3.8852819387436353
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 33537.41432008155,
+              "numerator": 137966.79848694336,
+              "ratio": 4.1138173971966445
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 39269.91028541604,
+              "numerator": 192264.3492630562,
+              "ratio": 4.8959711867347675
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 39805.37249721555,
+              "numerator": 196467.49221836857,
+              "ratio": 4.93570289367627
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 41398.827565897926,
+              "numerator": 220376.11636618822,
+              "ratio": 5.323245350738433
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 33798.364309365264,
+              "numerator": 184011.61433618798,
+              "ratio": 5.444394073390107
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 32673.48107255487,
+              "numerator": 194891.49966201533,
+              "ratio": 5.964822028887538
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 44646.52501638512,
+              "numerator": 267751.1631161802,
+              "ratio": 5.997133327127171
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 36745.09905314198,
+              "numerator": 233086.7652432977,
+              "ratio": 6.343342955919098
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 39264.04267637329,
+              "numerator": 256336.43698759822,
+              "ratio": 6.528528890934756
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 39710.89563809304,
+              "numerator": 287469.13493721647,
+              "ratio": 7.2390493923148655
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 39788.79173184977,
+              "numerator": 303682.4085419891,
+              "ratio": 7.632360655448106
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 39772.001964284194,
+              "numerator": 305283.25698696356,
+              "ratio": 7.675833297532071
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 38308.192184578984,
+              "numerator": 321216.7458873766,
+              "ratio": 8.385066680768164
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 40960.83816875989,
+              "numerator": 368311.6338712889,
+              "ratio": 8.99179924868319
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 52349.499759443264,
+              "numerator": 494163.48447714123,
+              "ratio": 9.439698311310027
+            }
+          ]
+        },
+        "network_tx_rate_peak_bytes_per_second": {
+          "n": 20,
+          "p50": 5.704608051138823,
+          "median": 5.704608051138823,
+          "mean": 5.768196373432955,
+          "p95": 8.99179924868319,
+          "values": [
+            {
+              "task_id": "core-title-exact",
+              "denominator": 77204.28647242676,
+              "numerator": 180461.6141358457,
+              "ratio": 2.337455889839704
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 77444.81032669786,
+              "numerator": 238579.2517324374,
+              "ratio": 3.0806357550105723
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 43753.67172570791,
+              "numerator": 145503.77100614124,
+              "ratio": 3.325521385229232
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 57250.12166973684,
+              "numerator": 218939.74012279074,
+              "ratio": 3.82426680917475
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 39992.585213096376,
+              "numerator": 155382.46901210913,
+              "ratio": 3.8852819387436353
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 33537.41432008155,
+              "numerator": 137966.79848694336,
+              "ratio": 4.1138173971966445
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 39269.91028541604,
+              "numerator": 192264.3492630562,
+              "ratio": 4.8959711867347675
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 39805.37249721555,
+              "numerator": 196467.49221836857,
+              "ratio": 4.93570289367627
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 41398.827565897926,
+              "numerator": 220376.11636618822,
+              "ratio": 5.323245350738433
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 33798.364309365264,
+              "numerator": 184011.61433618798,
+              "ratio": 5.444394073390107
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 32673.48107255487,
+              "numerator": 194891.49966201533,
+              "ratio": 5.964822028887538
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 44646.52501638512,
+              "numerator": 267751.1631161802,
+              "ratio": 5.997133327127171
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 36745.09905314198,
+              "numerator": 233086.7652432977,
+              "ratio": 6.343342955919098
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 39264.04267637329,
+              "numerator": 256336.43698759822,
+              "ratio": 6.528528890934756
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 39710.89563809304,
+              "numerator": 287469.13493721647,
+              "ratio": 7.2390493923148655
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 39788.79173184977,
+              "numerator": 303682.4085419891,
+              "ratio": 7.632360655448106
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 39772.001964284194,
+              "numerator": 305283.25698696356,
+              "ratio": 7.675833297532071
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 38308.192184578984,
+              "numerator": 321216.7458873766,
+              "ratio": 8.385066680768164
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 40960.83816875989,
+              "numerator": 368311.6338712889,
+              "ratio": 8.99179924868319
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 52349.499759443264,
+              "numerator": 494163.48447714123,
+              "ratio": 9.439698311310027
+            }
+          ]
+        },
+        "pids_current_mean": {
+          "n": 20,
+          "p50": 0.11668896653129152,
+          "median": 0.11668896653129152,
+          "mean": 0.11513743558560674,
+          "p95": 0.11904761904761905,
+          "values": [
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 109.85714285714286,
+              "numerator": 12.0,
+              "ratio": 0.10923276983094928
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 109.75,
+              "numerator": 12.0,
+              "ratio": 0.10933940774487472
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 109.75,
+              "numerator": 12.0,
+              "ratio": 0.10933940774487472
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 108.83333333333333,
+              "numerator": 12.0,
+              "ratio": 0.110260336906585
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 105.88888888888889,
+              "numerator": 12.0,
+              "ratio": 0.11332633788037776
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 105.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.11356466876971609
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 104.75,
+              "numerator": 12.0,
+              "ratio": 0.11455847255369929
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 104.5,
+              "numerator": 12.0,
+              "ratio": 0.11483253588516747
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 103.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.1157556270096463
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 102.875,
+              "numerator": 12.0,
+              "ratio": 0.1166464155528554
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 102.8,
+              "numerator": 12.0,
+              "ratio": 0.11673151750972763
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 102.75,
+              "numerator": 12.0,
+              "ratio": 0.11678832116788321
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 102.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.11688311688311688
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 102.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.11688311688311688
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 102.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.11688311688311688
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 101.875,
+              "numerator": 12.0,
+              "ratio": 0.11779141104294479
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 101.83333333333333,
+              "numerator": 12.0,
+              "ratio": 0.11783960720130933
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 101.83333333333333,
+              "numerator": 12.0,
+              "ratio": 0.11783960720130933
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 100.8,
+              "numerator": 12.0,
+              "ratio": 0.11904761904761905
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 100.66666666666667,
+              "numerator": 12.0,
+              "ratio": 0.11920529801324503
+            }
+          ]
+        },
+        "pids_current_p95": {
+          "n": 20,
+          "p50": 0.11650485436893204,
+          "median": 0.11650485436893204,
+          "mean": 0.1148664836874039,
+          "p95": 0.1188118811881188,
+          "values": [
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 109.0,
+              "numerator": 12.0,
+              "ratio": 0.11009174311926606
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 106.0,
+              "numerator": 12.0,
+              "ratio": 0.11320754716981132
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 106.0,
+              "numerator": 12.0,
+              "ratio": 0.11320754716981132
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 105.0,
+              "numerator": 12.0,
+              "ratio": 0.11428571428571428
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 105.0,
+              "numerator": 12.0,
+              "ratio": 0.11428571428571428
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 104.0,
+              "numerator": 12.0,
+              "ratio": 0.11538461538461539
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 101.0,
+              "numerator": 12.0,
+              "ratio": 0.1188118811881188
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 101.0,
+              "numerator": 12.0,
+              "ratio": 0.1188118811881188
+            }
+          ]
+        },
+        "pids_current_peak": {
+          "n": 20,
+          "p50": 0.11650485436893204,
+          "median": 0.11650485436893204,
+          "mean": 0.1148664836874039,
+          "p95": 0.1188118811881188,
+          "values": [
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 110.0,
+              "numerator": 12.0,
+              "ratio": 0.10909090909090909
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 109.0,
+              "numerator": 12.0,
+              "ratio": 0.11009174311926606
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 106.0,
+              "numerator": 12.0,
+              "ratio": 0.11320754716981132
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 106.0,
+              "numerator": 12.0,
+              "ratio": 0.11320754716981132
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 105.0,
+              "numerator": 12.0,
+              "ratio": 0.11428571428571428
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 105.0,
+              "numerator": 12.0,
+              "ratio": 0.11428571428571428
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 104.0,
+              "numerator": 12.0,
+              "ratio": 0.11538461538461539
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 103.0,
+              "numerator": 12.0,
+              "ratio": 0.11650485436893204
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 102.0,
+              "numerator": 12.0,
+              "ratio": 0.11764705882352941
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 101.0,
+              "numerator": 12.0,
+              "ratio": 0.1188118811881188
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 101.0,
+              "numerator": 12.0,
+              "ratio": 0.1188118811881188
+            }
+          ]
+        },
+        "duration_ms": {
+          "n": 20,
+          "p50": 0.5093243492650675,
+          "median": 0.5093243492650675,
+          "mean": 0.5783602968024157,
+          "p95": 1.3181519213583557,
+          "values": [
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 439.72,
+              "numerator": 115.433,
+              "ratio": 0.2625147821340853
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 601.609,
+              "numerator": 184.943,
+              "ratio": 0.30741395158649554
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 809.174,
+              "numerator": 267.422,
+              "ratio": 0.3304876330677951
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 122.831,
+              "numerator": 42.492,
+              "ratio": 0.34593872882252846
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 122.548,
+              "numerator": 43.413,
+              "ratio": 0.3542530273851878
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 123.478,
+              "numerator": 46.532,
+              "ratio": 0.3768444581220946
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 341.002,
+              "numerator": 132.437,
+              "ratio": 0.3883760212550073
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 261.635,
+              "numerator": 109.877,
+              "ratio": 0.4199629254495767
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 441.9,
+              "numerator": 201.009,
+              "ratio": 0.4548744059742023
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 260.798,
+              "numerator": 128.787,
+              "ratio": 0.4938189710043789
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 261.199,
+              "numerator": 137.085,
+              "ratio": 0.5248297275257562
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 204.967,
+              "numerator": 108.107,
+              "ratio": 0.5274361238638414
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 130.183,
+              "numerator": 69.271,
+              "ratio": 0.5321048063111159
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 343.313,
+              "numerator": 184.754,
+              "ratio": 0.538150317640171
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 661.525,
+              "numerator": 381.278,
+              "ratio": 0.5763621934167266
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 84.739,
+              "numerator": 60.209,
+              "ratio": 0.7105228997273982
+            },
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 512.742,
+              "numerator": 444.677,
+              "ratio": 0.8672529264230354
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 680.854,
+              "numerator": 594.096,
+              "ratio": 0.8725747370214465
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 279.75,
+              "numerator": 368.753,
+              "ratio": 1.3181519213583557
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 146.074,
+              "numerator": 199.44,
+              "ratio": 1.3653353779591164
+            }
+          ]
+        },
+        "tool_output_tokens": {
+          "n": 20,
+          "p50": 1.0,
+          "median": 1.0,
+          "mean": 0.9972727272727273,
+          "p95": 1.0,
+          "values": [
+            {
+              "task_id": "dynamic-settle-and-late-click",
+              "denominator": 110.0,
+              "numerator": 104.0,
+              "ratio": 0.9454545454545454
+            },
+            {
+              "task_id": "adopted-stylesheet-shadow-action",
+              "denominator": 68.0,
+              "numerator": 68.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "animated-stability-click",
+              "denominator": 58.0,
+              "numerator": 58.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "autofocus-keyboard-submit",
+              "denominator": 55.0,
+              "numerator": 55.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "checked-label-toggle",
+              "denominator": 51.0,
+              "numerator": 51.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "core-title-exact",
+              "denominator": 74.0,
+              "numerator": 74.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "counter-double-click",
+              "denominator": 68.0,
+              "numerator": 68.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "delayed-enabled-button",
+              "denominator": 56.0,
+              "numerator": 56.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "dynamic-option-select",
+              "denominator": 51.0,
+              "numerator": 51.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "dynamic-two-page-final",
+              "denominator": 70.0,
+              "numerator": 70.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "fill-echo-exact",
+              "denominator": 72.0,
+              "numerator": 72.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "form-submit-reset-resubmit",
+              "denominator": 73.0,
+              "numerator": 73.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "history-back-forward",
+              "denominator": 87.0,
+              "numerator": 87.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "multi-field-form-receipt",
+              "denominator": 59.0,
+              "numerator": 59.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "native-details-toggle",
+              "denominator": 55.0,
+              "numerator": 55.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "offscreen-auto-scroll-click",
+              "denominator": 58.0,
+              "numerator": 58.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "press-enter-exact",
+              "denominator": 74.0,
+              "numerator": 74.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "select-option-exact",
+              "denominator": 70.0,
+              "numerator": 70.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "shadow-dom-button",
+              "denominator": 53.0,
+              "numerator": 53.0,
+              "ratio": 1.0
+            },
+            {
+              "task_id": "three-page-history-and-scroll",
+              "denominator": 92.0,
+              "numerator": 92.0,
+              "ratio": 1.0
+            }
+          ]
+        }
+      }
+    }
+  }
+}

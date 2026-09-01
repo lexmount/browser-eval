@@ -151,6 +151,42 @@ def _resource_summary_table(summary: dict[str, Any]) -> str:
     )
 
 
+def _duration_ratio_audit(summary: dict[str, Any]) -> str:
+    paired = (summary.get("resource_comparison") or {}).get("paired_ratios") or {}
+    metric = ((paired.get("metrics") or {}).get("duration_ms") or {})
+    values = metric.get("values") or []
+    if not values:
+        return ""
+    p95_rank = max(1, (95 * len(values) + 99) // 100)
+    rows = []
+    for rank, item in enumerate(values, 1):
+        task_id = str(item.get("task_id") or "")
+        title = TASK_META.get(task_id, (task_id, ""))[0]
+        rows.append(
+            [
+                str(rank),
+                title,
+                _show(item.get("denominator"), suffix=" ms"),
+                _show(item.get("numerator"), suffix=" ms"),
+                _show(item.get("ratio"), suffix="×"),
+                "P95 取值" if rank == p95_rank else "",
+            ]
+        )
+    return (
+        '<details><summary>查看 Moli / Chromium 耗时比值的完整计算审计</summary>'
+        f'<p>脚本先对每个双方首次成功任务计算 <code>Moli 耗时 / Chromium 耗时</code>，再排序。'
+        f'本轮 <code>n={len(values)}</code>，nearest-rank P95 的序号为 '
+        f'<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>；因此表中的 P95 是排序后第 '
+        f'{p95_rank} 个配对比值，不是 <code>Moli P95 / Chromium P95</code>。</p>'
+        + _table(
+            ["排序", "任务", "Chromium", "Moli", "逐任务比值", "统计位置"],
+            rows,
+            "耗时配对比值原始序列",
+        )
+        + '</details>'
+    )
+
+
 def _nav(active: str) -> str:
     return (
         '<nav aria-label="报告分页">'
@@ -222,6 +258,16 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         smoke_html = f"""<section class="card"><h2>CowAgent 端到端冒烟测试</h2><p>该测试与资源微基准分开，不参与上表统计，也没有在运行编号 <code>{_e(manifest.get('run_id'))}</code> 中重新执行。模型 <code>{_e(agent_smoke.get('model'))}</code>，思考强度 <code>{_e(agent_smoke.get('reasoning_effort'))}</code>；独立执行日期 <code>{_e(agent_smoke.get('executed_at'))}</code>，来源文件内容哈希 <code>{_e(str(provenance.get('source_sha256') or '')[:12])}</code>。同一任务每个浏览器方案只执行 1 次。</p>{_table(["浏览器方案", "结果", "BrowserTool 调用次数", "最终答案"], [[str(item.get('provider')), "通过" if item.get('status') == "pass" else str(item.get('status')), str(item.get('browser_tool_calls')), str(item.get('answer'))] for item in agent_smoke.get('results') or []], "独立端到端接受性测试")}</section>"""
     c_passes = int(c.get("result_final_passes", c.get("final_passes", 0)))
     m_passes = int(m.get("result_final_passes", m.get("final_passes", 0)))
+    ratio_metrics = (
+        (((summary.get("resource_comparison") or {}).get("paired_ratios") or {}).get("metrics"))
+        or {}
+    )
+    duration_ratio = ratio_metrics.get("duration_ms") or {}
+    memory_ratio = ratio_metrics.get("memory_mean_bytes") or {}
+    rx_ratio = ratio_metrics.get("network_rx_bytes") or {}
+    gt_validation = manifest.get("ground_truth_validation") or {}
+    gt_replay = gt_validation.get("automatic_browser_replay") or {}
+    human_review = gt_validation.get("human_review") or {}
     if c_passes > m_passes:
         recommendation = (
             f"本轮建议默认使用 Chromium：其结果正确任务数为 {c_passes}，高于 Moli 的 {m_passes}；"
@@ -237,7 +283,7 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             f"本轮两个 Provider 的结果正确任务数相同（均为 {c_passes}）；"
             "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
         )
-    return f"""<section class="card note"><div class="eyebrow">结论摘要</div><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务，程序重放预先声明的有效参考路径；结果由程序逐字判定，LLM 不参与成功评分。每个任务先执行 1 次，仅结果失败时最多重试。</p></section><section class="card"><h2>核心指标</h2><div class="grid"><div class="metric"><strong>{c.get("result_final_passes", c.get("final_passes", 0))}/{c.get("tasks", 0)}</strong><span>Chromium 结果正确</span></div><div class="metric"><strong>{m.get("result_final_passes", m.get("final_passes", 0))}/{m.get("tasks", 0)}</strong><span>Moli 结果正确</span></div><div class="metric"><strong>{paired}</strong><span>双方首次结果均正确的配对任务</span></div></div><p class="muted">绝对值中较低者以绿色粗体标示；Moli / Chromium 比值小于 1 为绿色、大于 1 为红色，等于 1 保持中性。</p>{_resource_summary_table(summary)}</section>{smoke_html}<section class="card"><h2>如何解读</h2><ul><li><strong>结果正确率是主指标</strong>；“结果与过程均正确率”单独报告，不与结果正确率混成一个数。</li><li>耗时、内存、CPU、RX/TX 只比较双方首次结果均正确的同任务，重试与失败样本不进入资源基线。</li><li>配对比值先对每个同任务计算 Moli / Chromium，再报告这 {paired} 个比值的 P50、P95、平均值；小于 1 表示 Moli 数值更低，大于 1 表示 Chromium 数值更低。</li><li>本轮只有 {paired} 个成功配对点，且 Moli 失败的 {moli_failures} 个任务被排除，速度结论存在成功样本选择偏差，不能外推为全任务更快。</li><li>完整标准答案、实际输出、原始异常和逐调用执行轨迹均可审计。</li></ul></section>"""
+    return f"""<section class="card note"><div class="eyebrow">结论摘要</div><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务，程序重放预先声明的有效参考路径；结果由程序逐字判定，LLM 不参与成功评分。每个任务先执行 1 次，仅结果失败时最多重试。</p></section><section class="card"><h2>关键技术结论</h2><ul><li><strong>正确性：</strong>Chromium 为 {c_passes}/{task_count}，Moli 为 {m_passes}/{task_count}；默认 Provider 应先看正确率。</li><li><strong>成功交集：</strong>资源只比较双方首次均成功的 {paired} 个任务；Moli 未通过的 {moli_failures} 个任务不进入性能统计。</li><li><strong>速度与资源：</strong>成功交集上，Moli / Chromium 耗时平均值为 {_show(duration_ratio.get('mean'), suffix='×')}，时间加权平均内存比值为 {_show(memory_ratio.get('mean'), suffix='×')}；网络接收量平均比值为 {_show(rx_ratio.get('mean'), suffix='×')}。</li><li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li><li><strong>失败现象：</strong>多数失败现场表现为 DOM 已连接且 computed style 可见，但布局矩形为零；这能定位 actionability 异常，尚不能单独证明根因属于 screencast、渲染器或适配层。</li><li><strong>校准修正：</strong>场景隔离后，早期 label/details 失败消失，说明共享 fixture 干扰会制造假阳性，正式结论已排除该部分。</li></ul></section><section class="card"><h2>核心指标</h2><div class="grid"><div class="metric"><strong>{c.get('result_final_passes', c.get('final_passes', 0))}/{c.get('tasks', 0)}</strong><span>Chromium 结果正确</span></div><div class="metric"><strong>{m.get('result_final_passes', m.get('final_passes', 0))}/{m.get('tasks', 0)}</strong><span>Moli 结果正确</span></div><div class="metric"><strong>{paired}</strong><span>双方首次结果均正确的配对任务</span></div></div><p class="muted">绝对值中较低者以绿色粗体标示；Moli / Chromium 比值小于 1 为绿色、大于 1 为红色，等于 1 保持中性。</p>{_resource_summary_table(summary)}{_duration_ratio_audit(summary)}</section><section class="card"><h2>Ground truth 标注状态</h2><p>30 个答案已由 <strong>{_e(gt_validation.get('validator') or '未记录')}</strong> 按真实 BrowserTool 操作逐题重放，自动复核结果为 <strong>{_e(gt_replay.get('passed'))}/{_e(gt_replay.get('total'))}</strong>。数据集 SHA-256：<code>{_e(str(gt_validation.get('dataset_sha256') or '')[:16])}</code>。</p><p><strong>人工复核：{_e(human_review.get('status') or '未记录')}</strong>。自动浏览器复核和人工签字是两个独立阶段；报告不会把 Codex 复核冒充人工复核。</p></section>{smoke_html}<section class="card"><h2>如何解读</h2><ul><li><strong>结果正确率是主指标</strong>；“结果与过程均正确率”单独报告，不与结果正确率混成一个数。</li><li>耗时、内存、CPU、RX/TX 只比较双方首次结果均正确的同任务，重试与失败样本不进入资源基线。</li><li>配对比值先对每个同任务计算 Moli / Chromium，再报告这 {paired} 个比值的 P50、P95、平均值；小于 1 表示 Moli 数值更低，大于 1 表示 Chromium 数值更低。</li><li>所有数值均由 <code>run.sh → metrics.py → summary.json → report.py</code> 一键生成；报告层只读取结构化结果并排版，Codex 不参与统计计算。</li><li>本轮只有 {paired} 个成功配对点，且 Moli 失败的 {moli_failures} 个任务被排除，速度结论存在成功样本选择偏差，不能外推为全任务更快。</li><li>完整标准答案、实际输出、原始异常和逐调用执行轨迹均可审计。</li></ul></section>"""
 
 
 def _difficulty(value: str) -> str:
@@ -268,6 +314,9 @@ def _action_text(call: dict[str, Any]) -> str:
 
 def _suite_page(manifest: dict[str, Any]) -> str:
     suite = manifest.get("suite") or []
+    validation = manifest.get("ground_truth_validation") or {}
+    replay = validation.get("automatic_browser_replay") or {}
+    all_replayed = replay.get("status") == "pass" and replay.get("passed") == len(suite)
     difficulty_values = [str(task.get("complexity") or "") for task in suite]
     ordered_difficulties = [
         difficulty
@@ -313,10 +362,10 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         hypothesis = str(source.get("hypothesis") or "未标注")
         chips = "".join(f'<span class="chip">{_e(tag)}</span>' for tag in task.get("tags") or [])
         cards.append(
-            f'<section class="card"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><p>{_e(purpose)}</p><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次 BrowserTool 调用</span><span class="chip">结果唯一 · 参考路径固定</span>{chips}<details><summary>查看调用、标准答案与来源</summary>{call_html}<h3>参考执行路径</h3><p>本工具层微基准由程序重放以下路径，并检查全部调用成功：<code>{_e(" → ".join(truth.get("expected_actions") or []))}</code>。这不表示网页任务只有这一种解法；自由规划 Agent 应按必要里程碑、禁止动作和步数预算评价过程。</p><h3>标准答案</h3>{_table(["输出字段", "唯一预期值", "判定"], expected_rows, "机器判定答案")}<p><strong>推导：</strong>{_e(truth.get("derivation"))}</p><p><strong>任务来源：</strong>{source_html}</p><p><strong>覆盖范围：</strong>{_e(coverage)}</p><p><strong>待验证假设：</strong>{_e(hypothesis)}</p></details></section>'
+            f'<section class="card"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><p>{_e(purpose)}</p><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次 BrowserTool 调用</span><span class="chip">结果唯一 · 参考路径固定</span><span class="chip">Codex 浏览器复核：{"通过" if all_replayed else "未完成"}</span>{chips}<details><summary>查看调用、标准答案与来源</summary>{call_html}<h3>参考执行路径</h3><p>本工具层微基准由程序重放以下路径，并检查全部调用成功：<code>{_e(" → ".join(truth.get("expected_actions") or []))}</code>。这不表示网页任务只有这一种解法；自由规划 Agent 应按必要里程碑、禁止动作和步数预算评价过程。</p><h3>标准答案</h3>{_table(["输出字段", "唯一预期值", "判定"], expected_rows, "机器判定答案")}<p><strong>标注复核：</strong>{"Codex Desktop in-app Browser Tool 已按上述真实调用逐题执行，实际输出与标准答案逐字相等。" if all_replayed else "尚未完成 Codex 浏览器逐题复核。"} 人工复核状态：{_e((validation.get("human_review") or {}).get("status") or "未记录")}。</p><p><strong>推导：</strong>{_e(truth.get("derivation"))}</p><p><strong>任务来源：</strong>{source_html}</p><p><strong>覆盖范围：</strong>{_e(coverage)}</p><p><strong>待验证假设：</strong>{_e(hypothesis)}</p></details></section>'
         )
     return (
-        f'<section class="card note"><h2>评测集设计</h2><p>本轮共 {len(suite)} 个任务，按难度分为{difficulty_summary}。使用固定版本的自托管测试页面，覆盖读取、点击、输入、选择、键盘、异步状态、分页、历史、目录、表单、购物车和结算。任务与覆盖面只参考并部分改编自 <code>lexmount/Lexbench-Headless-Browser</code> 和 <code>lexmount/moli</code> 两个仓库；前者提供场景与 fixture 依据，后者提供待验证的能力边界与实现线索。每题都标注参考执行路径、唯一预期输出、推导、来源、覆盖范围和待验证假设。</p><p><strong>答案唯一，路径未必唯一：</strong>标准答案是唯一字符串；<code>expected_actions</code> 是本轮由评测程序重放的参考路径，不声称是任务的唯一解。</p><p><strong>成功判定：</strong>程序对实际输出和标准答案做严格字符串相等判断，不使用 LLM-as-a-Judge。</p></section>'
+        f'<section class="card note"><h2>评测集设计与标注</h2><p>本轮共 {len(suite)} 个任务，按难度分为{difficulty_summary}。组成方式是 <strong>15 个此前已使用的高质量基线/回归任务 + 15 个结合 <code>lexmount/Lexbench-Headless-Browser</code> 与 <code>lexmount/moli</code> 扩展的交互空间探针</strong>；不会为了来源整齐而删除已有有效用例。</p><p><strong>答案唯一，路径未必唯一：</strong>标准答案是唯一字符串；<code>expected_actions</code> 是本轮由评测程序重放的参考路径，不声称是任务的唯一解。</p><p><strong>三阶段标注：</strong>第一步由 fixture 源码和确定性状态机推导唯一答案；第二步由 Codex Desktop 的 in-app Browser Tool 在独立浏览状态下逐题真实操作并逐字比对，本轮为 {_e(replay.get("passed"))}/{_e(replay.get("total"))}；第三步由人工复核并签字，当前状态为 <strong>{_e((validation.get("human_review") or {}).get("status") or "未记录")}</strong>。自动复核证据文件为 <code>examples/browser_use/ground_truth_validation.json</code>，数据集 SHA-256 为 <code>{_e(str(validation.get("dataset_sha256") or "")[:16])}</code>。</p><p><strong>成功判定：</strong>正式评测程序只对实际输出和标准答案做严格字符串相等判断，不使用 LLM-as-a-Judge；Codex 只参与评测前的数据集标注复核，不参与评测运行、打分或统计。</p></section>'
         + "".join(cards)
     )
 
@@ -404,9 +453,54 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
         title = TASK_META.get(str(task_id), (str(task.get("title") or task_id), ""))[0]
         executions = task.get("attempts") or task.get("failures") or {}
         for engine, attempts in executions.items():
+            if not attempts:
+                continue
+            anchor = f"execution-{task_id}-{engine}"
+            first_attempt = attempts[0]
+            final_attempt = attempts[-1]
+            final_status = str(final_attempt.get("status") or "fail")
+            final_result_status = str(final_attempt.get("result_status") or final_status)
+            final_process_status = str(final_attempt.get("process_status") or final_status)
+            final_combined_status = str(final_attempt.get("combined_status") or final_status)
+            retry_count = sum(bool(attempt.get("is_retry")) for attempt in attempts)
+            recovered = final_result_status == "pass" and str(
+                first_attempt.get("result_status") or first_attempt.get("status") or "fail"
+            ) != "pass"
+            retry_label = (
+                "首次通过"
+                if retry_count == 0 and final_result_status == "pass"
+                else f"重试 {retry_count} 次后通过"
+                if recovered
+                else f"重试 {retry_count} 次仍失败"
+                if retry_count
+                else "首次失败"
+            )
+            categories = sorted(
+                {
+                    diagnostic_by_attempt.get(
+                        (str(task_id), str(engine), int(attempt.get("attempt") or 1)),
+                        _classify(str(attempt.get("error") or "")),
+                    )
+                    for attempt in attempts
+                    if str(attempt.get("status") or "fail") == "fail"
+                }
+            )
+            error_category = ",".join(categories) if categories else "无错误"
+            actions = sorted(
+                {
+                    str(call.get("action"))
+                    for attempt in attempts
+                    for call in (attempt.get("trace") or [])
+                    if call.get("action") != "validate_assertions"
+                }
+            )
+            tags = task.get("tags") or []
+            total_duration = sum(
+                float(attempt.get("duration_ms") or 0) for attempt in attempts
+            )
+            attempt_sections = []
             for attempt in attempts:
                 attempt_number = int(attempt.get("attempt") or 1)
-                anchor = f"execution-{task_id}-{engine}-{attempt_number}"
                 validation = attempt.get("validation") or []
                 if not validation:
                     expected_outputs = (
@@ -451,9 +545,6 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
                     for c in attempt.get("trace") or []
                 )
                 status = str(attempt.get("status") or "fail")
-                result_status = str(attempt.get("result_status") or status)
-                process_status = str(attempt.get("process_status") or status)
-                combined_status = str(attempt.get("combined_status") or status)
                 process_validation = attempt.get("process_validation") or {}
                 process_html = _table(
                     ["参考动作序列", "实际动作序列", "全部调用成功", "过程结果"],
@@ -465,28 +556,21 @@ def _execution_details(manifest: dict[str, Any], summary: dict[str, Any]) -> str
                     ]],
                     "参考路径执行判定",
                 ) if process_validation else "<p>该历史样本未记录独立过程判定。</p>"
-                error_category = (
-                    diagnostic_by_attempt.get(
-                        (str(task_id), str(engine), attempt_number),
-                        _classify(str(attempt.get("error") or "")),
-                    )
-                    if status == "fail"
-                    else "无错误"
-                )
-                actions = sorted({str(c.get("action")) for c in attempt.get("trace") or [] if c.get("action") != "validate_assertions"})
-                tags = task.get("tags") or []
-                result_label = "正确" if result_status == "pass" else "错误"
-                process_label = "正确" if process_status == "pass" else "错误"
-                attempt_label = "失败重试" if attempt.get("is_retry") else "首次执行"
-                blocks.append(
-                    f'<div id="{_e(anchor)}" class="execution-card" data-task="{_e(task_id)}" data-engine="{_e(engine)}" data-status="{_e(result_status)}" data-combined-status="{_e(combined_status)}" data-complexity="{_e(task.get("complexity"))}" data-attempt-kind="{"retry" if attempt.get("is_retry") else "primary"}" data-error="{_e(error_category)}" data-actions="{_e(",".join(actions))}" data-tags="{_e(",".join(tags))}" data-duration="{_e(attempt.get("duration_ms") or 0)}"><details><summary class="execution-summary"><span>{_e(title)}</span><span>{_e(engine)}</span><span>{_e(attempt_label)}</span><span class="{"ok" if result_status == "pass" else "bad"}">{_e(result_label)}</span><span class="{"ok" if process_status == "pass" else "bad"}">{_e(process_label)}</span><span>{_show(attempt.get("duration_ms"), suffix=" ms")}</span></summary><div class="execution-body">'
+                attempt_label = "首次执行" if not attempt.get("is_retry") else f"失败重试 {attempt_number - 1}"
+                attempt_sections.append(
+                    f'<section class="attempt-block"><h3>{_e(attempt_label)} · {_show(attempt.get("duration_ms"), suffix=" ms")} · {"通过" if status == "pass" else "失败"}</h3>'
                     + (
                         f"<h3>完整错误</h3><pre>{_e(_trace_text(attempt.get('error')))}</pre>"
                         if attempt.get("error")
                         else ""
                     )
-                    + f"<h3>标准答案判定</h3>{validation_html}<h3>参考路径执行判定</h3>{process_html}<h3>完整执行轨迹</h3>{traces or '<p>该样本未记录执行轨迹。</p>'}</div></details></div>"
+                    + f"<h3>标准答案判定</h3>{validation_html}<h3>参考路径执行判定</h3>{process_html}<h3>完整执行轨迹</h3>{traces or '<p>该样本未记录执行轨迹。</p>'}</section>"
                 )
+            blocks.append(
+                f'<div id="{_e(anchor)}" class="execution-card" data-task="{_e(task_id)}" data-engine="{_e(engine)}" data-status="{_e(final_result_status)}" data-combined-status="{_e(final_combined_status)}" data-complexity="{_e(task.get("complexity"))}" data-error="{_e(error_category)}" data-actions="{_e(",".join(actions))}" data-tags="{_e(",".join(tags))}" data-duration="{_e(total_duration)}"><details><summary class="execution-summary"><span>{_e(title)}</span><span>{_e(engine)}</span><span class="{"ok" if final_result_status == "pass" else "bad"}">{"正确" if final_result_status == "pass" else "错误"}</span><span class="{"ok" if final_process_status == "pass" else "bad"}">{"正确" if final_process_status == "pass" else "错误"}</span><span>{_e(retry_label)}</span><span>{_show(total_duration, suffix=" ms")}</span></summary><div class="execution-body">'
+                + "".join(attempt_sections)
+                + "</div></details></div>"
+            )
     return "".join(blocks) or "<p>没有可展示的执行样本。</p>"
 
 
@@ -545,9 +629,15 @@ def _task_comparison_rows(summary: dict[str, Any]) -> list[list[str]]:
 
 
 def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
-    total_attempts = sum(
+    physical_attempts = sum(
         (values or {}).get("physical_attempts", 0)
         for values in (summary.get("functional") or {}).values()
+    )
+    logical_executions = sum(
+        1
+        for task in (summary.get("by_task") or {}).values()
+        for attempts in ((task.get("attempts") or task.get("failures") or {}).values())
+        if attempts
     )
     task_options = "".join(f'<option value="{_e(task_id)}">{_e(task.get("title") or task_id)}</option>' for task_id, task in (summary.get("by_task") or {}).items())
     action_values = sorted({str(c.get("action")) for task in (summary.get("by_task") or {}).values() for attempts in (task.get("attempts") or {}).values() for attempt in attempts for c in attempt.get("trace") or [] if c.get("action") != "validate_assertions"})
@@ -569,20 +659,19 @@ def _execution_explorer(manifest: dict[str, Any], summary: dict[str, Any]) -> st
     filters = f'''<div class="filters" aria-label="执行样本筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option>{task_options}</select></label>
       <label>Provider<select id="f-engine"><option value="">全部 Provider</option><option>chromium</option><option>moli</option></select></label>
-      <label>结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail">错误</option></select></label>
+      <label>最终结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail" selected>错误</option></select></label>
       <label>结果与过程<select id="f-combined"><option value="">全部</option><option value="pass">均正确</option><option value="fail">未同时正确</option></select></label>
-      <label>执行类型<select id="f-attempt"><option value="">首次与重试</option><option value="primary">首次执行</option><option value="retry">失败重试</option></select></label>
       <label>难度<select id="f-complexity"><option value="">全部难度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>
       <label>BrowserTool 方法<select id="f-action"><option value="">全部方法</option>{action_options}</select></label>
       <label>任务标签<select id="f-tag"><option value="">全部标签</option>{tag_options}</select></label>
       <label>错误类别<select id="f-error"><option value="">全部类别</option>{error_options}</select></label>
       <label>耗时<select id="f-duration"><option value="">全部耗时</option><option value="lt1000">少于 1 秒</option><option value="1000-5000">1–5 秒</option><option value="gte5000">5 秒及以上</option></select></label>
       <label>全文搜索<input id="f-query" type="search" placeholder="任务、输出或错误"></label>
-      <button type="button" id="f-failures">仅看错误</button><button type="button" id="f-reset">重置筛选</button><span class="filter-status" id="f-count" aria-live="polite"></span>
+      <button type="button" id="f-all">展示全部</button><button type="button" id="f-reset">重置为错误</button><span class="filter-status" id="f-count" aria-live="polite"></span>
     </div>'''
-    script = '''<script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','attempt','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.attempt.value||c.dataset.attemptKind===el.attempt.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error===el.error.value)&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个样本`;}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){for(const x of ids)el[x].value='';apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-failures').onclick=()=>{el.status.value='fail';apply()};document.getElementById('f-reset').onclick=()=>{for(const x of ids)el[x].value='';apply()};addEventListener('hashchange',reveal);apply();reveal()})()</script>'''
-    grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>执行类型</span><span>结果</span><span>过程</span><span>耗时</span></div>'
-    return f"""<section class="card"><h2>执行记录与原始证据</h2><p>共 {total_attempts} 次实际执行，默认折叠。每条记录按固定列对齐，展开后可查看全宽的标准答案判定、过程判定和逐调用证据。</p>{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary)}</div>{script}</section>"""
+    script = '''<script>(()=>{const cards=[...document.querySelectorAll('.execution-card')];const ids=['task','engine','status','combined','complexity','action','tag','error','duration','query'];const el=Object.fromEntries(ids.map(x=>[x,document.getElementById('f-'+x)]));function apply(){let n=0;for(const c of cards){const d=Number(c.dataset.duration||0),duration=el.duration.value;const ok=(!el.task.value||c.dataset.task===el.task.value)&&(!el.engine.value||c.dataset.engine===el.engine.value)&&(!el.status.value||c.dataset.status===el.status.value)&&(!el.combined.value||c.dataset.combinedStatus===el.combined.value)&&(!el.complexity.value||c.dataset.complexity===el.complexity.value)&&(!el.action.value||c.dataset.actions.split(',').includes(el.action.value))&&(!el.tag.value||c.dataset.tags.split(',').includes(el.tag.value))&&(!el.error.value||c.dataset.error.split(',').includes(el.error.value))&&(!duration||(duration==='lt1000'&&d<1000)||(duration==='1000-5000'&&d>=1000&&d<5000)||(duration==='gte5000'&&d>=5000))&&(!el.query.value||c.textContent.toLowerCase().includes(el.query.value.toLowerCase()));c.hidden=!ok;if(ok)n++;}document.getElementById('f-count').textContent=`显示 ${n} / ${cards.length} 个任务 × Provider 记录`;}function clear(){for(const x of ids)el[x].value='';}function defaults(){clear();el.status.value='fail';apply();}function reveal(){const card=location.hash?document.querySelector(location.hash):null;if(card&&card.classList.contains('execution-card')){clear();apply();card.querySelector('details').open=true;card.style.outline='3px solid #f4b400';requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));}}for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);document.getElementById('f-all').onclick=()=>{clear();apply()};document.getElementById('f-reset').onclick=defaults;addEventListener('hashchange',reveal);apply();reveal()})()</script>'''
+    grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>最终结果</span><span>最终过程</span><span>重试结论</span><span>总耗时</span></div>'
+    return f"""<section class="card"><h2>逐任务结果与原始证据</h2><p>共 {logical_executions} 条“任务 × Provider”记录，底层包含 {physical_attempts} 次实际执行。默认只展示最终失败记录；一次失败后的重试归入同一条任务记录，不再拆成独立结果。展开后可查看首次执行、重试、标准答案判定、参考路径判定和逐调用证据。</p>{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary)}</div>{script}</section>"""
 
 
 def _results_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -611,11 +700,7 @@ def _failure_evidence_grid(groups: list[dict[str, Any]]) -> str:
     records = []
     for group in groups:
         attempts = group.get("attempts") or []
-        first_attempt = int((attempts[0] if attempts else {}).get("attempt") or 1)
-        anchor = (
-            "#execution-"
-            f"{group.get('task_id')}-{group.get('engine')}-{first_attempt}"
-        )
+        anchor = "#execution-" f"{group.get('task_id')}-{group.get('engine')}"
         probe = group.get("actionability_probe")
         if isinstance(probe, dict):
             probe_html = (
@@ -629,7 +714,7 @@ def _failure_evidence_grid(groups: list[dict[str, Any]]) -> str:
                 + (
                     f"采集错误：{_e(probe_error)}"
                     if probe_error
-                    else "失败发生在结果读取；此前交互调用已通过，因此未触发仅用于交互失败的元素几何探针"
+                    else "本类失败未采集元素几何 probe；后续读取暴露了状态异常，但不能据此确定异常发生层"
                 )
                 + "。</p>"
             )
@@ -684,16 +769,12 @@ def _analysis_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     category_rows = [[name, str(values[0]), str(values[1])] for name, values in counts.items()]
     if not category_rows:
         category_rows = [["无失败", "0", "0"]]
-    task_comparison = _table(
-        ["任务", "难度", "Chromium（结果 / 过程）", "Moli（结果 / 过程）", "Chromium 耗时 (ms)", "Moli 耗时 (ms)", "Moli / Chromium", "重试"],
-        _task_comparison_rows(summary),
-        "逐任务正确性、耗时与重试",
-    )
-    return f"""<section class="card note"><h2>分析范围</h2><p>正确率与资源汇总以“结论摘要”和“总体结果”为准。本页只解释逐任务差异、成功样本选择偏差、失败定位证据和待验证机制，不重复汇总表。</p></section><section class="card"><h2>逐任务对比</h2><p>每个任务只占一行，同时展示两个 Provider 的结果、过程、耗时和重试，避免在不同表格中重复列出同一任务。</p>{task_comparison}</section><section class="card"><h2>性能解释边界</h2><p>本轮使用本地固定测试页面，两个浏览器进程均在预热后复用，任务之间清理浏览状态，并使用确定性调用链。资源表只保留双方成功任务：Moli 未通过的 {moli_failures} 个任务被排除，因此存在成功样本选择偏差。</p><p>性能结论只能表述为“在本轮 {paired_count} 个双方首次均成功的任务中观察到相应配对分布”，不能外推为全部任务或所有网站上的固定优势。每个任务只有一个首次执行样本，也不足以建立稳定的性能置信区间。</p></section><section class="card"><h2>时序假设与放大性测试设计</h2><p><strong>已知实现事实：</strong>Moli 的 1 Hz 指 CDP screencast 帧的下采样节奏；调度器按 <code>everyNthFrame</code> 以秒为单位安排 screencast，不代表 JavaScript 动画帧只以 1 Hz 运行。Moli 的 <code>requestAnimationFrame</code> 源码目标间隔为 16 ms，两者是不同的调度路径。</p><p><strong>待验证假设：</strong>低频 screencast 或其触发的布局快照可能放大动态 DOM 更新后几何、可见性或命中测试状态陈旧的问题；这只是机制假设，不是本轮失败的既定根因。必须用失败现场的 actionability probe 和对照实验验证。</p><ol><li><strong>固定变量：</strong>对同一页面、同一选择器和同一 BrowserTool 调用，分别使用立即显现、双 rAF、定时器、DOM 替换、动画和视口进入等触发方式；评测集中的 <code>source.coverage</code> 与 <code>source.hypothesis</code> 明确记录每个 probe 的覆盖面。</li><li><strong>放大变量：</strong>围绕 16 ms 与 1 秒两个时间尺度改变显现延迟，并在可控条件下对比 screencast 订阅开启/关闭；每个组合使用预先固定的重复次数和相同超时。</li><li><strong>实测证据：</strong>失败时采集节点连接状态、disabled、display、visibility、opacity、pointer-events、矩形尺寸和 client rect 数量，并与对应成功样本及页面内时间戳对齐。</li><li><strong>判定规则：</strong>只有当 DOM/rAF 已按约 16 ms 完成、但几何或 actionability 状态稳定滞后且随 screencast 条件系统性变化时，才支持“screencast 放大时序问题”；否则应否定该解释并继续检查适配层、布局刷新或测试页面。</li></ol></section><section class="card"><h2>失败分布与定位依据</h2><p>错误类别由评测程序根据异常文本、失败步骤、BrowserTool 方法和选择器自动生成，不是人工或 LLM 判断；下方每个失败组同时承载定位依据与唯一的执行记录入口，不把失败现象写成已验证根因。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分类")}{_failure_evidence_grid(groups)}</section>{_execution_explorer(manifest, summary)}<section class="card"><h2>产品决策边界</h2><ol><li>默认 Provider 先看首次结果正确率，再看结果与过程均正确率、重试恢复、时延和成本。</li><li>资源结论只来自双方首次结果正确的同任务，不能外推成所有网站上的固定倍数。</li><li>当前固定参考路径适合隔离 Provider；自由规划 Agent 的过程评价必须改为里程碑和约束。</li><li>程序化错误分类和时序机制都只是定位线索，必须经失败 probe 与对照实验验证后才能形成根因结论。</li></ol></section>"""
+    return f"""<section class="card note"><h2>分析范围</h2><p>正确率与资源汇总以“结论摘要”和“总体结果”为准。本页将逐任务结果、重试和原始证据合并为一个组件，再解释成功样本选择偏差、失败定位证据和待验证机制，不重复汇总表。</p></section><section class="card"><h2>性能解释边界</h2><p>本轮使用本地固定测试页面，两个浏览器进程均在预热后复用，任务之间清理浏览状态，并使用确定性调用链。资源表只保留双方成功任务：Moli 未通过的 {moli_failures} 个任务被排除，因此存在成功样本选择偏差。</p><p>性能结论只能表述为“在本轮 {paired_count} 个双方首次均成功的任务中观察到相应配对分布”，不能外推为全部任务或所有网站上的固定优势。每个任务只有一个首次执行样本，也不足以建立稳定的性能置信区间。</p></section><section class="card"><h2>时序假设与放大性测试设计</h2><p><strong>已知实现事实：</strong>Moli 的 1 Hz 指 CDP screencast 帧的下采样节奏；调度器按 <code>everyNthFrame</code> 以秒为单位安排 screencast，不代表 JavaScript 动画帧只以 1 Hz 运行。Moli 的 <code>requestAnimationFrame</code> 源码目标间隔为 16 ms，两者是不同的调度路径。</p><p><strong>待验证假设：</strong>低频 screencast 或其触发的布局快照可能放大动态 DOM 更新后几何、可见性或命中测试状态陈旧的问题；这只是机制假设，不是本轮失败的既定根因。必须用失败现场的 actionability probe 和对照实验验证。</p><ol><li><strong>固定变量：</strong>对同一页面、同一选择器和同一 BrowserTool 调用，分别使用立即显现、双 rAF、定时器、DOM 替换、动画和视口进入等触发方式；评测集中的 <code>source.coverage</code> 与 <code>source.hypothesis</code> 明确记录每个 probe 的覆盖面。</li><li><strong>放大变量：</strong>围绕 16 ms 与 1 秒两个时间尺度改变显现延迟，并在可控条件下对比 screencast 订阅开启/关闭；每个组合使用预先固定的重复次数和相同超时。</li><li><strong>实测证据：</strong>失败时采集节点连接状态、disabled、display、visibility、opacity、pointer-events、矩形尺寸和 client rect 数量，并与对应成功样本及页面内时间戳对齐。</li><li><strong>判定规则：</strong>只有当 DOM/rAF 已按约 16 ms 完成、但几何或 actionability 状态稳定滞后且随 screencast 条件系统性变化时，才支持“screencast 放大时序问题”；否则应否定该解释并继续检查适配层、布局刷新或测试页面。</li></ol></section><section class="card"><h2>失败分布与定位依据</h2><p>错误类别由评测程序根据异常文本、失败步骤、BrowserTool 方法和选择器自动生成，不是人工或 LLM 判断；下方每个失败组同时承载定位依据与唯一的执行记录入口，不把失败现象写成已验证根因。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分类")}{_failure_evidence_grid(groups)}</section>{_execution_explorer(manifest, summary)}<section class="card"><h2>产品决策边界</h2><ol><li>默认 Provider 先看首次结果正确率，再看结果与过程均正确率、重试恢复、时延和成本。</li><li>资源结论只来自双方首次结果正确的同任务，不能外推成所有网站上的固定倍数。</li><li>当前固定参考路径适合隔离 Provider；自由规划 Agent 的过程评价必须改为里程碑和约束。</li><li>程序化错误分类和时序机制都只是定位线索，必须经失败 probe 与对照实验验证后才能形成根因结论。</li></ol></section>"""
 
 
 def _appendix_page(manifest: dict[str, Any]) -> str:
     p = manifest.get("protocol") or {}
+    provenance = manifest.get("artifact_provenance") or {}
     fields = [
         ["task", "ground_truth / source / expected_actions", "唯一结果、固定参考路径与来源"],
         ["attempt", "result_status / process_status / combined_status", "结果主指标与结果+过程辅指标"],
@@ -703,7 +784,14 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["summary", "paired intersection / paired ratios", "双方成功任务及逐任务比值 P50/平均值/P95"],
         ["diagnostics", "rule_engine", "程序化失败分类、证据与原始执行记录入口"],
     ]
-    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；每个任务在每个 Provider 上首次执行 1 次。</li><li>改变失败重试次数：<code>BROWSER_USE_EVAL_FAILURE_RETRIES=1 ./examples/browser_use/run.sh</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML。</li></ol></section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>限制</h2><ul><li>固定测试页面提高可重复性，但不能代替真实公开网站兼容性评测；两类测试应分开报告。</li><li>每任务只有一个首次样本，逐任务不报告分位数；总体分位数是跨任务分布。</li><li>双方成功任务会排除任一 Provider 失败的任务，资源对比存在选择偏差，必须与正确率一起阅读。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，短尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态，但分配器保留内存不等于缓存污染。</li><li>这是工具调用层，不是 CowAgent + LiteLLM 的 Agent 规划质量评测。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    provenance_rows = [
+        ["运行编号", str(manifest.get("run_id") or "未记录")],
+        ["生成时间", str(manifest.get("created_at") or "未记录")],
+        ["评测集 SHA-256", str(manifest.get("suite_sha256") or "未记录")],
+        ["attempts.jsonl SHA-256", str(provenance.get("attempts_sha256") or "未记录")],
+        ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
+    ]
+    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>改变失败重试次数：<code>BROWSER_USE_EVAL_FAILURE_RETRIES=1 ./examples/browser_use/run.sh</code>。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run python examples/browser_use/rebuild_report.py</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML；所有比值、分位数和均值均由仓库脚本计算，Codex 不参与统计。</li></ol><p><a href="browser-use-evaluation-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>限制</h2><ul><li>固定测试页面提高可重复性，但不能代替真实公开网站兼容性评测；两类测试应分开报告。</li><li>每任务只有一个首次样本，逐任务不报告分位数；总体分位数是跨任务分布。</li><li>双方成功任务会排除任一 Provider 失败的任务，资源对比存在选择偏差，必须与正确率一起阅读。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，短尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态，但分配器保留内存不等于缓存污染。</li><li>这是工具调用层，不是 CowAgent + LiteLLM 的 Agent 规划质量评测。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
 
 
 def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -729,13 +817,27 @@ def write_latest_report(
 ) -> Path:
     root = Path(reports_dir)
     root.mkdir(parents=True, exist_ok=True)
-    keep = {f"{REPORT_STEM}.md", *(filename for _, _, filename in PAGES)}
-    for pattern in ("browser-use-evaluation-*.md", "browser-use-evaluation-*.html"):
+    audit_name = f"{REPORT_STEM}-data.json"
+    keep = {f"{REPORT_STEM}.md", audit_name, *(filename for _, _, filename in PAGES)}
+    for pattern in ("browser-use-evaluation-*.md", "browser-use-evaluation-*.html", "browser-use-evaluation-*.json"):
         for old in root.glob(pattern):
             if old.name not in keep:
                 old.unlink()
     md_path = root / f"{REPORT_STEM}.md"
     md_path.write_text(_markdown(manifest, summary), encoding="utf-8")
+    audit = {
+        "schema": "lex_browser_use_report_audit/1",
+        "run_id": manifest.get("run_id"),
+        "created_at": manifest.get("created_at"),
+        "suite_sha256": manifest.get("suite_sha256"),
+        "artifact_provenance": manifest.get("artifact_provenance") or {},
+        "ground_truth_validation": manifest.get("ground_truth_validation") or {},
+        "functional": summary.get("functional") or {},
+        "resource_comparison": summary.get("resource_comparison") or {},
+    }
+    (root / audit_name).write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     renderers = {
         "index": lambda: _summary_page(manifest, summary),
         "suite": lambda: _suite_page(manifest),

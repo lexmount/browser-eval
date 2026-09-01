@@ -1,5 +1,12 @@
 {
   "schema": "lex_browser_use_tasks/3",
+  "ground_truth_annotation": {
+    "policy": "fixture_derivation_then_codex_browser_replay_then_human_signoff",
+    "browser_replay_evidence": "ground_truth_validation.json",
+    "browser_replay_status": "passed_30_of_30",
+    "human_review_status": "pending",
+    "release_rule": "Codex 浏览器复核与人工签字必须分别记录；不得把自动复核冒充人工复核。"
+  },
   "tasks": [
     {
       "id": "core-title-exact", "title": "读取固定标题", "difficulty": "simple",
@@ -120,7 +127,7 @@
       ],
       "assertions": [{"output": "filtered", "equals": "birch:£17.00 details"}, {"output": "answer", "equals": "detail:birch|£17.00|B-202"}, {"output": "page_label", "equals": "catalogue:page:1"}],
       "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"filtered": "birch:£17.00 details", "answer": "detail:birch|£17.00|B-202", "page_label": "catalogue:page:1"}, "expected_actions": ["navigate", "fill", "get_text", "click", "get_text", "fill", "get_text"], "derivation": "固定目录中 birch 唯一，其价格和 SKU 固定。"},
-      "source": {"kind": "adapted", "scenario": "app_catalog_filter", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/fixtures/v0_4/app/app.html", "license": "Apache-2.0"}
+      "source": {"kind": "suite-original", "scenario": "catalog_filter_detail", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
     },
     {
       "id": "dynamic-settle-and-late-click", "title": "等待最终阶段并点击延迟启用按钮", "difficulty": "medium",
@@ -206,7 +213,7 @@
       ],
       "assertions": [{"output": "first_receipt", "equals": "receipt:First|Run|cn|v1|73"}, {"output": "reset_state", "equals": "reset:ok"}, {"output": "answer", "equals": "receipt:Second|Run|eu|v2|73"}],
       "ground_truth": {"oracle": "deterministic_exact", "expected_outputs": {"first_receipt": "receipt:First|Run|cn|v1|73", "reset_state": "reset:ok", "answer": "receipt:Second|Run|eu|v2|73"}, "expected_actions": ["navigate", "fill", "fill", "fill", "click", "get_text", "click", "get_text", "fill", "fill", "select", "fill", "click", "get_text"], "derivation": "两次回执及中间重置状态均是确定性字符串。"},
-      "source": {"kind": "extended", "scenario": "form_submit_roundtrip", "url": "https://github.com/lexmount/Lexbench-Headless-Browser/blob/main/tasks/scenarios/form_submit_roundtrip.scenario.json", "license": "Apache-2.0"}
+      "source": {"kind": "suite-original", "scenario": "form_resubmit", "url": "https://github.com/lexmount/browser-harness-eval", "license": "Apache-2.0"}
     },
     {
       "id": "three-page-history-and-scroll", "title": "三级历史恢复并验证长页底部", "difficulty": "complex",

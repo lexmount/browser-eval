@@ -464,6 +464,7 @@ def run_evaluation(
                         sample_interval_ms,
                         is_retry=attempt > 1,
                     )
+                    row["run_id"] = run_id
                     rows.append(row)
                     print(
                         json.dumps(
@@ -559,15 +560,21 @@ def run_evaluation(
                     "reused_not_rerun": True,
                 },
             }
-        (output / "attempts.jsonl").write_text(
-            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
-            encoding="utf-8",
-        )
+        attempts_bytes = "".join(
+            json.dumps(row, ensure_ascii=False) + "\n" for row in rows
+        ).encode("utf-8")
+        summary_bytes = (
+            json.dumps(summary, indent=2, ensure_ascii=False) + "\n"
+        ).encode("utf-8")
+        (output / "attempts.jsonl").write_bytes(attempts_bytes)
+        (output / "summary.json").write_bytes(summary_bytes)
+        manifest["artifact_provenance"] = {
+            "artifact_directory": str(output),
+            "attempts_sha256": hashlib.sha256(attempts_bytes).hexdigest(),
+            "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
+        }
         (output / "manifest.json").write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
-        (output / "summary.json").write_text(
-            json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
         write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary

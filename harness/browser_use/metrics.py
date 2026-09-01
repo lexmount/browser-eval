@@ -348,11 +348,12 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
         if row.get("is_retry"):
             continue
         grouped.setdefault(str(row["task_id"]), {})[str(row["engine"])] = row
-    intersection = [
-        bucket
-        for bucket in grouped.values()
+    intersection_items = [
+        (task_id, bucket)
+        for task_id, bucket in grouped.items()
         if all(engine in bucket and _passed(bucket[engine], "result") for engine in engines)
     ]
+    intersection = [bucket for _, bucket in intersection_items]
     metric_names = (
         "cpu_ms",
         "cpu_average_utilization_pct",
@@ -404,7 +405,8 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
         ratio_metric_names = (*metric_names, "duration_ms", "tool_output_tokens")
         for name in ratio_metric_names:
             ratios: list[float] = []
-            for bucket in intersection:
+            details: list[dict[str, float | str]] = []
+            for task_id, bucket in intersection_items:
                 denominator_row = bucket[denominator_engine]
                 numerator_row = bucket[numerator_engine]
                 if name in {"duration_ms", "tool_output_tokens"}:
@@ -418,8 +420,20 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
                     and denominator > 0
                     and isinstance(numerator, (int, float))
                 ):
-                    ratios.append(float(numerator) / float(denominator))
-            paired_ratios[name] = _metric(ratios)
+                    ratio = float(numerator) / float(denominator)
+                    ratios.append(ratio)
+                    details.append(
+                        {
+                            "task_id": task_id,
+                            "denominator": float(denominator),
+                            "numerator": float(numerator),
+                            "ratio": ratio,
+                        }
+                    )
+            paired_ratios[name] = {
+                **_metric(ratios),
+                "values": sorted(details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))),
+            }
     return {
         "functional": functional,
         "resource_comparison": {
@@ -430,6 +444,10 @@ def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> 
             "paired_ratios": {
                 "numerator_engine": engines[1] if len(engines) == 2 else None,
                 "denominator_engine": engines[0] if len(engines) == 2 else None,
+                "formula": "per_task_ratio = numerator / denominator",
+                "p50_method": "statistics.median",
+                "p95_method": "nearest-rank: sorted_values[ceil(0.95*n)-1]",
+                "mean_method": "statistics.fmean",
                 "metrics": paired_ratios,
             },
         },

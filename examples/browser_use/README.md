@@ -42,6 +42,17 @@ Outputs:
 - raw attempts, manifest, and summary under artifacts/browser_use/latest/
 - latest-only Markdown and HTML reports under docs/reports/
 
+The complete run and report are code-driven: `run.sh` writes raw
+`attempts.jsonl`, `metrics.py` calculates every aggregate and paired ratio,
+`summary.json` stores the auditable values, and `report.py` only renders them.
+To recalculate all metrics and HTML from existing raw attempts without running
+the browsers again:
+
+    uv run python examples/browser_use/rebuild_report.py
+
+Neither command invokes Codex or another coding agent for scoring or
+statistics.
+
 ## Protocol
 
 - Both browser containers receive the same 2 CPU, 2 GiB memory, 512 MiB shared
@@ -96,16 +107,26 @@ One step is one declared BrowserTool-equivalent call: navigate, click, fill,
 get_text, snapshot, scroll, back, or forward. Internal page-readiness and
 locator waits are not separate steps.
 
-The suite has fifteen deterministic tasks: five simple, five medium, and five
-complex. Every task declares a fixed reference action sequence, exact expected
+The suite has thirty deterministic tasks: ten simple, ten medium, and ten
+complex. Fifteen preserve earlier baseline/regression cases and fifteen expand
+the interaction-space probes using both
+[Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser)
+and [Moli](https://github.com/lexmount/moli) as source material. Every task
+declares a fixed reference action sequence, exact expected
 outputs, derivation, and source attribution. Expected outputs are unique; the
 reference sequence is replayed by this provider-isolation microbenchmark but is
 not claimed to be the only possible solution path. The runner judges result
 correctness and result-plus-process correctness separately and programmatically;
 no LLM-as-a-Judge, fuzzy contains check, or minimum-length heuristic is used. A
 free-planning Agent evaluation should judge required milestones, forbidden
-shortcuts, and a step budget instead of exact sequence identity. Several scenarios are adapted from
-[Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser).
+shortcuts, and a step budget instead of exact sequence identity.
+
+Ground-truth annotation has three separate stages: deterministic derivation
+from fixture code and state machines; one real per-task replay by Codex
+Desktop's in-app Browser Tool with exact output comparison; then human review
+and sign-off. The browser replay evidence is versioned in
+`ground_truth_validation.json` and bound to the dataset SHA-256. Human review
+remains a distinct status and is never inferred from the automated replay.
 
 ## CubeSandbox
 

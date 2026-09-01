@@ -146,6 +146,12 @@ def test_summary_keeps_functional_scores_separate_and_uses_pass_intersection():
     assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["mean"] == 8
     assert summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p95"] == 8
     assert summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"]["p50"] == 0.8
+    assert summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"]["values"] == [
+        {"task_id": "a", "denominator": 10.0, "numerator": 8.0, "ratio": 0.8}
+    ]
+    assert summary["resource_comparison"]["paired_ratios"]["p95_method"] == (
+        "nearest-rank: sorted_values[ceil(0.95*n)-1]"
+    )
     assert summary["by_complexity"]["step_01_05"]["functional"]["moli"]["passes"] == 1
     assert (
         summary["by_complexity"]["step_06_10"]["resource_comparison"]["intersection_attempts"] == 0

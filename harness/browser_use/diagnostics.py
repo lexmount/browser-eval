@@ -66,12 +66,14 @@ def _refine_observed_failure(
     if "native-control" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
         diagnosis["category"] = "原生控件默认行为未生效"
         diagnosis["observed_mechanism"] = (
-            "点击调用本身成功，但后续唯一状态值未改变；失败发生在原生默认行为或状态传播。"
+            "点击调用返回成功，但后续读取到的唯一状态值未改变；现有证据不能区分"
+            "事件未生效、状态传播延迟、读取陈旧或测试页面因素。"
         )
     elif "target" in tags and diagnosis.get("category") != "DOM 存在但布局矩形为零":
         diagnosis["category"] = "锚点与 CSS 状态未生效"
         diagnosis["observed_mechanism"] = (
-            "点击调用本身成功，但 hash/:target 驱动的唯一可见状态未出现。"
+            "点击调用返回成功，但后续读取时 hash/:target 驱动的唯一可见状态未出现；"
+            "现有证据不能区分事件、状态传播、读取或测试页面因素。"
         )
     diagnosis["signature"] = "|".join(
         (
