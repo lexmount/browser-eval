@@ -24,6 +24,7 @@ QUERIES={
 def main():
     now=dt.datetime.now(dt.timezone.utc);cutoff=now-dt.timedelta(days=7)
     dest=ROOT/'research/provider-adoption.json';checkpoint=ROOT/'research/adoption-searches.json'
+    previous=json.loads(dest.read_text()) if dest.exists() else None
     searches=[];hits=defaultdict(list)
     for provider,queries in QUERIES.items():
         for signature,query in queries.items():
@@ -47,7 +48,8 @@ def main():
         if dt.datetime.fromisoformat(stamp.replace('Z','+00:00'))<cutoff:continue
         included.append({'repo':repo,'url':m['url'],'stars':m['stargazerCount'],'is_fork':m['isFork'],'default_branch_head_at':stamp,'default_branch_head':target['oid'],'matches':hits[repo]})
     result={'generated_at':now.isoformat(),'cutoff':cutoff.isoformat(),'minimum_stars':1000,'per_signature_cap':100,'unique_repositories_examined':len(names),'signatures':{k:v for q in QUERIES.values() for k,v in q.items()},'provider_signatures':{p:list(q) for p,q in QUERIES.items()},'searches':searches,'included':included,'scope':'公开默认分支的专用源码/导入/接口签名；每查询前100条，stars≥1000且默认分支7天内活跃。含官方仓库、fork、示例和文档，不代表生产用户或全网采用量。'}
-    dest.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+    from refresh_adoption_candidates import refresh
+    refresh(previous_snapshot=previous,discovered=result)
     print('COMPLETE',len(QUERIES),'providers',len(included),'included repositories',flush=True)
 
 if __name__=='__main__':main()
