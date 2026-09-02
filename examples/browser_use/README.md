@@ -39,7 +39,7 @@ content remain external variables rather than being silently treated as fixed.
 Outputs:
 
 - raw attempts, manifest, and summary under artifacts/browser_use/latest/
-- latest-only Markdown and HTML reports under docs/reports/
+- latest-only Markdown, HTML, and audit data under docs/reports/ (ignored by Git)
 
 The complete run and report are code-driven: `run.sh` writes raw
 `attempts.jsonl`, `metrics.py` calculates every aggregate and paired ratio,
