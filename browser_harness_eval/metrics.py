@@ -149,7 +149,7 @@ def normalize_for_match(value: str) -> str:
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
-    normalized = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', normalized)
+    normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
@@ -162,7 +162,7 @@ def fact_in_text(text: str, fact: str) -> bool:
     if not fact:
         return False
     left = r'(?<![0-9.+\-])' if fact[0].isdigit() else ''
-    right = r'(?![0-9])' if fact[-1].isdigit() else ''
+    right = r'(?![0-9]|\.[0-9])' if fact[-1].isdigit() else ''
     return re.search(left + re.escape(fact) + right, text) is not None
 
 

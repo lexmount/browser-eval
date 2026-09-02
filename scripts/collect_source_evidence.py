@@ -30,8 +30,31 @@ def extract_html(raw: bytes, url: str):
     resources = []
     for node in soup.select('img[src], video[src], video source[src], iframe[src], embed[src], object[data]'):
         resources.append({'tag': node.name, 'url': urljoin(url, node.get('src') or node.get('data')), 'alt': node.get('alt', '')})
-    selectors = ['article.markdown-body', '#mw-content-text .mw-parser-output', '#mainContent', '#main-content', 'main', '[role=main]', '.document .body', 'article', 'body']
+    selectors = ['article.markdown-body', '#mw-content-text .mw-parser-output', '[itemprop="articleBody"]', '.heraAdit-renderContainer', '#mainContent', '#main-content', 'main', '[role=main]', '.document .body', 'article', 'body']
     host = urlsplit(url).hostname or ''
+    if host=='www.feishu.cn' or host=='feishu.cn':
+        # Parse the site's explicit article payload as JSON, never execute script.
+        # This keeps help-centre navigation outside the scoring reference.
+        for script in soup.find_all('script'):
+            source=script.string or ''
+            marker='window._templateValue = '
+            if marker not in source:continue
+            try:payload,_=json.JSONDecoder().raw_decode(source.split(marker,1)[1])
+            except ValueError:continue
+            parts=[];questions=[]
+            def visit(value):
+                if isinstance(value,dict):
+                    html=value.get('html')
+                    if isinstance(html,dict) and html.get('html'):
+                        parts.append(BeautifulSoup(html['html'],'html.parser').get_text('\n',strip=True))
+                        return
+                    if isinstance(value.get('question'),str):questions.append(value['question'])
+                    for child in value.values():visit(child)
+                elif isinstance(value,list):
+                    for child in value:visit(child)
+            visit(payload)
+            if parts:
+                return title,'\n'.join([title]+parts+questions).strip(),'embedded article HTML + collapsed FAQ questions',resources
     if host == 'books.toscrape.com':
         selectors = ['.col-sm-8.col-md-9', '.page_inner', 'body']
     elif host.endswith('rfc-editor.org') or host.endswith('w3.org') or host == 'fetch.spec.whatwg.org':
@@ -92,6 +115,7 @@ def capture(case, out):
         result['excerpt'] = text[:800]
         result['missing_facts'] = [f['id'] for f in case.get('required_facts',[]) if not any(normalize_for_match(a) and normalize_for_match(a) in normalize_for_match(text) for a in f['alternatives'])]
         result['quality_issues']=audit_reference(text,case.get('required_facts',[]),normalize=normalize_for_match) if suffix in {'.html','.pdf','.docx'} or mime.startswith('text/') else []
+        if result.get('selector')=='body':result['quality_issues'].append('whole_body_requires_scope_review')
         result['state'] = 'captured' if r.status_code == 200 and not result['quality_issues'] else 'needs_review'
     except Exception as e:
         result.update(state='needs_review',error=f'{type(e).__name__}: {e}')

@@ -26,7 +26,7 @@ for path in out.rglob('*.html'):
         assert '失败分类' in [h.get_text() for h in soup.select('#filtered-table th')],path
 counts=json.loads((out/'adoption/counts.json').read_text())['methods']
 assert len(counts)==11
-interfaces=BeautifulSoup((out/'adoption/index.html').read_text(),'html.parser').select('.interface-panel')
+interfaces=BeautifulSoup((out/'adoption/index.html').read_text(),'html.parser').select('.interface-panel[id^="interface-"]')
 assert len(interfaces)==11 and sum(p.has_attr('open') for p in interfaces)==1
 for panel in interfaces:
     assert len(panel.select('pre'))==2

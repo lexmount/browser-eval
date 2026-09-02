@@ -13,8 +13,9 @@ class MetricsTest(unittest.TestCase):
         reference='进入飞书管理后台，点击 AI 使用数据。'
         for text in ['进入[飞书管理后台](https://example.com)，点击 **AI** 使用数据。','进入飞书管理后台，点击AI使用数据。','进入飞书\n管理后台，点击 `AI` 使用数据。']:
             self.assertTrue(evaluate_content(text,[],required_facts=[{'id':'fact','alternatives':[reference]}])['content_pass'])
-        for text,required in [('通过','不通过'),('10.5%','-10.5%'),('10','100'),('100','10'),('-10','10'),('therapist','the rapist')]:
+        for text,required in [('通过','不通过'),('10.5%','-10.5%'),('10','100'),('100','10'),('-10','10'),('10.5','10'),('therapist','the rapist')]:
             self.assertFalse(evaluate_content(text,[],required_facts=[{'id':'fact','alternatives':[required]}])['content_pass'])
+        self.assertEqual(normalize_for_match('2 ** 3 ** 4'),'2 ** 3 ** 4')
     def test_invisible_layout_characters_are_not_required_facts(self):
         for char in ['\u200b','\ufeff','\u00ad']:
             for content,reference in [('进入后台，点击 AI 使用数据。','进入后台，点击 AI 使用数据。'+char),('增值'+char+'信息','增值信息')]:
