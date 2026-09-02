@@ -1,18 +1,35 @@
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.request import Request
 
 from browser_harness_eval.safety import contained_path, safe_identifier, validate_report_ids
 from browser_harness_eval.providers.http_client import HttpResponse, HttpOnlyRedirectHandler, request
-from browser_harness_eval.report import link, generate, write
+from browser_harness_eval.report import link, generate, write, dataset_attrs, case_attrs
 from browser_harness_eval.runner import load_records, run_evaluation, rescore_evaluation
 from browser_harness_eval.models import EvalCase
 from browser_harness_eval.providers.fixture import FixtureProvider
 
 
 class SecurityTests(unittest.TestCase):
+    def test_dataset_and_attempt_attributes_are_escaped(self):
+        payload='x" onmouseover="alert(1)\'><script>alert(2)</script>&'
+        case={'track':payload,'category':payload}
+        record={'provider':payload,'ok':True,'metrics':{'content_pass':True}}
+        class Tags(HTMLParser):
+            def __init__(self): super().__init__(); self.tags=[]
+            def handle_starttag(self,tag,attrs): self.tags.append((tag,dict(attrs)))
+        for attrs in [dataset_attrs(case),case_attrs(record,case)]:
+            parser=Tags(); parser.feed('<tr'+attrs+'></tr>')
+            self.assertEqual(len(parser.tags),1)
+            tag,values=parser.tags[0]
+            self.assertEqual(tag,'tr')
+            self.assertEqual(values['data-track'],payload)
+            self.assertEqual(values['data-category'],payload)
+            self.assertTrue(all(name.startswith('data-') for name in values))
+
     def test_identifiers(self):
         for bad in ['../out', '/tmp/x', '..', '.', 'a/b', 'a\\b', 'x\" onclick=\"x']:
             with self.subTest(bad=bad), self.assertRaises(ValueError): safe_identifier(bad)

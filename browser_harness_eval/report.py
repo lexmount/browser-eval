@@ -155,12 +155,15 @@ def failure_filters(records,cases):
  categories=sorted({failure_category(r,cases[r['case_id']]) for r in records if not succeeded(r,cases[r['case_id']])})
  return [('failureStage','失败环节',[('request','请求失败'),('task','请求成功但任务失败')]),('failureCategory','失败类别',[(x,x) for x in categories])]
 
+def dataset_attrs(c):
+ return f' data-track="{esc(c.get("track","web"))}" data-category="{esc(c["category"])}"'
+
 def case_attrs(r,c):
  content='na' if c.get('task_kind','body')!='body' else 'pass' if r['ok'] and r['metrics']['content_pass'] else 'fail'
  resources='na' if not c.get('expected_resources') else 'pass' if r['ok'] and r['metrics'].get('resource_pass') else 'fail'
  stage='' if succeeded(r,c) else 'task' if r['ok'] else 'request'
  category='' if not stage else failure_category(r,c)
- return f' data-track="{c.get("track","web")}" data-category="{esc(c["category"])}" data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{"pass" if succeeded(r,c) else "fail"}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
+ return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{"pass" if succeeded(r,c) else "fail"}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
 
 def attempt_row(r,c,base='../'):
  m=r['metrics'];state='通过' if succeeded(r,c) else '未通过'
@@ -208,7 +211,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  rows=[]
  for c in cases.values():
   verified=c.get('source_verification',{});state='受限' if verified.get('state')=='restricted' else '有效'
-  rows.append((f' data-track="{c.get("track","web")}" data-category="{c["category"]}"',cell(link(c['id']+'.html',c['name']))+cell(esc(c['category']))+cell(link(c['url'],'源页 ↗'))+cell(link(c['id']+'.html#facts',basis_label(c)))+cell(reference_label(c))+cell(state)+cell(rate(sum(succeeded(r,c) for r in bycase[c['id']]),len(bycase[c['id']])))))
+  rows.append((dataset_attrs(c),cell(link(c['id']+'.html',c['name']))+cell(esc(c['category']))+cell(link(c['url'],'源页 ↗'))+cell(link(c['id']+'.html#facts',basis_label(c)))+cell(reference_label(c))+cell(state)+cell(rate(sum(succeeded(r,c) for r in bycase[c['id']]),len(bycase[c['id']])))))
  anchors=''.join(f'<span id="track-{t}"></span>' for t in TRACKS)
  dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；动态列表核验前三条名称与链接，不固定当天的榜单。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
