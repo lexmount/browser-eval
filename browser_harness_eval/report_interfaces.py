@@ -1,6 +1,7 @@
 """Interfaces actually used by the benchmark, not a claim to cover entire SDKs."""
 import json
 from html import escape
+from .safety import contained_path
 
 URL='https://example.com/'
 def spec(entry,auth,params,fields,request,source,notes):
@@ -58,7 +59,7 @@ def render_interfaces(out,records):
  body='<p>按本轮实际适配器介绍，不混用完整产品能力。输入示例采用当前配置；输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next(r for r in records if r['provider']==name))
-  content=(out/r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
+  content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
   meta=r.get('provider_metadata',{});sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
   dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'sample':sample,'attempt_id':r['attempt_id']},ensure_ascii=False,indent=2)+'\n')

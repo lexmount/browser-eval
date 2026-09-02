@@ -4,6 +4,26 @@ from browser_harness_eval.metrics import evaluate_content, evaluate_resources, n
 
 
 class MetricsTest(unittest.TestCase):
+    def test_markdown_balanced_urls_and_f1_share_layout_cleaning(self):
+        raw='hello [world](https://example.com/a(b)) end'
+        self.assertEqual(normalize_for_match(raw),'hello world end')
+        self.assertEqual(word_overlap(raw,'hello world end'),(1.0,1.0,1.0))
+        self.assertEqual(word_overlap('inter\u00adnational','international'),(1.0,1.0,1.0))
+    def test_visible_text_formatting_without_fuzzy_semantics(self):
+        reference='进入飞书管理后台，点击 AI 使用数据。'
+        for text in ['进入[飞书管理后台](https://example.com)，点击 **AI** 使用数据。','进入飞书管理后台，点击AI使用数据。','进入飞书\n管理后台，点击 `AI` 使用数据。']:
+            self.assertTrue(evaluate_content(text,[],required_facts=[{'id':'fact','alternatives':[reference]}])['content_pass'])
+        for text,required in [('通过','不通过'),('10.5%','-10.5%'),('10','100'),('100','10'),('-10','10'),('therapist','the rapist')]:
+            self.assertFalse(evaluate_content(text,[],required_facts=[{'id':'fact','alternatives':[required]}])['content_pass'])
+    def test_invisible_layout_characters_are_not_required_facts(self):
+        for char in ['\u200b','\ufeff','\u00ad']:
+            for content,reference in [('进入后台，点击 AI 使用数据。','进入后台，点击 AI 使用数据。'+char),('增值'+char+'信息','增值信息')]:
+                with self.subTest(char=repr(char)):
+                    result=evaluate_content(content,[],required_facts=[{'id':'fact','alternatives':[reference]}])
+                    self.assertTrue(result['content_pass'])
+        self.assertFalse(evaluate_content('进入后台。',[],required_facts=[{'id':'fact','alternatives':['进入后台，点击 AI 使用数据。\u200b']}])['content_pass'])
+        self.assertFalse(evaluate_content('anything',[],required_facts=[{'id':'empty','alternatives':['\u200b']}])['content_pass'])
+        self.assertNotEqual(normalize_for_match('a\u200db'),normalize_for_match('ab'))
     def test_word_overlap_penalizes_missing_and_boilerplate_words(self) -> None:
         precision, recall, score = word_overlap("alpha beta beta navigation", "alpha beta beta gamma")
         self.assertEqual((precision, recall), (0.75, 0.75))

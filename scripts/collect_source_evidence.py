@@ -17,6 +17,11 @@ from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 import requests
 from bs4 import BeautifulSoup
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from browser_harness_eval.reference_quality import clean_reference_text, audit_reference
+from browser_harness_eval.metrics import normalize_for_match
+from browser_harness_eval.safety import safe_identifier, contained_path, validate_http_url
 
 
 def extract_html(raw: bytes, url: str):
@@ -41,7 +46,9 @@ def extract_html(raw: bytes, url: str):
 
 
 def capture(case, out):
-    dest = out / case['id']
+    safe_identifier(case['id'])
+    validate_http_url(case['url'])
+    dest = contained_path(out,case['id'])
     dest.mkdir(parents=True, exist_ok=True)
     result = {'case_id':case['id'], 'url':case['url'], 'checked_at':datetime.now(timezone.utc).isoformat(), 'source':'independent HTTP GET (no provider output)', 'attempts':[]}
     try:
@@ -76,11 +83,16 @@ def capture(case, out):
         else:
             text = ''
             result.update(title=case['name'],selector='binary file',resources=[])
+        (dest/'extracted.txt').write_text(text,encoding='utf-8')
+        result['extracted_sha256']=hashlib.sha256(text.encode()).hexdigest()
+        text=clean_reference_text(text)
+        result['reference_sha256']=hashlib.sha256(text.encode()).hexdigest()
         (dest/'reference.txt').write_text(text,encoding='utf-8')
         result['text_chars'] = len(text)
         result['excerpt'] = text[:800]
-        result['missing_facts'] = [f['id'] for f in case.get('required_facts',[]) if not any(re.sub(r'\s+',' ',a).casefold() in re.sub(r'\s+',' ',text).casefold() for a in f['alternatives'])]
-        result['state'] = 'captured' if r.status_code == 200 else 'needs_review'
+        result['missing_facts'] = [f['id'] for f in case.get('required_facts',[]) if not any(normalize_for_match(a) and normalize_for_match(a) in normalize_for_match(text) for a in f['alternatives'])]
+        result['quality_issues']=audit_reference(text,case.get('required_facts',[]),normalize=normalize_for_match) if suffix in {'.html','.pdf','.docx'} or mime.startswith('text/') else []
+        result['state'] = 'captured' if r.status_code == 200 and not result['quality_issues'] else 'needs_review'
     except Exception as e:
         result.update(state='needs_review',error=f'{type(e).__name__}: {e}')
     (dest/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')

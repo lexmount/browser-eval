@@ -27,6 +27,9 @@ class EndToEndTest(unittest.TestCase):
             self.assertIn('fixture__fail__r001.html',analysis)
             attempt=(report.parent/'attempts/fixture__fail__r001.html').read_text()
             self.assertIn('Configured fixture failure',attempt)
+            self.assertIn('供应商请求 ID',attempt)
+            self.assertIn(records[1]['run_id'],analysis)
+            self.assertIn('开始时间（UTC）',attempt)
             self.assertEqual(attempt.count('<pre>'),3)
             for removed in ['capabilities','benchmarks','review','execution','market']:
                 self.assertFalse((report.parent/removed).exists())

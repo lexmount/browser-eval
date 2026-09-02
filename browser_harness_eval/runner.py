@@ -19,6 +19,7 @@ from .dynamic_lists import evaluate_dynamic_list
 from .list_verification import verify_list
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
+from .safety import contained_path, safe_identifier
 
 
 def utc_now() -> str:
@@ -55,6 +56,12 @@ def run_evaluation(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if provider_concurrency < 1:
         raise ValueError("provider_concurrency must be at least 1")
+    for provider in providers:
+        safe_identifier(provider.name)
+    for case in cases:
+        safe_identifier(case.id)
+    for filename in ['artifacts', 'manifest.json', 'dataset.json', 'results.jsonl', 'summary.json']:
+        contained_path(output_dir, filename)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
@@ -136,7 +143,7 @@ def run_evaluation(
                     elapsed_ms = round((time.perf_counter() - begin) * 1000, 2)
                     previous_request_completed = time.monotonic()
                     artifact_rel = Path("artifacts") / provider.name / case.id / f"run-{run_number:03d}.txt"
-                    artifact = output_dir / artifact_rel
+                    artifact = contained_path(output_dir, artifact_rel)
                     artifact.parent.mkdir(parents=True, exist_ok=True)
                     artifact.write_text(result.content, encoding="utf-8", errors="replace")
                     measured = evaluate_content(
@@ -195,6 +202,8 @@ def run_evaluation(
                             "client_throttle_wait_ms": throttle_wait_ms,
                         },
                     ).to_dict()
+                    from .models import execution_id
+                    record['run_id'] = execution_id(record)
                     passed = record["metrics"].get("structure_pass") if case.task_kind == "structure" else record["metrics"]["content_pass"]
                     state = ("STRUCTURE_PASS" if passed else "STRUCTURE_FAIL") if case.task_kind == "structure" else ("PASS" if result.ok and passed else "FAIL")
                     with result_lock:
@@ -236,7 +245,7 @@ def run_evaluation(
 def load_records(run_dir: Path) -> list[dict[str, Any]]:
     return [
         json.loads(line)
-        for line in (run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in contained_path(run_dir, "results.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
 
@@ -245,13 +254,17 @@ def rescore_evaluation(
     *, run_dir: Path, dataset_meta: dict[str, Any], dataset_path: Path, cases: list[EvalCase]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Recompute deterministic metrics from immutable artifacts without supplier calls."""
+    for case in cases:
+        safe_identifier(case.id)
+    for filename in ['results.jsonl.tmp', 'results.jsonl', 'summary.json', 'dataset.json', 'manifest.json']:
+        contained_path(run_dir,filename)
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
         case = case_by_id.get(record["case_id"])
         if case is None:
             raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
-        artifact = run_dir / record["artifact_path"]
+        artifact = contained_path(run_dir,record["artifact_path"])
         content = artifact.read_text(encoding="utf-8", errors="replace")
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
         record["metrics"] = evaluate_content(

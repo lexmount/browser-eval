@@ -123,8 +123,9 @@ def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
     # Strip Markdown link destinations/formatting from both sides: punctuation
     # and link spelling must not masquerade as missing prose.
     def tokens(value):
-        value = unicodedata.normalize('NFKC', value).casefold()
-        value = re.sub(r'!?\[([^\]]*)\]\([^)]*\)', r'\1', value)
+        from .reference_quality import clean_reference_text, visible_markdown_links
+        value = unicodedata.normalize('NFKC', clean_reference_text(value)).casefold()
+        value = visible_markdown_links(value)
         return Counter(re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', value))
     predicted_words = tokens(predicted)
     reference_words = tokens(reference)
@@ -140,9 +141,29 @@ def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
 
 
 def normalize_for_match(value: str) -> str:
+    from .reference_quality import clean_reference_text, visible_markdown_links
     normalized = unicodedata.normalize("NFKC", value).casefold()
+    # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
+    # They are layout artifacts, not required prose; preserve meaningful joiners.
+    normalized = clean_reference_text(normalized)
+    # Compare visible inline Markdown text, not formatting or link destinations.
+    normalized = visible_markdown_links(normalized)
+    normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
+    normalized = re.sub(r'\*\*([^*\n]+)\*\*', r'\1', normalized)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-"}))
+    # CJK text can be split at inline DOM boundaries. English word boundaries,
+    # signs, digits and punctuation are deliberately retained.
+    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])', '', normalized)
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+def fact_in_text(text: str, fact: str) -> bool:
+    """Exact normalized fact; do not accept a fragment of a different number."""
+    if not fact:
+        return False
+    left = r'(?<![0-9.+\-])' if fact[0].isdigit() else ''
+    right = r'(?![0-9])' if fact[-1].isdigit() else ''
+    return re.search(left + re.escape(fact) + right, text) is not None
 
 
 def evaluate_content(
@@ -157,12 +178,12 @@ def evaluate_content(
     required_patterns: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     folded = normalize_for_match(content)
-    matched = [marker for marker in expected if normalize_for_match(marker) in folded]
+    matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
     fact_results = []
     for index, fact in enumerate(facts):
         alternatives = [str(item) for item in fact.get("alternatives", [])]
-        hits = [item for item in alternatives if normalize_for_match(item) in folded]
+        hits = [item for item in alternatives if fact_in_text(folded, normalize_for_match(item))]
         fact_results.append({
             "id": str(fact.get("id") or f"fact-{index + 1}"),
             "alternatives": alternatives,
@@ -176,9 +197,9 @@ def evaluate_content(
     # Keep length, facts and structural gates active, including for short errors.
     reference_folded = normalize_for_match(ground_truth_main_content)
     reference_exemptions = [item for item in (forbidden_any or [])
-                            if reference_folded and normalize_for_match(item) in reference_folded]
+                            if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and normalize_for_match(item) in folded]
+                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0

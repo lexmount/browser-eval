@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from .report import generate, succeeded, failure_category, TRACKS
 from .failure_diagnosis import diagnose, normalize_empty_response
+from .safety import contained_path, validate_report_ids
 
 
 def build_report(source: Path, output: Path) -> Path:
@@ -15,8 +16,9 @@ def build_report(source: Path, output: Path) -> Path:
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
-    dataset = json.loads((source/'dataset.json').read_text())
-    records = [json.loads(line) for line in (source/'results.jsonl').read_text().splitlines()]
+    dataset = json.loads(contained_path(source,'dataset.json').read_text())
+    records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
+    validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
     diagnostic_path=Path(__file__).resolve().parents[1]/'research/failure-sources.json'
     source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
@@ -29,9 +31,7 @@ def build_report(source: Path, output: Path) -> Path:
     try:
         for r in records:
             path = Path(r['artifact_path'])
-            if path.is_absolute() or '..' in path.parts:
-                raise ValueError('Artifact paths must stay inside the evidence directory')
-            raw = source/path
+            raw = contained_path(source,path)
             if hashlib.sha256(raw.read_bytes()).hexdigest() != r['metrics']['content_sha256']:
                 raise ValueError(f'Output integrity failure: {path}')
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
@@ -40,6 +40,12 @@ def build_report(source: Path, output: Path) -> Path:
             normalize_empty_response(r,text)
             r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
             r['failure_category'] = failure_category(r, cases[r['case_id']])
+        for folder in ['sources','list-references']:
+            tree=contained_path(source,folder)
+            if tree.exists():
+                for child in tree.rglob('*'):
+                    if child.is_symlink():
+                        raise ValueError('Evidence trees must not contain symlinks')
         if (source/'sources').exists():
             shutil.copytree(source/'sources', staging/'sources')
         if (source/'list-references').exists():

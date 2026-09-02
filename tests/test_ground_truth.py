@@ -4,6 +4,8 @@ import unittest
 from collections import Counter
 from pathlib import Path
 from browser_harness_eval.config import load_dataset
+from browser_harness_eval.reference_quality import audit_reference
+from browser_harness_eval.metrics import normalize_for_match
 
 
 class GroundTruthTest(unittest.TestCase):
@@ -17,6 +19,7 @@ class GroundTruthTest(unittest.TestCase):
             if c['track'] in {'web','document'}:
                 self.assertTrue(c['ground_truth_main_content'],c['id'])
                 self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
+                self.assertEqual(audit_reference(c['ground_truth_main_content'],c['required_facts'],normalize=normalize_for_match),[],c['id'])
             elif c['track']=='challenge':
                 self.assertEqual(c['task_kind'],'structure')
                 self.assertEqual(c['required_facts'],[])

@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from typing import Any
+import hashlib
+
+
+def execution_id(record: dict[str, Any]) -> str:
+    """Stable local invocation ID, distinct from the supplier's request ID."""
+    identity = record['attempt_id'] + '\0' + record['started_at']
+    return 'run-' + hashlib.sha256(identity.encode()).hexdigest()[:20]
 
 
 @dataclass(frozen=True)

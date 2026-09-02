@@ -14,6 +14,8 @@ from .accounts import ACCOUNT_REGISTRY
 from .report_style import STYLE
 from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, sources_panel
 from .failure_diagnosis import diagnose
+from .safety import contained_path, safe_href, validate_report_ids
+from .models import execution_id
 
 TRACKS={'web':'网页正文','document':'文档正文','image':'图片获取','video':'视频获取','challenge':'真实网站访问'}
 CONTRACTS={
@@ -60,7 +62,7 @@ def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
-def link(url,label):return f'<a href="{esc(url)}">{esc(label)}</a>'
+def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
 def cell(value,sort=None):return f'<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
 def rate(a,b):return pct(a/b) if b else '—'
 def section(title,body,id=''):return f'<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
@@ -73,7 +75,7 @@ def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
  nav=[('index.html','首页'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('adoption/index.html','方法介绍'),('environment/index.html','环境'),('reproduce/index.html','复现'),('integration/index.html','集成'),('accounts/index.html','账号')]
  page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
- target=out/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
+ target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 def succeeded(r,c):
  if not r['ok']:return False
@@ -164,9 +166,15 @@ def attempt_row(r,c,base='../'):
  m=r['metrics'];state='通过' if succeeded(r,c) else '未通过'
  if c.get('task_kind')=='structure':state='通过' if succeeded(r,c) else '未通过'
  values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name']))+cell(TRACKS[c.get('track','web')])+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
+ values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
 def generate(out:Path,dataset:dict,records:list,manifests:list):
+ validate_report_ids(dataset,records)
+ for path in ['assets/style.css','assets/report.js','references']:
+  contained_path(out,path)
+ for c in dataset['cases']:
+  contained_path(out,'references/'+c['id']+'.txt')
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA);(out/'assets/report.js').write_text(JS)
  cases={c['id']:c for c in dataset['cases']};names=sorted(set(r['provider'] for r in records))
@@ -204,7 +212,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  anchors=''.join(f'<span id="track-{t}"></span>' for t in TRACKS)
  dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；动态列表核验前三条名称与链接，不固定当天的榜单。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
- headers=['案例','类型','结果','失败分类','耗时']
+ headers=['案例','类型','结果','失败分类','耗时','运行 ID']
  for c in cases.values():
   v=c.get('source_verification',{});ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
   (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
@@ -234,12 +242,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   write(out,'providers/'+name+'.html',name,body)
  for r in records:
   c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
-  output=(out/r['artifact_path']).read_text(encoding='utf-8',errors='replace')
+  output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
   rows=[('',cell(k)+cell(v)) for k,v in [('方法',link('../providers/'+r['provider']+'.html',r['provider'])),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if c.get('task_kind')=='structure':
    rows[2]=('',cell('任务结果')+cell('通过' if succeeded(r,c) else '未通过'))
    rows[5]=('',cell('条目内容核验')+cell(f"{m.get('confirmed_entries',0)} 条已确认；范围为前三条。整页 F1 不适用。"))
    rows.append(('',cell('具名详情入口')+cell(str(m.get('named_entry_count',0)))))
+  rows.extend(('',cell(k)+cell(f'<code class="break">{esc(v)}</code>')) for k,v in [('运行 ID',r.get('run_id') or execution_id(r)),('执行记录',r['attempt_id']),('开始时间（UTC）',r.get('started_at','—')),('供应商请求 ID',r.get('provider_metadata',{}).get('request_id') or '未返回')])
   checks=[('',cell(esc(x['id']))+cell(esc(' / '.join(x.get('alternatives',x.get('expected_urls',[])))))+cell('命中' if x['pass'] else '缺失')+cell(esc(' / '.join(x.get('matched',x.get('matched_urls',[])))))) for x in m.get('fact_results',[])+m.get('resource_results',[])]
   if c.get('task_kind')=='structure':
    checks=[('',cell(link(x['url'],x['title']))+cell(esc(' / '.join(x['reference_titles']) or '没有匹配的独立名称证据'))+cell('已确认' if x['verdict']=='confirmed' else '访问受限 · 未证实' if x.get('access_restricted') else '未确认')+cell(esc(' · '.join(filter(None,[x.get('evidence_checked_at'),x.get('access_note')]))))) for x in m.get('list_checks',[])]
@@ -264,6 +273,7 @@ def write_support(out,records,manifests):
  methodology=hero('评测方法','正文质量、资源获取与访问能力分开测，所有参评方法面对同一组任务。')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
+ methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，忽略 Markdown 链接地址、行内代码与加粗标记；保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('动态列表边界','<p>至少返回 3 个不同条目的名称和详情入口，再以独立页面或已保存快照核验前三条名称与详情身份。三条均确认才算任务通过；有链接但没有内容证据，标为“条目内容未获证实”，不是“内容错误”。名单、排序、价格、推荐位置与整页召回均不在本任务范围，不以过去名单约束现在的输出。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  write(out,'methodology/index.html','评测方法',methodology)
