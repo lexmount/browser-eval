@@ -2,9 +2,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from browser_harness_eval.report import table, cell, link
-from browser_harness_eval.report_methods import PROFILES
-from browser_harness_eval.report_capabilities import CAPABILITIES, SOURCES, render_capabilities
+from harness.web_fetch.report import table, cell, link
+from harness.web_fetch.report_methods import PROFILES
+from harness.web_fetch.report_capabilities import CAPABILITIES, SOURCES, render_capabilities
 
 
 class CapabilityTests(unittest.TestCase):

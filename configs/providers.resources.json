@@ -1,6 +1,13 @@
 {
   "schema_version": 1,
   "providers": {
+    "moli-webfetch": {
+      "type": "moli_webfetch",
+      "binary": "${MOLI_BINARY:-moli}",
+      "wait_until": "done",
+      "block_private_networks": true,
+      "max_bytes": 20000000
+    },
     "fixture": {
       "type": "fixture",
       "fail_cases": [
@@ -105,21 +112,21 @@
     "openclaw-built-in": {
       "type": "subprocess_jsonl",
       "method_type": "openclaw_builtin",
-      "repo_path": "${OPENCLAW_REPO:-/private/tmp/openclaw-eval}",
+      "repo_path": "${OPENCLAW_REPO}",
       "command": [
-        "${OPENCLAW_NODE:-/private/tmp/openclaw-node/node_modules/node/bin/node}",
+        "${OPENCLAW_NODE:-node}",
         "--import",
         "tsx",
         "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
       ],
       "env": {
-        "OPENCLAW_REPO": "${OPENCLAW_REPO:-/private/tmp/openclaw-eval}"
+        "OPENCLAW_REPO": "${OPENCLAW_REPO}"
       }
     },
     "deepseek-harness-built-in": {
       "type": "subprocess_jsonl",
       "method_type": "deepseek_harness_builtin",
-      "repo_path": "${DEEPSEEK_HARNESS_REPO:-/private/tmp/deepseek-harness-eval}",
+      "repo_path": "${DEEPSEEK_HARNESS_REPO}",
       "command": [
         "{repo_path}/node_modules/.bin/tsx",
         "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"

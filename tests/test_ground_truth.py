@@ -3,9 +3,9 @@ import json
 import unittest
 from collections import Counter
 from pathlib import Path
-from browser_harness_eval.config import load_dataset
-from browser_harness_eval.reference_quality import audit_reference
-from browser_harness_eval.metrics import normalize_for_match
+from harness.web_fetch.config import load_dataset
+from harness.web_fetch.reference_quality import audit_reference
+from harness.web_fetch.metrics import normalize_for_match
 
 
 class GroundTruthTest(unittest.TestCase):

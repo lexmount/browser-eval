@@ -1,6 +1,6 @@
 import unittest
-from browser_harness_eval.report import failure_category,filter_controls,case_attrs,failure_filters
-from browser_harness_eval.report_interfaces import SPECS
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters
+from harness.web_fetch.report_interfaces import SPECS
 
 class ReportRevisionTests(unittest.TestCase):
  def row(self,**kw):return dict({'ok':True,'metrics':{'content_pass':False,'length_pass':True}},**kw)
@@ -29,7 +29,7 @@ class ReportRevisionTests(unittest.TestCase):
  def test_pass_no_failure(self):
   self.assertEqual(failure_category(self.row(metrics={'content_pass':True}),{}),'—')
  def test_all_interfaces(self):
-  self.assertEqual(len(SPECS),11)
+  self.assertEqual(len(SPECS),12)
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
  def test_regional_endpoint_distinct(self):

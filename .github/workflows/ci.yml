@@ -19,5 +19,5 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python -m pytest tests/browser_use -q
       - run: node tests/test_report_ui.mjs && node tests/test_report_loader.mjs
-      - run: python -m browser_harness_eval validate --providers fixture
-      - run: python -m browser_harness_eval run --providers fixture --runs 1 --delay 0 --output /tmp/browser-harness-demo
+      - run: python -m harness.web_fetch validate --providers fixture
+      - run: python -m harness.web_fetch run --providers fixture --runs 1 --delay 0 --output /tmp/browser-harness-demo

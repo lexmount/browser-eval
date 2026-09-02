@@ -1,6 +1,6 @@
 import unittest
-from browser_harness_eval.report_methods import adoption_counts
-from browser_harness_eval.report_components import metric_legend,metric_guide
+from harness.web_fetch.report_methods import adoption_counts
+from harness.web_fetch.report_components import metric_legend,metric_guide
 
 class AdoptionTests(unittest.TestCase):
  def test_failed_candidate_verification_preserves_snapshot(self):

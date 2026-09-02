@@ -4,9 +4,9 @@ import threading
 import unittest
 from pathlib import Path
 
-from browser_harness_eval.models import EvalCase, ProviderResult
-from browser_harness_eval.providers.base import Provider
-from browser_harness_eval.runner import run_evaluation
+from harness.web_fetch.models import EvalCase, ProviderResult
+from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.runner import run_evaluation
 
 
 class BarrierProvider(Provider):

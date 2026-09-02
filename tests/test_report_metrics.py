@@ -1,7 +1,7 @@
 import unittest
-from browser_harness_eval.metrics import evaluate_content,evaluate_resources,word_overlap,summarize
-from browser_harness_eval.report import succeeded,ranking,case_attrs,table,rate,filter_controls
-from browser_harness_eval.report_components import basis_label,reference_label,tabs
+from harness.web_fetch.metrics import evaluate_content,evaluate_resources,word_overlap,summarize
+from harness.web_fetch.report import succeeded,ranking,case_attrs,table,rate,filter_controls
+from harness.web_fetch.report_components import basis_label,reference_label,tabs
 
 def record(ok=True,passed=True):
  return {'provider':'test','provider_type':'fixture','case_id':'c','case_name':'case','category':'test','url':'https://example.com','elapsed_ms':100,'ok':ok,'error_type':None,'metrics':{**evaluate_content('hello world',['hello']), 'content_pass':passed}}

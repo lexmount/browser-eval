@@ -145,6 +145,22 @@ CAPABILITIES = {
   'tested': '本轮通用浏览器策略、无缓存；未启用专用 PDF 策略、下载配置、截图或 LLM 提取。媒体字段不代表内容理解。',
  },
 }
+SOURCES['moli'] = ('Moli · WebFetch skill', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/SKILL.md')
+SOURCES['moli-recipes'] = ('Moli · 输出与接口边界', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/references/fetch-recipes.md')
+CAPABILITIES['moli-webfetch'] = {
+ 'scope':'moli fetch；评测使用 --dump markdown', 'sources':['moli','moli-recipes'],
+ 'web':c('支持','JS 渲染网页 → Markdown / HTML'),
+ 'document':c('未声明','未声明 PDF / Office 正文解析'),
+ 'image':c('有限支持','页面引用；JSON HTML / eval 可取地址'),
+ 'av':c('有限支持','页面入口；HTML / eval 可取地址'),
+ 'file':c('有限支持','原始非 HTML 响应仅支持 html / json 模式'),
+ 'js':c('支持','默认运行 JS，支持多种就绪等待'),
+ 'input':'单个 URL；每个页面单独调用 fetch。',
+ 'structure':'JSON 返回最终 URL、状态、标题、响应头、重定向链和 HTML；--eval 可返回 DOM 字段。',
+ 'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
+ 'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；非 HTML 响应不支持 Markdown。',
+ 'tested':'适配器仅使用 Markdown + done + 私网屏蔽；无 layout、额外资源加载或 eval，无格式回退。只有实际执行记录参与榜单。',
+}
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 
 def render_capabilities(out, names, *, table, cell, link):

@@ -5,12 +5,12 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.request import Request
 
-from browser_harness_eval.safety import contained_path, safe_identifier, validate_report_ids
-from browser_harness_eval.providers.http_client import HttpResponse, HttpOnlyRedirectHandler, request
-from browser_harness_eval.report import link, generate, write, dataset_attrs, case_attrs
-from browser_harness_eval.runner import load_records, run_evaluation, rescore_evaluation
-from browser_harness_eval.models import EvalCase
-from browser_harness_eval.providers.fixture import FixtureProvider
+from harness.web_fetch.safety import contained_path, safe_identifier, validate_report_ids
+from harness.web_fetch.providers.http_client import HttpResponse, HttpOnlyRedirectHandler, request
+from harness.web_fetch.report import link, generate, write, dataset_attrs, case_attrs
+from harness.web_fetch.runner import load_records, run_evaluation, rescore_evaluation
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.providers.fixture import FixtureProvider
 
 
 class SecurityTests(unittest.TestCase):

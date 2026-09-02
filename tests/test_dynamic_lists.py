@@ -1,5 +1,5 @@
 import unittest
-from browser_harness_eval.dynamic_lists import evaluate_dynamic_list,extract_named_entries
+from harness.web_fetch.dynamic_lists import evaluate_dynamic_list,extract_named_entries
 
 class DynamicListTests(unittest.TestCase):
  def setUp(self):self.contract={'hosts':['example.com'],'entry_path':r'/item/\d+','minimum_entries':3}

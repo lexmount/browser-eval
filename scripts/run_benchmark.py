@@ -7,24 +7,30 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from browser_harness_eval.config import load_dataset,load_provider_config,load_env_file
-from browser_harness_eval.providers import build_provider
-from browser_harness_eval.runner import run_evaluation
-from browser_harness_eval.report_build import build_report
+from harness.web_fetch.config import load_dataset,load_provider_config,load_runtime_env
+from harness.web_fetch.providers import build_provider
+from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.report_build import build_report
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,default=ROOT/'runs/webfetch')
-    parser.add_argument('--env-file',type=Path,required=True)
+    parser.add_argument('--env-file',type=Path)
+    parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
     parser.add_argument('--workers',type=int,default=11)
     args=parser.parse_args()
     if args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')
-    load_env_file(args.env_file)
+    load_runtime_env(args.env_file)
     dataset,cases=load_dataset(ROOT/'evaluation/dataset.json')
     paths=[ROOT/'configs/providers.example.json',ROOT/'configs/providers.resources.json']
     configs=[load_provider_config(p) for p in paths]
-    names=sorted({json.loads(line)['provider'] for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()})
+    names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted({json.loads(line)['provider'] for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()} | {'moli-webfetch'})
+    for config in configs:
+        for name in names:
+            if name not in config:parser.error(f'Unknown provider: {name}')
+            missing=build_provider(name,config[name]).validate()
+            if missing:parser.error(f'{name}: missing {", ".join(missing)}')
     args.output.mkdir(parents=True)
     def work(name):
         batches=[];records=[]

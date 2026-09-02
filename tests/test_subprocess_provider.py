@@ -1,8 +1,8 @@
 import sys
 import unittest
 
-from browser_harness_eval.models import EvalCase
-from browser_harness_eval.providers.subprocess_jsonl import SubprocessJsonlProvider
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
 
 class SubprocessProviderTest(unittest.TestCase):

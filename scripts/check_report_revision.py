@@ -25,9 +25,12 @@ for path in out.rglob('*.html'):
         assert soup.select_one('select[data-filter="result"] option[selected]')['value']=='fail',path
         assert '失败分类' in [h.get_text() for h in soup.select('#filtered-table th')],path
 counts=json.loads((out/'adoption/counts.json').read_text())['methods']
-assert len(counts)==11
+names={json.loads(line)['provider'] for line in (out/'results.jsonl').read_text().splitlines()}
+assert {item['provider'] for item in counts}==names
 interfaces=BeautifulSoup((out/'adoption/index.html').read_text(),'html.parser').select('.interface-panel[id^="interface-"]')
-assert len(interfaces)==11 and sum(p.has_attr('open') for p in interfaces)==1
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.report_interfaces import SPECS
+assert len(interfaces)==len(names & SPECS.keys()) and sum(p.has_attr('open') for p in interfaces)==bool(interfaces)
 for panel in interfaces:
     assert len(panel.select('pre'))==2
 for item in counts:

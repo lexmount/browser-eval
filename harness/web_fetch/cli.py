@@ -6,13 +6,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_env_file, load_provider_config
+from .config import load_dataset, load_runtime_env, load_provider_config
 from .providers import build_provider
 from .report_build import build_report
 from .runner import load_records, rescore_evaluation, run_evaluation
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def default_run_dir() -> Path:
@@ -21,8 +21,7 @@ def default_run_dir() -> Path:
 
 
 def command_run(args: argparse.Namespace) -> int:
-    if args.env_file:
-        load_env_file(args.env_file)
+    load_runtime_env(args.env_file)
     dataset_meta, cases = load_dataset(args.dataset)
     if args.case_ids:
         requested = {item.strip() for item in args.case_ids.split(",") if item.strip()}
@@ -71,8 +70,7 @@ def command_rescore(args: argparse.Namespace) -> int:
 
 
 def command_validate(args: argparse.Namespace) -> int:
-    if args.env_file:
-        load_env_file(args.env_file)
+    load_runtime_env(args.env_file)
     _, cases = load_dataset(args.dataset)
     configs = load_provider_config(args.provider_config)
     names = [name.strip() for name in args.providers.split(",") if name.strip()]
@@ -92,8 +90,7 @@ def command_validate(args: argparse.Namespace) -> int:
 
 
 def command_accounts(args: argparse.Namespace) -> int:
-    if args.env_file:
-        load_env_file(args.env_file)
+    load_runtime_env(args.env_file)
     print_account_checklist()
     return 0
 

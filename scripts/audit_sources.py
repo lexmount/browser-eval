@@ -7,7 +7,7 @@ import requests
 from collect_source_evidence import capture
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from browser_harness_eval.dynamic_lists import evaluate_dynamic_list
+from harness.web_fetch.dynamic_lists import evaluate_dynamic_list
 
 OUT=ROOT/'research/source-checks'
 def inspect(case):

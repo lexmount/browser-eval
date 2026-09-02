@@ -2,7 +2,7 @@
 import json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from browser_harness_eval.list_verification import verify_list
+from harness.web_fetch.list_verification import verify_list
 
 def main():
     source=ROOT/'evaluation';dataset=json.loads((source/'dataset.json').read_text());cases={c['id']:c for c in dataset['cases']}

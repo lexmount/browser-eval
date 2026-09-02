@@ -25,7 +25,7 @@ class SubprocessJsonlProvider(Provider):
         self._stderr_lines: list[str] = []
 
     def _resolve_token(self, value: Any) -> str:
-        harness_root = Path(__file__).resolve().parents[2]
+        harness_root = Path(__file__).resolve().parents[3]
         repo_path = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
         return str(value).replace("{harness_root}", str(harness_root)).replace("{repo_path}", str(repo_path))
 

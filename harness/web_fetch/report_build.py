@@ -20,7 +20,7 @@ def build_report(source: Path, output: Path) -> Path:
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
-    diagnostic_path=Path(__file__).resolve().parents[1]/'research/failure-sources.json'
+    diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
     source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:
         raise ValueError('A report requires tasks and measured records')

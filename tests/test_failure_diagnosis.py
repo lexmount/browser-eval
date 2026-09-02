@@ -1,5 +1,5 @@
 import json,unittest
-from browser_harness_eval.failure_diagnosis import diagnose,normalize_empty_response
+from harness.web_fetch.failure_diagnosis import diagnose,normalize_empty_response
 
 class FailureDiagnosisTests(unittest.TestCase):
  def record(self,**fields):return {'provider':'test','ok':False,'status_code':502,'metrics':{},'provider_metadata':{},**fields}

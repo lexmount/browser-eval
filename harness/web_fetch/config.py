@@ -8,6 +8,15 @@ from typing import Any
 
 from .models import EvalCase
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_runtime_env(path: Path | None = None) -> None:
+    """Use the repository .env by default; explicit missing files are errors."""
+    selected = path if path is not None else ROOT / ".env"
+    if path is not None or selected.exists():
+        load_env_file(selected)
+
 
 def load_env_file(path: Path) -> None:
     """Load simple dotenv assignments without evaluating shell code."""
@@ -29,7 +38,7 @@ def expand_env(value: Any) -> Any:
     if isinstance(value, str):
         match = re.fullmatch(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?}", value)
         if match:
-            return os.getenv(match.group(1), match.group(2) or "")
+            return os.getenv(match.group(1)) or match.group(2) or ""
         return value
     if isinstance(value, list):
         return [expand_env(item) for item in value]

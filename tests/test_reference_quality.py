@@ -1,7 +1,7 @@
 import unittest
-from browser_harness_eval.reference_quality import clean_reference_text,audit_reference
-from browser_harness_eval.metrics import normalize_for_match
-from browser_harness_eval.models import execution_id
+from harness.web_fetch.reference_quality import clean_reference_text,audit_reference
+from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):

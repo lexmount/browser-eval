@@ -2,6 +2,8 @@ __pycache__/
 *.py[cod]
 .venv/
 .env
+.env.*
+!.env.example
 runs/
 .DS_Store
 run.log

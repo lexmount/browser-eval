@@ -44,23 +44,23 @@ measurement protocol, complexity tiers, overrides, and CubeSandbox decision.
 ## Harness layout
 
 - `harness/browser_use`: interactive browser-use execution, metrics, and reports
-- `harness/web_fetch`: reserved sibling capability for Web Fetch evaluation
+- `harness/web_fetch`: Web Fetch providers, execution, scoring, and reports
 
-Browser Use and Web Fetch intentionally keep separate suites and metrics. Web
-Fetch is not implemented in this first delivery; its directory documents the
-boundary instead of exposing a placeholder API.
+Browser Use and Web Fetch intentionally keep separate suites and metrics.
+Web Fetch has no legacy top-level package or compatibility imports.
 
 ---
 
 ## Web Fetch 评测
 
-140 个任务 × 11 种方法：网页正文 100 个，文档、图片、视频、真实网站各 10 个。
+当前存档为 140 个任务 × 11 种方法：网页正文 100 个，文档、图片、视频、真实网站各 10 个。
+另已接入 `moli-webfetch`；新方法的执行结果独立保存，未完成同范围实测前不补入历史榜单。
 
 ## 唯一当前入口
 
 ```text
 evaluation/                 # 当前任务、1540 条结果、原始输出和来源证据
-browser_harness_eval/       # 接口适配、评分、当前报告生成器
+harness/web_fetch/          # 接口适配、评分、当前报告生成器
 scripts/build_report.py     # 唯一正式报告构建入口
 reports/webfetch/           # 唯一当前报告，可重复生成
 research/provider-adoption.json # 当前已核验采用统计及候选文件目录
@@ -85,13 +85,23 @@ node tests/test_report_ui.mjs
 
 ## 重新实测
 
-先按 `configs/providers.example.json` 和 `configs/providers.resources.json` 配置环境变量，并通过 `python3 -m browser_harness_eval validate --env-file /path/to/.env --providers <方法名>` 校验凭据。原生实现需要对应仓库和 Python/Node 依赖；开源运行环境可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
+把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。所有 Web Fetch 入口默认只读取仓库根目录 `.env`，不读取用户目录、不执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
+
+用 `python3 -m harness.web_fetch validate --providers <方法名>` 校验凭据。原生实现还需要对应仓库和 Python/Node 依赖；路径均在 `.env.example` 中列出，开源依赖可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
 
 ```bash
-python3 scripts/run_benchmark.py --env-file /path/to/.env --output runs/webfetch
+python3 scripts/run_benchmark.py --output runs/webfetch
+# 或仅实测 Moli（140 个案例，不调用其他供应商）
+python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-webfetch
 ```
 
-使用具备当前全部解析依赖的 Python 环境执行。此命令会真实调用 11 种方法，可能消耗供应商配额。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
+使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
+
+### Moli WebFetch
+
+按 [官方 skill](https://github.com/lexmount/moli/tree/main/skills/moli-webfetch) 安装本地 CLI，在 `.env` 设置 `MOLI_BINARY`（默认 `moli`，不需要账号/API Key）。适配器以官方命令 `moli fetch --dump markdown --wait-until done` 执行，默认屏蔽私网并共享超时预算；保留 stdout 原文、独立 stderr 和退出状态。Markdown 模式没有 HTTP 状态/最终 URL，因此这些字段留空，而不是发第二次请求拼接元数据。工具成功不等于任务通过，仍使用相同机械评分规则。
+
+官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与当前 Markdown 适配器分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。非 HTML 原响应仅支持 html/json，不暗中回退或借用其他 provider。
 
 独立源页检查：`python3 scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。真实网站的动态列表按字段结构评分，不耦合当前标题、排序或价格。
 
@@ -102,7 +112,7 @@ python3 scripts/package_artifact_hub.py
 python3 scripts/publish_artifact_hub.py --update --expected-version <当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。使用既有 Artifact Hub 站点和分享地址；服务端版本标识仅用于并发更新保护，不是报告代码版本。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。发布令牌 `ARTIFACT_HUB_TOKEN` 也只从仓库 `.env` 或显式环境变量取得。使用既有 Artifact Hub 站点和分享地址；服务端版本标识仅用于并发更新保护，不是报告代码版本。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

@@ -3,8 +3,8 @@ import hashlib,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from browser_harness_eval.reference_quality import clean_reference_text,audit_reference
-from browser_harness_eval.metrics import normalize_for_match
+from harness.web_fetch.reference_quality import clean_reference_text,audit_reference
+from harness.web_fetch.metrics import normalize_for_match
 
 
 def prepare(path):

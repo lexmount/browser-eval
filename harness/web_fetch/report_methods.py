@@ -7,6 +7,7 @@ from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
 
 PROFILES={
+ 'moli-webfetch':('本地 CLI','Moli 一次性 fetch，默认运行网页 JavaScript 并输出 Markdown；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),
  'lexmount-global':('托管 API','Lexmount 国际 API，返回网页主正文与元数据。','https://browser.lexmount.com/en/docs/webfetch'),
  'lexmount-cn':('托管 API','Lexmount 中国区 API；与国际 API 分开实测，不重复计算品牌采用。','https://browser.lexmount.com/en/docs/webfetch'),
@@ -40,7 +41,7 @@ def adoption_counts(data,names):
     return sorted(result,key=lambda x:(x['repository_count'] is None,-(x['repository_count'] or 0),x['provider']))
 
 def render_methods(out,records,*,hero,section,table,cell,link,esc):
-    source=Path(__file__).resolve().parents[1]/'research/provider-adoption.json'
+    source=Path(__file__).resolve().parents[2]/'research/provider-adoption.json'
     data=json.loads(source.read_text());names=sorted({r['provider'] for r in records})
     counts=adoption_counts(data,names)
     dest=out/'adoption';dest.mkdir(exist_ok=True)

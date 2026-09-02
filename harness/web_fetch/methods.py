@@ -4,6 +4,7 @@ from typing import Any
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
+    "moli_webfetch": {"endpoint":"moli fetch --dump markdown","contract":"已知 URL → JS 渲染后的 Markdown","output":"stdout Markdown；stderr 独立诊断","freshness":"每次启动独立进程；wait-until=done","leaderboard":"可读正文"},
     "cowagent_builtin": {"endpoint":"仓库内 WebFetch.execute","contract":"已知 URL → 可读文本/文档文字","output":"纯文本","freshness":"实时请求","leaderboard":"可读正文"},
     "lexmount": {"endpoint":"POST https://api.lexmount.com/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"托管实时抓取","leaderboard":"可读正文"},
     "lexmount_cn": {"endpoint":"POST https://api.lexmount.cn/v1/extract","contract":"已知 URL → 主正文 + 元数据","output":"main_text","freshness":"中国区托管实时抓取","leaderboard":"可读正文"},

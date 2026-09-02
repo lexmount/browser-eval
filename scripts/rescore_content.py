@@ -6,10 +6,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from browser_harness_eval.metrics import evaluate_content
-from browser_harness_eval.models import execution_id
-from browser_harness_eval.report import succeeded, failure_category
-from browser_harness_eval.safety import contained_path, validate_report_ids
+from harness.web_fetch.metrics import evaluate_content
+from harness.web_fetch.models import execution_id
+from harness.web_fetch.report import succeeded, failure_category
+from harness.web_fetch.safety import contained_path, validate_report_ids
 
 
 def rescore(source):
