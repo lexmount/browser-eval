@@ -1,0 +1,160 @@
+[Skip to content](#start-of-content)   
+ 
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango)
+
+Appearance settings
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango)
+
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=django%2Fdjango)
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[django](/django)   /  **[django](/django/django)**  Public
+
+* ### Uh oh!
+
+  There was an error while loading. Please reload this page.
+* [Notifications](/login?return_to=%2Fdjango%2Fdjango)  You must be signed in to change notification settings
+* [Fork 34.2k](/login?return_to=%2Fdjango%2Fdjango)
+* [Star  88.9k](/login?return_to=%2Fdjango%2Fdjango)
+
+[Branches](/django/django/branches)[Tags](/django/django/tags)
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+[34,887 Commits](/django/django/commits/main/)
+
+34,887 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](/django/django/tree/main/.github ".github") | [.github](/django/django/tree/main/.github ".github") |  |  |
+| [.tx](/django/django/tree/main/.tx ".tx") | [.tx](/django/django/tree/main/.tx ".tx") |  |  |
+| [django](/django/django/tree/main/django "django") | [django](/django/django/tree/main/django "django") |  |  |
+| [docs](/django/django/tree/main/docs "docs") | [docs](/django/django/tree/main/docs "docs") |  |  |
+| [extras](/django/django/tree/main/extras "extras") | [extras](/django/django/tree/main/extras "extras") |  |  |
+| [js\_tests](/django/django/tree/main/js_tests "js_tests") | [js\_tests](/django/django/tree/main/js_tests "js_tests") |  |  |
+| [scripts](/django/django/tree/main/scripts "scripts") | [scripts](/django/django/tree/main/scripts "scripts") |  |  |
+| [tests](/django/django/tree/main/tests "tests") | [tests](/django/django/tree/main/tests "tests") |  |  |
+| [.editorconfig](/django/django/blob/main/.editorconfig ".editorconfig") | [.editorconfig](/django/django/blob/main/.editorconfig ".editorconfig") |  |  |
+| [.flake8](/django/django/blob/main/.flake8 ".flake8") | [.flake8](/django/django/blob/main/.flake8 ".flake8") |  |  |
+| [.git-blame-ignore-revs](/django/django/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs") | [.git-blame-ignore-revs](/django/django/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs") |  |  |
+| [.gitattributes](/django/django/blob/main/.gitattributes ".gitattributes") | [.gitattributes](/django/django/blob/main/.gitattributes ".gitattributes") |  |  |
+| [.gitignore](/django/django/blob/main/.gitignore ".gitignore") | [.gitignore](/django/django/blob/main/.gitignore ".gitignore") |  |  |
+| [.pre-commit-config.yaml](/django/django/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") | [.pre-commit-config.yaml](/django/django/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") |  |  |
+| [.readthedocs.yml](/django/django/blob/main/.readthedocs.yml ".readthedocs.yml") | [.readthedocs.yml](/django/django/blob/main/.readthedocs.yml ".readthedocs.yml") |  |  |
+| [AUTHORS](/django/django/blob/main/AUTHORS "AUTHORS") | [AUTHORS](/django/django/blob/main/AUTHORS "AUTHORS") |  |  |
+| [CONTRIBUTING.rst](/django/django/blob/main/CONTRIBUTING.rst "CONTRIBUTING.rst") | [CONTRIBUTING.rst](/django/django/blob/main/CONTRIBUTING.rst "CONTRIBUTING.rst") |  |  |
+| [Gruntfile.js](/django/django/blob/main/Gruntfile.js "Gruntfile.js") | [Gruntfile.js](/django/django/blob/main/Gruntfile.js "Gruntfile.js") |  |  |
+| [INSTALL](/django/django/blob/main/INSTALL "INSTALL") | [INSTALL](/django/django/blob/main/INSTALL "INSTALL") |  |  |
+| [LICENSE](/django/django/blob/main/LICENSE "LICENSE") | [LICENSE](/django/django/blob/main/LICENSE "LICENSE") |  |  |
+| [LICENSE.python](/django/django/blob/main/LICENSE.python "LICENSE.python") | [LICENSE.python](/django/django/blob/main/LICENSE.python "LICENSE.python") |  |  |
+| [MANIFEST.in](/django/django/blob/main/MANIFEST.in "MANIFEST.in") | [MANIFEST.in](/django/django/blob/main/MANIFEST.in "MANIFEST.in") |  |  |
+| [README.rst](/django/django/blob/main/README.rst "README.rst") | [README.rst](/django/django/blob/main/README.rst "README.rst") |  |  |
+| [biome.json](/django/django/blob/main/biome.json "biome.json") | [biome.json](/django/django/blob/main/biome.json "biome.json") |  |  |
+| [package.json](/django/django/blob/main/package.json "package.json") | [package.json](/django/django/blob/main/package.json "package.json") |  |  |
+| [pyproject.toml](/django/django/blob/main/pyproject.toml "pyproject.toml") | [pyproject.toml](/django/django/blob/main/pyproject.toml "pyproject.toml") |  |  |
+| [tox.ini](/django/django/blob/main/tox.ini "tox.ini") | [tox.ini](/django/django/blob/main/tox.ini "tox.ini") |  |  |
+| [zizmor.yml](/django/django/blob/main/zizmor.yml "zizmor.yml") | [zizmor.yml](/django/django/blob/main/zizmor.yml "zizmor.yml") |  |  |
+|  |
+
+## Repository files navigation
+
+# Django
+
+Django is a high-level Python web framework that encourages rapid development and clean, pragmatic design. Thanks for checking it out.
+
+All documentation is in the "`docs`" directory and online at <https://docs.djangoproject.com/en/stable/>. If you're just getting started, here's how we recommend you read the docs:
+
+* First, read `docs/intro/install.txt` for instructions on installing Django.
+* Next, work through the tutorials in order (`docs/intro/tutorial01.txt`, `docs/intro/tutorial02.txt`, etc.).
+* If you want to set up an actual deployment server, read `docs/howto/deployment/index.txt` for instructions.
+* You'll probably want to read through the topical guides (in `docs/topics`) next; from there you can jump to the HOWTOs (in `docs/howto`) for specific problems, and check out the reference (`docs/ref`) for gory details.
+* See `docs/README` for instructions on building an HTML version of the docs.
+
+Docs are updated rigorously. If you find any problems in the docs, or think they should be clarified in any way, please take 30 seconds to [fill out a ticket](https://code.djangoproject.com/newticket). You can log in with your GitHub account, or with a DjangoProject account if you have one. Once you log in, a New Ticket button is available next to View Tickets.
+
+To get more help:
+
+* Join the [Django Discord community](https://chat.djangoproject.com).
+* Join the community on the [Django Forum](https://forum.djangoproject.com/).
+
+To contribute to Django:
+
+* Check out <https://docs.djangoproject.com/en/dev/internals/contributing/> for information about getting involved.
+
+To run Django's test suite:
+
+* Follow the instructions in the "Unit tests" section of `docs/internals/contributing/writing-code/unit-tests.txt`, published online at <https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests>
+
+## Supporting the Development of Django
+
+Django's development depends on your contributions.
+
+If you depend on Django, remember to support the Django Software Foundation: <https://www.djangoproject.com/fundraising/>
+
+## About
+
+The Web framework for perfectionists with deadlines.
+
+[www.djangoproject.com/](https://www.djangoproject.com/)
+
+### Topics
+
+[apps](/topics/apps)[django](/topics/django)[framework](/topics/framework)[models](/topics/models)[orm](/topics/orm)[python](/topics/python)[templates](/topics/templates)[views](/topics/views)[web](/topics/web)
+
+### Resources
+
+[Readme](#readme-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/django/django#coc-ov-file)
+
+### Contributing
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Custom properties](/django/django/custom-properties)
+
+### Stars
+
+**88.9k** stars
+
+### Watchers
+
+**2.3k** watching
+
+### Forks
+
+[**34.2k** forks](/django/django/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango&report=django+%28user%29)
+
+## Sponsor this project
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

@@ -1,0 +1,155 @@
+## bc
+
+### Parameters for Opening PDF Files
+
+Adobe® Acrobat® SDK April 2007 Version 8.1
+
+© 2007 Adobe Systems Incorporated. All rights reserved. 
+Adobe® Acrobat® SDK 8.1 Parameters for Opening PDF Files for Microsoft® Windows®, Mac OS®, Linux®, and UNIX® 
+Edition 1.0, April 2007 
+If this guide is distributed with software that includes an end user agreement, this guide, as well as the software described in it, is furnished 
+under license and may be used or copied only in accordance with the terms of such license. Except as permitted by any such license, no part 
+of this guide may be reproduced, stored in a retrieval system, or transmitted, in any form or by any means, electronic, mechanical, recording, 
+or otherwise, without the prior written permission of Adobe Systems Incorporated. Please note that the content in this guide is protected 
+under copyright law even if it is not distributed with software that includes an end user license agreement. 
+The content of this guide is furnished for informational use only, is subject to change without notice, and should not be construed as a 
+commitment by Adobe Systems Incorporated. Adobe Systems Incorporated assumes no responsibility or liability for any errors or 
+inaccuracies that may appear in the informational content contained in this guide. 
+Please remember that existing artwork or images that you may want to include in your project may be protected under copyright law. The 
+unauthorized incorporation of such material into your new work could be a violation of the rights of the copyright owner. Please be sure to 
+obtain any permission required from the copyright owner. 
+Any references to company names and company logos in sample material are for demonstration purposes only and are not intended to refer 
+to any actual organization. 
+Adobe, the Adobe logo, Acrobat and Reader are either registered trademarks or trademarks of Adobe Systems Incorporated in the United 
+States and/or other countries. 
+Linux is a registered trademark of Linus Torvalds. 
+Apple and Mac OS are trademarks of Apple Computer, Inc., registered in the United States and other countries. 
+Microsoft and Windows are either a registered trademark or a trademark of Microsoft Corporation in the United States and/or other 
+countries. 
+UNIX is a registered trademark of The Open Group in the United States and other countries. 
+All other trademarks are the property of their respective owners. 
+Adobe Systems Incorporated, 345 Park Avenue, San Jose, California 95110, USA. 
+Notice to U.S. Government End Users. The Software and Documentation are “Commercial Items,” as that term is defined at 48 C.F.R. §2.101, 
+consisting of “Commercial Computer Software” and “Commercial Computer Software Documentation,” as such terms are used in 48 C.F.R. 
+§12.212 or 48 C.F.R. §227.7202, as applicable. Consistent with 48 C.F.R. §12.212 or 48 C.F.R. §§227.7202-1 through 227.7202-4, as applicable, 
+the Commercial Computer Software and Commercial Computer Software Documentation are being licensed to U.S. Government end users 
+(a) only as Commercial Items and (b) with only those rights as are granted to all other end users pursuant to the terms and conditions herein. 
+Unpublished-rights reserved under the copyright laws of the United States. Adobe Systems Incorporated, 345 Park Avenue, San Jose, CA 
+95110-2704, USA. For U.S. Government End Users, Adobe agrees to comply with all applicable equal opportunity laws including, if 
+appropriate, the provisions of Executive Order 11246, as amended, Section 402 of the Vietnam Era Veterans Readjustment Assistance Act of 
+1974 (38 USC 4212), and Section 503 of the Rehabilitation Act of 1973, as amended, and the regulations at 41 CFR Parts 60-1 through 60-60, 
+60-250, and 60-741. The affirmative action clause and regulations contained in the preceding sentence shall be incorporated by reference. 
+
+#### Contents
+
+Preface ... 4 
+Who should read this guide? ... 4 
+Related documentation ... 4 
+Parameters for Opening PDF Files ... 5 
+Parameters ... 5 
+Specifying parameters in a URL ... 7 
+URL examples ... 8 
+URL limitations ... 8 
+
+#### Preface
+
+This document describes the parameters you can use when opening Adobe® PDF files. These parameters allow you to open a PDF file using a URL or command that specifies both the file to be opened and the actions to be performed once the file is opened.
+
+##### Who should read this guide?
+
+This guide is for developers who want to customize the way PDF files open. It may be useful for those developing an online collaboration system.
+
+##### Related documentation
+
+| For information about | See |
+| --- | --- |
+| Configuring and administering a system for online using comment repositories, collaboration Adobe Acrobat®, and Adobe Reader® | Acrobat Online Collaboration: Setup and Administration |
+| A detailed description of the PDF file format | PDF Reference |
+| Detailed descriptions of the APIs for Acrobat and Adobe Reader plug-ins, as well as for PDF Library applications | Acrobat and PDF Library API Reference |
+
+#### Parameters for Opening PDF Files
+
+You can open a PDF document with a command or URL that specifies exactly what to display (a named 
+destination or specific page), and how to display it (using such characteristics as a specific view, scrollbars, 
+bookmarks, annotations, or highlighting). 
+The parameters for URLs are supported by most browsers, and can be used when opening PDF documents 
+programmatically. 
+Many of these parameters can be passed to the following core API functions (see the Acrobat and PDF 
+Library API Reference for details): 
+AVDocOpenFromFileWithParamString 
+AVDocOpenFromASFileWithParamString 
+AVDocOpenFromPDDocWithParamString 
+When opening a PDF document from a command shell, you can pass the parameters to the open 
+command using the /A switch with the following syntax: 
+ /A " = " " " 
+For example: 
+Acrobat.exe /A "zoom=1000" "C:\example.pdf" 
+In Mac OS, you can use the parameters when opening a PDF document with an Apple event. 
+
+##### Parameters
+
+The following table describes the parameters. Italics indicate user-specified variables.
+
+| Syntax | Description |
+| --- | --- |
+| nameddest=destination | Specifies a named destination in the PDF document. |
+| page=pagenum | Specifies a numbered page in the document, using an integer value. The document’s first page has a pagenum value of 1. |
+| comment=commentID | Specifies a comment on a given page in the PDF document. Use the page command before this command. For example: #page=1&comment=452fde0e-fd22-457c-84aa 2cf5bed5a349 |
+
+Adobe Acrobat SDK Parameters for Opening PDF Files Parameters for Opening PDF Files Parameters 6
+
+| Syntax | Description |
+| --- | --- |
+| collab=setting | Sets the comment repository to be used to supply and store comments for the document. This overrides the default comment server for the review or the default preference. The setting is of the form store_type@location, where valid values for store_type are: ● DAVFDF (WebDAV) ● FSFDF (Network folder) ● DB (ADBC) For example: #collab=DAVFDF@http://review_server/Collab /user1 For more information on comment repositories, see Acrobat Online Collaboration: Setup and Administration. |
+| zoom=scale zoom=scale,left,top | Sets the zoom and scroll factors, using float or integer values. For example, a scale value of 100 indicates a zoom value of 100%. Scroll values left and top are in a coordinate system where 0,0 represents the top left corner of the visible page, regardless of document rotation. |
+| view=Fit view=FitH view=FitH,top view=FitV view=FitV,left view=FitB view=FitBH view=FitBH,top view=FitBV view=FitBV,left | Set the view of the displayed page, using the keyword values defined in the PDF language specification. For more information, see the PDF Reference. Scroll values left and top are floats or integers in a coordinate system where 0,0 represents the top left corner of the visible page, regardless of document rotation. Use the page command before this command. Note: This parameter is not supported on the command line. |
+| viewrect=left,top,wd,ht | Sets the view rectangle using float or integer values in a coordinate system where 0,0 represents the top left corner of the visible page, regardless of document rotation. Use the page command before this command. Note: This parameter is not supported on the command line. |
+| pagemode=bookmarks pagemode=thumbs pagemode=none (default) | Displays bookmarks or thumbnails. |
+| scrollbar=1|0 | Turns scrollbars on or off. |
+
+Adobe Acrobat SDK Parameters for Opening PDF Files Parameters for Opening PDF Files Specifying parameters in a URL 7
+
+| Syntax | Description |
+| --- | --- |
+| search=wordList | Opens the Search panel and performs a search for any of the words in the specified word list. The first matching word is highlighted in the document. The words must be enclosed in quotation marks and separated by spaces. For example: #search="word1 word2" You can search only for single words. You cannot search for a string of words. |
+| toolbar=1|0 | Turns the toolbar on or off. |
+| statusbar=1|0 | Turns the status bar on or off. |
+| messages=1|0 | Turns the document message bar on or off. |
+| navpanes=1|0 | Turns the navigation panes and tabs on or off. |
+| highlight=lt,rt,top,btm | Highlights a specified rectangle on the displayed page. Use the page command before this command. The rectangle values are integers in a coordinate system where 0,0 represents the top left corner of the visible page, regardless of document rotation. |
+| fdf=URL | Specifies an FDF file to populate form fields in the PDF file being opened. For example: #fdf=http://example.org/doc.fdf Note: The fdf parameter should be specified last in a URL. |
+
+##### Specifying parameters in a URL
+
+You can specify multiple parameters in a single URL. Separate each parameter with either an ampersand 
+(&) or a pound (#) character. Actions are processed and executed from left to right as they appear in the 
+URL. 
+Because all specified actions are executed, it is possible that later actions will override the effects of 
+previous actions, so it is important to use the correct order. For example, page actions should appear 
+before zoom actions. 
+Commands are not case sensitive except for the value of a named destination. There can be no spaces in 
+the URL. 
+
+Adobe Acrobat SDK Parameters for Opening PDF Files Parameters for Opening PDF Files URL examples 8
+
+URL examples
+
+http://example.org/doc.pdf#Chapter6 
+http://example.org/doc.pdf#page=3 
+http://example.org/doc.pdf#page=3&zoom=200,250,100 
+http://example.org/doc.pdf#zoom=50 
+http://example.org/doc.pdf#page=72&view=fitH,100 
+http://example.org/doc.pdf#pagemode=none 
+http://example.org/doc.pdf#pagemode=bookmarks&page=2 
+http://example.org/doc.pdf#page=3&pagemode=thumbs 
+http://example.org/doc.pdf#collab=DAVFDF@http://review_server/Collab/user1 
+http://example.org/doc.pdf#page=1&comment=452fde0e-fd22-457c-84aa-2cf5bed5a349 
+http://example.org/doc.pdf#fdf=http://example.org/doc.fdf 
+
+URL limitations
+
+● Only one digit following a decimal point is retained for float values. 
+● Individual parameters, together with their values (separated by & or #), can be no greater then 32 characters in length. 
+● You cannot use the reserved characters =, #, and &. There is no way to escape these special characters. 
+● If you turn bookmarks off using a URL parameter when a document had previously been saved with bookmarks on, the bookmark scrollbars are displayed at first, and only disappear once Acrobat obtains enough streamed information to render the full page. 
+

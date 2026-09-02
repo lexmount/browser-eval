@@ -1,0 +1,24 @@
+Mystery | Mystery | Books to Scrape - Sandbox
+Warning! This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+32 results - showing 1 to 20.
+Products:
+1. Sharp Objects - £47.82
+2. In a Dark, Dark Wood - £19.63
+3. The Past Never Ends - £56.50
+4. A Murder in Time - £16.64
+5. The Murder of Roger Ackroyd (Hercule Poirot #4) - £44.10
+6. The Last Mile (Amos Decker #2) - £54.21
+7. That Darkness (Gardiner and Renner #1) - £13.92
+8. Tastes Like Fear (DI Marnie Rome #3) - £10.69
+9. A Time of Torment (Charlie Parker #14) - £48.35
+10. A Study in Scarlet (Sherlock Holmes #1) - £16.73
+11. Poisonous (Max Revere Novels #3) - £26.80
+12. Murder at the 42nd Street Library (Raymond Ambler #1) - £54.36
+13. Most Wanted - £35.28
+14. Hide Away (Eve Duncan #20) - £11.84
+15. Boar Island (Anna Pigeon #19) - £59.48
+16. The Widow - £27.26
+17. Playing with Fire - £13.71
+18. What Happened on Beale Street (Secrets of the South Mysteries #2) - £25.37
+19. The Bachelor Girl&#39;s Guide to Murder (Herringford and Watts Mysteries #1) - £52.30
+20. Delivering the Truth (Quaker Midwife Mystery #1) - £20.89

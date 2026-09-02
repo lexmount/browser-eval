@@ -1,0 +1,544 @@
+[Skip to content](https://github.com/pytest-dev/pytest#start-of-content)
+[](https://github.com/)
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest)
+Appearance settings
+  * Platform
+    * AI CODE CREATION
+      * [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+      * [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+      * [MCP RegistryIntegrate external tools](https://github.com/mcp)
+    * DEVELOPER WORKFLOWS
+      * [ActionsAutomate any workflow](https://github.com/features/actions)
+      * [CodespacesInstant dev environments](https://github.com/features/codespaces)
+      * [IssuesPlan and track work](https://github.com/features/issues)
+      * [Code ReviewManage code changes](https://github.com/features/code-review)
+      * [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+    * APPLICATION SECURITY
+      * [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+      * [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+      * [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+    * EXPLORE
+      * [Why GitHub](https://github.com/why-github)
+      * [Documentation](https://docs.github.com)
+      * [Blog](https://github.blog)
+      * [Changelog](https://github.blog/changelog)
+      * [Marketplace](https://github.com/marketplace)
+[View all features](https://github.com/features)
+  * Solutions
+    * BY COMPANY SIZE
+      * [Enterprises](https://github.com/enterprise)
+      * [Small and medium teams](https://github.com/team)
+      * [Startups](https://github.com/enterprise/startups)
+      * [Nonprofits](https://github.com/solutions/industry/nonprofits)
+    * BY USE CASE
+      * [App Modernization](https://github.com/solutions/use-case/app-modernization)
+      * [DevSecOps](https://github.com/solutions/use-case/devsecops)
+      * [DevOps](https://github.com/solutions/use-case/devops)
+      * [CI/CD](https://github.com/solutions/use-case/ci-cd)
+      * [View all use cases](https://github.com/solutions/use-case)
+    * BY INDUSTRY
+      * [Healthcare](https://github.com/solutions/industry/healthcare)
+      * [Financial services](https://github.com/solutions/industry/financial-services)
+      * [Manufacturing](https://github.com/solutions/industry/manufacturing)
+      * [Government](https://github.com/solutions/industry/government)
+      * [View all industries](https://github.com/solutions/industry)
+[View all solutions](https://github.com/solutions)
+  * Resources
+    * EXPLORE BY TOPIC
+      * [AI](https://github.com/resources/articles?topic=ai)
+      * [Software Development](https://github.com/resources/articles?topic=software-development)
+      * [DevOps](https://github.com/resources/articles?topic=devops)
+      * [Security](https://github.com/resources/articles?topic=security)
+      * [View all topics](https://github.com/resources/articles)
+    * EXPLORE BY TYPE
+      * [Customer stories](https://github.com/customer-stories)
+      * [Events & webinars](https://github.com/resources/events)
+      * [Ebooks & reports](https://github.com/resources/whitepapers)
+      * [Business insights](https://github.com/solutions/executive-insights)
+      * [GitHub Skills](https://skills.github.com)
+    * SUPPORT & SERVICES
+      * [Documentation](https://docs.github.com)
+      * [Customer support](https://support.github.com)
+      * [Community forum](https://github.com/orgs/community/discussions)
+      * [Trust center](https://github.com/trust-center)
+      * [Partners](https://github.com/partners)
+[View all resources](https://github.com/resources)
+  * Open Source
+    * COMMUNITY
+      * [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+    * PROGRAMS
+      * [Security Lab](https://securitylab.github.com)
+      * [Maintainer Community](https://maintainers.github.com)
+      * [GitHub Stars](https://stars.github.com)
+      * [Archive Program](https://archiveprogram.github.com)
+    * REPOSITORIES
+      * [Topics](https://github.com/topics)
+      * [Trending](https://github.com/trending)
+      * [Collections](https://github.com/collections)
+  * Enterprise
+    * ENTERPRISE SOLUTIONS
+      * [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+    * AVAILABLE ADD-ONS
+      * [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+      * [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+      * [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+  * [Pricing](https://github.com/pricing)
+
+
+Search`/`
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest)
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=pytest-dev%2Fpytest)
+Appearance settings
+{{ message }}
+###  Uh oh! 
+There was an error while loading. [Please reload this page](https://github.com/pytest-dev/pytest).
+[ pytest-dev ](https://github.com/pytest-dev) / **[pytest](https://github.com/pytest-dev/pytest) ** Public
+  * Sponsor
+  * [ Notifications ](https://github.com/login?return_to=%2Fpytest-dev%2Fpytest) You must be signed in to change notification settings
+  * [ Fork 3.3k ](https://github.com/login?return_to=%2Fpytest-dev%2Fpytest)
+  * [ Star  14.5k ](https://github.com/login?return_to=%2Fpytest-dev%2Fpytest)
+
+
+  * [ Code ](https://github.com/pytest-dev/pytest)
+  * [ Issues 680 ](https://github.com/pytest-dev/pytest/issues)
+  * [ Pull requests 129 ](https://github.com/pytest-dev/pytest/pulls)
+  * [ Discussions ](https://github.com/pytest-dev/pytest/discussions)
+  * [ Actions ](https://github.com/pytest-dev/pytest/actions)
+  * [ Projects ](https://github.com/pytest-dev/pytest/projects)
+  * [ Wiki ](https://github.com/pytest-dev/pytest/wiki)
+  * [ Security and quality 0 ](https://github.com/pytest-dev/pytest/security)
+  * [ Insights ](https://github.com/pytest-dev/pytest/pulse)
+
+
+[](https://github.com/pytest-dev/pytest)
+[**33** Branches](https://github.com/pytest-dev/pytest/branches)[**224** Tags](https://github.com/pytest-dev/pytest/tags)
+[](https://github.com/pytest-dev/pytest/branches)[](https://github.com/pytest-dev/pytest/tags)
+Go to file
+Code
+Open more actions menu
+[![RonnyPfannschmidt](https://avatars.githubusercontent.com/u/156838?v=4&size=40)](https://github.com/RonnyPfannschmidt)[RonnyPfannschmidt](https://github.com/pytest-dev/pytest/commits?author=RonnyPfannschmidt)
+[Merge pull request](https://github.com/pytest-dev/pytest/commit/51e9a9f148cd2509a31e3fa0d2b1b3204c2b0dd7) [#14447](https://github.com/pytest-dev/pytest/pull/14447) [from RonnyPfannschmidt/ronny/fix-14445-asse…](https://github.com/pytest-dev/pytest/commit/51e9a9f148cd2509a31e3fa0d2b1b3204c2b0dd7)
+Open commit detailssuccess
+Sep 1, 2026
+[51e9a9f](https://github.com/pytest-dev/pytest/commit/51e9a9f148cd2509a31e3fa0d2b1b3204c2b0dd7) · Sep 1, 2026
+[17,715 Commits](https://github.com/pytest-dev/pytest/commits/main/)
+Open commit details
+[](https://github.com/pytest-dev/pytest/commits/main/)17,715 Commits  
+| Name  | Name  | Last commit message  | Last commit date  |  
+| --- | --- | --- | --- |  
+| [.github](https://github.com/pytest-dev/pytest/tree/main/.github ".github")  | [.github](https://github.com/pytest-dev/pytest/tree/main/.github ".github")  |  [[pre-commit.ci] pre-commit autoupdate (](https://github.com/pytest-dev/pytest/commit/e984a9b94740697411f5a05fcdfc3299dd20f13a "\[pre-commit.ci\] pre-commit autoupdate \(#14957\)
+
+* \[pre-commit.ci\] pre-commit autoupdate
+
+updates:
+- \[github.com/astral-sh/ruff-pre-commit: v0.16.4 → v0.16.5\]\(https://github.com/astral-sh/ruff-pre-commit/compare/v0.16.4...v0.16.5\)
+- \[github.com/woodruffw/zizmor-pre-commit: v1.29.0 → v1.30.0\]\(https://github.com/woodruffw/zizmor-pre-commit/compare/v1.29.0...v1.30.0\)
+
+* \[pre-commit.ci\] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci
+
+---------
+
+Co-authored-by: pre-commit-ci\[bot\] <66853113+pre-commit-ci\[bot\]@users.noreply.github.com>")[#14957](https://github.com/pytest-dev/pytest/pull/14957)[)](https://github.com/pytest-dev/pytest/commit/e984a9b94740697411f5a05fcdfc3299dd20f13a "\[pre-commit.ci\] pre-commit autoupdate \(#14957\)
+
+* \[pre-commit.ci\] pre-commit autoupdate
+
+updates:
+- \[github.com/astral-sh/ruff-pre-commit: v0.16.4 → v0.16.5\]\(https://github.com/astral-sh/ruff-pre-commit/compare/v0.16.4...v0.16.5\)
+- \[github.com/woodruffw/zizmor-pre-commit: v1.29.0 → v1.30.0\]\(https://github.com/woodruffw/zizmor-pre-commit/compare/v1.29.0...v1.30.0\)
+
+* \[pre-commit.ci\] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci
+
+---------
+
+Co-authored-by: pre-commit-ci\[bot\] <66853113+pre-commit-ci\[bot\]@users.noreply.github.com>")  | Sep 1, 2026  |  
+| [bench](https://github.com/pytest-dev/pytest/tree/main/bench "bench")  | [bench](https://github.com/pytest-dev/pytest/tree/main/bench "bench")  | [[Fix UP031] Manually, keeping some required %r specifiers](https://github.com/pytest-dev/pytest/commit/17c5bbbdaee125f7d574ae390d4807724efa871a "\[Fix UP031\] Manually, keeping some required %r specifiers
+
+Co-authored-by: Bruno Oliveira <nicoddemus@gmail.com>")  | Nov 30, 2024  |  
+| [changelog](https://github.com/pytest-dev/pytest/tree/main/changelog "changelog")  | [changelog](https://github.com/pytest-dev/pytest/tree/main/changelog "changelog")  | [fix(rewrite): freeze operands a later walrus would clobber](https://github.com/pytest-dev/pytest/commit/3e7bf1dad095080edcc9b61a1aac58380d0969d6 "fix\(rewrite\): freeze operands a later walrus would clobber
+
+The rewriter hoists each operand into its own statement, but a plain
+name is left as a bare load evaluated when the enclosing expression is
+assembled -- after the statements of the operands that follow it.  A
+walrus operator in a later operand rebinds the name in between, so both
+the value used and the value reported were the post-walrus one, while
+Python evaluates the earlier operand first:
+
+    assert value != identity\(value := value.lower\(\)\)
+
+visit_BoolOp already guarded against this; extract its pre-scan as
+_walrus_targets\(\) and add visit_operand\(\) to apply the same freeze in
+visit_Compare, visit_Call and visit_BinOp.  visit_Compare previously
+matched only a comparator that *was* a NamedExpr, missing walrus
+operators nested inside it; visit_Call did not guard at all, so an
+earlier argument saw a later argument's assignment.
+
+These cases predate the walrus rework -- they fail on main too.
+
+Closes the single-eval-walrus, order-compare-left, order-call-argument
+and order-binop-left groups in the coverage matrix.  order-call-argument
+keeps one entry: a bare walrus argument is still substituted into a
+later one, which visit_operand does not yet see because the operand is a
+NamedExpr rather than a Name.
+
+Reported-by: Denis Scapin
+
+Co-authored-by: Claude Opus 5 <ai@anthropic.com>
+Co-authored-by: Claude Code <ai@anthropic.com>")  | Sep 1, 2026  |  
+| [doc/en](https://github.com/pytest-dev/pytest/tree/main/doc/en "This path skips through empty directories")  | [doc/en](https://github.com/pytest-dev/pytest/tree/main/doc/en "This path skips through empty directories")  |  [Merge pull request](https://github.com/pytest-dev/pytest/commit/5d85267e3539968dad33937295b0a77b6c7eb7b3 "Merge pull request #14824 from RonnyPfannschmidt/plugin-import-error-exit-codes-993
+
+Classify plugin startup import failures \(#993\)") [#14824](https://github.com/pytest-dev/pytest/pull/14824) [from RonnyPfannschmidt/plugin-import-error-…](https://github.com/pytest-dev/pytest/commit/5d85267e3539968dad33937295b0a77b6c7eb7b3 "Merge pull request #14824 from RonnyPfannschmidt/plugin-import-error-exit-codes-993
+
+Classify plugin startup import failures \(#993\)")  | Aug 30, 2026  |  
+| [extra](https://github.com/pytest-dev/pytest/tree/main/extra "extra")  | [extra](https://github.com/pytest-dev/pytest/tree/main/extra "extra")  | [RFC: from __future__ import annotations + migrate](https://github.com/pytest-dev/pytest/commit/9295f9ffffc11595cc4d7241008f60783f1f46c2 "RFC: from __future__ import annotations + migrate")  | Jun 20, 2024  |  
+| [scripts](https://github.com/pytest-dev/pytest/tree/main/scripts "scripts")  | [scripts](https://github.com/pytest-dev/pytest/tree/main/scripts "scripts")  | [scripts: pin the interpreter of both sides with --python](https://github.com/pytest-dev/pytest/commit/f147a1297fb8f202987772f3d825372df314e138 "scripts: pin the interpreter of both sides with --python
+
+The released side ran under whatever interpreter uv picked while plain and
+worktree ran under this script's own, so a cross-version diff quietly varied
+two things at once: the pytest version under test and the Python whose
+grammar ast.unparse round-trips through.
+
+--python names one interpreter and every side runs on it, released or not.
+Without it nothing changes: plain and worktree keep using the current
+interpreter, and uv keeps choosing for a released pytest.
+
+Waiting for both workers before reporting a failure, while at it -- the
+losing side used to raise out of the temporary directory's scope, leaving
+the other to trip over the deleted source and bury the real error under a
+FileNotFoundError traceback.")  | Aug 25, 2026  |  
+| [src](https://github.com/pytest-dev/pytest/tree/main/src "src")  | [src](https://github.com/pytest-dev/pytest/tree/main/src "src")  | [fix(rewrite): freeze operands a later walrus would clobber](https://github.com/pytest-dev/pytest/commit/3e7bf1dad095080edcc9b61a1aac58380d0969d6 "fix\(rewrite\): freeze operands a later walrus would clobber
+
+The rewriter hoists each operand into its own statement, but a plain
+name is left as a bare load evaluated when the enclosing expression is
+assembled -- after the statements of the operands that follow it.  A
+walrus operator in a later operand rebinds the name in between, so both
+the value used and the value reported were the post-walrus one, while
+Python evaluates the earlier operand first:
+
+    assert value != identity\(value := value.lower\(\)\)
+
+visit_BoolOp already guarded against this; extract its pre-scan as
+_walrus_targets\(\) and add visit_operand\(\) to apply the same freeze in
+visit_Compare, visit_Call and visit_BinOp.  visit_Compare previously
+matched only a comparator that *was* a NamedExpr, missing walrus
+operators nested inside it; visit_Call did not guard at all, so an
+earlier argument saw a later argument's assignment.
+
+These cases predate the walrus rework -- they fail on main too.
+
+Closes the single-eval-walrus, order-compare-left, order-call-argument
+and order-binop-left groups in the coverage matrix.  order-call-argument
+keeps one entry: a bare walrus argument is still substituted into a
+later one, which visit_operand does not yet see because the operand is a
+NamedExpr rather than a Name.
+
+Reported-by: Denis Scapin
+
+Co-authored-by: Claude Opus 5 <ai@anthropic.com>
+Co-authored-by: Claude Code <ai@anthropic.com>")  | Sep 1, 2026  |  
+| [testing](https://github.com/pytest-dev/pytest/tree/main/testing "testing")  | [testing](https://github.com/pytest-dev/pytest/tree/main/testing "testing")  | [test(rewrite): retire the walrus tests the matrix subsumes](https://github.com/pytest-dev/pytest/commit/eb47e44e6fb956589bd69fd2d0f7e4da64ed701c "test\(rewrite\): retire the walrus tests the matrix subsumes
+
+TestAssertionRewriteWalrusOperator predates the coverage matrix and asks
+its questions through runpytest\(\): twelve tests that mostly check ret == 0.
+Nine of them the matrix already answers in-process and more precisely --
+what the failure message says, what the operands saw, how often each ran.
+
+Two are worth more than a deletion, so they move rather than vanish:
+
+  assert not \(a and \(\(a := False\) is False\)\)
+
+reads back as an introspection case, and the composite chain
+
+  assert a and True and \(\(a := False\) is False\) and \(a is False\) and ...
+
+as an evaluation-order one.  That second is why the deletion is not just
+tidying: it passes on main, and it passes there because of the bug.  Main
+rewrites the walrus target to an internal temp and substitutes the stored
+NamedExpr into every later read of the name -- including the next
+statement, so the `assert a is None` that is supposed to verify the outcome
+re-runs the walrus and creates it.  Asked through returned values instead
+of ret == 0, main fails the case.
+
+TestIssue14445 loses the four tests that restate matrix single-evaluation
+entries this PR already adds, and keeps the two reproducers from the issue.
+
+One test survives in place: nothing the rewriter stores may outlive a
+statement, which needs two tests in one module to observe and so cannot be
+said in-process.
+
+Co-authored-by: Claude Opus 5 <ai@anthropic.com>
+Co-authored-by: Claude Code <ai@anthropic.com>")  | Sep 1, 2026  |  
+| [.git-blame-ignore-revs](https://github.com/pytest-dev/pytest/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs")  | [.git-blame-ignore-revs](https://github.com/pytest-dev/pytest/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs")  |  [Fix file name in comment of .git-blame-ignore-revs (](https://github.com/pytest-dev/pytest/commit/9fc8a3ea74490c2801a111a76817bcd4a4030f6d "Fix file name in comment of .git-blame-ignore-revs \(closes #13033\) \(#13034\)
+
+
+As explained in \[issue 13033\]\(https://github.com/pytest-dev/pytest/issues/13033\), the file name on the comment explaining how to setup the *.git-blame-ignore-revs* file weren't up-to-date with the current name of the file.")[closes](https://github.com/pytest-dev/pytest/commit/9fc8a3ea74490c2801a111a76817bcd4a4030f6d "Fix file name in comment of .git-blame-ignore-revs \(closes #13033\) \(#13034\)
+
+
+As explained in \[issue 13033\]\(https://github.com/pytest-dev/pytest/issues/13033\), the file name on the comment explaining how to setup the *.git-blame-ignore-revs* file weren't up-to-date with the current name of the file.") [#13033](https://github.com/pytest-dev/pytest/issues/13033)[) (](https://github.com/pytest-dev/pytest/commit/9fc8a3ea74490c2801a111a76817bcd4a4030f6d "Fix file name in comment of .git-blame-ignore-revs \(closes #13033\) \(#13034\)
+
+
+As explained in \[issue 13033\]\(https://github.com/pytest-dev/pytest/issues/13033\), the file name on the comment explaining how to setup the *.git-blame-ignore-revs* file weren't up-to-date with the current name of the file.")[#…](https://github.com/pytest-dev/pytest/pull/13034)  | Dec 6, 2024  |  
+| [.gitattributes](https://github.com/pytest-dev/pytest/blob/main/.gitattributes ".gitattributes")  | [.gitattributes](https://github.com/pytest-dev/pytest/blob/main/.gitattributes ".gitattributes")  | [Add codecov support to AppVeyor and remove coveralls](https://github.com/pytest-dev/pytest/commit/ec6fca4aa715f16d7e3f68e6d33f9c100075daf2 "Add codecov support to AppVeyor and remove coveralls")  | Sep 5, 2018  |  
+| [.gitignore](https://github.com/pytest-dev/pytest/blob/main/.gitignore ".gitignore")  | [.gitignore](https://github.com/pytest-dev/pytest/blob/main/.gitignore ".gitignore")  | [Clarify `pytest_collection_finish` occurs after setting `session.item…](https://github.com/pytest-dev/pytest/commit/0e9db5fa5a8de151ab43e5d71e0e8192e0456b9d "Clarify `pytest_collection_finish` occurs after setting `session.items` \(#14088\)")  | Jan 6, 2026  |  
+| [.mailmap](https://github.com/pytest-dev/pytest/blob/main/.mailmap ".mailmap")  | [.mailmap](https://github.com/pytest-dev/pytest/blob/main/.mailmap ".mailmap")  | [Change my name](https://github.com/pytest-dev/pytest/commit/2a522af6169e014a76871ff1820ed96160ebfb25 "Change my name")  | Feb 10, 2026  |  
+| [.pre-commit-config.yaml](https://github.com/pytest-dev/pytest/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml")  | [.pre-commit-config.yaml](https://github.com/pytest-dev/pytest/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml")  |  [[pre-commit.ci] pre-commit autoupdate (](https://github.com/pytest-dev/pytest/commit/e984a9b94740697411f5a05fcdfc3299dd20f13a "\[pre-commit.ci\] pre-commit autoupdate \(#14957\)
+
+* \[pre-commit.ci\] pre-commit autoupdate
+
+updates:
+- \[github.com/astral-sh/ruff-pre-commit: v0.16.4 → v0.16.5\]\(https://github.com/astral-sh/ruff-pre-commit/compare/v0.16.4...v0.16.5\)
+- \[github.com/woodruffw/zizmor-pre-commit: v1.29.0 → v1.30.0\]\(https://github.com/woodruffw/zizmor-pre-commit/compare/v1.29.0...v1.30.0\)
+
+* \[pre-commit.ci\] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci
+
+---------
+
+Co-authored-by: pre-commit-ci\[bot\] <66853113+pre-commit-ci\[bot\]@users.noreply.github.com>")[#14957](https://github.com/pytest-dev/pytest/pull/14957)[)](https://github.com/pytest-dev/pytest/commit/e984a9b94740697411f5a05fcdfc3299dd20f13a "\[pre-commit.ci\] pre-commit autoupdate \(#14957\)
+
+* \[pre-commit.ci\] pre-commit autoupdate
+
+updates:
+- \[github.com/astral-sh/ruff-pre-commit: v0.16.4 → v0.16.5\]\(https://github.com/astral-sh/ruff-pre-commit/compare/v0.16.4...v0.16.5\)
+- \[github.com/woodruffw/zizmor-pre-commit: v1.29.0 → v1.30.0\]\(https://github.com/woodruffw/zizmor-pre-commit/compare/v1.29.0...v1.30.0\)
+
+* \[pre-commit.ci\] auto fixes from pre-commit.com hooks
+
+for more information, see https://pre-commit.ci
+
+---------
+
+Co-authored-by: pre-commit-ci\[bot\] <66853113+pre-commit-ci\[bot\]@users.noreply.github.com>")  | Sep 1, 2026  |  
+| [.readthedocs.yaml](https://github.com/pytest-dev/pytest/blob/main/.readthedocs.yaml ".readthedocs.yaml")  | [.readthedocs.yaml](https://github.com/pytest-dev/pytest/blob/main/.readthedocs.yaml ".readthedocs.yaml")  | [docs: update `tox -e docs`/RTD from Python 3.13 to 3.14](https://github.com/pytest-dev/pytest/commit/17f08d356a82a02f88aaa837a573fa3b642dbaab "docs: update `tox -e docs`/RTD from Python 3.13 to 3.14")  | Mar 20, 2026  |  
+| [AUTHORS](https://github.com/pytest-dev/pytest/blob/main/AUTHORS "AUTHORS")  | [AUTHORS](https://github.com/pytest-dev/pytest/blob/main/AUTHORS "AUTHORS")  |  [chore: drop duplicate PLR1714 ruff rule (](https://github.com/pytest-dev/pytest/commit/fdba12e1708313f56e9cf713d260c029764ca2b7 "chore: drop duplicate PLR1714 ruff rule \(#14933\)
+
+Co-authored-by: vyuroshchin <>
+Co-authored-by: Pierre Sassoulas <pierre.sassoulas@gmail.com>")[#14933](https://github.com/pytest-dev/pytest/pull/14933)[)](https://github.com/pytest-dev/pytest/commit/fdba12e1708313f56e9cf713d260c029764ca2b7 "chore: drop duplicate PLR1714 ruff rule \(#14933\)
+
+Co-authored-by: vyuroshchin <>
+Co-authored-by: Pierre Sassoulas <pierre.sassoulas@gmail.com>")  | Aug 27, 2026  |  
+| [CHANGELOG.rst](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst "CHANGELOG.rst")  | [CHANGELOG.rst](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst "CHANGELOG.rst")  | [port the rest of the scripts/docs over to the main branch](https://github.com/pytest-dev/pytest/commit/ff6d5ae278f374cc9343f7e589e05e162158e2cd "port the rest of the scripts/docs over to the main branch")  | Mar 18, 2021  |  
+| [CITATION](https://github.com/pytest-dev/pytest/blob/main/CITATION "CITATION")  | [CITATION](https://github.com/pytest-dev/pytest/blob/main/CITATION "CITATION")  | [Change my name](https://github.com/pytest-dev/pytest/commit/2a522af6169e014a76871ff1820ed96160ebfb25 "Change my name")  | Feb 10, 2026  |  
+| [CODE_OF_CONDUCT.md](https://github.com/pytest-dev/pytest/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [CODE_OF_CONDUCT.md](https://github.com/pytest-dev/pytest/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [Change my name](https://github.com/pytest-dev/pytest/commit/2a522af6169e014a76871ff1820ed96160ebfb25 "Change my name")  | Feb 10, 2026  |  
+| [CONTRIBUTING.rst](https://github.com/pytest-dev/pytest/blob/main/CONTRIBUTING.rst "CONTRIBUTING.rst")  | [CONTRIBUTING.rst](https://github.com/pytest-dev/pytest/blob/main/CONTRIBUTING.rst "CONTRIBUTING.rst")  |  [Merge pull request](https://github.com/pytest-dev/pytest/commit/8d5a9660856b9626b93d1bfda200cd0aeb3a0403 "Merge pull request #14790 from RonnyPfannschmidt/doc/commit-access-is-an-invitation
+
+Doc: commit access follows demonstrated judgement, not a single clean PR") [#14790](https://github.com/pytest-dev/pytest/pull/14790) [from RonnyPfannschmidt/doc/commit-access-is…](https://github.com/pytest-dev/pytest/commit/8d5a9660856b9626b93d1bfda200cd0aeb3a0403 "Merge pull request #14790 from RonnyPfannschmidt/doc/commit-access-is-an-invitation
+
+Doc: commit access follows demonstrated judgement, not a single clean PR")  | Aug 5, 2026  |  
+| [LICENSE](https://github.com/pytest-dev/pytest/blob/main/LICENSE "LICENSE")  | [LICENSE](https://github.com/pytest-dev/pytest/blob/main/LICENSE "LICENSE")  |  [Revert "Update LICENSE, fix license year (](https://github.com/pytest-dev/pytest/commit/0d90a31d4a647fa7ba0d53a05b9266c2d4aaa05a "Revert "Update LICENSE, fix license year \(#13097\)"
+
+This reverts commit f2c3237f51518715db455b33d53bc1fa3c831a04.")[#13097](https://github.com/pytest-dev/pytest/pull/13097)[)"](https://github.com/pytest-dev/pytest/commit/0d90a31d4a647fa7ba0d53a05b9266c2d4aaa05a "Revert "Update LICENSE, fix license year \(#13097\)"
+
+This reverts commit f2c3237f51518715db455b33d53bc1fa3c831a04.")  | Jan 1, 2025  |  
+| [OPENCOLLECTIVE.rst](https://github.com/pytest-dev/pytest/blob/main/OPENCOLLECTIVE.rst "OPENCOLLECTIVE.rst")  | [OPENCOLLECTIVE.rst](https://github.com/pytest-dev/pytest/blob/main/OPENCOLLECTIVE.rst "OPENCOLLECTIVE.rst")  | [doc: fix typos in OPENCOLLECTIVE.rst [ci skip]](https://github.com/pytest-dev/pytest/commit/d5f1d7aebed9bc9e437721d595af11721e934949 "doc: fix typos in OPENCOLLECTIVE.rst  \[ci skip\]")  | Jul 10, 2019  |  
+| [README.rst](https://github.com/pytest-dev/pytest/blob/main/README.rst "README.rst")  | [README.rst](https://github.com/pytest-dev/pytest/blob/main/README.rst "README.rst")  |  [Report security vulnerabilities using GitHub (](https://github.com/pytest-dev/pytest/commit/fbd736f688521fd5d926fa00bb495e720fa6c416 "Report security vulnerabilities using GitHub \(#14549\)
+
+Direct users to report security vulnerabilities using GitHub's security advisory.
+
+This was one of the options suggested by Tidelift's support during an email exchange about a new vulnerability, which seems like a good idea as is easier for users and directly integrated into our workflow.")[#14549](https://github.com/pytest-dev/pytest/pull/14549)[)](https://github.com/pytest-dev/pytest/commit/fbd736f688521fd5d926fa00bb495e720fa6c416 "Report security vulnerabilities using GitHub \(#14549\)
+
+Direct users to report security vulnerabilities using GitHub's security advisory.
+
+This was one of the options suggested by Tidelift's support during an email exchange about a new vulnerability, which seems like a good idea as is easier for users and directly integrated into our workflow.")  | Jun 4, 2026  |  
+| [RELEASING.rst](https://github.com/pytest-dev/pytest/blob/main/RELEASING.rst "RELEASING.rst")  | [RELEASING.rst](https://github.com/pytest-dev/pytest/blob/main/RELEASING.rst "RELEASING.rst")  |  [doc: fix ~75 typos and grammar issues across documentation (](https://github.com/pytest-dev/pytest/commit/b2310f28314249e4bfa1e0b9817dbef5cb968f4d "doc: fix ~75 typos and grammar issues across documentation \(#14179\)
+
+Fix typos, grammar errors, and broken RST directives found across 37 documentation files including how-to guides, reference docs, examples, explanations, and project root files.
+
+Notable fixes:
+- Broken RST directives \(``.. note:`` → ``.. note::``\)
+- Subject-verb agreement errors
+- Missing/incorrect articles and prepositions
+- Incorrect verb forms \("teared down" → "torn down"\)
+- Duplicate words and extra spaces
+- Wrong URL in changelog \(pytest → pytest-xdist\)
+- Ordinal typo \("3th" → "3rd"\)")[#14179](https://github.com/pytest-dev/pytest/pull/14179)[)](https://github.com/pytest-dev/pytest/commit/b2310f28314249e4bfa1e0b9817dbef5cb968f4d "doc: fix ~75 typos and grammar issues across documentation \(#14179\)
+
+Fix typos, grammar errors, and broken RST directives found across 37 documentation files including how-to guides, reference docs, examples, explanations, and project root files.
+
+Notable fixes:
+- Broken RST directives \(``.. note:`` → ``.. note::``\)
+- Subject-verb agreement errors
+- Missing/incorrect articles and prepositions
+- Incorrect verb forms \("teared down" → "torn down"\)
+- Duplicate words and extra spaces
+- Wrong URL in changelog \(pytest → pytest-xdist\)
+- Ordinal typo \("3th" → "3rd"\)")  | Feb 11, 2026  |  
+| [SECURITY.md](https://github.com/pytest-dev/pytest/blob/main/SECURITY.md "SECURITY.md")  | [SECURITY.md](https://github.com/pytest-dev/pytest/blob/main/SECURITY.md "SECURITY.md")  |  [Report security vulnerabilities using GitHub (](https://github.com/pytest-dev/pytest/commit/fbd736f688521fd5d926fa00bb495e720fa6c416 "Report security vulnerabilities using GitHub \(#14549\)
+
+Direct users to report security vulnerabilities using GitHub's security advisory.
+
+This was one of the options suggested by Tidelift's support during an email exchange about a new vulnerability, which seems like a good idea as is easier for users and directly integrated into our workflow.")[#14549](https://github.com/pytest-dev/pytest/pull/14549)[)](https://github.com/pytest-dev/pytest/commit/fbd736f688521fd5d926fa00bb495e720fa6c416 "Report security vulnerabilities using GitHub \(#14549\)
+
+Direct users to report security vulnerabilities using GitHub's security advisory.
+
+This was one of the options suggested by Tidelift's support during an email exchange about a new vulnerability, which seems like a good idea as is easier for users and directly integrated into our workflow.")  | Jun 4, 2026  |  
+| [TIDELIFT.rst](https://github.com/pytest-dev/pytest/blob/main/TIDELIFT.rst "TIDELIFT.rst")  | [TIDELIFT.rst](https://github.com/pytest-dev/pytest/blob/main/TIDELIFT.rst "TIDELIFT.rst")  | [add myself to tidelift](https://github.com/pytest-dev/pytest/commit/37b340109130c679cddcf2bc3eb1e813827d6acb "add myself to tidelift")  | Mar 4, 2024  |  
+| [codecov.yml](https://github.com/pytest-dev/pytest/blob/main/codecov.yml "codecov.yml")  | [codecov.yml](https://github.com/pytest-dev/pytest/blob/main/codecov.yml "codecov.yml")  | [require patches to be 100% coverage, instead of current project cover…](https://github.com/pytest-dev/pytest/commit/94f4409a4fbd9aa02a671ada6f216949b6204668 "require patches to be 100% coverage, instead of current project coverage%")  | Mar 5, 2025  |  
+| [pyproject.toml](https://github.com/pytest-dev/pytest/blob/main/pyproject.toml "pyproject.toml")  | [pyproject.toml](https://github.com/pytest-dev/pytest/blob/main/pyproject.toml "pyproject.toml")  |  [chore: drop duplicate PLR1714 ruff rule (](https://github.com/pytest-dev/pytest/commit/fdba12e1708313f56e9cf713d260c029764ca2b7 "chore: drop duplicate PLR1714 ruff rule \(#14933\)
+
+Co-authored-by: vyuroshchin <>
+Co-authored-by: Pierre Sassoulas <pierre.sassoulas@gmail.com>")[#14933](https://github.com/pytest-dev/pytest/pull/14933)[)](https://github.com/pytest-dev/pytest/commit/fdba12e1708313f56e9cf713d260c029764ca2b7 "chore: drop duplicate PLR1714 ruff rule \(#14933\)
+
+Co-authored-by: vyuroshchin <>
+Co-authored-by: Pierre Sassoulas <pierre.sassoulas@gmail.com>")  | Aug 27, 2026  |  
+| [tox.ini](https://github.com/pytest-dev/pytest/blob/main/tox.ini "tox.ini")  | [tox.ini](https://github.com/pytest-dev/pytest/blob/main/tox.ini "tox.ini")  | [fix: address review feedback for uv allowlist and dev extra](https://github.com/pytest-dev/pytest/commit/1e9fc691e6d9138b8c1205f51c124bbfa8e690bd "fix: address review feedback for uv allowlist and dev extra
+
+Keep optional-dependencies.dev so CONTRIBUTING's pip install -e ".\[dev\]"
+still works, and allowlist uv for the plugins tox env.
+
+Co-authored-by: Cursor AI <ai@cursor.sh>
+Co-authored-by: Cursor Grok 4.5 <grok@x.ai>")  | Jul 21, 2026  |  
+| [uv.lock](https://github.com/pytest-dev/pytest/blob/main/uv.lock "uv.lock")  | [uv.lock](https://github.com/pytest-dev/pytest/blob/main/uv.lock "uv.lock")  | [Point developer installs at the dependency group via pytest[dev]](https://github.com/pytest-dev/pytest/commit/449b3f177d05f859169cb9b63b1460490a3a6af9 "Point developer installs at the dependency group via pytest\[dev\]
+
+Keep the published `dev` extra for external repos that still use it,
+have `\[dependency-groups\].dev` pull from that extra, and document only
+the group-based install path for contributing.
+
+Co-authored-by: Cursor AI <ai@cursor.sh>
+Co-authored-by: Cursor Grok 4.5 <grok@x.ai>")  | Jul 21, 2026  |  
+| View all files |  
+[![pytest](https://github.com/pytest-dev/pytest/raw/main/doc/en/img/pytest_logo_curves.svg) ](https://docs.pytest.org/en/stable/)
+* * *
+[![](https://camo.githubusercontent.com/fcd4c7ef9285ea27ab72839cc8426c718e8f1806c9d4401a2249fcc3e8a4ad04/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f7079746573742e737667) ](https://pypi.org/project/pytest/) [![](https://camo.githubusercontent.com/4ff8b4b19023315ec4937ebb2c556601bd29965fef12f57ee460ba782d42d6ef/68747470733a2f2f696d672e736869656c64732e696f2f636f6e64612f766e2f636f6e64612d666f7267652f7079746573742e737667) ](https://anaconda.org/conda-forge/pytest) [![](https://camo.githubusercontent.com/1649ec2cb46fb5521249dbffe132a12941ac951282e51f6621e2f82246465023/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f7079746573742e737667) ](https://pypi.org/project/pytest/) [![Code coverage Status](https://camo.githubusercontent.com/28964991a3f5f4e6cd3f430890fadd714fec354ee7805dca9751c30e63f978a6/68747470733a2f2f636f6465636f762e696f2f67682f7079746573742d6465762f7079746573742f6272616e63682f6d61696e2f67726170682f62616467652e737667) ](https://codecov.io/gh/pytest-dev/pytest) [![](https://github.com/pytest-dev/pytest/actions/workflows/test.yml/badge.svg) ](https://github.com/pytest-dev/pytest/actions?query=workflow%3Atest) [![pre-commit.ci status](https://camo.githubusercontent.com/fba81a5fcdf89abbb475b52554f947ab770aab9566f0a12b951f69698b37c36b/68747470733a2f2f726573756c74732e7072652d636f6d6d69742e63692f62616467652f6769746875622f7079746573742d6465762f7079746573742f6d61696e2e737667) ](https://results.pre-commit.ci/latest/github/pytest-dev/pytest/main) [![](https://camo.githubusercontent.com/981ee696193c7179ab340f1ce90ace3fd5dff136e36b329acaba0e0486f50af2/68747470733a2f2f7777772e636f64657472696167652e636f6d2f7079746573742d6465762f7079746573742f6261646765732f75736572732e737667) ](https://www.codetriage.com/pytest-dev/pytest) [![Documentation Status](https://camo.githubusercontent.com/355fb166731d620df1db2c29b2a44b05487c71a6521c553978320568793b1c23/68747470733a2f2f72656164746865646f63732e6f72672f70726f6a656374732f7079746573742f62616467652f3f76657273696f6e3d6c6174657374)](https://pytest.readthedocs.io/en/latest/?badge=latest) [![Discord](https://camo.githubusercontent.com/9906f54d325942581813fa8e76f999eea0850f7b117fe722a0bf0d5b1318ace9/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446973636f72642d7079746573742d2d6465762d626c7565)](https://discord.com/invite/pytest-dev) [![Libera chat](https://camo.githubusercontent.com/29c300c28c4167300866b18172d45110d1ad03ad854df75f18bd1a3742e93cc4/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4c6962657261253230636861742d2532337079746573742d6f72616e6765)](https://web.libera.chat/#pytest)
+The `pytest` framework makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries.
+An example of a simple test:
+
+```
+# content of test_sample.py
+def inc(x):
+    return x + 1
+
+
+def test_answer():
+    assert inc(3) == 5
+```
+
+To execute it:
+
+```
+$ pytest
+============================= test session starts =============================
+collected 1 items
+
+test_sample.py F
+
+================================== FAILURES ===================================
+_________________________________ test_answer _________________________________
+
+    def test_answer():
+>       assert inc(3) == 5
+E       assert 4 == 5
+E        +  where 4 = inc(3)
+
+test_sample.py:5: AssertionError
+========================== 1 failed in 0.04 seconds ===========================
+
+```
+
+Thanks to `pytest`'s detailed assertion introspection, you can simply use plain `assert` statements. See [getting-started](https://docs.pytest.org/en/stable/getting-started.html#our-first-test-run) for more examples.
+## Features
+[](https://github.com/pytest-dev/pytest#features)
+  * Detailed info on failing [assert statements](https://docs.pytest.org/en/stable/how-to/assert.html) (no need to remember `self.assert*` names)
+  * [Auto-discovery](https://docs.pytest.org/en/stable/explanation/goodpractices.html#python-test-discovery) of test modules and functions
+  * [Modular fixtures](https://docs.pytest.org/en/stable/explanation/fixtures.html) for managing small or parametrized long-lived test resources
+  * Can run [unittest](https://docs.pytest.org/en/stable/how-to/unittest.html) (or trial) test suites out of the box
+  * Python 3.10+ or PyPy3
+  * Rich plugin architecture, with over 1300+ [external plugins](https://docs.pytest.org/en/latest/reference/plugin_list.html) and thriving community
+
+
+## Documentation
+[](https://github.com/pytest-dev/pytest#documentation)
+For full documentation, including installation, tutorials and PDF documents, please see <https://docs.pytest.org/en/stable/>.
+## Bugs/Requests
+[](https://github.com/pytest-dev/pytest#bugsrequests)
+Please use the [GitHub issue tracker](https://github.com/pytest-dev/pytest/issues) to submit bugs or request features.
+## Changelog
+[](https://github.com/pytest-dev/pytest#changelog)
+Consult the [Changelog](https://docs.pytest.org/en/stable/changelog.html) page for fixes and enhancements of each version.
+## Support pytest
+[](https://github.com/pytest-dev/pytest#support-pytest)
+[Open Collective](https://opencollective.com) is an online funding platform for open and transparent communities. It provides tools to raise money and share your finances in full transparency.
+It is the platform of choice for individuals and companies that want to make one-time or monthly donations directly to the project.
+See more details in the [pytest collective](https://opencollective.com/pytest).
+## pytest for enterprise
+[](https://github.com/pytest-dev/pytest#pytest-for-enterprise)
+Available as part of the Tidelift Subscription.
+The maintainers of pytest and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use.
+[Learn more.](https://tidelift.com/subscription/pkg/pypi-pytest?utm_source=pypi-pytest&utm_medium=referral&utm_campaign=enterprise&utm_term=repo)
+### Security
+[](https://github.com/pytest-dev/pytest#security)
+If you have found an issue that you believe is a security vulnerability, please do not create an issue -- instead, report it via a [new security advisory](https://github.com/pytest-dev/pytest/security/advisories/new).
+## License
+[](https://github.com/pytest-dev/pytest#license)
+Copyright Holger Krekel and others, 2004.
+Distributed under the terms of the [MIT](https://github.com/pytest-dev/pytest/blob/main/LICENSE) license, pytest is free and open source software.
+## About
+The pytest framework makes it easy to write small tests, yet scales to support complex functional testing
+[pytest.org](https://pytest.org)
+[hacktoberfest](https://github.com/topics/hacktoberfest)[python](https://github.com/topics/python)[test](https://github.com/topics/test)[testing](https://github.com/topics/testing)[unit-testing](https://github.com/topics/unit-testing)
+[Readme](https://github.com/pytest-dev/pytest#readme-ov-file)
+[MIT license](https://github.com/pytest-dev/pytest#MIT-1-ov-file)
+[Code of conduct](https://github.com/pytest-dev/pytest#coc-ov-file)
+[Contributing](https://github.com/pytest-dev/pytest#contributing-ov-file)
+[Security policy](https://github.com/pytest-dev/pytest#security-ov-file)
+Cite this repository
+[Activity](https://github.com/pytest-dev/pytest/activity)
+[Custom properties](https://github.com/pytest-dev/pytest/custom-properties)
+**14.5k** stars
+**192** watching
+[**3.3k** forks](https://github.com/pytest-dev/pytest/forks)
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest&report=pytest-dev+%28user%29)
+## [Releases](https://github.com/pytest-dev/pytest/releases)84
+[ 9.1.1Latest Jun 19, 2026 ](https://github.com/pytest-dev/pytest/releases/tag/9.1.1)
+[+ 83 releases](https://github.com/pytest-dev/pytest/releases)
+## Sponsor this project
+  * [![@pytest-dev](https://avatars.githubusercontent.com/u/8897583?s=64&v=4)](https://github.com/pytest-dev)[**pytest-dev**](https://github.com/pytest-dev) pytest-dev[](https://github.com/sponsors/pytest-dev)Sponsor @pytest-dev
+
+
+  * ![](https://github.githubassets.com/assets/tidelift-8cea37dea8fc.svg)[tidelift.com/funding/github/pypi/pytest](https://tidelift.com/funding/github/pypi/pytest)
+  * ![](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)[opencollective.com/pytest](https://opencollective.com/pytest)
+  * ![](https://github.githubassets.com/assets/thanks_dev-0fe87803d1ed.svg)[thanks.dev/u/gh/pytest-dev](https://thanks.dev/u/gh/pytest-dev)
+
+
+[Learn more about GitHub Sponsors](https://github.com/sponsors)
+## [Used by](https://github.com/pytest-dev/pytest/network/dependents)1.7M
+[ ![@Sylverity](https://avatars.githubusercontent.com/u/279568455?s=64&v=4)![@707Whistleblower](https://avatars.githubusercontent.com/u/288909343?s=64&v=4)![@boanlab](https://avatars.githubusercontent.com/u/124050145?s=64&v=4)![@fabiojbg](https://avatars.githubusercontent.com/u/6280992?s=64&v=4)![@Rachit-Gandhi](https://avatars.githubusercontent.com/u/77197545?s=64&v=4) + 1,712,069](https://github.com/pytest-dev/pytest/network/dependents)
+## [Contributors](https://github.com/pytest-dev/pytest/graphs/contributors)990
+  * [![@nicoddemus](https://avatars.githubusercontent.com/u/1085180?s=64&v=4)](https://github.com/nicoddemus)
+  * [![@hpk42](https://avatars.githubusercontent.com/u/73579?s=64&v=4)](https://github.com/hpk42)
+  * [![@bluetech](https://avatars.githubusercontent.com/u/1223550?s=64&v=4)](https://github.com/bluetech)
+  * [![@blueyed](https://avatars.githubusercontent.com/u/9766?s=64&v=4)](https://github.com/blueyed)
+  * [![@RonnyPfannschmidt](https://avatars.githubusercontent.com/u/156838?s=64&v=4)](https://github.com/RonnyPfannschmidt)
+  * [![@asottile](https://avatars.githubusercontent.com/u/1810591?s=64&v=4)](https://github.com/asottile)
+  * [![@dependabot\[bot\]](https://avatars.githubusercontent.com/in/29110?s=64&v=4)](https://github.com/dependabot\[bot\])
+  * [![@The-Compiler](https://avatars.githubusercontent.com/u/625793?s=64&v=4)](https://github.com/The-Compiler)
+  * [![@pre-commit-ci\[bot\]](https://avatars.githubusercontent.com/in/68672?s=64&v=4)](https://github.com/pre-commit-ci\[bot\])
+  * [![@pytestbot](https://avatars.githubusercontent.com/u/12873537?s=64&v=4)](https://github.com/pytestbot)
+  * [![@benjaminp](https://avatars.githubusercontent.com/u/219470?s=64&v=4)](https://github.com/benjaminp)
+  * [![@Pierre-Sassoulas](https://avatars.githubusercontent.com/u/5493666?s=64&v=4)](https://github.com/Pierre-Sassoulas)
+  * [![@flub](https://avatars.githubusercontent.com/u/146720?s=64&v=4)](https://github.com/flub)
+  * [![@github-actions\[bot\]](https://avatars.githubusercontent.com/in/15368?s=64&v=4)](https://github.com/github-actions\[bot\])
+
+
+[+ 976 contributors](https://github.com/pytest-dev/pytest/graphs/contributors)
+## Languages
+  * [Python100%](https://github.com/pytest-dev/pytest/search?l=python)
+
+
+[ ](https://github.com) © 2026 GitHub, Inc. 
+  * [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+  * [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+  * [Security](https://github.com/security)
+  * [Status](https://www.githubstatus.com/)
+  * [Community](https://github.community/)
+  * [Docs](https://docs.github.com/)
+  * [Contact](https://support.github.com?tags=dotcom-footer)
+  * Manage cookies 
+  * Do not share my personal information 
+
+
+You can’t perform that action at this time. 

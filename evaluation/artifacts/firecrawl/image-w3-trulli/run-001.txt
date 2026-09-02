@@ -1,0 +1,49 @@
+[w3schools.com Home](https://www.w3schools.com/ "w3schools.com Home") Run ❯ [Get your own website](https://www.w3schools.com/spaces/) Result Size: 938 x 934
+
+❯Run Code Ctrl+Alt+RSave Code Ctrl+Alt+AChange Orientation Ctrl+Alt+OChange Theme Ctrl+Alt+D [![](https://www.w3schools.com/images/spaces-icon-tryit.svg)Go to Spaces Ctrl+Alt+P](https://spaces.w3schools.com/ "Go to Spaces")
+
+​x
+
+```
+<!DOCTYPE html>
+```
+
+```
+<html>
+```
+
+```
+<body>
+```
+
+```
+​
+```
+
+```
+<h2>HTML Image</h2>
+```
+
+```
+<img src="pic_trulli.jpg" alt="Trulli" width="500" height="333">
+```
+
+```
+​
+```
+
+```
+</body>
+```
+
+```
+</html>
+```
+
+```
+​
+```
+
+```
+​
+```

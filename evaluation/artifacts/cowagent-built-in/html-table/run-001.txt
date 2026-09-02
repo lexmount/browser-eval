@@ -1,0 +1,2270 @@
+Title: HTML Tables
+
+Content:
+HTML Tables
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Tutorials
+
+
+
+
+References
+
+
+
+
+Exercises
+
+
+
+
+Certificates
+
+
+
+
+
+Menu
+
+
+
+
+
+
+Search field
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+&times;
+
+
+
+
+
+
+See More
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sign In
+
+
+
+Sign Up
+-->
+user-anonymous -->
+
+
+-->
+
+
+
+
+
+
+
+-->
+
+
+
+
+&#x2605;
++1
+
+-->
+
+
+My W3Schools
+
+-->
+user-authenticated -->
+
+
+
+
+
+Get Certified
+
+
+
+
+
+
+
+Upgrade
+
+
+
+
+
+Academy
+
+
+
+
+
+Spaces
+
+
+
+
+
+Practice
+
+user-anonymous - action-btn -->
+
+
+
+
+
+Get Certified
+
+
+
+
+
+
+
+Upgrade
+
+
+
+
+
+Academy
+
+
+
+
+
+Spaces
+
+
+
+
+
+Practice
+
+user-authenticated - action-btn -->
+
+
+
+
+
+
+
+
+&#xe80b;
+
+
+
+
+My W3Schools
+
+
+
+Tutorials
+
+
+
+
+
+
+
+
+References
+
+
+
+
+
+
+
+
+Exercises
+
+
+
+
+
+
+
+
+Certificates
+
+
+
+
+
+
+
+Spaces
+
+
+
+
+
+Get Certified
+
+
+
+
+
+Plus
+
+
+
+
+
+
+
+Practice
+
+
+Academy
+
+
+
+All our Services
+
+
+
+
+
+
+
+Logout
+
+
+
+
+
+
+
+&#62220;
+
+
+
+
+&#59399;
+
+
+
+
+&#59398;
+
+
+
+
+&#61805;
+
+
+
+
+
+&times;
+
+
+
+
+
+
+
+&times;
+
+
+Tutorials
+
+
+
+Tutorials
+Learn web development, programming, data science, and more.
+
+
+
+W3SCHOOLS TUTORIALS:
+
+
+
+&times;
+
+
+
+
+
+
+
+
+
+
+&larr; All Topics
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+&times;
+
+
+References
+
+
+
+
+W3SCHOOLS REFERENCES:
+
+
+
+&times;
+
+
+
+
+
+
+
+HTML
+Tag reference
+
+
+
+CSS
+Reference
+
+
+
+JavaScript
+Reference
+
+
+
+SQL
+Keyword reference
+
+
+
+Python
+Reference
+
+
+
+Java
+Reference
+
+
+
+C
+Reference
+
+
+
+C++
+Reference
+
+
+
+Colors
+Color names
+
+
+
+PHP
+Reference
+
+
+
+HTML DOM
+Reference
+
+
+
+MySQL
+Reference
+
+
+
+W3.CSS
+Reference
+
+
+
+Bootstrap 3
+Reference
+
+
+
+Bootstrap 4
+Reference
+
+
+
+Node.js
+Reference
+
+
+
+Django
+Reference
+
+
+
+jQuery
+Reference
+
+
+
+Vue
+Attributes
+
+
+
+Angular
+Reference
+
+
+
+Sass
+Reference
+
+
+
+XML
+Reference
+
+
+
+JSON
+Reference
+
+
+
+ASP
+Reference
+
+
+
+Icons
+Reference
+
+
+
+SVG
+Reference
+
+
+
+Canvas
+Reference
+
+
+
+Charsets
+Reference
+
+
+
+Emojis
+Reference
+
+
+
+AppML
+Reference
+
+
+
+W3.JS
+Reference
+
+
+
+
+
+
+
+
+
+
+
+&times;
+
+
+Exercises
+Practice and test your skills with different exercises.
+
+
+
+
+
+Tip:
+Sign in
+to track your progress.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Select another topic:
+
+
+
+&times;
+
+
+
+
+
+
+
+
+HTML
+Exercises
+
+
+
+
+CSS
+Exercises
+
+
+
+
+JavaScript
+Exercises
+
+
+
+
+SQL
+Exercises
+
+
+
+
+Python
+Exercises
+
+
+
+
+Java
+Exercises
+
+
+
+
+C
+Exercises
+
+
+
+
+C++
+Exercises
+
+
+
+
+C#
+Exercises
+
+
+
+
+PHP
+Exercises
+
+
+
+
+React
+Exercises
+
+
+
+
+MySQL
+Exercises
+
+
+
+
+Excel
+Exercises
+
+
+
+
+DSA
+Exercises
+
+
+
+
+Bootstrap 3
+Exercises
+
+
+
+
+Bootstrap 4
+Exercises
+
+
+
+
+Bootstrap 5
+Exercises
+
+
+
+
+Node.js
+Exercises
+
+
+
+
+TypeScript
+Exercises
+
+
+
+
+Django
+Exercises
+
+
+
+
+PostgreSQL
+Exercises
+
+
+
+
+jQuery
+Exercises
+
+
+
+
+NumPy
+Exercises
+
+
+
+
+Pandas
+Exercises
+
+
+
+
+Angular
+Exercises
+
+
+
+
+Git
+Exercises
+
+
+
+
+MongoDB
+Exercises
+
+
+
+
+R
+Exercises
+
+
+
+
+Go
+Exercises
+
+
+
+
+Kotlin
+Exercises
+
+
+
+
+Swift
+Exercises
+
+
+
+
+Vue
+Exercises
+
+
+
+
+SciPy
+Exercises
+
+
+
+
+Bash
+Exercises
+
+
+
+
+
+
+
+
+
+
+Choose an activity
+
+
+
+&larr; Back to topics
+
+
+
+
+Tip:
+
+Sign in
+
+to track your progress.
+
+
+
+
+
+
+
+
+&times;
+
+
+Get Certified
+
+
+
+
+
+W3SCHOOLS CERTIFICATES:
+
+
+
+
+&times;
+
+
+
+
+
+
+
+HTML
+
+
+
+CSS
+
+
+
+JavaScript
+
+
+
+
+
+
+
+SQL
+
+
+
+Python
+
+
+
+Java
+
+
+
+C
+
+
+
+C++
+
+
+
+C#
+
+
+
+PHP
+
+
+
+React
+
+
+
+MySQL
+
+
+
+Excel
+
+
+
+DSA
+
+
+
+W3.CSS
+
+
+
+Bootstrap 3
+
+
+
+Bootstrap 4
+
+
+
+Bootstrap 5
+
+
+
+Node.js
+
+
+
+TypeScript
+
+
+
+Django
+
+
+
+PostgreSQL
+
+
+
+jQuery
+
+
+
+Vue
+
+
+
+NumPy
+
+
+
+Pandas
+
+
+
+XML
+
+
+
+Cyber Security
+
+
+
+Accessibility
+
+
+
+AngularJS
+
+
+
+Git
+
+
+
+MongoDB
+
+
+
+R
+
+
+
+Go
+
+
+
+Kotlin
+
+
+
+SASS
+
+
+
+SciPy
+
+
+
+BASH
+
+
+
+Rust
+
+
+
+
+
+
+
+
+
+
+
+All Our Services
+
+
+
+
+Dark mode
+
+
+
+&#xe80b;
+
+
+
+
+
+
+Services filter input
+
+
+
+&times;
+
+
+
+
+
+
+W3Schools offers a wide range of services and products for beginners and professionals,
+
+helping millions of people everyday to learn and master new skills.
+
+
+
+
+
+
+Free Tutorials
+Enjoy our free tutorials like millions of other internet users since 1999
+
+
+
+
+
+
+References
+Explore our selection of references covering all popular coding languages
+
+
+
+
+
+
+Create a Website
+
+Create your own website with
+W3Schools Spaces
+- no setup required
+
+
+
+
+
+
+
+Exercises
+Test your skills with different exercises
+
+
+
+
+
+
+Quizzes
+Test yourself with multiple choice questions
+
+
+
+
+
+
+Code Challenges
+Test your skills with interactive code challenges
+
+
+
+
+
+
+Get Certified
+Document your knowledge
+
+
+
+
+
+
+
+
+
+
+
+Log in / Sign Up
+Create an account to track your progress
+
+
+
+
+
+
+League
+Earn XP and climb the ranks with different challenges
+
+
+
+
+
+
+Upgrade
+Become a PLUS user and unlock powerful features (ad-free, hosting, support,..)
+
+
+
+
+
+
+
+
+
+
+
+Where To Start
+Not sure where you want to start? Follow our guided path
+
+
+
+
+
+
+Code Editor (Try it)
+With our online code editor, you can edit code and view the result in your browser
+
+
+
+
+
+
+Templates
+We have created a bunch of responsive website templates you can use - for free!
+
+
+
+
+
+
+Web Hosting
+
+Host your own website, and share it to the world with
+W3Schools Spaces
+
+
+
+
+
+
+
+Create a Server
+Create your own server using Python, PHP, React.js, Node.js, Java, C#, etc.
+
+
+
+
+
+
+
+
+
+
+
+How To's
+Large collection of code snippets for HTML, CSS and JavaScript
+
+
+
+
+
+
+CSS Framework
+
+Build fast and responsive sites using our free
+W3.CSS
+framework
+
+
+
+
+
+
+
+Videos
+Learn the basics of HTML in a fun and engaging video tutorial
+
+
+
+
+
+
+
+
+
+
+
+Browser Statistics
+Read long term trends of browser usage
+
+
+
+
+
+
+Typing Speed
+Test your typing speed
+
+
+
+
+
+
+AWS Training
+Learn Amazon Web Services
+
+
+
+-->
+
+
+
+Color Picker
+
+Use our color picker to find different RGB, HEX and HSL colors.
+
+
+
+
+
+
+
+
+Newsletter
+Join our newsletter and get access to exclusive content every month
+
+
+
+
+
+
+Set Goal
+Get personalized learning journey based on your current skills and goals
+
+
+
+-->
+
+
+
+Emojis Reference
+
+Check out our refererence page with all the emojis supported in HTML
+
+&#128522;
+
+
+
+
+
+
+
+
+Code Game
+
+W3Schools Coding Game! Help the lynx collect pine cones
+
+
+
+
+
+
+
+
+UTF-8 Reference
+Check out our full UTF-8 Character reference
+
+
+
+
+
+
+Community
+Chat, Learn and Connect with Us on Discord
+
+
+
+
+
+
+Academy
+Contact us about W3Schools Academy for educational institutions
+
+
+
+
+
+
+For Businesses
+Contact us about W3Schools Academy for your organization
+
+
+
+
+
+
+Contact Us
+
+About sales:
+sales@w3schools.com
+
+About errors:
+help@w3schools.com
+
+
+
+
+
+
+
+
+
+
+&#62220;
+
+
+
+
+&#59399;
+
+
+
+
+&#59398;
+
+
+
+
+&#61805;
+
+
+
+
+
+&times;
+
+
+
+
+
+
+
+
+
+
+
+
+&#10094;
+
+
+&#10095;
+
+
+
+
+
+
+
+
+
+HTML
+CSS
+JAVASCRIPT
+SQL
+PYTHON
+JAVA
+PHP
+C
+C++
+C#
+AWS
+W3.CSS
+HOW TO
+BOOTSTRAP
+REACT
+MYSQL
+JQUERY
+EXCEL
+XML
+DJANGO
+NUMPY
+PANDAS
+NODEJS
+DSA
+TYPESCRIPT
+ANGULAR
+ANGULARJS
+GIT
+POSTGRESQL
+MONGODB
+ASP
+AI
+R
+GO
+KOTLIN
+SWIFT
+SASS
+VUE
+GEN AI
+SCIPY
+CYBERSECURITY
+DATA SCIENCE
+INTRO TO PROGRAMMING
+INTRO TO HTML & CSS
+BASH
+RUST
+TOOLS
+
+
+
+
+
+
+
+
+HTML
+CSS
+JAVASCRIPT
+SQL
+PYTHON
+JAVA
+PHP
+BOOTSTRAP
+HOW TO
+W3.CSS
+C
+C++
+C#
+REACT
+R
+JQUERY
+DJANGO
+TYPESCRIPT
+NODEJS
+MYSQL
+SWIFT
+
+
+
+-->
+
+
+
+&times;-->
+HTML Tutorial
+HTML HOME
+HTML Introduction
+
+Introduction
+Exercises
+
+HTML Editors
+HTML Basic
+
+Basic
+Exercises
+Code Challenge
+
+HTML Elements
+
+Elements
+Exercises
+Code Challenge
+
+HTML Attributes
+
+Attributes
+Exercises
+Code Challenge
+
+HTML Headings
+
+Headings
+Exercises
+Code Challenge
+
+HTML Paragraphs
+
+Paragraphs
+Exercises
+Code Challenge
+
+HTML Styles
+
+Styles
+Exercises
+Code Challenge
+
+HTML Formatting
+
+Formatting
+Exercises
+Code Challenge
+
+HTML Quotations
+
+Quotations
+Exercises
+Code Challenge
+
+HTML Comments
+
+Comments
+Exercises
+Code Challenge
+
+HTML Colors
+
+Colors
+RGB
+HEX
+HSL
+Exercises
+Code Challenge
+
+HTML CSS
+
+CSS
+Exercises
+Code Challenge
+
+HTML Links
+
+Links
+Link Colors
+Link Bookmarks
+Exercises
+Code Challenge
+
+HTML Images
+
+Images
+Image Map
+Background Images
+The Picture Element
+Exercises
+Code Challenge
+
+HTML Project
+HTML Favicon
+
+Favicon
+Exercises
+
+HTML Page Title
+
+Page Title
+Exercises
+
+HTML Tables
+
+HTML Tables
+Table Borders
+Table Sizes
+Table Headers
+Padding & Spacing
+Colspan & Rowspan
+Table Styling
+Table Colgroup
+Exercises
+Code Challenge
+
+HTML Lists
+
+Lists
+Unordered Lists
+Ordered Lists
+Other Lists
+Exercises
+Code Challenge
+
+HTML Block & Inline
+
+Block & Inline
+Exercises
+Code Challenge
+
+HTML Div
+
+Div
+Exercises
+Code Challenge
+
+HTML Classes
+
+Classes
+Exercises
+Code Challenge
+
+HTML Id
+
+Id
+Exercises
+Code Challenge
+
+HTML Buttons
+
+Buttons
+Code Challenge
+
+HTML Iframes
+
+Iframes
+Exercises
+Code Challenge
+
+HTML JavaScript
+
+JavaScript
+Exercises
+Code Challenge
+
+HTML File Paths
+
+File Paths
+Code Challenge
+
+HTML Head
+
+Head
+Exercises
+Code Challenge
+
+HTML Layout
+
+Layout
+Code Challenge
+
+HTML Responsive
+
+Responsive
+Exercises
+Code Challenge
+
+HTML Computercode
+
+Computercode
+Exercises
+Code Challenge
+
+HTML Semantics
+
+Semantics
+Exercises
+Code Challenge
+
+HTML Style Guide
+HTML Entities
+
+Entities
+Exercises
+Code Challenge
+
+HTML Symbols
+HTML Emojis
+HTML Charsets
+HTML URL Encode
+HTML vs. XHTML
+
+HTML Forms
+HTML Forms
+
+Forms
+Exercises
+Code Challenge
+
+HTML Form Attributes
+
+Form Attributes
+Exercises
+
+HTML Form Elements
+
+Form Elements
+Exercises
+Code Challenge
+
+HTML Input Types
+
+Input Types
+Exercises
+Code Challenge
+
+HTML Input Attributes
+
+Input Attributes
+Exercises
+
+Input Form Attributes
+
+Input Form Attributes
+Exercises
+
+HTML Graphics
+HTML Canvas
+
+Canvas
+Code Challenge
+
+HTML SVG
+
+SVG
+Code Challenge
+
+HTML Media
+HTML Media
+HTML Video
+
+Video
+Code Challenge
+
+HTML Audio
+
+Audio
+Code Challenge
+
+HTML Plug-ins
+HTML YouTube
+
+HTML APIs
+HTML Web APIs
+HTML Geolocation
+HTML Drag and Drop
+HTML Web Storage
+HTML Web Workers
+HTML SSE
+
+HTML Cert
+HTML Certificate
+
+HTML Examples
+HTML Examples
+HTML Editor
+HTML Quiz
+HTML Exercises
+HTML Challenges
+HTML Website
+HTML Syllabus
+HTML Study Plan
+HTML Interview Prep
+HTML Summary
+HTML Accessibility
+
+HTML References
+HTML Tag List
+HTML Attributes
+HTML Global Attributes
+HTML Browser Support
+HTML Events
+HTML Colors
+HTML Canvas
+HTML Audio/Video
+HTML Doctypes
+HTML Character Sets
+HTML URL Encode
+HTML Lang Codes
+HTTP Messages
+HTTP Methods
+PX to EM Converter
+Keyboard Shortcuts
+
+
+
+
+
+ny:-->
+
+ny:-->
+
+
+ny:-->
+
+
+
+
+
+HTML Tables
+
+&#10094; Previous
+Next &#10095;
+
+HTML tables allow web developers to arrange data into rows and
+columns.
+
+Example
+
+
+Company
+Contact
+Country
+
+
+Alfreds Futterkiste
+Maria Anders
+Germany
+
+
+Centro comercial Moctezuma
+Francisco Chang
+Mexico
+
+
+Ernst Handel
+Roland Mendel
+Austria
+
+
+Island Trading
+Helen Bennett
+UK
+
+
+Laughing Bacchus Winecellars
+Yoshi Tannamuri
+Canada
+
+
+Magazzini Alimentari Riuniti
+Giovanni Rovelli
+Italy
+
+
+Try it Yourself &raquo;
+
+Define an HTML Table
+A table in HTML consists of table cells inside rows and columns.
+
+Example
+A simple HTML table:
+
+<table>
+<tr> <th>Company</th>
+<th>Contact</th> <th>Country</th>
+
+</tr>
+<tr> <td>Alfreds Futterkiste</td>
+<td>Maria
+Anders</td> <td>Germany</td>
+
+</tr> <tr> <td>Centro
+comercial Moctezuma</td>
+<td>Francisco
+Chang</td> <td>Mexico</td>
+</tr></table>
+
+Try it Yourself &raquo;
+
+Table Cells
+Each table cell is defined by a
+<td> and a </td> tag.
+
+td
+stands for table data.
+
+Everything between <td> and </td>
+is the content of a table cell.
+
+Example
+
+<table>
+<tr> <td>Emil</td>
+<td>Tobias</td> <td>Linus</td>
+
+</tr></table>
+
+Try it Yourself &raquo;
+
+Note: A table cell can contain
+all sorts of HTML elements: text, images, lists, links, other tables, etc.
+
+Advertisement -->
+
+Table Rows
+Each table row starts with a
+<tr> and ends with a </tr> tag.
+
+tr
+stands for table row.
+
+Example
+
+<table>
+<tr> <td>Emil</td>
+<td>Tobias</td> <td>Linus</td>
+
+</tr>
+<tr> <td>16</td>
+<td>14</td> <td>10</td>
+
+</tr></table>
+
+Try it Yourself &raquo;
+
+You can have as many rows as you like in a table; just make sure that the number of cells are the same in each row.
+
+Note: There are times when a row can have fewer or more cells than another. You will learn about that in a later chapter.
+
+Table Headers
+Sometimes you want your cells to be table header cells. In those cases use the
+<th> tag instead of the
+<td> tag:
+
+th
+stands for table header.
+
+Example
+Let the first row be table header cells:
+
+<table>
+<tr> <th>Person 1</th>
+<th>Person 2</th> <th>Person
+3</th>
+
+</tr>
+<tr> <td>Emil</td>
+<td>Tobias</td> <td>Linus</td>
+
+</tr>
+<tr> <td>16</td>
+<td>14</td> <td>10</td>
+
+</tr></table>
+
+Try it Yourself &raquo;
+
+By default, the text in <th> elements
+are bold and centered, but you can change that with CSS.
+
+HTML Table Tags
+
+Tag
+Description
+
+<table>
+Defines a table
+
+<th>
+Defines a header cell in a table
+
+<tr>
+Defines a row in a table
+
+<td>
+Defines a cell in a table
+
+<caption>
+Defines a table caption
+
+<colgroup>
+Specifies a group of one or more columns in a table for formatting
+
+<col>
+Specifies column properties for each column within a <colgroup> element
+
+<thead>
+Groups the header content in a table
+
+<tbody>
+Groups the body content in a table
+
+<tfoot>
+Groups the footer content in a table
+
+For a complete list of all available HTML tags, visit our HTML Tag Reference.
+
+Video: HTML Tables
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+&#10094; Previous
+Next &#10095;
+
+LEARN MORE
+
+Styling Tables
+Filter Table
+Sort Table
+Responsive Table
+Zebra Striped Table
+
+
+
+
+
+
+
+
+
+
+
+
+
+&#x2605;
+
++1
+
+
+
+
+
+
+Sign in to track progress
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+REMOVE ADS
+
+
+-->
+
+
+
+
+Create a W3Schools Account
+
+
+Ad-free learning, track your progress, earn XP, streaks, compete in leagues,
+build and host websites, unlock coding challenges, and much more!
+
+
+
+
+
+
+
+
+
+
+
+Earn XP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Streaks
+
+
+
+
+
+
+
+Leagues
+
+
+
+Your Own Space
+
+
+
+
+
+Sign Up for Free
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Your Progress
+0%
+
+
+
+
+
+
+
+0 / 50 lessons
+
+
+
+0 / 100 challenges
+
+
+
+
+
+
+
+
+
+
+PLUS
+SPACES
+GET CERTIFIED
+FOR TEACHERS
+PRACTICE
+CONTACT US
+
+&times;
+Contact Sales
+If you want to use W3Schools services as an educational institution, team or enterprise, send us an e-mail:sales@w3schools.com
+Report Error
+If you want to report an error, or if you want to make a suggestion, send us an e-mail:help@w3schools.com
+
+Top Tutorials
+HTML Tutorial
+CSS Tutorial
+JavaScript Tutorial
+How To Tutorial
+SQL Tutorial
+Python Tutorial
+W3.CSS Tutorial
+Bootstrap Tutorial
+PHP Tutorial
+Java Tutorial
+C++ Tutorial
+jQuery Tutorial
+
+Top References
+HTML Reference
+CSS Reference
+JavaScript Reference
+SQL Reference
+Python Reference
+W3.CSS Reference
+Bootstrap Reference
+PHP Reference
+HTML Colors
+Java Reference
+AngularJS Reference
+jQuery Reference
+
+Top Examples
+HTML Examples
+CSS Examples
+JavaScript Examples
+How To Examples
+SQL Examples
+Python Examples
+W3.CSS Examples
+Bootstrap Examples
+PHP Examples
+Java Examples
+XML Examples
+jQuery Examples
+
+Get Certified
+HTML Certificate
+CSS Certificate
+JavaScript Certificate
+Front End Certificate
+SQL Certificate
+Python Certificate
+PHP Certificate
+jQuery Certificate
+Java Certificate
+C++ Certificate
+C# Certificate
+XML Certificate
+
+
+&#62220;
+&#59399;
+&#59398;
+&#61805;
+
+FORUM
+ABOUT
+ACADEMY
+
+W3Schools is optimized for learning and training. Examples might be simplified to improve reading and learning.
+Tutorials, references, and examples are constantly reviewed to avoid errors, but we cannot warrant full correctness
+of all content. While using W3Schools, you agree to have read and accepted our terms of use,
+cookies and
+privacy policy.
+Copyright 1999-2026 by Refsnes Data. All Rights Reserved.
+W3Schools is Powered by W3.CSS.
+
+-->

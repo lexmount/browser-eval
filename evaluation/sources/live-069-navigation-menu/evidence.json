@@ -1,0 +1,70 @@
+{
+  "case_id": "live-069-navigation-menu",
+  "url": "https://github.com/prettier/prettier",
+  "checked_at": "2026-09-02T03:38:07.049054+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/prettier/prettier"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/prettier/prettier",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 372331,
+  "sha256": "570048f2c6bc2fa5e206c2217c05aa812389fa8e18f7cfdb86126ab06b750cab",
+  "title": "GitHub - prettier/prettier: Prettier is an opinionated code formatter. · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fa948058c8ea5db1ebb2133f7b4b54f36f39292d328f7470d0ca27e2e04f60dc/68747470733a2f2f756e706b672e636f6d2f70726574746965722d6c6f676f40312e302e332f696d616765732f70726574746965722d62616e6e65722d6c696768742e737667",
+      "alt": "Prettier Banner"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/4237883beb4df68a433b37fbdafa548e0f97de18330b0d339cf41d810b8833d1/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f70726574746965722f70726574746965722f6d61696e3f7374796c653d666c61742d737175617265266c6162656c3d4349",
+      "alt": "CI Status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/bcf5c2d1f9807f67344b24ac270ea0cd3caa687298151107ff7fb68f32825851/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f70726574746965722f70726574746965722e7376673f7374796c653d666c61742d737175617265",
+      "alt": "Coverage Status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/eb4fdac0d5c3c4f12390b4112787bce2bdfebddaac0dc9cb555d91433fc371cf/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f73706565642d626c617a696e672532302546302539462539342541352d627269676874677265656e2e7376673f7374796c653d666c61742d737175617265",
+      "alt": "Blazing Fast"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/34bf491160d60a552c8e9b510963abd66c4b35557e8859c54e9f6169135b6f08/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f70726574746965722e7376673f7374796c653d666c61742d737175617265",
+      "alt": "npm version"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/c391d8b06d931145da024db1172ae7b8b5af45a0be3c57c8eeafbb1f811f057e/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f64772f70726574746965722e7376673f7374796c653d666c61742d737175617265",
+      "alt": "weekly downloads from npm"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265",
+      "alt": "code style: prettier"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/51e8b38521aaadf5cdd26b3aa3ab6faced8236f6646066bc4bad4390c73693cc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f2534305072657474696572436f64652d3966396639663f7374796c653d666c61742d737175617265266c6f676f3d78266c6162656c436f6c6f723d353535",
+      "alt": "Follow Prettier on X"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265",
+      "alt": "code style: prettier"
+    }
+  ],
+  "text_chars": 1122,
+  "excerpt": "Opinionated Code Formatter\nJavaScript\n· TypeScript\n· Flow\n· JSX\n· JSON\nCSS\n· SCSS\n· Less\nHTML\n· Vue\n· Angular\nGraphQL\n· Markdown\n· YAML\nYour favorite language?\nIntro\nPrettier is an opinionated code formatter. It enforces a consistent style by parsing your code and re-printing it with its own rules that take the maximum line length into account, wrapping code when necessary.\nInput\nfoo\n(\nreallyLongArg\n(\n)\n,\nomgSoManyParameters\n(\n)\n,\nIShouldRefactorThis\n(\n)\n,\nisThereSeriouslyAnotherOne\n(\n)\n)\n;\nOutput\nfoo\n(\nreallyLongArg\n(\n)\n,\nomgSoManyParameters\n(\n)\n,\nIShouldRefactorThis\n(\n)\n,\nisThereSeriouslyAnotherOne\n(\n)\n,\n)\n;\nPrettier can be run\nin your editor\non-save, in a\npre-commit hook\n, or in\nCI environments\nto ensure your codebase has a consistent style without devs ever having to post a nit-picky c",
+  "missing_facts": [],
+  "state": "captured"
+}

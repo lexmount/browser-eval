@@ -1,0 +1,199 @@
+[Skip to content](#start-of-content)   
+ 
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot)
+
+Appearance settings
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot)
+
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=spring-projects%2Fspring-boot)
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[spring-projects](/spring-projects)   /  **[spring-boot](/spring-projects/spring-boot)**  Public
+
+* [Notifications](/login?return_to=%2Fspring-projects%2Fspring-boot)  You must be signed in to change notification settings
+* [Fork 42.1k](/login?return_to=%2Fspring-projects%2Fspring-boot)
+* [Star  81.4k](/login?return_to=%2Fspring-projects%2Fspring-boot)
+
+[Branches](/spring-projects/spring-boot/branches)[Tags](/spring-projects/spring-boot/tags)
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+[62,323 Commits](/spring-projects/spring-boot/commits/main/)
+
+62,323 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](/spring-projects/spring-boot/tree/main/.github ".github") | [.github](/spring-projects/spring-boot/tree/main/.github ".github") |  |  |
+| [.idea](/spring-projects/spring-boot/tree/main/.idea ".idea") | [.idea](/spring-projects/spring-boot/tree/main/.idea ".idea") |  |  |
+| [antora](/spring-projects/spring-boot/tree/main/antora "antora") | [antora](/spring-projects/spring-boot/tree/main/antora "antora") |  |  |
+| [build-plugin](/spring-projects/spring-boot/tree/main/build-plugin "build-plugin") | [build-plugin](/spring-projects/spring-boot/tree/main/build-plugin "build-plugin") |  |  |
+| [buildSrc](/spring-projects/spring-boot/tree/main/buildSrc "buildSrc") | [buildSrc](/spring-projects/spring-boot/tree/main/buildSrc "buildSrc") |  |  |
+| [buildpack/spring-boot-buildpack-platform](/spring-projects/spring-boot/tree/main/buildpack/spring-boot-buildpack-platform "This path skips through empty directories") | [buildpack/spring-boot-buildpack-platform](/spring-projects/spring-boot/tree/main/buildpack/spring-boot-buildpack-platform "This path skips through empty directories") |  |  |
+| [cli/spring-boot-cli](/spring-projects/spring-boot/tree/main/cli/spring-boot-cli "This path skips through empty directories") | [cli/spring-boot-cli](/spring-projects/spring-boot/tree/main/cli/spring-boot-cli "This path skips through empty directories") |  |  |
+| [config](/spring-projects/spring-boot/tree/main/config "config") | [config](/spring-projects/spring-boot/tree/main/config "config") |  |  |
+| [configuration-metadata](/spring-projects/spring-boot/tree/main/configuration-metadata "configuration-metadata") | [configuration-metadata](/spring-projects/spring-boot/tree/main/configuration-metadata "configuration-metadata") |  |  |
+| [core](/spring-projects/spring-boot/tree/main/core "core") | [core](/spring-projects/spring-boot/tree/main/core "core") |  |  |
+| [documentation](/spring-projects/spring-boot/tree/main/documentation "documentation") | [documentation](/spring-projects/spring-boot/tree/main/documentation "documentation") |  |  |
+| [eclipse](/spring-projects/spring-boot/tree/main/eclipse "eclipse") | [eclipse](/spring-projects/spring-boot/tree/main/eclipse "eclipse") |  |  |
+| [git/hooks](/spring-projects/spring-boot/tree/main/git/hooks "This path skips through empty directories") | [git/hooks](/spring-projects/spring-boot/tree/main/git/hooks "This path skips through empty directories") |  |  |
+| [gradle](/spring-projects/spring-boot/tree/main/gradle "gradle") | [gradle](/spring-projects/spring-boot/tree/main/gradle "gradle") |  |  |
+| [integration-test](/spring-projects/spring-boot/tree/main/integration-test "integration-test") | [integration-test](/spring-projects/spring-boot/tree/main/integration-test "integration-test") |  |  |
+| [loader](/spring-projects/spring-boot/tree/main/loader "loader") | [loader](/spring-projects/spring-boot/tree/main/loader "loader") |  |  |
+| [module](/spring-projects/spring-boot/tree/main/module "module") | [module](/spring-projects/spring-boot/tree/main/module "module") |  |  |
+| [platform](/spring-projects/spring-boot/tree/main/platform "platform") | [platform](/spring-projects/spring-boot/tree/main/platform "platform") |  |  |
+| [smoke-test](/spring-projects/spring-boot/tree/main/smoke-test "smoke-test") | [smoke-test](/spring-projects/spring-boot/tree/main/smoke-test "smoke-test") |  |  |
+| [starter](/spring-projects/spring-boot/tree/main/starter "starter") | [starter](/spring-projects/spring-boot/tree/main/starter "starter") |  |  |
+| [system-test](/spring-projects/spring-boot/tree/main/system-test "system-test") | [system-test](/spring-projects/spring-boot/tree/main/system-test "system-test") |  |  |
+| [test-support](/spring-projects/spring-boot/tree/main/test-support "test-support") | [test-support](/spring-projects/spring-boot/tree/main/test-support "test-support") |  |  |
+| [.editorconfig](/spring-projects/spring-boot/blob/main/.editorconfig ".editorconfig") | [.editorconfig](/spring-projects/spring-boot/blob/main/.editorconfig ".editorconfig") |  |  |
+| [.git-blame-ignore-revs](/spring-projects/spring-boot/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs") | [.git-blame-ignore-revs](/spring-projects/spring-boot/blob/main/.git-blame-ignore-revs ".git-blame-ignore-revs") |  |  |
+| [.gitignore](/spring-projects/spring-boot/blob/main/.gitignore ".gitignore") | [.gitignore](/spring-projects/spring-boot/blob/main/.gitignore ".gitignore") |  |  |
+| [.sdkmanrc](/spring-projects/spring-boot/blob/main/.sdkmanrc ".sdkmanrc") | [.sdkmanrc](/spring-projects/spring-boot/blob/main/.sdkmanrc ".sdkmanrc") |  |  |
+| [CONTRIBUTING.adoc](/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc "CONTRIBUTING.adoc") | [CONTRIBUTING.adoc](/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc "CONTRIBUTING.adoc") |  |  |
+| [LICENSE.txt](/spring-projects/spring-boot/blob/main/LICENSE.txt "LICENSE.txt") | [LICENSE.txt](/spring-projects/spring-boot/blob/main/LICENSE.txt "LICENSE.txt") |  |  |
+| [README.adoc](/spring-projects/spring-boot/blob/main/README.adoc "README.adoc") | [README.adoc](/spring-projects/spring-boot/blob/main/README.adoc "README.adoc") |  |  |
+| [SUPPORT.adoc](/spring-projects/spring-boot/blob/main/SUPPORT.adoc "SUPPORT.adoc") | [SUPPORT.adoc](/spring-projects/spring-boot/blob/main/SUPPORT.adoc "SUPPORT.adoc") |  |  |
+| [build.gradle](/spring-projects/spring-boot/blob/main/build.gradle "build.gradle") | [build.gradle](/spring-projects/spring-boot/blob/main/build.gradle "build.gradle") |  |  |
+| [gradle.properties](/spring-projects/spring-boot/blob/main/gradle.properties "gradle.properties") | [gradle.properties](/spring-projects/spring-boot/blob/main/gradle.properties "gradle.properties") |  |  |
+| [gradlew](/spring-projects/spring-boot/blob/main/gradlew "gradlew") | [gradlew](/spring-projects/spring-boot/blob/main/gradlew "gradlew") |  |  |
+| [gradlew.bat](/spring-projects/spring-boot/blob/main/gradlew.bat "gradlew.bat") | [gradlew.bat](/spring-projects/spring-boot/blob/main/gradlew.bat "gradlew.bat") |  |  |
+| [settings.gradle](/spring-projects/spring-boot/blob/main/settings.gradle "settings.gradle") | [settings.gradle](/spring-projects/spring-boot/blob/main/settings.gradle "settings.gradle") |  |  |
+|  |
+
+## Repository files navigation
+
+# Spring Boot [Build Status](https://github.com/spring-projects/spring-boot/actions/workflows/build-and-deploy-snapshot.yml?query=branch%3Amain) [Revved up by Develocity](https://ge.spring.io/scans?&search.rootProjectNames=Spring%20Boot%20Build&search.rootProjectNames=spring-boot-build)
+
+Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss. It takes an opinionated view of the Spring platform so that new and existing users can quickly get to the bits they need.
+
+You can use Spring Boot to create stand-alone Java applications that can be started using `java -jar` or more traditional WAR deployments. We also provide a command-line tool that runs Spring scripts.
+
+Our primary goals are:
+
+* Provide a radically faster and widely accessible getting started experience for all Spring development.
+* Be opinionated, but get out of the way quickly as requirements start to diverge from the defaults.
+* Provide a range of non-functional features common to large classes of projects (for example, embedded servers, security, metrics, health checks, externalized configuration).
+* Absolutely no code generation and no requirement for XML configuration.
+
+## Installation and Getting Started
+
+The [reference documentation](https://docs.spring.io/spring-boot) includes detailed [installation instructions](https://docs.spring.io/spring-boot/installing.html) as well as a comprehensive [`getting started`](https://docs.spring.io/spring-boot/tutorial/first-application/index.html) guide.
+
+Here is a quick teaser of a complete Spring Boot application in Java:
+
+```
+import org springframework boot import org springframework boot autoconfigure import org springframework web bind annotation @ RestController @ SpringBootApplication public class Example @ RequestMapping"/" String home return"Hello World!" public static void main String args SpringApplication run Example class args
+```
+
+## Getting Help
+
+Are you having trouble with Spring Boot? We want to help!
+
+* Check the [reference documentation](https://docs.spring.io/spring-boot/), especially the [How-to’s](https://docs.spring.io/spring-boot/how-to/index.html) — they provide solutions to the most common questions.
+* Learn the Spring basics — Spring Boot builds on many other Spring projects; check the [spring.io](https://spring.io) website for a wealth of reference documentation. If you are new to Spring, try one of the [guides](https://spring.io/guides).
+* If you are upgrading, read the [release notes](https://github.com/spring-projects/spring-boot/wiki) for upgrade instructions and "new and noteworthy" features.
+* Ask a question — we monitor [stackoverflow.com](https://stackoverflow.com) for questions tagged with [`spring-boot`](https://stackoverflow.com/tags/spring-boot).
+* Report bugs with Spring Boot at [github.com/spring-projects/spring-boot/issues](https://github.com/spring-projects/spring-boot/issues).
+
+## Contributing
+
+We welcome contributions of all kinds! Please read our [contribution guidelines](/spring-projects/spring-boot/blob/main/CONTRIBUTING.adoc) before submitting a pull request.
+
+## Reporting Issues
+
+Spring Boot uses GitHub’s integrated issue tracking system to record bugs and feature requests. If you want to raise an issue, please follow the recommendations below:
+
+* Before you log a bug, please search the [issue tracker](https://github.com/spring-projects/spring-boot/issues) to see if someone has already reported the problem.
+* If the issue doesn’t already exist, [create a new issue](https://github.com/spring-projects/spring-boot/issues/new).
+* Please provide as much information as possible with the issue report. We like to know the Spring Boot version, operating system, and JVM version you’re using.
+* If you need to paste code or include a stack trace, use Markdown. ``` escapes before and after your text.
+* If possible, try to create a test case or project that replicates the problem and attach it to the issue.
+
+## Building from Source
+
+You don’t need to build from source to use Spring Boot. If you want to try out the latest and greatest, Spring Boot can be built and published to your local Maven cache using the [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html). You also need JDK 25.
+
+```
+$ ./gradlew publishToMavenLocal
+```
+
+This command builds all modules and publishes them to your local Maven cache. It won’t run any of the tests. If you want to build everything, use the `build` task:
+
+```
+$ ./gradlew build
+```
+
+## Guides
+
+The [spring.io](https://spring.io/) site contains several guides that show how to use Spring Boot step-by-step:
+
+* [Building an Application with Spring Boot](https://spring.io/guides/gs/spring-boot/) is an introductory guide that shows you how to create an application, run it, and add some management services.
+* [Building a RESTful Web Service with Spring Boot Actuator](https://spring.io/guides/gs/actuator-service/) is a guide to creating a REST web service and also shows how the server can be configured.
+
+Spring Boot is Open Source software released under the [Apache 2.0 license](https://www.apache.org/licenses/LICENSE-2.0.html).
+
+## About
+
+Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.
+
+### Topics
+
+[framework](/topics/framework)[java](/topics/java)[spring](/topics/spring)[spring-boot](/topics/spring-boot)
+
+### Resources
+
+[Apache-2.0 license](#Apache-2.0-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/spring-projects/spring-boot#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Custom properties](/spring-projects/spring-boot/custom-properties)
+
+### Stars
+
+**81.4k** stars
+
+### Watchers
+
+**3.3k** watching
+
+### Forks
+
+[**42.1k** forks](/spring-projects/spring-boot/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot&report=spring-projects+%28user%29)
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

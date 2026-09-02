@@ -1,0 +1,108 @@
+---
+title: "PostgreSQL: Documentation: 18: Part&nbsp;I.&nbsp;Tutorial"
+meta:
+  "og:description": "Part&nbsp;I.&nbsp;Tutorial Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and …"
+  "og:title": Part I. Tutorial
+---
+
+[![PostgreSQL Elephant Logo](https://www.postgresql.org/media/img/about/press/elephant.png)](/)
+
+- [Home](/)
+- [About](https://www.postgresql.org/about/)
+- [Download](https://www.postgresql.org/download/)
+- [Documentation](https://www.postgresql.org/docs/)
+- [Community](https://www.postgresql.org/community/)
+- [Developers](https://www.postgresql.org/developer/)
+- [Support](https://www.postgresql.org/support/)
+- [Donate](https://www.postgresql.org/about/donate/)
+- [Your account](https://www.postgresql.org/account/)
+
+August 13, 2026: [PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!](https://www.postgresql.org/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/)
+
+[Documentation](https://www.postgresql.org/docs/) → [PostgreSQL 18](https://www.postgresql.org/docs/18/index.html)
+
+Supported Versions: [Current](https://www.postgresql.org/docs/current/tutorial.html%20%22PostgreSQL%2018%20-%20Part%C2%A0I.%C2%A0Tutorial%22) ([18](https://www.postgresql.org/docs/18/tutorial.html%20%22PostgreSQL%2018%20-%20Part%C2%A0I.%C2%A0Tutorial%22)) / [17](https://www.postgresql.org/docs/17/tutorial.html%20%22PostgreSQL%2017%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [16](https://www.postgresql.org/docs/16/tutorial.html%20%22PostgreSQL%2016%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [15](https://www.postgresql.org/docs/15/tutorial.html%20%22PostgreSQL%2015%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [14](https://www.postgresql.org/docs/14/tutorial.html%20%22PostgreSQL%2014%20-%20Part%C2%A0I.%C2%A0Tutorial%22)
+
+Development Versions: [19](https://www.postgresql.org/docs/19/tutorial.html%20%22PostgreSQL%2019%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [devel](https://www.postgresql.org/docs/devel/tutorial.html%20%22PostgreSQL%20devel%20-%20Part%C2%A0I.%C2%A0Tutorial%22)
+
+Unsupported versions: [13](https://www.postgresql.org/docs/13/tutorial.html%20%22PostgreSQL%2013%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [12](https://www.postgresql.org/docs/12/tutorial.html%20%22PostgreSQL%2012%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [11](https://www.postgresql.org/docs/11/tutorial.html%20%22PostgreSQL%2011%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [10](https://www.postgresql.org/docs/10/tutorial.html%20%22PostgreSQL%2010%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.6](https://www.postgresql.org/docs/9.6/tutorial.html%20%22PostgreSQL%209.6%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.5](https://www.postgresql.org/docs/9.5/tutorial.html%20%22PostgreSQL%209.5%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.4](https://www.postgresql.org/docs/9.4/tutorial.html%20%22PostgreSQL%209.4%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.3](https://www.postgresql.org/docs/9.3/tutorial.html%20%22PostgreSQL%209.3%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.2](https://www.postgresql.org/docs/9.2/tutorial.html%20%22PostgreSQL%209.2%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.1](https://www.postgresql.org/docs/9.1/tutorial.html%20%22PostgreSQL%209.1%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [9.0](https://www.postgresql.org/docs/9.0/tutorial.html%20%22PostgreSQL%209.0%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [8.4](https://www.postgresql.org/docs/8.4/tutorial.html%20%22PostgreSQL%208.4%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [8.3](https://www.postgresql.org/docs/8.3/tutorial.html%20%22PostgreSQL%208.3%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [8.2](https://www.postgresql.org/docs/8.2/tutorial.html%20%22PostgreSQL%208.2%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [8.1](https://www.postgresql.org/docs/8.1/tutorial.html%20%22PostgreSQL%208.1%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [8.0](https://www.postgresql.org/docs/8.0/tutorial.html%20%22PostgreSQL%208.0%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [7.4](https://www.postgresql.org/docs/7.4/tutorial.html%20%22PostgreSQL%207.4%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [7.3](https://www.postgresql.org/docs/7.3/tutorial.html%20%22PostgreSQL%207.3%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [7.2](https://www.postgresql.org/docs/7.2/tutorial.html%20%22PostgreSQL%207.2%20-%20Part%C2%A0I.%C2%A0Tutorial%22) / [7.1](https://www.postgresql.org/docs/7.1/tutorial.html%20%22PostgreSQL%207.1%20-%20Part%C2%A0I.%C2%A0Tutorial%22)
+
+| Part I. Tutorial | | | | |
+| :---: | --- | --- | --- | --- |
+| [Prev](bug-reporting.html "5. Bug Reporting Guidelines")  | [Up](index.html "PostgreSQL 18.6 Documentation") | PostgreSQL 18.6 Documentation | [Home](index.html "PostgreSQL 18.6 Documentation") |   [Next](tutorial-start.html "Chapter 1. Getting Started") |
+
+---
+
+# Part I. Tutorial
+
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive treatment of the topics it covers.
+
+After you have successfully completed this tutorial you will want to read the [Part II](sql.html "Part II. The SQL Language") section to gain a better understanding of the SQL language, or [Part IV](client-interfaces.html "Part IV. Client Interfaces") for information about developing applications with PostgreSQL. Those who provision and manage their own PostgreSQL installation should also read [Part III](admin.html "Part III. Server Administration").
+
+**Table of Contents**
+
+[1. Getting Started](tutorial-start.html)  
+
+[1.1. Installation](tutorial-install.html)  
+
+[1.2. Architectural Fundamentals](tutorial-arch.html)  
+
+[1.3. Creating a Database](tutorial-createdb.html)  
+
+[1.4. Accessing a Database](tutorial-accessdb.html)  
+
+
+
+[2. The SQL Language](tutorial-sql.html)  
+
+[2.1. Introduction](tutorial-sql-intro.html)  
+
+[2.2. Concepts](tutorial-concepts.html)  
+
+[2.3. Creating a New Table](tutorial-table.html)  
+
+[2.4. Populating a Table With Rows](tutorial-populate.html)  
+
+[2.5. Querying a Table](tutorial-select.html)  
+
+[2.6. Joins Between Tables](tutorial-join.html)  
+
+[2.7. Aggregate Functions](tutorial-agg.html)  
+
+[2.8. Updates](tutorial-update.html)  
+
+[2.9. Deletions](tutorial-delete.html)  
+
+
+
+[3. Advanced Features](tutorial-advanced.html)  
+
+[3.1. Introduction](tutorial-advanced-intro.html)  
+
+[3.2. Views](tutorial-views.html)  
+
+[3.3. Foreign Keys](tutorial-fk.html)  
+
+[3.4. Transactions](tutorial-transactions.html)  
+
+[3.5. Window Functions](tutorial-window.html)  
+
+[3.6. Inheritance](tutorial-inheritance.html)  
+
+[3.7. Conclusion](tutorial-conclusion.html)  
+
+
+
+---
+
+| [Prev](bug-reporting.html "5. Bug Reporting Guidelines")  | [Up](index.html "PostgreSQL 18.6 Documentation") |   [Next](tutorial-start.html "Chapter 1. Getting Started") |
+| --- | --- | --- |
+| 5. Bug Reporting Guidelines  | [Home](index.html "PostgreSQL 18.6 Documentation") |  Chapter 1. Getting Started |
+
+## Submit correction
+
+If you see anything in the documentation that is not correct, does not match your experience with the particular feature or requires further clarification, please use [this form](https://www.postgresql.org/account/comments/new/18/tutorial.html/) to report a documentation issue.
+
+[Policies](https://www.postgresql.org/about/policies/) | [Code of Conduct](https://www.postgresql.org/about/policies/coc/) | [About PostgreSQL](https://www.postgresql.org/about/) | [Contact](https://www.postgresql.org/about/contact/)  
+
+Copyright © 1996-2026 The PostgreSQL Global Development Group

@@ -1,0 +1,1054 @@
+[Skip to content](https://github.com/aio-libs/aiohttp#start-of-content)
+[](https://github.com/)
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Faio-libs%2Faiohttp)
+Appearance settings
+  * Platform
+    * AI CODE CREATION
+      * [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+      * [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+      * [MCP RegistryIntegrate external tools](https://github.com/mcp)
+    * DEVELOPER WORKFLOWS
+      * [ActionsAutomate any workflow](https://github.com/features/actions)
+      * [CodespacesInstant dev environments](https://github.com/features/codespaces)
+      * [IssuesPlan and track work](https://github.com/features/issues)
+      * [Code ReviewManage code changes](https://github.com/features/code-review)
+      * [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+    * APPLICATION SECURITY
+      * [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+      * [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+      * [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+    * EXPLORE
+      * [Why GitHub](https://github.com/why-github)
+      * [Documentation](https://docs.github.com)
+      * [Blog](https://github.blog)
+      * [Changelog](https://github.blog/changelog)
+      * [Marketplace](https://github.com/marketplace)
+[View all features](https://github.com/features)
+  * Solutions
+    * BY COMPANY SIZE
+      * [Enterprises](https://github.com/enterprise)
+      * [Small and medium teams](https://github.com/team)
+      * [Startups](https://github.com/enterprise/startups)
+      * [Nonprofits](https://github.com/solutions/industry/nonprofits)
+    * BY USE CASE
+      * [App Modernization](https://github.com/solutions/use-case/app-modernization)
+      * [DevSecOps](https://github.com/solutions/use-case/devsecops)
+      * [DevOps](https://github.com/solutions/use-case/devops)
+      * [CI/CD](https://github.com/solutions/use-case/ci-cd)
+      * [View all use cases](https://github.com/solutions/use-case)
+    * BY INDUSTRY
+      * [Healthcare](https://github.com/solutions/industry/healthcare)
+      * [Financial services](https://github.com/solutions/industry/financial-services)
+      * [Manufacturing](https://github.com/solutions/industry/manufacturing)
+      * [Government](https://github.com/solutions/industry/government)
+      * [View all industries](https://github.com/solutions/industry)
+[View all solutions](https://github.com/solutions)
+  * Resources
+    * EXPLORE BY TOPIC
+      * [AI](https://github.com/resources/articles?topic=ai)
+      * [Software Development](https://github.com/resources/articles?topic=software-development)
+      * [DevOps](https://github.com/resources/articles?topic=devops)
+      * [Security](https://github.com/resources/articles?topic=security)
+      * [View all topics](https://github.com/resources/articles)
+    * EXPLORE BY TYPE
+      * [Customer stories](https://github.com/customer-stories)
+      * [Events & webinars](https://github.com/resources/events)
+      * [Ebooks & reports](https://github.com/resources/whitepapers)
+      * [Business insights](https://github.com/solutions/executive-insights)
+      * [GitHub Skills](https://skills.github.com)
+    * SUPPORT & SERVICES
+      * [Documentation](https://docs.github.com)
+      * [Customer support](https://support.github.com)
+      * [Community forum](https://github.com/orgs/community/discussions)
+      * [Trust center](https://github.com/trust-center)
+      * [Partners](https://github.com/partners)
+[View all resources](https://github.com/resources)
+  * Open Source
+    * COMMUNITY
+      * [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+    * PROGRAMS
+      * [Security Lab](https://securitylab.github.com)
+      * [Maintainer Community](https://maintainers.github.com)
+      * [GitHub Stars](https://stars.github.com)
+      * [Archive Program](https://archiveprogram.github.com)
+    * REPOSITORIES
+      * [Topics](https://github.com/topics)
+      * [Trending](https://github.com/trending)
+      * [Collections](https://github.com/collections)
+  * Enterprise
+    * ENTERPRISE SOLUTIONS
+      * [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+    * AVAILABLE ADD-ONS
+      * [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+      * [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+      * [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+  * [Pricing](https://github.com/pricing)
+
+
+Search`/`
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Faio-libs%2Faiohttp)
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=aio-libs%2Faiohttp)
+Appearance settings
+{{ message }}
+###  Uh oh! 
+There was an error while loading. [Please reload this page](https://github.com/aio-libs/aiohttp).
+[ aio-libs ](https://github.com/aio-libs) / **[aiohttp](https://github.com/aio-libs/aiohttp) ** Public
+  * Sponsor
+  * [ Notifications ](https://github.com/login?return_to=%2Faio-libs%2Faiohttp) You must be signed in to change notification settings
+  * [ Fork 2.4k ](https://github.com/login?return_to=%2Faio-libs%2Faiohttp)
+  * [ Star  16.5k ](https://github.com/login?return_to=%2Faio-libs%2Faiohttp)
+
+
+  * [ Code ](https://github.com/aio-libs/aiohttp)
+  * [ Issues 158 ](https://github.com/aio-libs/aiohttp/issues)
+  * [ Pull requests 59 ](https://github.com/aio-libs/aiohttp/pulls)
+  * [ Discussions ](https://github.com/aio-libs/aiohttp/discussions)
+  * [ Actions ](https://github.com/aio-libs/aiohttp/actions)
+  * [ Security and quality 47 ](https://github.com/aio-libs/aiohttp/security)
+  * [ Insights ](https://github.com/aio-libs/aiohttp/pulse)
+
+
+Additional navigation options
+  * [ Code  ](https://github.com/aio-libs/aiohttp)
+  * [ Issues  ](https://github.com/aio-libs/aiohttp/issues)
+  * [ Pull requests  ](https://github.com/aio-libs/aiohttp/pulls)
+  * [ Discussions  ](https://github.com/aio-libs/aiohttp/discussions)
+  * [ Actions  ](https://github.com/aio-libs/aiohttp/actions)
+  * [ Security and quality  ](https://github.com/aio-libs/aiohttp/security)
+  * [ Insights  ](https://github.com/aio-libs/aiohttp/pulse)
+
+
+[](https://github.com/aio-libs/aiohttp)
+[**26** Branches](https://github.com/aio-libs/aiohttp/branches)[**330** Tags](https://github.com/aio-libs/aiohttp/tags)
+[](https://github.com/aio-libs/aiohttp/branches)[](https://github.com/aio-libs/aiohttp/tags)
+Go to file
+Code
+Open more actions menu
+[![pre-commit-ci\[bot\]](https://avatars.githubusercontent.com/in/68672?v=4&size=40)](https://github.com/apps/pre-commit-ci)[pre-commit-ci[bot]](https://github.com/aio-libs/aiohttp/commits?author=pre-commit-ci%5Bbot%5D)
+[[pre-commit.ci] pre-commit autoupdate (](https://github.com/aio-libs/aiohttp/commit/bffb2f1c14e177f8660226f7b07bc10c3917a607)[#13605](https://github.com/aio-libs/aiohttp/pull/13605)[)](https://github.com/aio-libs/aiohttp/commit/bffb2f1c14e177f8660226f7b07bc10c3917a607)
+success
+Sep 2, 2026
+[bffb2f1](https://github.com/aio-libs/aiohttp/commit/bffb2f1c14e177f8660226f7b07bc10c3917a607) · Sep 2, 2026
+[14,112 Commits](https://github.com/aio-libs/aiohttp/commits/master/)
+Open commit details
+[](https://github.com/aio-libs/aiohttp/commits/master/)14,112 Commits  
+| Name  | Name  | Last commit message  | Last commit date  |  
+| --- | --- | --- | --- |  
+| [.claude/skills/backport-failed](https://github.com/aio-libs/aiohttp/tree/master/.claude/skills/backport-failed "This path skips through empty directories")  | [.claude/skills/backport-failed](https://github.com/aio-libs/aiohttp/tree/master/.claude/skills/backport-failed "This path skips through empty directories")  |  [Simplify the skill frontmatter (](https://github.com/aio-libs/aiohttp/commit/8ea87a1359fd065d7db38f51d4f2aa990fe85b16 "Simplify the skill frontmatter \(#12630\)")[#12630](https://github.com/aio-libs/aiohttp/pull/12630)[)](https://github.com/aio-libs/aiohttp/commit/8ea87a1359fd065d7db38f51d4f2aa990fe85b16 "Simplify the skill frontmatter \(#12630\)")  | May 18, 2026  |  
+| [.github](https://github.com/aio-libs/aiohttp/tree/master/.github ".github")  | [.github](https://github.com/aio-libs/aiohttp/tree/master/.github ".github")  |  [Bump github/codeql-action from 4.37.8 to 4.37.9 (](https://github.com/aio-libs/aiohttp/commit/ec0da453cb341a93c10d925b513c9465bd8fa3bd "Bump github/codeql-action from 4.37.8 to 4.37.9 \(#13594\)
+
+Bumps \[github/codeql-action\]\(https://github.com/github/codeql-action\)
+from 4.37.8 to 4.37.9.
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from <a
+href="https://github.com/github/codeql-action/releases">github/codeql-action's
+releases</a>.</em></p>
+<blockquote>
+<h2>v4.37.9</h2>
+<ul>
+<li>Update default CodeQL bundle version to <a
+href="https://github.com/github/codeql-action/releases/tag/codeql-bundle-v2.26.4">2.26.4</a>.
+<a
+href="https://redirect.github.com/github/codeql-action/pull/4106">#4106</a></li>
+</ul>
+</blockquote>
+</details>
+<details>
+<summary>Changelog</summary>
+<p><em>Sourced from <a
+href="https://github.com/github/codeql-action/blob/main/CHANGELOG.md">github/codeql-action's
+changelog</a>.</em></p>
+<blockquote>
+<h2>4.37.9 - 26 Aug 2026</h2>
+<ul>
+<li>Update default CodeQL bundle version to <a
+href="https://github.com/github/codeql-action/releases/tag/codeql-bundle-v2.26.4">2.26.4</a>.
+<a
+href="https://redirect.github.com/github/codeql-action/pull/4106">#4106</a></li>
+</ul>
+</blockquote>
+</details>
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a
+href="https://github.com/github/codeql-action/commit/cdf488f595d80d6e07e03d4674febd5ab45fa938"><code>cdf488f</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4107">#4107</a>
+from github/update-v4.37.9-920ba7cd1</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/7243f38558d187dde99730d224bb47aa26a95306"><code>7243f38</code></a>
+Update changelog for v4.37.9</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/920ba7cd1596037e042122c00381eb16b397d68e"><code>920ba7c</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4106">#4106</a>
+from github/update-bundle/codeql-bundle-v2.26.4</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/ecfa6e16817b8f490bc9a59baa391baf4fa3e3c2"><code>ecfa6e1</code></a>
+Add changelog note</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/adcdf4a70d247343cf9c29e0f7a6658b51c3a2b1"><code>adcdf4a</code></a>
+Update default bundle to codeql-bundle-v2.26.4</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/486fec2a3ea2626afcd8c7e9208b4f515078dd7e"><code>486fec2</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4099">#4099</a>
+from github/update-supported-enterprise-server-versions</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/134624c67b20869c2aaa36dafa726375b78a5d76"><code>134624c</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4101">#4101</a>
+from github/dependabot/npm_and_yarn/npm-minor-457d82...</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/ff43db8f982a368288f117354fb8d046e937124c"><code>ff43db8</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4103">#4103</a>
+from github/mergeback/v4.37.8-to-main-db488dde</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/4605e03a74cf891614c4d76f82384a16c1c11816"><code>4605e03</code></a>
+Rebuild</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/099c869cad6bf3b88657154d4ae47ffed27e632d"><code>099c869</code></a>
+Update changelog and version after v4.37.8</li>
+<li>Additional commits viewable in <a
+href="https://github.com/github/codeql-action/compare/v4.37.8...v4.37.9">compare
+view</a></li>
+</ul>
+</details>
+<br />
+
+
+\[!\[Dependabot compatibility
+score\]\(https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=github/codeql-action&package-manager=github_actions&previous-version=4.37.8&new-version=4.37.9\)\]\(https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores\)
+
+Dependabot will resolve any conflicts with this PR as long as you don't
+alter it yourself. You can also trigger a rebase manually by commenting
+`@dependabot rebase`.
+
+\[//\]: # \(dependabot-automerge-start\)
+\[//\]: # \(dependabot-automerge-end\)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits
+that have been made to it
+- `@dependabot show <dependency name> ignore conditions` will show all
+of the ignore conditions of the specified dependency
+- `@dependabot ignore this major version` will close this PR and stop
+Dependabot creating any more for this major version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this minor version` will close this PR and stop
+Dependabot creating any more for this minor version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this dependency` will close this PR and stop
+Dependabot creating any more for this dependency \(unless you reopen the
+PR or upgrade to it yourself\)
+
+
+</details>
+
+Signed-off-by: dependabot\[bot\] <support@github.com>
+Co-authored-by: dependabot\[bot\] <49699333+dependabot\[bot\]@users.noreply.github.com>")[#13594](https://github.com/aio-libs/aiohttp/pull/13594)[)](https://github.com/aio-libs/aiohttp/commit/ec0da453cb341a93c10d925b513c9465bd8fa3bd "Bump github/codeql-action from 4.37.8 to 4.37.9 \(#13594\)
+
+Bumps \[github/codeql-action\]\(https://github.com/github/codeql-action\)
+from 4.37.8 to 4.37.9.
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from <a
+href="https://github.com/github/codeql-action/releases">github/codeql-action's
+releases</a>.</em></p>
+<blockquote>
+<h2>v4.37.9</h2>
+<ul>
+<li>Update default CodeQL bundle version to <a
+href="https://github.com/github/codeql-action/releases/tag/codeql-bundle-v2.26.4">2.26.4</a>.
+<a
+href="https://redirect.github.com/github/codeql-action/pull/4106">#4106</a></li>
+</ul>
+</blockquote>
+</details>
+<details>
+<summary>Changelog</summary>
+<p><em>Sourced from <a
+href="https://github.com/github/codeql-action/blob/main/CHANGELOG.md">github/codeql-action's
+changelog</a>.</em></p>
+<blockquote>
+<h2>4.37.9 - 26 Aug 2026</h2>
+<ul>
+<li>Update default CodeQL bundle version to <a
+href="https://github.com/github/codeql-action/releases/tag/codeql-bundle-v2.26.4">2.26.4</a>.
+<a
+href="https://redirect.github.com/github/codeql-action/pull/4106">#4106</a></li>
+</ul>
+</blockquote>
+</details>
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a
+href="https://github.com/github/codeql-action/commit/cdf488f595d80d6e07e03d4674febd5ab45fa938"><code>cdf488f</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4107">#4107</a>
+from github/update-v4.37.9-920ba7cd1</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/7243f38558d187dde99730d224bb47aa26a95306"><code>7243f38</code></a>
+Update changelog for v4.37.9</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/920ba7cd1596037e042122c00381eb16b397d68e"><code>920ba7c</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4106">#4106</a>
+from github/update-bundle/codeql-bundle-v2.26.4</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/ecfa6e16817b8f490bc9a59baa391baf4fa3e3c2"><code>ecfa6e1</code></a>
+Add changelog note</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/adcdf4a70d247343cf9c29e0f7a6658b51c3a2b1"><code>adcdf4a</code></a>
+Update default bundle to codeql-bundle-v2.26.4</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/486fec2a3ea2626afcd8c7e9208b4f515078dd7e"><code>486fec2</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4099">#4099</a>
+from github/update-supported-enterprise-server-versions</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/134624c67b20869c2aaa36dafa726375b78a5d76"><code>134624c</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4101">#4101</a>
+from github/dependabot/npm_and_yarn/npm-minor-457d82...</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/ff43db8f982a368288f117354fb8d046e937124c"><code>ff43db8</code></a>
+Merge pull request <a
+href="https://redirect.github.com/github/codeql-action/issues/4103">#4103</a>
+from github/mergeback/v4.37.8-to-main-db488dde</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/4605e03a74cf891614c4d76f82384a16c1c11816"><code>4605e03</code></a>
+Rebuild</li>
+<li><a
+href="https://github.com/github/codeql-action/commit/099c869cad6bf3b88657154d4ae47ffed27e632d"><code>099c869</code></a>
+Update changelog and version after v4.37.8</li>
+<li>Additional commits viewable in <a
+href="https://github.com/github/codeql-action/compare/v4.37.8...v4.37.9">compare
+view</a></li>
+</ul>
+</details>
+<br />
+
+
+\[!\[Dependabot compatibility
+score\]\(https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=github/codeql-action&package-manager=github_actions&previous-version=4.37.8&new-version=4.37.9\)\]\(https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores\)
+
+Dependabot will resolve any conflicts with this PR as long as you don't
+alter it yourself. You can also trigger a rebase manually by commenting
+`@dependabot rebase`.
+
+\[//\]: # \(dependabot-automerge-start\)
+\[//\]: # \(dependabot-automerge-end\)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits
+that have been made to it
+- `@dependabot show <dependency name> ignore conditions` will show all
+of the ignore conditions of the specified dependency
+- `@dependabot ignore this major version` will close this PR and stop
+Dependabot creating any more for this major version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this minor version` will close this PR and stop
+Dependabot creating any more for this minor version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this dependency` will close this PR and stop
+Dependabot creating any more for this dependency \(unless you reopen the
+PR or upgrade to it yourself\)
+
+
+</details>
+
+Signed-off-by: dependabot\[bot\] <support@github.com>
+Co-authored-by: dependabot\[bot\] <49699333+dependabot\[bot\]@users.noreply.github.com>")  | Sep 2, 2026  |  
+| [CHANGES](https://github.com/aio-libs/aiohttp/tree/master/CHANGES "CHANGES")  | [CHANGES](https://github.com/aio-libs/aiohttp/tree/master/CHANGES "CHANGES")  | [Make `ClientConnectorCertificateError.ssl` mean the same as on the ba…](https://github.com/aio-libs/aiohttp/commit/c25e8dd1afec38d349df61c96ff07f108d854d32 "Make `ClientConnectorCertificateError.ssl` mean the same as on the base class \(#13583\)")  | Sep 2, 2026  |  
+| [aiohttp](https://github.com/aio-libs/aiohttp/tree/master/aiohttp "aiohttp")  | [aiohttp](https://github.com/aio-libs/aiohttp/tree/master/aiohttp "aiohttp")  | [Make `ClientConnectorCertificateError.ssl` mean the same as on the ba…](https://github.com/aio-libs/aiohttp/commit/c25e8dd1afec38d349df61c96ff07f108d854d32 "Make `ClientConnectorCertificateError.ssl` mean the same as on the base class \(#13583\)")  | Sep 2, 2026  |  
+| [docs](https://github.com/aio-libs/aiohttp/tree/master/docs "docs")  | [docs](https://github.com/aio-libs/aiohttp/tree/master/docs "docs")  | [Make `ClientConnectorCertificateError.ssl` mean the same as on the ba…](https://github.com/aio-libs/aiohttp/commit/c25e8dd1afec38d349df61c96ff07f108d854d32 "Make `ClientConnectorCertificateError.ssl` mean the same as on the base class \(#13583\)")  | Sep 2, 2026  |  
+| [examples](https://github.com/aio-libs/aiohttp/tree/master/examples "examples")  | [examples](https://github.com/aio-libs/aiohttp/tree/master/examples "examples")  |  [Remove BasicAuth (](https://github.com/aio-libs/aiohttp/commit/247b3238ca5e8d6c03c7f15e341dbace4aca254f "Remove BasicAuth \(#12554\)")[#12554](https://github.com/aio-libs/aiohttp/pull/12554)[)](https://github.com/aio-libs/aiohttp/commit/247b3238ca5e8d6c03c7f15e341dbace4aca254f "Remove BasicAuth \(#12554\)")  | May 18, 2026  |  
+| [requirements](https://github.com/aio-libs/aiohttp/tree/master/requirements "requirements")  | [requirements](https://github.com/aio-libs/aiohttp/tree/master/requirements "requirements")  |  [Bump platformdirs from 4.11.4 to 4.11.5 (](https://github.com/aio-libs/aiohttp/commit/bc4d08903bca356b9156b058537dc76ef5466a29 "Bump platformdirs from 4.11.4 to 4.11.5 \(#13599\)
+
+Bumps \[platformdirs\]\(https://github.com/tox-dev/platformdirs\) from
+4.11.4 to 4.11.5.
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from <a
+href="https://github.com/tox-dev/platformdirs/releases">platformdirs's
+releases</a>.</em></p>
+<blockquote>
+<h2>4.11.5</h2>
+<!-- raw HTML omitted -->
+<h2>What's Changed</h2>
+<ul>
+<li>docs: fix the iterator order claim in api.rst by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/533">tox-dev/platformdirs#533</a></li>
+<li>fix: return one site applications path for multipath by <a
+href="https://github.com/tunglambk"><code>@​tunglambk</code></a> in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/532">tox-dev/platformdirs#532</a></li>
+<li>fix: accept app arguments in the applications functions by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/534">tox-dev/platformdirs#534</a></li>
+<li>refactor: keyword-only booleans on the applications functions by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/535">tox-dev/platformdirs#535</a></li>
+<li>fix: accept app arguments in user_preference_dir by <a
+href="https://github.com/dylanpulver"><code>@​dylanpulver</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/531">tox-dev/platformdirs#531</a></li>
+</ul>
+<h2>New Contributors</h2>
+<ul>
+<li><a href="https://github.com/tunglambk"><code>@​tunglambk</code></a>
+made their first contribution in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/532">tox-dev/platformdirs#532</a></li>
+<li><a
+href="https://github.com/dylanpulver"><code>@​dylanpulver</code></a>
+made their first contribution in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/531">tox-dev/platformdirs#531</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a
+href="https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5">https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5</a></p>
+</blockquote>
+</details>
+<details>
+<summary>Changelog</summary>
+<p><em>Sourced from <a
+href="https://github.com/tox-dev/platformdirs/blob/main/docs/changelog.rst">platformdirs's
+changelog</a>.</em></p>
+<blockquote>
+<p>###########
+Changelog
+###########</p>
+<p>.. towncrier-draft-entries:: Unreleased</p>
+<p>.. towncrier release notes start</p>
+<hr />
+<p>4.11.5 \(2026-08-27\)</p>
+<hr />
+<ul>
+<li>Give :func:<code>~platformdirs.user_preference_dir</code> and
+:func:<code>~platformdirs.user_preference_path</code> the same arguments
+as
+:func:<code>~platformdirs.user_config_dir</code>. Added without
+arguments in :pr:<code>491</code>, they could only return the unscoped
+base
+directory even though the property they wrap appends the app name and
+version. :pr:<code>531</code></li>
+<li>Make :func:<code>~platformdirs.site_applications_path</code> return
+the first entry when <code>multipath=True</code>, matching
+:func:<code>~platformdirs.site_data_path</code>. On Unix and macOS it
+passed the whole <code>$XDG_DATA_DIRS</code> list to
+:class:<code>~pathlib.Path</code>, giving one unusable path such as
+<code>/first/applications:/second/applications</code>.
+:pr:<code>532</code></li>
+<li>Give :func:<code>~platformdirs.user_applications_dir</code>,
+:func:<code>~platformdirs.user_applications_path</code>,
+:func:<code>~platformdirs.site_applications_dir</code> and
+:func:<code>~platformdirs.site_applications_path</code> the app
+arguments. Android
+scopes both applications directories to the app, so without them the
+functions could only return the unscoped base
+directory there. On the two site functions they are keyword-only,
+keeping <code>multipath</code> first positional as it has been
+since 4.9.0; the two user functions take their boolean options
+keyword-only. :pr:<code>534</code></li>
+<li>Correct the ordering note on the iterator methods.
+<code>use_site_for_root</code> drops the user directory entirely, so the
+iterators are documented as yielding the most specific directory first
+rather than always yielding the user one. :pr:<code>533</code></li>
+</ul>
+<hr />
+<p>4.11.4 \(2026-08-24\)</p>
+<hr />
+<ul>
+<li>Stop the <code>iter_*_dirs</code> methods yielding the same
+directory twice when a site directory resolves to its user
+equivalent - :pr:<code>520</code> covered only Unix with
+<code>use_site_for_root</code>. It also hit
+:meth:<code>~platformdirs.PlatformDirs.iter_runtime_dirs</code> on Unix
+with <code>$XDG_RUNTIME_DIR</code> set, on Windows and macOS, and
+all six iterators on Android. :pr:<code>524</code></li>
+<li>Fix the config merging example in the how-to guide.
+<code>iter_config_paths</code> yields the user directory first, so the
+<code>config.update</code> loop let the site defaults override the
+user's config instead of the other way round. :pr:<code>529</code></li>
+</ul>
+<hr />
+<p>4.11.3 \(2026-08-13\)</p>
+<hr />
+<ul>
+<li><code>python -m platformdirs</code> now lists
+:func:<code>~platformdirs.user_desktop_dir</code>, which was missing
+from the properties it
+prints. :pr:<code>523</code></li>
+<li>Stop :func:<code>~platformdirs.site_data_dir</code>,
+:func:<code>~platformdirs.site_config_dir</code> and
+:func:<code>~platformdirs.site_applications_dir</code> raising
+<code>IndexError</code> on Unix and macOS when
+<code>$XDG_DATA_DIRS</code> or
+<code>$XDG_CONFIG_DIRS</code> holds only separators and whitespace, such
+as <code>&quot;:&quot;</code>. These values now fall back to the
+platform
+defaults, and each entry is stripped of surrounding whitespace.
+:pr:<code>523</code></li>
+</ul>
+<hr />
+<p>4.11.2 \(2026-08-10\)</p>
+<!-- raw HTML omitted -->
+</blockquote>
+<p>... \(truncated\)</p>
+</details>
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/bd77b0dc378e5e12a1085db1ef9987d074e07880"><code>bd77b0d</code></a>
+Release 4.11.5</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/2a3ab96ad8daaecff8580886dc1649ce5ca2594d"><code>2a3ab96</code></a>
+fix: accept app arguments in user_preference_dir \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/531">#531</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/56a9bc7918da84914ae88efdb169951d1d3fd04e"><code>56a9bc7</code></a>
+refactor: keyword-only booleans on the applications functions \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/535">#535</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/8147f7750acbb9680aa5e9592b3daa028754bd75"><code>8147f77</code></a>
+fix: accept app arguments in the applications functions \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/534">#534</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/8ea7338af1afeed75233d46f6099730d232bd429"><code>8ea7338</code></a>
+fix: return one site applications path for multipath \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/532">#532</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/4d4279f4e405faff8359103c77913ee485b53cba"><code>4d4279f</code></a>
+docs: fix the iterator order claim in api.rst \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/533">#533</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/babf23919be67ff462dcf54c6f8ef2fcda0a980d"><code>babf239</code></a>
+\[pre-commit.ci\] pre-commit autoupdate \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/530">#530</a>\)</li>
+<li>See full diff in <a
+href="https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5">compare
+view</a></li>
+</ul>
+</details>
+<br />
+
+
+\[!\[Dependabot compatibility
+score\]\(https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=platformdirs&package-manager=pip&previous-version=4.11.4&new-version=4.11.5\)\]\(https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores\)
+
+Dependabot will resolve any conflicts with this PR as long as you don't
+alter it yourself. You can also trigger a rebase manually by commenting
+`@dependabot rebase`.
+
+\[//\]: # \(dependabot-automerge-start\)
+\[//\]: # \(dependabot-automerge-end\)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits
+that have been made to it
+- `@dependabot show <dependency name> ignore conditions` will show all
+of the ignore conditions of the specified dependency
+- `@dependabot ignore this major version` will close this PR and stop
+Dependabot creating any more for this major version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this minor version` will close this PR and stop
+Dependabot creating any more for this minor version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this dependency` will close this PR and stop
+Dependabot creating any more for this dependency \(unless you reopen the
+PR or upgrade to it yourself\)
+
+
+</details>
+
+Signed-off-by: dependabot\[bot\] <support@github.com>
+Co-authored-by: dependabot\[bot\] <49699333+dependabot\[bot\]@users.noreply.github.com>")[#13599](https://github.com/aio-libs/aiohttp/pull/13599)[)](https://github.com/aio-libs/aiohttp/commit/bc4d08903bca356b9156b058537dc76ef5466a29 "Bump platformdirs from 4.11.4 to 4.11.5 \(#13599\)
+
+Bumps \[platformdirs\]\(https://github.com/tox-dev/platformdirs\) from
+4.11.4 to 4.11.5.
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from <a
+href="https://github.com/tox-dev/platformdirs/releases">platformdirs's
+releases</a>.</em></p>
+<blockquote>
+<h2>4.11.5</h2>
+<!-- raw HTML omitted -->
+<h2>What's Changed</h2>
+<ul>
+<li>docs: fix the iterator order claim in api.rst by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/533">tox-dev/platformdirs#533</a></li>
+<li>fix: return one site applications path for multipath by <a
+href="https://github.com/tunglambk"><code>@​tunglambk</code></a> in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/532">tox-dev/platformdirs#532</a></li>
+<li>fix: accept app arguments in the applications functions by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/534">tox-dev/platformdirs#534</a></li>
+<li>refactor: keyword-only booleans on the applications functions by <a
+href="https://github.com/gaborbernat"><code>@​gaborbernat</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/535">tox-dev/platformdirs#535</a></li>
+<li>fix: accept app arguments in user_preference_dir by <a
+href="https://github.com/dylanpulver"><code>@​dylanpulver</code></a> in
+<a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/531">tox-dev/platformdirs#531</a></li>
+</ul>
+<h2>New Contributors</h2>
+<ul>
+<li><a href="https://github.com/tunglambk"><code>@​tunglambk</code></a>
+made their first contribution in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/532">tox-dev/platformdirs#532</a></li>
+<li><a
+href="https://github.com/dylanpulver"><code>@​dylanpulver</code></a>
+made their first contribution in <a
+href="https://redirect.github.com/tox-dev/platformdirs/pull/531">tox-dev/platformdirs#531</a></li>
+</ul>
+<p><strong>Full Changelog</strong>: <a
+href="https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5">https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5</a></p>
+</blockquote>
+</details>
+<details>
+<summary>Changelog</summary>
+<p><em>Sourced from <a
+href="https://github.com/tox-dev/platformdirs/blob/main/docs/changelog.rst">platformdirs's
+changelog</a>.</em></p>
+<blockquote>
+<p>###########
+Changelog
+###########</p>
+<p>.. towncrier-draft-entries:: Unreleased</p>
+<p>.. towncrier release notes start</p>
+<hr />
+<p>4.11.5 \(2026-08-27\)</p>
+<hr />
+<ul>
+<li>Give :func:<code>~platformdirs.user_preference_dir</code> and
+:func:<code>~platformdirs.user_preference_path</code> the same arguments
+as
+:func:<code>~platformdirs.user_config_dir</code>. Added without
+arguments in :pr:<code>491</code>, they could only return the unscoped
+base
+directory even though the property they wrap appends the app name and
+version. :pr:<code>531</code></li>
+<li>Make :func:<code>~platformdirs.site_applications_path</code> return
+the first entry when <code>multipath=True</code>, matching
+:func:<code>~platformdirs.site_data_path</code>. On Unix and macOS it
+passed the whole <code>$XDG_DATA_DIRS</code> list to
+:class:<code>~pathlib.Path</code>, giving one unusable path such as
+<code>/first/applications:/second/applications</code>.
+:pr:<code>532</code></li>
+<li>Give :func:<code>~platformdirs.user_applications_dir</code>,
+:func:<code>~platformdirs.user_applications_path</code>,
+:func:<code>~platformdirs.site_applications_dir</code> and
+:func:<code>~platformdirs.site_applications_path</code> the app
+arguments. Android
+scopes both applications directories to the app, so without them the
+functions could only return the unscoped base
+directory there. On the two site functions they are keyword-only,
+keeping <code>multipath</code> first positional as it has been
+since 4.9.0; the two user functions take their boolean options
+keyword-only. :pr:<code>534</code></li>
+<li>Correct the ordering note on the iterator methods.
+<code>use_site_for_root</code> drops the user directory entirely, so the
+iterators are documented as yielding the most specific directory first
+rather than always yielding the user one. :pr:<code>533</code></li>
+</ul>
+<hr />
+<p>4.11.4 \(2026-08-24\)</p>
+<hr />
+<ul>
+<li>Stop the <code>iter_*_dirs</code> methods yielding the same
+directory twice when a site directory resolves to its user
+equivalent - :pr:<code>520</code> covered only Unix with
+<code>use_site_for_root</code>. It also hit
+:meth:<code>~platformdirs.PlatformDirs.iter_runtime_dirs</code> on Unix
+with <code>$XDG_RUNTIME_DIR</code> set, on Windows and macOS, and
+all six iterators on Android. :pr:<code>524</code></li>
+<li>Fix the config merging example in the how-to guide.
+<code>iter_config_paths</code> yields the user directory first, so the
+<code>config.update</code> loop let the site defaults override the
+user's config instead of the other way round. :pr:<code>529</code></li>
+</ul>
+<hr />
+<p>4.11.3 \(2026-08-13\)</p>
+<hr />
+<ul>
+<li><code>python -m platformdirs</code> now lists
+:func:<code>~platformdirs.user_desktop_dir</code>, which was missing
+from the properties it
+prints. :pr:<code>523</code></li>
+<li>Stop :func:<code>~platformdirs.site_data_dir</code>,
+:func:<code>~platformdirs.site_config_dir</code> and
+:func:<code>~platformdirs.site_applications_dir</code> raising
+<code>IndexError</code> on Unix and macOS when
+<code>$XDG_DATA_DIRS</code> or
+<code>$XDG_CONFIG_DIRS</code> holds only separators and whitespace, such
+as <code>&quot;:&quot;</code>. These values now fall back to the
+platform
+defaults, and each entry is stripped of surrounding whitespace.
+:pr:<code>523</code></li>
+</ul>
+<hr />
+<p>4.11.2 \(2026-08-10\)</p>
+<!-- raw HTML omitted -->
+</blockquote>
+<p>... \(truncated\)</p>
+</details>
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/bd77b0dc378e5e12a1085db1ef9987d074e07880"><code>bd77b0d</code></a>
+Release 4.11.5</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/2a3ab96ad8daaecff8580886dc1649ce5ca2594d"><code>2a3ab96</code></a>
+fix: accept app arguments in user_preference_dir \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/531">#531</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/56a9bc7918da84914ae88efdb169951d1d3fd04e"><code>56a9bc7</code></a>
+refactor: keyword-only booleans on the applications functions \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/535">#535</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/8147f7750acbb9680aa5e9592b3daa028754bd75"><code>8147f77</code></a>
+fix: accept app arguments in the applications functions \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/534">#534</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/8ea7338af1afeed75233d46f6099730d232bd429"><code>8ea7338</code></a>
+fix: return one site applications path for multipath \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/532">#532</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/4d4279f4e405faff8359103c77913ee485b53cba"><code>4d4279f</code></a>
+docs: fix the iterator order claim in api.rst \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/533">#533</a>\)</li>
+<li><a
+href="https://github.com/tox-dev/platformdirs/commit/babf23919be67ff462dcf54c6f8ef2fcda0a980d"><code>babf239</code></a>
+\[pre-commit.ci\] pre-commit autoupdate \(<a
+href="https://redirect.github.com/tox-dev/platformdirs/issues/530">#530</a>\)</li>
+<li>See full diff in <a
+href="https://github.com/tox-dev/platformdirs/compare/4.11.4...4.11.5">compare
+view</a></li>
+</ul>
+</details>
+<br />
+
+
+\[!\[Dependabot compatibility
+score\]\(https://dependabot-badges.githubapp.com/badges/compatibility_score?dependency-name=platformdirs&package-manager=pip&previous-version=4.11.4&new-version=4.11.5\)\]\(https://docs.github.com/en/github/managing-security-vulnerabilities/about-dependabot-security-updates#about-compatibility-scores\)
+
+Dependabot will resolve any conflicts with this PR as long as you don't
+alter it yourself. You can also trigger a rebase manually by commenting
+`@dependabot rebase`.
+
+\[//\]: # \(dependabot-automerge-start\)
+\[//\]: # \(dependabot-automerge-end\)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits
+that have been made to it
+- `@dependabot show <dependency name> ignore conditions` will show all
+of the ignore conditions of the specified dependency
+- `@dependabot ignore this major version` will close this PR and stop
+Dependabot creating any more for this major version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this minor version` will close this PR and stop
+Dependabot creating any more for this minor version \(unless you reopen
+the PR or upgrade to it yourself\)
+- `@dependabot ignore this dependency` will close this PR and stop
+Dependabot creating any more for this dependency \(unless you reopen the
+PR or upgrade to it yourself\)
+
+
+</details>
+
+Signed-off-by: dependabot\[bot\] <support@github.com>
+Co-authored-by: dependabot\[bot\] <49699333+dependabot\[bot\]@users.noreply.github.com>")  | Sep 2, 2026  |  
+| [tests](https://github.com/aio-libs/aiohttp/tree/master/tests "tests")  | [tests](https://github.com/aio-libs/aiohttp/tree/master/tests "tests")  | [Make `ClientConnectorCertificateError.ssl` mean the same as on the ba…](https://github.com/aio-libs/aiohttp/commit/c25e8dd1afec38d349df61c96ff07f108d854d32 "Make `ClientConnectorCertificateError.ssl` mean the same as on the base class \(#13583\)")  | Sep 2, 2026  |  
+| [tools](https://github.com/aio-libs/aiohttp/tree/master/tools "tools")  | [tools](https://github.com/aio-libs/aiohttp/tree/master/tools "tools")  |  [Drop support for Python 3.9 (](https://github.com/aio-libs/aiohttp/commit/35754d464295aa35f22781f4389d3dd311f2db4e "Drop support for Python 3.9 \(#11600\)")[#11600](https://github.com/aio-libs/aiohttp/pull/11600)[)](https://github.com/aio-libs/aiohttp/commit/35754d464295aa35f22781f4389d3dd311f2db4e "Drop support for Python 3.9 \(#11600\)")  | Oct 7, 2025  |  
+| [vendor](https://github.com/aio-libs/aiohttp/tree/master/vendor "vendor")  | [vendor](https://github.com/aio-libs/aiohttp/tree/master/vendor "vendor")  |  [Llhttp 9.4.2 (](https://github.com/aio-libs/aiohttp/commit/7b0b01350ce8fd7ddb63b69c51ff9db6451c507a "Llhttp 9.4.2 \(#12956\)")[#12956](https://github.com/aio-libs/aiohttp/pull/12956)[)](https://github.com/aio-libs/aiohttp/commit/7b0b01350ce8fd7ddb63b69c51ff9db6451c507a "Llhttp 9.4.2 \(#12956\)")  | Jun 18, 2026  |  
+| [.cherry_picker.toml](https://github.com/aio-libs/aiohttp/blob/master/.cherry_picker.toml ".cherry_picker.toml")  | [.cherry_picker.toml](https://github.com/aio-libs/aiohttp/blob/master/.cherry_picker.toml ".cherry_picker.toml")  | [Fix cherry-picker config](https://github.com/aio-libs/aiohttp/commit/c3aa20f5cdac987bb3a2a6a0db87e1666ab2f543 "Fix cherry-picker config")  | Apr 13, 2018  |  
+| [.codecov.yml](https://github.com/aio-libs/aiohttp/blob/master/.codecov.yml ".codecov.yml")  | [.codecov.yml](https://github.com/aio-libs/aiohttp/blob/master/.codecov.yml ".codecov.yml")  |  [Readd codecov/project status check (](https://github.com/aio-libs/aiohttp/commit/4ef04d66fa450156a5cc39c2ec4f00d4ca623d5b "Readd codecov/project status check \(#12790\)")[#12790](https://github.com/aio-libs/aiohttp/pull/12790)[)](https://github.com/aio-libs/aiohttp/commit/4ef04d66fa450156a5cc39c2ec4f00d4ca623d5b "Readd codecov/project status check \(#12790\)")  | Jun 2, 2026  |  
+| [.coveragerc-cython.toml](https://github.com/aio-libs/aiohttp/blob/master/.coveragerc-cython.toml ".coveragerc-cython.toml")  | [.coveragerc-cython.toml](https://github.com/aio-libs/aiohttp/blob/master/.coveragerc-cython.toml ".coveragerc-cython.toml")  | [🧪 Control coverage parallel mode via env var](https://github.com/aio-libs/aiohttp/commit/d83589d196fdab6e55658b2c9d0466403f7b97c3 "🧪 Control coverage parallel mode via env var
+
+* https://discord.com/channels/267624335836053506/1253355750684753950/1537906072474488973
+* https://discord.com/channels/267624335836053506/1253355750684753950/1537914331629486130")  | Aug 14, 2026  |  
+| [.coveragerc.toml](https://github.com/aio-libs/aiohttp/blob/master/.coveragerc.toml ".coveragerc.toml")  | [.coveragerc.toml](https://github.com/aio-libs/aiohttp/blob/master/.coveragerc.toml ".coveragerc.toml")  | [🧪 Control coverage parallel mode via env var](https://github.com/aio-libs/aiohttp/commit/d83589d196fdab6e55658b2c9d0466403f7b97c3 "🧪 Control coverage parallel mode via env var
+
+* https://discord.com/channels/267624335836053506/1253355750684753950/1537906072474488973
+* https://discord.com/channels/267624335836053506/1253355750684753950/1537914331629486130")  | Aug 14, 2026  |  
+| [.editorconfig](https://github.com/aio-libs/aiohttp/blob/master/.editorconfig ".editorconfig")  | [.editorconfig](https://github.com/aio-libs/aiohttp/blob/master/.editorconfig ".editorconfig")  |  [Dont inherit web exceptions for web.Response (](https://github.com/aio-libs/aiohttp/commit/c11e8915d14027bd9f8b3e1cf43848282cd983b4 "Dont inherit web exceptions for web.Response \(#3462\)")[#3462](https://github.com/aio-libs/aiohttp/pull/3462)[)](https://github.com/aio-libs/aiohttp/commit/c11e8915d14027bd9f8b3e1cf43848282cd983b4 "Dont inherit web exceptions for web.Response \(#3462\)")  | Jan 14, 2019  |  
+| [.git-blame-ignore-revs](https://github.com/aio-libs/aiohttp/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs")  | [.git-blame-ignore-revs](https://github.com/aio-libs/aiohttp/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs")  |  [Ignore black commits in](https://github.com/aio-libs/aiohttp/commit/7b0a6152ee0794862175e923ed73dafc8ea072ce "Ignore black commits in `git blame` \(#6825\)") `git blame[](https://github.com/aio-libs/aiohttp/commit/7b0a6152ee0794862175e923ed73dafc8ea072ce "Ignore black commits in `git blame` \(#6825\)")` [(](https://github.com/aio-libs/aiohttp/commit/7b0a6152ee0794862175e923ed73dafc8ea072ce "Ignore black commits in `git blame` \(#6825\)")[#6825](https://github.com/aio-libs/aiohttp/pull/6825)[)](https://github.com/aio-libs/aiohttp/commit/7b0a6152ee0794862175e923ed73dafc8ea072ce "Ignore black commits in `git blame` \(#6825\)")  | Jul 13, 2022  |  
+| [.gitattributes](https://github.com/aio-libs/aiohttp/blob/master/.gitattributes ".gitattributes")  | [.gitattributes](https://github.com/aio-libs/aiohttp/blob/master/.gitattributes ".gitattributes")  |  [Create hello.txt.gz dynamically and improve related assertions (](https://github.com/aio-libs/aiohttp/commit/026e8d9872ab4511c38578a8c784cd2e740f0448 "Create hello.txt.gz dynamically and improve related assertions \(#8136\)
+
+Co-authored-by: Sviatoslav Sydorenko \(Святослав Сидоренко\) <wk.cvs.github@sydorenko.org.ua>
+Co-authored-by: J. Nick Koston <nick@koston.org>")[#8136](https://github.com/aio-libs/aiohttp/pull/8136)[)](https://github.com/aio-libs/aiohttp/commit/026e8d9872ab4511c38578a8c784cd2e740f0448 "Create hello.txt.gz dynamically and improve related assertions \(#8136\)
+
+Co-authored-by: Sviatoslav Sydorenko \(Святослав Сидоренко\) <wk.cvs.github@sydorenko.org.ua>
+Co-authored-by: J. Nick Koston <nick@koston.org>")  | Feb 13, 2024  |  
+| [.gitignore](https://github.com/aio-libs/aiohttp/blob/master/.gitignore ".gitignore")  | [.gitignore](https://github.com/aio-libs/aiohttp/blob/master/.gitignore ".gitignore")  |  [Split CLAUDE.md into shared aio-libs context layers (](https://github.com/aio-libs/aiohttp/commit/5a659a179383debe4385500a9e5ed524e9763f4d "Split CLAUDE.md into shared aio-libs context layers \(#12618\)")[#12618](https://github.com/aio-libs/aiohttp/pull/12618)[)](https://github.com/aio-libs/aiohttp/commit/5a659a179383debe4385500a9e5ed524e9763f4d "Split CLAUDE.md into shared aio-libs context layers \(#12618\)")  | May 18, 2026  |  
+| [.gitmodules](https://github.com/aio-libs/aiohttp/blob/master/.gitmodules ".gitmodules")  | [.gitmodules](https://github.com/aio-libs/aiohttp/blob/master/.gitmodules ".gitmodules")  |  [Update to LLHTTP 9 (](https://github.com/aio-libs/aiohttp/commit/c0c7508b64951b83ea38d232857cc258159f930b "Update to LLHTTP 9 \(#7485\)")[#7485](https://github.com/aio-libs/aiohttp/pull/7485)[)](https://github.com/aio-libs/aiohttp/commit/c0c7508b64951b83ea38d232857cc258159f930b "Update to LLHTTP 9 \(#7485\)")  | Aug 6, 2023  |  
+| [.lgtm.yml](https://github.com/aio-libs/aiohttp/blob/master/.lgtm.yml ".lgtm.yml")  | [.lgtm.yml](https://github.com/aio-libs/aiohttp/blob/master/.lgtm.yml ".lgtm.yml")  |  [Cleanup lgtm errors (](https://github.com/aio-libs/aiohttp/commit/995720260cc1535dd15a807f6b8b5ef83a1e2673 "Cleanup lgtm errors \(#3902\)")[#3902](https://github.com/aio-libs/aiohttp/pull/3902)[)](https://github.com/aio-libs/aiohttp/commit/995720260cc1535dd15a807f6b8b5ef83a1e2673 "Cleanup lgtm errors \(#3902\)")  | Jul 13, 2019  |  
+| [.mypy.ini](https://github.com/aio-libs/aiohttp/blob/master/.mypy.ini ".mypy.ini")  | [.mypy.ini](https://github.com/aio-libs/aiohttp/blob/master/.mypy.ini ".mypy.ini")  |  [Enable exhaustive-match in mypy (](https://github.com/aio-libs/aiohttp/commit/1633547a1b0541aac38c0b68bb0bd8f8c639460c "Enable exhaustive-match in mypy \(#11409\)")[#11409](https://github.com/aio-libs/aiohttp/pull/11409)[)](https://github.com/aio-libs/aiohttp/commit/1633547a1b0541aac38c0b68bb0bd8f8c639460c "Enable exhaustive-match in mypy \(#11409\)")  | Aug 11, 2025  |  
+| [.pip-tools.toml](https://github.com/aio-libs/aiohttp/blob/master/.pip-tools.toml ".pip-tools.toml")  | [.pip-tools.toml](https://github.com/aio-libs/aiohttp/blob/master/.pip-tools.toml ".pip-tools.toml")  |  [Revert "Move pip-tools into pyproject.toml" (](https://github.com/aio-libs/aiohttp/commit/5771a85fd865fc8fd69501345a00e6e58d469ba7 "Revert "Move pip-tools into pyproject.toml" \(#12809\)")[#12809](https://github.com/aio-libs/aiohttp/pull/12809)[)](https://github.com/aio-libs/aiohttp/commit/5771a85fd865fc8fd69501345a00e6e58d469ba7 "Revert "Move pip-tools into pyproject.toml" \(#12809\)")  | Jun 4, 2026  |  
+| [.pre-commit-config.yaml](https://github.com/aio-libs/aiohttp/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml")  | [.pre-commit-config.yaml](https://github.com/aio-libs/aiohttp/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml")  |  [[pre-commit.ci] pre-commit autoupdate (](https://github.com/aio-libs/aiohttp/commit/bffb2f1c14e177f8660226f7b07bc10c3917a607 "\[pre-commit.ci\] pre-commit autoupdate \(#13605\)")[#13605](https://github.com/aio-libs/aiohttp/pull/13605)[)](https://github.com/aio-libs/aiohttp/commit/bffb2f1c14e177f8660226f7b07bc10c3917a607 "\[pre-commit.ci\] pre-commit autoupdate \(#13605\)")  | Sep 2, 2026  |  
+| [.readthedocs.yml](https://github.com/aio-libs/aiohttp/blob/master/.readthedocs.yml ".readthedocs.yml")  | [.readthedocs.yml](https://github.com/aio-libs/aiohttp/blob/master/.readthedocs.yml ".readthedocs.yml")  |  [Add sphinx configuration for readthedocs (](https://github.com/aio-libs/aiohttp/commit/089e7de22fa4cfd6d54209b9a40ae3be76820f71 "Add sphinx configuration for readthedocs \(#10339\)")[#10339](https://github.com/aio-libs/aiohttp/pull/10339)[)](https://github.com/aio-libs/aiohttp/commit/089e7de22fa4cfd6d54209b9a40ae3be76820f71 "Add sphinx configuration for readthedocs \(#10339\)")  | Jan 20, 2025  |  
+| [AGENTS.md](https://github.com/aio-libs/aiohttp/blob/master/AGENTS.md "AGENTS.md")  | [AGENTS.md](https://github.com/aio-libs/aiohttp/blob/master/AGENTS.md "AGENTS.md")  |  [Alternative AGENTS.md (](https://github.com/aio-libs/aiohttp/commit/131c82138f5f40649e362bf4caeb016a746f618e "Alternative AGENTS.md \(#12610\)")[#12610](https://github.com/aio-libs/aiohttp/pull/12610)[)](https://github.com/aio-libs/aiohttp/commit/131c82138f5f40649e362bf4caeb016a746f618e "Alternative AGENTS.md \(#12610\)")  | May 18, 2026  |  
+| [CHANGES.rst](https://github.com/aio-libs/aiohttp/blob/master/CHANGES.rst "CHANGES.rst")  | [CHANGES.rst](https://github.com/aio-libs/aiohttp/blob/master/CHANGES.rst "CHANGES.rst")  | [Merge branch '3.15'](https://github.com/aio-libs/aiohttp/commit/4ae5d49f20959e63b53acf484609cbb4b484ba47 "Merge branch '3.15'")  | Jul 25, 2026  |  
+| [CLAUDE.md](https://github.com/aio-libs/aiohttp/blob/master/CLAUDE.md "CLAUDE.md")  | [CLAUDE.md](https://github.com/aio-libs/aiohttp/blob/master/CLAUDE.md "CLAUDE.md")  |  [Split CLAUDE.md into shared aio-libs context layers (](https://github.com/aio-libs/aiohttp/commit/5a659a179383debe4385500a9e5ed524e9763f4d "Split CLAUDE.md into shared aio-libs context layers \(#12618\)")[#12618](https://github.com/aio-libs/aiohttp/pull/12618)[)](https://github.com/aio-libs/aiohttp/commit/5a659a179383debe4385500a9e5ed524e9763f4d "Split CLAUDE.md into shared aio-libs context layers \(#12618\)")  | May 18, 2026  |  
+| [CODE_OF_CONDUCT.md](https://github.com/aio-libs/aiohttp/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [CODE_OF_CONDUCT.md](https://github.com/aio-libs/aiohttp/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md")  | [Create CODE_OF_CONDUCT.md](https://github.com/aio-libs/aiohttp/commit/5b2948a5c271b136f98cf322e91e40745c04133f "Create CODE_OF_CONDUCT.md")  | Mar 20, 2018  |  
+| [CONTRIBUTING.rst](https://github.com/aio-libs/aiohttp/blob/master/CONTRIBUTING.rst "CONTRIBUTING.rst")  | [CONTRIBUTING.rst](https://github.com/aio-libs/aiohttp/blob/master/CONTRIBUTING.rst "CONTRIBUTING.rst")  |  [Fix typos (](https://github.com/aio-libs/aiohttp/commit/9eba10c7e28b2dfc7eb379f0129ca34cc950f0c7 "Fix typos \(#6464\)")[#6464](https://github.com/aio-libs/aiohttp/pull/6464)[)](https://github.com/aio-libs/aiohttp/commit/9eba10c7e28b2dfc7eb379f0129ca34cc950f0c7 "Fix typos \(#6464\)")  | Dec 28, 2021  |  
+| [CONTRIBUTORS.txt](https://github.com/aio-libs/aiohttp/blob/master/CONTRIBUTORS.txt "CONTRIBUTORS.txt")  | [CONTRIBUTORS.txt](https://github.com/aio-libs/aiohttp/blob/master/CONTRIBUTORS.txt "CONTRIBUTORS.txt")  | [Make `ClientConnectorCertificateError.ssl` mean the same as on the ba…](https://github.com/aio-libs/aiohttp/commit/c25e8dd1afec38d349df61c96ff07f108d854d32 "Make `ClientConnectorCertificateError.ssl` mean the same as on the base class \(#13583\)")  | Sep 2, 2026  |  
+| [LICENSE.txt](https://github.com/aio-libs/aiohttp/blob/master/LICENSE.txt "LICENSE.txt")  | [LICENSE.txt](https://github.com/aio-libs/aiohttp/blob/master/LICENSE.txt "LICENSE.txt")  |  [Fix license (](https://github.com/aio-libs/aiohttp/commit/cbf255319921ba84a115d123f7304f9f813e1139 "Fix license \(#7049\)")[#7049](https://github.com/aio-libs/aiohttp/pull/7049)[)](https://github.com/aio-libs/aiohttp/commit/cbf255319921ba84a115d123f7304f9f813e1139 "Fix license \(#7049\)")  | May 21, 2026  |  
+| [MANIFEST.in](https://github.com/aio-libs/aiohttp/blob/master/MANIFEST.in "MANIFEST.in")  | [MANIFEST.in](https://github.com/aio-libs/aiohttp/blob/master/MANIFEST.in "MANIFEST.in")  | [🧪 Run tests from sdist like downstreams](https://github.com/aio-libs/aiohttp/commit/03ea0afb505414814de1f4a6723a2eeb240dfdab "🧪 Run tests from sdist like downstreams
+
+This allows us make sure everything they need is shipped through PyPI.
+And brings us closer to how `pip install` would build wheels in the
+wild. We now also run tests in CI from sdist.
+
+And this should help us out getting CI/CD to:
+* #7632
+* #13363
+* #13353")  | Aug 13, 2026  |  
+| [Makefile](https://github.com/aio-libs/aiohttp/blob/master/Makefile "Makefile")  | [Makefile](https://github.com/aio-libs/aiohttp/blob/master/Makefile "Makefile")  | [Build the websocket reader_c extension without the reader_c.py symlink (](https://github.com/aio-libs/aiohttp/commit/e54b79cbae69e24d5e87469613e97a3d9bec0d4b "Build the websocket reader_c extension without the reader_c.py symlink \(#13457\)")  | Aug 17, 2026  |  
+| [README.rst](https://github.com/aio-libs/aiohttp/blob/master/README.rst "README.rst")  | [README.rst](https://github.com/aio-libs/aiohttp/blob/master/README.rst "README.rst")  |  [Upgrade http:// to https:// in README.rst (](https://github.com/aio-libs/aiohttp/commit/1adc0cd753cd19c627a198495d4b6a974f81bedf "Upgrade http:// to https:// in README.rst \(#13169\)")[#13169](https://github.com/aio-libs/aiohttp/pull/13169)[)](https://github.com/aio-libs/aiohttp/commit/1adc0cd753cd19c627a198495d4b6a974f81bedf "Upgrade http:// to https:// in README.rst \(#13169\)")  | Jul 19, 2026  |  
+| [SECURITY_EXTRA.md](https://github.com/aio-libs/aiohttp/blob/master/SECURITY_EXTRA.md "SECURITY_EXTRA.md")  | [SECURITY_EXTRA.md](https://github.com/aio-libs/aiohttp/blob/master/SECURITY_EXTRA.md "SECURITY_EXTRA.md")  |  [Create SECURITY_EXTRA.md (](https://github.com/aio-libs/aiohttp/commit/2372510576b3bfeecb8438056288681a95536bb8 "Create SECURITY_EXTRA.md \(#12928\)")[#12928](https://github.com/aio-libs/aiohttp/pull/12928)[)](https://github.com/aio-libs/aiohttp/commit/2372510576b3bfeecb8438056288681a95536bb8 "Create SECURITY_EXTRA.md \(#12928\)")  | Jun 14, 2026  |  
+| [THREAT_MODEL.md](https://github.com/aio-libs/aiohttp/blob/master/THREAT_MODEL.md "THREAT_MODEL.md")  | [THREAT_MODEL.md](https://github.com/aio-libs/aiohttp/blob/master/THREAT_MODEL.md "THREAT_MODEL.md")  |  [Reassemble WebSocket frames into a single buffer (](https://github.com/aio-libs/aiohttp/commit/2a84c9ba7083870297eaee8d86ef4a36413d1b00 "Reassemble WebSocket frames into a single buffer \(#13488\)")[#13488](https://github.com/aio-libs/aiohttp/pull/13488)[)](https://github.com/aio-libs/aiohttp/commit/2a84c9ba7083870297eaee8d86ef4a36413d1b00 "Reassemble WebSocket frames into a single buffer \(#13488\)")  | Aug 31, 2026  |  
+| [pyproject.toml](https://github.com/aio-libs/aiohttp/blob/master/pyproject.toml "pyproject.toml")  | [pyproject.toml](https://github.com/aio-libs/aiohttp/blob/master/pyproject.toml "pyproject.toml")  | [📦 Pin build constraints in cibuildwheel env](https://github.com/aio-libs/aiohttp/commit/99430a3c700b729097231ac8678e822e81d9cd4f "📦 Pin build constraints in cibuildwheel env
+
+This is set up on the `pyproject.toml` level.")  | Aug 13, 2026  |  
+| [setup.cfg](https://github.com/aio-libs/aiohttp/blob/master/setup.cfg "setup.cfg")  | [setup.cfg](https://github.com/aio-libs/aiohttp/blob/master/setup.cfg "setup.cfg")  | [🧪 Drop ancient coverage `setup.cfg` section](https://github.com/aio-libs/aiohttp/commit/47d66e1dccf08ba5cccabc5f0f7b46c496d49d4b "🧪 Drop ancient coverage `setup.cfg` section")  | Aug 14, 2026  |  
+| [setup.py](https://github.com/aio-libs/aiohttp/blob/master/setup.py "setup.py")  | [setup.py](https://github.com/aio-libs/aiohttp/blob/master/setup.py "setup.py")  |  [Parallelize Cython extension compilation (](https://github.com/aio-libs/aiohttp/commit/5edd76f04c938e7de93b870ac7aa57a8accd87dc "Parallelize Cython extension compilation \(#12576\)")[#12576](https://github.com/aio-libs/aiohttp/pull/12576)[)](https://github.com/aio-libs/aiohttp/commit/5edd76f04c938e7de93b870ac7aa57a8accd87dc "Parallelize Cython extension compilation \(#12576\)")  | May 17, 2026  |  
+| View all files |  
+# Async http client/server framework
+[](https://github.com/aio-libs/aiohttp#async-http-clientserver-framework)
+[![aiohttp logo](https://raw.githubusercontent.com/aio-libs/aiohttp/master/docs/aiohttp-plain.svg)](https://raw.githubusercontent.com/aio-libs/aiohttp/master/docs/aiohttp-plain.svg)
+  
+
+[![GitHub Actions status for master branch](https://github.com/aio-libs/aiohttp/workflows/CI/badge.svg) ](https://github.com/aio-libs/aiohttp/actions?query=workflow%3ACI) [![codecov.io status for master branch](https://camo.githubusercontent.com/272670c78378eaf465c27ce13e4a7c6b00395980a566961d9e7cd0586337d998/68747470733a2f2f636f6465636f762e696f2f67682f61696f2d6c6962732f61696f687474702f6272616e63682f6d61737465722f67726170682f62616467652e737667) ](https://codecov.io/gh/aio-libs/aiohttp) [![Latest PyPI package version](https://camo.githubusercontent.com/2c826f38e95f1c0aac692338b0d711dbdfbedb8b0fece4249193b91be0a99fd5/68747470733a2f2f62616467652e667572792e696f2f70792f61696f687474702e737667) ](https://pypi.org/project/aiohttp) [![Downloads count](https://camo.githubusercontent.com/d744646068321b71e1fe90254f26f7f4d2a0653936c9f6d61a2b797b0c197db7/68747470733a2f2f696d672e736869656c64732e696f2f707970692f646d2f61696f68747470)](https://pypistats.org/packages/aiohttp) [![Latest Read The Docs](https://camo.githubusercontent.com/9525a54053103a3ee64f182f6e50e103df22d052e520315cc9f2282d3b43e548/68747470733a2f2f72656164746865646f63732e6f72672f70726f6a656374732f61696f687474702f62616467652f3f76657273696f6e3d6c6174657374)](https://docs.aiohttp.org/) [![Codspeed.io status for aiohttp](https://camo.githubusercontent.com/06a66eaab8d0af3b50301152f7ac162f6eacdafda054e858b2182fdc82e64d6e/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f636f6473706565642e696f2f62616467652e6a736f6e)](https://codspeed.io/aio-libs/aiohttp)
+## Key Features
+[](https://github.com/aio-libs/aiohttp#key-features)
+  * Supports both client and server side of HTTP protocol.
+  * Supports both client and server Web-Sockets out-of-the-box and avoids Callback Hell.
+  * Provides Web-server with middleware and pluggable routing.
+
+
+## Getting started
+[](https://github.com/aio-libs/aiohttp#getting-started)
+### Client
+[](https://github.com/aio-libs/aiohttp#client)
+To get something from the web:
+
+```
+import aiohttp
+import asyncio
+
+async def main():
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get('https://python.org') as response:
+
+            print("Status:", response.status)
+            print("Content-type:", response.headers['content-type'])
+
+            html = await response.text()
+            print("Body:", html[:15], "...")
+
+asyncio.run(main())
+```
+
+This prints:
+
+```
+Status: 200
+Content-type: text/html; charset=utf-8
+Body: <!doctype html> ...
+
+```
+
+Coming from [requests](https://requests.readthedocs.io/) ? Read [why we need so many lines](https://aiohttp.readthedocs.io/en/latest/http_request_lifecycle.html).
+### Server
+[](https://github.com/aio-libs/aiohttp#server)
+An example using a simple server:
+
+```
+# examples/server_simple.py
+from aiohttp import web
+
+async def handle(request):
+    name = request.match_info.get('name', "Anonymous")
+    text = "Hello, " + name
+    return web.Response(text=text)
+
+async def wshandle(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        if msg.type == web.WSMsgType.text:
+            await ws.send_str("Hello, {}".format(msg.data))
+        elif msg.type == web.WSMsgType.binary:
+            await ws.send_bytes(msg.data)
+        elif msg.type == web.WSMsgType.close:
+            break
+
+    return ws
+
+
+app = web.Application()
+app.add_routes([web.get('/', handle),
+                web.get('/echo', wshandle),
+                web.get('/{name}', handle)])
+
+if __name__ == '__main__':
+    web.run_app(app)
+```
+
+## Documentation
+[](https://github.com/aio-libs/aiohttp#documentation)
+<https://aiohttp.readthedocs.io/>
+## Demos
+[](https://github.com/aio-libs/aiohttp#demos)
+<https://github.com/aio-libs/aiohttp-demos>
+## External links
+[](https://github.com/aio-libs/aiohttp#external-links)
+  * [Third party libraries](https://aiohttp.readthedocs.io/en/latest/third_party.html)
+  * [Built with aiohttp](https://aiohttp.readthedocs.io/en/latest/built_with.html)
+  * [Powered by aiohttp](https://aiohttp.readthedocs.io/en/latest/powered_by.html)
+
+
+Feel free to make a Pull Request for adding your link to these pages!
+## Communication channels
+[](https://github.com/aio-libs/aiohttp#communication-channels)
+_aio-libs Discussions_ : <https://github.com/aio-libs/aiohttp/discussions>
+_Matrix_ : [#aio-libs:matrix.org](https://matrix.to/#/#aio-libs:matrix.org)
+We support [Stack Overflow](https://stackoverflow.com/questions/tagged/aiohttp). Please add _aiohttp_ tag to your question there.
+## Requirements
+[](https://github.com/aio-libs/aiohttp#requirements)
+  * [multidict](https://pypi.python.org/pypi/multidict)
+  * [yarl](https://pypi.python.org/pypi/yarl)
+  * [frozenlist](https://pypi.org/project/frozenlist/)
+
+
+Optionally you may install the [aiodns](https://pypi.python.org/pypi/aiodns) library (highly recommended for sake of speed).
+## Keepsafe
+[](https://github.com/aio-libs/aiohttp#keepsafe)
+The aiohttp community would like to thank Keepsafe (<https://www.getkeepsafe.com>) for its support in the early days of the project.
+## Source code
+[](https://github.com/aio-libs/aiohttp#source-code)
+The latest developer version is available in a GitHub repository: <https://github.com/aio-libs/aiohttp>
+## Benchmarks
+[](https://github.com/aio-libs/aiohttp#benchmarks)
+If you are interested in efficiency, the AsyncIO community maintains a list of benchmarks on the official wiki: <https://github.com/python/asyncio/wiki/Benchmarks>
+* * *
+[![Matrix Room — #aio-libs:matrix.org](https://camo.githubusercontent.com/9bf7378e61a5d285c1569879184cde749d30f277d567b5dc0569096c0db9ab1d/68747470733a2f2f696d672e736869656c64732e696f2f6d61747269782f61696f2d6c6962733a6d61747269782e6f72673f6c6162656c3d446973637573732532306f6e2532304d6174726978253230617425323025323361696f2d6c6962732533416d61747269782e6f7267266c6f676f3d6d6174726978267365727665725f6671646e3d6d61747269782e6f7267267374796c653d666c6174)](https://matrix.to/#/%23aio-libs:matrix.org) [![Matrix Space — #aio-libs-space:matrix.org](https://camo.githubusercontent.com/1083352e5edd9cfbb9488d3c34a9ba187937b12a4f61736aa87612aef427ff55/68747470733a2f2f696d672e736869656c64732e696f2f6d61747269782f61696f2d6c6962732d73706163653a6d61747269782e6f72673f6c6162656c3d446973637573732532306f6e2532304d6174726978253230617425323025323361696f2d6c6962732d73706163652533416d61747269782e6f7267266c6f676f3d6d6174726978267365727665725f6671646e3d6d61747269782e6f7267267374796c653d666c6174)](https://matrix.to/#/%23aio-libs-space:matrix.org) [![LFX Health Score](https://camo.githubusercontent.com/9068c47b16ea2b920f1c415a9e8fc6eb5eb47b7f0173dfa2c661c6cb170b00f5/68747470733a2f2f696e7369676874732e6c696e7578666f756e646174696f6e2e6f72672f6170692f62616467652f6865616c74682d73636f72653f70726f6a6563743d61696f68747470)](https://insights.linuxfoundation.org/project/aiohttp)
+## About
+Asynchronous HTTP client/server framework for asyncio and Python
+[docs.aiohttp.org](https://docs.aiohttp.org)
+[aiohttp](https://github.com/topics/aiohttp)[async](https://github.com/topics/async)[asyncio](https://github.com/topics/asyncio)[hacktoberfest](https://github.com/topics/hacktoberfest)[http](https://github.com/topics/http)[http-client](https://github.com/topics/http-client)[http-server](https://github.com/topics/http-server)[python](https://github.com/topics/python)
+[Readme](https://github.com/aio-libs/aiohttp#readme-ov-file)
+[Apache-2.0 license](https://github.com/aio-libs/aiohttp#Apache-2.0-1-ov-file)
+[Code of conduct](https://github.com/aio-libs/aiohttp#coc-ov-file)
+[Contributing](https://github.com/aio-libs/aiohttp#contributing-ov-file)
+[Security policy](https://github.com/aio-libs/aiohttp#security-ov-file)
+[Activity](https://github.com/aio-libs/aiohttp/activity)
+[Custom properties](https://github.com/aio-libs/aiohttp/custom-properties)
+**16.5k** stars
+**214** watching
+[**2.4k** forks](https://github.com/aio-libs/aiohttp/forks)
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Faio-libs%2Faiohttp&report=aio-libs+%28user%29)
+## [Releases](https://github.com/aio-libs/aiohttp/releases)222
+[ 3.14.3Latest Jul 22, 2026 ](https://github.com/aio-libs/aiohttp/releases/tag/v3.14.3)
+[+ 221 releases](https://github.com/aio-libs/aiohttp/releases)
+## Sponsor this project
+  * [![@aio-libs](https://avatars.githubusercontent.com/u/7049303?s=64&v=4)](https://github.com/aio-libs)[**aio-libs**](https://github.com/aio-libs) aio-libs[](https://github.com/sponsors/aio-libs)Sponsor @aio-libs
+  * [![@asvetlov](https://avatars.githubusercontent.com/u/356399?s=64&v=4)](https://github.com/asvetlov)[**asvetlov**](https://github.com/asvetlov) Andrew Svetlov[](https://github.com/sponsors/asvetlov)Sponsor @asvetlov
+  * [![@webknjaz](https://avatars.githubusercontent.com/u/578543?s=64&v=4)](https://github.com/webknjaz)[**webknjaz**](https://github.com/webknjaz) 🇺🇦 Sviatoslav Sydorenko (Святослав Сидоренко)[](https://github.com/sponsors/webknjaz)Sponsor @webknjaz
+  * [![@Dreamsorcerer](https://avatars.githubusercontent.com/u/2203121?s=64&v=4)](https://github.com/Dreamsorcerer)[**Dreamsorcerer**](https://github.com/Dreamsorcerer) Sam Bull[](https://github.com/sponsors/Dreamsorcerer)Sponsor @Dreamsorcerer
+
+
+  * ![](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)[opencollective.com/aiohttp](https://opencollective.com/aiohttp)
+  * ![](https://github.githubassets.com/assets/tidelift-8cea37dea8fc.svg)[tidelift.com/funding/github/pypi/aiohttp](https://tidelift.com/funding/github/pypi/aiohttp)
+  * <https://opencollective.com/aio-libs>
+
+
+[Learn more about GitHub Sponsors](https://github.com/sponsors)
+## [Used by](https://github.com/aio-libs/aiohttp/network/dependents)790K
+[ ![@boanlab](https://avatars.githubusercontent.com/u/124050145?s=64&v=4)![@11mirror](https://avatars.githubusercontent.com/u/280230405?s=64&v=4)![@stackia](https://avatars.githubusercontent.com/u/5107241?s=64&v=4)![@stackia](https://avatars.githubusercontent.com/u/5107241?s=64&v=4)![@nguyenvinh1234](https://avatars.githubusercontent.com/u/202370522?s=64&v=4) + 785,908](https://github.com/aio-libs/aiohttp/network/dependents)
+## [Contributors](https://github.com/aio-libs/aiohttp/graphs/contributors)814
+  * [![@asvetlov](https://avatars.githubusercontent.com/u/356399?s=64&v=4)](https://github.com/asvetlov)
+  * [![@dependabot\[bot\]](https://avatars.githubusercontent.com/in/29110?s=64&v=4)](https://github.com/dependabot\[bot\])
+  * [![@bdraco](https://avatars.githubusercontent.com/u/663432?s=64&v=4)](https://github.com/bdraco)
+  * [![@Dreamsorcerer](https://avatars.githubusercontent.com/u/2203121?s=64&v=4)](https://github.com/Dreamsorcerer)
+  * [![@patchback\[bot\]](https://avatars.githubusercontent.com/in/21488?s=64&v=4)](https://github.com/patchback\[bot\])
+  * [![@fafhrd91](https://avatars.githubusercontent.com/u/598990?s=64&v=4)](https://github.com/fafhrd91)
+  * [![@webknjaz](https://avatars.githubusercontent.com/u/578543?s=64&v=4)](https://github.com/webknjaz)
+  * [![@dependabot-preview\[bot\]](https://avatars.githubusercontent.com/in/2141?s=64&v=4)](https://github.com/dependabot-preview\[bot\])
+  * [![@pyup-bot](https://avatars.githubusercontent.com/u/16239342?s=64&v=4)](https://github.com/pyup-bot)
+  * [![@pre-commit-ci\[bot\]](https://avatars.githubusercontent.com/in/68672?s=64&v=4)](https://github.com/pre-commit-ci\[bot\])
+  * [![@kxepal](https://avatars.githubusercontent.com/u/785983?s=64&v=4)](https://github.com/kxepal)
+  * [![@popravich](https://avatars.githubusercontent.com/u/323442?s=64&v=4)](https://github.com/popravich)
+  * [![@Cycloctane](https://avatars.githubusercontent.com/u/111191986?s=64&v=4)](https://github.com/Cycloctane)
+  * [![@jashandeep-sohi](https://avatars.githubusercontent.com/u/1811200?s=64&v=4)](https://github.com/jashandeep-sohi)
+
+
+[+ 800 contributors](https://github.com/aio-libs/aiohttp/graphs/contributors)
+## Languages
+  * [Python98.3%](https://github.com/aio-libs/aiohttp/search?l=python)
+  * [Cython1.5%](https://github.com/aio-libs/aiohttp/search?l=cython)
+  * [Makefile0.2%](https://github.com/aio-libs/aiohttp/search?l=makefile)
+  * [Gherkin0%](https://github.com/aio-libs/aiohttp/search?l=gherkin)
+  * [Dockerfile0%](https://github.com/aio-libs/aiohttp/search?l=dockerfile)
+  * [C0%](https://github.com/aio-libs/aiohttp/search?l=c)
+
+
+[ ](https://github.com) © 2026 GitHub, Inc. 
+  * [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+  * [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+  * [Security](https://github.com/security)
+  * [Status](https://www.githubstatus.com/)
+  * [Community](https://github.community/)
+  * [Docs](https://docs.github.com/)
+  * [Contact](https://support.github.com?tags=dotcom-footer)
+  * Manage cookies 
+  * Do not share my personal information 
+
+
+You can’t perform that action at this time. 

@@ -1,0 +1,355 @@
+[Skip to content](#start-of-content)   
+ 
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fopen-webui%2Fopen-webui)
+
+Appearance settings
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fopen-webui%2Fopen-webui)
+
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=open-webui%2Fopen-webui)
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[open-webui](/open-webui)   /  **[open-webui](/open-webui/open-webui)**  Public
+
+* ### Uh oh!
+
+  There was an error while loading. Please reload this page.
+* [Notifications](/login?return_to=%2Fopen-webui%2Fopen-webui)  You must be signed in to change notification settings
+* [Fork 21.8k](/login?return_to=%2Fopen-webui%2Fopen-webui)
+* [Star  149k](/login?return_to=%2Fopen-webui%2Fopen-webui)
+
+[Branches](/open-webui/open-webui/branches)[Tags](/open-webui/open-webui/tags)
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+[17,819 Commits](/open-webui/open-webui/commits/main/)
+
+17,819 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](/open-webui/open-webui/tree/main/.github ".github") | [.github](/open-webui/open-webui/tree/main/.github ".github") |  |  |
+| [backend](/open-webui/open-webui/tree/main/backend "backend") | [backend](/open-webui/open-webui/tree/main/backend "backend") |  |  |
+| [docs](/open-webui/open-webui/tree/main/docs "docs") | [docs](/open-webui/open-webui/tree/main/docs "docs") |  |  |
+| [scripts](/open-webui/open-webui/tree/main/scripts "scripts") | [scripts](/open-webui/open-webui/tree/main/scripts "scripts") |  |  |
+| [src](/open-webui/open-webui/tree/main/src "src") | [src](/open-webui/open-webui/tree/main/src "src") |  |  |
+| [static](/open-webui/open-webui/tree/main/static "static") | [static](/open-webui/open-webui/tree/main/static "static") |  |  |
+| [test/test\_files/image\_gen](/open-webui/open-webui/tree/main/test/test_files/image_gen "This path skips through empty directories") | [test/test\_files/image\_gen](/open-webui/open-webui/tree/main/test/test_files/image_gen "This path skips through empty directories") |  |  |
+| [.dockerignore](/open-webui/open-webui/blob/main/.dockerignore ".dockerignore") | [.dockerignore](/open-webui/open-webui/blob/main/.dockerignore ".dockerignore") |  |  |
+| [.env.example](/open-webui/open-webui/blob/main/.env.example ".env.example") | [.env.example](/open-webui/open-webui/blob/main/.env.example ".env.example") |  |  |
+| [.eslintignore](/open-webui/open-webui/blob/main/.eslintignore ".eslintignore") | [.eslintignore](/open-webui/open-webui/blob/main/.eslintignore ".eslintignore") |  |  |
+| [.eslintrc.cjs](/open-webui/open-webui/blob/main/.eslintrc.cjs ".eslintrc.cjs") | [.eslintrc.cjs](/open-webui/open-webui/blob/main/.eslintrc.cjs ".eslintrc.cjs") |  |  |
+| [.gitattributes](/open-webui/open-webui/blob/main/.gitattributes ".gitattributes") | [.gitattributes](/open-webui/open-webui/blob/main/.gitattributes ".gitattributes") |  |  |
+| [.gitignore](/open-webui/open-webui/blob/main/.gitignore ".gitignore") | [.gitignore](/open-webui/open-webui/blob/main/.gitignore ".gitignore") |  |  |
+| [.npmrc](/open-webui/open-webui/blob/main/.npmrc ".npmrc") | [.npmrc](/open-webui/open-webui/blob/main/.npmrc ".npmrc") |  |  |
+| [.pre-commit-config.yaml](/open-webui/open-webui/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") | [.pre-commit-config.yaml](/open-webui/open-webui/blob/main/.pre-commit-config.yaml ".pre-commit-config.yaml") |  |  |
+| [.prettierignore](/open-webui/open-webui/blob/main/.prettierignore ".prettierignore") | [.prettierignore](/open-webui/open-webui/blob/main/.prettierignore ".prettierignore") |  |  |
+| [.prettierrc](/open-webui/open-webui/blob/main/.prettierrc ".prettierrc") | [.prettierrc](/open-webui/open-webui/blob/main/.prettierrc ".prettierrc") |  |  |
+| [CHANGELOG.md](/open-webui/open-webui/blob/main/CHANGELOG.md "CHANGELOG.md") | [CHANGELOG.md](/open-webui/open-webui/blob/main/CHANGELOG.md "CHANGELOG.md") |  |  |
+| [CODE\_OF\_CONDUCT.md](/open-webui/open-webui/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [CODE\_OF\_CONDUCT.md](/open-webui/open-webui/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") |  |  |
+| [CONTRIBUTOR\_LICENSE\_AGREEMENT](/open-webui/open-webui/blob/main/CONTRIBUTOR_LICENSE_AGREEMENT "CONTRIBUTOR_LICENSE_AGREEMENT") | [CONTRIBUTOR\_LICENSE\_AGREEMENT](/open-webui/open-webui/blob/main/CONTRIBUTOR_LICENSE_AGREEMENT "CONTRIBUTOR_LICENSE_AGREEMENT") |  |  |
+| [Dockerfile](/open-webui/open-webui/blob/main/Dockerfile "Dockerfile") | [Dockerfile](/open-webui/open-webui/blob/main/Dockerfile "Dockerfile") |  |  |
+| [LICENSE](/open-webui/open-webui/blob/main/LICENSE "LICENSE") | [LICENSE](/open-webui/open-webui/blob/main/LICENSE "LICENSE") |  |  |
+| [LICENSE\_HISTORY](/open-webui/open-webui/blob/main/LICENSE_HISTORY "LICENSE_HISTORY") | [LICENSE\_HISTORY](/open-webui/open-webui/blob/main/LICENSE_HISTORY "LICENSE_HISTORY") |  |  |
+| [LICENSE\_NOTICE](/open-webui/open-webui/blob/main/LICENSE_NOTICE "LICENSE_NOTICE") | [LICENSE\_NOTICE](/open-webui/open-webui/blob/main/LICENSE_NOTICE "LICENSE_NOTICE") |  |  |
+| [Makefile](/open-webui/open-webui/blob/main/Makefile "Makefile") | [Makefile](/open-webui/open-webui/blob/main/Makefile "Makefile") |  |  |
+| [README.md](/open-webui/open-webui/blob/main/README.md "README.md") | [README.md](/open-webui/open-webui/blob/main/README.md "README.md") |  |  |
+| [TROUBLESHOOTING.md](/open-webui/open-webui/blob/main/TROUBLESHOOTING.md "TROUBLESHOOTING.md") | [TROUBLESHOOTING.md](/open-webui/open-webui/blob/main/TROUBLESHOOTING.md "TROUBLESHOOTING.md") |  |  |
+| [banner.png](/open-webui/open-webui/blob/main/banner.png "banner.png") | [banner.png](/open-webui/open-webui/blob/main/banner.png "banner.png") |  |  |
+| [contribution\_stats.py](/open-webui/open-webui/blob/main/contribution_stats.py "contribution_stats.py") | [contribution\_stats.py](/open-webui/open-webui/blob/main/contribution_stats.py "contribution_stats.py") |  |  |
+| [demo.png](/open-webui/open-webui/blob/main/demo.png "demo.png") | [demo.png](/open-webui/open-webui/blob/main/demo.png "demo.png") |  |  |
+| [docker-cleanup.sh](/open-webui/open-webui/blob/main/docker-cleanup.sh "docker-cleanup.sh") | [docker-cleanup.sh](/open-webui/open-webui/blob/main/docker-cleanup.sh "docker-cleanup.sh") |  |  |
+| [docker-compose-launcher.sh](/open-webui/open-webui/blob/main/docker-compose-launcher.sh "docker-compose-launcher.sh") | [docker-compose-launcher.sh](/open-webui/open-webui/blob/main/docker-compose-launcher.sh "docker-compose-launcher.sh") |  |  |
+| [docker-compose.a1111-test.yaml](/open-webui/open-webui/blob/main/docker-compose.a1111-test.yaml "docker-compose.a1111-test.yaml") | [docker-compose.a1111-test.yaml](/open-webui/open-webui/blob/main/docker-compose.a1111-test.yaml "docker-compose.a1111-test.yaml") |  |  |
+| [docker-compose.amdgpu.yaml](/open-webui/open-webui/blob/main/docker-compose.amdgpu.yaml "docker-compose.amdgpu.yaml") | [docker-compose.amdgpu.yaml](/open-webui/open-webui/blob/main/docker-compose.amdgpu.yaml "docker-compose.amdgpu.yaml") |  |  |
+| [docker-compose.api.yaml](/open-webui/open-webui/blob/main/docker-compose.api.yaml "docker-compose.api.yaml") | [docker-compose.api.yaml](/open-webui/open-webui/blob/main/docker-compose.api.yaml "docker-compose.api.yaml") |  |  |
+| [docker-compose.data.yaml](/open-webui/open-webui/blob/main/docker-compose.data.yaml "docker-compose.data.yaml") | [docker-compose.data.yaml](/open-webui/open-webui/blob/main/docker-compose.data.yaml "docker-compose.data.yaml") |  |  |
+| [docker-compose.gpu.yaml](/open-webui/open-webui/blob/main/docker-compose.gpu.yaml "docker-compose.gpu.yaml") | [docker-compose.gpu.yaml](/open-webui/open-webui/blob/main/docker-compose.gpu.yaml "docker-compose.gpu.yaml") |  |  |
+| [docker-compose.otel.yaml](/open-webui/open-webui/blob/main/docker-compose.otel.yaml "docker-compose.otel.yaml") | [docker-compose.otel.yaml](/open-webui/open-webui/blob/main/docker-compose.otel.yaml "docker-compose.otel.yaml") |  |  |
+| [docker-compose.playwright.yaml](/open-webui/open-webui/blob/main/docker-compose.playwright.yaml "docker-compose.playwright.yaml") | [docker-compose.playwright.yaml](/open-webui/open-webui/blob/main/docker-compose.playwright.yaml "docker-compose.playwright.yaml") |  |  |
+| [docker-compose.yaml](/open-webui/open-webui/blob/main/docker-compose.yaml "docker-compose.yaml") | [docker-compose.yaml](/open-webui/open-webui/blob/main/docker-compose.yaml "docker-compose.yaml") |  |  |
+| [docker-ollama.sh](/open-webui/open-webui/blob/main/docker-ollama.sh "docker-ollama.sh") | [docker-ollama.sh](/open-webui/open-webui/blob/main/docker-ollama.sh "docker-ollama.sh") |  |  |
+| [docker-run.sh](/open-webui/open-webui/blob/main/docker-run.sh "docker-run.sh") | [docker-run.sh](/open-webui/open-webui/blob/main/docker-run.sh "docker-run.sh") |  |  |
+| [docker-update-models.sh](/open-webui/open-webui/blob/main/docker-update-models.sh "docker-update-models.sh") | [docker-update-models.sh](/open-webui/open-webui/blob/main/docker-update-models.sh "docker-update-models.sh") |  |  |
+| [hatch\_build.py](/open-webui/open-webui/blob/main/hatch_build.py "hatch_build.py") | [hatch\_build.py](/open-webui/open-webui/blob/main/hatch_build.py "hatch_build.py") |  |  |
+| [i18next-parser.config.ts](/open-webui/open-webui/blob/main/i18next-parser.config.ts "i18next-parser.config.ts") | [i18next-parser.config.ts](/open-webui/open-webui/blob/main/i18next-parser.config.ts "i18next-parser.config.ts") |  |  |
+| [package-lock.json](/open-webui/open-webui/blob/main/package-lock.json "package-lock.json") | [package-lock.json](/open-webui/open-webui/blob/main/package-lock.json "package-lock.json") |  |  |
+| [package.json](/open-webui/open-webui/blob/main/package.json "package.json") | [package.json](/open-webui/open-webui/blob/main/package.json "package.json") |  |  |
+| [postcss.config.js](/open-webui/open-webui/blob/main/postcss.config.js "postcss.config.js") | [postcss.config.js](/open-webui/open-webui/blob/main/postcss.config.js "postcss.config.js") |  |  |
+| [pyproject.toml](/open-webui/open-webui/blob/main/pyproject.toml "pyproject.toml") | [pyproject.toml](/open-webui/open-webui/blob/main/pyproject.toml "pyproject.toml") |  |  |
+| [svelte.config.js](/open-webui/open-webui/blob/main/svelte.config.js "svelte.config.js") | [svelte.config.js](/open-webui/open-webui/blob/main/svelte.config.js "svelte.config.js") |  |  |
+| [tailwind.config.js](/open-webui/open-webui/blob/main/tailwind.config.js "tailwind.config.js") | [tailwind.config.js](/open-webui/open-webui/blob/main/tailwind.config.js "tailwind.config.js") |  |  |
+| [tsconfig.json](/open-webui/open-webui/blob/main/tsconfig.json "tsconfig.json") | [tsconfig.json](/open-webui/open-webui/blob/main/tsconfig.json "tsconfig.json") |  |  |
+| [uv.lock](/open-webui/open-webui/blob/main/uv.lock "uv.lock") | [uv.lock](/open-webui/open-webui/blob/main/uv.lock "uv.lock") |  |  |
+| [vite.config.ts](/open-webui/open-webui/blob/main/vite.config.ts "vite.config.ts") | [vite.config.ts](/open-webui/open-webui/blob/main/vite.config.ts "vite.config.ts") |  |  |
+|  |
+
+## Repository files navigation
+
+# Open WebUI 👋
+
+[![GitHub stars](https://camo.githubusercontent.com/26427a0ed61c3edfe1b60d1f2bf2c3d7fd48dd46d9170843930b763469e45645/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f73746172732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c)](https://camo.githubusercontent.com/26427a0ed61c3edfe1b60d1f2bf2c3d7fd48dd46d9170843930b763469e45645/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f73746172732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c) [![GitHub forks](https://camo.githubusercontent.com/44f2f4a7a2286df63e9977f4d2adad1d56186245b8c4fde2a5855610a13ead23/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f666f726b732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c)](https://camo.githubusercontent.com/44f2f4a7a2286df63e9977f4d2adad1d56186245b8c4fde2a5855610a13ead23/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f666f726b732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c) [![GitHub watchers](https://camo.githubusercontent.com/aa0a7ddaa59e26f1a9c0f02a640ba4dd44219f62b102e22d378b57eef42b181b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f77617463686572732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c)](https://camo.githubusercontent.com/aa0a7ddaa59e26f1a9c0f02a640ba4dd44219f62b102e22d378b57eef42b181b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f77617463686572732f6f70656e2d77656275692f6f70656e2d77656275693f7374796c653d736f6369616c) [![GitHub repo size](https://camo.githubusercontent.com/7961cd9a98d3cb275e12b4733a047be12b1ed3750565ce4e74195693a7f32bb2/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7265706f2d73697a652f6f70656e2d77656275692f6f70656e2d7765627569)](https://camo.githubusercontent.com/7961cd9a98d3cb275e12b4733a047be12b1ed3750565ce4e74195693a7f32bb2/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f7265706f2d73697a652f6f70656e2d77656275692f6f70656e2d7765627569) [![GitHub language count](https://camo.githubusercontent.com/ca888442dfd2424594f4935b730f2807aee2953b32d689567e9615965ec196fd/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c616e6775616765732f636f756e742f6f70656e2d77656275692f6f70656e2d7765627569)](https://camo.githubusercontent.com/ca888442dfd2424594f4935b730f2807aee2953b32d689567e9615965ec196fd/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c616e6775616765732f636f756e742f6f70656e2d77656275692f6f70656e2d7765627569) [![GitHub top language](https://camo.githubusercontent.com/7c2ad79314ad08f74ad511df6e3f37f6d8bc3d8343e5189b654b146eed8e4f0c/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c616e6775616765732f746f702f6f70656e2d77656275692f6f70656e2d7765627569)](https://camo.githubusercontent.com/7c2ad79314ad08f74ad511df6e3f37f6d8bc3d8343e5189b654b146eed8e4f0c/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c616e6775616765732f746f702f6f70656e2d77656275692f6f70656e2d7765627569) [![GitHub last commit](https://camo.githubusercontent.com/f8fb32b5973b26a828fe1dba461e9118d1fbdb1087de6d7454ccbe30ab7a312a/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6173742d636f6d6d69742f6f70656e2d77656275692f6f70656e2d77656275693f636f6c6f723d726564)](https://camo.githubusercontent.com/f8fb32b5973b26a828fe1dba461e9118d1fbdb1087de6d7454ccbe30ab7a312a/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6173742d636f6d6d69742f6f70656e2d77656275692f6f70656e2d77656275693f636f6c6f723d726564) [![Discord](https://camo.githubusercontent.com/2a8901c7df6d991cbf5018640c296232b0a48bf115e759e43dc13fa4739932c7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446973636f72642d4f70656e5f57656255492d626c75653f6c6f676f3d646973636f7264266c6f676f436f6c6f723d7768697465)](https://discord.gg/5rJgQTnV4s) [![](https://camo.githubusercontent.com/d2432db86e1cfca636933728a664bf886cff501efab549a0af6abab26fe8851b/68747470733a2f2f696d672e736869656c64732e696f2f7374617469632f76313f6c6162656c3d53706f6e736f72266d6573736167653d254532253944254134266c6f676f3d47697448756226636f6c6f723d253233666538653836)](https://github.com/sponsors/open-webui)
+
+**Open WebUI is an [extensible](https://docs.openwebui.com/features/extensibility/plugin), feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline.** It supports various LLM runners like **Ollama** and **OpenAI-compatible APIs**, with **built-in inference engine** for RAG, making it a **powerful AI deployment solution**.
+
+Passionate about open-source AI? [Join our team →](https://careers.openwebui.com/)
+
+Tip
+
+**Looking for an [Enterprise Plan](https://docs.openwebui.com/enterprise)?** – **[Speak with Our Sales Team Today!](https://docs.openwebui.com/enterprise)**
+
+Get **enhanced capabilities**, including **custom theming and branding**, **Service Level Agreement (SLA) support**, **Long-Term Support (LTS) versions**, and **more!**
+
+For more information, be sure to check out our [Open WebUI Documentation](https://docs.openwebui.com/).
+
+## Key Features of Open WebUI ⭐
+
+* 🚀 **Effortless Setup**: Install seamlessly via pip, uv, Docker, or Kubernetes (kubectl, kustomize, or helm), with `:ollama` and `:cuda` tagged images available for container deployments.
+* 🤝 **Broad Model & API Integration**: Connect any OpenAI-compatible API alongside local Ollama models. Point the API URL at **LMStudio, GroqCloud, Mistral, OpenRouter, vLLM, and more** to mix and match providers freely.
+* 🔐 **Granular RBAC & User Groups**: Administrators define detailed roles, groups, and permissions, giving each user exactly the access they need. Secure by default, with tailored experiences per group.
+* 🧩 **Plugin Support**: Extend Open WebUI with **Filters**, **Actions**, **Pipes**, **Tools**, and **Skills**. Connect external services through **MCP**, **MCPO**, and **OpenAPI tool servers**. Build custom integrations, rate limits, approval flows, data connections, and more.
+* 🤖 **Models & Agents**: Wrap any base model with custom instructions, tools, and knowledge to build specialized agents. Supports dynamic variables, per-user/group access control, and community preset imports via [Open WebUI Community](https://openwebui.com/).
+* 📝 **Notes**: A dedicated workspace for content outside conversations. Draft with a rich editor, use AI to rewrite selected text, and attach notes to any chat for full-context injection.
+* 📢 **Channels**: Real-time shared spaces where your team and AI models collaborate in one timeline. Tag models to draft or critique, with threads, reactions, pins, and access control.
+* 🧠 **Persistent Memory**: The AI remembers facts about you across conversations, carrying context from one chat to the next.
+* ✅ **Live Workflow & Message Flow**: Watch the AI build and work through checklists in real time. Queue messages while the AI is still responding; they send automatically when it's ready.
+* 📅 **Calendar & AI Scheduling**: Built-in personal and shared calendars with month/week/day views, recurring events, color coding, attendees, and reminders. Models manage your schedule conversationally through native function calling.
+* ⏱️ **Automations**: Schedule prompts to run on recurring schedules, with runs surfaced on your calendar and each completed run linking back to the chat it produced.
+* 📱 **Responsive Design & PWA**: Seamless experience across desktop, laptop, and mobile, with a Progressive Web App for native app-like feel and offline access on localhost.
+* ✒️🔢 **Full Markdown and LaTeX Support**: Comprehensive Markdown and LaTeX capabilities for enriched interaction.
+* 🎤📹 **Hands-Free Voice/Video Call**: Integrated voice and video calls with multiple Speech-to-Text providers (Local Whisper, OpenAI, Deepgram, Azure) and Text-to-Speech engines (Azure, ElevenLabs, OpenAI, Transformers, WebAPI).
+* 💾 **Persistent Artifact Storage**: Built-in key-value storage API for artifacts, enabling journals, trackers, leaderboards, and collaborative tools with personal and shared data scopes.
+* 📚 **Local RAG Integration**: Retrieval Augmented Generation backed by 9 vector databases and multiple content-extraction engines (Tika, Docling, Document Intelligence, Mistral OCR, PaddleOCR-vl, external loaders). Supports hybrid search (BM25 + vector) with reranking and full-context mode. Load documents into chat or pull them from your library with the `#` command.
+* 🔍 **Web Search for RAG**: Search the web through dozens of providers including `SearXNG`, `Google PSE`, `Brave Search`, `Kagi`, `Mojeek`, `Tavily`, `Perplexity`, `Firecrawl`, `serpstack`, `serper`, `Serply`, `DuckDuckGo`, `SearchApi`, `SerpApi`, `Bing`, `Jina`, `Exa`, `Sougou`, `Azure AI Search`, and `Ollama Cloud`, injecting results directly into the conversation.
+* 🌐 **Web Browsing Capability**: Pull websites into chat with the `#` command followed by a URL, or let the model fetch them on its own when needed.
+* 🎨 **Image Generation & Editing**: Create and edit images with multiple engines including OpenAI DALL·E, Gemini, ComfyUI (local), and AUTOMATIC1111 (local), supporting both generation and prompt-based editing.
+* ⚙️ **Multi-Model Conversations**: Engage several models at once, harnessing their individual strengths in parallel for the best possible responses.
+* 📊 **Usage Analytics & Model Evaluation**: Admin dashboards track message volume, token consumption, and cost across users and models. Evaluate models with a built-in arena, A/B testing, and ELO-based leaderboards.
+* 🗄️ **Flexible Database & Storage**: Choose SQLite (with optional encryption) or PostgreSQL, and store files locally or on S3, Google Cloud Storage, or Azure Blob Storage.
+* 🧬 **Advanced Vector Database Support**: Pick from 9 vector databases: ChromaDB, PGVector, Qdrant, Milvus, Elasticsearch, OpenSearch, Pinecone, S3Vector, and Oracle 23ai.
+* 🪪 **Enterprise Authentication & Provisioning**: Full LDAP/Active Directory integration, SSO via trusted headers and OAuth providers, and SCIM 2.0 automated provisioning for identity providers like Okta, Azure AD, and Google Workspace.
+* ☁️ **Cloud-Native File Integration**: Native Google Drive and OneDrive/SharePoint file picking for seamless document import from enterprise cloud storage.
+* 🔭 **Production Observability**: Built-in OpenTelemetry support for traces, metrics, and logs, plugging into your existing monitoring stack.
+* ⚖️ **Horizontal Scalability**: Redis-backed session management and WebSocket support for multi-worker, multi-node deployments behind load balancers.
+* 🌐🌍 **Multilingual Support**: Use Open WebUI in your preferred language with i18n support. We're actively seeking contributors to expand language coverage!
+* 🌟 **Continuous Updates**: We're committed to improving Open WebUI with regular updates, fixes, and new features.
+* 🛡️ **Transparent Security Process**: Security reports are triaged, fixed, and published as open advisories through a documented responsible-disclosure process. See our [Security Policy](https://github.com/open-webui/open-webui/security).
+
+Want to learn more about Open WebUI's features? Check out our [Open WebUI documentation](https://docs.openwebui.com/features) for a comprehensive overview!
+
+## The Open WebUI Ecosystem 🌐
+
+Open WebUI is the core, surrounded by companion apps and infrastructure that extend what your AI can do, where it can reach, and how you run it:
+
+* 💻 **Open WebUI Computer** ([open-webui/computer](https://github.com/open-webui/computer)): A standalone, mobile-first computer and coding agent that runs on the machine you own. Files, terminal, and git in a browser tab, reachable from your phone. Connect it into Open WebUI as a model, or reach it from Telegram, WhatsApp, and more.
+* ⚡ **Open Terminal** and **Terminals (Enterprise)** ([open-webui/open-terminal](https://github.com/open-webui/open-terminal) & [open-webui/terminals](https://github.com/open-webui/terminals)): A self-hosted computing environment that plugs into Open WebUI, giving the AI a place to write code, run it, read output, fix errors, and iterate inside the chat. Terminals gives you per-user isolated containers with separate credentials, resource limits, and network rules. Automatic lifecycle management on Docker or Kubernetes.
+* 🔄 **oikb** ([open-webui/oikb](https://github.com/open-webui/oikb)): Feed your Knowledge Bases from 45+ sources (GitHub, Confluence, ServiceNow, Salesforce, Jira, Slack, SharePoint, Notion, and more), keeping the tools your team already uses continuously in sync.
+* 🖥️ **Native Desktop App** ([open-webui/desktop](https://github.com/open-webui/desktop)): Run Open WebUI as a native app on macOS, Windows, and Linux. System-wide Spotlight chat bar with screenshot capture, push-to-talk voice, and optional fully-local inference via a built-in llama.cpp engine.
+
+Want to learn more? Check out our [Open WebUI documentation](https://docs.openwebui.com) for more details!
+
+---
+
+We are incredibly grateful for the generous support of our sponsors. Their contributions help us to maintain and improve our project, ensuring we can continue to deliver quality work to our community. Thank you!
+
+## How to Install 🚀
+
+### Installation via Python pip 🐍
+
+Open WebUI can be installed using pip, the Python package installer. Before proceeding, ensure you're using **Python 3.11** to avoid compatibility issues.
+
+1. **Install Open WebUI**: Open your terminal and run the following command to install Open WebUI:
+
+   ```
+   pip install open-webui
+   ```
+2. **Running Open WebUI**: After installation, you can start Open WebUI by executing:
+
+   ```
+   open-webui serve
+   ```
+
+This will start the Open WebUI server, which you can access at <http://localhost:8080>
+
+### Quick Start with Docker 🐳
+
+Note
+
+Please note that for certain Docker environments, additional configurations might be needed. If you encounter any connection issues, our detailed guide on [Open WebUI Documentation](https://docs.openwebui.com/) is ready to assist you.
+
+Warning
+
+When using Docker to install Open WebUI, make sure to include the `-v open-webui:/app/backend/data` in your Docker command. This step is crucial as it ensures your database is properly mounted and prevents any loss of data.
+
+Tip
+
+If you wish to utilize Open WebUI with Ollama included or CUDA acceleration, we recommend utilizing our official images tagged with either `:cuda` or `:ollama`. To enable CUDA, you must install the [Nvidia CUDA container toolkit](https://docs.nvidia.com/dgx/nvidia-container-runtime-upgrade/) on your Linux/WSL system.
+
+### Installation with Default Configuration
+
+* **If Ollama is on your computer**, use this command:
+
+  ```
+  docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+  ```
+* **If Ollama is on a Different Server**, use this command:
+
+  To connect to Ollama on another server, change the `OLLAMA_BASE_URL` to the server's URL:
+
+  ```
+  docker run -d -p 3000:8080 -e OLLAMA_BASE_URL=https://example.com -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+  ```
+* **To run Open WebUI with Nvidia GPU support**, use this command:
+
+  ```
+  docker run -d -p 3000:8080 --gpus all --add-host=host.docker.internal:host-gateway -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:cuda
+  ```
+
+### Installation for OpenAI API Usage Only
+
+* **If you're only using OpenAI API**, use this command:
+
+  ```
+  docker run -d -p 3000:8080 -e OPENAI_API_KEY=your_secret_key -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+  ```
+
+### Installing Open WebUI with Bundled Ollama Support
+
+This installation method uses a single container image that bundles Open WebUI with Ollama, allowing for a streamlined setup via a single command. Choose the appropriate command based on your hardware setup:
+
+* **With GPU Support**: Utilize GPU resources by running the following command:
+
+  ```
+  docker run -d -p 3000:8080 --gpus=all -v ollama:/root/.ollama -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:ollama
+  ```
+* **For CPU Only**: If you're not using a GPU, use this command instead:
+
+  ```
+  docker run -d -p 3000:8080 -v ollama:/root/.ollama -v open-webui:/app/backend/data --name open-webui --restart always ghcr.io/open-webui/open-webui:ollama
+  ```
+
+Both commands facilitate a built-in, hassle-free installation of both Open WebUI and Ollama, ensuring that you can get everything up and running swiftly.
+
+After installation, you can access Open WebUI at <http://localhost:3000>. Enjoy! 😄
+
+### Other Installation Methods
+
+We offer various installation alternatives, including non-Docker native installation methods, Docker Compose, Kustomize, and Helm. Visit our [Open WebUI Documentation](https://docs.openwebui.com/getting-started/) or join our [Discord community](https://discord.gg/5rJgQTnV4s) for comprehensive guidance.
+
+### Troubleshooting
+
+Encountering connection issues? Our [Open WebUI Documentation](https://docs.openwebui.com/troubleshooting/) has got you covered. For further assistance and to join our vibrant community, visit the [Open WebUI Discord](https://discord.gg/5rJgQTnV4s).
+
+#### Open WebUI: Server Connection Error
+
+If you're experiencing connection issues, it’s often due to the WebUI docker container not being able to reach the Ollama server at 127.0.0.1:11434 (host.docker.internal:11434) inside the container . Use the `--network=host` flag in your docker command to resolve this. Note that the port changes from 3000 to 8080, resulting in the link: `http://localhost:8080`.
+
+**Example Docker Command**:
+
+```
+docker run -d --network=host -v open-webui:/app/backend/data -e OLLAMA_BASE_URL=http://127.0.0.1:11434 --name open-webui --restart always ghcr.io/open-webui/open-webui:main
+```
+
+### Keeping Your Docker Installation Up-to-Date
+
+Check our Updating Guide available in our [Open WebUI Documentation](https://docs.openwebui.com/getting-started/updating).
+
+### Using the Dev Branch 🌙
+
+Warning
+
+The `:dev` branch contains the latest unstable features and changes. Use it at your own risk as it may have bugs or incomplete features.
+
+If you want to try out the latest bleeding-edge features and are okay with occasional instability, you can use the `:dev` tag like this:
+
+```
+docker run -d -p 3000:8080 -v open-webui:/app/backend/data --name open-webui --add-host=host.docker.internal:host-gateway --restart always ghcr.io/open-webui/open-webui:dev
+```
+
+### Offline Mode
+
+If you are running Open WebUI in an offline environment, you can set the `HF_HUB_OFFLINE` environment variable to `1` to prevent attempts to download models from the internet.
+
+## What's Next? 🌟
+
+Discover upcoming features on our roadmap in the [Open WebUI Documentation](https://docs.openwebui.com/roadmap/).
+
+## License 📜
+
+This project contains code under multiple licenses. The current codebase includes components licensed under the Open WebUI License with an additional requirement to preserve the "Open WebUI" branding, as well as prior contributions under their respective original licenses. For a detailed record of license changes and the applicable terms for each section of the code, please refer to [LICENSE\_HISTORY](/open-webui/open-webui/blob/main/LICENSE_HISTORY). For complete and updated licensing details, please see the [LICENSE](/open-webui/open-webui/blob/main/LICENSE) and [LICENSE\_HISTORY](/open-webui/open-webui/blob/main/LICENSE_HISTORY) files.
+
+## Support 💬
+
+If you have any questions, suggestions, or need assistance, please open an issue or join our [Open WebUI Discord community](https://discord.gg/5rJgQTnV4s) to connect with us! 🤝
+
+## Security 🛡️
+
+If you believe you've found a security vulnerability, or something that shouldn't be disclosed publicly, please [reach out confidentially through our responsible disclosure program on GitHub](https://github.com/open-webui/open-webui/security). We accept reports only through GitHub, not through any other platform. Thank you for helping us keep Open WebUI secure!
+
+## Star History
+
+ [![Star History Chart](https://camo.githubusercontent.com/fc2990ed9f8ec6f03ea508cb9c19b8c61db0a1fcad29ee26aa3b4c4be712de1c/68747470733a2f2f6170692e737461722d686973746f72792e636f6d2f7376673f7265706f733d6f70656e2d77656275692f6f70656e2d776562756926747970653d44617465)](https://star-history.com/#open-webui/open-webui&Date)  
+
+---
+
+Created by [Timothy Jaeryang Baek](https://github.com/tjbck) - Let's make Open WebUI even more amazing together! 💪
+
+## About
+
+User-friendly AI Interface (Supports Ollama, OpenAI API, ...)
+
+### Topics
+
+[ai](/topics/ai)[llm](/topics/llm)[llm-ui](/topics/llm-ui)[llm-webui](/topics/llm-webui)[llms](/topics/llms)[mcp](/topics/mcp)[ollama](/topics/ollama)[ollama-webui](/topics/ollama-webui)[open-webui](/topics/open-webui)[openai](/topics/openai)[openapi](/topics/openapi)[rag](/topics/rag)[self-hosted](/topics/self-hosted)[ui](/topics/ui)[webui](/topics/webui)
+
+### Resources
+
+### Code of conduct
+
+[Code of conduct](/open-webui/open-webui#coc-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Custom properties](/open-webui/open-webui/custom-properties)
+
+### Stars
+
+**149.4k** stars
+
+### Watchers
+
+**650** watching
+
+### Forks
+
+[**21.8k** forks](/open-webui/open-webui/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fopen-webui%2Fopen-webui&report=open-webui+%28user%29)
+
+## Sponsor this project
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

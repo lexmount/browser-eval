@@ -1,0 +1,104 @@
+* [Skip to search](#search)
+
+Toggle sidebar 
+
+1. [Web](/en-US/docs/Web)
+2. [Web APIs](/en-US/docs/Web/API)
+3. [Document Object Model (DOM)](/en-US/docs/Web/API/Document_Object_Model)
+
+ 
+
+Remember language   Learn more
+
+* [Deutsch](/de/docs/Web/API/Document_Object_Model)
+* [English (US)](/en-US/docs/Web/API/Document_Object_Model)
+* [Español](/es/docs/Web/API/Document_Object_Model)
+* [Français](/fr/docs/Web/API/Document_Object_Model)
+* [日本語](/ja/docs/Web/API/Document_Object_Model)
+* [한국어](/ko/docs/Web/API/Document_Object_Model)
+* [Português (do Brasil)](/pt-BR/docs/Web/API/Document_Object_Model)
+* [Русский](/ru/docs/Web/API/Document_Object_Model)
+* [中文 (简体)](/zh-CN/docs/Web/API/Document_Object_Model)
+* [正體中文 (繁體)](/zh-TW/docs/Web/API/Document_Object_Model)
+
+# Document Object Model (DOM)
+
+The **Document Object Model** (**DOM**) connects web pages to scripts or programming languages by representing the structure of a document—such as the HTML representing a web page—in memory. Usually it refers to JavaScript, even though modeling HTML, SVG, or XML documents as objects are not part of the core JavaScript language.
+
+The DOM represents a document with a logical tree. Each branch of the tree ends in a node, and each node contains objects. DOM methods allow programmatic access to the tree. With them, you can change the document's structure, style, or content.
+
+Nodes can also have event handlers attached to them. Once an event is triggered, the event handlers get executed.
+
+## [Concepts and usage](#concepts_and_usage)
+
+The Document Object Model (DOM) is a programming interface for web documents. It represents the page so that programs can change the document structure, style, and content. The DOM represents the document as nodes and objects; that way, programming languages can interact with the page.
+
+A web page is a document that can be either displayed in the browser window or as the HTML source. In both cases, it is the same document but the Document Object Model (DOM) representation allows it to be manipulated. As an object-oriented representation of the web page, it can be modified with a scripting language such as JavaScript.
+
+For example, the DOM specifies that the `querySelectorAll` method in this code snippet must return a list of all the  elements in the document:
+
+js
+
+```
+const paragraphs = document.querySelectorAll("p"); // paragraphs[0] is the first
+
+element // paragraphs[1] is the second
+
+
+
+element, etc. alert(paragraphs[0].nodeName);
+
+
+```
+
+All of the properties, methods, and events available for manipulating and creating web pages are organized into objects. For example, the `document` object that represents the document itself, any `table` objects that implement the [`HTMLTableElement`](/en-US/docs/Web/API/HTMLTableElement) DOM interface for accessing HTML tables, and so forth, are all objects.
+
+The DOM is built using multiple APIs that work together. The core DOM defines the entities describing any document and the objects within it. This is expanded upon as needed by other APIs that add new features and capabilities to the DOM. For example, the [HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API) adds support for representing HTML documents to the core DOM, and the SVG API adds support for representing SVG documents.
+
+### [What is a DOM tree?](#what_is_a_dom_tree)
+
+A **DOM tree** is a [tree structure](https://en.wikipedia.org/wiki/Tree_structure "External link (opens in new tab)") whose nodes represent an HTML or XML document's contents. Each HTML or XML document has a DOM tree representation. For example, consider the following document:
+
+html
+
+```
+  My Document
+
+# Header
+
+
+
+Paragraph
+
+
+```
+
+It has a DOM tree that looks like this:
+
+Although the above tree is similar to the above document's DOM tree, they're not identical, as the actual DOM tree preserves [whitespace](/en-US/docs/Web/CSS/Guides/Text/Whitespace).
+
+When a web browser parses an HTML document, it builds a DOM tree and then uses it to display the document.
+
+### [DOM and JavaScript](#dom_and_javascript)
+
+The previous short example, like nearly all examples, is [JavaScript](/en-US/docs/Glossary/JavaScript). That is to say, it is *written* in JavaScript, but *uses* the DOM to access the document and its elements. The DOM is not a programming language, but without it, the JavaScript language wouldn't have any model or notion of web pages, HTML documents, SVG documents, and their component parts. The document as a whole, the head, tables within the document, table headers, text within the table cells, and all other elements in a document are parts of the document object model for that document. They can all be accessed and manipulated using the DOM and a scripting language like JavaScript.
+
+The DOM is not part of the JavaScript language, but is instead a Web API used to build websites. JavaScript can also be used in other contexts. For example, Node.js runs JavaScript programs on a computer, but provides a different set of APIs, and the DOM API is not a core part of the Node.js runtime.
+
+The DOM was designed to be independent of any particular programming language, making the structural representation of the document available from a single, consistent API. Even if most web developers will only use the DOM through JavaScript, implementations of the DOM can be built for any language, as this Python example demonstrates:
+
+python
+
+```
+# Python DOM example import xml.dom.minidom as m doc = m.parse(r"C:\Projects\Py\chap1.xml") doc.nodeName # DOM property of document object p_list = doc.getElementsByTagName("para") 
+```
+
+For more information on what technologies are involved in writing JavaScript on the web, see [JavaScript technologies overview](/en-US/docs/Web/JavaScript/Reference/JavaScript_technologies_overview).
+
+### [Accessing the DOM](#accessing_the_dom)
+
+You don't have to do anything special to begin using the DOM. You use the API directly in JavaScript from within what is called a *script*, a program run by a browser.
+
+When you create a script, whether inline in a
+
+ 

@@ -1,0 +1,100 @@
+collections — Container datatypes¶
+Source code: Lib/collections/__init__.py
+This module implements specialized container datatypes providing alternatives to Python’s general purpose built-in containers, dict, list, set, and tuple.
+namedtuple()
+factory function for creating tuple subclasses with named fields
+deque
+list-like container with fast appends and pops on either end
+ChainMap
+dict-like class for creating a single view of multiple mappings
+Counter
+dict subclass for counting hashable objects
+OrderedDict
+dict subclass that remembers the order entries were added
+defaultdict
+dict subclass that calls a factory function to supply missing values
+UserDict
+wrapper around dictionary objects for easier dict subclassing
+UserList
+wrapper around list objects for easier list subclassing
+UserString
+wrapper around string objects for easier string subclassing
+ChainMap objects¶
+Added in version 3.3.
+A ChainMap class is provided for quickly linking a number of mappings so they can be treated as a single unit. It is often much faster than creating a new dictionary and running multiple update() calls.
+The class can be used to simulate nested scopes and is useful in templating.
+A ChainMap groups multiple dicts or other mappings together to create a single, updateable view. If no maps are specified, a single empty dictionary is provided so that a new chain always has at least one mapping. The underlying mappings are stored in a list. That list is public and can be accessed or updated using the maps attribute. There is no other state. Lookups search the underlying mappings successively until a key is found. In contrast, writes, updates, and deletions only operate on the first mapping. A ChainMap incorporates the underlying mappings by reference. So, if one of the underlying mappings gets updated, those changes will be reflected in ChainMap. All of the usual dictionary methods are supported. In addition, there is a maps attribute, a method for creating new subcontexts, and a property for accessing all but the first mapping: maps¶ A user updateable list of mappings. The list is ordered from first-searched to last-searched. It is the only stored state and can be modified to change which mappings are searched. The list should always contain at least one mapping. new_child(m=None, **kwargs)¶ Returns a new ChainMap containing a new map followed by all of the maps in the current instance. If m is specified, it becomes the new map at the front of the list of mappings; if not specified, an empty dict is used, so that a call to d.new_child() is equivalent to: ChainMap({}, *d.maps). If any keyword arguments are specified, they update passed map or new empty dict. This method is used for creating subcontexts that can be updated without altering values in any of the parent mappings. Changed in version 3.4: The optional m parameter was added. Changed in version 3.10: Keyword arguments support was added. parents¶ Property returning a new ChainMap containing all of the maps in the current instance except the first one. This is useful for skipping the first map in the search. Use cases are similar to those for the nonlocal keyword used in nested scopes. The use cases also parallel those for the built-in super() function. A reference to d.parents is equivalent to: ChainMap(*d.maps[1:]). Note, the iteration order of a ChainMap is determined by scanning the mappings last to first: >>> baseline = {'music': 'bach', 'art': 'rembrandt'} >>> adjustments = {'art': 'van gogh', 'opera': 'carmen'} >>> list(ChainMap(adjustments, baseline)) ['music', 'art', 'opera'] This gives the same ordering as a series of dict.update() calls starting with the last mapping: >>> combined = baseline.copy() >>> combined.update(adjustments) >>> list(combined) ['music', 'art', 'opera'] Changed in version 3.9: Added support for | and |= operators, specified in PEP 584.
+A ChainMap groups multiple dicts or other mappings together to create a single, updateable view. If no maps are specified, a single empty dictionary is provided so that a new chain always has at least one mapping.
+The underlying mappings are stored in a list. That list is public and can be accessed or updated using the maps attribute. There is no other state.
+Lookups search the underlying mappings successively until a key is found. In contrast, writes, updates, and deletions only operate on the first mapping.
+A ChainMap incorporates the underlying mappings by reference. So, if one of the underlying mappings gets updated, those changes will be reflected in ChainMap.
+All of the usual dictionary methods are supported. In addition, there is a maps attribute, a method for creating new subcontexts, and a property for accessing all but the first mapping:
+A user updateable list of mappings. The list is ordered from first-searched to last-searched. It is the only stored state and can be modified to change which mappings are searched. The list should always contain at least one mapping.
+A user updateable list of mappings. The list is ordered from first-searched to last-searched. It is the only stored state and can be modified to change which mappings are searched. The list should always contain at least one mapping.
+Returns a new ChainMap containing a new map followed by all of the maps in the current instance. If m is specified, it becomes the new map at the front of the list of mappings; if not specified, an empty dict is used, so that a call to d.new_child() is equivalent to: ChainMap({}, *d.maps). If any keyword arguments are specified, they update passed map or new empty dict. This method is used for creating subcontexts that can be updated without altering values in any of the parent mappings. Changed in version 3.4: The optional m parameter was added. Changed in version 3.10: Keyword arguments support was added.
+Returns a new ChainMap containing a new map followed by all of the maps in the current instance. If m is specified, it becomes the new map at the front of the list of mappings; if not specified, an empty dict is used, so that a call to d.new_child() is equivalent to: ChainMap({}, *d.maps). If any keyword arguments are specified, they update passed map or new empty dict. This method is used for creating subcontexts that can be updated without altering values in any of the parent mappings.
+Changed in version 3.4: The optional m parameter was added.
+Changed in version 3.10: Keyword arguments support was added.
+Property returning a new ChainMap containing all of the maps in the current instance except the first one. This is useful for skipping the first map in the search. Use cases are similar to those for the nonlocal keyword used in nested scopes. The use cases also parallel those for the built-in super() function. A reference to d.parents is equivalent to: ChainMap(*d.maps[1:]).
+Property returning a new ChainMap containing all of the maps in the current instance except the first one. This is useful for skipping the first map in the search. Use cases are similar to those for the nonlocal keyword used in nested scopes. The use cases also parallel those for the built-in super() function. A reference to d.parents is equivalent to: ChainMap(*d.maps[1:]).
+Note, the iteration order of a ChainMap is determined by scanning the mappings last to first:
+>>> baseline = {'music': 'bach', 'art': 'rembrandt'} >>> adjustments = {'art': 'van gogh', 'opera': 'carmen'} >>> list(ChainMap(adjustments, baseline)) ['music', 'art', 'opera']
+This gives the same ordering as a series of dict.update() calls starting with the last mapping:
+>>> combined = baseline.copy() >>> combined.update(adjustments) >>> list(combined) ['music', 'art', 'opera']
+Changed in version 3.9: Added support for | and |= operators, specified in PEP 584.
+See also
+The MultiContext class in the Enthought CodeTools package has options to support writing to any mapping in the chain.
+The MultiContext class in the Enthought CodeTools package has options to support writing to any mapping in the chain.
+Django’s Context class for templating is a read-only chain of mappings. It also features pushing and popping of contexts similar to the new_child() method and the parents property.
+Django’s Context class for templating is a read-only chain of mappings. It also features pushing and popping of contexts similar to the new_child() method and the parents property.
+The Nested Contexts recipe has options to control whether writes and other mutations apply only to the first mapping or to any mapping in the chain.
+The Nested Contexts recipe has options to control whether writes and other mutations apply only to the first mapping or to any mapping in the chain.
+A greatly simplified read-only version of Chainmap.
+A greatly simplified read-only version of Chainmap.
+ChainMap Examples and Recipes¶
+This section shows various approaches to working with chained maps.
+Example of simulating Python’s internal lookup chain:
+import builtins pylookup = ChainMap(locals(), globals(), vars(builtins))
+Example of letting user specified command-line arguments take precedence over environment variables which in turn take precedence over default values:
+import os, argparse defaults = {'color': 'red', 'user': 'guest'} parser = argparse.ArgumentParser() parser.add_argument('-u', '--user') parser.add_argument('-c', '--color') namespace = parser.parse_args() command_line_args = {k: v for k, v in vars(namespace).items() if v is not None} combined = ChainMap(command_line_args, os.environ, defaults) print(combined['color']) print(combined['user'])
+Example patterns for using the ChainMap class to simulate nested contexts:
+c = ChainMap() # Create root context d = c.new_child() # Create nested child context e = c.new_child() # Child of c, independent from d e.maps[0] # Current context dictionary -- like Python's locals() e.maps[-1] # Root context -- like Python's globals() e.parents # Enclosing context chain -- like Python's nonlocals d['x'] = 1 # Set value in current context d['x'] # Get first key in the chain of contexts del d['x'] # Delete from current context list(d) # All nested values k in d # Check all nested values len(d) # Number of nested values d.items() # All nested items dict(d) # Flatten into a regular dictionary
+The ChainMap class only makes updates (writes and deletions) to the first mapping in the chain while lookups will search the full chain. However, if deep writes and deletions are desired, it is easy to make a subclass that updates keys found deeper in the chain:
+class DeepChainMap(ChainMap): 'Variant of ChainMap that allows direct updates to inner scopes' def __setitem__(self, key, value): for mapping in self.maps: if key in mapping: mapping[key] = value return self.maps[0][key] = value def __delitem__(self, key): for mapping in self.maps: if key in mapping: del mapping[key] return raise KeyError(key) >>> d = DeepChainMap({'zebra': 'black'}, {'elephant': 'blue'}, {'lion': 'yellow'}) >>> d['lion'] = 'orange' # update an existing key two levels down >>> d['snake'] = 'red' # new keys get added to the topmost dict >>> del d['elephant'] # remove an existing key one level down >>> d # display result DeepChainMap({'zebra': 'black', 'snake': 'red'}, {}, {'lion': 'orange'})
+Counter objects¶
+A counter tool is provided to support convenient and rapid tallies. For example:
+>>> # Tally occurrences of words in a list >>> cnt = Counter() >>> for word in ['red', 'blue', 'red', 'green', 'blue', 'blue']: ... cnt[word] += 1 ... >>> cnt Counter({'blue': 3, 'red': 2, 'green': 1}) >>> # Find the ten most common words in Hamlet >>> import re >>> words = re.findall(r'\w+', open('hamlet.txt').read().lower()) >>> Counter(words).most_common(10) [('the', 1143), ('and', 966), ('to', 762), ('of', 669), ('i', 631), ('you', 554), ('a', 546), ('my', 514), ('hamlet', 471), ('in', 451)]
+A Counter is a dict subclass for counting hashable objects. It is a collection where elements are stored as dictionary keys and their counts are stored as dictionary values. Counts are allowed to be any integer value including zero or negative counts. The Counter class is similar to bags or multisets in other languages. Elements are counted from an iterable or initialized from another mapping (or counter): >>> c = Counter() # a new, empty counter >>> c = Counter('gallahad') # a new counter from an iterable >>> c = Counter({'red': 4, 'blue': 2}) # a new counter from a mapping >>> c = Counter(cats=4, dogs=8) # a new counter from keyword args Counter objects have a dictionary interface except that they return a zero count for missing items instead of raising a KeyError: >>> c = Counter(['eggs', 'ham']) >>> c['bacon'] # count of a missing element is zero 0 Setting a count to zero does not remove an element from a counter. Use del to remove it entirely: >>> c['sausage'] = 0 # counter entry with a zero count >>> del c['sausage'] # del actually removes the entry Added in version 3.1. Changed in version 3.7: As a dict subclass, Counter inherited the capability to remember insertion order. Math operations on Counter objects also preserve order. Results are ordered according to when an element is first encountered in the left operand and then by the order encountered in the right operand. Counter objects support additional methods beyond those available for all dictionaries: elements()¶ Return an iterator over elements repeating each as many times as its count. Elements are returned in the order first encountered. If an element’s count is less than one, elements() will ignore it. >>> c = Counter(a=4, b=2, c=0, d=-2) >>> sorted(c.elements()) ['a', 'a', 'a', 'a', 'b', 'b'] most_common(n=None)¶ Return a list of the n most common elements and their counts from the most common to the least. If n is omitted or None, most_common() returns all elements in the counter. Elements with equal counts are ordered in the order first encountered: >>> Counter('abracadabra').most_common(3) [('a', 5), ('b', 2), ('r', 2)] subtract(**kwargs)¶ subtract(iterable, /, **kwargs) subtract(mapping, /, **kwargs) Elements are subtracted from an iterable or from another mapping (or counter). Like dict.update() but subtracts counts instead of replacing them. Both inputs and outputs may be zero or negative. >>> c = Counter(a=4, b=2, c=0, d=-2) >>> d = Counter(a=1, b=2, c=3, d=4) >>> c.subtract(d) >>> c Counter({'a': 3, 'b': 0, 'c': -3, 'd': -6}) Added in version 3.2. total()¶ Compute the sum of the counts. >>> c = Counter(a=10, b=5, c=0) >>> c.total() 15 Added in version 3.10. The usual dictionary methods are available for Counter objects except for two which work differently for counters. fromkeys(iterable)¶ This class method is not implemented for Counter objects. update(**kwargs)¶ update(iterable, /, **kwargs) update(mapping, /, **kwargs) Elements are counted from an iterable or added-in from another mapping (or counter). Like dict.update() but adds counts instead of replacing them. Also, the iterable is expected to be a sequence of elements, not a sequence of (key, value) pairs.
+A Counter is a dict subclass for counting hashable objects. It is a collection where elements are stored as dictionary keys and their counts are stored as dictionary values. Counts are allowed to be any integer value including zero or negative counts. The Counter class is similar to bags or multisets in other languages.
+Elements are counted from an iterable or initialized from another mapping (or counter):
+>>> c = Counter() # a new, empty counter >>> c = Counter('gallahad') # a new counter from an iterable >>> c = Counter({'red': 4, 'blue': 2}) # a new counter from a mapping >>> c = Counter(cats=4, dogs=8) # a new counter from keyword args
+Counter objects have a dictionary interface except that they return a zero count for missing items instead of raising a KeyError:
+>>> c = Counter(['eggs', 'ham']) >>> c['bacon'] # count of a missing element is zero 0
+Setting a count to zero does not remove an element from a counter. Use del to remove it entirely:
+>>> c['sausage'] = 0 # counter entry with a zero count >>> del c['sausage'] # del actually removes the entry
+Added in version 3.1.
+Changed in version 3.7: As a dict subclass, Counter inherited the capability to remember insertion order. Math operations on Counter objects also preserve order. Results are ordered according to when an element is first encountered in the left operand and then by the order encountered in the right operand.
+Counter objects support additional methods beyond those available for all dictionaries:
+Return an iterator over elements repeating each as many times as its count. Elements are returned in the order first encountered. If an element’s count is less than one, elements() will ignore it. >>> c = Counter(a=4, b=2, c=0, d=-2) >>> sorted(c.elements()) ['a', 'a', 'a', 'a', 'b', 'b']
+Return an iterator over elements repeating each as many times as its count. Elements are returned in the order first encountered. If an element’s count is less than one, elements() will ignore it.
+>>> c = Counter(a=4, b=2, c=0, d=-2) >>> sorted(c.elements()) ['a', 'a', 'a', 'a', 'b', 'b']
+Return a list of the n most common elements and their counts from the most common to the least. If n is omitted or None, most_common() returns all elements in the counter. Elements with equal counts are ordered in the order first encountered: >>> Counter('abracadabra').most_common(3) [('a', 5), ('b', 2), ('r', 2)]
+Return a list of the n most common elements and their counts from the most common to the least. If n is omitted or None, most_common() returns all elements in the counter. Elements with equal counts are ordered in the order first encountered:
+>>> Counter('abracadabra').most_common(3) [('a', 5), ('b', 2), ('r', 2)]
+Elements are subtracted from an iterable or from another mapping (or counter). Like dict.update() but subtracts counts instead of replacing them. Both inputs and outputs may be zero or negative. >>> c = Counter(a=4, b=2, c=0, d=-2) >>> d = Counter(a=1, b=2, c=3, d=4) >>> c.subtract(d) >>> c Counter({'a': 3, 'b': 0, 'c': -3, 'd': -6}) Added in version 3.2.
+Elements are subtracted from an iterable or from another mapping (or counter). Like dict.update() but subtracts counts instead of replacing them. Both inputs and outputs may be zero or negative.
+>>> c = Counter(a=4, b=2, c=0, d=-2) >>> d = Counter(a=1, b=2, c=3, d=4) >>> c.subtract(d) >>> c Counter({'a': 3, 'b': 0, 'c': -3, 'd': -6})
+Added in version 3.2.
+Compute the sum of the counts. >>> c = Counter(a=10, b=5, c=0) >>> c.total() 15 Added in version 3.10.
+Compute the sum of the counts.
+>>> c = Counter(a=10, b=5, c=0) >>> c.total() 15
+Added in version 3.10.
+The usual dictionary methods are available for Counter objects except for two which work differently for counters.
+This class method is not implemented for Counter objects.
+This class method is not implemented for Counter objects.
+Elements are counted from an iterable or added-in from another mapping (or counter). Like dict.update() but adds counts instead of replacing them. Also, the iterable is expected to be a sequence of elements, not a sequence of (key, value) pairs.
+Elements are counted from an iterable or added-in from another mapping (or counter). Like dict.update() but adds counts instead of replacing them. Also, the iterable is expected to be a sequence of elements, not a sequence of (key, value) pairs.
+Counters support rich comparison operators for equality, subset, and superset relationships: ==, !=, <, <=, >, >=. All of those tests treat missing elements as having zero counts so that Counter(a=1) == Counter(a=1, b=0) returns true.
+Changed in version 3.10: Rich comparison operations were added.
+Changed in version 3.10: In equality tests, missing elements are treated as having zero counts. Formerly, Counter(a=3) and Counter(a=3, b=0) were considered distinct.
+Common patterns for working with Counter objects:

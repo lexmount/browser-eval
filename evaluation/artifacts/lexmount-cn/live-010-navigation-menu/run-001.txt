@@ -1,0 +1,1 @@
+Scrapy, a fast high-level web crawling & scraping framework for Python. Repository stats: stars 64.2k, forks 11.9k, issues 230, pull requests 204.

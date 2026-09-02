@@ -1,0 +1,1 @@
+The official Python library for the OpenAI API. Contribute to openai/openai-python development by creating an account on GitHub. Repository stats: stars 31.5k, forks 5.2k, issues 219, pull requests 428.

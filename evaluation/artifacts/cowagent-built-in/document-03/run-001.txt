@@ -1,0 +1,4 @@
+[Document: 9198ab37_dummy.pdf | Size: 13.0KB | Saved to: /private/tmp/browser-harness-eval/runs/v8-cowagent-complete-runtime/tmp/9198ab37_dummy.pdf]
+
+--- Page 1/1 ---
+Dummy PDF file

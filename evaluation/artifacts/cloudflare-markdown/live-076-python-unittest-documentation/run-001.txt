@@ -1,0 +1,2329 @@
+---
+title: "unittest — Unit testing framework — Python 3.14.7 documentation"
+meta:
+  description: "Source code: Lib/unittest/__init__.py(If you are already familiar with the basic concepts of testing, you might want to skip to the list of assert methods.) The unittest unit testing framework was ..."
+  "og:description": "Source code: Lib/unittest/__init__.py(If you are already familiar with the basic concepts of testing, you might want to skip to the list of assert methods.) The unittest unit testing framework was ..."
+  "og:title": "unittest — Unit testing framework"
+---
+
+[![Python logo](../_static/py.svg)](https://www.python.org/) dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+
+Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文
+
+Theme Auto Light Dark
+
+### [Table of Contents](../contents.html)
+
+- [`unittest` — Unit testing framework](#)
+  - [Basic example](#basic-example)
+  - [Command-Line Interface](#command-line-interface)
+    - [Command-line options](#command-line-options)
+  - [Test Discovery](#test-discovery)
+  - [Organizing test code](#organizing-test-code)
+  - [Re-using old test code](#re-using-old-test-code)
+  - [Skipping tests and expected failures](#skipping-tests-and-expected-failures)
+  - [Distinguishing test iterations using subtests](#distinguishing-test-iterations-using-subtests)
+  - [Classes and functions](#classes-and-functions)
+    - [Test cases](#test-cases)
+    - [Grouping tests](#grouping-tests)
+    - [Loading and running tests](#loading-and-running-tests)
+      - [load\_tests Protocol](#load-tests-protocol)
+  - [Class and Module Fixtures](#class-and-module-fixtures)
+    - [setUpClass and tearDownClass](#setupclass-and-teardownclass)
+    - [setUpModule and tearDownModule](#setupmodule-and-teardownmodule)
+  - [Signal Handling](#signal-handling)
+
+#### Previous topic
+
+[`doctest` — Test interactive Python examples](doctest.html "previous chapter")
+
+#### Next topic
+
+[`unittest.mock` — mock object library](unittest.mock.html "next chapter")
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=unittest+%E2%80%94+Unit+testing+framework&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Funittest.html&pagesource=library%2Funittest.rst)
+- [Show source](https://github.com/python/cpython/blob/main/Doc/library/unittest.rst?plain=1)
+
+### Navigation
+
+- [index](../genindex.html "General Index")
+- [modules](../py-modindex.html "Python Module Index") |
+- [next](unittest.mock.html "unittest.mock — mock object library") |
+- [previous](doctest.html "doctest — Test interactive Python examples") |
+- ![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+- Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文 dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+-
+- [3.14.7 Documentation](../index.html) »
+- [The Python Standard Library](index.html) »
+- [Development Tools](development.html) »
+- [`unittest` — Unit testing framework]()
+- |
+- Theme Auto Light Dark |
+
+# `unittest` — Unit testing framework ¶
+
+**Source code:** [Lib/unittest/\_\_init\_\_.py](https://github.com/python/cpython/tree/3.14/Lib/unittest/__init__.py)
+
+---
+
+(If you are already familiar with the basic concepts of testing, you might want to skip to [the list of assert methods](#assert-methods).)
+
+The `unittest` unit testing framework was originally inspired by JUnit and has a similar flavor as major unit testing frameworks in other languages. It supports test automation, sharing of setup and shutdown code for tests, aggregation of tests into collections, and independence of the tests from the reporting framework.
+
+To achieve this, `unittest` supports some important concepts in an object-oriented way:
+
+test fixture  
+
+A *test fixture* represents the preparation needed to perform one or more tests, and any associated cleanup actions. This may involve, for example, creating temporary or proxy databases, directories, or starting a server process.
+
+
+
+test case  
+
+A *test case* is the individual unit of testing. It checks for a specific response to a particular set of inputs. <code>unittest</code> provides a base class, [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase"), which may be used to create new test cases.
+
+
+
+test suite  
+
+A *test suite* is a collection of test cases, test suites, or both. It is used to aggregate tests that should be executed together.
+
+
+
+test runner  
+
+A *test runner* is a component which orchestrates the execution of tests and provides the outcome to the user. The runner may use a graphical interface, a textual interface, or return a special value to indicate the results of executing the tests.
+
+
+
+See also
+
+Module [<code>doctest</code>](doctest.html#module-doctest "doctest: Test pieces of code within docstrings.")  
+
+Another test-support module with a very different flavor.
+
+
+
+[Simple Smalltalk Testing: With Patterns](https://web.archive.org/web/20150315073817/http://www.xprogramming.com/testfram.htm)  
+
+Kent Beck’s original paper on testing frameworks using the pattern shared by <code>unittest</code>.
+
+
+
+[pytest](https://docs.pytest.org/)  
+
+Third-party unittest framework with a lighter-weight syntax for writing tests. For example, <code>assert func(10) == 42</code>.
+
+
+
+[The Python Testing Tools Taxonomy](https://wiki.python.org/moin/PythonTestingToolsTaxonomy)  
+
+An extensive list of Python testing tools including functional testing frameworks and mock object libraries.
+
+
+
+[Testing in Python Mailing List](http://lists.idyll.org/listinfo/testing-in-python)  
+
+A special-interest-group for discussion of testing, and testing tools, in Python.
+
+
+
+The script `Tools/unittestgui/unittestgui.py` in the Python source distribution is a GUI tool for test discovery and execution. This is intended largely for ease of use for those new to unit testing. For production environments it is recommended that tests be driven by a continuous integration system such as [Buildbot](https://buildbot.net/), [Jenkins](https://www.jenkins.io/), [GitHub Actions](https://github.com/features/actions), or [AppVeyor](https://www.appveyor.com/).
+
+## Basic example ¶
+
+The `unittest` module provides a rich set of tools for constructing and running tests. This section demonstrates that a small subset of the tools suffice to meet the needs of most users.
+
+Here is a short script to test three string methods:
+
+Copy
+
+```
+import unittest
+
+class TestStringMethods(unittest.TestCase):
+
+    def test_upper(self):
+        self.assertEqual('foo'.upper(), 'FOO')
+
+    def test_isupper(self):
+        self.assertTrue('FOO'.isupper())
+        self.assertFalse('Foo'.isupper())
+
+    def test_split(self):
+        s = 'hello world'
+        self.assertEqual(s.split(), ['hello', 'world'])
+        # check that s.split fails when the separator is not a string
+        with self.assertRaises(TypeError):
+            s.split(2)
+
+if __name__ == '__main__':
+    unittest.main()
+
+```
+
+A test case is created by subclassing [`unittest.TestCase`](#unittest.TestCase "unittest.TestCase"). The three individual tests are defined with methods whose names start with the letters `test`. This naming convention informs the test runner about which methods represent tests.
+
+The crux of each test is a call to [`assertEqual()`](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual") to check for an expected result; [`assertTrue()`](#unittest.TestCase.assertTrue "unittest.TestCase.assertTrue") or [`assertFalse()`](#unittest.TestCase.assertFalse "unittest.TestCase.assertFalse") to verify a condition; or [`assertRaises()`](#unittest.TestCase.assertRaises "unittest.TestCase.assertRaises") to verify that a specific exception gets raised. These methods are used instead of the [`assert`](../reference/simple_stmts.html#assert) statement so the test runner can accumulate all test results and produce a report.
+
+The [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") and [`tearDown()`](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") methods allow you to define instructions that will be executed before and after each test method. They are covered in more detail in the section [Organizing test code](#organizing-tests).
+
+The final block shows a simple way to run the tests. [`unittest.main()`](#unittest.main "unittest.main") provides a command-line interface to the test script. When run from the command line, the above script produces an output that looks like this:
+
+Copy
+
+```
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+
+```
+
+Passing the `-v` option to your test script will instruct [`unittest.main()`](#unittest.main "unittest.main") to enable a higher level of verbosity, and produce the following output:
+
+Copy
+
+```
+test_isupper (__main__.TestStringMethods.test_isupper) ... ok
+test_split (__main__.TestStringMethods.test_split) ... ok
+test_upper (__main__.TestStringMethods.test_upper) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+
+```
+
+The above examples show the most commonly used `unittest` features which are sufficient to meet many everyday testing needs. The remainder of the documentation explores the full feature set from first principles.
+
+Changed in version 3.11: The behavior of returning a value from a test method (other than the default `None` value), is now deprecated.
+
+## Command-Line Interface ¶
+
+The unittest module can be used from the command line to run tests from modules, classes or even individual test methods:
+
+Copy
+
+```
+python -m unittest test_module1 test_module2
+python -m unittest test_module.TestClass
+python -m unittest test_module.TestClass.test_method
+
+```
+
+You can pass in a list with any combination of module names, and fully qualified class or method names.
+
+Test modules can be specified by file path as well:
+
+Copy
+
+```
+python -m unittest tests/test_something.py
+
+```
+
+This allows you to use the shell filename completion to specify the test module. The file specified must still be importable as a module. The path is converted to a module name by removing the ‘.py’ and converting path separators into ‘.’. If you want to execute a test file that isn’t importable as a module you should execute the file directly instead.
+
+You can run tests with more detail (higher verbosity) by passing in the -v flag:
+
+Copy
+
+```
+python -m unittest -v test_module
+
+```
+
+When executed without arguments [Test Discovery](#unittest-test-discovery) is started:
+
+Copy
+
+```
+python -m unittest
+
+```
+
+For a list of all the command-line options:
+
+Copy
+
+```
+python -m unittest -h
+
+```
+
+Changed in version 3.2: In earlier versions it was only possible to run individual test methods and not modules or classes.
+
+Added in version 3.14: Output is colorized by default and can be [controlled using environment variables](../using/cmdline.html#using-on-controlling-color).
+
+### Command-line options ¶
+
+**unittest** supports these command-line options:
+
+-b, --buffer [¶](#cmdoption-unittest-b "Link to this definition")  
+
+The standard output and standard error streams are buffered during the test run. Output during a passing test is discarded. Output is echoed normally on test fail or error and is added to the failure messages.
+
+
+
+-c, --catch [¶](#cmdoption-unittest-c "Link to this definition")  
+
+Control-C during the test run waits for the current test to end and then reports all the results so far. A second Control-C raises the normal [<code>KeyboardInterrupt</code>](exceptions.html#KeyboardInterrupt "KeyboardInterrupt") exception.
+
+See [Signal Handling](#signal-handling) for the functions that provide this functionality.
+
+
+
+-f, --failfast [¶](#cmdoption-unittest-f "Link to this definition")  
+
+Stop the test run on the first error or failure.
+
+
+
+-k [¶](#cmdoption-unittest-k "Link to this definition")  
+
+Only run test methods and classes that match the pattern or substring. This option may be used multiple times, in which case all test cases that match any of the given patterns are included.
+
+Patterns that contain a wildcard character (<code>*</code>) are matched against the test name using [<code>fnmatch.fnmatchcase()</code>](fnmatch.html#fnmatch.fnmatchcase "fnmatch.fnmatchcase"); otherwise simple case-sensitive substring matching is used.
+
+Patterns are matched against the fully qualified test method name as imported by the test loader.
+
+For example, <code>-k foo</code> matches <code>foo_tests.SomeTest.test_something</code>, <code>bar_tests.SomeTest.test_foo</code>, but not <code>bar_tests.FooTest.test_something</code>.
+
+
+
+--locals [¶](#cmdoption-unittest-locals "Link to this definition")  
+
+Show local variables in tracebacks.
+
+
+
+--durationsN [¶](#cmdoption-unittest-durations "Link to this definition")  
+
+Show the N slowest test cases (N=0 for all).
+
+
+
+Added in version 3.2: The command-line options `-b`, `-c` and `-f` were added.
+
+Added in version 3.5: The command-line option `--locals`.
+
+Added in version 3.7: The command-line option `-k`.
+
+Added in version 3.12: The command-line option `--durations`.
+
+The command line can also be used for test discovery, for running all of the tests in a project or just a subset.
+
+## Test Discovery ¶
+
+Added in version 3.2.
+
+Unittest supports simple test discovery. In order to be compatible with test discovery, all of the test files must be [modules](../tutorial/modules.html#tut-modules) or [packages](../tutorial/modules.html#tut-packages) importable from the top-level directory of the project (this means that their filenames must be valid [identifiers](../reference/lexical_analysis.html#identifiers)).
+
+Test discovery is implemented in [`TestLoader.discover()`](#unittest.TestLoader.discover "unittest.TestLoader.discover"), but can also be used from the command line. The basic command-line usage is:
+
+Copy
+
+```
+cd project_directory
+python -m unittest discover
+
+```
+
+Note
+
+As a shortcut, `python -m unittest` is the equivalent of `python -m unittest discover`. If you want to pass arguments to test discovery the `discover` sub-command must be used explicitly.
+
+The `discover` sub-command has the following options:
+
+-v, --verbose [¶](#cmdoption-unittest-discover-v "Link to this definition")  
+
+Verbose output
+
+
+
+-s, --start-directorydirectory [¶](#cmdoption-unittest-discover-s "Link to this definition")  
+
+Directory to start discovery (<code>.</code> default)
+
+
+
+-p, --patternpattern [¶](#cmdoption-unittest-discover-p "Link to this definition")  
+
+Pattern to match test files (<code>test*.py</code> default)
+
+
+
+-t, --top-level-directorydirectory [¶](#cmdoption-unittest-discover-t "Link to this definition")  
+
+Top level directory of project (defaults to start directory)
+
+
+
+The [`-s`](#cmdoption-unittest-discover-s), [`-p`](#cmdoption-unittest-discover-p), and [`-t`](#cmdoption-unittest-discover-t) options can be passed in as positional arguments in that order. The following two command lines are equivalent:
+
+Copy
+
+```
+python -m unittest discover -s project_directory -p "*_test.py"
+python -m unittest discover project_directory "*_test.py"
+
+```
+
+As well as being a path it is possible to pass a package name, for example `myproject.subpackage.test`, as the start directory. The package name you supply will then be imported and its location on the filesystem will be used as the start directory.
+
+Caution
+
+Test discovery loads tests by importing them. Once test discovery has found all the test files from the start directory you specify it turns the paths into package names to import. For example `foo/bar/baz.py` will be imported as `foo.bar.baz`.
+
+If you have a package installed globally and attempt test discovery on a different copy of the package then the import *could* happen from the wrong place. If this happens test discovery will warn you and exit.
+
+If you supply the start directory as a package name rather than a path to a directory then discover assumes that whichever location it imports from is the location you intended, so you will not get the warning.
+
+Test modules and packages can customize test loading and discovery by through the [load\_tests protocol](#id1).
+
+Changed in version 3.4: Test discovery supports [namespace packages](../glossary.html#term-namespace-package).
+
+Changed in version 3.11: Test discovery dropped the [namespace packages](../glossary.html#term-namespace-package) support. It has been broken since Python 3.7. Start directory and its subdirectories containing tests must be regular package that have `__init__.py` file.
+
+If the start directory is the dotted name of the package, the ancestor packages can be namespace packages.
+
+Changed in version 3.14: Test discovery supports [namespace package](../glossary.html#term-namespace-package) as start directory again. To avoid scanning directories unrelated to Python, tests are not searched in subdirectories that do not contain `__init__.py`.
+
+## Organizing test code ¶
+
+The basic building blocks of unit testing are *test cases* — single scenarios that must be set up and checked for correctness. In `unittest`, test cases are represented by [`unittest.TestCase`](#unittest.TestCase "unittest.TestCase") instances. To make your own test cases you must write subclasses of [`TestCase`](#unittest.TestCase "unittest.TestCase") or use [`FunctionTestCase`](#unittest.FunctionTestCase "unittest.FunctionTestCase").
+
+The testing code of a [`TestCase`](#unittest.TestCase "unittest.TestCase") instance should be entirely self contained, such that it can be run either in isolation or in arbitrary combination with any number of other test cases.
+
+The simplest [`TestCase`](#unittest.TestCase "unittest.TestCase") subclass will simply implement a test method (i.e. a method whose name starts with `test`) in order to perform specific testing code:
+
+Copy
+
+```
+import unittest
+
+class DefaultWidgetSizeTestCase(unittest.TestCase):
+    def test_default_widget_size(self):
+        widget = Widget('The widget')
+        self.assertEqual(widget.size(), (50, 50))
+
+```
+
+Note that in order to test something, we use one of the [assert\* methods](#assert-methods) provided by the [`TestCase`](#unittest.TestCase "unittest.TestCase") base class. If the test fails, an exception will be raised with an explanatory message, and `unittest` will identify the test case as a *failure*. Any other exceptions will be treated as *errors*.
+
+Tests can be numerous, and their set-up can be repetitive. Luckily, we can factor out set-up code by implementing a method called [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp"), which the testing framework will automatically call for every single test we run:
+
+Copy
+
+```
+import unittest
+
+class WidgetTestCase(unittest.TestCase):
+    def setUp(self):
+        self.widget = Widget('The widget')
+
+    def test_default_widget_size(self):
+        self.assertEqual(self.widget.size(), (50,50),
+                         'incorrect default size')
+
+    def test_widget_resize(self):
+        self.widget.resize(100,150)
+        self.assertEqual(self.widget.size(), (100,150),
+                         'wrong size after resize')
+
+```
+
+Note
+
+The order in which the various tests will be run is determined by sorting the test method names with respect to the built-in ordering for strings.
+
+If the [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") method raises an exception while the test is running, the framework will consider the test to have suffered an error, and the test method will not be executed.
+
+Similarly, we can provide a [`tearDown()`](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") method that tidies up after the test method has been run:
+
+Copy
+
+```
+import unittest
+
+class WidgetTestCase(unittest.TestCase):
+    def setUp(self):
+        self.widget = Widget('The widget')
+
+    def tearDown(self):
+        self.widget.dispose()
+
+```
+
+If [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") succeeded, [`tearDown()`](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") will be run whether the test method succeeded or not.
+
+Such a working environment for the testing code is called a *test fixture*. A new TestCase instance is created as a unique test fixture used to execute each individual test method. Thus [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp"), [`tearDown()`](#unittest.TestCase.tearDown "unittest.TestCase.tearDown"), and `TestCase.__init__()` will be called once per test.
+
+It is recommended that you use TestCase implementations to group tests together according to the features they test. `unittest` provides a mechanism for this: the *test suite*, represented by `unittest`’s [`TestSuite`](#unittest.TestSuite "unittest.TestSuite") class. In most cases, calling [`unittest.main()`](#unittest.main "unittest.main") will do the right thing and collect all the module’s test cases for you and execute them.
+
+However, should you want to customize the building of your test suite, you can do it yourself:
+
+Copy
+
+```
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(WidgetTestCase('test_default_widget_size'))
+    suite.addTest(WidgetTestCase('test_widget_resize'))
+    return suite
+
+if __name__ == '__main__':
+    runner = unittest.TextTestRunner()
+    runner.run(suite())
+
+```
+
+You can place the definitions of test cases and test suites in the same modules as the code they are to test (such as `widget.py`), but there are several advantages to placing the test code in a separate module, such as `test_widget.py`:
+
+- The test module can be run standalone from the command line.
+- The test code can more easily be separated from shipped code.
+- There is less temptation to change test code to fit the code it tests without a good reason.
+- Test code should be modified much less frequently than the code it tests.
+- Tested code can be refactored more easily.
+- Tests for modules written in C must be in separate modules anyway, so why not be consistent?
+- If the testing strategy changes, there is no need to change the source code.
+
+## Re-using old test code ¶
+
+Some users will find that they have existing test code that they would like to run from `unittest`, without converting every old test function to a [`TestCase`](#unittest.TestCase "unittest.TestCase") subclass.
+
+For this reason, `unittest` provides a [`FunctionTestCase`](#unittest.FunctionTestCase "unittest.FunctionTestCase") class. This subclass of [`TestCase`](#unittest.TestCase "unittest.TestCase") can be used to wrap an existing test function. Set-up and tear-down functions can also be provided.
+
+Given the following test function:
+
+Copy
+
+```
+def testSomething():
+    something = makeSomething()
+    assert something.name is not None
+    # ...
+
+```
+
+one can create an equivalent test case instance as follows, with optional set-up and tear-down methods:
+
+Copy
+
+```
+testcase = unittest.FunctionTestCase(testSomething,
+                                     setUp=makeSomethingDB,
+                                     tearDown=deleteSomethingDB)
+
+```
+
+Note
+
+Even though [`FunctionTestCase`](#unittest.FunctionTestCase "unittest.FunctionTestCase") can be used to quickly convert an existing test base over to a `unittest`-based system, this approach is not recommended. Taking the time to set up proper [`TestCase`](#unittest.TestCase "unittest.TestCase") subclasses will make future test refactorings infinitely easier.
+
+In some cases, the existing tests may have been written using the [`doctest`](doctest.html#module-doctest "doctest: Test pieces of code within docstrings.") module. If so, `doctest` provides a [`DocTestSuite`](doctest.html#doctest.DocTestSuite "doctest.DocTestSuite") class that can automatically build [`unittest.TestSuite`](#unittest.TestSuite "unittest.TestSuite") instances from the existing `doctest`-based tests.
+
+## Skipping tests and expected failures ¶
+
+Added in version 3.1.
+
+Unittest supports skipping individual test methods and even whole classes of tests. In addition, it supports marking a test as an “expected failure,” a test that is broken and will fail, but shouldn’t be counted as a failure on a [`TestResult`](#unittest.TestResult "unittest.TestResult").
+
+Skipping a test is simply a matter of using the [`@skip`](#unittest.skip "unittest.skip") [decorator](../glossary.html#term-decorator) or one of its conditional variants, calling [`TestCase.skipTest()`](#unittest.TestCase.skipTest "unittest.TestCase.skipTest") within a [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") or test method, or raising [`SkipTest`](#unittest.SkipTest "unittest.SkipTest") directly.
+
+Basic skipping looks like this:
+
+Copy
+
+```
+class MyTestCase(unittest.TestCase):
+
+    @unittest.skip("demonstrating skipping")
+    def test_nothing(self):
+        self.fail("shouldn't happen")
+
+    @unittest.skipIf(mylib.__version__ < (1, 3),
+                     "not supported in this library version")
+    def test_format(self):
+        # Tests that work for only a certain version of the library.
+        pass
+
+    @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
+    def test_windows_support(self):
+        # windows specific testing code
+        pass
+
+    def test_maybe_skipped(self):
+        if not external_resource_available():
+            self.skipTest("external resource not available")
+        # test code that depends on the external resource
+        pass
+
+```
+
+This is the output of running the example above in verbose mode:
+
+Copy
+
+```
+test_format (__main__.MyTestCase.test_format) ... skipped 'not supported in this library version'
+test_nothing (__main__.MyTestCase.test_nothing) ... skipped 'demonstrating skipping'
+test_maybe_skipped (__main__.MyTestCase.test_maybe_skipped) ... skipped 'external resource not available'
+test_windows_support (__main__.MyTestCase.test_windows_support) ... skipped 'requires Windows'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+OK (skipped=4)
+
+```
+
+Classes can be skipped just like methods:
+
+Copy
+
+```
+@unittest.skip("showing class skipping")
+class MySkippedTestCase(unittest.TestCase):
+    def test_not_run(self):
+        pass
+
+```
+
+[`TestCase.setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") can also skip the test. This is useful when a resource that needs to be set up is not available.
+
+Expected failures use the [`@expectedFailure`](#unittest.expectedFailure "unittest.expectedFailure") decorator.
+
+Copy
+
+```
+class ExpectedFailureTestCase(unittest.TestCase):
+    @unittest.expectedFailure
+    def test_fail(self):
+        self.assertEqual(1, 0, "broken")
+
+```
+
+It’s easy to roll your own skipping decorators by making a decorator that calls [`skip()`](#unittest.skip "unittest.skip") on the test when it wants it to be skipped. This decorator skips the test unless the passed object has a certain attribute:
+
+Copy
+
+```
+def skipUnlessHasattr(obj, attr):
+    if hasattr(obj, attr):
+        return lambda func: func
+    return unittest.skip("{!r} doesn't have {!r}".format(obj, attr))
+
+```
+
+The following decorators and exception implement test skipping and expected failures:
+
+@unittest.skip(*reason*) [¶](#unittest.skip "Link to this definition")  
+
+Unconditionally skip the decorated test. *reason* should describe why the test is being skipped.
+
+
+
+@unittest.skipIf(*condition*, *reason*) [¶](#unittest.skipIf "Link to this definition")  
+
+Skip the decorated test if *condition* is true.
+
+
+
+@unittest.skipUnless(*condition*, *reason*) [¶](#unittest.skipUnless "Link to this definition")  
+
+Skip the decorated test unless *condition* is true.
+
+
+
+@unittest.expectedFailure [¶](#unittest.expectedFailure "Link to this definition")  
+
+Mark the test as an expected failure or error. If the test fails or errors in the test function itself (rather than in one of the *test fixture* methods) then it will be considered a success. If the test passes, it will be considered a failure.
+
+
+
+*exception*unittest.SkipTest(*reason*) [¶](#unittest.SkipTest "Link to this definition")  
+
+This exception is raised to skip a test.
+
+Usually you can use [<code>TestCase.skipTest()</code>](#unittest.TestCase.skipTest "unittest.TestCase.skipTest") or one of the skipping decorators instead of raising this directly.
+
+
+
+Skipped tests will not have [`setUp()`](#unittest.TestCase.setUp "unittest.TestCase.setUp") or [`tearDown()`](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") run around them. Skipped classes will not have [`setUpClass()`](#unittest.TestCase.setUpClass "unittest.TestCase.setUpClass") or [`tearDownClass()`](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass") run. Skipped modules will not have [`setUpModule()`](#unittest.setUpModule "unittest.setUpModule") or [`tearDownModule()`](#unittest.tearDownModule "unittest.tearDownModule") run.
+
+## Distinguishing test iterations using subtests ¶
+
+Added in version 3.4.
+
+When there are very small differences among your tests, for instance some parameters, unittest allows you to distinguish them inside the body of a test method using the [`subTest()`](#unittest.TestCase.subTest "unittest.TestCase.subTest") context manager.
+
+For example, the following test:
+
+Copy
+
+```
+class NumbersTest(unittest.TestCase):
+
+    def test_even(self):
+"""
+        Test that numbers between 0 and 5 are all even.
+        """
+        for i in range(0, 6):
+            with self.subTest(i=i):
+                self.assertEqual(i % 2, 0)
+
+```
+
+will produce the following output:
+
+Copy
+
+```
+======================================================================
+FAIL: test_even (__main__.NumbersTest.test_even) (i=1)
+Test that numbers between 0 and 5 are all even.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "subtests.py", line 11, in test_even
+    self.assertEqual(i % 2, 0)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_even (__main__.NumbersTest.test_even) (i=3)
+Test that numbers between 0 and 5 are all even.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "subtests.py", line 11, in test_even
+    self.assertEqual(i % 2, 0)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_even (__main__.NumbersTest.test_even) (i=5)
+Test that numbers between 0 and 5 are all even.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "subtests.py", line 11, in test_even
+    self.assertEqual(i % 2, 0)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0
+
+```
+
+Without using a subtest, execution would stop after the first failure, and the error would be less easy to diagnose because the value of `i` wouldn’t be displayed:
+
+Copy
+
+```
+======================================================================
+FAIL: test_even (__main__.NumbersTest.test_even)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "subtests.py", line 32, in test_even
+    self.assertEqual(i % 2, 0)
+AssertionError: 1 != 0
+
+```
+
+## Classes and functions ¶
+
+This section describes in depth the API of `unittest`.
+
+### Test cases ¶
+
+*class*unittest.TestCase(*methodName='runTest'*) [¶](#unittest.TestCase "Link to this definition")  
+
+Instances of the <code>TestCase</code> class represent the logical test units in the <code>unittest</code> universe. This class is intended to be used as a base class, with specific tests being implemented by concrete subclasses. This class implements the interface needed by the test runner to allow it to drive the tests, and methods that the test code can use to check for and report various kinds of failure.
+
+Each instance of <code>TestCase</code> will run a single base method: the method named *methodName*. In most uses of <code>TestCase</code>, you will neither change the *methodName* nor reimplement the default <code>runTest()</code> method.
+
+Changed in version 3.2: <code>TestCase</code> can be instantiated successfully without providing a *methodName*. This makes it easier to experiment with <code>TestCase</code> from the interactive interpreter.
+
+<code>TestCase</code> instances provide three groups of methods: one group used to run the test, another used by the test implementation to check conditions and report failures, and some inquiry methods allowing information about the test itself to be gathered.
+
+Methods in the first group (running the test) are:
+
+setUp() [¶](#unittest.TestCase.setUp "Link to this definition")  
+
+Method called to prepare the test fixture. This is called immediately before calling the test method; other than [<code>AssertionError</code>](exceptions.html#AssertionError "AssertionError") or [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest"), any exception raised by this method will be considered an error rather than a test failure. The default implementation does nothing.
+
+
+
+tearDown() [¶](#unittest.TestCase.tearDown "Link to this definition")  
+
+Method called immediately after the test method has been called and the result recorded. This is called even if the test method raised an exception, so the implementation in subclasses may need to be particularly careful about checking internal state. Any exception, other than [<code>AssertionError</code>](exceptions.html#AssertionError "AssertionError") or [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest"), raised by this method will be considered an additional error rather than a test failure (thus increasing the total number of reported errors). This method will only be called if the [<code>setUp()</code>](#unittest.TestCase.setUp "unittest.TestCase.setUp") succeeds, regardless of the outcome of the test method. The default implementation does nothing.
+
+
+
+setUpClass() [¶](#unittest.TestCase.setUpClass "Link to this definition")  
+
+A class method called before tests in an individual class are run. <code>setUpClass</code> is called with the class as the only argument and must be decorated as a [<code>@classmethod</code>](functions.html#classmethod "classmethod"):
+
+Copy
+
+```
+@classmethod
+def setUpClass(cls):
+    ...
+
+```
+
+See [Class and Module Fixtures](#class-and-module-fixtures) for more details.
+
+Added in version 3.2.
+
+
+
+tearDownClass() [¶](#unittest.TestCase.tearDownClass "Link to this definition")  
+
+A class method called after tests in an individual class have run. <code>tearDownClass</code> is called with the class as the only argument and must be decorated as a [<code>@classmethod</code>](functions.html#classmethod "classmethod"):
+
+Copy
+
+```
+@classmethod
+def tearDownClass(cls):
+    ...
+
+```
+
+See [Class and Module Fixtures](#class-and-module-fixtures) for more details.
+
+Added in version 3.2.
+
+
+
+run(*result=None*) [¶](#unittest.TestCase.run "Link to this definition")  
+
+Run the test, collecting the result into the [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") object passed as *result*. If *result* is omitted or <code>None</code>, a temporary result object is created (by calling the [<code>defaultTestResult()</code>](#unittest.TestCase.defaultTestResult "unittest.TestCase.defaultTestResult") method) and used. The result object is returned to <code>run()</code>’s caller.
+
+The same effect may be had by simply calling the <code>TestCase</code> instance.
+
+Changed in version 3.3: Previous versions of <code>run</code> did not return the result. Neither did calling an instance.
+
+
+
+skipTest(*reason*) [¶](#unittest.TestCase.skipTest "Link to this definition")  
+
+Calling this during a test method or [<code>setUp()</code>](#unittest.TestCase.setUp "unittest.TestCase.setUp") skips the current test. See [Skipping tests and expected failures](#unittest-skipping) for more information.
+
+Added in version 3.1.
+
+
+
+subTest(*msg=None*, *\*\*params*) [¶](#unittest.TestCase.subTest "Link to this definition")  
+
+Return a context manager which executes the enclosed code block as a subtest. *msg* and *params* are optional, arbitrary values which are displayed whenever a subtest fails, allowing you to identify them clearly.
+
+A test case can contain any number of subtest declarations, and they can be arbitrarily nested.
+
+See [Distinguishing test iterations using subtests](#subtests) for more information.
+
+Added in version 3.4.
+
+
+
+debug() [¶](#unittest.TestCase.debug "Link to this definition")  
+
+Run the test without collecting the result. This allows exceptions raised by the test to be propagated to the caller, and can be used to support running tests under a debugger.
+
+
+
+The <code>TestCase</code> class provides several assert methods to check for and report failures. The following table lists the most commonly used methods (see the tables below for more assert methods):
+
+| Method | Checks that | New in |
+| --- | --- | --- |
+| [<code>assertEqual(a, b)</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual") | <code>a == b</code> | |
+| [<code>assertNotEqual(a, b)</code>](#unittest.TestCase.assertNotEqual "unittest.TestCase.assertNotEqual") | <code>a != b</code> | |
+| [<code>assertTrue(x)</code>](#unittest.TestCase.assertTrue "unittest.TestCase.assertTrue") | <code>bool(x) is True</code> | |
+| [<code>assertFalse(x)</code>](#unittest.TestCase.assertFalse "unittest.TestCase.assertFalse") | <code>bool(x) is False</code> | |
+| [<code>assertIs(a, b)</code>](#unittest.TestCase.assertIs "unittest.TestCase.assertIs") | <code>a is b</code> | 3.1 |
+| [<code>assertIsNot(a, b)</code>](#unittest.TestCase.assertIsNot "unittest.TestCase.assertIsNot") | <code>a is not b</code> | 3.1 |
+| [<code>assertIsNone(x)</code>](#unittest.TestCase.assertIsNone "unittest.TestCase.assertIsNone") | <code>x is None</code> | 3.1 |
+| [<code>assertIsNotNone(x)</code>](#unittest.TestCase.assertIsNotNone "unittest.TestCase.assertIsNotNone") | <code>x is not None</code> | 3.1 |
+| [<code>assertIn(a, b)</code>](#unittest.TestCase.assertIn "unittest.TestCase.assertIn") | <code>a in b</code> | 3.1 |
+| [<code>assertNotIn(a, b)</code>](#unittest.TestCase.assertNotIn "unittest.TestCase.assertNotIn") | <code>a not in b</code> | 3.1 |
+| [<code>assertIsInstance(a, b)</code>](#unittest.TestCase.assertIsInstance "unittest.TestCase.assertIsInstance") | <code>isinstance(a, b)</code> | 3.2 |
+| [<code>assertNotIsInstance(a, b)</code>](#unittest.TestCase.assertNotIsInstance "unittest.TestCase.assertNotIsInstance") | <code>not isinstance(a, b)</code> | 3.2 |
+| [<code>assertIsSubclass(a, b)</code>](#unittest.TestCase.assertIsSubclass "unittest.TestCase.assertIsSubclass") | <code>issubclass(a, b)</code> | 3.14 |
+| [<code>assertNotIsSubclass(a, b)</code>](#unittest.TestCase.assertNotIsSubclass "unittest.TestCase.assertNotIsSubclass") | <code>not issubclass(a, b)</code> | 3.14 |
+
+All the assert methods accept a *msg* argument that, if specified, is used as the error message on failure (see also [<code>longMessage</code>](#unittest.TestCase.longMessage "unittest.TestCase.longMessage")). Note that the *msg* keyword argument can be passed to [<code>assertRaises()</code>](#unittest.TestCase.assertRaises "unittest.TestCase.assertRaises"), [<code>assertRaisesRegex()</code>](#unittest.TestCase.assertRaisesRegex "unittest.TestCase.assertRaisesRegex"), [<code>assertWarns()</code>](#unittest.TestCase.assertWarns "unittest.TestCase.assertWarns"), [<code>assertWarnsRegex()</code>](#unittest.TestCase.assertWarnsRegex "unittest.TestCase.assertWarnsRegex") only when they are used as a context manager.
+
+assertEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertEqual "Link to this definition")  
+
+Test that *first* and *second* are equal. If the values do not compare equal, the test will fail.
+
+In addition, if *first* and *second* are the exact same type and one of list, tuple, dict, set, frozenset or str or any type that a subclass registers with [<code>addTypeEqualityFunc()</code>](#unittest.TestCase.addTypeEqualityFunc "unittest.TestCase.addTypeEqualityFunc") the type-specific equality function will be called in order to generate a more useful default error message (see also the [list of type-specific methods](#type-specific-methods)).
+
+Changed in version 3.1: Added the automatic calling of type-specific equality function.
+
+Changed in version 3.2: [<code>assertMultiLineEqual()</code>](#unittest.TestCase.assertMultiLineEqual "unittest.TestCase.assertMultiLineEqual") added as the default type equality function for comparing strings.
+
+
+
+assertNotEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertNotEqual "Link to this definition")  
+
+Test that *first* and *second* are not equal. If the values do compare equal, the test will fail.
+
+
+
+assertTrue(*expr*, *msg=None*) [¶](#unittest.TestCase.assertTrue "Link to this definition")  
+
+assertFalse(*expr*, *msg=None*) [¶](#unittest.TestCase.assertFalse "Link to this definition")  
+
+Test that *expr* is true (or false).
+
+Note that this is equivalent to <code>bool(expr) is True</code> and not to <code>expr is True</code> (use <code>assertIs(expr, True)</code> for the latter). This method should also be avoided when more specific methods are available (e.g. <code>assertEqual(a, b)</code> instead of <code>assertTrue(a == b)</code>), because they provide a better error message in case of failure.
+
+
+
+assertIs(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertIs "Link to this definition")  
+
+assertIsNot(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertIsNot "Link to this definition")  
+
+Test that *first* and *second* are (or are not) the same object.
+
+Added in version 3.1.
+
+
+
+assertIsNone(*expr*, *msg=None*) [¶](#unittest.TestCase.assertIsNone "Link to this definition")  
+
+assertIsNotNone(*expr*, *msg=None*) [¶](#unittest.TestCase.assertIsNotNone "Link to this definition")  
+
+Test that *expr* is (or is not) <code>None</code>.
+
+Added in version 3.1.
+
+
+
+assertIn(*member*, *container*, *msg=None*) [¶](#unittest.TestCase.assertIn "Link to this definition")  
+
+assertNotIn(*member*, *container*, *msg=None*) [¶](#unittest.TestCase.assertNotIn "Link to this definition")  
+
+Test that *member* is (or is not) in *container*.
+
+Added in version 3.1.
+
+
+
+assertIsInstance(*obj*, *cls*, *msg=None*) [¶](#unittest.TestCase.assertIsInstance "Link to this definition")  
+
+assertNotIsInstance(*obj*, *cls*, *msg=None*) [¶](#unittest.TestCase.assertNotIsInstance "Link to this definition")  
+
+Test that *obj* is (or is not) an instance of *cls* (which can be a class or a tuple of classes, as supported by [<code>isinstance()</code>](functions.html#isinstance "isinstance")). To check for the exact type, use [<code>assertIs(type(obj), cls)</code>](#unittest.TestCase.assertIs "unittest.TestCase.assertIs").
+
+Added in version 3.2.
+
+
+
+assertIsSubclass(*cls*, *superclass*, *msg=None*) [¶](#unittest.TestCase.assertIsSubclass "Link to this definition")  
+
+assertNotIsSubclass(*cls*, *superclass*, *msg=None*) [¶](#unittest.TestCase.assertNotIsSubclass "Link to this definition")  
+
+Test that *cls* is (or is not) a subclass of *superclass* (which can be a class or a tuple of classes, as supported by [<code>issubclass()</code>](functions.html#issubclass "issubclass")). To check for the exact type, use [<code>assertIs(cls, superclass)</code>](#unittest.TestCase.assertIs "unittest.TestCase.assertIs").
+
+Added in version 3.14.
+
+
+
+It is also possible to check the production of exceptions, warnings, and log messages using the following methods:
+
+| Method | Checks that | New in |
+| --- | --- | --- |
+| [<code>assertRaises(exc, fun, *args, **kwds)</code>](#unittest.TestCase.assertRaises "unittest.TestCase.assertRaises") | <code>fun(*args, **kwds)</code> raises *exc* | |
+| [<code>assertRaisesRegex(exc, r, fun, *args, **kwds)</code>](#unittest.TestCase.assertRaisesRegex "unittest.TestCase.assertRaisesRegex") | <code>fun(*args, **kwds)</code> raises *exc* and the message matches regex *r* | 3.1 |
+| [<code>assertWarns(warn, fun, *args, **kwds)</code>](#unittest.TestCase.assertWarns "unittest.TestCase.assertWarns") | <code>fun(*args, **kwds)</code> raises *warn* | 3.2 |
+| [<code>assertWarnsRegex(warn, r, fun, *args, **kwds)</code>](#unittest.TestCase.assertWarnsRegex "unittest.TestCase.assertWarnsRegex") | <code>fun(*args, **kwds)</code> raises *warn* and the message matches regex *r* | 3.2 |
+| [<code>assertLogs(logger, level)</code>](#unittest.TestCase.assertLogs "unittest.TestCase.assertLogs") | The <code>with</code> block logs on *logger* with minimum *level* | 3.4 |
+| [<code>assertNoLogs(logger, level)</code>](#unittest.TestCase.assertNoLogs "unittest.TestCase.assertNoLogs") | The <code>with</code> block does not log on  
+*logger* with minimum *level*
+
+ | 3.10 |
+
+assertRaises(*exception*, *callable*, *\*args*, *\*\*kwds*) [¶](#unittest.TestCase.assertRaises "Link to this definition")  
+
+assertRaises(*exception*, *\**, *msg=None*)  
+
+Test that an exception is raised when *callable* is called with any positional or keyword arguments that are also passed to <code>assertRaises()</code>. The test passes if *exception* is raised, is an error if another exception is raised, or fails if no exception is raised. To catch any of a group of exceptions, a tuple containing the exception classes may be passed as *exception*.
+
+If only the *exception* and possibly the *msg* arguments are given, return a context manager so that the code under test can be written inline rather than as a function:
+
+Copy
+
+```
+with self.assertRaises(SomeException):
+    do_something()
+
+```
+
+When used as a context manager, <code>assertRaises()</code> accepts the additional keyword argument *msg*.
+
+The context manager will store the caught exception object in its <code>exception</code> attribute. This can be useful if the intention is to perform additional checks on the exception raised:
+
+Copy
+
+```
+with self.assertRaises(SomeException) as cm:
+    do_something()
+
+the_exception = cm.exception
+self.assertEqual(the_exception.error_code, 3)
+
+```
+
+Changed in version 3.1: Added the ability to use <code>assertRaises()</code> as a context manager.
+
+Changed in version 3.2: Added the <code>exception</code> attribute.
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+
+
+
+assertRaisesRegex(*exception*, *regex*, *callable*, *\*args*, *\*\*kwds*) [¶](#unittest.TestCase.assertRaisesRegex "Link to this definition")  
+
+assertRaisesRegex(*exception*, *regex*, *\**, *msg=None*)  
+
+Like [<code>assertRaises()</code>](#unittest.TestCase.assertRaises "unittest.TestCase.assertRaises") but also tests that *regex* matches on the string representation of the raised exception. *regex* may be a regular expression object or a string containing a regular expression suitable for use by [<code>re.search()</code>](re.html#re.search "re.search"). Examples:
+
+Copy
+
+```
+self.assertRaisesRegex(ValueError, "invalid literal for.*XYZ'$",
+                       int, 'XYZ')
+
+```
+
+or:
+
+Copy
+
+```
+with self.assertRaisesRegex(ValueError, 'literal'):
+   int('XYZ')
+
+```
+
+Added in version 3.1: Added under the name <code>assertRaisesRegexp</code>.
+
+Changed in version 3.2: Renamed to <code>assertRaisesRegex()</code>.
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+
+
+
+assertWarns(*warning*, *callable*, *\*args*, *\*\*kwds*) [¶](#unittest.TestCase.assertWarns "Link to this definition")  
+
+assertWarns(*warning*, *\**, *msg=None*)  
+
+Test that a warning is triggered when *callable* is called with any positional or keyword arguments that are also passed to <code>assertWarns()</code>. The test passes if *warning* is triggered and fails if it isn’t. Any exception is an error. To catch any of a group of warnings, a tuple containing the warning classes may be passed as *warnings*.
+
+If only the *warning* and possibly the *msg* arguments are given, return a context manager so that the code under test can be written inline rather than as a function:
+
+Copy
+
+```
+with self.assertWarns(SomeWarning):
+    do_something()
+
+```
+
+When used as a context manager, <code>assertWarns()</code> accepts the additional keyword argument *msg*.
+
+The context manager will store the caught warning object in its <code>warning</code> attribute, and the source line which triggered the warnings in the <code>filename</code> and <code>lineno</code> attributes. This can be useful if the intention is to perform additional checks on the warning caught:
+
+Copy
+
+```
+with self.assertWarns(SomeWarning) as cm:
+    do_something()
+
+self.assertIn('myfile.py', cm.filename)
+self.assertEqual(320, cm.lineno)
+
+```
+
+This method works regardless of the warning filters in place when it is called.
+
+Added in version 3.2.
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+
+
+
+assertWarnsRegex(*warning*, *regex*, *callable*, *\*args*, *\*\*kwds*) [¶](#unittest.TestCase.assertWarnsRegex "Link to this definition")  
+
+assertWarnsRegex(*warning*, *regex*, *\**, *msg=None*)  
+
+Like [<code>assertWarns()</code>](#unittest.TestCase.assertWarns "unittest.TestCase.assertWarns") but also tests that *regex* matches on the message of the triggered warning. *regex* may be a regular expression object or a string containing a regular expression suitable for use by [<code>re.search()</code>](re.html#re.search "re.search"). Example:
+
+Copy
+
+```
+self.assertWarnsRegex(DeprecationWarning,
+                      r'legacy_function\(\) is deprecated',
+                      legacy_function, 'XYZ')
+
+```
+
+or:
+
+Copy
+
+```
+with self.assertWarnsRegex(RuntimeWarning, 'unsafe frobnicating'):
+    frobnicate('/etc/passwd')
+
+```
+
+Added in version 3.2.
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+
+
+
+assertLogs(*logger=None*, *level=None*) [¶](#unittest.TestCase.assertLogs "Link to this definition")  
+
+A context manager to test that at least one message is logged on the *logger* or one of its children, with at least the given *level*.
+
+If given, *logger* should be a [<code>logging.Logger</code>](logging.html#logging.Logger "logging.Logger") object or a [<code>str</code>](stdtypes.html#str "str") giving the name of a logger. The default is the root logger, which will catch all messages that were not blocked by a non-propagating descendent logger.
+
+If given, *level* should be either a numeric logging level or its string equivalent (for example either <code>"ERROR"</code> or [<code>logging.ERROR</code>](logging.html#logging.ERROR "logging.ERROR")). The default is [<code>logging.INFO</code>](logging.html#logging.INFO "logging.INFO").
+
+The test passes if at least one message emitted inside the <code>with</code> block matches the *logger* and *level* conditions, otherwise it fails.
+
+The object returned by the context manager is a recording helper which keeps tracks of the matching log messages. It has two attributes:
+
+records [¶](#unittest.TestCase.records "Link to this definition")  
+
+A list of [<code>logging.LogRecord</code>](logging.html#logging.LogRecord "logging.LogRecord") objects of the matching log messages.
+
+
+
+output [¶](#unittest.TestCase.output "Link to this definition")  
+
+A list of [<code>str</code>](stdtypes.html#str "str") objects with the formatted output of matching messages.
+
+
+
+Example:
+
+Copy
+
+```
+with self.assertLogs('foo', level='INFO') as cm:
+    logging.getLogger('foo').info('first message')
+    logging.getLogger('foo.bar').error('second message')
+self.assertEqual(cm.output, ['INFO:foo:first message',
+                             'ERROR:foo.bar:second message'])
+
+```
+
+Added in version 3.4.
+
+
+
+assertNoLogs(*logger=None*, *level=None*) [¶](#unittest.TestCase.assertNoLogs "Link to this definition")  
+
+A context manager to test that no messages are logged on the *logger* or one of its children, with at least the given *level*.
+
+If given, *logger* should be a [<code>logging.Logger</code>](logging.html#logging.Logger "logging.Logger") object or a [<code>str</code>](stdtypes.html#str "str") giving the name of a logger. The default is the root logger, which will catch all messages.
+
+If given, *level* should be either a numeric logging level or its string equivalent (for example either <code>"ERROR"</code> or [<code>logging.ERROR</code>](logging.html#logging.ERROR "logging.ERROR")). The default is [<code>logging.INFO</code>](logging.html#logging.INFO "logging.INFO").
+
+Unlike [<code>assertLogs()</code>](#unittest.TestCase.assertLogs "unittest.TestCase.assertLogs"), nothing will be returned by the context manager.
+
+Added in version 3.10.
+
+
+
+There are also other methods used to perform more specific checks, such as:
+
+| Method | Checks that | New in |
+| --- | --- | --- |
+| [<code>assertAlmostEqual(a, b)</code>](#unittest.TestCase.assertAlmostEqual "unittest.TestCase.assertAlmostEqual") | <code>round(a-b, 7) == 0</code> | |
+| [<code>assertNotAlmostEqual(a, b)</code>](#unittest.TestCase.assertNotAlmostEqual "unittest.TestCase.assertNotAlmostEqual") | <code>round(a-b, 7) != 0</code> | |
+| [<code>assertGreater(a, b)</code>](#unittest.TestCase.assertGreater "unittest.TestCase.assertGreater") | <code>a &gt; b</code> | 3.1 |
+| [<code>assertGreaterEqual(a, b)</code>](#unittest.TestCase.assertGreaterEqual "unittest.TestCase.assertGreaterEqual") | <code>a &gt;= b</code> | 3.1 |
+| [<code>assertLess(a, b)</code>](#unittest.TestCase.assertLess "unittest.TestCase.assertLess") | <code>a &lt; b</code> | 3.1 |
+| [<code>assertLessEqual(a, b)</code>](#unittest.TestCase.assertLessEqual "unittest.TestCase.assertLessEqual") | <code>a &lt;= b</code> | 3.1 |
+| [<code>assertRegex(s, r)</code>](#unittest.TestCase.assertRegex "unittest.TestCase.assertRegex") | <code>r.search(s)</code> | 3.1 |
+| [<code>assertNotRegex(s, r)</code>](#unittest.TestCase.assertNotRegex "unittest.TestCase.assertNotRegex") | <code>not r.search(s)</code> | 3.2 |
+| [<code>assertCountEqual(a, b)</code>](#unittest.TestCase.assertCountEqual "unittest.TestCase.assertCountEqual") | *a* contains the same elements as *b*, regardless of their order. | 3.2 |
+| [<code>assertStartsWith(a, b)</code>](#unittest.TestCase.assertStartsWith "unittest.TestCase.assertStartsWith") | <code>a.startswith(b)</code> | 3.14 |
+| [<code>assertNotStartsWith(a, b)</code>](#unittest.TestCase.assertNotStartsWith "unittest.TestCase.assertNotStartsWith") | <code>not a.startswith(b)</code> | 3.14 |
+| [<code>assertEndsWith(a, b)</code>](#unittest.TestCase.assertEndsWith "unittest.TestCase.assertEndsWith") | <code>a.endswith(b)</code> | 3.14 |
+| [<code>assertNotEndsWith(a, b)</code>](#unittest.TestCase.assertNotEndsWith "unittest.TestCase.assertNotEndsWith") | <code>not a.endswith(b)</code> | 3.14 |
+| [<code>assertHasAttr(a, b)</code>](#unittest.TestCase.assertHasAttr "unittest.TestCase.assertHasAttr") | <code>hasattr(a, b)</code> | 3.14 |
+| [<code>assertNotHasAttr(a, b)</code>](#unittest.TestCase.assertNotHasAttr "unittest.TestCase.assertNotHasAttr") | <code>not hasattr(a, b)</code> | 3.14 |
+
+assertAlmostEqual(*first*, *second*, *places=7*, *msg=None*, *delta=None*) [¶](#unittest.TestCase.assertAlmostEqual "Link to this definition")  
+
+assertNotAlmostEqual(*first*, *second*, *places=7*, *msg=None*, *delta=None*) [¶](#unittest.TestCase.assertNotAlmostEqual "Link to this definition")  
+
+Test that *first* and *second* are approximately (or not approximately) equal by computing the difference, rounding to the given number of decimal *places* (default 7), and comparing to zero. Note that these methods round the values to the given number of *decimal places* (i.e. like the [<code>round()</code>](functions.html#round "round") function) and not *significant digits*.
+
+If *delta* is supplied instead of *places* then the difference between *first* and *second* must be less or equal to (or greater than) *delta*.
+
+Supplying both *delta* and *places* raises a [<code>TypeError</code>](exceptions.html#TypeError "TypeError").
+
+Changed in version 3.2: <code>assertAlmostEqual()</code> automatically considers almost equal objects that compare equal. <code>assertNotAlmostEqual()</code> automatically fails if the objects compare equal. Added the *delta* keyword argument.
+
+
+
+assertGreater(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertGreater "Link to this definition")  
+
+assertGreaterEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertGreaterEqual "Link to this definition")  
+
+assertLess(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertLess "Link to this definition")  
+
+assertLessEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertLessEqual "Link to this definition")  
+
+Test that *first* is respectively &gt;, &gt;=, &lt; or &lt;= than *second* depending on the method name. If not, the test will fail:
+
+Copy
+
+```
+>>> self.assertGreaterEqual(3, 4)
+AssertionError: "3" unexpectedly not greater than or equal to "4"
+
+```
+
+Added in version 3.1.
+
+
+
+assertRegex(*text*, *regex*, *msg=None*) [¶](#unittest.TestCase.assertRegex "Link to this definition")  
+
+assertNotRegex(*text*, *regex*, *msg=None*) [¶](#unittest.TestCase.assertNotRegex "Link to this definition")  
+
+Test that a *regex* search matches (or does not match) *text*. In case of failure, the error message will include the pattern and the *text* (or the pattern and the part of *text* that unexpectedly matched). *regex* may be a regular expression object or a string containing a regular expression suitable for use by [<code>re.search()</code>](re.html#re.search "re.search").
+
+Added in version 3.1: Added under the name <code>assertRegexpMatches</code>.
+
+Changed in version 3.2: The method <code>assertRegexpMatches()</code> has been renamed to <code>assertRegex()</code>.
+
+Added in version 3.2: <code>assertNotRegex()</code>.
+
+
+
+assertCountEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertCountEqual "Link to this definition")  
+
+Test that sequence *first* contains the same elements as *second*, regardless of their order. When they don’t, an error message listing the differences between the sequences will be generated.
+
+Duplicate elements are *not* ignored when comparing *first* and *second*. It verifies whether each element has the same count in both sequences. Equivalent to: <code>assertEqual(Counter(list(first)), Counter(list(second)))</code> but works with sequences of unhashable objects as well.
+
+Added in version 3.2.
+
+
+
+assertStartsWith(*s*, *prefix*, *msg=None*) [¶](#unittest.TestCase.assertStartsWith "Link to this definition")  
+
+
+
+assertNotStartsWith(*s*, *prefix*, *msg=None*) [¶](#unittest.TestCase.assertNotStartsWith "Link to this definition")  
+
+Test that the Unicode or byte string *s* starts (or does not start) with a *prefix*. *prefix* can also be a tuple of strings to try.
+
+Added in version 3.14.
+
+
+
+assertEndsWith(*s*, *suffix*, *msg=None*) [¶](#unittest.TestCase.assertEndsWith "Link to this definition")  
+
+
+
+assertNotEndsWith(*s*, *suffix*, *msg=None*) [¶](#unittest.TestCase.assertNotEndsWith "Link to this definition")  
+
+Test that the Unicode or byte string *s* ends (or does not end) with a *suffix*. *suffix* can also be a tuple of strings to try.
+
+Added in version 3.14.
+
+
+
+assertHasAttr(*obj*, *name*, *msg=None*) [¶](#unittest.TestCase.assertHasAttr "Link to this definition")  
+
+
+
+assertNotHasAttr(*obj*, *name*, *msg=None*) [¶](#unittest.TestCase.assertNotHasAttr "Link to this definition")  
+
+Test that the object *obj* has (or has not) an attribute *name*.
+
+Added in version 3.14.
+
+
+
+The [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual") method dispatches the equality check for objects of the same type to different type-specific methods. These methods are already implemented for most of the built-in types, but it’s also possible to register new methods using [<code>addTypeEqualityFunc()</code>](#unittest.TestCase.addTypeEqualityFunc "unittest.TestCase.addTypeEqualityFunc"):
+
+addTypeEqualityFunc(*typeobj*, *function*) [¶](#unittest.TestCase.addTypeEqualityFunc "Link to this definition")  
+
+Registers a type-specific method called by [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual") to check if two objects of exactly the same *typeobj* (not subclasses) compare equal. *function* must take two positional arguments and a third msg=None keyword argument just as <code>assertEqual()</code> does. It must raise [<code>self.failureException(msg)</code>](#unittest.TestCase.failureException "unittest.TestCase.failureException") when inequality between the first two parameters is detected – possibly providing useful information and explaining the inequalities in details in the error message.
+
+Added in version 3.1.
+
+
+
+The list of type-specific methods automatically used by [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual") are summarized in the following table. Note that it’s usually not necessary to invoke these methods directly.
+
+| Method | Used to compare | New in |
+| --- | --- | --- |
+| [<code>assertMultiLineEqual(a, b)</code>](#unittest.TestCase.assertMultiLineEqual "unittest.TestCase.assertMultiLineEqual") | strings | 3.1 |
+| [<code>assertSequenceEqual(a, b)</code>](#unittest.TestCase.assertSequenceEqual "unittest.TestCase.assertSequenceEqual") | sequences | 3.1 |
+| [<code>assertListEqual(a, b)</code>](#unittest.TestCase.assertListEqual "unittest.TestCase.assertListEqual") | lists | 3.1 |
+| [<code>assertTupleEqual(a, b)</code>](#unittest.TestCase.assertTupleEqual "unittest.TestCase.assertTupleEqual") | tuples | 3.1 |
+| [<code>assertSetEqual(a, b)</code>](#unittest.TestCase.assertSetEqual "unittest.TestCase.assertSetEqual") | sets or frozensets | 3.1 |
+| [<code>assertDictEqual(a, b)</code>](#unittest.TestCase.assertDictEqual "unittest.TestCase.assertDictEqual") | dicts | 3.1 |
+
+assertMultiLineEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertMultiLineEqual "Link to this definition")  
+
+Test that the multiline string *first* is equal to the string *second*. When not equal a diff of the two strings highlighting the differences will be included in the error message. This method is used by default when comparing strings with [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual").
+
+Added in version 3.1.
+
+
+
+assertSequenceEqual(*first*, *second*, *msg=None*, *seq\_type=None*) [¶](#unittest.TestCase.assertSequenceEqual "Link to this definition")  
+
+Tests that two sequences are equal. If a *seq\_type* is supplied, both *first* and *second* must be instances of *seq\_type* or a failure will be raised. If the sequences are different an error message is constructed that shows the difference between the two.
+
+This method is not called directly by [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual"), but it’s used to implement [<code>assertListEqual()</code>](#unittest.TestCase.assertListEqual "unittest.TestCase.assertListEqual") and [<code>assertTupleEqual()</code>](#unittest.TestCase.assertTupleEqual "unittest.TestCase.assertTupleEqual").
+
+Added in version 3.1.
+
+
+
+assertListEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertListEqual "Link to this definition")  
+
+assertTupleEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertTupleEqual "Link to this definition")  
+
+Tests that two lists or tuples are equal. If not, an error message is constructed that shows only the differences between the two. An error is also raised if either of the parameters are of the wrong type. These methods are used by default when comparing lists or tuples with [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual").
+
+Added in version 3.1.
+
+
+
+assertSetEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertSetEqual "Link to this definition")  
+
+Tests that two sets are equal. If not, an error message is constructed that lists the differences between the sets. This method is used by default when comparing sets or frozensets with [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual").
+
+Fails if either of *first* or *second* does not have a [<code>difference()</code>](stdtypes.html#frozenset.difference "frozenset.difference") method.
+
+Added in version 3.1.
+
+
+
+assertDictEqual(*first*, *second*, *msg=None*) [¶](#unittest.TestCase.assertDictEqual "Link to this definition")  
+
+Test that two dictionaries are equal. If not, an error message is constructed that shows the differences in the dictionaries. This method will be used by default to compare dictionaries in calls to [<code>assertEqual()</code>](#unittest.TestCase.assertEqual "unittest.TestCase.assertEqual").
+
+Added in version 3.1.
+
+
+
+Finally the <code>TestCase</code> provides the following methods and attributes:
+
+fail(*msg=None*) [¶](#unittest.TestCase.fail "Link to this definition")  
+
+Signals a test failure unconditionally, with *msg* or <code>None</code> for the error message.
+
+
+
+failureException [¶](#unittest.TestCase.failureException "Link to this definition")  
+
+This class attribute gives the exception raised by the test method. If a test framework needs to use a specialized exception, possibly to carry additional information, it must subclass this exception in order to “play fair” with the framework. The initial value of this attribute is [<code>AssertionError</code>](exceptions.html#AssertionError "AssertionError").
+
+
+
+longMessage [¶](#unittest.TestCase.longMessage "Link to this definition")  
+
+This class attribute determines what happens when a custom failure message is passed as the msg argument to an assertXYY call that fails. <code>True</code> is the default value. In this case, the custom message is appended to the end of the standard failure message. When set to <code>False</code>, the custom message replaces the standard message.
+
+The class setting can be overridden in individual test methods by assigning an instance attribute, self.longMessage, to <code>True</code> or <code>False</code> before calling the assert methods.
+
+The class setting gets reset before each test call.
+
+Added in version 3.1.
+
+
+
+maxDiff [¶](#unittest.TestCase.maxDiff "Link to this definition")  
+
+This attribute controls the maximum length of diffs output by assert methods that report diffs on failure. It defaults to 80\*8 characters. Assert methods affected by this attribute are [<code>assertSequenceEqual()</code>](#unittest.TestCase.assertSequenceEqual "unittest.TestCase.assertSequenceEqual") (including all the sequence comparison methods that delegate to it), [<code>assertDictEqual()</code>](#unittest.TestCase.assertDictEqual "unittest.TestCase.assertDictEqual") and [<code>assertMultiLineEqual()</code>](#unittest.TestCase.assertMultiLineEqual "unittest.TestCase.assertMultiLineEqual").
+
+Setting <code>maxDiff</code> to <code>None</code> means that there is no maximum length of diffs.
+
+Added in version 3.2.
+
+
+
+Testing frameworks can use the following methods to collect information on the test:
+
+countTestCases() [¶](#unittest.TestCase.countTestCases "Link to this definition")  
+
+Return the number of tests represented by this test object. For <code>TestCase</code> instances, this will always be <code>1</code>.
+
+
+
+defaultTestResult() [¶](#unittest.TestCase.defaultTestResult "Link to this definition")  
+
+Return an instance of the test result class that should be used for this test case class (if no other result instance is provided to the [<code>run()</code>](#unittest.TestCase.run "unittest.TestCase.run") method).
+
+For <code>TestCase</code> instances, this will always be an instance of [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult"); subclasses of <code>TestCase</code> should override this as necessary.
+
+
+
+id() [¶](#unittest.TestCase.id "Link to this definition")  
+
+Return a string identifying the specific test case. This is usually the full name of the test method, including the module and class name.
+
+
+
+shortDescription() [¶](#unittest.TestCase.shortDescription "Link to this definition")  
+
+Returns a description of the test, or <code>None</code> if no description has been provided. The default implementation of this method returns the first line of the test method’s docstring, if available, or <code>None</code>.
+
+Changed in version 3.1: In 3.1 this was changed to add the test name to the short description even in the presence of a docstring. This caused compatibility issues with unittest extensions and adding the test name was moved to the [<code>TextTestResult</code>](#unittest.TextTestResult "unittest.TextTestResult") in Python 3.2.
+
+
+
+addCleanup(*function*, */*, *\*args*, *\*\*kwargs*) [¶](#unittest.TestCase.addCleanup "Link to this definition")  
+
+Add a function to be called after [<code>tearDown()</code>](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") to cleanup resources used during the test. Functions will be called in reverse order to the order they are added (LIFO). They are called with any arguments and keyword arguments passed into <code>addCleanup()</code> when they are added.
+
+If [<code>setUp()</code>](#unittest.TestCase.setUp "unittest.TestCase.setUp") fails, meaning that [<code>tearDown()</code>](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") is not called, then any cleanup functions added will still be called.
+
+Added in version 3.1.
+
+
+
+enterContext(*cm*) [¶](#unittest.TestCase.enterContext "Link to this definition")  
+
+Enter the supplied [context manager](../glossary.html#term-context-manager). If successful, also add its [<code>__exit__()</code>](../reference/datamodel.html#object.__exit__ "object.__exit__") method as a cleanup function by [<code>addCleanup()</code>](#unittest.TestCase.addCleanup "unittest.TestCase.addCleanup") and return the result of the [<code>__enter__()</code>](../reference/datamodel.html#object.__enter__ "object.__enter__") method.
+
+Added in version 3.11.
+
+
+
+doCleanups() [¶](#unittest.TestCase.doCleanups "Link to this definition")  
+
+This method is called unconditionally after [<code>tearDown()</code>](#unittest.TestCase.tearDown "unittest.TestCase.tearDown"), or after [<code>setUp()</code>](#unittest.TestCase.setUp "unittest.TestCase.setUp") if <code>setUp()</code> raises an exception.
+
+It is responsible for calling all the cleanup functions added by [<code>addCleanup()</code>](#unittest.TestCase.addCleanup "unittest.TestCase.addCleanup"). If you need cleanup functions to be called *prior* to [<code>tearDown()</code>](#unittest.TestCase.tearDown "unittest.TestCase.tearDown") then you can call <code>doCleanups()</code> yourself.
+
+<code>doCleanups()</code> pops methods off the stack of cleanup functions one at a time, so it can be called at any time.
+
+Added in version 3.1.
+
+
+
+*classmethod*addClassCleanup(*function*, */*, *\*args*, *\*\*kwargs*) [¶](#unittest.TestCase.addClassCleanup "Link to this definition")  
+
+Add a function to be called after [<code>tearDownClass()</code>](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass") to cleanup resources used during the test class. Functions will be called in reverse order to the order they are added (LIFO). They are called with any arguments and keyword arguments passed into <code>addClassCleanup()</code> when they are added.
+
+If [<code>setUpClass()</code>](#unittest.TestCase.setUpClass "unittest.TestCase.setUpClass") fails, meaning that [<code>tearDownClass()</code>](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass") is not called, then any cleanup functions added will still be called.
+
+Added in version 3.8.
+
+
+
+*classmethod*enterClassContext(*cm*) [¶](#unittest.TestCase.enterClassContext "Link to this definition")  
+
+Enter the supplied [context manager](../glossary.html#term-context-manager). If successful, also add its [<code>__exit__()</code>](../reference/datamodel.html#object.__exit__ "object.__exit__") method as a cleanup function by [<code>addClassCleanup()</code>](#unittest.TestCase.addClassCleanup "unittest.TestCase.addClassCleanup") and return the result of the [<code>__enter__()</code>](../reference/datamodel.html#object.__enter__ "object.__enter__") method.
+
+Added in version 3.11.
+
+
+
+*classmethod*doClassCleanups() [¶](#unittest.TestCase.doClassCleanups "Link to this definition")  
+
+This method is called unconditionally after [<code>tearDownClass()</code>](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass"), or after [<code>setUpClass()</code>](#unittest.TestCase.setUpClass "unittest.TestCase.setUpClass") if <code>setUpClass()</code> raises an exception.
+
+It is responsible for calling all the cleanup functions added by [<code>addClassCleanup()</code>](#unittest.TestCase.addClassCleanup "unittest.TestCase.addClassCleanup"). If you need cleanup functions to be called *prior* to [<code>tearDownClass()</code>](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass") then you can call <code>doClassCleanups()</code> yourself.
+
+<code>doClassCleanups()</code> pops methods off the stack of cleanup functions one at a time, so it can be called at any time.
+
+Added in version 3.8.
+
+
+
+
+
+*class*unittest.IsolatedAsyncioTestCase(*methodName='runTest'*) [¶](#unittest.IsolatedAsyncioTestCase "Link to this definition")  
+
+This class provides an API similar to [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") and also accepts coroutines as test functions.
+
+Added in version 3.8.
+
+loop\_factory [¶](#unittest.IsolatedAsyncioTestCase.loop_factory "Link to this definition")  
+
+The *loop\_factory* passed to [<code>asyncio.Runner</code>](asyncio-runner.html#asyncio.Runner "asyncio.Runner"). Override in subclasses with [<code>asyncio.EventLoop</code>](asyncio-eventloop.html#asyncio.EventLoop "asyncio.EventLoop") to avoid using the asyncio policy system.
+
+Added in version 3.13.
+
+
+
+*async*asyncSetUp() [¶](#unittest.IsolatedAsyncioTestCase.asyncSetUp "Link to this definition")  
+
+Method called to prepare the test fixture. This is called after [<code>TestCase.setUp()</code>](#unittest.TestCase.setUp "unittest.TestCase.setUp"). This is called immediately before calling the test method; other than [<code>AssertionError</code>](exceptions.html#AssertionError "AssertionError") or [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest"), any exception raised by this method will be considered an error rather than a test failure. The default implementation does nothing.
+
+
+
+*async*asyncTearDown() [¶](#unittest.IsolatedAsyncioTestCase.asyncTearDown "Link to this definition")  
+
+Method called immediately after the test method has been called and the result recorded. This is called before [<code>tearDown()</code>](#unittest.TestCase.tearDown "unittest.TestCase.tearDown"). This is called even if the test method raised an exception, so the implementation in subclasses may need to be particularly careful about checking internal state. Any exception, other than [<code>AssertionError</code>](exceptions.html#AssertionError "AssertionError") or [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest"), raised by this method will be considered an additional error rather than a test failure (thus increasing the total number of reported errors). This method will only be called if the [<code>asyncSetUp()</code>](#unittest.IsolatedAsyncioTestCase.asyncSetUp "unittest.IsolatedAsyncioTestCase.asyncSetUp") succeeds, regardless of the outcome of the test method. The default implementation does nothing.
+
+
+
+addAsyncCleanup(*function*, */*, *\*args*, *\*\*kwargs*) [¶](#unittest.IsolatedAsyncioTestCase.addAsyncCleanup "Link to this definition")  
+
+This method accepts a coroutine that can be used as a cleanup function.
+
+
+
+*async*enterAsyncContext(*cm*) [¶](#unittest.IsolatedAsyncioTestCase.enterAsyncContext "Link to this definition")  
+
+Enter the supplied [asynchronous context manager](../glossary.html#term-asynchronous-context-manager). If successful, also add its [<code>__aexit__()</code>](../reference/datamodel.html#object.__aexit__ "object.__aexit__") method as a cleanup function by [<code>addAsyncCleanup()</code>](#unittest.IsolatedAsyncioTestCase.addAsyncCleanup "unittest.IsolatedAsyncioTestCase.addAsyncCleanup") and return the result of the [<code>__aenter__()</code>](../reference/datamodel.html#object.__aenter__ "object.__aenter__") method.
+
+Added in version 3.11.
+
+
+
+run(*result=None*) [¶](#unittest.IsolatedAsyncioTestCase.run "Link to this definition")  
+
+Sets up a new event loop to run the test, collecting the result into the [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") object passed as *result*. If *result* is omitted or <code>None</code>, a temporary result object is created (by calling the [<code>defaultTestResult()</code>](#unittest.TestCase.defaultTestResult "unittest.TestCase.defaultTestResult") method) and used. The result object is returned to <code>run()</code>’s caller. At the end of the test all the tasks in the event loop are cancelled.
+
+
+
+An example illustrating the order:
+
+Copy
+
+```
+from unittest import IsolatedAsyncioTestCase
+
+events = []
+
+
+class Test(IsolatedAsyncioTestCase):
+
+
+    def setUp(self):
+        events.append("setUp")
+
+    async def asyncSetUp(self):
+        self._async_connection = await AsyncConnection()
+        events.append("asyncSetUp")
+
+    async def test_response(self):
+        events.append("test_response")
+        response = await self._async_connection.get("https://example.com")
+        self.assertEqual(response.status_code, 200)
+        self.addAsyncCleanup(self.on_cleanup)
+
+    def tearDown(self):
+        events.append("tearDown")
+
+    async def asyncTearDown(self):
+        await self._async_connection.close()
+        events.append("asyncTearDown")
+
+    async def on_cleanup(self):
+        events.append("cleanup")
+
+if __name__ == "__main__":
+    unittest.main()
+
+```
+
+After running the test, <code>events</code> would contain <code>["setUp", "asyncSetUp", "test_response", "asyncTearDown", "tearDown", "cleanup"]</code>.
+
+
+
+*class*unittest.FunctionTestCase(*testFunc*, *setUp=None*, *tearDown=None*, *description=None*) [¶](#unittest.FunctionTestCase "Link to this definition")  
+
+This class implements the portion of the [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") interface which allows the test runner to drive the test, but does not provide the methods which test code can use to check and report errors. This is used to create test cases using legacy test code, allowing it to be integrated into a <code>unittest</code>-based test framework.
+
+
+
+### Grouping tests ¶
+
+*class*unittest.TestSuite(*tests=()*) [¶](#unittest.TestSuite "Link to this definition")  
+
+This class represents an aggregation of individual test cases and test suites. The class presents the interface needed by the test runner to allow it to be run as any other test case. Running a <code>TestSuite</code> instance is the same as iterating over the suite, running each test individually.
+
+If *tests* is given, it must be an iterable of individual test cases or other test suites that will be used to build the suite initially. Additional methods are provided to add test cases and suites to the collection later on.
+
+<code>TestSuite</code> objects behave much like [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") objects, except they do not actually implement a test. Instead, they are used to aggregate tests into groups of tests that should be run together. Some additional methods are available to add tests to <code>TestSuite</code> instances:
+
+addTest(*test*) [¶](#unittest.TestSuite.addTest "Link to this definition")  
+
+Add a [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") or <code>TestSuite</code> to the suite.
+
+
+
+addTests(*tests*) [¶](#unittest.TestSuite.addTests "Link to this definition")  
+
+Add all the tests from an iterable of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") and <code>TestSuite</code> instances to this test suite.
+
+This is equivalent to iterating over *tests*, calling [<code>addTest()</code>](#unittest.TestSuite.addTest "unittest.TestSuite.addTest") for each element.
+
+
+
+<code>TestSuite</code> shares the following methods with [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase"):
+
+run(*result*) [¶](#unittest.TestSuite.run "Link to this definition")  
+
+Run the tests associated with this suite, collecting the result into the test result object passed as *result*. Note that unlike [<code>TestCase.run()</code>](#unittest.TestCase.run "unittest.TestCase.run"), <code>TestSuite.run()</code> requires the result object to be passed in.
+
+
+
+debug() [¶](#unittest.TestSuite.debug "Link to this definition")  
+
+Run the tests associated with this suite without collecting the result. This allows exceptions raised by the test to be propagated to the caller and can be used to support running tests under a debugger.
+
+
+
+countTestCases() [¶](#unittest.TestSuite.countTestCases "Link to this definition")  
+
+Return the number of tests represented by this test object, including all individual tests and sub-suites.
+
+
+
+\_\_iter\_\_() [¶](#unittest.TestSuite.__iter__ "Link to this definition")  
+
+Tests grouped by a <code>TestSuite</code> are always accessed by iteration. Subclasses can lazily provide tests by overriding <code>__iter__()</code>. Note that this method may be called several times on a single suite (for example when counting tests or comparing for equality) so the tests returned by repeated iterations before [<code>TestSuite.run()</code>](#unittest.TestSuite.run "unittest.TestSuite.run") must be the same for each call iteration. After <code>TestSuite.run()</code>, callers should not rely on the tests returned by this method unless the caller uses a subclass that overrides <code>TestSuite._removeTestAtIndex()</code> to preserve test references.
+
+Changed in version 3.2: In earlier versions the <code>TestSuite</code> accessed tests directly rather than through iteration, so overriding <code>__iter__()</code> wasn’t sufficient for providing tests.
+
+Changed in version 3.4: In earlier versions the <code>TestSuite</code> held references to each [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") after [<code>TestSuite.run()</code>](#unittest.TestSuite.run "unittest.TestSuite.run"). Subclasses can restore that behavior by overriding <code>TestSuite._removeTestAtIndex()</code>.
+
+
+
+In the typical usage of a <code>TestSuite</code> object, the [<code>run()</code>](#unittest.TestSuite.run "unittest.TestSuite.run") method is invoked by a <code>TestRunner</code> rather than by the end-user test harness.
+
+
+
+### Loading and running tests ¶
+
+*class*unittest.TestLoader [¶](#unittest.TestLoader "Link to this definition")  
+
+The <code>TestLoader</code> class is used to create test suites from classes and modules. Normally, there is no need to create an instance of this class; the <code>unittest</code> module provides an instance that can be shared as [<code>unittest.defaultTestLoader</code>](#unittest.defaultTestLoader "unittest.defaultTestLoader"). Using a subclass or instance, however, allows customization of some configurable properties.
+
+<code>TestLoader</code> objects have the following attributes:
+
+errors [¶](#unittest.TestLoader.errors "Link to this definition")  
+
+A list of the non-fatal errors encountered while loading tests. Not reset by the loader at any point. Fatal errors are signalled by the relevant method raising an exception to the caller. Non-fatal errors are also indicated by a synthetic test that will raise the original error when run.
+
+Added in version 3.5.
+
+
+
+<code>TestLoader</code> objects have the following methods:
+
+loadTestsFromTestCase(*testCaseClass*) [¶](#unittest.TestLoader.loadTestsFromTestCase "Link to this definition")  
+
+Return a suite of all test cases contained in the [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase")-derived <code>testCaseClass</code>.
+
+A test case instance is created for each method named by [<code>getTestCaseNames()</code>](#unittest.TestLoader.getTestCaseNames "unittest.TestLoader.getTestCaseNames"). By default these are the method names beginning with <code>test</code>. If <code>getTestCaseNames()</code> returns no methods, but the <code>runTest()</code> method is implemented, a single test case is created for that method instead.
+
+
+
+loadTestsFromModule(*module*, *\**, *pattern=None*) [¶](#unittest.TestLoader.loadTestsFromModule "Link to this definition")  
+
+Return a suite of all test cases contained in the given module. This method searches *module* for classes derived from [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") and creates an instance of the class for each test method defined for the class.
+
+Note
+
+While using a hierarchy of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase")-derived classes can be convenient in sharing fixtures and helper functions, defining test methods on base classes that are not intended to be instantiated directly does not play well with this method. Doing so, however, can be useful when the fixtures are different and defined in subclasses.
+
+If a module provides a <code>load_tests</code> function it will be called to load the tests. This allows modules to customize test loading. This is the [load\_tests protocol](#id1). The *pattern* argument is passed as the third argument to <code>load_tests</code>.
+
+Changed in version 3.2: Support for <code>load_tests</code> added.
+
+Changed in version 3.5: Support for a keyword-only argument *pattern* has been added.
+
+Changed in version 3.12: The undocumented and unofficial *use\_load\_tests* parameter has been removed.
+
+
+
+loadTestsFromName(*name*, *module=None*) [¶](#unittest.TestLoader.loadTestsFromName "Link to this definition")  
+
+Return a suite of all test cases given a string specifier.
+
+The specifier *name* is a “dotted name” that may resolve either to a module, a test case class, a test method within a test case class, a [<code>TestSuite</code>](#unittest.TestSuite "unittest.TestSuite") instance, or a callable object which returns a [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") or <code>TestSuite</code> instance. These checks are applied in the order listed here; that is, a method on a possible test case class will be picked up as “a test method within a test case class”, rather than “a callable object”.
+
+For example, if you have a module <code>SampleTests</code> containing a [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase")-derived class <code>SampleTestCase</code> with three test methods (<code>test_one()</code>, <code>test_two()</code>, and <code>test_three()</code>), the specifier <code>'SampleTests.SampleTestCase'</code> would cause this method to return a suite which will run all three test methods. Using the specifier <code>'SampleTests.SampleTestCase.test_two'</code> would cause it to return a test suite which will run only the <code>test_two()</code> test method. The specifier can refer to modules and packages which have not been imported; they will be imported as a side-effect.
+
+The method optionally resolves *name* relative to the given *module*.
+
+Changed in version 3.5: If an [<code>ImportError</code>](exceptions.html#ImportError "ImportError") or [<code>AttributeError</code>](exceptions.html#AttributeError "AttributeError") occurs while traversing *name* then a synthetic test that raises that error when run will be returned. These errors are included in the errors accumulated by self.errors.
+
+
+
+loadTestsFromNames(*names*, *module=None*) [¶](#unittest.TestLoader.loadTestsFromNames "Link to this definition")  
+
+Similar to [<code>loadTestsFromName()</code>](#unittest.TestLoader.loadTestsFromName "unittest.TestLoader.loadTestsFromName"), but takes a sequence of names rather than a single name. The return value is a test suite which supports all the tests defined for each name.
+
+
+
+getTestCaseNames(*testCaseClass*) [¶](#unittest.TestLoader.getTestCaseNames "Link to this definition")  
+
+Return a sorted sequence of method names found within *testCaseClass*; this should be a subclass of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase").
+
+
+
+discover(*start\_dir*, *pattern='test\*.py'*, *top\_level\_dir=None*) [¶](#unittest.TestLoader.discover "Link to this definition")  
+
+Find all the test modules by recursing into subdirectories from the specified start directory, and return a TestSuite object containing them. Only test files that match *pattern* will be loaded. (Using shell style pattern matching.) Only module names that are importable (i.e. are valid Python identifiers) will be loaded.
+
+All test modules must be importable from the top level of the project. If the start directory is not the top level directory then *top\_level\_dir* must be specified separately.
+
+If importing a module fails, for example due to a syntax error, then this will be recorded as a single error and discovery will continue. If the import failure is due to [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest") being raised, it will be recorded as a skip instead of an error.
+
+If a package (a directory containing a file named <code>__init__.py</code>) is found, the package will be checked for a <code>load_tests</code> function. If this exists then it will be called <code>package.load_tests(loader, tests, pattern)</code>. Test discovery takes care to ensure that a package is only checked for tests once during an invocation, even if the load\_tests function itself calls <code>loader.discover</code>.
+
+If <code>load_tests</code> exists then discovery does *not* recurse into the package, <code>load_tests</code> is responsible for loading all tests in the package.
+
+The pattern is deliberately not stored as a loader attribute so that packages can continue discovery themselves.
+
+*top\_level\_dir* is stored internally, and used as a default to any nested calls to <code>discover()</code>. That is, if a package’s <code>load_tests</code> calls <code>loader.discover()</code>, it does not need to pass this argument.
+
+*start\_dir* can be a dotted module name as well as a directory.
+
+Added in version 3.2.
+
+Changed in version 3.4: Modules that raise [<code>SkipTest</code>](#unittest.SkipTest "unittest.SkipTest") on import are recorded as skips, not errors.
+
+*start\_dir* can be a [namespace packages](../glossary.html#term-namespace-package).
+
+Paths are sorted before being imported so that execution order is the same even if the underlying file system’s ordering is not dependent on file name.
+
+Changed in version 3.5: Found packages are now checked for <code>load_tests</code> regardless of whether their path matches *pattern*, because it is impossible for a package name to match the default pattern.
+
+Changed in version 3.11: *start\_dir* can not be a [namespace packages](../glossary.html#term-namespace-package). It has been broken since Python 3.7, and Python 3.11 officially removes it.
+
+Changed in version 3.13: *top\_level\_dir* is only stored for the duration of *discover* call.
+
+Changed in version 3.14: *start\_dir* can once again be a [namespace package](../glossary.html#term-namespace-package).
+
+
+
+The following attributes of a <code>TestLoader</code> can be configured either by subclassing or assignment on an instance:
+
+testMethodPrefix [¶](#unittest.TestLoader.testMethodPrefix "Link to this definition")  
+
+String giving the prefix of method names which will be interpreted as test methods. The default value is <code>'test'</code>.
+
+This affects [<code>getTestCaseNames()</code>](#unittest.TestLoader.getTestCaseNames "unittest.TestLoader.getTestCaseNames") and all the <code>loadTestsFrom*</code> methods.
+
+
+
+sortTestMethodsUsing [¶](#unittest.TestLoader.sortTestMethodsUsing "Link to this definition")  
+
+Function to be used to compare method names when sorting them in [<code>getTestCaseNames()</code>](#unittest.TestLoader.getTestCaseNames "unittest.TestLoader.getTestCaseNames") and all the <code>loadTestsFrom*</code> methods.
+
+
+
+suiteClass [¶](#unittest.TestLoader.suiteClass "Link to this definition")  
+
+Callable object that constructs a test suite from a list of tests. No methods on the resulting object are needed. The default value is the [<code>TestSuite</code>](#unittest.TestSuite "unittest.TestSuite") class.
+
+This affects all the <code>loadTestsFrom*</code> methods.
+
+
+
+testNamePatterns [¶](#unittest.TestLoader.testNamePatterns "Link to this definition")  
+
+List of Unix shell-style wildcard test name patterns that test methods have to match to be included in test suites (see <code>-k</code> option).
+
+If this attribute is not <code>None</code> (the default), all test methods to be included in test suites must match one of the patterns in this list. Note that matches are always performed using [<code>fnmatch.fnmatchcase()</code>](fnmatch.html#fnmatch.fnmatchcase "fnmatch.fnmatchcase"), so unlike patterns passed to the <code>-k</code> option, simple substring patterns will have to be converted using <code>*</code> wildcards.
+
+This affects all the <code>loadTestsFrom*</code> methods.
+
+Added in version 3.7.
+
+
+
+
+
+*class*unittest.TestResult [¶](#unittest.TestResult "Link to this definition")  
+
+This class is used to compile information about which tests have succeeded and which have failed.
+
+A <code>TestResult</code> object stores the results of a set of tests. The [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") and [<code>TestSuite</code>](#unittest.TestSuite "unittest.TestSuite") classes ensure that results are properly recorded; test authors do not need to worry about recording the outcome of tests.
+
+Testing frameworks built on top of <code>unittest</code> may want access to the <code>TestResult</code> object generated by running a set of tests for reporting purposes; a <code>TestResult</code> instance is returned by the <code>TestRunner.run()</code> method for this purpose.
+
+<code>TestResult</code> instances have the following attributes that will be of interest when inspecting the results of running a set of tests:
+
+errors [¶](#unittest.TestResult.errors "Link to this definition")  
+
+A list containing 2-tuples of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instances and strings holding formatted tracebacks. Each tuple represents a test which raised an unexpected exception.
+
+
+
+failures [¶](#unittest.TestResult.failures "Link to this definition")  
+
+A list containing 2-tuples of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instances and strings holding formatted tracebacks. Each tuple represents a test where a failure was explicitly signalled using the [assert\* methods](#assert-methods).
+
+
+
+skipped [¶](#unittest.TestResult.skipped "Link to this definition")  
+
+A list containing 2-tuples of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instances and strings holding the reason for skipping the test.
+
+Added in version 3.1.
+
+
+
+expectedFailures [¶](#unittest.TestResult.expectedFailures "Link to this definition")  
+
+A list containing 2-tuples of [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instances and strings holding formatted tracebacks. Each tuple represents an expected failure or error of the test case.
+
+
+
+unexpectedSuccesses [¶](#unittest.TestResult.unexpectedSuccesses "Link to this definition")  
+
+A list containing [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instances that were marked as expected failures, but succeeded.
+
+
+
+collectedDurations [¶](#unittest.TestResult.collectedDurations "Link to this definition")  
+
+A list containing 2-tuples of test case names and floats representing the elapsed time of each test which was run.
+
+Added in version 3.12.
+
+
+
+shouldStop [¶](#unittest.TestResult.shouldStop "Link to this definition")  
+
+Set to <code>True</code> when the execution of tests should stop by [<code>stop()</code>](#unittest.TestResult.stop "unittest.TestResult.stop").
+
+
+
+testsRun [¶](#unittest.TestResult.testsRun "Link to this definition")  
+
+The total number of tests run so far.
+
+
+
+buffer [¶](#unittest.TestResult.buffer "Link to this definition")  
+
+If set to true, <code>sys.stdout</code> and <code>sys.stderr</code> will be buffered in between [<code>startTest()</code>](#unittest.TestResult.startTest "unittest.TestResult.startTest") and [<code>stopTest()</code>](#unittest.TestResult.stopTest "unittest.TestResult.stopTest") being called. Collected output will only be echoed onto the real <code>sys.stdout</code> and <code>sys.stderr</code> if the test fails or errors. Any output is also attached to the failure / error message.
+
+Added in version 3.2.
+
+
+
+failfast [¶](#unittest.TestResult.failfast "Link to this definition")  
+
+If set to true [<code>stop()</code>](#unittest.TestResult.stop "unittest.TestResult.stop") will be called on the first failure or error, halting the test run.
+
+Added in version 3.2.
+
+
+
+tb\_locals [¶](#unittest.TestResult.tb_locals "Link to this definition")  
+
+If set to true then local variables will be shown in tracebacks.
+
+Added in version 3.5.
+
+
+
+wasSuccessful() [¶](#unittest.TestResult.wasSuccessful "Link to this definition")  
+
+Return <code>True</code> if all tests run so far have passed, otherwise returns <code>False</code>.
+
+Changed in version 3.4: Returns <code>False</code> if there were any [<code>unexpectedSuccesses</code>](#unittest.TestResult.unexpectedSuccesses "unittest.TestResult.unexpectedSuccesses") from tests marked with the [<code>@expectedFailure</code>](#unittest.expectedFailure "unittest.expectedFailure") decorator.
+
+
+
+stop() [¶](#unittest.TestResult.stop "Link to this definition")  
+
+This method can be called to signal that the set of tests being run should be aborted by setting the [<code>shouldStop</code>](#unittest.TestResult.shouldStop "unittest.TestResult.shouldStop") attribute to <code>True</code>. <code>TestRunner</code> objects should respect this flag and return without running any additional tests.
+
+For example, this feature is used by the [<code>TextTestRunner</code>](#unittest.TextTestRunner "unittest.TextTestRunner") class to stop the test framework when the user signals an interrupt from the keyboard. Interactive tools which provide <code>TestRunner</code> implementations can use this in a similar manner.
+
+
+
+The following methods of the <code>TestResult</code> class are used to maintain the internal data structures, and may be extended in subclasses to support additional reporting requirements. This is particularly useful in building tools which support interactive reporting while tests are being run.
+
+startTest(*test*) [¶](#unittest.TestResult.startTest "Link to this definition")  
+
+Called when the test case *test* is about to be run.
+
+
+
+stopTest(*test*) [¶](#unittest.TestResult.stopTest "Link to this definition")  
+
+Called after the test case *test* has been executed, regardless of the outcome.
+
+
+
+startTestRun() [¶](#unittest.TestResult.startTestRun "Link to this definition")  
+
+Called once before any tests are executed.
+
+Added in version 3.1.
+
+
+
+stopTestRun() [¶](#unittest.TestResult.stopTestRun "Link to this definition")  
+
+Called once after all tests are executed.
+
+Added in version 3.1.
+
+
+
+addError(*test*, *err*) [¶](#unittest.TestResult.addError "Link to this definition")  
+
+Called when the test case *test* raises an unexpected exception. *err* is a tuple of the form returned by [<code>sys.exc_info()</code>](sys.html#sys.exc_info "sys.exc_info"): <code>(type, value, traceback)</code>.
+
+The default implementation appends a tuple <code>(test, formatted_err)</code> to the instance’s [<code>errors</code>](#unittest.TestResult.errors "unittest.TestResult.errors") attribute, where *formatted\_err* is a formatted traceback derived from *err*.
+
+
+
+addFailure(*test*, *err*) [¶](#unittest.TestResult.addFailure "Link to this definition")  
+
+Called when the test case *test* signals a failure. *err* is a tuple of the form returned by [<code>sys.exc_info()</code>](sys.html#sys.exc_info "sys.exc_info"): <code>(type, value, traceback)</code>.
+
+The default implementation appends a tuple <code>(test, formatted_err)</code> to the instance’s [<code>failures</code>](#unittest.TestResult.failures "unittest.TestResult.failures") attribute, where *formatted\_err* is a formatted traceback derived from *err*.
+
+
+
+addSuccess(*test*) [¶](#unittest.TestResult.addSuccess "Link to this definition")  
+
+Called when the test case *test* succeeds.
+
+The default implementation does nothing.
+
+
+
+addSkip(*test*, *reason*) [¶](#unittest.TestResult.addSkip "Link to this definition")  
+
+Called when the test case *test* is skipped. *reason* is the reason the test gave for skipping.
+
+The default implementation appends a tuple <code>(test, reason)</code> to the instance’s [<code>skipped</code>](#unittest.TestResult.skipped "unittest.TestResult.skipped") attribute.
+
+
+
+addExpectedFailure(*test*, *err*) [¶](#unittest.TestResult.addExpectedFailure "Link to this definition")  
+
+Called when the test case *test* fails or errors, but was marked with the [<code>@expectedFailure</code>](#unittest.expectedFailure "unittest.expectedFailure") decorator.
+
+The default implementation appends a tuple <code>(test, formatted_err)</code> to the instance’s [<code>expectedFailures</code>](#unittest.TestResult.expectedFailures "unittest.TestResult.expectedFailures") attribute, where *formatted\_err* is a formatted traceback derived from *err*.
+
+
+
+addUnexpectedSuccess(*test*) [¶](#unittest.TestResult.addUnexpectedSuccess "Link to this definition")  
+
+Called when the test case *test* was marked with the [<code>@expectedFailure</code>](#unittest.expectedFailure "unittest.expectedFailure") decorator, but succeeded.
+
+The default implementation appends the test to the instance’s [<code>unexpectedSuccesses</code>](#unittest.TestResult.unexpectedSuccesses "unittest.TestResult.unexpectedSuccesses") attribute.
+
+
+
+addSubTest(*test*, *subtest*, *outcome*) [¶](#unittest.TestResult.addSubTest "Link to this definition")  
+
+Called when a subtest finishes. *test* is the test case corresponding to the test method. *subtest* is a custom [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instance describing the subtest.
+
+If *outcome* is [<code>None</code>](constants.html#None "None"), the subtest succeeded. Otherwise, it failed with an exception where *outcome* is a tuple of the form returned by [<code>sys.exc_info()</code>](sys.html#sys.exc_info "sys.exc_info"): <code>(type, value, traceback)</code>.
+
+The default implementation does nothing when the outcome is a success, and records subtest failures as normal failures.
+
+Added in version 3.4.
+
+
+
+addDuration(*test*, *elapsed*) [¶](#unittest.TestResult.addDuration "Link to this definition")  
+
+Called when the test case finishes. *elapsed* is the time represented in seconds, and it includes the execution of cleanup functions.
+
+Added in version 3.12.
+
+
+
+
+
+*class*unittest.TextTestResult(*stream*, *descriptions*, *verbosity*, *\**, *durations=None*) [¶](#unittest.TextTestResult "Link to this definition")  
+
+A concrete implementation of [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") used by the [<code>TextTestRunner</code>](#unittest.TextTestRunner "unittest.TextTestRunner"). Subclasses should accept <code>**kwargs</code> to ensure compatibility as the interface changes.
+
+Added in version 3.2.
+
+Changed in version 3.12: Added the *durations* keyword parameter.
+
+
+
+unittest.defaultTestLoader [¶](#unittest.defaultTestLoader "Link to this definition")  
+
+Instance of the [<code>TestLoader</code>](#unittest.TestLoader "unittest.TestLoader") class intended to be shared. If no customization of the <code>TestLoader</code> is needed, this instance can be used instead of repeatedly creating new instances.
+
+
+
+*class*unittest.TextTestRunner(*stream=None*, *descriptions=True*, *verbosity=1*, *failfast=False*, *buffer=False*, *resultclass=None*, *warnings=None*, *\**, *tb\_locals=False*, *durations=None*) [¶](#unittest.TextTestRunner "Link to this definition")  
+
+A basic test runner implementation that outputs results to a stream. If *stream* is <code>None</code>, the default, [<code>sys.stderr</code>](sys.html#sys.stderr "sys.stderr") is used as the output stream. This class has a few configurable parameters, but is essentially very simple. Graphical applications which run test suites should provide alternate implementations. Such implementations should accept <code>**kwargs</code> as the interface to construct runners changes when features are added to unittest.
+
+By default this runner shows [<code>DeprecationWarning</code>](exceptions.html#DeprecationWarning "DeprecationWarning"), [<code>PendingDeprecationWarning</code>](exceptions.html#PendingDeprecationWarning "PendingDeprecationWarning"), [<code>ResourceWarning</code>](exceptions.html#ResourceWarning "ResourceWarning") and [<code>ImportWarning</code>](exceptions.html#ImportWarning "ImportWarning") even if they are [ignored by default](warnings.html#warning-ignored). This behavior can be overridden using Python’s <code>-Wd</code> or <code>-Wa</code> options (see [Warning control](../using/cmdline.html#using-on-warnings)) and leaving *warnings* to <code>None</code>.
+
+Changed in version 3.2: Added the *warnings* parameter.
+
+Changed in version 3.2: The default stream is set to [<code>sys.stderr</code>](sys.html#sys.stderr "sys.stderr") at instantiation time rather than import time.
+
+Changed in version 3.5: Added the *tb\_locals* parameter.
+
+Changed in version 3.12: Added the *durations* parameter.
+
+\_makeResult() [¶](#unittest.TextTestRunner._makeResult "Link to this definition")  
+
+This method returns the instance of <code>TestResult</code> used by [<code>run()</code>](#unittest.TextTestRunner.run "unittest.TextTestRunner.run"). It is not intended to be called directly, but can be overridden in subclasses to provide a custom <code>TestResult</code>.
+
+<code>_makeResult()</code> instantiates the class or callable passed in the <code>TextTestRunner</code> constructor as the <code>resultclass</code> argument. It defaults to [<code>TextTestResult</code>](#unittest.TextTestResult "unittest.TextTestResult") if no <code>resultclass</code> is provided. The result class is instantiated with the following arguments:
+
+Copy
+
+```
+stream, descriptions, verbosity
+
+```
+
+
+
+run(*test*) [¶](#unittest.TextTestRunner.run "Link to this definition")  
+
+This method is the main public interface to the <code>TextTestRunner</code>. This method takes a [<code>TestSuite</code>](#unittest.TestSuite "unittest.TestSuite") or [<code>TestCase</code>](#unittest.TestCase "unittest.TestCase") instance. A [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") is created by calling [<code>_makeResult()</code>](#unittest.TextTestRunner._makeResult "unittest.TextTestRunner._makeResult") and the test(s) are run and the results printed to stdout.
+
+
+
+
+
+unittest.main(*module='\_\_main\_\_'*, *defaultTest=None*, *argv=None*, *testRunner=None*, *testLoader=unittest.defaultTestLoader*, *exit=True*, *verbosity=1*, *failfast=None*, *catchbreak=None*, *buffer=None*, *warnings=None*) [¶](#unittest.main "Link to this definition")  
+
+A command-line program that loads a set of tests from *module* and runs them; this is primarily for making test modules conveniently executable. The simplest use for this function is to include the following line at the end of a test script:
+
+Copy
+
+```
+if __name__ == '__main__':
+    unittest.main()
+
+```
+
+You can run tests with more detailed information by passing in the verbosity argument:
+
+Copy
+
+```
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+
+```
+
+The *defaultTest* argument is either the name of a single test or an iterable of test names to run if no test names are specified via *argv*. If not specified or <code>None</code> and no test names are provided via *argv*, all tests found in *module* are run.
+
+The *argv* argument can be a list of options passed to the program, with the first element being the program name. If not specified or <code>None</code>, the values of [<code>sys.argv</code>](sys.html#sys.argv "sys.argv") are used.
+
+The *testRunner* argument can either be a test runner class or an already created instance of it. By default <code>main</code> calls [<code>sys.exit()</code>](sys.html#sys.exit "sys.exit") with an exit code indicating success (0) or failure (1) of the tests run. An exit code of 5 indicates that no tests were run or skipped.
+
+The *testLoader* argument has to be a [<code>TestLoader</code>](#unittest.TestLoader "unittest.TestLoader") instance, and defaults to [<code>defaultTestLoader</code>](#unittest.defaultTestLoader "unittest.defaultTestLoader").
+
+<code>main</code> supports being used from the interactive interpreter by passing in the argument <code>exit=False</code>. This displays the result on standard output without calling [<code>sys.exit()</code>](sys.html#sys.exit "sys.exit"):
+
+Copy
+
+```
+>>> from unittest import main
+>>> main(module='test_module', exit=False)
+
+```
+
+The *failfast*, *catchbreak* and *buffer* parameters have the same effect as the same-name [command-line options](#command-line-options).
+
+The *warnings* argument specifies the [warning filter](warnings.html#warning-filter) that should be used while running the tests. If it’s not specified, it will remain <code>None</code> if a <code>-W</code> option is passed to **python** (see [Warning control](../using/cmdline.html#using-on-warnings)), otherwise it will be set to <code>'default'</code>.
+
+Calling <code>main</code> returns an object with the <code>result</code> attribute that contains the result of the tests run as a [<code>unittest.TestResult</code>](#unittest.TestResult "unittest.TestResult").
+
+Changed in version 3.1: The *exit* parameter was added.
+
+Changed in version 3.2: The *verbosity*, *failfast*, *catchbreak*, *buffer* and *warnings* parameters were added.
+
+Changed in version 3.4: The *defaultTest* parameter was changed to also accept an iterable of test names.
+
+
+
+#### load\_tests Protocol ¶
+
+Added in version 3.2.
+
+Modules or packages can customize how tests are loaded from them during normal test runs or test discovery by implementing a function called `load_tests`.
+
+If a test module defines `load_tests` it will be called by [`TestLoader.loadTestsFromModule()`](#unittest.TestLoader.loadTestsFromModule "unittest.TestLoader.loadTestsFromModule") with the following arguments:
+
+Copy
+
+```
+load_tests(loader, standard_tests, pattern)
+
+```
+
+where *pattern* is passed straight through from `loadTestsFromModule`. It defaults to `None`.
+
+It should return a [`TestSuite`](#unittest.TestSuite "unittest.TestSuite").
+
+*loader* is the instance of [`TestLoader`](#unittest.TestLoader "unittest.TestLoader") doing the loading. *standard\_tests* are the tests that would be loaded by default from the module. It is common for test modules to only want to add or remove tests from the standard set of tests. The third argument is used when loading packages as part of test discovery.
+
+A typical `load_tests` function that loads tests from a specific set of [`TestCase`](#unittest.TestCase "unittest.TestCase") classes may look like:
+
+Copy
+
+```
+test_cases = (TestCase1, TestCase2, TestCase3)
+
+def load_tests(loader, tests, pattern):
+    suite = TestSuite()
+    for test_class in test_cases:
+        tests = loader.loadTestsFromTestCase(test_class)
+        suite.addTests(tests)
+    return suite
+
+```
+
+If discovery is started in a directory containing a package, either from the command line or by calling [`TestLoader.discover()`](#unittest.TestLoader.discover "unittest.TestLoader.discover"), then the package `__init__.py` will be checked for `load_tests`. If that function does not exist, discovery will recurse into the package as though it were just another directory. Otherwise, discovery of the package’s tests will be left up to `load_tests` which is called with the following arguments:
+
+Copy
+
+```
+load_tests(loader, standard_tests, pattern)
+
+```
+
+This should return a [`TestSuite`](#unittest.TestSuite "unittest.TestSuite") representing all the tests from the package. (`standard_tests` will only contain tests collected from `__init__.py`.)
+
+Because the pattern is passed into `load_tests` the package is free to continue (and potentially modify) test discovery. A ‘do nothing’ `load_tests` function for a test package would look like:
+
+Copy
+
+```
+def load_tests(loader, standard_tests, pattern):
+    # top level directory cached on loader instance
+    this_dir = os.path.dirname(__file__)
+    package_tests = loader.discover(start_dir=this_dir, pattern=pattern)
+    standard_tests.addTests(package_tests)
+    return standard_tests
+
+```
+
+Changed in version 3.5: Discovery no longer checks package names for matching *pattern* due to the impossibility of package names matching the default pattern.
+
+## Class and Module Fixtures ¶
+
+Class and module level fixtures are implemented in [`TestSuite`](#unittest.TestSuite "unittest.TestSuite"). When the test suite encounters a test from a new class then [`tearDownClass()`](#unittest.TestCase.tearDownClass "unittest.TestCase.tearDownClass") from the previous class (if there is one) is called, followed by [`setUpClass()`](#unittest.TestCase.setUpClass "unittest.TestCase.setUpClass") from the new class.
+
+Similarly if a test is from a different module from the previous test then `tearDownModule` from the previous module is run, followed by `setUpModule` from the new module.
+
+After all the tests have run the final `tearDownClass` and `tearDownModule` are run.
+
+Note that shared fixtures do not play well with \[potential] features like test parallelization and they break test isolation. They should be used with care.
+
+The default ordering of tests created by the unittest test loaders is to group all tests from the same modules and classes together. This will lead to `setUpClass` / `setUpModule` (etc) being called exactly once per class and module. If you randomize the order, so that tests from different modules and classes are adjacent to each other, then these shared fixture functions may be called multiple times in a single test run.
+
+Shared fixtures are not intended to work with suites with non-standard ordering. A `BaseTestSuite` still exists for frameworks that don’t want to support shared fixtures.
+
+If there are any exceptions raised during one of the shared fixture functions the test is reported as an error. Because there is no corresponding test instance an `_ErrorHolder` object (that has the same interface as a [`TestCase`](#unittest.TestCase "unittest.TestCase")) is created to represent the error. If you are just using the standard unittest test runner then this detail doesn’t matter, but if you are a framework author it may be relevant.
+
+### setUpClass and tearDownClass ¶
+
+These must be implemented as class methods:
+
+Copy
+
+```
+import unittest
+
+class Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls._connection = createExpensiveConnectionObject()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._connection.destroy()
+
+```
+
+If you want the `setUpClass` and `tearDownClass` on base classes called then you must call up to them yourself. The implementations in [`TestCase`](#unittest.TestCase "unittest.TestCase") are empty.
+
+If an exception is raised during a `setUpClass` then the tests in the class are not run and the `tearDownClass` is not run. Skipped classes will not have `setUpClass` or `tearDownClass` run. If the exception is a [`SkipTest`](#unittest.SkipTest "unittest.SkipTest") exception then the class will be reported as having been skipped instead of as an error.
+
+### setUpModule and tearDownModule ¶
+
+These should be implemented as functions:
+
+Copy
+
+```
+def setUpModule():
+    createConnection()
+
+def tearDownModule():
+    closeConnection()
+
+```
+
+If an exception is raised in a `setUpModule` then none of the tests in the module will be run and the `tearDownModule` will not be run. If the exception is a [`SkipTest`](#unittest.SkipTest "unittest.SkipTest") exception then the module will be reported as having been skipped instead of as an error.
+
+To add cleanup code that must be run even in the case of an exception, use `addModuleCleanup`:
+
+unittest.addModuleCleanup(*function*, */*, *\*args*, *\*\*kwargs*) [¶](#unittest.addModuleCleanup "Link to this definition")  
+
+Add a function to be called after [<code>tearDownModule()</code>](#unittest.tearDownModule "unittest.tearDownModule") to cleanup resources used during the test class. Functions will be called in reverse order to the order they are added (LIFO). They are called with any arguments and keyword arguments passed into <code>addModuleCleanup()</code> when they are added.
+
+If [<code>setUpModule()</code>](#unittest.setUpModule "unittest.setUpModule") fails, meaning that [<code>tearDownModule()</code>](#unittest.tearDownModule "unittest.tearDownModule") is not called, then any cleanup functions added will still be called.
+
+Added in version 3.8.
+
+
+
+unittest.enterModuleContext(*cm*) [¶](#unittest.enterModuleContext "Link to this definition")  
+
+Enter the supplied [context manager](../glossary.html#term-context-manager). If successful, also add its [<code>__exit__()</code>](../reference/datamodel.html#object.__exit__ "object.__exit__") method as a cleanup function by [<code>addModuleCleanup()</code>](#unittest.addModuleCleanup "unittest.addModuleCleanup") and return the result of the [<code>__enter__()</code>](../reference/datamodel.html#object.__enter__ "object.__enter__") method.
+
+Added in version 3.11.
+
+
+
+unittest.doModuleCleanups() [¶](#unittest.doModuleCleanups "Link to this definition")  
+
+This function is called unconditionally after [<code>tearDownModule()</code>](#unittest.tearDownModule "unittest.tearDownModule"), or after [<code>setUpModule()</code>](#unittest.setUpModule "unittest.setUpModule") if <code>setUpModule()</code> raises an exception.
+
+It is responsible for calling all the cleanup functions added by [<code>addModuleCleanup()</code>](#unittest.addModuleCleanup "unittest.addModuleCleanup"). If you need cleanup functions to be called *prior* to [<code>tearDownModule()</code>](#unittest.tearDownModule "unittest.tearDownModule") then you can call <code>doModuleCleanups()</code> yourself.
+
+<code>doModuleCleanups()</code> pops methods off the stack of cleanup functions one at a time, so it can be called at any time.
+
+Added in version 3.8.
+
+
+
+## Signal Handling ¶
+
+Added in version 3.2.
+
+The [`-c/--catch`](#cmdoption-unittest-c) command-line option to unittest, along with the `catchbreak` parameter to [`unittest.main()`](#unittest.main "unittest.main"), provide more friendly handling of control-C during a test run. With catch break behavior enabled control-C will allow the currently running test to complete, and the test run will then end and report all the results so far. A second control-c will raise a [`KeyboardInterrupt`](exceptions.html#KeyboardInterrupt "KeyboardInterrupt") in the usual way.
+
+The control-c handling signal handler attempts to remain compatible with code or tests that install their own [`signal.SIGINT`](signal.html#signal.SIGINT "signal.SIGINT") handler. If the `unittest` handler is called but *isn’t* the installed `signal.SIGINT` handler, i.e. it has been replaced by the system under test and delegated to, then it calls the default handler. This will normally be the expected behavior by code that replaces an installed handler and delegates to it. For individual tests that need `unittest` control-c handling disabled the [`removeHandler()`](#unittest.removeHandler "unittest.removeHandler") decorator can be used.
+
+There are a few utility functions for framework authors to enable control-c handling functionality within test frameworks.
+
+unittest.installHandler() [¶](#unittest.installHandler "Link to this definition")  
+
+Install the control-c handler. When a [<code>signal.SIGINT</code>](signal.html#signal.SIGINT "signal.SIGINT") is received (usually in response to the user pressing control-c) all registered results have [<code>stop()</code>](#unittest.TestResult.stop "unittest.TestResult.stop") called.
+
+
+
+unittest.registerResult(*result*) [¶](#unittest.registerResult "Link to this definition")  
+
+Register a [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") object for control-c handling. Registering a result stores a weak reference to it, so it doesn’t prevent the result from being garbage collected.
+
+Registering a [<code>TestResult</code>](#unittest.TestResult "unittest.TestResult") object has no side-effects if control-c handling is not enabled, so test frameworks can unconditionally register all results they create independently of whether or not handling is enabled.
+
+
+
+unittest.removeResult(*result*) [¶](#unittest.removeResult "Link to this definition")  
+
+Remove a registered result. Once a result has been removed then [<code>stop()</code>](#unittest.TestResult.stop "unittest.TestResult.stop") will no longer be called on that result object in response to a control-c.
+
+
+
+unittest.removeHandler(*function=None*) [¶](#unittest.removeHandler "Link to this definition")  
+
+When called without arguments this function removes the control-c handler if it has been installed. This function can also be used as a test decorator to temporarily remove the handler while the test is being executed:
+
+Copy
+
+```
+@unittest.removeHandler
+def test_signal_handling(self):
+    ...
+
+```
+
+
+
+### [Table of Contents](../contents.html)
+
+- [`unittest` — Unit testing framework](#)
+  - [Basic example](#basic-example)
+  - [Command-Line Interface](#command-line-interface)
+    - [Command-line options](#command-line-options)
+  - [Test Discovery](#test-discovery)
+  - [Organizing test code](#organizing-test-code)
+  - [Re-using old test code](#re-using-old-test-code)
+  - [Skipping tests and expected failures](#skipping-tests-and-expected-failures)
+  - [Distinguishing test iterations using subtests](#distinguishing-test-iterations-using-subtests)
+  - [Classes and functions](#classes-and-functions)
+    - [Test cases](#test-cases)
+    - [Grouping tests](#grouping-tests)
+    - [Loading and running tests](#loading-and-running-tests)
+      - [load\_tests Protocol](#load-tests-protocol)
+  - [Class and Module Fixtures](#class-and-module-fixtures)
+    - [setUpClass and tearDownClass](#setupclass-and-teardownclass)
+    - [setUpModule and tearDownModule](#setupmodule-and-teardownmodule)
+  - [Signal Handling](#signal-handling)
+
+#### Previous topic
+
+[`doctest` — Test interactive Python examples](doctest.html "previous chapter")
+
+#### Next topic
+
+[`unittest.mock` — mock object library](unittest.mock.html "next chapter")
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=unittest+%E2%80%94+Unit+testing+framework&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Funittest.html&pagesource=library%2Funittest.rst)
+- [Show source](https://github.com/python/cpython/blob/main/Doc/library/unittest.rst?plain=1)
+
+«
+
+### Navigation
+
+- [index](../genindex.html "General Index")
+- [modules](../py-modindex.html "Python Module Index") |
+- [next](unittest.mock.html "unittest.mock — mock object library") |
+- [previous](doctest.html "doctest — Test interactive Python examples") |
+- ![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+- Greek | Ελληνικά English Spanish | español French | français Italian | italiano Japanese | 日本語 Korean | 한국어 Polish | polski Brazilian Portuguese | Português brasileiro Romanian | Românește Russian | Русский Turkish | Türkçe Simplified Chinese | 简体中文 Traditional Chinese | 繁體中文 dev (3.16) pre (3.15) 3.14.7 3.13 3.12 3.11 3.10 3.9 3.8 3.7 3.6 3.5 3.4 3.3 3.2 3.1 3.0 2.7 2.6
+-
+- [3.14.7 Documentation](../index.html) »
+- [The Python Standard Library](index.html) »
+- [Development Tools](development.html) »
+- [`unittest` — Unit testing framework]()
+- |
+- Theme Auto Light Dark |
+
+© [Copyright](../copyright.html) 2001 Python Software Foundation.  
+ This page is licensed under the Python Software Foundation License Version 2.  
+ Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.  
+ See [History and License](https://docs.python.org/license.html) for more information.  
+  
+ The Python Software Foundation is a non-profit corporation. [Please donate.](https://www.python.org/psf/donations/)  
+  
+ Last updated on Sep 01, 2026 (23:39 UTC). [Found a bug](https://docs.python.org/bugs.html)?  
+ Created using [Sphinx](https://www.sphinx-doc.org/) 8.2.3.

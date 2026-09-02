@@ -1,0 +1,303 @@
+{
+  "case_id": "challenge-01",
+  "url": "https://www.anthropologie.com/collection-decorative-candles",
+  "checked_at": "2026-09-02T09:25:39.914Z",
+  "method": "Independent rendered list DOM",
+  "items": [
+    {
+      "title": "Haunted House Woody Honeycrisp & Pinecone Figural Glass Candle",
+      "url": "https://www.anthropologie.com/shop/haunted-house-woody-honeycrisp-pinecone-figural-glass-candle"
+    },
+    {
+      "title": "Bistro Tile Amber Pumpkin & Spice 24k Gold Accent Ceramic Halloween Candle",
+      "url": "https://www.anthropologie.com/shop/bistro-tile-amber-pumpkin-spice-24k-gold-accent-ceramic-halloween-candle"
+    },
+    {
+      "title": "Pumpkin Sweet Vanilla Gourd Glass Candle",
+      "url": "https://www.anthropologie.com/shop/pumpkin-sweet-vanilla-gourd-glass-candle"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie: Fruity Hibiscus Tide",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-fruity-hibiscus-tide2"
+    },
+    {
+      "title": "Cat on a Broom Shaped Wax Taper Candles, Set of 2",
+      "url": "https://www.anthropologie.com/shop/cat-on-a-broom-shaped-wax-taper-candles-set-of-2"
+    },
+    {
+      "title": "Metal Walnut Gourmand Sugared Walnut & Spice Figural Candle",
+      "url": "https://www.anthropologie.com/shop/metal-walnut-gourmand-sugared-walnut-spice-figural-candle"
+    },
+    {
+      "title": "Witches Hat Amber Pumpkin & Spice Figural Glass Candle",
+      "url": "https://www.anthropologie.com/shop/witches-hat-amber-pumpkin-spice-figural-glass-candle"
+    },
+    {
+      "title": "Fresh Off The Vine Figural Radish Glass Candle",
+      "url": "https://www.anthropologie.com/shop/fresh-off-the-vine-figural-radish-glass-candle"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie Figural Edition: Pumpkin Sweet Vanilla",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-figural-edition-pumpkin-sweet-vanilla"
+    },
+    {
+      "title": "Gather Mini Candle by Anthropologie: Woody Warm Woods & Santal",
+      "url": "https://www.anthropologie.com/shop/gather-mini-candle-by-anthropologie-woody-warm-woods-santal"
+    },
+    {
+      "title": "Apothecary 18 Fruity Harvest Apple & Vanilla Glass Candle",
+      "url": "https://www.anthropologie.com/shop/apothecary-18-fruity-harvest-apple-vanilla-glass-candle2"
+    },
+    {
+      "title": "Capri Blue Pumpkin Clove Glass Jar Candle",
+      "url": "https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-jar-candle4"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie: Pumpkin Sweet Vanilla",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-pumpkin-sweet-vanilla3"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie: Honeycrisp Oakwood",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-honeycrisp-oakwood2"
+    },
+    {
+      "title": "Capri Blue Pumpkin Clove Glass Decorator Candle",
+      "url": "https://www.anthropologie.com/shop/capri-blue-pumpkin-clove-glass-decorator-candle"
+    },
+    {
+      "title": "Amelie Woody Vanilla & White Cedar",
+      "url": "https://www.anthropologie.com/shop/amelie-woody-vanilla-white-cedar"
+    },
+    {
+      "title": "Ghost Witch Shaped Wax Tapers",
+      "url": "https://www.anthropologie.com/shop/ghost-witch-shaped-wax-tapers"
+    },
+    {
+      "title": "Confetti Icon Dachshund Gourmand Pistachio Glass Candle",
+      "url": "https://www.anthropologie.com/shop/confetti-icon-dachshund-gourmand-pistachio-glass-candle"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie: Amber Pumpkin & Spice",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-amber-pumpkin-spice2"
+    },
+    {
+      "title": "Fall Icon Cloche Pumpkin Sweet Vanilla Glass Candle",
+      "url": "https://www.anthropologie.com/shop/fall-icon-cloche-pumpkin-sweet-vanilla-glass-candle"
+    },
+    {
+      "title": "Ghost Icon Cloche Gourmand Sugared Walnut & Spice Glass Candle",
+      "url": "https://www.anthropologie.com/shop/ghost-icon-cloche-gourmand-sugared-walnut-spice-glass-candle"
+    },
+    {
+      "title": "Bat Icon Cloche Pumpkin Oud Glass Candle",
+      "url": "https://www.anthropologie.com/shop/bat-icon-cloche-pumpkin-oud-glass-candle"
+    },
+    {
+      "title": "Mini Pumpkin Sweet Vanilla Figural Glass Candle",
+      "url": "https://www.anthropologie.com/shop/mini-pumpkin-sweet-vanilla-figural-glass-candle"
+    },
+    {
+      "title": "Printed Mini Gather Candle by Anthropologie: Woody Sandalwood & Vanilla",
+      "url": "https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-woody-sandalwood-vanilla"
+    },
+    {
+      "title": "Witches Hat Woody Honeycrisp & Pinecone Figural Glass Candle",
+      "url": "https://www.anthropologie.com/shop/witches-hat-woody-honeycrisp-pinecone-figural-glass-candle"
+    },
+    {
+      "title": "Amber Pumpkin & Spice Copper Pumpkin Candle",
+      "url": "https://www.anthropologie.com/shop/amber-pumpkin-spice-copper-pumpkin-candle"
+    },
+    {
+      "title": "Newsstand Gourmand Cozy Matcha Ceramic Candle",
+      "url": "https://www.anthropologie.com/shop/newsstand-gourmand-cozy-matcha-ceramic-candle"
+    },
+    {
+      "title": "Morning Sunshine Gourmand White Caramel Coffee Tinned Candle",
+      "url": "https://www.anthropologie.com/shop/morning-sunshine-gourmand-white-caramel-coffee-tinned-candle"
+    },
+    {
+      "title": "54 Celsius The Lovers Glass Tarot Candle",
+      "url": "https://www.anthropologie.com/shop/54-celsius-the-lovers-glass-tarot-candle"
+    },
+    {
+      "title": "Newsstand Gourmand Salted Caramel Pretzel Ceramic Candle",
+      "url": "https://www.anthropologie.com/shop/newsstand-gourmand-salted-caramel-pretzel-ceramic-candle"
+    },
+    {
+      "title": "The Gather Candle by Anthropologie: Woody White Pine & Cashmere",
+      "url": "https://www.anthropologie.com/shop/the-gather-candle-by-anthropologie-woody-white-pine-cashmere"
+    },
+    {
+      "title": "Printed Mini Gather Candle by Anthropologie: Fruity Honeycrisp & Oakwood",
+      "url": "https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-fruity-honeycrisp-oakwood"
+    },
+    {
+      "title": "mise en place Gourmand Gingerbread Mocha Ceramic Candle",
+      "url": "https://www.anthropologie.com/shop/mise-en-place-gourmand-gingerbread-mocha-ceramic-candle"
+    },
+    {
+      "title": "54 Celsius The Moon Glass Tarot Candle",
+      "url": "https://www.anthropologie.com/shop/54-celsius-the-moon-glass-tarot-candle"
+    },
+    {
+      "title": "Printed Mini Gather Candle by Anthropologie: Amber Pumpkin & Spice",
+      "url": "https://www.anthropologie.com/shop/printed-mini-gather-candle-by-anthropologie-amber-pumpkin-spice"
+    },
+    {
+      "title": "Ciao Bella Gourmand Cozy Matcha Tinned Candle",
+      "url": "https://www.anthropologie.com/shop/ciao-bella-gourmand-cozy-matcha-tinned-candle"
+    },
+    {
+      "title": "Espresso Martini Glass Candle",
+      "url": "https://www.anthropologie.com/shop/espresso-martini-glass-candle"
+    },
+    {
+      "title": "Aperol Spritz Glass Candle",
+      "url": "https://www.anthropologie.com/shop/aperol-spritz-glass-candle"
+    },
+    {
+      "title": "Ice Cream Cone Taper Candle",
+      "url": "https://www.anthropologie.com/shop/ice-cream-cone-taper-candle"
+    },
+    {
+      "title": "Dotted Rim Fruity Vanilla & Dark Plum Glass Candle",
+      "url": "https://www.anthropologie.com/shop/dotted-rim-fruity-vanilla-dark-plum-glass-candle"
+    },
+    {
+      "title": "54 Celsius The Magician Glass Tarot Candle",
+      "url": "https://www.anthropologie.com/shop/54-celsius-the-magician-glass-tarot-candle"
+    },
+    {
+      "title": "Dotted Rim Fresh White Cashmere & Musk Glass Candle",
+      "url": "https://www.anthropologie.com/shop/dotted-rim-fresh-white-cashmere-musk-glass-candle"
+    },
+    {
+      "title": "Poured New York Fresh Dirty Girl Martini Marble Candle",
+      "url": "https://www.anthropologie.com/shop/poured-new-york-fresh-dirty-girl-martini-marble-candle"
+    },
+    {
+      "title": "Noir Luxe Gourmand Matcha Latte Glass Candle",
+      "url": "https://www.anthropologie.com/shop/noir-luxe-gourmand-matcha-latte-glass-candle"
+    },
+    {
+      "title": "Dotted Rim Fresh Vanilla Orchid & Sea Salt Glass Candle",
+      "url": "https://www.anthropologie.com/shop/dotted-rim-fresh-vanilla-orchid-sea-salt-glass-candle"
+    },
+    {
+      "title": "Spring Swan Floral Fresh Grass & Hyacinth Figural Glass Candle",
+      "url": "https://www.anthropologie.com/shop/spring-swan-floral-fresh-grass-hyacinth-figural-glass-candle"
+    },
+    {
+      "title": "Dotted Rim Fruity Honeycrisp Oakwood Glass Candle",
+      "url": "https://www.anthropologie.com/shop/dotted-rim-fruity-honeycrisp-oakwood-glass-candle"
+    },
+    {
+      "title": "Oaxacan Floral Taper Candle, Large",
+      "url": "https://www.anthropologie.com/shop/oaxacan-floral-taper-candle-large"
+    },
+    {
+      "title": "Davie Ocho Candle Co. Eye Decorative Shaped Wax Candle",
+      "url": "https://www.anthropologie.com/shop/davie-ocho-candle-co-eye-decorative-shaped-wax-candle2"
+    },
+    {
+      "title": "Dotted Rim Woody Juniper & Cedar Glass Candle",
+      "url": "https://www.anthropologie.com/shop/dotted-rim-woody-juniper-cedar-glass-candle"
+    },
+    {
+      "title": "Cherie Floral Black Fig & Olive Lidded Porcelain Candle",
+      "url": "https://www.anthropologie.com/shop/cherie-floral-black-fig-olive-lidded-porcelain-candle"
+    },
+    {
+      "title": "Nata Penne Pasta Shaped Wax Candle",
+      "url": "https://www.anthropologie.com/shop/nata-penne-pasta-shaped-wax-candle"
+    },
+    {
+      "title": "Linzer Cookie Tapers, Set of 2",
+      "url": "https://www.anthropologie.com/shop/linzer-cookie-tapers-set-of-2"
+    },
+    {
+      "title": "Poured New York Woody Bougie D'oud Marble Candle",
+      "url": "https://www.anthropologie.com/shop/poured-new-york-woody-bougie-doud-marble-candle"
+    },
+    {
+      "title": "Christmas Tree Icon Woody Fresh Balsam & Cedarwood Glass Candle",
+      "url": "https://www.anthropologie.com/shop/christmas-tree-icon-woody-fresh-balsam-cedarwood-glass-candle2"
+    },
+    {
+      "title": "Holly Mouse Shaped Wax and Snuffer Gift Set",
+      "url": "https://www.anthropologie.com/shop/holly-mouse-shaped-wax-and-snuffer-gift-set"
+    },
+    {
+      "title": "Davie Ocho Candle Co. Poodle Decorative Shaped Wax Candle",
+      "url": "https://www.anthropologie.com/shop/davie-ocho-candle-co-poodle-decorative-shaped-wax-candle2"
+    },
+    {
+      "title": "Olive You Is Perfect Fresh Dirty Martini Lidded Glass Candle",
+      "url": "https://www.anthropologie.com/shop/olive-you-is-perfect-fresh-dirty-martini-lidded-glass-candle"
+    },
+    {
+      "title": "Snowed In Shaped Wax Tree Tapers, Set of 2",
+      "url": "https://www.anthropologie.com/shop/snowed-in-shaped-wax-tree-tapers-set-of-2"
+    },
+    {
+      "title": "Earl of East Gourmand Milk Bun Cafe Candle",
+      "url": "https://www.anthropologie.com/shop/earl-of-east-gourmand-milk-bun-cafe-candle"
+    },
+    {
+      "title": "Christmas Tree Advent Calendar Set",
+      "url": "https://www.anthropologie.com/shop/christmas-tree-advent-calendar-set"
+    },
+    {
+      "title": "Merry Music Box Woody Fresh Balsam & Cedarwood Glass Candle",
+      "url": "https://www.anthropologie.com/shop/merry-music-box-woody-fresh-balsam-cedarwood-glass-candle"
+    },
+    {
+      "title": "Merry Mints Gourmand Peppermint Stick Lidded Glass Candle",
+      "url": "https://www.anthropologie.com/shop/merry-mints-gourmand-peppermint-stick-lidded-glass-candle"
+    },
+    {
+      "title": "Paddywax Gourmand Smoked Pistachio Ceramic Cowboy Boot Candle",
+      "url": "https://www.anthropologie.com/shop/paddywax-gourmand-smoked-pistachio-ceramic-cowboy-boot-candle"
+    },
+    {
+      "title": "Davie Ocho Cowboy Hat Decorative Candle",
+      "url": "https://www.anthropologie.com/shop/davie-ocho-cowboy-hat-decorative-candle"
+    },
+    {
+      "title": "Dulce Gourmand Poundcake Ceramic Candle",
+      "url": "https://www.anthropologie.com/shop/dulce-gourmand-poundcake-ceramic-candle"
+    },
+    {
+      "title": "Earl of East Gourmand Matcha Cafe Candle",
+      "url": "https://www.anthropologie.com/shop/earl-of-east-gourmand-matcha-cafe-candle"
+    },
+    {
+      "title": "Figural Bow Fruity Sugar Plum & Vanilla Woods Glass Candle",
+      "url": "https://www.anthropologie.com/shop/figural-bow-fruity-sugar-plum-vanilla-woods-glass-candle"
+    },
+    {
+      "title": "Snowman Taper",
+      "url": "https://www.anthropologie.com/shop/snowman-taper"
+    },
+    {
+      "title": "Davie Ocho Candle Co. Fruit Basket Decorative Shaped Wax Candle Set",
+      "url": "https://www.anthropologie.com/shop/davie-ocho-candle-co-fruit-basket-decorative-shaped-wax-candle-set2"
+    },
+    {
+      "title": "Poured New York Fruity Negroni Nights Marble Candle",
+      "url": "https://www.anthropologie.com/shop/poured-new-york-fruity-negroni-nights-marble-candle"
+    },
+    {
+      "title": "Gingerbread Icon Gourmand Gingerbread Mocha Glass Candle",
+      "url": "https://www.anthropologie.com/shop/gingerbread-icon-gourmand-gingerbread-mocha-glass-candle"
+    },
+    {
+      "url": "https://www.anthropologie.com/shop/noir-luxe-gourmand-brown-sugar-latte-glass-candle",
+      "title": "Noir Luxe Gourmand Brown Sugar Latte Glass Candle",
+      "checked_at": "2026-09-02T09:45:40.422Z",
+      "method": "Independent rendered detail-page h1"
+    }
+  ],
+  "access_checks": []
+}

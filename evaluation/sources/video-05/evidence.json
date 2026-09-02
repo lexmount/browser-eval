@@ -1,0 +1,24 @@
+{
+  "case_id": "video-05",
+  "url": "https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm",
+  "checked_at": "2026-09-02T03:49:13.934826+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm",
+  "mime": "video/webm",
+  "bytes": 330618,
+  "sha256": "074b046f0832c1c262a7a3e015b042092fa226b1550b83a7d14cca9025d34e1e",
+  "title": "直接 WebM 视频",
+  "selector": "binary file",
+  "resources": [],
+  "text_chars": 0,
+  "excerpt": "",
+  "missing_facts": [],
+  "state": "captured"
+}

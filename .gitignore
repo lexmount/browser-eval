@@ -1,9 +1,15 @@
 __pycache__/
 *.py[cod]
+.venv/
+.env
+runs/
+.DS_Store
+run.log
+/publish/
+/reports/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-.venv/
 .browser-use-eval-venv/
 artifacts/browser_use/
 /docs/reports/browser-use-evaluation-*

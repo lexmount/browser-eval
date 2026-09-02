@@ -1,0 +1,137 @@
+[Skip to content](#start-of-content)   
+ 
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)
+
+Appearance settings
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)
+
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=scrapy%2Fscrapy)
+
+Appearance settings
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. Please reload this page.
+
+[scrapy](/scrapy)   /  **[scrapy](/scrapy/scrapy)**  Public
+
+* [Notifications](/login?return_to=%2Fscrapy%2Fscrapy)  You must be signed in to change notification settings
+* [Fork 11.9k](/login?return_to=%2Fscrapy%2Fscrapy)
+* [Star  64k](/login?return_to=%2Fscrapy%2Fscrapy)
+
+[Branches](/scrapy/scrapy/branches)[Tags](/scrapy/scrapy/tags)
+
+Open more actions menu
+
+## Latest commit
+
+## History
+
+[11,375 Commits](/scrapy/scrapy/commits/master/)
+
+11,375 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.github](/scrapy/scrapy/tree/master/.github ".github") | [.github](/scrapy/scrapy/tree/master/.github ".github") |  |  |
+| [docs](/scrapy/scrapy/tree/master/docs "docs") | [docs](/scrapy/scrapy/tree/master/docs "docs") |  |  |
+| [extras](/scrapy/scrapy/tree/master/extras "extras") | [extras](/scrapy/scrapy/tree/master/extras "extras") |  |  |
+| [scrapy](/scrapy/scrapy/tree/master/scrapy "scrapy") | [scrapy](/scrapy/scrapy/tree/master/scrapy "scrapy") |  |  |
+| [sep](/scrapy/scrapy/tree/master/sep "sep") | [sep](/scrapy/scrapy/tree/master/sep "sep") |  |  |
+| [tests](/scrapy/scrapy/tree/master/tests "tests") | [tests](/scrapy/scrapy/tree/master/tests "tests") |  |  |
+| [tests\_typing](/scrapy/scrapy/tree/master/tests_typing "tests_typing") | [tests\_typing](/scrapy/scrapy/tree/master/tests_typing "tests_typing") |  |  |
+| [.git-blame-ignore-revs](/scrapy/scrapy/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") | [.git-blame-ignore-revs](/scrapy/scrapy/blob/master/.git-blame-ignore-revs ".git-blame-ignore-revs") |  |  |
+| [.gitattributes](/scrapy/scrapy/blob/master/.gitattributes ".gitattributes") | [.gitattributes](/scrapy/scrapy/blob/master/.gitattributes ".gitattributes") |  |  |
+| [.gitignore](/scrapy/scrapy/blob/master/.gitignore ".gitignore") | [.gitignore](/scrapy/scrapy/blob/master/.gitignore ".gitignore") |  |  |
+| [.pre-commit-config.yaml](/scrapy/scrapy/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml") | [.pre-commit-config.yaml](/scrapy/scrapy/blob/master/.pre-commit-config.yaml ".pre-commit-config.yaml") |  |  |
+| [.readthedocs.yml](/scrapy/scrapy/blob/master/.readthedocs.yml ".readthedocs.yml") | [.readthedocs.yml](/scrapy/scrapy/blob/master/.readthedocs.yml ".readthedocs.yml") |  |  |
+| [AUTHORS](/scrapy/scrapy/blob/master/AUTHORS "AUTHORS") | [AUTHORS](/scrapy/scrapy/blob/master/AUTHORS "AUTHORS") |  |  |
+| [CITATION.cff](/scrapy/scrapy/blob/master/CITATION.cff "CITATION.cff") | [CITATION.cff](/scrapy/scrapy/blob/master/CITATION.cff "CITATION.cff") |  |  |
+| [CODE\_OF\_CONDUCT.md](/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [CODE\_OF\_CONDUCT.md](/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") |  |  |
+| [CONTRIBUTING.md](/scrapy/scrapy/blob/master/CONTRIBUTING.md "CONTRIBUTING.md") | [CONTRIBUTING.md](/scrapy/scrapy/blob/master/CONTRIBUTING.md "CONTRIBUTING.md") |  |  |
+| [INSTALL.md](/scrapy/scrapy/blob/master/INSTALL.md "INSTALL.md") | [INSTALL.md](/scrapy/scrapy/blob/master/INSTALL.md "INSTALL.md") |  |  |
+| [LICENSE](/scrapy/scrapy/blob/master/LICENSE "LICENSE") | [LICENSE](/scrapy/scrapy/blob/master/LICENSE "LICENSE") |  |  |
+| [NEWS](/scrapy/scrapy/blob/master/NEWS "NEWS") | [NEWS](/scrapy/scrapy/blob/master/NEWS "NEWS") |  |  |
+| [README.rst](/scrapy/scrapy/blob/master/README.rst "README.rst") | [README.rst](/scrapy/scrapy/blob/master/README.rst "README.rst") |  |  |
+| [SECURITY.md](/scrapy/scrapy/blob/master/SECURITY.md "SECURITY.md") | [SECURITY.md](/scrapy/scrapy/blob/master/SECURITY.md "SECURITY.md") |  |  |
+| [codecov.yml](/scrapy/scrapy/blob/master/codecov.yml "codecov.yml") | [codecov.yml](/scrapy/scrapy/blob/master/codecov.yml "codecov.yml") |  |  |
+| [conftest.py](/scrapy/scrapy/blob/master/conftest.py "conftest.py") | [conftest.py](/scrapy/scrapy/blob/master/conftest.py "conftest.py") |  |  |
+| [pyproject.toml](/scrapy/scrapy/blob/master/pyproject.toml "pyproject.toml") | [pyproject.toml](/scrapy/scrapy/blob/master/pyproject.toml "pyproject.toml") |  |  |
+| [tox.ini](/scrapy/scrapy/blob/master/tox.ini "tox.ini") | [tox.ini](/scrapy/scrapy/blob/master/tox.ini "tox.ini") |  |  |
+|  |
+
+## Repository files navigation
+
+[![Scrapy](https://raw.githubusercontent.com/scrapy/scrapy/master/docs/_static/logo.svg)](https://scrapy.org)
+
+[![PyPI Version](https://camo.githubusercontent.com/c6e5cf8390893a8a251117f8ed53e246bf4ac6e4ec4ed9e1e7244d313bf6b316/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f5363726170792e737667)](https://pypi.org/pypi/Scrapy)  [![Supported Python Versions](https://camo.githubusercontent.com/126656e2f64dc33e98e0788a9d4af3170c84e9941a568ae6e6732de34402997e/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f5363726170792e737667)](https://pypi.org/pypi/Scrapy)  [![Tests](https://camo.githubusercontent.com/c92c37b9d53e255045df9e947105992ed7c19be57624160c2556835806e7618e/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f7363726170792f7363726170792f6d61737465723f6c6162656c3d7465737473)](https://github.com/scrapy/scrapy/actions?query=branch%3Amaster) [![Coverage report](https://camo.githubusercontent.com/d7ed79d0e710327ba38026e9137c069c1682689d91f9753743c1ee8eb8f80be3/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f7363726170792f7363726170792f6d61737465722e737667)](https://codecov.io/github/scrapy/scrapy?branch=master)  [![Conda Version](https://camo.githubusercontent.com/243d9a22e34216cb3bc6492290e30eef6cc7494827e86e780135314d2b4ecda3/68747470733a2f2f616e61636f6e64612e6f72672f636f6e64612d666f7267652f7363726170792f6261646765732f76657273696f6e2e737667)](https://anaconda.org/conda-forge/scrapy)  [![Ask DeepWiki](https://camo.githubusercontent.com/0f5ae213ac378635adeb5d7f13cef055ad2f7d9a47b36de7b1c67dbe09f609ca/68747470733a2f2f6465657077696b692e636f6d2f62616467652e737667)](https://deepwiki.com/scrapy/scrapy)
+
+[Scrapy](https://scrapy.org/) is a web scraping framework to extract structured data from websites. It is cross-platform, and requires Python 3.10+. It is maintained by [Zyte](https://www.zyte.com/) (formerly Scrapinghub) and [many other contributors](https://github.com/scrapy/scrapy/graphs/contributors).
+
+Install with:
+
+```
+pip install scrapy
+```
+
+And follow the [documentation](https://docs.scrapy.org/en/latest/) to learn how to use it.
+
+If you wish to contribute, see [Contributing](https://docs.scrapy.org/en/master/contributing.html).
+
+## About
+
+Scrapy, a fast high-level web crawling & scraping framework for Python.
+
+[scrapy.org](https://scrapy.org)
+
+### Topics
+
+[crawler](/topics/crawler)[crawling](/topics/crawling)[framework](/topics/framework)[hacktoberfest](/topics/hacktoberfest)[python](/topics/python)[scraping](/topics/scraping)[web-scraping](/topics/web-scraping)[web-scraping-python](/topics/web-scraping-python)
+
+### Resources
+
+[Readme](#readme-ov-file)
+
+[BSD-3-Clause license](#BSD-3-Clause-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/scrapy/scrapy#coc-ov-file)
+
+### Contributing
+
+### Security policy
+
+[Security policy](#security-ov-file)
+
+[Custom properties](/scrapy/scrapy/custom-properties)
+
+### Stars
+
+**64.0k** stars
+
+### Watchers
+
+**1.8k** watching
+
+### Forks
+
+[**11.9k** forks](/scrapy/scrapy/forks)
+
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy&report=scrapy+%28user%29)
+
+## Used by
+
+You can’t perform that action at this time.
+
+ 

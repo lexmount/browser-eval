@@ -1,0 +1,64 @@
+---
+title: "W3Schools Tryit Editor"
+meta:
+  "og:description": "The W3Schools online code editor allows you to edit code and view the result in your browser"
+  "og:title": "W3Schools online HTML editor"
+---
+
+[w3schools.com Home](https://www.w3schools.com) [Open Menu](<javascript:void(0);>) [Save code](<javascript:void(0);>) [Change Orientation](<javascript:void(0);>) [Change Theme](<javascript:void(0);>) Run ❯ [Get your own website](https://www.w3schools.com/spaces/) Result Size: 820 x 1025
+
+[❯Run Code Ctrl+Alt+R](<javascript:void(0);> "Run Code") [Save Code Ctrl+Alt+A](<javascript:void(0);> "Save") [Change Orientation Ctrl+Alt+O](<javascript:void(0);> "Change Orientaton") [Change Theme Ctrl+Alt+D](<javascript:void(0);> "Change Theme") [![](https://www.w3schools.com/images/spaces-icon-tryit.svg)Go to Spaces Ctrl+Alt+P](https://spaces.w3schools.com "Go to Spaces")
+
+[Privacy policy](https://www.w3schools.com/about/about_privacy.asp) and [Copyright 1999-2026](https://www.w3schools.com/about/about_copyright.asp)
+
+\<!DOCTYPE html> \<html> \<body> \<h2>HTML Image\</h2> \<img src="pic\_trulli.jpg" alt="Trulli" width="500" height="333"> \</body> \</html>
+
+​x
+
+ 
+
+```
+<!DOCTYPE html>
+```
+
+```
+<html>
+```
+
+```
+<body>
+```
+
+```
+​
+```
+
+```
+<h2>HTML Image</h2>
+```
+
+```
+<img src="pic_trulli.jpg" alt="Trulli" width="500" height="333">
+```
+
+```
+​
+```
+
+```
+</body>
+```
+
+```
+</html>
+```
+
+```
+​
+```
+
+```
+​
+```
+
+[REMOVE ADS](https://order.w3schools.com/plans)

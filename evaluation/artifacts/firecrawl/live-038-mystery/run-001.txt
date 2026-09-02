@@ -1,0 +1,541 @@
+- [Home](https://books.toscrape.com/index.html)
+- [Books](https://books.toscrape.com/catalogue/category/books_1/index.html)
+- Mystery
+
+# Mystery
+
+**32** results - showing **1** to **20**.
+
+
+
+
+
+
+**Warning!** This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+
+01. [![Sharp Objects](https://books.toscrape.com/media/cache/32/51/3251cf3a3412f53f339e42cac2134093.jpg)](https://books.toscrape.com/catalogue/sharp-objects_997/index.html)
+
+
+
+
+
+
+
+    ### [Sharp Objects](https://books.toscrape.com/catalogue/sharp-objects_997/index.html "Sharp Objects")
+
+
+
+
+
+    £47.82
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+02. [![In a Dark, Dark Wood](https://books.toscrape.com/media/cache/23/85/238570a1c284e730dbc737a7e631ae2b.jpg)](https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html)
+
+
+
+
+
+
+
+    ### [In a Dark, Dark ...](https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html "In a Dark, Dark Wood")
+
+
+
+
+
+    £19.63
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+03. [![The Past Never Ends](https://books.toscrape.com/media/cache/89/b8/89b850edb01851a91f64ba114b96acb6.jpg)](https://books.toscrape.com/catalogue/the-past-never-ends_942/index.html)
+
+
+
+
+
+
+
+    ### [The Past Never Ends](https://books.toscrape.com/catalogue/the-past-never-ends_942/index.html "The Past Never Ends")
+
+
+
+
+
+    £56.50
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+04. [![A Murder in Time](https://books.toscrape.com/media/cache/11/aa/11aaad48b5f15e262456ca65294084da.jpg)](https://books.toscrape.com/catalogue/a-murder-in-time_877/index.html)
+
+
+
+
+
+
+
+    ### [A Murder in Time](https://books.toscrape.com/catalogue/a-murder-in-time_877/index.html "A Murder in Time")
+
+
+
+
+
+    £16.64
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+05. [![The Murder of Roger Ackroyd (Hercule Poirot #4)](https://books.toscrape.com/media/cache/29/fe/29fe70b1b2e5a9ba61d4bd331255e19e.jpg)](https://books.toscrape.com/catalogue/the-murder-of-roger-ackroyd-hercule-poirot-4_852/index.html)
+
+
+
+
+
+
+
+    ### [The Murder of Roger ...](https://books.toscrape.com/catalogue/the-murder-of-roger-ackroyd-hercule-poirot-4_852/index.html "The Murder of Roger Ackroyd (Hercule Poirot \#4)")
+
+
+
+
+
+    £44.10
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+06. [![The Last Mile (Amos Decker #2)](https://books.toscrape.com/media/cache/37/f1/37f118b4a56d866e1e8b563759d6966c.jpg)](https://books.toscrape.com/catalogue/the-last-mile-amos-decker-2_754/index.html)
+
+
+
+
+
+
+
+    ### [The Last Mile (Amos ...](https://books.toscrape.com/catalogue/the-last-mile-amos-decker-2_754/index.html "The Last Mile (Amos Decker \#2)")
+
+
+
+
+
+    £54.21
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+07. [![That Darkness (Gardiner and Renner #1)](https://books.toscrape.com/media/cache/44/9e/449ed681142bc336646abee754e96639.jpg)](https://books.toscrape.com/catalogue/that-darkness-gardiner-and-renner-1_743/index.html)
+
+
+
+
+
+
+
+    ### [That Darkness (Gardiner and ...](https://books.toscrape.com/catalogue/that-darkness-gardiner-and-renner-1_743/index.html "That Darkness (Gardiner and Renner \#1)")
+
+
+
+
+
+    £13.92
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+08. [![Tastes Like Fear (DI Marnie Rome #3)](https://books.toscrape.com/media/cache/3c/91/3c91d97266bd6dda322089695fb46daf.jpg)](https://books.toscrape.com/catalogue/tastes-like-fear-di-marnie-rome-3_742/index.html)
+
+
+
+
+
+
+
+    ### [Tastes Like Fear (DI ...](https://books.toscrape.com/catalogue/tastes-like-fear-di-marnie-rome-3_742/index.html "Tastes Like Fear (DI Marnie Rome \#3)")
+
+
+
+
+
+    £10.69
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+09. [![A Time of Torment (Charlie Parker #14)](https://books.toscrape.com/media/cache/e8/c0/e8c0ba15066bab950ae161fd60949b9a.jpg)](https://books.toscrape.com/catalogue/a-time-of-torment-charlie-parker-14_657/index.html)
+
+
+
+
+
+
+
+    ### [A Time of Torment ...](https://books.toscrape.com/catalogue/a-time-of-torment-charlie-parker-14_657/index.html "A Time of Torment (Charlie Parker \#14)")
+
+
+
+
+
+    £48.35
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+10. [![A Study in Scarlet (Sherlock Holmes #1)](https://books.toscrape.com/media/cache/8f/a4/8fa41d6caa10e427356b8a590eb4d96b.jpg)](https://books.toscrape.com/catalogue/a-study-in-scarlet-sherlock-holmes-1_656/index.html)
+
+
+
+
+
+
+
+    ### [A Study in Scarlet ...](https://books.toscrape.com/catalogue/a-study-in-scarlet-sherlock-holmes-1_656/index.html "A Study in Scarlet (Sherlock Holmes \#1)")
+
+
+
+
+
+    £16.73
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+11. [![Poisonous (Max Revere Novels #3)](https://books.toscrape.com/media/cache/23/52/2352718971d5e166fa9541a5a7d716fa.jpg)](https://books.toscrape.com/catalogue/poisonous-max-revere-novels-3_627/index.html)
+
+
+
+
+
+
+
+    ### [Poisonous (Max Revere Novels ...](https://books.toscrape.com/catalogue/poisonous-max-revere-novels-3_627/index.html "Poisonous (Max Revere Novels \#3)")
+
+
+
+
+
+    £26.80
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+12. [![Murder at the 42nd Street Library (Raymond Ambler #1)](https://books.toscrape.com/media/cache/c3/8d/c38d65cd155b67ca025f0655bd1bb095.jpg)](https://books.toscrape.com/catalogue/murder-at-the-42nd-street-library-raymond-ambler-1_624/index.html)
+
+
+
+
+
+
+
+    ### [Murder at the 42nd ...](https://books.toscrape.com/catalogue/murder-at-the-42nd-street-library-raymond-ambler-1_624/index.html "Murder at the 42nd Street Library (Raymond Ambler \#1)")
+
+
+
+
+
+    £54.36
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+13. [![Most Wanted](https://books.toscrape.com/media/cache/8b/bc/8bbc5ab4c3784b4d9b93eb0fd1fb6fd6.jpg)](https://books.toscrape.com/catalogue/most-wanted_623/index.html)
+
+
+
+
+
+
+
+    ### [Most Wanted](https://books.toscrape.com/catalogue/most-wanted_623/index.html "Most Wanted")
+
+
+
+
+
+    £35.28
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+14. [![Hide Away (Eve Duncan #20)](https://books.toscrape.com/media/cache/57/07/5707c3d5d4fd44d943d51730ba7d429a.jpg)](https://books.toscrape.com/catalogue/hide-away-eve-duncan-20_620/index.html)
+
+
+
+
+
+
+
+    ### [Hide Away (Eve Duncan ...](https://books.toscrape.com/catalogue/hide-away-eve-duncan-20_620/index.html "Hide Away (Eve Duncan \#20)")
+
+
+
+
+
+    £11.84
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+15. [![Boar Island (Anna Pigeon #19)](https://books.toscrape.com/media/cache/d5/81/d58157866ea8f015a8e4c55b23b8c96f.jpg)](https://books.toscrape.com/catalogue/boar-island-anna-pigeon-19_613/index.html)
+
+
+
+
+
+
+
+    ### [Boar Island (Anna Pigeon ...](https://books.toscrape.com/catalogue/boar-island-anna-pigeon-19_613/index.html "Boar Island (Anna Pigeon \#19)")
+
+
+
+
+
+    £59.48
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+16. [![The Widow](https://books.toscrape.com/media/cache/fd/71/fd71fb07247bf911505a351c0670c6dc.jpg)](https://books.toscrape.com/catalogue/the-widow_609/index.html)
+
+
+
+
+
+
+
+    ### [The Widow](https://books.toscrape.com/catalogue/the-widow_609/index.html "The Widow")
+
+
+
+
+
+    £27.26
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+17. [![Playing with Fire](https://books.toscrape.com/media/cache/90/0b/900bd2e60d56b6480a4e8eb2dddb46d6.jpg)](https://books.toscrape.com/catalogue/playing-with-fire_602/index.html)
+
+
+
+
+
+
+
+    ### [Playing with Fire](https://books.toscrape.com/catalogue/playing-with-fire_602/index.html "Playing with Fire")
+
+
+
+
+
+    £13.71
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+18. [![What Happened on Beale Street (Secrets of the South Mysteries #2)](https://books.toscrape.com/media/cache/c7/ab/c7abb5e32bd37118a87523dcee0a70a6.jpg)](https://books.toscrape.com/catalogue/what-happened-on-beale-street-secrets-of-the-south-mysteries-2_506/index.html)
+
+
+
+
+
+
+
+    ### [What Happened on Beale ...](https://books.toscrape.com/catalogue/what-happened-on-beale-street-secrets-of-the-south-mysteries-2_506/index.html "What Happened on Beale Street (Secrets of the South Mysteries \#2)")
+
+
+
+
+
+    £25.37
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+19. [![The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries #1)](https://books.toscrape.com/media/cache/95/d7/95d7541679fcbd579b8a4f2b47231aaf.jpg)](https://books.toscrape.com/catalogue/the-bachelor-girls-guide-to-murder-herringford-and-watts-mysteries-1_491/index.html)
+
+
+
+
+
+
+
+    ### [The Bachelor Girl's Guide ...](https://books.toscrape.com/catalogue/the-bachelor-girls-guide-to-murder-herringford-and-watts-mysteries-1_491/index.html "The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries \#1)")
+
+
+
+
+
+    £52.30
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+20. [![Delivering the Truth (Quaker Midwife Mystery #1)](https://books.toscrape.com/media/cache/57/31/5731a5d46c2c1e88977eb5e6d1337a2e.jpg)](https://books.toscrape.com/catalogue/delivering-the-truth-quaker-midwife-mystery-1_464/index.html)
+
+
+
+
+
+
+
+    ### [Delivering the Truth (Quaker ...](https://books.toscrape.com/catalogue/delivering-the-truth-quaker-midwife-mystery-1_464/index.html "Delivering the Truth (Quaker Midwife Mystery \#1)")
+
+
+
+
+
+    £20.89
+
+
+
+
+
+    In stock
+
+
+
+    Add to basket
+
+
+-
+Page 1 of 2
+
+
+- [next](https://books.toscrape.com/catalogue/category/books/mystery_3/page-2.html)

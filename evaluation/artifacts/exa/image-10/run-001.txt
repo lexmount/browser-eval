@@ -1,0 +1,1 @@
+{"requestId":"3a825bed98d2d6b4fe8de6b906c492c1","results":[],"statuses":[{"id":"https://httpbin.org/image/png","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNEXPECTED_CONTENT_TYPE"}}],"costDollars":{"total":0},"searchTime":827.5370430001058}

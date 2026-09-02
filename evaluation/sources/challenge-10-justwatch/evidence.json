@@ -1,0 +1,12 @@
+{
+  "case_id": "challenge-10-justwatch",
+  "url": "https://www.justwatch.com/us/tv-shows",
+  "checked_at": "2026-09-02T06:26:12.005748+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "dd8678480e9778c1cd68c7101e2f0b85a173e5b671e48dc2882f2446f613548f",
+  "reference_sha256": "58f10b60ee4d1beb68f7cb7cda89bfdecd1ef89bdabf74cba3aa1abed60b0094",
+  "items": 40,
+  "scope": "已加载剧集卡片；只作字段示例，不作实时榜单答案",
+  "privacy": "不发布原始 HTML、脚本、账号信息或查询参数",
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据"
+}

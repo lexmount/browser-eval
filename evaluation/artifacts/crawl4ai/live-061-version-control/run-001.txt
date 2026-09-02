@@ -1,0 +1,596 @@
+Main menu
+move to sidebar hide
+Navigation 
+  * [Main page](https://en.wikipedia.org/wiki/Main_Page "Visit the main page \[ctrl-option-z\]")
+  * [Contents](https://en.wikipedia.org/wiki/Wikipedia:Contents "Guides to browsing Wikipedia")
+  * [Current events](https://en.wikipedia.org/wiki/Portal:Current_events "Articles related to current events")
+  * [Random article](https://en.wikipedia.org/wiki/Special:Random "Visit a randomly selected article \[ctrl-option-x\]")
+  * [About Wikipedia](https://en.wikipedia.org/wiki/Wikipedia:About "Learn about Wikipedia and how it works")
+  * [Contact us](https://en.wikipedia.org/wiki/Wikipedia:Contact_us "How to contact Wikipedia")
+
+
+Contribute 
+  * [Help](https://en.wikipedia.org/wiki/Help:Contents "Guidance on how to use and edit Wikipedia")
+  * [Learn to edit](https://en.wikipedia.org/wiki/Help:Introduction "Learn how to edit Wikipedia")
+  * [Community portal](https://en.wikipedia.org/wiki/Wikipedia:Community_portal "The hub for editors")
+  * [Recent changes](https://en.wikipedia.org/wiki/Special:RecentChanges "A list of recent changes to Wikipedia \[ctrl-option-r\]")
+  * [Upload file](https://en.wikipedia.org/wiki/Wikipedia:File_upload_wizard "Add images or other media for use on Wikipedia")
+  * [Special pages](https://en.wikipedia.org/wiki/Special:SpecialPages "A list of all special pages \[ctrl-option-q\]")
+
+
+[ ![](https://en.wikipedia.org/static/images/icons/enwiki-25.svg) ![Wikipedia](https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-wordmark-en-25.svg) ![The Free Encyclopedia](https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-tagline-en-25.svg) ](https://en.wikipedia.org/wiki/Main_Page)
+[ ](https://en.wikipedia.org/wiki/Special:Search "Search Wikipedia \[ctrl-option-f\]")
+Search
+Appearance
+move to sidebar hide
+Text
+  * Small
+Standard
+Large
+
+This page always uses small font size
+Width
+  * Standard
+Wide
+
+The content is as wide as possible for your browser window.
+Color 
+  * Automatic
+Light
+Dark
+
+This page is always in light mode.
+  * [Donate](https://donate.wikimedia.org/?wmf_source=donate&wmf_medium=sidebar&wmf_campaign=en.wikipedia.org&uselang=en)
+  * [Create account](https://en.wikipedia.org/w/index.php?title=Special:CreateAccount&returnto=Version+control "You are encouraged to create an account and log in; however, it is not mandatory")
+  * [Log in](https://en.wikipedia.org/w/index.php?title=Special:UserLogin&returnto=Version+control "You're encouraged to log in; however, it's not mandatory. \[ctrl-option-o\]")
+
+
+  * [ Donate](https://donate.wikimedia.org/?wmf_source=donate&wmf_medium=sidebar&wmf_campaign=en.wikipedia.org&uselang=en)
+  * [ Create account](https://en.wikipedia.org/w/index.php?title=Special:CreateAccount&returnto=Version+control "You are encouraged to create an account and log in; however, it is not mandatory")
+  * [ Log in](https://en.wikipedia.org/w/index.php?title=Special:UserLogin&returnto=Version+control "You're encouraged to log in; however, it's not mandatory. \[ctrl-option-o\]")
+
+
+[ ![Wiki Education logo](https://upload.wikimedia.org/wikipedia/commons/a/ac/Wiki_Education_Foundation_logo.svg) "The coolest thing I've done in 10 years teaching" — run a Wikipedia Assignment in your next college course with free support! ](https://en.wikipedia.org/wiki/Wikipedia:Teaching_with_Wiki_Education)
+## Contents
+move to sidebar hide
+  * [ (Top) ](https://en.wikipedia.org/wiki/Version_control)
+  * [ 1 Overview ](https://en.wikipedia.org/wiki/Version_control#Overview)
+  * [ 2 History ](https://en.wikipedia.org/wiki/Version_control#History)
+  * [ 3 Structure ](https://en.wikipedia.org/wiki/Version_control#Structure) Toggle Structure subsection
+    * [ 3.1 Graph structure ](https://en.wikipedia.org/wiki/Version_control#Graph_structure)
+  * [ 4 Specialized strategies ](https://en.wikipedia.org/wiki/Version_control#Specialized_strategies) Toggle Specialized strategies subsection
+    * [ 4.1 In business and law ](https://en.wikipedia.org/wiki/Version_control#In_business_and_law)
+    * [ 4.2 In game development ](https://en.wikipedia.org/wiki/Version_control#In_game_development)
+  * [ 5 Source-management models ](https://en.wikipedia.org/wiki/Version_control#Source-management_models) Toggle Source-management models subsection
+    * [ 5.1 Atomic operations ](https://en.wikipedia.org/wiki/Version_control#Atomic_operations)
+    * [ 5.2 File locking ](https://en.wikipedia.org/wiki/Version_control#File_locking)
+    * [ 5.3 Version merging ](https://en.wikipedia.org/wiki/Version_control#Version_merging)
+    * [ 5.4 Baselines, labels and tags ](https://en.wikipedia.org/wiki/Version_control#Baselines,_labels_and_tags)
+  * [ 6 Distributed revision control ](https://en.wikipedia.org/wiki/Version_control#Distributed_revision_control)
+  * [ 7 Best practices ](https://en.wikipedia.org/wiki/Version_control#Best_practices)
+  * [ 8 Costs and benefits ](https://en.wikipedia.org/wiki/Version_control#Costs_and_benefits) Toggle Costs and benefits subsection
+    * [ 8.1 Costs ](https://en.wikipedia.org/wiki/Version_control#Costs)
+    * [ 8.2 Benefits ](https://en.wikipedia.org/wiki/Version_control#Benefits)
+      * [ 8.2.1 Allows for reverting changes ](https://en.wikipedia.org/wiki/Version_control#Allows_for_reverting_changes)
+      * [ 8.2.2 Branching simplifies deployment, maintenance and development ](https://en.wikipedia.org/wiki/Version_control#Branching_simplifies_deployment,_maintenance_and_development)
+      * [ 8.2.3 Damage mitigation, accountability and process and design improvement ](https://en.wikipedia.org/wiki/Version_control#Damage_mitigation,_accountability_and_process_and_design_improvement)
+      * [ 8.2.4 Simplifies debugging ](https://en.wikipedia.org/wiki/Version_control#Simplifies_debugging)
+      * [ 8.2.5 Improves collaboration and communication ](https://en.wikipedia.org/wiki/Version_control#Improves_collaboration_and_communication)
+  * [ 9 Integration ](https://en.wikipedia.org/wiki/Version_control#Integration) Toggle Integration subsection
+    * [ 9.1 Integrated development environment ](https://en.wikipedia.org/wiki/Version_control#Integrated_development_environment)
+  * [ 10 Common terminology ](https://en.wikipedia.org/wiki/Version_control#Common_terminology) Toggle Common terminology subsection
+    * [ 10.1 Baseline ](https://en.wikipedia.org/wiki/Version_control#Baseline)
+    * [ 10.2 Blame ](https://en.wikipedia.org/wiki/Version_control#Blame)
+    * [ 10.3 Branch ](https://en.wikipedia.org/wiki/Version_control#Branch)
+    * [ 10.4 Change ](https://en.wikipedia.org/wiki/Version_control#Change)
+    * [ 10.5 Change list ](https://en.wikipedia.org/wiki/Version_control#Change_list)
+    * [ 10.6 Checkout ](https://en.wikipedia.org/wiki/Version_control#Checkout)
+    * [ 10.7 Clone ](https://en.wikipedia.org/wiki/Version_control#Clone)
+    * [ 10.8 Commit (noun) ](https://en.wikipedia.org/wiki/Version_control#Commit_\(noun\))
+    * [ 10.9 Commit (verb) ](https://en.wikipedia.org/wiki/Version_control#Commit_\(verb\))
+    * [ 10.10 Commit message ](https://en.wikipedia.org/wiki/Version_control#Commit_message)
+    * [ 10.11 Conflict ](https://en.wikipedia.org/wiki/Version_control#Conflict)
+    * [ 10.12 Delta compression ](https://en.wikipedia.org/wiki/Version_control#Delta_compression)
+    * [ 10.13 Dynamic stream ](https://en.wikipedia.org/wiki/Version_control#Dynamic_stream)
+    * [ 10.14 Export ](https://en.wikipedia.org/wiki/Version_control#Export)
+    * [ 10.15 Fetch ](https://en.wikipedia.org/wiki/Version_control#Fetch)
+    * [ 10.16 Forward integration ](https://en.wikipedia.org/wiki/Version_control#Forward_integration)
+    * [ 10.17 Head ](https://en.wikipedia.org/wiki/Version_control#Head)
+    * [ 10.18 Import ](https://en.wikipedia.org/wiki/Version_control#Import)
+    * [ 10.19 Initialize ](https://en.wikipedia.org/wiki/Version_control#Initialize)
+    * [ 10.20 Interleaved deltas ](https://en.wikipedia.org/wiki/Version_control#Interleaved_deltas)
+    * [ 10.21 Label ](https://en.wikipedia.org/wiki/Version_control#Label)
+    * [ 10.22 Locking ](https://en.wikipedia.org/wiki/Version_control#Locking)
+    * [ 10.23 Mainline ](https://en.wikipedia.org/wiki/Version_control#Mainline)
+    * [ 10.24 Merge ](https://en.wikipedia.org/wiki/Version_control#Merge)
+    * [ 10.25 Promote ](https://en.wikipedia.org/wiki/Version_control#Promote)
+    * [ 10.26 Pull, push ](https://en.wikipedia.org/wiki/Version_control#Pull,_push)
+    * [ 10.27 Pull request ](https://en.wikipedia.org/wiki/Version_control#Pull_request)
+    * [ 10.28 Repository ](https://en.wikipedia.org/wiki/Version_control#Repository)
+    * [ 10.29 Resolve ](https://en.wikipedia.org/wiki/Version_control#Resolve)
+    * [ 10.30 Reverse integration ](https://en.wikipedia.org/wiki/Version_control#Reverse_integration)
+    * [ 10.31 Reversion ](https://en.wikipedia.org/wiki/Version_control#Reversion)
+    * [ 10.32 Revision and version ](https://en.wikipedia.org/wiki/Version_control#Revision_and_version)
+    * [ 10.33 Share ](https://en.wikipedia.org/wiki/Version_control#Share)
+    * [ 10.34 Stream ](https://en.wikipedia.org/wiki/Version_control#Stream)
+    * [ 10.35 Tag ](https://en.wikipedia.org/wiki/Version_control#Tag)
+    * [ 10.36 Trunk ](https://en.wikipedia.org/wiki/Version_control#Trunk)
+    * [ 10.37 Update ](https://en.wikipedia.org/wiki/Version_control#Update)
+    * [ 10.38 Unlocking ](https://en.wikipedia.org/wiki/Version_control#Unlocking)
+    * [ 10.39 Working copy ](https://en.wikipedia.org/wiki/Version_control#Working_copy)
+  * [ 11 See also ](https://en.wikipedia.org/wiki/Version_control#See_also)
+  * [ 12 Notes ](https://en.wikipedia.org/wiki/Version_control#Notes)
+  * [ 13 References ](https://en.wikipedia.org/wiki/Version_control#References)
+  * [ 14 External links ](https://en.wikipedia.org/wiki/Version_control#External_links)
+
+
+# Version control
+31 languages
+  * [العربية](https://ar.wikipedia.org/wiki/%D8%B6%D8%A8%D8%B7_%D8%A7%D9%84%D9%86%D8%B3%D8%AE "ضبط النسخ – Arabic")
+  * [Català](https://ca.wikipedia.org/wiki/Control_de_versions "Control de versions – Catalan")
+  * [کوردی](https://ckb.wikipedia.org/wiki/%DA%A9%DB%86%D9%86%D8%AA%D8%B1%DB%86%DA%B5%DB%8C_%D9%88%DB%95%D8%B4%D8%A7%D9%86 "کۆنترۆڵی وەشان – Central Kurdish")
+  * [Čeština](https://cs.wikipedia.org/wiki/Verzov%C3%A1n%C3%AD "Verzování – Czech")
+  * [Dansk](https://da.wikipedia.org/wiki/Versionsstyring "Versionsstyring – Danish")
+  * [Deutsch](https://de.wikipedia.org/wiki/Versionsverwaltung "Versionsverwaltung – German")
+  * [Español](https://es.wikipedia.org/wiki/Control_de_versiones "Control de versiones – Spanish")
+  * [Eesti](https://et.wikipedia.org/wiki/Versioonihaldus "Versioonihaldus – Estonian")
+  * [فارسی](https://fa.wikipedia.org/wiki/%DA%A9%D9%86%D8%AA%D8%B1%D9%84_%D9%86%D8%B3%D8%AE%D9%87 "کنترل نسخه – Persian")
+  * [Suomi](https://fi.wikipedia.org/wiki/Versionhallinta "Versionhallinta – Finnish")
+  * [Français](https://fr.wikipedia.org/wiki/Gestion_de_versions "Gestion de versions – French")
+  * [Galego](https://gl.wikipedia.org/wiki/Control_de_versi%C3%B3ns "Control de versións – Galician")
+  * [עברית](https://he.wikipedia.org/wiki/%D7%A0%D7%99%D7%94%D7%95%D7%9C_%D7%92%D7%A8%D7%A1%D7%90%D7%95%D7%AA "ניהול גרסאות – Hebrew")
+  * [Hrvatski](https://hr.wikipedia.org/wiki/Upravljanje_izvornim_k%C3%B4dom "Upravljanje izvornim kôdom – Croatian")
+  * [Magyar](https://hu.wikipedia.org/wiki/Verzi%C3%B3kezel%C3%A9s "Verziókezelés – Hungarian")
+  * [Հայերեն](https://hy.wikipedia.org/wiki/%D5%8E%D5%A5%D6%80%D5%A1%D5%B0%D5%BD%D5%AF%D5%B4%D5%A1%D5%B6_%D5%AF%D5%A1%D5%BC%D5%A1%D5%BE%D5%A1%D6%80%D5%B8%D6%82%D5%B4 "Վերահսկման կառավարում – Armenian")
+  * [Bahasa Indonesia](https://id.wikipedia.org/wiki/Kendali_versi "Kendali versi – Indonesian")
+  * [Ido](https://io.wikipedia.org/wiki/Versionala_kontrolo "Versionala kontrolo – Ido")
+  * [Italiano](https://it.wikipedia.org/wiki/Controllo_versione "Controllo versione – Italian")
+  * [한국어](https://ko.wikipedia.org/wiki/%EB%B2%84%EC%A0%84_%EA%B4%80%EB%A6%AC "버전 관리 – Korean")
+  * [မြန်မာဘာသာ](https://my.wikipedia.org/wiki/%E1%80%9B%E1%80%84%E1%80%BA%E1%80%B8%E1%80%99%E1%80%BC%E1%80%85%E1%80%BA%E1%80%91%E1%80%AD%E1%80%94%E1%80%BA%E1%80%B8%E1%80%81%E1%80%BB%E1%80%AF%E1%80%95%E1%80%BA%E1%80%99%E1%80%BE%E1%80%AF%E1%80%85%E1%80%94%E1%80%85%E1%80%BA "ရင်းမြစ်ထိန်းချုပ်မှုစနစ် – Burmese")
+  * [Română](https://ro.wikipedia.org/wiki/Controlul_versiunilor "Controlul versiunilor – Romanian")
+  * [Shqip](https://sq.wikipedia.org/wiki/Kontrolli_i_versionit "Kontrolli i versionit – Albanian")
+  * [Svenska](https://sv.wikipedia.org/wiki/Versionshantering "Versionshantering – Swedish")
+  * [தமிழ்](https://ta.wikipedia.org/wiki/%E0%AE%A4%E0%AE%BF%E0%AE%B0%E0%AF%81%E0%AE%A4%E0%AF%8D%E0%AE%A4%E0%AE%95%E0%AF%8D_%E0%AE%95%E0%AE%9F%E0%AF%8D%E0%AE%9F%E0%AF%81%E0%AE%AA%E0%AF%8D%E0%AE%AA%E0%AE%BE%E0%AE%9F%E0%AF%81 "திருத்தக் கட்டுப்பாடு – Tamil")
+  * [ไทย](https://th.wikipedia.org/wiki/%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%84%E0%B8%A7%E0%B8%9A%E0%B8%84%E0%B8%B8%E0%B8%A1%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%9B%E0%B8%A3%E0%B8%B1%E0%B8%9A%E0%B8%9B%E0%B8%A3%E0%B8%B8%E0%B8%87%E0%B9%81%E0%B8%81%E0%B9%89%E0%B9%84%E0%B8%82 "การควบคุมการปรับปรุงแก้ไข – Thai")
+  * [Türkçe](https://tr.wikipedia.org/wiki/S%C3%BCr%C3%BCm_kontrol_sistemi "Sürüm kontrol sistemi – Turkish")
+  * [Oʻzbekcha / ўзбекча](https://uz.wikipedia.org/wiki/Versiya_boshqarish_tizimi "Versiya boshqarish tizimi – Uzbek")
+  * [Tiếng Việt](https://vi.wikipedia.org/wiki/H%E1%BB%87_th%E1%BB%91ng_qu%E1%BA%A3n_l%C3%BD_phi%C3%AAn_b%E1%BA%A3n "Hệ thống quản lý phiên bản – Vietnamese")
+  * [粵語](https://zh-yue.wikipedia.org/wiki/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6 "版本控制 – Cantonese")
+  * [中文](https://zh.wikipedia.org/wiki/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6 "版本控制 – Chinese")
+
+
+[Edit links](https://www.wikidata.org/wiki/Special:EntityPage/Q189439#sitelinks-wikipedia "Edit interlanguage links")
+  * [Article](https://en.wikipedia.org/wiki/Version_control "View the content page \[ctrl-option-c\]")
+  * [Talk](https://en.wikipedia.org/wiki/Talk:Version_control "Discuss improvements to the content page \[ctrl-option-t\]")
+
+
+English
+  * [Read](https://en.wikipedia.org/wiki/Version_control)
+  * [Edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit "Edit this page \[ctrl-option-e\]")
+  * [View history](https://en.wikipedia.org/w/index.php?title=Version_control&action=history "Past revisions of this page \[ctrl-option-h\]")
+
+
+Tools
+move to sidebar hide
+Actions 
+  * [ Read](https://en.wikipedia.org/wiki/Version_control)
+  * [ Edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit "Edit this page \[ctrl-option-e\]")
+  * [ View history](https://en.wikipedia.org/w/index.php?title=Version_control&action=history "Past revisions of this page \[ctrl-option-h\]")
+
+
+General 
+  * [What links here](https://en.wikipedia.org/wiki/Special:WhatLinksHere/Version_control "List of all English Wikipedia pages containing links to this page \[ctrl-option-j\]")
+  * [Related changes](https://en.wikipedia.org/wiki/Special:RecentChangesLinked/Version_control "Recent changes in pages linked from this page \[ctrl-option-k\]")
+  * [Upload file](https://en.wikipedia.org/wiki/Wikipedia:File_Upload_Wizard "Upload files \[ctrl-option-u\]")
+  * [Permanent link](https://en.wikipedia.org/w/index.php?title=Version_control&oldid=1371852215 "Permanent link to this revision of this page")
+  * [Page information](https://en.wikipedia.org/w/index.php?title=Version_control&action=info "More information about this page")
+  * [Cite this page](https://en.wikipedia.org/w/index.php?title=Special:CiteThisPage&page=Version_control&id=1371852215&wpFormIdentifier=titleform "Information on how to cite this page")
+  * [Get shortened URL](https://en.wikipedia.org/w/index.php?title=Special:UrlShortener&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FVersion_control)
+  * [Switch to legacy parser](https://en.wikipedia.org/w/index.php?title=Version_control&useparsoid=0)
+  * [Expand all](https://en.wikipedia.org/wiki/Version_control "Expand all collapsible elements on the current page")
+  * [Edit interlanguage links](https://www.wikidata.org/wiki/Special:EntityPage/Q189439#sitelinks-wikipedia "Edit interlanguage links")
+
+
+Print/export 
+  * [Download as PDF](https://en.wikipedia.org/w/index.php?title=Special:DownloadAsPdf&page=Version_control&action=show-download-screen "Download this page as a PDF file")
+  * [Printable version](https://en.wikipedia.org/w/index.php?title=Version_control&printable=yes "Printable version of this page \[ctrl-option-p\]")
+
+
+In other projects 
+  * [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Version_control_software)
+  * [Wikibooks](https://en.wikibooks.org/wiki/Version_Control)
+  * [Wikidata item](https://www.wikidata.org/wiki/Special:EntityPage/Q189439 "Structured data on this page hosted by Wikidata \[ctrl-option-g\]")
+
+
+From Wikipedia, the free encyclopedia
+Managing versions of source code or data
+"Source control" redirects here. For other uses in medicine and environment, see [Source control (disambiguation)](https://en.wikipedia.org/wiki/Source_control_\(disambiguation\) "Source control \(disambiguation\)").
+"Revision control system" redirects here. For the software tool, see [Revision Control System](https://en.wikipedia.org/wiki/Revision_Control_System "Revision Control System").
+Not to be confused with [Change control](https://en.wikipedia.org/wiki/Change_control "Change control").  
+| [![icon](https://upload.wikimedia.org/wikipedia/en/thumb/9/99/Question_book-new.svg/60px-Question_book-new.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](https://en.wikipedia.org/wiki/File:Question_book-new.svg)  | This article **needs[more citations](https://en.wikipedia.org/wiki/Wikipedia:Verifiability "Wikipedia:Verifiability")**. Please help [improve this article](https://en.wikipedia.org/wiki/Special:EditPage/Version_control "Special:EditPage/Version control") by [adding citations to reliable sources](https://en.wikipedia.org/wiki/Help:Referencing_for_beginners "Help:Referencing for beginners"). Unsourced material may be challenged and [removed](https://en.wikipedia.org/wiki/Wikipedia:Verifiability#Burden_of_evidence "Wikipedia:Verifiability").  
+_Find sources:_["Version control"](https://www.google.com/search?as_eq=wikipedia&q=%22Version+control%22)–[news](https://www.google.com/search?tbm=nws&q=%22Version+control%22+-wikipedia&tbs=ar:1) **·** [newspapers](https://www.google.com/search?&q=%22Version+control%22&tbs=bkt:s&tbm=bks) **·** [books](https://www.google.com/search?tbs=bks:1&q=%22Version+control%22+-wikipedia) **·** [scholar](https://scholar.google.com/scholar?q=%22Version+control%22) **·** [JSTOR](https://www.jstor.org/action/doBasicSearch?Query=%22Version+control%22&acc=on&wc=on) _( April 2011)__([Learn how and when to remove this message](https://en.wikipedia.org/wiki/Help:Maintenance_template_removal "Help:Maintenance template removal"))_  |  
+| --- | --- |  
+**Version control** (also known as **revision control** , **source control** , and **source code management**) is the [software engineering](https://en.wikipedia.org/wiki/Software_engineering_management "Software engineering management") practice of controlling, organizing, and tracking different versions in history of [computer files](https://en.wikipedia.org/wiki/Computer_file "Computer file") – primarily [source code](https://en.wikipedia.org/wiki/Source_code "Source code") [text files](https://en.wikipedia.org/wiki/Text_files "Text files"), but generally any type of file.
+Version control is a component of [software configuration management](https://en.wikipedia.org/wiki/Software_configuration_management "Software configuration management").[[1]](https://en.wikipedia.org/wiki/Version_control#cite_note-Mercurial-1)
+A **version control system** is a [software tool](https://en.wikipedia.org/wiki/Software_tool "Software tool") that automates version control. Alternatively, version control is embedded as a feature of some systems such as [word processors](https://en.wikipedia.org/wiki/Word_processor "Word processor"), [spreadsheets](https://en.wikipedia.org/wiki/Spreadsheet "Spreadsheet"), collaborative [web docs](https://en.wikipedia.org/wiki/Groupware "Groupware"),[[2]](https://en.wikipedia.org/wiki/Version_control#cite_note-2) and [content management systems](https://en.wikipedia.org/wiki/Content_management_system "Content management system"), such as [Wikipedia's page history](https://en.wikipedia.org/wiki/Help:Page_history "Help:Page history"). 
+Version control includes options to view old versions and to [revert](https://en.wikipedia.org/wiki/Reversion_\(software_development\) "Reversion \(software development\)") a file to a previous version.
+## Overview
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=1 "Edit section: Overview")]
+As teams develop software, it is common to [deploy](https://en.wikipedia.org/wiki/Software_deployment "Software deployment") multiple versions of the same software, and for different developers to work on one or more different versions simultaneously. [Bugs](https://en.wikipedia.org/wiki/Software_bug "Software bug") or features of the software are often only present in certain versions (because of the fixing of some problems and the introduction of others as the program develops). Therefore, for the purposes of locating and fixing bugs, it is vitally important to be able to retrieve and run different versions of the software to determine in which version(s) the problem occurs. It may also be necessary to develop two versions of the software concurrently: for instance, where one version has bugs fixed, but no new features ([branch](https://en.wikipedia.org/wiki/Branching_\(revision_control\) "Branching \(revision control\)")), while the other version is where new features are worked on ([trunk](https://en.wikipedia.org/wiki/Trunk_\(software\) "Trunk \(software\)")).
+At the simplest level, developers could simply retain multiple copies of the different versions of the program, and label them appropriately. This simple approach has been used in many large software projects. While this method can work, it is inefficient as many near-identical copies of the program have to be maintained. This requires a lot of self-discipline on the part of developers and often leads to mistakes. Since the code base is the same, it also requires granting read-write-execute permission to a set of developers, and this adds the pressure of someone managing permissions so that the code base is not compromised, which adds more complexity. Consequently, systems to automate some or all of the revision control process have been developed. This [abstracts](https://en.wikipedia.org/wiki/Abstraction_\(computer_science\) "Abstraction \(computer science\)") most operational steps (hides them from ordinary users).
+Moreover, in software development, legal and business practice, and other environments, it has become increasingly common for a single document or snippet of code to be edited by a team, the members of which may be geographically dispersed and may pursue different and even contrary interests. Sophisticated revision control that tracks and accounts for ownership of changes to documents and code may be extremely helpful or even indispensable in such situations.
+Revision control may also track changes to [configuration files](https://en.wikipedia.org/wiki/Configuration_files "Configuration files"), such as those typically stored in `/etc` or `/usr/local/etc` on [Unix](https://en.wikipedia.org/wiki/Unix "Unix") systems. This gives system administrators another way to easily track changes made and a way to roll back to earlier versions should the need arise.
+Many version control systems identify the version of a file as a number or letter, called the _version number_ , _version_ , _revision number_ , _revision_ , or _revision level_. For example, the first version of a file might be version _1_. When the file is changed the next version is _2_. Each version is associated with a [timestamp](https://en.wikipedia.org/wiki/Timestamp "Timestamp") and the person making the change. Revisions can be compared, restored, and, with some types of files, merged.[[3]](https://en.wikipedia.org/wiki/Version_control#cite_note-3)
+## History
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=2 "Edit section: History")]
+See also: [Comparison of version control software §History and adoption](https://en.wikipedia.org/wiki/Comparison_of_version_control_software#History_and_adoption "Comparison of version control software")
+IBM's OS/360 [IEBUPDTE](https://en.wikipedia.org/wiki/Support_programs_for_OS/360_and_successors#IEBUPDTE "Support programs for OS/360 and successors") software update tool dates back to 1962, arguably a precursor to version control system tools. Two source management and version control packages that were heavily used by IBM 360/370 installations were [The Librarian](https://en.wikipedia.org/wiki/The_Librarian_\(version_control_system\) "The Librarian \(version control system\)") and [Panvalet](https://en.wikipedia.org/wiki/Panvalet "Panvalet").[[4]](https://en.wikipedia.org/wiki/Version_control#cite_note-4)[[5]](https://en.wikipedia.org/wiki/Version_control#cite_note-5)
+A full system designed for source code control was started in 1972: the [Source Code Control System](https://en.wikipedia.org/wiki/Source_Code_Control_System "Source Code Control System") (SCCS), again for the OS/360. SCCS's user manual, especially the introduction, which was published on December 4, 1975, implied that it was the first deliberate revision control system.[[6]](https://en.wikipedia.org/wiki/Version_control#cite_note-6) The [Revision Control System](https://en.wikipedia.org/wiki/Revision_Control_System "Revision Control System") (RCS) followed in 1982[[7]](https://en.wikipedia.org/wiki/Version_control#cite_note-7) and, later, [Concurrent Versions System](https://en.wikipedia.org/wiki/Concurrent_Versions_System "Concurrent Versions System") (CVS) added network and concurrent development features to RCS. After CVS, a dominant successor was [Subversion](https://en.wikipedia.org/wiki/Apache_Subversion "Apache Subversion"),[[8]](https://en.wikipedia.org/wiki/Version_control#cite_note-8) followed by the rise of [distributed version control](https://en.wikipedia.org/wiki/Distributed_version_control "Distributed version control") tools such as [Git](https://en.wikipedia.org/wiki/Git "Git").[[9]](https://en.wikipedia.org/wiki/Version_control#cite_note-9)
+## Structure
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=3 "Edit section: Structure")]
+Revision control manages changes to a set of data over time. These changes can be structured in various ways.
+Often the data is thought of as a collection of many individual items, such as files or documents, and changes to individual files are tracked. This is in line with the notion of keeping files separate but causes problems when identity changes, which happens when files are renamed, split or merged. Accordingly, some systems such as [Git](https://en.wikipedia.org/wiki/Git "Git"), consider changes to the data as a whole instead, which is less intuitive for simple changes but simplifies more complex changes.
+When data that is under revision control is modified, after being retrieved by _checking out,_ this is not in general immediately reflected in the revision control system (in the _[repository](https://en.wikipedia.org/wiki/Repository_\(version_control\) "Repository \(version control\)")_), but must instead be _checked in_ or _committed._ A copy outside of revision control is known as a "working copy". As a simple example, when editing a computer file, the data stored in memory by the editing program is the working copy, which is committed by saving the file. Concretely, one may print out a document, edit it by hand, and only later manually input the changes into a computer and save it. For source code control, the working copy is instead a copy of all files in a particular revision, generally stored locally on the developer's computer;[[note 1]](https://en.wikipedia.org/wiki/Version_control#cite_note-10) in this case saving the file only changes the working copy, and checking into the repository is a separate step.
+If multiple people are working on a single data set or document, they are implicitly creating branches of the data (in their working copies), and thus issues of merging arise, as discussed below. For simple collaborative document editing, this can be prevented by using [file locking](https://en.wikipedia.org/wiki/File_locking "File locking") or simply avoiding working on the same document that someone else is working on.
+Revision control systems are often centralized, with a single authoritative data store, the _repository,_ and check-outs and check-ins done with reference to this central repository. Alternatively, in [distributed revision control](https://en.wikipedia.org/wiki/Distributed_revision_control "Distributed revision control"), no single repository is authoritative, and data can be checked out and checked into any repository. When checking into a different repository, this is interpreted as a merge or patch.
+### Graph structure
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=4 "Edit section: Graph structure")]
+[![](https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Revision_controlled_project_visualization-2010-24-02.svg/250px-Revision_controlled_project_visualization-2010-24-02.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](https://en.wikipedia.org/wiki/File:Revision_controlled_project_visualization-2010-24-02.svg)Example history graph of a revision-controlled project, with the trunk in green and the branches in yellow; the graph is not a tree, however, due to presence of merges (the red arrows).
+In terms of [graph theory](https://en.wikipedia.org/wiki/Graph_theory "Graph theory"), revisions are generally thought of as a line of development (the _trunk_) with branches off of this, forming a directed tree, visualized as one or more parallel lines of development (the "mainlines" of the branches) branching off a trunk. In reality the structure is more complicated, forming a [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph "Directed acyclic graph"), but for many purposes "tree with merges" is an adequate approximation.
+Revisions occur in sequence over time, and thus can be arranged in order, either by revision number or timestamp.[[note 2]](https://en.wikipedia.org/wiki/Version_control#cite_note-11) Revisions are based on past revisions, though it is possible to largely or completely replace an earlier revision, such as "delete all existing text, insert new text". In the simplest case, with no branching or undoing, each revision is based on its immediate predecessor alone, and they form a simple line, with a single latest version, the "HEAD" revision or _tip_. In [graph theory](https://en.wikipedia.org/wiki/Graph_theory "Graph theory") terms, drawing each revision as a point and each "derived revision" relationship as an arrow (conventionally pointing from older to newer, in the same direction as time), this is a [linear graph](https://en.wikipedia.org/wiki/Linear_graph "Linear graph"). If there is branching, so multiple future revisions are based on a past revision, or undoing, so a revision can depend on a revision older than its immediate predecessor, then the resulting graph is instead a [directed tree](https://en.wikipedia.org/wiki/Directed_tree "Directed tree") (each node can have more than one child), and has multiple tips, corresponding to the revisions without children ("latest revision on each branch").[[note 3]](https://en.wikipedia.org/wiki/Version_control#cite_note-12) In principle the resulting tree need not have a preferred tip ("main" latest revision) – just various different revisions – but in practice one tip is generally identified as HEAD. When a new revision is based on HEAD, it is either identified as the new HEAD, or considered a new branch.[[note 4]](https://en.wikipedia.org/wiki/Version_control#cite_note-13) The list of revisions from the start to HEAD (in graph theory terms, the unique path in the tree, which forms a linear graph as before) is the _trunk_ or _mainline._[[note 5]](https://en.wikipedia.org/wiki/Version_control#cite_note-14) Conversely, when a revision can be based on more than one previous revision (when a node can have more than one _parent_), the resulting process is called a _[merge](https://en.wikipedia.org/wiki/Merge_\(revision_control\) "Merge \(revision control\)"),_ and is one of the most complex aspects of revision control. This most often occurs when changes occur in multiple branches (most often two, but more are possible), which are then merged into a single branch incorporating both changes. If these changes overlap, it may be difficult or impossible to merge, and require manual intervention or rewriting.
+In the presence of merges, the resulting graph is no longer a tree, as nodes can have multiple parents, but is instead a rooted [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph "Directed acyclic graph") (DAG). The graph is acyclic since parents are always backwards in time, and rooted because there is an oldest version. Assuming there is a trunk, merges from branches can be considered as "external" to the tree – the changes in the branch are packaged up as a _patch,_ which is applied to HEAD (of the trunk), creating a new revision without any explicit reference to the branch, and preserving the tree structure. Thus, while the actual relations between versions form a DAG, this can be considered a tree plus merges, and the trunk itself is a line.
+In distributed revision control, in the presence of multiple repositories these may be based on a single original version (a root of the tree), but there need not be an original root - instead there can be a separate root (oldest revision) for each repository. This can happen, for example, if two people start working on a project separately. Similarly, in the presence of multiple data sets (multiple projects) that exchange data or merge, there is no single root, though for simplicity one may think of one project as primary and the other as secondary, merged into the first with or without its own revision history.
+## Specialized strategies
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=5 "Edit section: Specialized strategies")]
+Engineering revision control developed from formalized processes based on tracking revisions of early [blueprints](https://en.wikipedia.org/wiki/Blueprint "Blueprint") or [bluelines](https://en.wikipedia.org/wiki/Whiteprint "Whiteprint")["MIL-STD-100G: Department of Defense Standard Practice for Engineering Drawings"](https://apps.dtic.mil/sti/tr/pdf/ADA361444.pdf) (PDF). United States Department of Defense. 9 June 1997. Retrieved 2026-05-16.. This system of control implicitly allowed returning to an earlier state of the design, for cases in which an engineering dead-end was reached in the development of the design. A revision table was used to keep track of the changes made. Additionally, the modified areas of the drawing were highlighted using revision clouds.
+### In business and law
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=6 "Edit section: In business and law")]
+Version control is widespread in business and law. Indeed, "contract redline" and "legal blackline" are some of the earliest forms of revision control,[[10]](https://en.wikipedia.org/wiki/Version_control#cite_note-15) and are still employed in business and law with varying degrees of sophistication. The most sophisticated techniques are beginning to be used for the electronic tracking of changes to [CAD files](https://en.wikipedia.org/wiki/CAD_file "CAD file") (see [product data management](https://en.wikipedia.org/wiki/Product_data_management "Product data management")), supplanting the "manual" electronic implementation of traditional revision control. [[11]](https://en.wikipedia.org/wiki/Version_control#cite_note-16)
+### In game development
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=7 "Edit section: In game development")]
+Game development often involves large binary files and teams working together across different disciplines. As a result, game studios use version control systems with good support for large binary files, file locking, and fast synchronization. Common tools include Perforce and several newer cloud-based systems.[[12]](https://en.wikipedia.org/wiki/Version_control#cite_note-17)[[13]](https://en.wikipedia.org/wiki/Version_control#cite_note-18)
+## Source-management models
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=8 "Edit section: Source-management models")]
+Traditional revision control systems use a centralized model where all the revision control functions take place on a shared [server](https://en.wikipedia.org/wiki/Server_\(computing\) "Server \(computing\)"). If two developers try to change the same file at the same time, without some method of managing access the developers may end up overwriting each other's work. Centralized revision control systems solve this problem in one of two different "source management models": file locking and version merging.
+### Atomic operations
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=9 "Edit section: Atomic operations")]
+Main article: [Atomic commit](https://en.wikipedia.org/wiki/Atomic_commit "Atomic commit")
+An operation is _atomic_ if the system is left in a consistent state even if the operation is interrupted. The _commit_ operation is usually the most critical in this sense. Commits tell the revision control system to make a group of changes final, and available to all users. Not all revision control systems have atomic commits; Concurrent Versions System lacks this feature.[[14]](https://en.wikipedia.org/wiki/Version_control#cite_note-19)
+### File locking
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=10 "Edit section: File locking")]
+The simplest method of preventing "[concurrent access](https://en.wikipedia.org/wiki/Concurrent_access "Concurrent access")" problems involves [locking files](https://en.wikipedia.org/wiki/File_locking "File locking") so that only one developer at a time has write access to the central "[repository](https://en.wikipedia.org/wiki/Repository_\(version_control\) "Repository \(version control\)")" copies of those files. Once one developer "checks out" a file, others can read that file, but no one else may change that file until that developer "checks in" the updated version (or cancels the checkout).
+File locking has both merits and drawbacks. It can provide some protection against difficult [merge conflicts](https://en.wikipedia.org/wiki/Edit_conflict "Edit conflict") when a user is making radical changes to many sections of a large file (or group of files). If the files are left exclusively locked for too long, other developers may be tempted to bypass the revision control software and change the files locally, forcing a difficult manual merge when the other changes are finally checked in. In a large organization, files can be left "checked out" and locked and forgotten about as developers move between projects - these tools may or may not make it easy to see who has a file checked out.
+### Version merging
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=11 "Edit section: Version merging")]
+Main article: [Merge (version control)](https://en.wikipedia.org/wiki/Merge_\(version_control\) "Merge \(version control\)")
+Most version control systems allow multiple developers to edit the same file at the same time. The first developer to "check in" changes to the central repository always succeeds. The system may provide facilities to [merge](https://en.wikipedia.org/wiki/Merge_\(revision_control\) "Merge \(revision control\)") further changes into the central repository, and preserve the changes from the first developer when other developers check in.
+Merging two files can be a very delicate operation, and usually possible only if the [data structure](https://en.wikipedia.org/wiki/Data_structure "Data structure") is simple, as in [text files](https://en.wikipedia.org/wiki/Text_file "Text file"). The result of a merge of two [image files](https://en.wikipedia.org/wiki/Image_file "Image file") might not result in an image file at all. The second developer checking in files will need to take care with the merge, to make sure that the changes are compatible and that the merge operation does not introduce its own [logic](https://en.wikipedia.org/wiki/Logic "Logic") errors within the files. These problems limit the availability of automatic or semi-automatic merge operations mainly to simple text-based documents, unless a specific merge [plugin](https://en.wikipedia.org/wiki/Plug-in_\(computing\) "Plug-in \(computing\)") is available for the file types.
+The concept of a _reserved edit_ can provide an optional means to explicitly lock a file for exclusive write access, even when a merging capability exists.
+### Baselines, labels and tags
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=12 "Edit section: Baselines, labels and tags")]
+Most revision control tools will use only one of these similar terms (baseline, label, tag) to refer to the action of identifying a snapshot ("label the project") or the record of the snapshot ("try it with baseline _X_ "). Typically only one of the terms _baseline_ , _label_ , or _tag_ is used in documentation or discussion[[15]](https://en.wikipedia.org/wiki/Version_control#cite_note-20); they can be considered synonyms.
+In most projects, some snapshots are more significant than others, such as those used to indicate published releases, branches, or milestones.
+When both the term _baseline_ and either of _label_ or _tag_ are used together in the same context, _label_ and _tag_ usually refer to the mechanism within the tool of identifying or making the record of the snapshot, and _baseline_ indicates the increased significance of any given label or tag.
+Most formal discussion of [configuration management](https://en.wikipedia.org/wiki/Configuration_management "Configuration management") uses the term [_baseline_](https://en.wikipedia.org/wiki/Baseline_\(configuration_management\) "Baseline \(configuration management\)").
+## Distributed revision control
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=13 "Edit section: Distributed revision control")]
+Main article: [Distributed version control](https://en.wikipedia.org/wiki/Distributed_version_control "Distributed version control")
+Distributed revision control systems (DRCS) take a peer-to-peer approach, as opposed to the [client–server](https://en.wikipedia.org/wiki/Client%E2%80%93server_model "Client–server model") approach of centralized systems. Rather than a single, central repository on which clients synchronize, each peer's working copy of the codebase is a [bona-fide](https://en.wikipedia.org/wiki/Good_faith "Good faith") repository.[[16]](https://en.wikipedia.org/wiki/Version_control#cite_note-21) Distributed revision control conducts synchronization by exchanging [patches](https://en.wikipedia.org/wiki/Patch_\(computing\) "Patch \(computing\)") (change-sets) from peer to peer. This results in some important differences from a centralized system:
+  * No canonical, reference copy of the codebase exists by default; only working copies.
+  * Common operations (such as commits, viewing history, and reverting changes) are fast, because there is no need to communicate with a central server.[[1]](https://en.wikipedia.org/wiki/Version_control#cite_note-Mercurial-1):7
+
+
+Rather, communication is only necessary when pushing or pulling changes to or from other peers.
+  * Each working copy effectively functions as a remote backup of the codebase and of its change-history, providing inherent protection against data loss.[[1]](https://en.wikipedia.org/wiki/Version_control#cite_note-Mercurial-1):4
+
+
+## Best practices
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=14 "Edit section: Best practices")]
+Following best practices is necessary to obtain the full benefits of version control. Best practice may vary by version control tool and the field to which version control is applied. The generally accepted best practices in [software development](https://en.wikipedia.org/wiki/Software_development "Software development") include: making small/incremental changes; making [commits](https://en.wikipedia.org/wiki/Commit_\(version_control\) "Commit \(version control\)") which involve only one task or fix -- a corollary to this is to commit only code which works and does not knowingly break existing functionality; using branching to complete functionality before release; writing clear and descriptive commit messages, making what, why, and how clear in either the commit description or the code; and using a consistent branching strategy.[[17]](https://en.wikipedia.org/wiki/Version_control#cite_note-22) Other software development best practices such as [code review](https://en.wikipedia.org/wiki/Code_review "Code review") and automated [regression testing](https://en.wikipedia.org/wiki/Regression_testing "Regression testing") may assist in the following of version control best practices.
+## Costs and benefits
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=15 "Edit section: Costs and benefits")]
+Costs and benefits will vary dependent upon the version control tool chosen and the field in which it is applied. This section speaks to the field of software development, where version control is widely applied.
+### Costs
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=16 "Edit section: Costs")]
+In addition to the costs of licensing the version control software, using version control requires time and effort. The concepts underlying version control must be understood and the technical particulars required to operate the version control software chosen must be learned. Version control best practices must be learned and integrated into the organization's existing software development practices. Management effort may be required to maintain the discipline needed to follow best practices in order to obtain useful benefit.
+### Benefits
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=17 "Edit section: Benefits")]
+#### Allows for reverting changes
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=18 "Edit section: Allows for reverting changes")]
+A core benefit is the ability to keep history and revert changes, allowing the developer to easily undo changes. This gives the developer more opportunity to experiment, eliminating the fear of breaking existing code.[[18]](https://en.wikipedia.org/wiki/Version_control#cite_note-23)
+#### Branching simplifies deployment, maintenance and development
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=19 "Edit section: Branching simplifies deployment, maintenance and development")]
+Branching assists with [deployment](https://en.wikipedia.org/wiki/Software_deployment "Software deployment") and [release management](https://en.wikipedia.org/wiki/Release_management "Release management"). Branching and merging, the production, packaging, and labeling of source code [patches](https://en.wikipedia.org/wiki/Patch_\(computing\) "Patch \(computing\)") and the easy application of patches to code bases, simplifies the maintenance and concurrent development of the multiple code bases associated with the various stages of the deployment process; development, testing, staging, production, etc.[[19]](https://en.wikipedia.org/wiki/Version_control#cite_note-24)
+#### Damage mitigation, accountability and process and design improvement
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=20 "Edit section: Damage mitigation, accountability and process and design improvement")]
+There can be damage mitigation, accountability, process and design improvement, and other benefits associated with the record keeping provided by version control, the tracking of who did what, when, why, and how.[[20]](https://en.wikipedia.org/wiki/Version_control#cite_note-25)
+When bugs arise, knowing what was done when helps with damage mitigation and recovery by assisting in the identification of what problems exist, how long they have existed, and determining problem scope and solutions.[[21]](https://en.wikipedia.org/wiki/Version_control#cite_note-26) Previous versions can be installed and tested to verify conclusions reached by examination of code and commit messages.[[22]](https://en.wikipedia.org/wiki/Version_control#cite_note-27)
+#### Simplifies debugging
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=21 "Edit section: Simplifies debugging")]
+Version control can greatly simplify debugging. The application of a test case to multiple versions can quickly identify the change which introduced a bug.[[23]](https://en.wikipedia.org/wiki/Version_control#cite_note-28) The developer need not be familiar with the entire code base and can focus instead on the code that introduced the problem.
+#### Improves collaboration and communication
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=22 "Edit section: Improves collaboration and communication")]
+Version control enhances collaboration in multiple ways. Since version control can identify conflicting changes, i.e. incompatible changes made to the same lines of code, there is less need for coordination among developers.[[24]](https://en.wikipedia.org/wiki/Version_control#cite_note-29)
+The packaging of commits, branches, and all the associated commit messages and version labels, improves communication between developers, both in the moment and over time.[[25]](https://en.wikipedia.org/wiki/Version_control#cite_note-30) Better communication, whether instant or deferred, can improve the code review process, the testing process, and other critical aspects of the software development process.
+## Integration
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=23 "Edit section: Integration")]
+Some of the more advanced revision-control tools offer many other facilities, allowing deeper integration with other tools and software-engineering processes. 
+### Integrated development environment
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=24 "Edit section: Integrated development environment")]
+[Plugins](https://en.wikipedia.org/wiki/Plug-in_\(computing\) "Plug-in \(computing\)") are often available for [IDEs](https://en.wikipedia.org/wiki/Integrated_development_environment "Integrated development environment") such as [Oracle JDeveloper](https://en.wikipedia.org/wiki/Oracle_JDeveloper "Oracle JDeveloper"), [IntelliJ IDEA](https://en.wikipedia.org/wiki/IntelliJ_IDEA "IntelliJ IDEA"), [Eclipse](https://en.wikipedia.org/wiki/Eclipse_\(computing\) "Eclipse \(computing\)"), [Visual Studio](https://en.wikipedia.org/wiki/Visual_Studio "Visual Studio"), [Delphi](https://en.wikipedia.org/wiki/Delphi_\(programming_language\) "Delphi \(programming language\)"), [NetBeans IDE](https://en.wikipedia.org/wiki/NetBeans "NetBeans"), [Xcode](https://en.wikipedia.org/wiki/Xcode "Xcode"), and [GNU Emacs](https://en.wikipedia.org/wiki/GNU_Emacs "GNU Emacs") (via vc.el). Advanced research prototypes generate appropriate commit messages.[[26]](https://en.wikipedia.org/wiki/Version_control#cite_note-31)
+## Common terminology
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=25 "Edit section: Common terminology")]
+Terminology can vary from system to system, but some terms in common usage include:[[27]](https://en.wikipedia.org/wiki/Version_control#cite_note-32)
+### Baseline
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=26 "Edit section: Baseline")]
+Main article: [Baseline (configuration management)](https://en.wikipedia.org/wiki/Baseline_\(configuration_management\) "Baseline \(configuration management\)")
+An approved revision of a document or source file to which subsequent changes can be made. See [baselines, labels and tags](https://en.wikipedia.org/wiki/Version_control#Baselines,_labels_and_tags).
+### Blame
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=27 "Edit section: Blame")]
+A search for the author and revision that last modified a particular line.
+### Branch
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=28 "Edit section: Branch")]
+Main article: [Branching (revision control)](https://en.wikipedia.org/wiki/Branching_\(revision_control\) "Branching \(revision control\)")
+A set of files under version control may be _branched_ or _forked_ at a point in time so that, from that time forward, two copies of those files may develop at different speeds or in different ways independently of each other.
+### Change
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=29 "Edit section: Change")]
+A _change_ (or _[diff](https://en.wikipedia.org/wiki/Diff "Diff")_ , or _[delta](https://en.wikipedia.org/wiki/Delta_encoding "Delta encoding")_) represents a specific modification to a document under version control. The granularity of the modification considered a change varies between version control systems.
+### Change list
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=30 "Edit section: Change list")]
+On many version control systems with [atomic](https://en.wikipedia.org/wiki/Atomic_transaction "Atomic transaction") multi-change commits, a _change list_ (or _CL_), _change set_ , _update_ , or _[patch](https://en.wikipedia.org/wiki/Patch_\(computing\) "Patch \(computing\)")_ identifies the set of _changes_ made in a single commit. This can also represent a sequential view of the source code, allowing the examination of source as of any particular changelist ID.
+### Checkout
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=31 "Edit section: Checkout")]
+To _check out_ (or _co_) is to create a local working copy from the repository. A user may specify a specific revision or obtain the latest. The term 'checkout' can also be used as a noun to describe the working copy. When a file has been checked out from a shared file server, it cannot be edited by other users. Think of it like a hotel, when you check out, you no longer have access to its amenities.
+### Clone
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=32 "Edit section: Clone")]
+_Cloning_ means creating a repository containing the revisions from another repository. This is equivalent to _push_ ing or _pull_ ing into an empty (newly initialized) repository. As a noun, two repositories can be said to be _clone_ s if they are kept synchronized, and contain the same revisions.
+### Commit (noun)
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=33 "Edit section: Commit \(noun\)")]
+This section is an excerpt from [Changeset](https://en.wikipedia.org/wiki/Changeset "Changeset").[[edit](https://en.wikipedia.org/w/index.php?title=Changeset&action=edit)]
+In version control software, a [changeset](https://en.wikipedia.org/wiki/Changeset "Changeset") (also known as commit[[28]](https://en.wikipedia.org/wiki/Version_control#cite_note-Changeset_gitglossary-changeset-33) and revision[[29]](https://en.wikipedia.org/wiki/Version_control#cite_note-34)[[30]](https://en.wikipedia.org/wiki/Version_control#cite_note-35)) is a set of alterations packaged together, along with meta-information about the alterations. A changeset describes the exact differences between two successive versions in the version control system's repository of changes. Changesets are typically treated as an [atomic](https://en.wikipedia.org/wiki/Atomicity_\(database_systems\) "Atomicity \(database systems\)") unit, an indivisible set, by version control systems. This is one [synchronization model](https://en.wikipedia.org/wiki/Synchronization_model "Synchronization model").[[31]](https://en.wikipedia.org/wiki/Version_control#cite_note-36)[[32]](https://en.wikipedia.org/wiki/Version_control#cite_note-37)
+### Commit (verb)
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=34 "Edit section: Commit \(verb\)")]
+Main article: [Commit (revision control)](https://en.wikipedia.org/wiki/Commit_\(revision_control\) "Commit \(revision control\)")
+To _[commit](https://en.wikipedia.org/wiki/Commit_\(revision_control\) "Commit \(revision control\)")_ (_check in_ , _ci_ or, more rarely, _install_ , _submit_ or _record_) is to write or merge the changes made in the working copy back to the repository. A commit contains metadata, typically the author information and a commit message that describes the change.
+### Commit message
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=35 "Edit section: Commit message")]
+A short note, written by the developer, stored with the commit, which describes the commit. Ideally, it records why the modification was made, a description of the modification's effect or purpose, and non-obvious aspects of how the change works.
+### Conflict
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=36 "Edit section: Conflict")]
+A conflict occurs when different parties make changes to the same document, and the system is unable to reconcile the changes. A user must _resolve_ the conflict by combining the changes, or by selecting one change in favour of the other.
+### Delta compression
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=37 "Edit section: Delta compression")]
+Main article: [Delta compression](https://en.wikipedia.org/wiki/Delta_compression "Delta compression")
+Most revision control software uses [delta compression](https://en.wikipedia.org/wiki/Delta_compression "Delta compression"), which retains only the differences between successive versions of files. This allows for more efficient storage of many different versions of files.
+### Dynamic stream
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=38 "Edit section: Dynamic stream")]
+A stream in which some or all file versions are mirrors of the parent stream's versions.
+### Export
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=39 "Edit section: Export")]
+_Exporting_ is the act of obtaining the files from the repository. It is similar to _checking out_ except that it creates a clean directory tree without the version-control metadata used in a working copy. This is often used prior to publishing the contents, for example.
+### Fetch
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=40 "Edit section: Fetch")]
+See _pull_.
+### Forward integration
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=41 "Edit section: Forward integration")]
+The process of merging changes made in the main _trunk_ into a development (feature or team) branch.
+### Head
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=42 "Edit section: Head")]
+Also sometimes called _tip_ , this refers to the most recent commit, either to the trunk or to a branch. The trunk and each branch have their own head, though HEAD is sometimes loosely used to refer to the trunk.[[33]](https://en.wikipedia.org/wiki/Version_control#cite_note-38)
+### Import
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=43 "Edit section: Import")]
+_Importing_ is the act of copying a local directory tree (that is not currently a working copy) into the repository for the first time.
+### Initialize
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=44 "Edit section: Initialize")]
+To create a new, empty repository.
+### Interleaved deltas
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=45 "Edit section: Interleaved deltas")]
+Some revision control software uses [Interleaved deltas](https://en.wikipedia.org/wiki/Interleaved_deltas "Interleaved deltas"), a method that allows storing the history of text based files in a more efficient way than by using [Delta compression](https://en.wikipedia.org/wiki/Delta_compression "Delta compression").
+### Label
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=46 "Edit section: Label")]
+See _tag_.
+### Locking
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=47 "Edit section: Locking")]
+Main article: [File locking](https://en.wikipedia.org/wiki/File_locking "File locking")
+When a developer _[locks](https://en.wikipedia.org/wiki/File_locking "File locking")_ a file, no one else can update that file until it is unlocked. Locking can be supported by the version control system, or via informal communications between developers (aka _social locking_).
+### Mainline
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=48 "Edit section: Mainline")]
+Similar to _trunk_ , but there can be a mainline for each branch.
+### Merge
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=49 "Edit section: Merge")]
+Main article: [Merge (revision control)](https://en.wikipedia.org/wiki/Merge_\(revision_control\) "Merge \(revision control\)")
+A _merge_ or _integration_ is an operation in which two sets of changes are applied to a file or set of files. Some sample scenarios are as follows:
+  * A user, working on a set of files, _updates_ or _syncs_ their working copy with changes made, and checked into the repository, by other users.[[34]](https://en.wikipedia.org/wiki/Version_control#cite_note-FOOTNOTECollins-SussmanFitzpatrickPilato2004\[httpsvnbookred-beancomen15svntourcyclehtmlsvntourcycleresolve_1.5:_SVN_tour_cycle_resolve\]-39)
+  * A user tries to _check in_ files that have been updated by others since the files were _checked out_ , and the _revision control software_ automatically merges the files (typically, after prompting the user if it should proceed with the automatic merge, and in some cases only doing so if the merge can be clearly and reasonably resolved).
+  * A _branch_ is created, the code in the files is independently edited, and the updated branch is later incorporated into a single, unified _trunk_.
+  * A set of files is _branched_ , a problem that existed before the branching is fixed in one branch, and the fix is then merged into the other branch. (This type of selective merge is sometimes known as a _cherry pick_ to distinguish it from the complete merge in the previous case.)
+
+
+### Promote
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=50 "Edit section: Promote")]
+The act of copying file content from a less controlled location into a more controlled location. For example, from a user's workspace into a repository, or from a stream to its parent.[[35]](https://en.wikipedia.org/wiki/Version_control#cite_note-40)
+### Pull, push
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=51 "Edit section: Pull, push")]
+Copy revisions from one repository into another. _Pull_ is initiated by the receiving repository, while _push_ is initiated by the source. _Fetch_ is sometimes used as a synonym for _pull_ , or to mean a _pull_ followed by an _update_.
+### Pull request
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=52 "Edit section: Pull request")]
+This section is an excerpt from [Distributed version control § Pull requests](https://en.wikipedia.org/wiki/Distributed_version_control#Pull_requests "Distributed version control").[[edit](https://en.wikipedia.org/w/index.php?title=Distributed_version_control&action=edit)]
+Contributions to a source code repository that uses a distributed version control system are commonly made by means of a pull request, also known as a merge request.[[36]](https://en.wikipedia.org/wiki/Version_control#cite_note-Distributed_version_control_gitlab-merge-req-41) The contributor requests that the project maintainer _pull_ the source code change, hence the name "pull request". The maintainer has to _merge_ the pull request if the contribution should become part of the source base.[[37]](https://en.wikipedia.org/wiki/Version_control#cite_note-Distributed_version_control_ossw-42)
+The developer creates a pull request to notify maintainers of a new change; a comment thread is associated with each pull request. This allows for [focused discussion of code changes](https://en.wikipedia.org/wiki/Code_review "Code review"). Submitted pull requests are visible to anyone with repository access. A pull request can be accepted or rejected by maintainers.[[38]](https://en.wikipedia.org/wiki/Version_control#cite_note-43)
+Once the pull request is reviewed and approved, it is merged into the repository. Depending on the established workflow, the code may need to be tested before being included into official release. Therefore, some projects contain a special branch for merging untested pull requests.[[37]](https://en.wikipedia.org/wiki/Version_control#cite_note-Distributed_version_control_ossw-42)[[39]](https://en.wikipedia.org/wiki/Version_control#cite_note-44) Other projects run an automated test suite on every pull request, using a [continuous integration](https://en.wikipedia.org/wiki/Continuous_integration "Continuous integration") tool, and the reviewer checks that any new code has appropriate test coverage.
+### Repository
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=53 "Edit section: Repository")]
+This section is an excerpt from [Repository (version control)](https://en.wikipedia.org/wiki/Repository_\(version_control\) "Repository \(version control\)").[[edit](https://en.wikipedia.org/w/index.php?title=Repository_\(version_control\)&action=edit)]
+In version control systems, a [repository](https://en.wikipedia.org/wiki/Repository_\(version_control\) "Repository \(version control\)") is a data structure that stores either [metadata](https://en.wikipedia.org/wiki/Metadata "Metadata") or metadata and files for a set of files or [directory structure](https://en.wikipedia.org/wiki/Directory_structure "Directory structure").[[40]](https://en.wikipedia.org/wiki/Version_control#cite_note-45) Depending on whether the version control system in use is distributed, like [Git](https://en.wikipedia.org/wiki/Git "Git") or [Mercurial](https://en.wikipedia.org/wiki/Mercurial "Mercurial"), or centralized, like [Subversion](https://en.wikipedia.org/wiki/Apache_Subversion "Apache Subversion"), [CVS](https://en.wikipedia.org/wiki/Concurrent_Versions_System "Concurrent Versions System"), or [Perforce](https://en.wikipedia.org/wiki/Perforce "Perforce"), the whole set of information in the repository may be duplicated on every user's system or may be maintained on a single [server](https://en.wikipedia.org/wiki/Server_\(computing\) "Server \(computing\)").[[41]](https://en.wikipedia.org/wiki/Version_control#cite_note-Repository_\(version_control\)_Ernst-2018-46) Some of the metadata that a repository contains includes, among other things, a historical record of changes in the repository, a set of commit objects, and a set of references to commit objects, called _heads_.
+### Resolve
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=54 "Edit section: Resolve")]
+The act of user intervention to address a conflict between different changes to the same document.
+### Reverse integration
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=55 "Edit section: Reverse integration")]
+The process of merging different team branches into the main trunk of the versioning system.
+### Reversion
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=56 "Edit section: Reversion")]
+The abandonment of one or more recent changes in favor of a return to a previous version of the material at hand. A revert may be done for many reasons, including: fixing errors introduced by previous edits; restoring the material to a state that was not contentious until new disputes can be resolved; undoing [scope creep](https://en.wikipedia.org/wiki/Scope_creep "Scope creep"); and [regression testing](https://en.wikipedia.org/wiki/Regression_testing "Regression testing").
+### Revision and version
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=57 "Edit section: Revision and version")]
+A [version](https://en.wikipedia.org/wiki/Software_versioning "Software versioning") is any change in form. In SVK, a Revision is the state at a point in time of the entire tree in the repository.
+### Share
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=58 "Edit section: Share")]
+The act of making one file or folder available in multiple branches at the same time. When a shared file is changed in one branch, it is changed in other branches.
+### Stream
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=59 "Edit section: Stream")]
+A container for branched files that has a known relationship to other such containers. Streams form a hierarchy; each stream can inherit various properties (like versions, namespace, workflow rules, subscribers, etc.) from its parent stream.
+### Tag
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=60 "Edit section: Tag")]
+Main article: [Revision tag](https://en.wikipedia.org/wiki/Revision_tag "Revision tag")
+A _[tag](https://en.wikipedia.org/wiki/Revision_tag "Revision tag")_ or _label_ refers to an important snapshot in time, consistent across many files. These files at that point may all be tagged with a user-friendly, meaningful name or revision number. See [baselines, labels and tags](https://en.wikipedia.org/wiki/Version_control#Baselines,_labels_and_tags).
+### Trunk
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=61 "Edit section: Trunk")]
+Main article: [Trunk (software)](https://en.wikipedia.org/wiki/Trunk_\(software\) "Trunk \(software\)")
+The [trunk](https://en.wikipedia.org/wiki/Trunk_\(software\) "Trunk \(software\)") is the unique line of development that is not a branch (sometimes also called Baseline, Mainline or Master[[42]](https://en.wikipedia.org/wiki/Version_control#cite_note-47)[[43]](https://en.wikipedia.org/wiki/Version_control#cite_note-48))
+### Update
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=62 "Edit section: Update")]
+An _update_ (or _sync_ , but _sync_ can also mean a combined _push_ and _pull_) merges changes made in the repository (by other people, for example) into the local _working copy_. _Update_ is also the term used by some CM tools (CM+, PLS, SMS) for the change package concept (see _changelist_). Synonymous with _checkout_ in revision control systems that require each repository to have exactly one working copy (common in distributed systems)
+### Unlocking
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=63 "Edit section: Unlocking")]
+Releasing a lock.
+### Working copy
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=64 "Edit section: Working copy")]
+The _working copy_ is the local copy of files from a repository, at a specific time or revision. All work done to the files in a repository is initially done on a working copy, hence the name. Conceptually, it is a _[sandbox](https://en.wikipedia.org/wiki/Sandbox_\(software_development\) "Sandbox \(software development\)")_.
+## See also
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=65 "Edit section: See also")]
+  * [Change control](https://en.wikipedia.org/wiki/Change_control "Change control")
+  * [Changelog](https://en.wikipedia.org/wiki/Changelog "Changelog")
+  * [Blockchain](https://en.wikipedia.org/wiki/Blockchain "Blockchain")
+  * [Comparison of version-control software](https://en.wikipedia.org/wiki/Comparison_of_version-control_software "Comparison of version-control software")
+  * [Comparison of source-code-hosting facilities](https://en.wikipedia.org/wiki/Comparison_of_source-code-hosting_facilities "Comparison of source-code-hosting facilities")
+  * [Data version control](https://en.wikipedia.org/wiki/Data_version_control "Data version control")
+  * [Distributed version control](https://en.wikipedia.org/wiki/Distributed_version_control "Distributed version control")
+  * [List of version-control software](https://en.wikipedia.org/wiki/List_of_version-control_software "List of version-control software")
+  * [Non-linear editing](https://en.wikipedia.org/wiki/Non-linear_editing "Non-linear editing")
+  * [Software configuration management](https://en.wikipedia.org/wiki/Software_configuration_management "Software configuration management")
+  * [Software versioning](https://en.wikipedia.org/wiki/Software_versioning "Software versioning")
+  * [Versioning file system](https://en.wikipedia.org/wiki/Versioning_file_system "Versioning file system")
+
+
+## Notes
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=66 "Edit section: Notes")]
+  1. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-10 "Jump up") In this case, edit buffers are a secondary form of working copy, and not referred to as such.
+  2. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-11 "Jump up") In principle two revisions can have identical timestamp, and thus cannot be ordered on a line. This is generally the case for separate repositories, though is also possible for simultaneous changes to several branches in a single repository. In these cases, the revisions can be thought of as a set of separate lines, one per repository or branch (or branch within a repository).
+  3. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-12 "Jump up") The revision or repository "tree" should not be confused with the directory tree of files in a working copy.
+  4. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-13 "Jump up") If a new branch is based on HEAD, then topologically HEAD is no longer a tip, since it has a child.
+  5. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-14 "Jump up") "Mainline" can also refer to the main path in a separate branch.
+
+
+## References
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=67 "Edit section: References")]
+  1. [1](https://en.wikipedia.org/wiki/Version_control#cite_ref-Mercurial_1-0) [2](https://en.wikipedia.org/wiki/Version_control#cite_ref-Mercurial_1-1) [3](https://en.wikipedia.org/wiki/Version_control#cite_ref-Mercurial_1-2) O'Sullivan, Bryan (2009). [_Mercurial: the Definitive Guide_](http://hgbook.red-bean.com/read/). Sebastopol: O'Reilly Media, Inc. [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[978-0-596-55547-4](https://en.wikipedia.org/wiki/Special:BookSources/978-0-596-55547-4 "Special:BookSources/978-0-596-55547-4"). [Archived](https://web.archive.org/web/20191208075704/http://hgbook.red-bean.com/read/) from the original on 8 December 2019. Retrieved 4 September 2015.
+  2. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-2 "Jump up") "[Google Docs](https://en.wikipedia.org/wiki/Google_Docs "Google Docs")", [_See what's changed in a file_](https://support.google.com/docs/answer/190843), Google Inc., [archived](https://web.archive.org/web/20221006115757/http://support.google.com/docs/answer/190843) from the original on 2022-10-06, retrieved 2021-04-21.
+  3. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-3 "Jump up") Scott, Chacon; Straub, Ben (2014). [_Pro Git Second Edition_](https://git-scm.com/book/en/v2). United States: [Apress](https://en.wikipedia.org/wiki/Apress "Apress"). p.14. [Archived](https://web.archive.org/web/20151225223054/http://git-scm.com/book/en/v2) from the original on 2015-12-25. Retrieved 2022-02-19.
+  4. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-4 "Jump up") Goetz, Martin (May 3, 2002). ["An Interview with Martin Goetz"](https://conservancy.umn.edu/handle/11299/107328) (Interview). Interviewed by Jeffrey R. Yost. Washington, D.C.: Charles Babbage Institute, University of Minnesota. pp.5–7. [Archived](https://web.archive.org/web/20240926164955/https://conservancy.umn.edu/items/0277706b-af0f-4a02-84d6-ff74b1d410aa) from the original on September 26, 2024. Retrieved August 17, 2023.
+  5. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-5 "Jump up") Piscipo, Joseph (May 3, 2002). ["An Interview with Joseph Piscopo"](https://conservancy.umn.edu/handle/11299/107601) (Interview). Interviewed by Thomas Haigh. Washington, D.C.: Charles Babbage Institute, University of Minnesota. pp.3, 5, 12–13. [Archived](https://web.archive.org/web/20240926164956/https://conservancy.umn.edu/items/9e1d3842-5a3b-495f-ae5a-d6aa3baaf109) from the original on September 26, 2024. Retrieved August 17, 2023.
+  6. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-6 "Jump up") Rochkind, Marc J. (1975). ["The Source Code Control System"](https://web.archive.org/web/20200930100148/https://basepath.com/aup/talks/SCCS-Slideshow.pdf) (PDF). _IEEE Transactions on Software Engineering_. **SE-1** (4): 364–370. [Bibcode](https://en.wikipedia.org/wiki/Bibcode_\(identifier\) "Bibcode \(identifier\)"):[1975ITSEn...1..364R](https://ui.adsabs.harvard.edu/abs/1975ITSEn...1..364R). [doi](https://en.wikipedia.org/wiki/Doi_\(identifier\) "Doi \(identifier\)"):[10.1109/TSE.1975.6312866](https://doi.org/10.1109%2FTSE.1975.6312866). [S2CID](https://en.wikipedia.org/wiki/S2CID_\(identifier\) "S2CID \(identifier\)")[10006076](https://api.semanticscholar.org/CorpusID:10006076). Archived from [the original](https://basepath.com/aup/talks/SCCS-Slideshow.pdf) (PDF) on 2020-09-30. Retrieved 2020-09-03.
+  7. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-7 "Jump up") Tichy, Walter F. (1985). ["Rcs — a system for version control"](https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=1393&context=cstech). _Software: Practice and Experience_. **15** (7): 637–654. [doi](https://en.wikipedia.org/wiki/Doi_\(identifier\) "Doi \(identifier\)"):[10.1002/spe.4380150703](https://doi.org/10.1002%2Fspe.4380150703). [ISSN](https://en.wikipedia.org/wiki/ISSN_\(identifier\) "ISSN \(identifier\)")[0038-0644](https://search.worldcat.org/issn/0038-0644). [S2CID](https://en.wikipedia.org/wiki/S2CID_\(identifier\) "S2CID \(identifier\)")[2605086](https://api.semanticscholar.org/CorpusID:2605086). [Archived](https://web.archive.org/web/20240926164944/https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=1393&context=cstech) from the original on 2024-09-26. Retrieved 2023-12-28.
+  8. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-8 "Jump up") Collins-Sussman, Ben; Fitzpatrick, BW; Pilato, CM (2004), [_Version Control with Subversion_](https://archive.org/details/versioncontrolwi00coll) , O'Reilly, [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[0-596-00448-6](https://en.wikipedia.org/wiki/Special:BookSources/0-596-00448-6 "Special:BookSources/0-596-00448-6")
+  9. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-9 "Jump up") Loeliger, Jon; McCullough, Matthew (2012). [_Version Control with Git: Powerful Tools and Techniques for Collaborative Software Development_](https://books.google.com/books?id=qIucp61eqAwC). O'Reilly Media. pp.2–5. [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[978-1-4493-4504-4](https://en.wikipedia.org/wiki/Special:BookSources/978-1-4493-4504-4 "Special:BookSources/978-1-4493-4504-4"). [Archived](https://web.archive.org/web/20240926164947/https://books.google.com/books?id=qIucp61eqAwC) from the original on 2024-09-26. Retrieved 2023-03-22.
+  10. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-15 "Jump up") For Engineering drawings, see [Whiteprint#Document control](https://en.wikipedia.org/wiki/Whiteprint#Document_control "Whiteprint"), for some of the manual systems in place in the twentieth century, for example, the _Engineering Procedures_ of [Hughes Aircraft](https://en.wikipedia.org/wiki/Hughes_Aircraft "Hughes Aircraft"), each revision of which required approval by [Lawrence A. Hyland](https://en.wikipedia.org/wiki/Lawrence_A._Hyland "Lawrence A. Hyland"); see also the approval procedures instituted by the U.S. government.
+  11. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-16 "Jump up") Kim, Jin-Hyun; Han, Sung-Lim; Lee, Kwang-Hyeon (2013). "A Web-Based Revision Control Framework for 3D CAD Model Data". _International Journal of Precision Engineering and Manufacturing_. **14** (9): 1575–1582. [doi](https://en.wikipedia.org/wiki/Doi_\(identifier\) "Doi \(identifier\)"):[10.1007/s12541-013-0214-4](https://doi.org/10.1007%2Fs12541-013-0214-4).
+  12. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-17 "Jump up") Zitzman, Sharone (2023-05-09). ["5 Version-Control Tools Game Developers Should Know About"](https://thenewstack.io/5-version-control-tools-game-developers-should-know-about/). _The New Stack_. Retrieved 2025-11-29.
+  13. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-18 "Jump up") ["Collaboration and Version Control in Unreal Engine | Unreal Engine 5.7 Documentation | Epic Developer Community"](https://dev.epicgames.com/documentation/en-us/unreal-engine/collaboration-and-version-control-in-unreal-engine). _Epic Games Developer_. Retrieved 2025-11-29.
+  14. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-19 "Jump up") Smart, John Ferguson (2008). [_Java Power Tools_](https://books.google.com/books?id=YoTvBpKEx5EC&q=cvs+doesn%27t+support+atomic+commit&pg=PA301). O'Reilly Media, Inc. p.301. [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[978-1-4919-5454-6](https://en.wikipedia.org/wiki/Special:BookSources/978-1-4919-5454-6 "Special:BookSources/978-1-4919-5454-6"). [Archived](https://web.archive.org/web/20240926164948/https://books.google.com/books?id=YoTvBpKEx5EC&q=cvs+doesn%27t+support+atomic+commit&pg=PA301#v=snippet&q=cvs%20doesn't%20support%20atomic%20commit&f=false) from the original on 26 September 2024. Retrieved 20 July 2019.
+  15. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-20 "Jump up") Sink, Eric (2011). [_Version Control by Example_](https://ericsink.com/vcbe/vcbe_a4_lo.pdf) (PDF). Pyrenean Gold Press.
+  16. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-21 "Jump up") Wheeler, David. ["Comments on Open Source Software / Free Software (OSS/FS) Software Configuration Management (SCM) Systems"](https://web.archive.org/web/20201109022758/http://www.dwheeler.com/essays/scm.html). Archived from [the original](http://www.dwheeler.com/essays/scm.html) on November 9, 2020. Retrieved May 8, 2007.
+  17. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-22 "Jump up") GitLab. ["What are Git version control best practices?"](https://about.gitlab.com/topics/version-control/version-control-best-practices/). _gitlab.com_. Retrieved 2022-11-11.
+  18. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-23 "Jump up") Alessandro Picarelli (2020-11-17). ["The cost of not using version control"](https://www.claytex.com/tech-blog/the-cost-of-not-using-version-control/). [Archived](https://web.archive.org/web/20221119184145/https://www.claytex.com/tech-blog/the-cost-of-not-using-version-control/) from the original on 2022-11-19. Retrieved 2022-11-18. "In terms of man hours it's going to cost you 6 to 48 times what it would have cost you using version control, and that's for rewinding a couple of models for a single developer."
+  19. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-24 "Jump up") Irma Azarian (2023-06-14). ["A Review of Software Version Control: Systems, Benefits, and Why it Matters"](https://www.seguetech.com/a-review-of-software-version-control-systems-benefits-and-why-it-matters/). [Archived](https://web.archive.org/web/20240926165505/https://www.seguetech.com/a-review-of-software-version-control-systems-benefits-and-why-it-matters/) from the original on 2024-09-26. Retrieved 2022-11-18. "Version control systems allow you to compare files, identify differences, and merge the changes if needed prior to committing any code. Versioning is also a great way to keep track of application builds by being able to identify which version is currently in development, QA, and production."
+  20. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-25 "Jump up") ReQtest (2020-10-26). ["What Are The Benefits Of Version Control?"](https://reqtest.com/requirements-blog/what-are-benefits-of-version-control/). [Archived](https://web.archive.org/web/20221122023907/https://reqtest.com/requirements-blog/what-are-benefits-of-version-control/) from the original on 2022-11-22. Retrieved 2022-11-21. "The history of the document provides invaluable information about the author and the date of editing. It also gives on the purpose of the changes made. It will have an impact on the developer that works on the latest version as it will help to solve problems experienced in earlier versions. The ability to identify the author of the document enables the current team to link the documents to specific contributors. This, in turn, enables the current team to uncover patterns that can help with fixing bugs. This will help to improve the overall functionality of the software."
+  21. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-26 "Jump up") Chiradeep BasuMallick (2022-10-06). ["What Is Version Control? Meaning, Tools, and Advantages"](https://www.spiceworks.com/tech/devops/articles/what-is-version-control/). [Archived](https://web.archive.org/web/20221119184200/https://www.spiceworks.com/tech/devops/articles/what-is-version-control/) from the original on 2022-11-19. Retrieved 2022-11-18. "Software teams can understand the evolution of a solution by examining prior versions through code reviews."
+  22. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-27 "Jump up") Chiradeep BasuMallick (2022-10-06). ["What Is Version Control? Meaning, Tools, and Advantages"](https://www.spiceworks.com/tech/devops/articles/what-is-version-control/). [Archived](https://web.archive.org/web/20221119184200/https://www.spiceworks.com/tech/devops/articles/what-is-version-control/) from the original on 2022-11-19. Retrieved 2022-11-18. "If an error is made, developers can go back in time and review prior iterations of the code to remedy the mistake while minimizing disturbance for all team members."
+  23. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-28 "Jump up") Chacon, Scott; Straub, Ben (2022-10-03). ["Pro Git"](https://git-scm.com/book/en/v2/Appendix-C%3A-Git-Commands-Debugging) (Version 2.1.395-2-g27002dded.). Apress. [Archived](https://web.archive.org/web/20240926165502/https://git-scm.com/book/en/v2/Appendix-C%3A-Git-Commands-Debugging) from the original on 2024-09-26. Retrieved 2022-11-18. "The git bisect tool is an incredibly helpful debugging tool used to find which specific commit was the first one to introduce a bug or problem by doing an automatic binary search."
+  24. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-29 "Jump up") Irma Azarian (2023-06-14). ["A Review of Software Version Control: Systems, Benefits, and Why it Matters"](https://www.seguetech.com/a-review-of-software-version-control-systems-benefits-and-why-it-matters/). [Archived](https://web.archive.org/web/20240926165505/https://www.seguetech.com/a-review-of-software-version-control-systems-benefits-and-why-it-matters/) from the original on 2024-09-26. Retrieved 2022-11-18. "Versioning is a priceless process, especially when you have multiple developers working on a single application, because it allows them to easily share files. Without version control, developers will eventually step on each other's toes and overwrite code changes that someone else may have completed without even realizing it. Using these systems allows you to check files out for modifications, then, during check-in, if the files have been changed by another user, you will be alerted and allowed to merge them."
+  25. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-30 "Jump up") Jesse Phillips (2019-01-21) [2018-12-12]. ["Git is a Communication tool"](https://dev.to/jessekphillips/git-is-a-communication-tool--2j9k). [Archived](https://web.archive.org/web/20221119184143/https://dev.to/jessekphillips/git-is-a-communication-tool--2j9k) from the original on 2022-11-19. Retrieved 2022-11-18. "There are continued discussions on using rebase, merge, and/or squash. I want to bring focus to the point of all these choices, communicating."
+  26. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-31 "Jump up") Cortes-Coy, Luis Fernando; Linares-Vasquez, Mario; Aponte, Jairo; Poshyvanyk, Denys (2014). "On Automatically Generating Commit Messages via Summarization of Source Code Changes". _2014 IEEE 14th International Working Conference on Source Code Analysis and Manipulation_. IEEE. pp.275–284. [doi](https://en.wikipedia.org/wiki/Doi_\(identifier\) "Doi \(identifier\)"):[10.1109/scam.2014.14](https://doi.org/10.1109%2Fscam.2014.14). [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[978-1-4799-6148-1](https://en.wikipedia.org/wiki/Special:BookSources/978-1-4799-6148-1 "Special:BookSources/978-1-4799-6148-1"). [S2CID](https://en.wikipedia.org/wiki/S2CID_\(identifier\) "S2CID \(identifier\)")[360545](https://api.semanticscholar.org/CorpusID:360545).
+  27. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-32 "Jump up") Wingerd, Laura (2005). [_Practical Perforce_](https://web.archive.org/web/20071221132707/http://safari.oreilly.com/0596101856). O'Reilly. [ISBN](https://en.wikipedia.org/wiki/ISBN_\(identifier\) "ISBN \(identifier\)")[0-596-10185-6](https://en.wikipedia.org/wiki/Special:BookSources/0-596-10185-6 "Special:BookSources/0-596-10185-6"). Archived from [the original](http://safari.oreilly.com/0596101856) on 2007-12-21. Retrieved 2006-08-27.
+  28. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-Changeset_gitglossary-changeset_33-0 "Jump up") [changeset in the gitglossary](https://git-scm.com/docs/gitglossary#Documentation/gitglossary.txt-aiddefchangesetachangeset)
+  29. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-34 "Jump up") [revision in the gitglossary](https://git-scm.com/docs/gitglossary#def_revision)
+  30. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-35 "Jump up") [UnderstandingMercurial - Mercurial](https://mercurial.selenic.com/wiki/UnderstandingMercurial#Committing_changes)
+  31. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-36 "Jump up") [Mercurial: ChangeSet](http://mercurial.selenic.com/wiki/ChangeSet) [Archived](https://web.archive.org/web/20100115230528/http://mercurial.selenic.com/wiki/ChangeSet) January 15, 2010, at the [Wayback Machine](https://en.wikipedia.org/wiki/Wayback_Machine "Wayback Machine")
+  32. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-37 "Jump up") ["Version Control System Comparison"](https://web.archive.org/web/20090321051311/http://better-scm.berlios.de/comparison/comparison.html). Better SCM Initiative. Archived from [the original](http://better-scm.berlios.de/comparison/comparison.html) on 2009-03-21.
+  33. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-38 "Jump up") Gregory, Gary (February 3, 2011). ["Trunk vs. HEAD in Version Control Systems"](http://garygregory.wordpress.com/2011/02/03/trunk-vs-head-in-version-control-systems/). _Java, Eclipse, and other tech tidbits_. [Archived](https://web.archive.org/web/20200920130412/https://garygregory.wordpress.com/2011/02/03/trunk-vs-head-in-version-control-systems/) from the original on 2020-09-20. Retrieved 2012-12-16.
+  34. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-FOOTNOTECollins-SussmanFitzpatrickPilato2004\[httpsvnbookred-beancomen15svntourcyclehtmlsvntourcycleresolve_1.5:_SVN_tour_cycle_resolve\]_39-0 "Jump up") [Collins-Sussman, Fitzpatrick & Pilato 2004](https://en.wikipedia.org/wiki/Version_control#CITEREFCollins-SussmanFitzpatrickPilato2004), [1.5: SVN tour cycle resolve](http://svnbook.red-bean.com/en/1.5/svn.tour.cycle.html#svn.tour.cycle.resolve): ‘The G stands for merGed, which means that the file had local changes to begin with, but the changes coming from the repository didn't overlap with the local changes.’
+  35. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-40 "Jump up") _Concepts Manual_ (Version 4.7ed.). Accurev. July 2008.
+  36. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-Distributed_version_control_gitlab-merge-req_41-0 "Jump up") Sijbrandij, Sytse (29 September 2014). ["GitLab Flow"](https://about.gitlab.com/2014/09/29/gitlab-flow/). _GitLab_. Retrieved 4 August 2018.[_[dead link](https://en.wikipedia.org/wiki/Wikipedia:Link_rot "Wikipedia:Link rot")_]
+  37. [1](https://en.wikipedia.org/wiki/Version_control#cite_ref-Distributed_version_control_ossw_42-0) [2](https://en.wikipedia.org/wiki/Version_control#cite_ref-Distributed_version_control_ossw_42-1) Johnson, Mark (8 November 2013). ["What is a pull request?"](http://oss-watch.ac.uk/resources/pullrequest). _Oaawatch_. Retrieved 27 March 2016.
+  38. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-43 "Jump up") ["Using pull requests"](https://help.github.com/articles/using-pull-requests/). GitHub. Retrieved 27 March 2016.
+  39. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-44 "Jump up") ["Making a Pull Request"](https://www.atlassian.com/git/tutorials/making-a-pull-request). Atlassian. Retrieved 27 March 2016.
+  40. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-45 "Jump up") ["SVNBook"](http://svnbook.red-bean.com/en/1.7/svn.basic.version-control-basics.html#svn.basic.repository). Retrieved 2012-04-20.
+  41. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-Repository_\(version_control\)_Ernst-2018_46-0 "Jump up") ["Version control concepts and best practices"](https://homes.cs.washington.edu/~mernst/advice/version-control.html). 2018-03-03. [Archived](https://web.archive.org/web/20200427074258/https://homes.cs.washington.edu/~mernst/advice/version-control.html) from the original on 2020-04-27. Retrieved 2020-07-10.
+  42. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-47 "Jump up") Wallen, Jack (2020-09-22). ["GitHub to replace master with main starting in October: What developers need to do now"](https://www.techrepublic.com/article/github-to-replace-master-with-main-starting-in-october-what-developers-need-to-know/). _TechRepublic_. [Archived](https://web.archive.org/web/20210208011318/https://www.techrepublic.com/article/github-to-replace-master-with-main-starting-in-october-what-developers-need-to-know/) from the original on 2021-02-08. Retrieved 2022-04-24.
+  43. [↑](https://en.wikipedia.org/wiki/Version_control#cite_ref-48 "Jump up") Heinze, Carolyn (2020-11-24). ["Why GitHub renamed its master branch to main"](https://www.theserverside.com/feature/Why-GitHub-renamed-its-master-branch-to-main). _TheServerSide_. [Archived](https://web.archive.org/web/20220526125637/https://www.theserverside.com/feature/Why-GitHub-renamed-its-master-branch-to-main) from the original on 2022-05-26. Retrieved 2022-04-24.
+
+
+## External links
+[[edit](https://en.wikipedia.org/w/index.php?title=Version_control&action=edit&section=68 "Edit section: External links")]
+  * "Visual Guide to Version Control", [_Better explained_](http://betterexplained.com/articles/a-visual-guide-to-version-control/).
+  * Sink, Eric, "Source Control", [_SCM_](http://www.ericsink.com/scm/source_control.html) (how-to). The basics of version control.
+
+  
+|  show
+  * [v](https://en.wikipedia.org/wiki/Template:Version_control_software "Template:Version control software")
+  * [t](https://en.wikipedia.org/wiki/Template_talk:Version_control_software "Template talk:Version control software")
+  * [e](https://en.wikipedia.org/wiki/Special:EditPage/Template:Version_control_software "Special:EditPage/Template:Version control software")
+
+[Version control software](https://en.wikipedia.org/wiki/Version_control)  |  
+| --- |  
+|  show [Authority control databases](https://en.wikipedia.org/wiki/Help:Authority_control "Help:Authority control") [![Edit this at Wikidata](https://upload.wikimedia.org/wikipedia/en/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail)](https://www.wikidata.org/wiki/Q189439#identifiers "Edit this at Wikidata")  |  
+| --- |  
+Retrieved from "[https://en.wikipedia.org/w/index.php?title=Version_control&oldid=1371852215](https://en.wikipedia.org/w/index.php?title=Version_control&oldid=1371852215)"
+[Categories](https://en.wikipedia.org/wiki/Help:Category "Help:Category"): 
+  * [Software development process](https://en.wikipedia.org/wiki/Category:Software_development_process "Category:Software development process")
+  * [Version control](https://en.wikipedia.org/wiki/Category:Version_control "Category:Version control")
+  * [Version control systems](https://en.wikipedia.org/wiki/Category:Version_control_systems "Category:Version control systems")
+  * [Technical communication](https://en.wikipedia.org/wiki/Category:Technical_communication "Category:Technical communication")
+  * [Distributed version control systems](https://en.wikipedia.org/wiki/Category:Distributed_version_control_systems "Category:Distributed version control systems")
+
+
+Hidden categories: 
+  * [Articles with short description](https://en.wikipedia.org/wiki/Category:Articles_with_short_description "Category:Articles with short description")
+  * [Short description is different from Wikidata](https://en.wikipedia.org/wiki/Category:Short_description_is_different_from_Wikidata "Category:Short description is different from Wikidata")
+  * [Articles needing additional references from April 2011](https://en.wikipedia.org/wiki/Category:Articles_needing_additional_references_from_April_2011 "Category:Articles needing additional references from April 2011")
+  * [All articles needing additional references](https://en.wikipedia.org/wiki/Category:All_articles_needing_additional_references "Category:All articles needing additional references")
+  * [Webarchive template wayback links](https://en.wikipedia.org/wiki/Category:Webarchive_template_wayback_links "Category:Webarchive template wayback links")
+  * [Articles with excerpts](https://en.wikipedia.org/wiki/Category:Articles_with_excerpts "Category:Articles with excerpts")
+  * [All articles with dead external links](https://en.wikipedia.org/wiki/Category:All_articles_with_dead_external_links "Category:All articles with dead external links")
+  * [Articles with dead external links from April 2026](https://en.wikipedia.org/wiki/Category:Articles_with_dead_external_links_from_April_2026 "Category:Articles with dead external links from April 2026")
+
+
+  * This page was last edited on 28 August 2026, at 21:58 (UTC).
+  * Page was rendered with [Parsoid](https://www.mediawiki.org/wiki/Special:MyLanguage/Parsoid "mw:Special:MyLanguage/Parsoid").
+  * Text is available under the [Creative Commons Attribution-ShareAlike 4.0 License](https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License "Wikipedia:Text of the Creative Commons Attribution-ShareAlike 4.0 International License"); additional terms may apply. By using this site, you agree to the [Terms of Use](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Terms_of_Use "foundation:Special:MyLanguage/Policy:Terms of Use") and [Privacy Policy](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Privacy_policy "foundation:Special:MyLanguage/Policy:Privacy policy"). Wikipedia® is a registered trademark of the [Wikimedia Foundation, Inc.](https://wikimediafoundation.org/), a non-profit organization.
+
+
+  * [Privacy policy](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Privacy_policy)
+  * [About Wikipedia](https://en.wikipedia.org/wiki/Wikipedia:About)
+  * [Disclaimers](https://en.wikipedia.org/wiki/Wikipedia:General_disclaimer)
+  * [Contact Wikipedia](https://en.wikipedia.org/wiki/Wikipedia:Contact_us)
+  * [Legal & safety contacts](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Legal:Wikimedia_Foundation_Legal_and_Safety_Contact_Information)
+  * [Code of Conduct](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Universal_Code_of_Conduct)
+  * [Developers](https://developer.wikimedia.org)
+  * [Statistics](https://stats.wikimedia.org/#/en.wikipedia.org)
+  * [Cookie statement](https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Cookie_statement)
+  * [Mobile view](https://en.wikipedia.org/w/index.php?title=Version_control&mobileaction=toggle_view_mobile)
+  * [Edit preview settings](https://en.wikipedia.org/wiki/Version_control)
+
+
+  * [![Wikimedia Foundation](https://en.wikipedia.org/static/images/footer/wikimedia.svg)](https://www.wikimedia.org/)
+  * [![Powered by MediaWiki](https://en.wikipedia.org/w/resources/assets/mediawiki_compact.svg)](https://www.mediawiki.org/)
+
+
+Search
+Version control
+[ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control) [ ](https://en.wikipedia.org/wiki/Version_control)
+31 languages [ Add topic ](https://en.wikipedia.org/wiki/Version_control)
+[](https://en.wikipedia.org/wiki/Version_control?action=edit)
+  *[v]: View this template
+  *[t]: Discuss this template
+  *[e]: Edit this template

@@ -1,0 +1,30 @@
+{
+  "case_id": "live-046-file-api",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/File_API",
+  "checked_at": "2026-09-02T03:38:02.386780+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/File_API"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://developer.mozilla.org/en-US/docs/Web/API/File_API",
+  "mime": "text/html",
+  "bytes": 151313,
+  "sha256": "c525926ba4f2fcb8335fd23c7b82b14646f1ee7ac80e46ec75c4961b43b73a50",
+  "title": "File API - Web APIs | MDN",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "iframe",
+      "url": "about:blank",
+      "alt": ""
+    }
+  ],
+  "text_chars": 4485,
+  "excerpt": "File API\nNote:\nThis feature is available in\nWeb Workers\n.\nConcepts and Usage\nThe File API enables web applications to access files and their contents.\nWeb applications can access files when the user makes them available, either using a\nfile\n<input>\nelement\nor\nvia drag and drop\n.\nSets of files made available in this way are represented as\nFileList\nobjects, which enable a web application to retrieve individual\nFile\nobjects. In turn\nFile\nobjects provide access to metadata such as the file's name, size, type, and last modified date.\nFile\nobjects can be passed to\nFileReader\nobjects to access the contents of the file. The\nFileReader\ninterface is asynchronous, but a synchronous version, available only in\nweb workers\n, is provided by the\nFileReaderSync\ninterface.\nRelationship to other file-related",
+  "missing_facts": [],
+  "state": "captured"
+}

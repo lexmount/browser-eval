@@ -1,0 +1,25 @@
+{
+  "case_id": "document-06",
+  "url": "https://pdfobject.com/pdf/sample.pdf",
+  "checked_at": "2026-09-02T03:42:29.059919+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://pdfobject.com/pdf/sample.pdf"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://pdfobject.com/pdf/sample.pdf",
+  "mime": "application/pdf",
+  "bytes": 18810,
+  "sha256": "229defbb0cee6f02673a5cde290d0673e75a0dc31cec43989c8ab2a4eca7e1bb",
+  "title": "PDFObject · 示例 PDF",
+  "selector": "PDF all pages",
+  "page_count": 1,
+  "resources": [],
+  "text_chars": 2876,
+  "excerpt": "Sample PDFThis is a simple PDF ﬁle. Fun fun fun.\nLorem ipsum dolor sit amet, consectetuer adipiscing elit. Phasellus facilisis odio sed mi. \nCurabitur suscipit. Nullam vel nisi. Etiam semper ipsum ut lectus. Proin aliquam, erat eget \npharetra commodo, eros mi condimentum quam, sed commodo justo quam ut velit. \nInteger a erat. Cras laoreet ligula cursus enim. Aenean scelerisque velit et tellus. \nVestibulum dictum aliquet sem. Nulla facilisi. Vestibulum accumsan ante vitae elit. Nulla \nerat dolor, blandit in, rutrum quis, semper pulvinar, enim. Nullam varius congue risus. \nVivamus sollicitudin, metus ut interdum eleifend, nisi tellus pellentesque elit, tristique \naccumsan eros quam et risus. Suspendisse libero odio, mattis sit amet, aliquet eget, \nhendrerit vel, nulla. Sed vitae augue. Aliqu",
+  "missing_facts": [],
+  "state": "captured"
+}

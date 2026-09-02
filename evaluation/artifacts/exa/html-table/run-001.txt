@@ -1,0 +1,93 @@
+HTML Tables
+
+# HTML Tables
+
+HTML tables allow web developers to arrange data into rows and columns.
+
+### Example
+
+| Company | Contact | Country |
+| --- | --- | --- |
+| Alfreds Futterkiste | Maria Anders | Germany |
+| Centro comercial Moctezuma | Francisco Chang | Mexico |
+| Ernst Handel | Roland Mendel | Austria |
+| Island Trading | Helen Bennett | UK |
+| Laughing Bacchus Winecellars | Yoshi Tannamuri | Canada |
+| Magazzini Alimentari Riuniti | Giovanni Rovelli | Italy |
+
+## Define an HTML Table
+
+A table in HTML consists of table cells inside rows and columns.
+
+A simple HTML table:
+
+ Company Contact Country Alfreds Futterkiste Maria Anders Germany Centro comercial Moctezuma Francisco Chang Mexico 
+
+## Table Cells
+
+Each table cell is defined by a ` ` and a ` ` tag.
+
+`td` stands for table data.
+
+Everything between ` ` and ` ` is the content of a table cell.
+
+### Example
+
+ Emil Tobias Linus 
+
+Try it Yourself »
+
+Note: A table cell can contain all sorts of HTML elements: text, images, lists, links, other tables, etc.
+
+## Table Rows
+
+Each table row starts with a ` ` and ends with a ` ` tag.
+
+`tr` stands for table row.
+
+### Example
+
+ Emil Tobias Linus 16 14 10 
+
+Try it Yourself »
+
+You can have as many rows as you like in a table; just make sure that the number of cells are the same in each row.
+
+Note: There are times when a row can have fewer or more cells than another. You will learn about that in a later chapter.
+
+## Table Headers
+
+Sometimes you want your cells to be table header cells. In those cases use the ` ` tag instead of the ` ` tag:
+
+`th` stands for table header.
+
+### Example
+
+Let the first row be table header cells:
+
+ Person 1 Person 2 Person 3 Emil Tobias Linus 16 14 10 
+
+By default, the text in ` ` elements are bold and centered, but you can change that with CSS. 
+
+## HTML Table Tags
+
+| Tag | Description |
+| --- | --- |
+| | Defines a table |
+| | Defines a header cell in a table |
+| | Defines a row in a table |
+| | Defines a cell in a table |
+| | Defines a table caption |
+| | Specifies a group of one or more columns in a table for formatting |
+| | Specifies column properties for each column within a element |
+| | Groups the header content in a table |
+| | Groups the body content in a table |
+| | Groups the footer content in a table |
+
+## Contact Sales
+
+If you want to use W3Schools services as an educational institution, team or enterprise, send us an e-mail: sales@w3schools.com
+
+## Report Error
+
+If you want to report an error, or if you want to make a suggestion, send us an e-mail: help@w3schools.com

@@ -1,0 +1,110 @@
+[
+  {
+    "text": "Bazel's UX is really, really, really bad\nu/drmorr0\n•\n14小时前\nBazel's UX is really, really, really bad\nhttps://blog.appliedcomputing.io/p/bazels-ux-is-really-really-really",
+    "url": "https://www.reddit.com/r/programming/comments/1w4fp67/bazels_ux_is_really_really_really_bad/"
+  },
+  {
+    "text": "Stack Overflow drops to 1,442 questions in July, down 99% from 2014 peak\nu/danie-l\n•\n25天前\nStack Overflow drops to 1,442 questions in July, down 99% from 2014 peak\nhttp://ppc.land/stack-overflow-drops-to-1-442-questions-in-july-down-99-from-2014-peak",
+    "url": "https://www.reddit.com/r/programming/comments/1viswmi/stack_overflow_drops_to_1442_questions_in_july/"
+  },
+  {
+    "text": "The Browser's Main Thread Is Expensive\nu/kciter\n•\n16小时前\nThe Browser's Main Thread Is Expensive\nhttps://kciter.so/posts/the-expensive-main-thread/en/",
+    "url": "https://www.reddit.com/r/programming/comments/1w4ctb4/the_browsers_main_thread_is_expensive/"
+  },
+  {
+    "text": "Cats-Actors 2.2.0 is released\nu/kloudmark\n•\n8小时前\nCats-Actors 2.2.0 is released\nhttps://cloudmark.github.io/Cats-Actors-Controlling-Time/",
+    "url": "https://www.reddit.com/r/programming/comments/1w4qd1c/catsactors_220_is_released/"
+  },
+  {
+    "text": "How we saved 100 terabytes of memory by optimizing 1.1.1.1’s DNS cache\nu/Ok_Stomach6651\n•\n5天前\nHow we saved 100 terabytes of memory by optimizing 1.1.1.1’s DNS cache\nhttps://blog.cloudflare.com/dns-cache-memory-optimization-1111/",
+    "url": "https://www.reddit.com/r/programming/comments/1w06vn1/how_we_saved_100_terabytes_of_memory_by/"
+  },
+  {
+    "text": "Rui Ueyama: \"We are rewriting the mold linker in Rust\"\nu/cachemissed\n•\n21小时前\nRui Ueyama: \"We are rewriting the mold linker in Rust\"\nhttps://x.com/rui314/status/2094677980857680052",
+    "url": "https://www.reddit.com/r/programming/comments/1w45ety/rui_ueyama_we_are_rewriting_the_mold_linker_in/"
+  },
+  {
+    "text": "Nothing like a Monday morning GitHub outage\nu/Jwosty\n•\n16天前\nNothing like a Monday morning GitHub outage\nhttps://www.githubstatus.com/",
+    "url": "https://www.reddit.com/r/programming/comments/1vqukkf/nothing_like_a_monday_morning_github_outage/"
+  },
+  {
+    "text": "Wasmi 2.0 - Engineering of the Fastest Wasm Interpreters\nu/tjpalmer\n•\n17小时前\nWasmi 2.0 - Engineering of the Fastest Wasm Interpreters\nhttps://wasmi-labs.github.io/blog/posts/wasmi-v2.0/",
+    "url": "https://www.reddit.com/r/programming/comments/1w4b2ep/wasmi_20_engineering_of_the_fastest_wasm/"
+  },
+  {
+    "text": "35 years later, Torvalds' hobby project remains developed worldwide.\nu/masiroo\n•\n1天前\n35 years later, Torvalds' hobby project remains developed worldwide.\nhttps://tech.yahoo.com/computing/articles/35-years-later-torvalds-hobby-130000907.html",
+    "url": "https://www.reddit.com/r/programming/comments/1w3nct8/35_years_later_torvalds_hobby_project_remains/"
+  },
+  {
+    "text": "io_uring without readahead\nu/andreiross\n•\n1天前\nio_uring without readahead\nhttps://frn.sh/io-uring/",
+    "url": "https://www.reddit.com/r/programming/comments/1w3sd0i/io_uring_without_readahead/"
+  },
+  {
+    "text": "How Do HashMaps Work Under the Hood? (putting together a toy implementation in Rust to understand performance optimization, collisions, and time complexities)\nu/PastEar9661\n•\n10小时前\nHow Do HashMaps Work Under the Hood? (putting together a toy implementation in Rust to understand performance optimization, collisions, and time complexities)\nhttps://medium.com/@ein-monarch/how-do-hashmaps-work-under-the-hood-97f43483a241",
+    "url": "https://www.reddit.com/r/programming/comments/1w4mvwq/how_do_hashmaps_work_under_the_hood_putting/"
+  },
+  {
+    "text": "Hardware researcher spins up 'CPU deoptimization' project to find the slowest single x86 instruction, creates hall of shame — worst offender takes 198 billion cycles spanning 62 seconds to execute\nu/masiroo\n•\n21天前\nHardware researcher spins up 'CPU deoptimization' project to find the slowest single x86 instruction, creates hall of shame — worst offender takes 198 billion cycles spanning 62 seconds to execute\nhttps://www.tomshardware.com/pc-components/cpus/hardware-researcher-spins-up-cpu-deoptimization-project-to-find-the-slowest-machine-code-worst-offender-takes-198-billion-cycles-to-execute",
+    "url": "https://www.reddit.com/r/programming/comments/1vmhj23/hardware_researcher_spins_up_cpu_deoptimization/"
+  },
+  {
+    "text": "Terminating elegantly: a guide to graceful shutdowns\nu/der_gopher\n•\n1天前\nTerminating elegantly: a guide to graceful shutdowns\nhttps://packagemain.tech/p/graceful-shutdowns-k8s-go",
+    "url": "https://www.reddit.com/r/programming/comments/1w3qjlo/terminating_elegantly_a_guide_to_graceful/"
+  },
+  {
+    "text": "GitHub confirms Actions outage caused by database issue\nu/Codeblix_Ltd\n•\n7天前\nGitHub confirms Actions outage caused by database issue\nhttps://www.githubstatus.com/incidents/y1t7p9fzrlj2",
+    "url": "https://www.reddit.com/r/programming/comments/1vz0z6b/github_confirms_actions_outage_caused_by_database/"
+  },
+  {
+    "text": "The Hugging Face incident from a security engineering perspective\nu/No_Zookeepergame7552\n•\n2天前\nThe Hugging Face incident from a security engineering perspective\nhttps://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/",
+    "url": "https://www.reddit.com/r/programming/comments/1w39te8/the_hugging_face_incident_from_a_security/"
+  },
+  {
+    "text": "htmx 4.0.0 has been released!\nu/BrewedDoritos\n•\n5天前\nhtmx 4.0.0 has been released!\nhttps://four.htmx.org/announcements/2026-08-28-htmx-4.0.0-is-released",
+    "url": "https://www.reddit.com/r/programming/comments/1w0w1pp/htmx_400_has_been_released/"
+  },
+  {
+    "text": "Node.js sandboxes powered by QuickJS and WebAssembly\nu/syrusakbary\n•\n2天前\nNode.js sandboxes powered by QuickJS and WebAssembly\nhttps://wasmer.io/posts/nodejs-support-in-wasmer-edge-beta",
+    "url": "https://www.reddit.com/r/programming/comments/1w3j5hj/nodejs_sandboxes_powered_by_quickjs_and/"
+  },
+  {
+    "text": "EVE Online: The Move to Python 3 Begins!\nu/output_broadcast\n•\n8天前\nEVE Online: The Move to Python 3 Begins!\nhttps://www.eveonline.com/news/view/the-move-to-python-3-begins",
+    "url": "https://www.reddit.com/r/programming/comments/1vxz0z4/eve_online_the_move_to_python_3_begins/"
+  },
+  {
+    "text": "How 2004 RuneScape fit a multiplayer RPG into 56k dial-up\nu/fagnerbrack\n•\n19天前\nHow 2004 RuneScape fit a multiplayer RPG into 56k dial-up\nhttps://jkm.dev/posts/how-2004-runescape-fit-a-multiplayer-rpg-into-56k-dialup/",
+    "url": "https://www.reddit.com/r/programming/comments/1vo44t4/how_2004_runescape_fit_a_multiplayer_rpg_into_56k/"
+  },
+  {
+    "text": "Automating immersive reading\nu/scrollin_thru\n•\n3天前\nAutomating immersive reading\nhttps://smoores.dev/post/automating_immersive_reading/",
+    "url": "https://www.reddit.com/r/programming/comments/1w2fc9t/automating_immersive_reading/"
+  },
+  {
+    "text": "Latency optimizations on the system level\nu/wineandcode\n•\n7天前\nLatency optimizations on the system level\nhttps://denyspoltorak.medium.com/latency-optimizations-on-the-system-level-40dd45ddf2db?source=friends_link&sk=effc0de4d25dbafa2211130463187b31",
+    "url": "https://www.reddit.com/r/programming/comments/1vycpx9/latency_optimizations_on_the_system_level/"
+  },
+  {
+    "text": "The rust programming language is adopting a new contributing policy\nu/mareek\n•\n28天前\nThe rust programming language is adopting a new contributing policy\nhttps://blog.rust-lang.org/inside-rust/2026/08/05/rust-langrust-is-adopting-an-llm-policy/",
+    "url": "https://www.reddit.com/r/programming/comments/1vg555b/the_rust_programming_language_is_adopting_a_new/"
+  },
+  {
+    "text": "Memory ordering in CPUs\nu/mttd\n•\n7天前\nMemory ordering in CPUs\nhttps://fgiesen.wordpress.com/2026/08/25/memory-ordering-in-cpus/",
+    "url": "https://www.reddit.com/r/programming/comments/1vyb1js/memory_ordering_in_cpus/"
+  },
+  {
+    "text": "How to test if your numerical code is Mathematically correct?\nu/Lost-Dragonfruit-663\n•\n7天前\nHow to test if your numerical code is Mathematically correct?\nhttps://medium.com/@aadyachinubhai/scikit-verify-translate-python-numpy-programs-to-symbolic-mathematics-c664d41ba571",
+    "url": "https://www.reddit.com/r/programming/comments/1vy6tks/how_to_test_if_your_numerical_code_is/"
+  },
+  {
+    "text": "Turns are Better than Radians\nu/Iamsodarncool\n•\n13天前\nTurns are Better than Radians\nhttps://www.computerenhance.com/p/turns-are-better-than-radians",
+    "url": "https://www.reddit.com/r/programming/comments/1vt2lzu/turns_are_better_than_radians/"
+  },
+  {
+    "text": "Should you normalize RGB values by 255 or 256?\nu/fagnerbrack\n•\n1个月前\nShould you normalize RGB values by 255 or 256?\nhttps://30fps.net/pages/255-vs-256-division/",
+    "url": "https://www.reddit.com/r/programming/comments/1vdjt5i/should_you_normalize_rgb_values_by_255_or_256/"
+  },
+  {
+    "text": "Please, I beg you, we need to stop using Stored Procedures (from applications)\nu/Heffree\n•\n2天前\nPlease, I beg you, we need to stop using Stored Procedures (from applications)\nhttps://heffree.dev/blog/no-more-sprocs.html",
+    "url": "https://www.reddit.com/r/programming/comments/1w3blbq/please_i_beg_you_we_need_to_stop_using_stored/"
+  }
+]

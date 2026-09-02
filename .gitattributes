@@ -1,0 +1,3 @@
+# Supplier artifacts are immutable evidence and may contain meaningful trailing
+# whitespace. Keep them byte-exact and suppress textual diff normalization.
+reports/**/artifacts/** -diff

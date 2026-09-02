@@ -1,0 +1,13 @@
+{
+  "case_id": "challenge-04",
+  "url": "https://www.zhihu.com/hot",
+  "checked_at": "2026-09-02T06:06:45.710881+00:00",
+  "frozen_at": "2026-09-02T06:16:27.644900+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "368f6ea266319b1596daf2cf0d7b6a8d79127552b8fda97682242029578c2da9",
+  "reference_sha256": "0a08b0545f773897956a7ebc20f85ae1c0e8c1e4ba2d2db7e7cd6a48c178dd84",
+  "scope": "已保存列表",
+  "items": 30,
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据",
+  "privacy": "仅公开列表；不包含账号页头、脚本、Cookie、私信或个人资料。"
+}

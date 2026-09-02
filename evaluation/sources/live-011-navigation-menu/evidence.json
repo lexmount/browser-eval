@@ -1,0 +1,112 @@
+{
+  "case_id": "live-011-navigation-menu",
+  "url": "https://github.com/browser-use/browser-use",
+  "checked_at": "2026-09-02T03:37:52.396752+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/browser-use/browser-use"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/browser-use/browser-use",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 392335,
+  "sha256": "6d5008025c099792e36496bb54e87535e8ac7b776088a9569f9edafd127373c0",
+  "title": "GitHub - browser-use/browser-use: 🌐 Make websites accessible for AI agents. Automate tasks online with ease. · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://github.com/user-attachments/assets/2ccdb752-22fb-41c7-8948-857fc1ad7e24",
+      "alt": "Shows a black Browser Use Logo in light color mode and a white one in dark color mode."
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/user-attachments/assets/9955dda9-ede3-4971-8ee0-91cbc3850125",
+      "alt": "The AI browser agent."
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/f67549cea6229347ae19319784e0bbd39a6f987cab1d48cd464017f02e955a04/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f7061636b616765",
+      "alt": "Browser-Use Package Download Statistics"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/7e9025c343a4acd95c54d84d83b23f875323ee3f58cb4ec2c764f4c07c7835e7/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f64656d6f73",
+      "alt": "Demos"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/da24e49e145642fb3a3fe1910e856d59d6da1491afd35998b8624f6732262f49/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f646f6373",
+      "alt": "Docs"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/f59d6529dd474485d76d72dfa57622e93de03c2f2147d15645f237057d6ac1e2/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f626c6f67",
+      "alt": "Blog"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/6854add877f53678eb94c1903d14b88427b87dfcbc7b46fa04d9023826b4c2c2/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f6d65726368",
+      "alt": "Merch"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/6b321c4c3a0fe9ebd185f7e1ed0c34908ed763b0670359685038826220fa0c73/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f676974687562",
+      "alt": "Github Stars"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/0c0d368a2b84e6c55dfa4b61dfcc6b20fc79911ddac2890188b6f5aa4d9e1ff9/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f74776974746572",
+      "alt": "Twitter"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/4924db0665fc88bd7ed197fa3535511406743b1025c5086a32e252a613ad1176/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f646973636f7264",
+      "alt": "Discord"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/af449ec43f198f27fd42b59996473270e5dd2eeb482196bfca572ee48a2afbcc/68747470733a2f2f6d656469612e62726f777365722d7573652e746f6f6c732f6261646765732f636c6f7564",
+      "alt": "Browser-Use Cloud"
+    },
+    {
+      "tag": "img",
+      "url": "https://private-user-images.githubusercontent.com/67061560/635660026-57611d8e-0474-4de6-84b7-37a0c0cd27e7.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODgzMjA1NzMsIm5iZiI6MTc4ODMyMDI3MywicGF0aCI6Ii82NzA2MTU2MC82MzU2NjAwMjYtNTc2MTFkOGUtMDQ3NC00ZGU2LTg0YjctMzdhMGMwY2QyN2U3LmdpZj9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA5MDIlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwOTAyVDAzMzc1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWQwOWY3MWRjYzE4M2IwYWViYjgxMDNiMGFhZGJhODA1NDdlYjgzNWY1NTVjMGU0MTg1ZTM2MjljMzEyN2ExZDAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRmdpZiJ9.rI2f-UA_LmU4eGVcXC093Jj9UQBCJFQ4Ho1wejLgPqM",
+      "alt": "Job Application Demo"
+    },
+    {
+      "tag": "video",
+      "url": "https://private-user-images.githubusercontent.com/67061560/635660030-485fd3ec-61b9-4afc-9e86-ee9b85acb592.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODgzMjA1NzMsIm5iZiI6MTc4ODMyMDI3MywicGF0aCI6Ii82NzA2MTU2MC82MzU2NjAwMzAtNDg1ZmQzZWMtNjFiOS00YWZjLTllODYtZWU5Yjg1YWNiNTkyLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA5MDIlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwOTAyVDAzMzc1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWU4ZWM0NjEzMWYwMjU2ZGYwMjdiMDliZTBjNmViMzhhMGE0ZjliNGI4NDNmYWUzMTAyMDQwYTM3YWI4NzU2M2EmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.GD-OPXiKuRDGshv1y0ut6Am998ZFGyPJnl88aRWnqdw",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/browser-use/browser-use/raw/main/static/accuracy_by_model_light.png",
+      "alt": "BU Bench V1 - LLM Success Rates"
+    },
+    {
+      "tag": "img",
+      "url": "https://private-user-images.githubusercontent.com/67061560/425692580-06fa3078-8461-4560-b434-445510c1766f.jpeg?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODgzMjA1NzMsIm5iZiI6MTc4ODMyMDI3MywicGF0aCI6Ii82NzA2MTU2MC80MjU2OTI1ODAtMDZmYTMwNzgtODQ2MS00NTYwLWI0MzQtNDQ1NTEwYzE3NjZmLmpwZWc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwOTAyJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDkwMlQwMzM3NTNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mNGQ4ZDVjNWI3MGQ4Y2EyZjIzNWFmMzVkNmRjYjg4MGZmYTViOWZlOWI2NDljYzllMjdmNjI4NzhmMWY1ZDgwJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZqcGVnIn0.4i5aqsG655_6tUk5PcdFXzAecluWaboyQQqckyau_eE",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/258b250cd1a66c0f3e47cb6280a83ab23ed0d8039bfd7b3b26a428a2550682cc/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f666f6c6c6f772f4d61676e75733f7374796c653d736f6369616c",
+      "alt": "Twitter Follow"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/a0e8b2ed77d58af1a210d43db92aed35ed54cf7bb37564586e1fd647dcafb3dc/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f666f6c6c6f772f477265676f723f7374796c653d736f6369616c",
+      "alt": "Twitter Follow"
+    }
+  ],
+  "text_chars": 7527,
+  "excerpt": "What can Browser Use do?\nBrowser Use lets an AI agent use a web browser the same way humans do — it opens pages, clicks buttons, types, and fills in forms. You describe the task, and it completes it. For example, you can have it:\n📋 Fill Forms\nTask: \"Fill in this job application with my resume and information.\"\nExample code ↗\n🍎 Extract data\nTask: \"Extract structured data about my followers and export it as a CSV.\"\nextract-followers-from-3.5.mp4\nBrowser Use Cloud Docs ↗\nQuickstart\nIf you want to use Browser Use in your agent (Claude Code, Codex, Cursor, Hermes, OpenClaw, etc.), paste this prompt, and it sets everything up itself:\nInstall or upgrade browser-use to the latest stable version with uv using Python 3.12, run `browser-use skill install` to register the skill, and connect it to my b",
+  "missing_facts": [
+    "anchor-2"
+  ],
+  "state": "captured"
+}

@@ -1,0 +1,593 @@
+---
+title: "GitHub - reduxjs/redux: A JS library for predictable global state management · GitHub"
+meta:
+  description: "A JS library for predictable global state management - reduxjs/redux"
+  "og:description": "A JS library for predictable global state management - reduxjs/redux"
+  "og:title": "GitHub - reduxjs/redux: A JS library for predictable global state management"
+  "twitter:description": "A JS library for predictable global state management - reduxjs/redux"
+  "twitter:title": "GitHub - reduxjs/redux: A JS library for predictable global state management"
+---
+
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[Homepage](/)
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux)
+
+Appearance settings
+
+- Platform
+  - AI CODE CREATION
+    - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+    - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+    - [MCP RegistryIntegrate external tools](https://github.com/mcp)
+  - DEVELOPER WORKFLOWS
+    - [ActionsAutomate any workflow](https://github.com/features/actions)
+    - [CodespacesInstant dev environments](https://github.com/features/codespaces)
+    - [IssuesPlan and track work](https://github.com/features/issues)
+    - [Code ReviewManage code changes](https://github.com/features/code-review)
+    - [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+  - APPLICATION SECURITY
+    - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+    - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+    - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection)
+  - EXPLORE
+    - [Why GitHub](https://github.com/why-github)
+    - [Documentation](https://docs.github.com)
+    - [Blog](https://github.blog)
+    - [Changelog](https://github.blog/changelog)
+    - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions
+  - BY COMPANY SIZE
+    - [Enterprises](https://github.com/enterprise)
+    - [Small and medium teams](https://github.com/team)
+    - [Startups](https://github.com/enterprise/startups)
+    - [Nonprofits](https://github.com/solutions/industry/nonprofits)
+  - BY USE CASE
+    - [App Modernization](https://github.com/solutions/use-case/app-modernization)
+    - [DevSecOps](https://github.com/solutions/use-case/devsecops)
+    - [DevOps](https://github.com/solutions/use-case/devops)
+    - [CI/CD](https://github.com/solutions/use-case/ci-cd)
+    - [View all use cases](https://github.com/solutions/use-case)
+  - BY INDUSTRY
+    - [Healthcare](https://github.com/solutions/industry/healthcare)
+    - [Financial services](https://github.com/solutions/industry/financial-services)
+    - [Manufacturing](https://github.com/solutions/industry/manufacturing)
+    - [Government](https://github.com/solutions/industry/government)
+    - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources
+  - EXPLORE BY TOPIC
+    - [AI](https://github.com/resources/articles?topic=ai)
+    - [Software Development](https://github.com/resources/articles?topic=software-development)
+    - [DevOps](https://github.com/resources/articles?topic=devops)
+    - [Security](https://github.com/resources/articles?topic=security)
+    - [View all topics](https://github.com/resources/articles)
+  - EXPLORE BY TYPE
+    - [Customer stories](https://github.com/customer-stories)
+    - [Events & webinars](https://github.com/resources/events)
+    - [Ebooks & reports](https://github.com/resources/whitepapers)
+    - [Business insights](https://github.com/solutions/executive-insights)
+    - [GitHub Skills](https://skills.github.com)
+  - SUPPORT & SERVICES
+    - [Documentation](https://docs.github.com)
+    - [Customer support](https://support.github.com)
+    - [Community forum](https://github.com/orgs/community/discussions)
+    - [Trust center](https://github.com/trust-center)
+    - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source
+  - COMMUNITY
+    - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors)
+  - PROGRAMS
+    - [Security Lab](https://securitylab.github.com)
+    - [Maintainer Community](https://maintainers.github.com)
+    - [GitHub Stars](https://stars.github.com)
+    - [Archive Program](https://archiveprogram.github.com)
+  - REPOSITORIES
+    - [Topics](https://github.com/topics)
+    - [Trending](https://github.com/trending)
+    - [Collections](https://github.com/collections)
+- Enterprise
+  - ENTERPRISE SOLUTIONS
+    - [Enterprise platformAI-powered developer platform](https://github.com/enterprise)
+  - AVAILABLE ADD-ONS
+    - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security)
+    - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business)
+    - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux)
+
+[Sign up](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=reduxjs%2Fredux)
+
+Appearance settings
+
+You signed in with another tab or window. [Reload]() to refresh your session. You signed out in another tab or window. [Reload]() to refresh your session. You switched accounts on another tab or window. [Reload]() to refresh your session. Dismiss alert
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page]().
+
+[reduxjs](https://github.com/reduxjs) / **[redux](https://github.com/reduxjs/redux)** Public
+
+- Sponsor # Sponsor reduxjs/redux ##### GitHub Sponsors [Learn more about Sponsors](https://github.com/sponsors) [![@timdorr](https://avatars.githubusercontent.com/u/17882?s=80&v=4)](https://github.com/timdorr)
+
+  [timdorr](https://github.com/timdorr)
+
+  [timdorr](https://github.com/timdorr) [Sponsor](https://github.com/sponsors/timdorr) [![@markerikson](https://avatars.githubusercontent.com/u/1128784?s=80&v=4)](https://github.com/markerikson)
+
+  [markerikson](https://github.com/markerikson)
+
+  [markerikson](https://github.com/markerikson) [Sponsor](https://github.com/sponsors/markerikson) [![@phryneas](https://avatars.githubusercontent.com/u/4282439?s=80&v=4)](https://github.com/phryneas)
+
+  [phryneas](https://github.com/phryneas)
+
+  [phryneas](https://github.com/phryneas) [Sponsor](https://github.com/sponsors/phryneas) [![@EskiMojo14](https://avatars.githubusercontent.com/u/18308300?s=80&v=4)](https://github.com/EskiMojo14)
+
+  [EskiMojo14](https://github.com/EskiMojo14)
+
+  [EskiMojo14](https://github.com/EskiMojo14) [Sponsor](https://github.com/sponsors/EskiMojo14)
+
+  [Learn more about funding links in repositories](https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
+
+  [Report abuse](https://github.com/contact/report-abuse?report=reduxjs%2Fredux+%28Repository+Funding+Links%29)
+- [Notifications](https://github.com/login?return_to=%2Freduxjs%2Fredux) You must be signed in to change notification settings
+- [Fork 15.2k](https://github.com/login?return_to=%2Freduxjs%2Fredux)
+- [Star 61.5k](https://github.com/login?return_to=%2Freduxjs%2Fredux)
+
+- [Code](https://github.com/reduxjs/redux)
+- [Issues 39](https://github.com/reduxjs/redux/issues)
+- [Pull requests 11](https://github.com/reduxjs/redux/pulls)
+- [Discussions](https://github.com/reduxjs/redux/discussions)
+- [Actions](https://github.com/reduxjs/redux/actions)
+- [Security and quality 0](https://github.com/reduxjs/redux/security)
+- [Insights](https://github.com/reduxjs/redux/pulse)
+
+Additional navigation options
+
+- [Code](https://github.com/reduxjs/redux)
+- [Issues](https://github.com/reduxjs/redux/issues)
+- [Pull requests](https://github.com/reduxjs/redux/pulls)
+- [Discussions](https://github.com/reduxjs/redux/discussions)
+- [Actions](https://github.com/reduxjs/redux/actions)
+- [Security and quality](https://github.com/reduxjs/redux/security)
+- [Insights](https://github.com/reduxjs/redux/pulse)
+
+master
+
+[**10** Branches](https://github.com/reduxjs/redux/branches) [**88** Tags](https://github.com/reduxjs/redux/tags)
+
+[Go to Branches page](https://github.com/reduxjs/redux/branches) [Go to Tags page](https://github.com/reduxjs/redux/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+[![TheRodzz](https://avatars.githubusercontent.com/u/81969589?v=4&size=40)](https://github.com/TheRodzz) [TheRodzz](https://github.com/reduxjs/redux/commits?author=TheRodzz)
+
+This commit closes issue #4662. [Fixes](https://github.com/reduxjs/redux/commit/71606661ac515bdd64c199a6bb508401c7cf736f) [#4662](https://github.com/reduxjs/redux/issues/4662) [: Remove manual reducer recipes in favour of RTK utilities (](https://github.com/reduxjs/redux/commit/71606661ac515bdd64c199a6bb508401c7cf736f) […](https://github.com/reduxjs/redux/pull/4914)
+
+Open commit detailssuccess
+
+Aug 20, 2026
+
+[7160666](https://github.com/reduxjs/redux/commit/71606661ac515bdd64c199a6bb508401c7cf736f) · Aug 20, 2026
+
+## History
+
+[4,182 Commits](https://github.com/reduxjs/redux/commits/master/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/reduxjs/redux/commits/master/)4,182 Commits
+
+## Folders and files
+
+| Name | | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- | --- |
+| [.github](https://github.com/reduxjs/redux/tree/master/.github) | | [.github](https://github.com/reduxjs/redux/tree/master/.github) | [Limit PRs to 0 to only allow security updates](https://github.com/reduxjs/redux/commit/3aa561f9fc13f3287e6d83764f85fe0e82437c5f) | Aug 1, 2026 |
+| [.yarn/releases](https://github.com/reduxjs/redux/tree/master/.yarn/releases%20%22This%20path%20skips%20through%20empty%20directories%22) | | [.yarn/releases](https://github.com/reduxjs/redux/tree/master/.yarn/releases%20%22This%20path%20skips%20through%20empty%20directories%22) | [Update to Yarn 4.4.1](https://github.com/reduxjs/redux/commit/3b03b9eb2f310c21a826ae750b6951f54a226e95) | Sep 12, 2024 |
+| [docs](https://github.com/reduxjs/redux/tree/master/docs) | | [docs](https://github.com/reduxjs/redux/tree/master/docs) | [Fixes](https://github.com/reduxjs/redux/commit/71606661ac515bdd64c199a6bb508401c7cf736f%20%22Fixes%20#4662:%20Remove%20manual%20reducer%20recipes%20in%20favour%20of%20RTK%20utilities%20(#4914)") [#4662](https://github.com/reduxjs/redux/issues/4662) [: Remove manual reducer recipes in favour of RTK utilities (](https://github.com/reduxjs/redux/commit/71606661ac515bdd64c199a6bb508401c7cf736f%20%22Fixes%20#4662:%20Remove%20manual%20reducer%20recipes%20in%20favour%20of%20RTK%20utilities%20(#4914)") […](https://github.com/reduxjs/redux/pull/4914) | Aug 20, 2026 |
+| [examples](https://github.com/reduxjs/redux/tree/master/examples) | | [examples](https://github.com/reduxjs/redux/tree/master/examples) | [chore(deps): update `@types/node` to latest version](https://github.com/reduxjs/redux/commit/1635ca2ac97e6b02ed3de51aa714aa01476a7d92%20%22chore(deps): update `@types/node` to latest version") | Jun 29, 2026 |
+| [logo](https://github.com/reduxjs/redux/tree/master/logo) | | [logo](https://github.com/reduxjs/redux/tree/master/logo) | [Update credit link for Redux logo (](https://github.com/reduxjs/redux/commit/2cd47fa03544e73a87c40d03dc40f99d9cf32663%20%22Update%20credit%20link%20for%20Redux%20logo%20(#4834)
+
+Lost my domain name to some dodgy scam site, so just want to update this link to my newer site.") [#4834](https://github.com/reduxjs/redux/pull/4834) [)](https://github.com/reduxjs/redux/commit/2cd47fa03544e73a87c40d03dc40f99d9cf32663%20%22Update%20credit%20link%20for%20Redux%20logo%20(#4834)
+
+Lost my domain name to some dodgy scam site, so just want to update this link to my newer site.") | Dec 16, 2025 |
+| [scripts](https://github.com/reduxjs/redux/tree/master/scripts) | | [scripts](https://github.com/reduxjs/redux/tree/master/scripts) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [src](https://github.com/reduxjs/redux/tree/master/src) | | [src](https://github.com/reduxjs/redux/tree/master/src) | [fix: add missing closing quote in replaceReducer error message](/reduxjs/redux/commit/9b21de4947de93dcc7a8234b243aa263b9e8fd22 "fix: add missing closing quote in replaceReducer error message
+
+The error message thrown by replaceReducer when a non-function is passed
+was missing a closing single-quote around the received type value.
+
+Before: \"Expected the nextReducer to be a function. Instead, received: 'null\"
+After:  \"Expected the nextReducer to be a function. Instead, received: 'null'\"
+
+Every other kindOf-based error message in createStore.ts correctly wraps the
+received value in single quotes (e.g. reducer, enhancer, listener, observer).
+This was a typo — the template literal ended with `}` instead of `}'`.
+
+Closes #4890") | Jun 28, 2026 |
+| [test](https://github.com/reduxjs/redux/tree/master/test) | | [test](https://github.com/reduxjs/redux/tree/master/test) | [fix: add missing closing quote in replaceReducer error message](/reduxjs/redux/commit/9b21de4947de93dcc7a8234b243aa263b9e8fd22 "fix: add missing closing quote in replaceReducer error message
+
+The error message thrown by replaceReducer when a non-function is passed
+was missing a closing single-quote around the received type value.
+
+Before: \"Expected the nextReducer to be a function. Instead, received: 'null\"
+After:  \"Expected the nextReducer to be a function. Instead, received: 'null'\"
+
+Every other kindOf-based error message in createStore.ts correctly wraps the
+received value in single quotes (e.g. reducer, enhancer, listener, observer).
+This was a typo — the template literal ended with `}` instead of `}'`.
+
+Closes #4890") | Jun 28, 2026 |
+| [website](https://github.com/reduxjs/redux/tree/master/website) | | [website](https://github.com/reduxjs/redux/tree/master/website) | [chore(deps): update `@types/node` to latest version](https://github.com/reduxjs/redux/commit/1635ca2ac97e6b02ed3de51aa714aa01476a7d92%20%22chore(deps): update `@types/node` to latest version") | Jun 29, 2026 |
+| [.editorconfig](https://github.com/reduxjs/redux/blob/master/.editorconfig) | | [.editorconfig](https://github.com/reduxjs/redux/blob/master/.editorconfig) | [editorconfig: do not trim trailing whitespaces in Markdown files](https://github.com/reduxjs/redux/commit/47472afed2c9ab5b67e7f02bf9003d5f8173a0fc) | Feb 18, 2016 |
+| [.eslintignore](https://github.com/reduxjs/redux/blob/master/.eslintignore) | | [.eslintignore](https://github.com/reduxjs/redux/blob/master/.eslintignore) | [Some more fixes related to package upgrades](https://github.com/reduxjs/redux/commit/b730dcd1475b4d0a8b527fb0068946b1cf82b35d) | May 14, 2021 |
+| [.eslintrc.cjs](https://github.com/reduxjs/redux/blob/master/.eslintrc.cjs) | | [.eslintrc.cjs](https://github.com/reduxjs/redux/blob/master/.eslintrc.cjs) | [Upgrade Prettier and ESlint.](/reduxjs/redux/commit/971e6c1b4f8f433bf9db451ee10fcec65eb3fb75 "Upgrade Prettier and ESlint.
+
+Also fix some basic formatting.") | Mar 20, 2024 |
+| [.git-blame-ignore-revs](https://github.com/reduxjs/redux/blob/master/.git-blame-ignore-revs) | | [.git-blame-ignore-revs](https://github.com/reduxjs/redux/blob/master/.git-blame-ignore-revs) | [Ignore "More Formatting"](https://github.com/reduxjs/redux/commit/f8d3fd3eee677bdee11a31bad7c9cbac65e6d97a) | Sep 20, 2022 |
+| [.gitattributes](https://github.com/reduxjs/redux/blob/master/.gitattributes) | | [.gitattributes](https://github.com/reduxjs/redux/blob/master/.gitattributes) | [Add](https://github.com/reduxjs/redux/commit/81d597f2667272210e2cb3c7105f9b4ad4a1c79a%20%22Add%20%60.gitattributes%60%20file%20to%20make%20line%20endings%20more%20consistent%20(#4679)") ``[.gitattributes](https://github.com/reduxjs/redux/commit/81d597f2667272210e2cb3c7105f9b4ad4a1c79a%20%22Add%20%60.gitattributes%60%20file%20to%20make%20line%20endings%20more%20consistent%20(#4679)")`` [file to make line endings more consistent (](https://github.com/reduxjs/redux/commit/81d597f2667272210e2cb3c7105f9b4ad4a1c79a%20%22Add%20%60.gitattributes%60%20file%20to%20make%20line%20endings%20more%20consistent%20(#4679)") [#4679](https://github.com/reduxjs/redux/pull/4679) [)](https://github.com/reduxjs/redux/commit/81d597f2667272210e2cb3c7105f9b4ad4a1c79a%20%22Add%20%60.gitattributes%60%20file%20to%20make%20line%20endings%20more%20consistent%20(#4679)") | Mar 21, 2024 |
+| [.gitbook.yaml](https://github.com/reduxjs/redux/blob/master/.gitbook.yaml) | | [.gitbook.yaml](https://github.com/reduxjs/redux/blob/master/.gitbook.yaml) | [Don't scope pages to docs (](https://github.com/reduxjs/redux/commit/f31002690e103dafd96971d0298ce0c476e41de0%20%22Don't%20scope%20pages%20to%20docs%20(#2843)") [#2843](https://github.com/reduxjs/redux/pull/2843) [)](https://github.com/reduxjs/redux/commit/f31002690e103dafd96971d0298ce0c476e41de0%20%22Don't%20scope%20pages%20to%20docs%20(#2843)") | Feb 18, 2018 |
+| [.gitignore](https://github.com/reduxjs/redux/blob/master/.gitignore) | | [.gitignore](https://github.com/reduxjs/redux/blob/master/.gitignore) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [.prettierrc.json](https://github.com/reduxjs/redux/blob/master/.prettierrc.json) | | [.prettierrc.json](https://github.com/reduxjs/redux/blob/master/.prettierrc.json) | [Prettier 2.0](https://github.com/reduxjs/redux/commit/311279d387c8429188714bb69f93377018a86192) | Apr 27, 2020 |
+| [.release-it.json](https://github.com/reduxjs/redux/blob/master/.release-it.json) | | [.release-it.json](https://github.com/reduxjs/redux/blob/master/.release-it.json) | [Add release-it config](https://github.com/reduxjs/redux/commit/c8eac25cff19a56f823c8b1336baf7fe4432ecbe) | Feb 13, 2023 |
+| [.yarnrc.yml](https://github.com/reduxjs/redux/blob/master/.yarnrc.yml) | | [.yarnrc.yml](https://github.com/reduxjs/redux/blob/master/.yarnrc.yml) | [Update to Yarn 4.4.1](https://github.com/reduxjs/redux/commit/3b03b9eb2f310c21a826ae750b6951f54a226e95) | Sep 12, 2024 |
+| [CHANGELOG.md](https://github.com/reduxjs/redux/blob/master/CHANGELOG.md) | | [CHANGELOG.md](https://github.com/reduxjs/redux/blob/master/CHANGELOG.md) | [Upgrade all available http links to https (](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") [#3977](https://github.com/reduxjs/redux/pull/3977) [)](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") | Dec 23, 2020 |
+| [CNAME](https://github.com/reduxjs/redux/blob/master/CNAME) | | [CNAME](https://github.com/reduxjs/redux/blob/master/CNAME) | [Ensure CNAME survives doc rebuilds](https://github.com/reduxjs/redux/commit/37e00083d0c57778337141b8e096d4142223f16e) | Oct 13, 2015 |
+| [CODE\_OF\_CONDUCT.md](https://github.com/reduxjs/redux/blob/master/CODE_OF_CONDUCT.md%20%22CODE_OF_CONDUCT.md%22) | | [CODE\_OF\_CONDUCT.md](https://github.com/reduxjs/redux/blob/master/CODE_OF_CONDUCT.md%20%22CODE_OF_CONDUCT.md%22) | [Upgrade all available http links to https (](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") [#3977](https://github.com/reduxjs/redux/pull/3977) [)](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") | Dec 23, 2020 |
+| [CONTRIBUTING.md](https://github.com/reduxjs/redux/blob/master/CONTRIBUTING.md) | | [CONTRIBUTING.md](https://github.com/reduxjs/redux/blob/master/CONTRIBUTING.md) | [Drop UMD mentions](https://github.com/reduxjs/redux/commit/3757120c92777698e5d742e75f451beb82401040) | Nov 25, 2023 |
+| [LICENSE-logo.md](https://github.com/reduxjs/redux/blob/master/LICENSE-logo.md) | | [LICENSE-logo.md](https://github.com/reduxjs/redux/blob/master/LICENSE-logo.md) | [Upgrade all available http links to https (](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") [#3977](https://github.com/reduxjs/redux/pull/3977) [)](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") | Dec 23, 2020 |
+| [LICENSE.md](https://github.com/reduxjs/redux/blob/master/LICENSE.md) | | [LICENSE.md](https://github.com/reduxjs/redux/blob/master/LICENSE.md) | [Update LICENSE (](https://github.com/reduxjs/redux/commit/8a0c958fb47b899a6959863f6a5a245b0c3a6f86%20%22Update%20LICENSE%20(#1650)
+
+* Update LICENSE
+
+* Fix year on License") [#1650](https://github.com/reduxjs/redux/pull/1650) [)](https://github.com/reduxjs/redux/commit/8a0c958fb47b899a6959863f6a5a245b0c3a6f86%20%22Update%20LICENSE%20(#1650)
+
+* Update LICENSE
+
+* Fix year on License") | Apr 22, 2016 |
+| [PATRONS.md](https://github.com/reduxjs/redux/blob/master/PATRONS.md) | | [PATRONS.md](https://github.com/reduxjs/redux/blob/master/PATRONS.md) | [Upgrade all available http links to https (](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") [#3977](https://github.com/reduxjs/redux/pull/3977) [)](https://github.com/reduxjs/redux/commit/7ca542f71cd21864d2dde6d656f619cc2c2555f7%20%22Upgrade%20all%20available%20http%20links%20to%20https%20(#3977)") | Dec 23, 2020 |
+| [README.md](https://github.com/reduxjs/redux/blob/master/README.md) | | [README.md](https://github.com/reduxjs/redux/blob/master/README.md) | [Update tagline](https://github.com/reduxjs/redux/commit/88e4276b7c785c56a60f5fb89be623f5c4e4cbcc) | Mar 31, 2024 |
+| [errors.json](https://github.com/reduxjs/redux/blob/master/errors.json) | | [errors.json](https://github.com/reduxjs/redux/blob/master/errors.json) | [update `errors.json`](https://github.com/reduxjs/redux/commit/68f83ce0e56125399667a9e119a24a7e52ec8536%20%22update%20%60errors.json%60%22) | Jun 28, 2026 |
+| [netlify.toml](https://github.com/reduxjs/redux/blob/master/netlify.toml) | | [netlify.toml](https://github.com/reduxjs/redux/blob/master/netlify.toml) | [Upgrade to Yarn 4 (](https://github.com/reduxjs/redux/commit/a1d344dd6aeb7e605a2d4439895da79783461aac%20%22Upgrade%20to%20Yarn%204%20(#4680)") [#4680](https://github.com/reduxjs/redux/pull/4680) [)](https://github.com/reduxjs/redux/commit/a1d344dd6aeb7e605a2d4439895da79783461aac%20%22Upgrade%20to%20Yarn%204%20(#4680)") | Mar 10, 2024 |
+| [package.json](https://github.com/reduxjs/redux/blob/master/package.json) | | [package.json](https://github.com/reduxjs/redux/blob/master/package.json) | [chore(deps): update `@types/node` to latest version](https://github.com/reduxjs/redux/commit/1635ca2ac97e6b02ed3de51aa714aa01476a7d92%20%22chore(deps): update `@types/node` to latest version") | Jun 29, 2026 |
+| [tsconfig.base.json](https://github.com/reduxjs/redux/blob/master/tsconfig.base.json) | | [tsconfig.base.json](https://github.com/reduxjs/redux/blob/master/tsconfig.base.json) | [add node to types field](https://github.com/reduxjs/redux/commit/86466f013c77f257f1e92f958d5d15c1344cbf59) | Oct 30, 2025 |
+| [tsconfig.build.json](https://github.com/reduxjs/redux/blob/master/tsconfig.build.json) | | [tsconfig.build.json](https://github.com/reduxjs/redux/blob/master/tsconfig.build.json) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [tsconfig.json](https://github.com/reduxjs/redux/blob/master/tsconfig.json) | | [tsconfig.json](https://github.com/reduxjs/redux/blob/master/tsconfig.json) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [tsconfig.test.json](https://github.com/reduxjs/redux/blob/master/tsconfig.test.json) | | [tsconfig.test.json](https://github.com/reduxjs/redux/blob/master/tsconfig.test.json) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [tsup.config.ts](https://github.com/reduxjs/redux/blob/master/tsup.config.ts) | | [tsup.config.ts](https://github.com/reduxjs/redux/blob/master/tsup.config.ts) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [vitest.config.mts](https://github.com/reduxjs/redux/blob/master/vitest.config.mts) | | [vitest.config.mts](https://github.com/reduxjs/redux/blob/master/vitest.config.mts) | [Migrate type tests to Vitest (](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") [#4731](https://github.com/reduxjs/redux/pull/4731) [)](https://github.com/reduxjs/redux/commit/b59da78adc107ba75b06a32f6148feab23fcee50%20%22Migrate%20type%20tests%20to%20Vitest%20(#4731)
+
+Co-authored-by: Tim Dorr <timdorr@users.noreply.github.com>") | Aug 16, 2024 |
+| [yarn.lock](https://github.com/reduxjs/redux/blob/master/yarn.lock) | | [yarn.lock](https://github.com/reduxjs/redux/blob/master/yarn.lock) | [chore(deps): update `@types/node` to latest version](https://github.com/reduxjs/redux/commit/1635ca2ac97e6b02ed3de51aa714aa01476a7d92%20%22chore(deps): update `@types/node` to latest version") | Jun 29, 2026 |
+| View all files | | |
+
+## Repository files navigation
+
+-
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [MIT license](#)
+- [License](#)
+
+More items
+
+# [![Redux Logo](https://avatars.githubusercontent.com/u/13142323?s=200&v=4)Redux](https://redux.js.org)
+
+[Permalink: Redux](#redux)
+
+Redux is a JS library for predictable and maintainable global state management.
+
+It helps you write applications that behave consistently, run in different environments (client, server, and native), and are easy to test. On top of that, it provides a great developer experience, such as [live code editing combined with a time traveling debugger](https://github.com/reduxjs/redux-devtools).
+
+You can use Redux together with [React](https://react.dev), or with any other view library. The Redux core is tiny (2kB, including dependencies), and has a rich ecosystem of addons.
+
+[**Redux Toolkit**](https://redux-toolkit.js.org) is our official recommended approach for writing Redux logic. It wraps around the Redux core, and contains packages and functions that we think are essential for building a Redux app. Redux Toolkit builds in our suggested best practices, simplifies most Redux tasks, prevents common mistakes, and makes it easier to write Redux applications.
+
+[![GitHub Workflow Status](https://camo.githubusercontent.com/ed3993130132d3d96177d330b2e2632e94b7792743719d8701472405cae53a41/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656475786a732f72656475782f746573742e79616d6c3f6272616e63683d6d6173746572266576656e743d70757368267374796c653d666c61742d737175617265)](https://camo.githubusercontent.com/ed3993130132d3d96177d330b2e2632e94b7792743719d8701472405cae53a41/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656475786a732f72656475782f746573742e79616d6c3f6272616e63683d6d6173746572266576656e743d70757368267374796c653d666c61742d737175617265) [![npm version](https://camo.githubusercontent.com/8d594c96056d26eacf6b21637e53013b548b67187b3e4e0976a453ea9034c937/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656475782e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/redux) [![npm downloads](https://camo.githubusercontent.com/58196606fea323a57ae3b92ac2f626bc166250fb52492c2666a2f7783f33b792/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f646d2f72656475782e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/redux) [![redux channel on discord](https://camo.githubusercontent.com/897729ca17d7f078e3c181ccc610dede06999c5097157ca5b1c794f7e88b5f6f/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646973636f72642d2532337265647578253230253430253230726561637469666c75782d3631646166622e7376673f7374796c653d666c61742d737175617265)](https://discord.gg/0ZcbPKXt5bZ6au5t)
+
+## Installation
+
+[Permalink: Installation](#installation)
+
+### Create a React Redux App
+
+[Permalink: Create a React Redux App](#create-a-react-redux-app)
+
+The recommended way to start new apps with React and Redux Toolkit is by using [our official Redux Toolkit + TS template for Vite](https://github.com/reduxjs/redux-templates), or by creating a new Next.js project using [Next's `with-redux` template](https://github.com/vercel/next.js/tree/canary/examples/with-redux).
+
+Both of these already have Redux Toolkit and React-Redux configured appropriately for that build tool, and come with a small example app that demonstrates how to use several of Redux Toolkit's features.
+
+```
+# Vite with our Redux+TS template
+# (using the `degit` tool to clone and extract the template)
+npx degit reduxjs/redux-templates/packages/vite-template-redux my-app
+
+# Next.js using the `with-redux` template
+npx create-next-app --example with-redux my-app
+```
+
+We do not currently have official React Native templates, but recommend these templates for standard React Native and for Expo:
+
+- https://github.com/rahsheen/react-native-template-redux-typescript
+- https://github.com/rahsheen/expo-template-redux-typescript
+
+```
+npm install @reduxjs/toolkit react-redux
+```
+
+For the Redux core library by itself:
+
+```
+npm install redux
+```
+
+For more details, see [the Installation docs page](https://redux.js.org/introduction/installation).
+
+## Documentation
+
+[Permalink: Documentation](#documentation)
+
+The Redux core docs are located at **https://redux.js.org**, and include the full Redux tutorials, as well usage guides on general Redux patterns:
+
+- [Introduction](https://redux.js.org/introduction/getting-started)
+- [Tutorials](https://redux.js.org/tutorials/index)
+- [Usage Guides](https://redux.js.org/usage/index)
+- [FAQ](https://redux.js.org/faq)
+- [API Reference](https://redux.js.org/api/api-reference)
+
+The Redux Toolkit docs are available at **https://redux-toolkit.js.org**, including API references and usage guides for all of the APIs included in Redux Toolkit.
+
+## Learn Redux
+
+[Permalink: Learn Redux](#learn-redux)
+
+### Redux Essentials Tutorial
+
+[Permalink: Redux Essentials Tutorial](#redux-essentials-tutorial)
+
+The [**Redux Essentials tutorial**](https://redux.js.org/tutorials/essentials/part-1-overview-concepts) is a "top-down" tutorial that teaches "how to use Redux the right way", using our latest recommended APIs and best practices. We recommend starting there.
+
+### Redux Fundamentals Tutorial
+
+[Permalink: Redux Fundamentals Tutorial](#redux-fundamentals-tutorial)
+
+The [**Redux Fundamentals tutorial**](https://redux.js.org/tutorials/fundamentals/part-1-overview) is a "bottom-up" tutorial that teaches "how Redux works" from first principles and without any abstractions, and why standard Redux usage patterns exist.
+
+### Help and Discussion
+
+[Permalink: Help and Discussion](#help-and-discussion)
+
+The **[#redux channel](https://discord.gg/0ZcbPKXt5bZ6au5t)** of the **[Reactiflux Discord community](https://www.reactiflux.com)** is our official resource for all questions related to learning and using Redux. Reactiflux is a great place to hang out, ask questions, and learn - please come and join us there!
+
+## Before Proceeding Further
+
+[Permalink: Before Proceeding Further](#before-proceeding-further)
+
+Redux is a valuable tool for organizing your state, but you should also consider whether it's appropriate for your situation. Please don't use Redux just because someone said you should - instead, please take some time to understand the potential benefits and tradeoffs of using it.
+
+Here are some suggestions on when it makes sense to use Redux:
+
+- You have reasonable amounts of data changing over time
+- You need a single source of truth for your state
+- You find that keeping all your state in a top-level component is no longer sufficient
+
+Yes, these guidelines are subjective and vague, but this is for a good reason. The point at which you should integrate Redux into your application is different for every user and different for every application.
+
+> **For more thoughts on how Redux is meant to be used, please see:**  
+>
+> - **[When (and when not) to reach for Redux](https://changelog.com/posts/when-and-when-not-to-reach-for-redux)**
+> - **[You Might Not Need Redux](https://medium.com/@dan_abramov/you-might-not-need-redux-be46360cf367)**  
+>
+> - **[The Tao of Redux, Part 1 - Implementation and Intent](https://blog.isquaredsoftware.com/2017/05/idiomatic-redux-tao-of-redux-part-1/)**  
+>
+> - **[The Tao of Redux, Part 2 - Practice and Philosophy](https://blog.isquaredsoftware.com/2017/05/idiomatic-redux-tao-of-redux-part-2/)**
+> - **[Redux FAQ](https://redux.js.org/faq)**
+
+## Basic Example
+
+[Permalink: Basic Example](#basic-example)
+
+The whole global state of your app is stored in an object tree inside a single *store*. The only way to change the state tree is to create an *action*, an object describing what happened, and *dispatch* it to the store. To specify how state gets updated in response to an action, you write pure *reducer* functions that calculate a new state based on the old state and the action.
+
+Redux Toolkit simplifies the process of writing Redux logic and setting up the store. With Redux Toolkit, the basic app logic looks like:
+
+```
+import { createSlice, configureStore } from '@reduxjs/toolkit'
+
+const counterSlice = createSlice({
+  name: 'counter',
+  initialState: {
+    value: 0
+  },
+  reducers: {
+    incremented: state => {
+      // Redux Toolkit allows us to write "mutating" logic in reducers. It
+      // doesn't actually mutate the state because it uses the Immer library,
+      // which detects changes to a "draft state" and produces a brand new
+      // immutable state based off those changes
+      state.value += 1
+    },
+    decremented: state => {
+      state.value -= 1
+    }
+  }
+})
+
+export const { incremented, decremented } = counterSlice.actions
+
+const store = configureStore({
+  reducer: counterSlice.reducer
+})
+
+// Can still subscribe to the store
+store.subscribe(() => console.log(store.getState()))
+
+// Still pass action objects to `dispatch`, but they're created for us
+store.dispatch(incremented())
+// {value: 1}
+store.dispatch(incremented())
+// {value: 2}
+store.dispatch(decremented())
+// {value: 1}
+```
+
+Redux Toolkit allows us to write shorter logic that's easier to read, while still following the original core Redux behavior and data flow.
+
+## Logo
+
+[Permalink: Logo](#logo)
+
+You can find the official logo [on GitHub](https://github.com/reduxjs/redux/tree/master/logo).
+
+## Change Log
+
+[Permalink: Change Log](#change-log)
+
+This project adheres to [Semantic Versioning](https://semver.org/). Every release, along with the migration instructions, is documented on the GitHub [Releases](https://github.com/reduxjs/redux/releases) page.
+
+## License
+
+[Permalink: License](#license)
+
+[MIT](https://github.com/reduxjs/redux/blob/master/LICENSE.md)
+
+## About
+
+A JS library for predictable global state management
+
+[redux.js.org](https://redux.js.org)
+
+### Topics
+
+[redux](https://github.com/topics/redux)
+
+### Resources
+
+[Readme](#readme-ov-file)
+
+MIT, License licenses found
+
+### Code of conduct
+
+[Code of conduct](https://github.com/reduxjs/redux#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+[Activity](https://github.com/reduxjs/redux/activity)
+
+[Custom properties](https://github.com/reduxjs/redux/custom-properties)
+
+### Stars
+
+**61.5k** stars
+
+### Watchers
+
+**1.3k** watching
+
+### Forks
+
+[**15.2k** forks](https://github.com/reduxjs/redux/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Freduxjs%2Fredux&report=reduxjs+%28user%29)
+
+## [Releases](https://github.com/reduxjs/redux/releases)78 (78)
+
+[v5.0.1LatestDec 23, 2023](https://github.com/reduxjs/redux/releases/tag/v5.0.1)
+
+[+ 77 releases](https://github.com/reduxjs/redux/releases)
+
+## Sponsor this project
+
+- [![@timdorr](https://avatars.githubusercontent.com/u/17882?s=64&v=4)](https://github.com/timdorr) [**timdorr**](https://github.com/timdorr)Tim Dorr Sponsor @timdorr
+- [![@markerikson](https://avatars.githubusercontent.com/u/1128784?s=64&v=4)](https://github.com/markerikson) [**markerikson**](https://github.com/markerikson)Mark Erikson Sponsor @markerikson
+- [![@phryneas](https://avatars.githubusercontent.com/u/4282439?s=64&v=4)](https://github.com/phryneas) [**phryneas**](https://github.com/phryneas)Lenz Weber-Tronic Sponsor @phryneas
+- [![@EskiMojo14](https://avatars.githubusercontent.com/u/18308300?s=64&v=4)](https://github.com/EskiMojo14) [**EskiMojo14**](https://github.com/EskiMojo14)Ben Durrant Sponsor @EskiMojo14
+
+[Learn more about GitHub Sponsors](https://github.com/sponsors)
+
+## [Used by](https://github.com/reduxjs/redux/network/dependents)4.9M (4.9M)
+
+[![@rtc-synsr](https://avatars.githubusercontent.com/u/319123937?s=64&v=4)![@11mirror](https://avatars.githubusercontent.com/u/280230405?s=64&v=4)![@rtc-synsr](https://avatars.githubusercontent.com/u/319123937?s=64&v=4)![@EnCiv](https://avatars.githubusercontent.com/u/56694082?s=64&v=4)![@tarunpathak4](https://avatars.githubusercontent.com/u/83717529?s=64&v=4)+ 4,911,104](https://github.com/reduxjs/redux/network/dependents)
+
+## [Contributors](https://github.com/reduxjs/redux/graphs/contributors)1,004 (1,004)
+
+- [![@gaearon](https://avatars.githubusercontent.com/u/810438?s=64&v=4)](https://github.com/gaearon)
+- [![@markerikson](https://avatars.githubusercontent.com/u/1128784?s=64&v=4)](https://github.com/markerikson)
+- [![@timdorr](https://avatars.githubusercontent.com/u/17882?s=64&v=4)](https://github.com/timdorr)
+- [![@EskiMojo14](https://avatars.githubusercontent.com/u/18308300?s=64&v=4)](https://github.com/EskiMojo14)
+- [![@ellbee](https://avatars.githubusercontent.com/u/6018379?s=64&v=4)](https://github.com/ellbee)
+- [![@omnidan](https://avatars.githubusercontent.com/u/668674?s=64&v=4)](https://github.com/omnidan)
+- [![@acdlite](https://avatars.githubusercontent.com/u/3624098?s=64&v=4)](https://github.com/acdlite)
+- [![@cellog](https://avatars.githubusercontent.com/u/98250?s=64&v=4)](https://github.com/cellog)
+- [![@aryaemami59](https://avatars.githubusercontent.com/u/86934138?s=64&v=4)](https://github.com/aryaemami59)
+- [![@emmenko](https://avatars.githubusercontent.com/u/1110551?s=64&v=4)](https://github.com/emmenko)
+- [![@mindjuice](https://avatars.githubusercontent.com/u/934638?s=64&v=4)](https://github.com/mindjuice)
+- [![@hedgerh](https://avatars.githubusercontent.com/u/2524280?s=64&v=4)](https://github.com/hedgerh)
+- [![@chentsulin](https://avatars.githubusercontent.com/u/3382565?s=64&v=4)](https://github.com/chentsulin)
+- [![@aikoven](https://avatars.githubusercontent.com/u/857709?s=64&v=4)](https://github.com/aikoven)
+
+[+ 990 contributors](https://github.com/reduxjs/redux/graphs/contributors)
+
+## Languages
+
+- [TypeScript85.2%](https://github.com/reduxjs/redux/search?l=typescript)
+- [JavaScript10.7%](https://github.com/reduxjs/redux/search?l=javascript)
+- [CSS4.1%](https://github.com/reduxjs/redux/search?l=css)
+
+## Footer
+
+[GitHub Homepage](https://github.com) © 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

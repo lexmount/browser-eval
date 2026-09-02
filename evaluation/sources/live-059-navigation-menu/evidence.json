@@ -1,0 +1,58 @@
+{
+  "case_id": "live-059-navigation-menu",
+  "url": "https://github.com/docker/compose",
+  "checked_at": "2026-09-02T03:38:04.107402+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/docker/compose"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/docker/compose",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 322691,
+  "sha256": "3318d12192db00121474fc4a80926c2c5377ff37b93755adfd52e633883b6565",
+  "title": "GitHub - docker/compose: Define and run multi-container applications with Docker · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/098ceda2418a39891f8231ac86922b9a80a56edefe4f5fe469ff1dd56748d3ff/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f762f72656c656173652f646f636b65722f636f6d706f73652e7376673f7374796c653d666c61742d737175617265",
+      "alt": "GitHub release"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/b92bd49f755879826fbf8a9032e9966a79f3048d9305efd266584ea5ef6db264/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f676f2e6465762d646f63732d3030376439633f7374796c653d666c61742d737175617265266c6f676f3d676f266c6f676f436f6c6f723d7768697465",
+      "alt": "PkgGoDev"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/7d65ed1750bbdbbd8f7fdbf3f5e146cd5d6f96afbe74e7effbf7e1b8409ad40c/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f646f636b65722f636f6d706f73652f63692e796d6c3f6c6162656c3d6369266c6f676f3d676974687562267374796c653d666c61742d737175617265",
+      "alt": "Build Status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/1efc6e6c06d2cf4ec8c2db8e3584cc771fff354a9238521feec7085832425827/68747470733a2f2f636f6465636f762e696f2f67682f646f636b65722f636f6d706f73652f6272616e63682f6d61696e2f67726170682f62616467652e7376673f746f6b656e3d4850334b345934637475",
+      "alt": "Codecov"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/cddf57aa119a0b420ad0f6dafc87b29be800eb15675327f25de7bf8b77b4a0ee/68747470733a2f2f6170692e736563757269747973636f726563617264732e6465762f70726f6a656374732f6769746875622e636f6d2f646f636b65722f636f6d706f73652f6261646765",
+      "alt": "OpenSSF Scorecard"
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/docker/compose/raw/main/logo.png?raw=true",
+      "alt": "Docker Compose"
+    }
+  ],
+  "text_chars": 2066,
+  "excerpt": "Table of Contents\nDocker Compose\nWhere to get Docker Compose\nWindows and macOS\nLinux\nQuick Start\nContributing\nLegacy\nDocker Compose\nDocker Compose is a tool for running multi-container applications on Docker\ndefined using the\nCompose file format\n.\nA Compose file is used to define how one or more containers that make up\nyour application are configured.\nOnce you have a Compose file, you can create and start your application with a\nsingle command:\ndocker compose up\n.\nNote\n: About Docker Swarm\nDocker Swarm used to rely on the legacy compose file format but did not adopt the compose specification\nso is missing some of the recent enhancements in the compose syntax. After\nacquisition by Mirantis\nswarm isn't maintained by Docker Inc, and\nas such some Docker Compose features aren't accessible to sw",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2"
+  ],
+  "state": "captured"
+}

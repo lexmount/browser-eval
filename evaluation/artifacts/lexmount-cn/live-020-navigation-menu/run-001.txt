@@ -1,0 +1,1 @@
+Node.js JavaScript runtime ✨🐢🚀✨. Contribute to nodejs/node development by creating an account on GitHub. Repository stats: stars 120k, forks 36.6k, issues 639, pull requests 569. README excerpt: Node.js is an open-source, cross-platform JavaScript runtime environment.

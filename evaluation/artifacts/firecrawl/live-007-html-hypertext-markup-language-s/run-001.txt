@@ -1,0 +1,98 @@
+### Navigation
+
+- [index](https://docs.python.org/3/genindex.html "General Index")
+- [modules](https://docs.python.org/3/py-modindex.html "Python Module Index") \|
+- [next](https://docs.python.org/3/library/html.parser.html "html.parser — Simple HTML and XHTML parser") \|
+- [previous](https://docs.python.org/3/library/markup.html "Structured Markup Processing Tools") \|
+- ![Python logo](https://docs.python.org/3/_static/py.svg)
+- [Python](https://www.python.org/) »
+- Greek \| ΕλληνικάEnglishSpanish \| españolFrench \| françaisItalian \| italianoJapanese \| 日本語Korean \| 한국어Polish \| polskiBrazilian Portuguese \| Português brasileiroRomanian \| RomâneșteRussian \| РусскийTurkish \| TürkçeSimplified Chinese \| 简体中文Traditional Chinese \| 繁體中文
+
+dev (3.16)pre (3.15)3.14.73.133.123.113.103.93.83.73.63.53.43.33.23.13.02.72.6
+
+- [3.14.7 Documentation](https://docs.python.org/3/index.html) »
+
+- [The Python Standard Library](https://docs.python.org/3/library/index.html) »
+- [Structured Markup Processing Tools](https://docs.python.org/3/library/markup.html) »
+- [`html` — HyperText Markup Language support](https://docs.python.org/3/library/html.html)
+- \|
+
+- Theme
+AutoLightDark \|
+
+# `html` — HyperText Markup Language support [¶](https://docs.python.org/3/library/html.html\#module-html "Link to this heading")
+
+**Source code:** [Lib/html/\_\_init\_\_.py](https://github.com/python/cpython/tree/3.14/Lib/html/__init__.py)
+
+* * *
+
+This module defines utilities to manipulate HTML.
+
+html.escape( _s_, _quote=True_) [¶](https://docs.python.org/3/library/html.html#html.escape "Link to this definition")
+
+Convert the characters `&`, `<` and `>` in string _s_ to HTML-safe
+sequences. Use this if you need to display text that might contain such
+characters in HTML. If the optional flag _quote_ is true (the default), the
+characters (`"`) and (`'`) are also translated; this helps for inclusion
+in an HTML attribute value delimited by quotes, as in `<a href="...">`.
+If _quote_ is set to false, the characters (`"`) and (`'`) are not
+translated.
+
+Added in version 3.2.
+
+html.unescape( _s_) [¶](https://docs.python.org/3/library/html.html#html.unescape "Link to this definition")
+
+Convert all named and numeric character references (e.g. `&gt;`,
+`&#62;`, `&#x3e;`) in the string _s_ to the corresponding Unicode
+characters. This function uses the rules defined by the HTML 5 standard
+for both valid and invalid character references, and the [`list of\\
+HTML 5 named character references`](https://docs.python.org/3/library/html.entities.html#html.entities.html5 "html.entities.html5").
+
+Added in version 3.4.
+
+* * *
+
+Submodules in the `html` package are:
+
+- [`html.parser`](https://docs.python.org/3/library/html.parser.html#module-html.parser "html.parser: A simple parser that can handle HTML and XHTML.") – HTML/XHTML parser with lenient parsing mode
+
+- [`html.entities`](https://docs.python.org/3/library/html.entities.html#module-html.entities "html.entities: Definitions of HTML general entities.") – HTML entity definitions
+
+
+#### Previous topic
+
+[Structured Markup Processing Tools](https://docs.python.org/3/library/markup.html "previous chapter")
+
+#### Next topic
+
+[`html.parser` — Simple HTML and XHTML parser](https://docs.python.org/3/library/html.parser.html "next chapter")
+
+### This page
+
+- [Report a bug](https://docs.python.org/3/bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=html+%E2%80%94+HyperText+Markup+Language+support&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fhtml.html&pagesource=library%2Fhtml.rst)
+- [Show source](https://github.com/python/cpython/blob/main/Doc/library/html.rst?plain=1)
+
+«
+
+### Navigation
+
+- [index](https://docs.python.org/3/genindex.html "General Index")
+- [modules](https://docs.python.org/3/py-modindex.html "Python Module Index") \|
+- [next](https://docs.python.org/3/library/html.parser.html "html.parser — Simple HTML and XHTML parser") \|
+- [previous](https://docs.python.org/3/library/markup.html "Structured Markup Processing Tools") \|
+- ![Python logo](https://docs.python.org/3/_static/py.svg)
+- [Python](https://www.python.org/) »
+- Greek \| ΕλληνικάEnglishSpanish \| españolFrench \| françaisItalian \| italianoJapanese \| 日本語Korean \| 한국어Polish \| polskiBrazilian Portuguese \| Português brasileiroRomanian \| RomâneșteRussian \| РусскийTurkish \| TürkçeSimplified Chinese \| 简体中文Traditional Chinese \| 繁體中文
+
+dev (3.16)pre (3.15)3.14.73.133.123.113.103.93.83.73.63.53.43.33.23.13.02.72.6
+
+- [3.14.7 Documentation](https://docs.python.org/3/index.html) »
+
+- [The Python Standard Library](https://docs.python.org/3/library/index.html) »
+- [Structured Markup Processing Tools](https://docs.python.org/3/library/markup.html) »
+- [`html` — HyperText Markup Language support](https://docs.python.org/3/library/html.html)
+- \|
+
+- Theme
+AutoLightDark \|

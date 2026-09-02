@@ -1,0 +1,197 @@
+Manage pages
+
+Find
+
+Previous
+
+Next
+
+Highlight All
+
+Match Case
+
+Match Diacritics
+
+Whole Words
+
+Previous
+
+Next
+
+Zoom Out
+
+Zoom In
+
+Automatic ZoomActual SizePage FitPage Width⁨50⁩%⁨75⁩%⁨100⁩%⁨125⁩%⁨150⁩%⁨200⁩%⁨300⁩%⁨400⁩%
+
+Highlight
+
+Highlight color
+
+Thickness
+
+Show all
+
+Text
+
+Color
+
+Size
+
+Draw
+
+Color
+
+Thickness
+
+Opacity
+
+Add or edit images
+
+PrintSave
+
+Tools
+
+Enter the password to open this PDF file.
+
+CancelOK
+
+File name:
+
+-
+
+File size:
+
+-
+
+Title:
+
+-
+
+Author:
+
+-
+
+Subject:
+
+-
+
+Keywords:
+
+-
+
+Creation Date:
+
+-
+
+Modification Date:
+
+-
+
+Creator:
+
+-
+
+PDF Producer:
+
+-
+
+PDF Version:
+
+-
+
+Page Count:
+
+-
+
+Page Size:
+
+-
+
+Fast Web View:
+
+-
+
+Close
+
+Choose an optionAlt text (alternative text) helps when people can’t see the image or when it doesn’t load.
+
+Add a description
+
+Aim for 1-2 sentences that describe the subject, setting, or actions.
+
+Mark as decorative
+
+This is used for ornamental images, like borders or watermarks.
+
+CancelSave
+
+Edit alt text (image description)
+
+Short description for people who can’t see the image or when the image doesn’t load.
+
+This alt text was created automatically and may be inaccurate. [Learn more](https://support.mozilla.org/en-US/kb/pdf-alt-text)
+
+Create alt text automatically
+
+Downloading alt text AI model (⁨0⁩ of ⁨0⁩ MB)
+
+Couldn’t create alt text automaticallyPlease write your own alt text or try again later.
+
+Close
+
+CancelNot nowSave
+
+Image alt text settings
+
+Automatic alt text
+
+Create alt text automatically
+
+Suggests descriptions to help people who can’t see the image or when the image doesn’t load. [Learn more](https://support.mozilla.org/en-US/kb/pdf-alt-text)
+
+Alt text editor
+
+Show alt text editor right away when adding an image
+
+Helps you make sure all your images have alt text.
+
+Close
+
+This modal allows the user to create a signature to add to a PDF document. The user can edit the name (which also serves as the alt text), and optionally save the signature for repeated use.
+
+Add a signature
+
+TypeDrawImage
+
+Draw your signature
+
+Thickness
+
+Drag a file here to uploadOr browse image files
+
+Description (alt text)
+
+Clear signature
+
+Save signatureYou’ve reached the limit of 5 saved signatures. Remove one to save more.
+
+CancelAdd
+
+Edit description
+
+Description (alt text)
+
+CancelUpdate
+
+Add comment
+
+CancelAdd
+
+Preparing document for printing…
+
+⁨0⁩%
+
+Cancel
+
+UndoClose

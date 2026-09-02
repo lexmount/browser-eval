@@ -1,0 +1,21 @@
+![Anthropologie](https://static.captcha-delivery.com/captcha/assets/set/9fee510df0cbdb8aeee6b4ba5e0e4bbace93bee1/logo.png?update_cache=5360206869161036103)
+为提升会员帐户安全，我们需与您确认此网页操作行为确实出自您本人。 
+您可能无法使用视觉验证。我们建议您使用音频验证。重要提示：点击播放后，您将听到 6 位数字。请等待音频播放完毕后再进行输入或与页面交互。
+向右滑动以保护您的访问
+请输入您听到的数字。
+验证
+没有互联网接入。
+为什么需要经过「我不是机器人」的验证? 在您浏览网页过程中，可能有以下几种原因启动此验证程式：
+  * 系统侦测到您浏览网页的速度异常，为非正常操作。
+  * 您的电脑设定/软体阻挡网页 Javascript 程式运行。
+  * 您使用的IP位址(IP:123.120.3.183)与网路机器人相同。
+
+
+无法操作验证页面?  联络我们 
+ID: 678e4ae2-8dda-70bd-330a-2ad30e364faa
+请选择一个理由（强制性）。
+我已经尝试很多次了，一直无法完成验证。 
+其他问题 
+发送  ![正在加载...](https://static.captcha-delivery.com/captcha/assets/tpl/6dc485c0c428c35b53577b146dc6f9179f55ef9ad41b327a2a179998839364bf/loading_spinner.gif)
+您填写的讯息已完成送出。
+发生了错误...

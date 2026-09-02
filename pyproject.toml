@@ -1,11 +1,19 @@
 [project]
-name = "browser-service-eval"
+name = "browser-harness-eval"
 version = "0.1.0"
 description = "Reproducible browser service evaluation harness"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+browser-harness-eval = "browser_harness_eval.cli:main"
+
 [project.optional-dependencies]
+reference-audit = [
+  "requests>=2.32,<3",
+  "beautifulsoup4>=4.12,<5",
+  "pypdf>=5,<7",
+]
 browser-use-eval = [
   "docker>=7,<8",
   "playwright>=1.52,<2",
@@ -42,4 +50,4 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["harness*"]
+include = ["harness*", "browser_harness_eval*"]

@@ -1,0 +1,24 @@
+{
+  "case_id": "live-048-websocket-api-websockets",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API",
+  "checked_at": "2026-09-02T03:38:02.577832+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API",
+  "mime": "text/html",
+  "bytes": 161805,
+  "sha256": "425b5961f311ec46cfb4fefed29cfbe59842982ba85ac1d8fa48cb771ee3930f",
+  "title": "WebSocket API (WebSockets) - Web APIs | MDN",
+  "selector": "main",
+  "resources": [],
+  "text_chars": 6681,
+  "excerpt": "WebSocket API (WebSockets)\nNote:\nThis feature is available in\nWeb Workers\n.\nThe\nWebSocket API\nmakes it possible to open a two-way interactive communication session between the user's browser and a server. With this API, you can send messages to a server and receive responses without having to poll the server for a reply.\nThe WebSocket API provides two alternative mechanisms for creating and using web socket connections: the\nWebSocket\ninterface and the\nWebSocketStream\ninterface.\nThe\nWebSocket\ninterface is stable and has good browser and server support. However it doesn't support\nbackpressure\n. As a result, when messages arrive faster than the application can process them it will either fill up the device's memory by buffering those messages, become unresponsive due to 100% CPU usage, or bot",
+  "missing_facts": [],
+  "state": "captured"
+}

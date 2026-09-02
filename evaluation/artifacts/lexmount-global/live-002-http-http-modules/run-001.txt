@@ -1,0 +1,100 @@
+http — HTTP modules¶
+Source code: Lib/http/__init__.py
+http is a package that collects several modules for working with the HyperText Transfer Protocol:
+http.client is a low-level HTTP protocol client; for high-level URL opening use urllib.request
+http.client is a low-level HTTP protocol client; for high-level URL opening use urllib.request
+http.server contains basic HTTP server classes based on socketserver
+http.server contains basic HTTP server classes based on socketserver
+http.cookies has utilities for implementing state management with cookies
+http.cookies has utilities for implementing state management with cookies
+http.cookiejar provides persistence of cookies
+http.cookiejar provides persistence of cookies
+The http module also defines the following enums that help you work with http related code:
+Added in version 3.5. A subclass of enum.IntEnum that defines a set of HTTP status codes, reason phrases and long descriptions written in English. Usage: >>> from http import HTTPStatus >>> HTTPStatus.OK HTTPStatus.OK >>> HTTPStatus.OK == 200 True >>> HTTPStatus.OK.value 200 >>> HTTPStatus.OK.phrase 'OK' >>> HTTPStatus.OK.description 'Request fulfilled, document follows' >>> list(HTTPStatus) [HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, ...]
+Added in version 3.5.
+A subclass of enum.IntEnum that defines a set of HTTP status codes, reason phrases and long descriptions written in English.
+Usage:
+>>> from http import HTTPStatus >>> HTTPStatus.OK HTTPStatus.OK >>> HTTPStatus.OK == 200 True >>> HTTPStatus.OK.value 200 >>> HTTPStatus.OK.phrase 'OK' >>> HTTPStatus.OK.description 'Request fulfilled, document follows' >>> list(HTTPStatus) [HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, ...]
+HTTP status codes¶
+Supported, IANA-registered status codes available in http.HTTPStatus are:
+Code
+Enum Name
+Details
+100
+CONTINUE
+HTTP Semantics RFC 9110, Section 15.2.1
+101
+SWITCHING_PROTOCOLS
+HTTP Semantics RFC 9110, Section 15.2.2
+102
+PROCESSING
+WebDAV RFC 2518, Section 10.1
+103
+EARLY_HINTS
+An HTTP Status Code for Indicating Hints RFC 8297
+200
+OK
+HTTP Semantics RFC 9110, Section 15.3.1
+201
+CREATED
+HTTP Semantics RFC 9110, Section 15.3.2
+202
+ACCEPTED
+HTTP Semantics RFC 9110, Section 15.3.3
+203
+NON_AUTHORITATIVE_INFORMATION
+HTTP Semantics RFC 9110, Section 15.3.4
+204
+NO_CONTENT
+HTTP Semantics RFC 9110, Section 15.3.5
+205
+RESET_CONTENT
+HTTP Semantics RFC 9110, Section 15.3.6
+206
+PARTIAL_CONTENT
+HTTP Semantics RFC 9110, Section 15.3.7
+207
+MULTI_STATUS
+WebDAV RFC 4918, Section 11.1
+208
+ALREADY_REPORTED
+WebDAV Binding Extensions RFC 5842, Section 7.1 (Experimental)
+226
+IM_USED
+Delta Encoding in HTTP RFC 3229, Section 10.4.1
+300
+MULTIPLE_CHOICES
+HTTP Semantics RFC 9110, Section 15.4.1
+301
+MOVED_PERMANENTLY
+HTTP Semantics RFC 9110, Section 15.4.2
+302
+FOUND
+HTTP Semantics RFC 9110, Section 15.4.3
+303
+SEE_OTHER
+HTTP Semantics RFC 9110, Section 15.4.4
+304
+NOT_MODIFIED
+HTTP Semantics RFC 9110, Section 15.4.5
+305
+USE_PROXY
+HTTP Semantics RFC 9110, Section 15.4.6
+307
+TEMPORARY_REDIRECT
+HTTP Semantics RFC 9110, Section 15.4.8
+308
+PERMANENT_REDIRECT
+HTTP Semantics RFC 9110, Section 15.4.9
+400
+BAD_REQUEST
+HTTP Semantics RFC 9110, Section 15.5.1
+401
+UNAUTHORIZED
+HTTP Semantics RFC 9110, Section 15.5.2
+402
+PAYMENT_REQUIRED
+HTTP Semantics RFC 9110, Section 15.5.3
+403
+FORBIDDEN
+HTTP Semantics RFC 9110, Section 15.5.4

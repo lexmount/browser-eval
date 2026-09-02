@@ -1,0 +1,13 @@
+{
+  "case_id": "challenge-02",
+  "url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+  "checked_at": "2026-09-02",
+  "frozen_at": "2026-09-02T06:16:27.644900+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "b5fccbefda14dfe42eca887b4c23a5f0b314e0b26393291c380733827e699888",
+  "reference_sha256": "0a7ee47e96e325a1ade74381abf096fb00b11db7397ac37c36213587cf9967ab",
+  "scope": "已保存列表",
+  "items": 3,
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据",
+  "privacy": "仅公开列表；不包含账号页头、脚本、Cookie、私信或个人资料。"
+}
