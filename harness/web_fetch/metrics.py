@@ -159,7 +159,12 @@ def normalize_for_match(value: str) -> str:
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
     normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])', '', normalized)
-    return re.sub(r"\s+", " ", normalized).strip()
+    # Menu breadcrumbs commonly lose spaces when inline links are extracted.
+    # Keep the separator itself (and all operands); do not collapse >=, signs
+    # or English word boundaries. Fold layout newlines on both sides first:
+    # plain-text DOM extraction may put every menu label on a separate line.
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return re.sub(r'(?<=\w) *> *(?=\w)', '>', normalized)
 
 
 def fact_in_text(text: str, fact: str) -> bool:

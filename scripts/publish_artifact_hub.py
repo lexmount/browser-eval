@@ -30,15 +30,16 @@ if receipt.exists():
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if not receipt.exists() or updating:
  archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
+ large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
  for key,value in [('mode','zip'),('title','Web Fetch 评测')]:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode())
- if archive.stat().st_size <= 23*1024*1024:
+ if not large_archive:
   parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="webfetch.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode()+archive.read_bytes()+b'\r\n')
  parts.append(f'--{boundary}--\r\n'.encode())
  print('Uploading validated report package',flush=True)
  endpoint='/api/sites/'+result['slug']+'/versions?expected_version='+expected if updating else '/api/sites'
- if archive.stat().st_size > 23*1024*1024:
+ if large_archive:
   # The service caps one-shot requests at 24 MB. Upload the unpacked files
   # into a staging session, then activate the complete tree in one commit.
   from harness.web_fetch.publication import upload_large_archive
