@@ -18,10 +18,12 @@ from .base import Provider
 
 
 class MoliWebFetchProvider(Provider):
-    def validate(self) -> list[str]:
+    def _resolve_binary(self) -> str | None:
+        return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
+
+    def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
-        binary = str(self.config.get("binary") or "moli")
-        if not shutil.which(os.path.expanduser(binary)):
+        if not binary:
             errors.append("binary (set MOLI_BINARY or install moli on PATH)")
         if self.config.get("wait_until", "done") not in {
             "done",
@@ -35,16 +37,19 @@ class MoliWebFetchProvider(Provider):
             errors.append("max_bytes")
         return errors
 
+    def validate(self) -> list[str]:
+        return self._configuration_errors(self._resolve_binary())
+
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
-        errors = self.validate()
+        binary = self._resolve_binary()
+        errors = self._configuration_errors(binary)
         if errors:
             return ProviderResult(
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
-        binary = shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
         wait = self.config.get("wait_until", "done")
         command = [
             binary,
@@ -66,19 +71,36 @@ class MoliWebFetchProvider(Provider):
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }
-        if not hasattr(self, "_binary_sha256"):
+        try:
             with open(binary, "rb") as source:
-                self._binary_sha256 = hashlib.file_digest(source, "sha256").hexdigest()
-        metadata["binary_sha256"] = self._binary_sha256
+                metadata["binary_sha256"] = hashlib.file_digest(source, "sha256").hexdigest()
+        except OSError as error:
+            return ProviderResult(
+                False,
+                "",
+                error_type="configuration",
+                error_message=f"Cannot read Moli binary: {error}",
+                metadata=metadata,
+            )
         # Spool artifacts to files rather than retaining arbitrary CLI output in RAM.
         with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as diagnostic:
-            with subprocess.Popen(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=output,
-                stderr=diagnostic,
-                start_new_session=os.name == "posix",
-            ) as process:
+            try:
+                process = subprocess.Popen(
+                    command,
+                    stdin=subprocess.DEVNULL,
+                    stdout=output,
+                    stderr=diagnostic,
+                    start_new_session=os.name == "posix",
+                )
+            except OSError as error:
+                return ProviderResult(
+                    False,
+                    "",
+                    error_type="configuration",
+                    error_message=f"Cannot start Moli: {error}",
+                    metadata=metadata,
+                )
+            with process:
                 stopped = None
                 deadline = time.monotonic() + timeout
                 while True:

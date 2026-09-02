@@ -1,4 +1,5 @@
 import os
+import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -71,3 +72,35 @@ class MoliTests(unittest.TestCase):
     def test_registration_documented(self):
         self.assertIn("moli-webfetch", SPECS)
         self.assertIn("moli-webfetch", PROFILES)
+
+    def test_binary_resolved_once_per_fetch(self):
+        provider = self.provider('print("ok")')
+        with patch(
+            "harness.web_fetch.providers.moli.shutil.which", side_effect=[str(self.binary), None]
+        ) as which:
+            self.assertTrue(provider.fetch(self.case, 2).ok)
+            self.assertEqual(which.call_count, 1)
+            self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+
+    def test_binary_replacement_updates_audit_hash(self):
+        provider = self.provider('print("first")')
+        first = provider.fetch(self.case, 2)
+        self.provider('print("second")')  # Replace the executable at the same path.
+        second = provider.fetch(self.case, 2)
+        self.assertEqual(second.content, "second\n")
+        self.assertNotEqual(first.metadata["binary_sha256"], second.metadata["binary_sha256"])
+        self.assertEqual(
+            second.metadata["binary_sha256"], hashlib.sha256(self.binary.read_bytes()).hexdigest()
+        )
+
+    def test_disappearance_and_permission_errors_become_records(self):
+        provider = self.provider('print("ok")')
+        with patch(
+            "harness.web_fetch.providers.moli.open", side_effect=FileNotFoundError("removed")
+        ):
+            self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+        with patch(
+            "harness.web_fetch.providers.moli.subprocess.Popen",
+            side_effect=PermissionError("not executable"),
+        ):
+            self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
