@@ -53,13 +53,13 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Web Fetch 评测
 
-当前存档为 140 个任务 × 11 种方法：网页正文 100 个，文档、图片、视频、真实网站各 10 个。
-另已接入 `moli-webfetch`；新方法的执行结果独立保存，未完成同范围实测前不补入历史榜单。
+当前存档为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、真实网站各 10 个。
+包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
 
 ## 唯一当前入口
 
 ```text
-evaluation/                 # 当前任务、1540 条结果、原始输出和来源证据
+evaluation/                 # 当前任务、1680 条结果、原始输出和来源证据
 harness/web_fetch/          # 接口适配、评分、当前报告生成器
 scripts/build_report.py     # 唯一正式报告构建入口
 reports/webfetch/           # 唯一当前报告，可重复生成
@@ -96,6 +96,8 @@ python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-we
 ```
 
 使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
+
+新增方法完成同一评测集后，可执行 `python3 scripts/add_provider_results.py runs/<完整运行目录> --provider <新方法>`。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变。已存在的方法不允许用此入口覆盖。之后重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 

@@ -1,0 +1,382 @@
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[/](/)[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier)Appearance settings
+
+- Platform - AI CODE CREATION - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot) - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app) - [MCP RegistryIntegrate external tools](https://github.com/mcp) - DEVELOPER WORKFLOWS - [ActionsAutomate any workflow](https://github.com/features/actions) - [CodespacesInstant dev environments](https://github.com/features/codespaces) - [IssuesPlan and track work](https://github.com/features/issues) - [Code ReviewManage code changes](https://github.com/features/code-review) - [Code QualityEnforce quality at merge](https://github.com/features/code-quality) - APPLICATION SECURITY - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security) - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security) - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection) - EXPLORE - [Why GitHub](https://github.com/why-github) - [Documentation](https://docs.github.com) - [Blog](https://github.blog) - [Changelog](https://github.blog/changelog) - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions - BY COMPANY SIZE - [Enterprises](https://github.com/enterprise) - [Small and medium teams](https://github.com/team) - [Startups](https://github.com/enterprise/startups) - [Nonprofits](https://github.com/solutions/industry/nonprofits) - BY USE CASE - [App Modernization](https://github.com/solutions/use-case/app-modernization) - [DevSecOps](https://github.com/solutions/use-case/devsecops) - [DevOps](https://github.com/solutions/use-case/devops) - [CI/CD](https://github.com/solutions/use-case/ci-cd) - [View all use cases](https://github.com/solutions/use-case) - BY INDUSTRY - [Healthcare](https://github.com/solutions/industry/healthcare) - [Financial services](https://github.com/solutions/industry/financial-services) - [Manufacturing](https://github.com/solutions/industry/manufacturing) - [Government](https://github.com/solutions/industry/government) - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources - EXPLORE BY TOPIC - [AI](https://github.com/resources/articles?topic=ai) - [Software Development](https://github.com/resources/articles?topic=software-development) - [DevOps](https://github.com/resources/articles?topic=devops) - [Security](https://github.com/resources/articles?topic=security) - [View all topics](https://github.com/resources/articles) - EXPLORE BY TYPE - [Customer stories](https://github.com/customer-stories) - [Events & webinars](https://github.com/resources/events) - [Ebooks & reports](https://github.com/resources/whitepapers) - [Business insights](https://github.com/solutions/executive-insights) - [GitHub Skills](https://skills.github.com) - SUPPORT & SERVICES - [Documentation](https://docs.github.com) - [Customer support](https://support.github.com) - [Community forum](https://github.com/orgs/community/discussions) - [Trust center](https://github.com/trust-center) - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source - COMMUNITY - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors) - PROGRAMS - [Security Lab](https://securitylab.github.com) - [Maintainer Community](https://maintainers.github.com) - [GitHub Stars](https://stars.github.com) - [Archive Program](https://archiveprogram.github.com) - REPOSITORIES - [Topics](https://github.com/topics) - [Trending](https://github.com/trending) - [Collections](https://github.com/collections)
+- Enterprise - ENTERPRISE SOLUTIONS - [Enterprise platformAI-powered developer platform](https://github.com/enterprise) - AVAILABLE ADD-ONS - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security) - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business) - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier)
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=prettier%2Fprettier)Appearance settings
+
+You signed in with another tab or window.Reloadto refresh your session.You signed out in another tab or window.Reloadto refresh your session.You switched accounts on another tab or window.Reloadto refresh your session.Dismiss alert
+
+### Uh oh!
+
+There was an error while loading.Please reload this page.
+
+[prettier](/prettier)/**[prettier](/prettier/prettier)**Public
+
+- ### Uh oh! There was an error while loading.Please reload this page.
+- [Notifications](/login?return_to=%2Fprettier%2Fprettier)You must be signed in to change notification settings
+- [Fork5k](/login?return_to=%2Fprettier%2Fprettier)
+- [Star52.2k](/login?return_to=%2Fprettier%2Fprettier)
+
+- [Code](/prettier/prettier)
+- [Issues1.2k](/prettier/prettier/issues)
+- [Pull requests257](/prettier/prettier/pulls)
+- [Discussions](/prettier/prettier/discussions)
+- [Actions](/prettier/prettier/actions)
+- [Projects](/prettier/prettier/projects)
+- [Wiki](/prettier/prettier/wiki)
+- [Security and quality0](/prettier/prettier/security)
+- [Insights](/prettier/prettier/pulse)
+
+Additional navigation options
+- [Code](/prettier/prettier)
+- [Issues](/prettier/prettier/issues)
+- [Pull requests](/prettier/prettier/pulls)
+- [Discussions](/prettier/prettier/discussions)
+- [Actions](/prettier/prettier/actions)
+- [Projects](/prettier/prettier/projects)
+- [Wiki](/prettier/prettier/wiki)
+- [Security and quality](/prettier/prettier/security)
+- [Insights](/prettier/prettier/pulse)
+
+[/prettier/prettier](/prettier/prettier)
+
+main
+
+[Branches](/prettier/prettier/branches)[Tags](/prettier/prettier/tags)
+[/prettier/prettier/branches](/prettier/prettier/branches)[/prettier/prettier/tags](/prettier/prettier/tags)
+
+Go to file
+
+CodeOpen more actions menu
+
+## Latest commit
+
+## History
+
+[11,795 Commits](/prettier/prettier/commits/main/)
+[/prettier/prettier/commits/main/](/prettier/prettier/commits/main/)11,795 Commits
+
+## Folders and files
+
+NameNameLast commit message
+Last commit date
+[.github](/prettier/prettier/tree/main/.github)
+
+[.github](/prettier/prettier/tree/main/.github)
+
+[.vscode](/prettier/prettier/tree/main/.vscode)
+
+[.vscode](/prettier/prettier/tree/main/.vscode)
+
+[.yarn](/prettier/prettier/tree/main/.yarn)
+
+[.yarn](/prettier/prettier/tree/main/.yarn)
+
+[benchmarks](/prettier/prettier/tree/main/benchmarks)
+
+[benchmarks](/prettier/prettier/tree/main/benchmarks)
+
+[bin](/prettier/prettier/tree/main/bin)
+
+[bin](/prettier/prettier/tree/main/bin)
+
+[changelog_unreleased](/prettier/prettier/tree/main/changelog_unreleased)
+
+[changelog_unreleased](/prettier/prettier/tree/main/changelog_unreleased)
+
+[docs](/prettier/prettier/tree/main/docs)
+
+[docs](/prettier/prettier/tree/main/docs)
+
+[packages](/prettier/prettier/tree/main/packages)
+
+[packages](/prettier/prettier/tree/main/packages)
+
+[scripts](/prettier/prettier/tree/main/scripts)
+
+[scripts](/prettier/prettier/tree/main/scripts)
+
+[src](/prettier/prettier/tree/main/src)
+
+[src](/prettier/prettier/tree/main/src)
+
+[tests](/prettier/prettier/tree/main/tests)
+
+[tests](/prettier/prettier/tree/main/tests)
+
+[types/angular-html-parser](/prettier/prettier/tree/main/types/angular-html-parser)
+
+[types/angular-html-parser](/prettier/prettier/tree/main/types/angular-html-parser)
+
+[vendors](/prettier/prettier/tree/main/vendors)
+
+[vendors](/prettier/prettier/tree/main/vendors)
+
+[website](/prettier/prettier/tree/main/website)
+
+[website](/prettier/prettier/tree/main/website)
+
+[.codecov.yml](/prettier/prettier/blob/main/.codecov.yml)
+
+[.codecov.yml](/prettier/prettier/blob/main/.codecov.yml)
+
+[.editorconfig](/prettier/prettier/blob/main/.editorconfig)
+
+[.editorconfig](/prettier/prettier/blob/main/.editorconfig)
+
+[.git-blame-ignore-revs](/prettier/prettier/blob/main/.git-blame-ignore-revs)
+
+[.git-blame-ignore-revs](/prettier/prettier/blob/main/.git-blame-ignore-revs)
+
+[.gitattributes](/prettier/prettier/blob/main/.gitattributes)
+
+[.gitattributes](/prettier/prettier/blob/main/.gitattributes)
+
+[.gitignore](/prettier/prettier/blob/main/.gitignore)
+
+[.gitignore](/prettier/prettier/blob/main/.gitignore)
+
+[.ignore](/prettier/prettier/blob/main/.ignore)
+
+[.ignore](/prettier/prettier/blob/main/.ignore)
+
+[.prettierignore](/prettier/prettier/blob/main/.prettierignore)
+
+[.prettierignore](/prettier/prettier/blob/main/.prettierignore)
+
+[.yarnrc.yml](/prettier/prettier/blob/main/.yarnrc.yml)
+
+[.yarnrc.yml](/prettier/prettier/blob/main/.yarnrc.yml)
+
+[CHANGELOG.md](/prettier/prettier/blob/main/CHANGELOG.md)
+
+[CHANGELOG.md](/prettier/prettier/blob/main/CHANGELOG.md)
+
+[CONTRIBUTING.md](/prettier/prettier/blob/main/CONTRIBUTING.md)
+
+[CONTRIBUTING.md](/prettier/prettier/blob/main/CONTRIBUTING.md)
+
+[FUNDING.json](/prettier/prettier/blob/main/FUNDING.json)
+
+[FUNDING.json](/prettier/prettier/blob/main/FUNDING.json)
+
+[LICENSE](/prettier/prettier/blob/main/LICENSE)
+
+[LICENSE](/prettier/prettier/blob/main/LICENSE)
+
+[README.md](/prettier/prettier/blob/main/README.md)
+
+[README.md](/prettier/prettier/blob/main/README.md)
+
+[commands.md](/prettier/prettier/blob/main/commands.md)
+
+[commands.md](/prettier/prettier/blob/main/commands.md)
+
+[cspell.json](/prettier/prettier/blob/main/cspell.json)
+
+[cspell.json](/prettier/prettier/blob/main/cspell.json)
+
+[eslint.config.js](/prettier/prettier/blob/main/eslint.config.js)
+
+[eslint.config.js](/prettier/prettier/blob/main/eslint.config.js)
+
+[index.js](/prettier/prettier/blob/main/index.js)
+
+[index.js](/prettier/prettier/blob/main/index.js)
+
+[jest.config.js](/prettier/prettier/blob/main/jest.config.js)
+
+[jest.config.js](/prettier/prettier/blob/main/jest.config.js)
+
+[knip.config.js](/prettier/prettier/blob/main/knip.config.js)
+
+[knip.config.js](/prettier/prettier/blob/main/knip.config.js)
+
+[netlify.toml](/prettier/prettier/blob/main/netlify.toml)
+
+[netlify.toml](/prettier/prettier/blob/main/netlify.toml)
+
+[package.json](/prettier/prettier/blob/main/package.json)
+
+[package.json](/prettier/prettier/blob/main/package.json)
+
+[prettier.config.js](/prettier/prettier/blob/main/prettier.config.js)
+
+[prettier.config.js](/prettier/prettier/blob/main/prettier.config.js)
+
+[puppeteer.config.cjs](/prettier/prettier/blob/main/puppeteer.config.cjs)
+
+[puppeteer.config.cjs](/prettier/prettier/blob/main/puppeteer.config.cjs)
+
+[standalone.js](/prettier/prettier/blob/main/standalone.js)
+
+[standalone.js](/prettier/prettier/blob/main/standalone.js)
+
+[tsconfig.json](/prettier/prettier/blob/main/tsconfig.json)
+
+[tsconfig.json](/prettier/prettier/blob/main/tsconfig.json)
+
+[yarn.lock](/prettier/prettier/blob/main/yarn.lock)
+
+[yarn.lock](/prettier/prettier/blob/main/yarn.lock)
+
+View all files
+
+## Repository files navigation
+
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [MIT license](#)
+- [Security](#)
+
+Moreitems
+
+[![Prettier Banner](https://camo.githubusercontent.com/fa948058c8ea5db1ebb2133f7b4b54f36f39292d328f7470d0ca27e2e04f60dc/68747470733a2f2f756e706b672e636f6d2f70726574746965722d6c6f676f40312e302e332f696d616765732f70726574746965722d62616e6e65722d6c696768742e737667)](https://prettier.io)
+
+## Opinionated Code Formatter
+
+[#opinionated-code-formatter](#opinionated-code-formatter)
+
+*JavaScript · TypeScript · Flow · JSX · JSON* *CSS · SCSS · Less* *HTML · Vue · Angular* *GraphQL · Markdown · YAML* *[Your favorite language?](https://prettier.io/docs/plugins)*
+
+[![CI Status](https://camo.githubusercontent.com/4237883beb4df68a433b37fbdafa548e0f97de18330b0d339cf41d810b8833d1/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f70726574746965722f70726574746965722f6d61696e3f7374796c653d666c61742d737175617265266c6162656c3d4349)](https://github.com/prettier/prettier/actions?query=branch%3Amain)[![Coverage Status](https://camo.githubusercontent.com/bcf5c2d1f9807f67344b24ac270ea0cd3caa687298151107ff7fb68f32825851/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f70726574746965722f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://codecov.io/gh/prettier/prettier)[![Blazing Fast](https://camo.githubusercontent.com/eb4fdac0d5c3c4f12390b4112787bce2bdfebddaac0dc9cb555d91433fc371cf/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f73706565642d626c617a696e672532302546302539462539342541352d627269676874677265656e2e7376673f7374796c653d666c61742d737175617265)](https://x.com/acdlite/status/974390255393505280) [![npm version](https://camo.githubusercontent.com/34bf491160d60a552c8e9b510963abd66c4b35557e8859c54e9f6169135b6f08/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/prettier)[![weekly downloads from npm](https://camo.githubusercontent.com/c391d8b06d931145da024db1172ae7b8b5af45a0be3c57c8eeafbb1f811f057e/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f64772f70726574746965722e7376673f7374796c653d666c61742d737175617265)](https://www.npmjs.com/package/prettier)[![code style: prettier](https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265)](https://github.com/prettier/prettier#badge)[![Follow Prettier on X](https://camo.githubusercontent.com/51e8b38521aaadf5cdd26b3aa3ab6faced8236f6646066bc4bad4390c73693cc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f2534305072657474696572436f64652d3966396639663f7374796c653d666c61742d737175617265266c6f676f3d78266c6162656c436f6c6f723d353535)](https://x.com/intent/follow?screen_name=PrettierCode)
+
+## Intro
+
+[#intro](#intro)
+
+Prettier is an opinionated code formatter. It enforces a consistent style by parsing your code and re-printing it with its own rules that take the maximum line length into account, wrapping code when necessary.
+
+### Input
+
+[#input](#input)
+
+```text
+foo(reallyLongArg(), omgSoManyParameters(), IShouldRefactorThis(), isThereSeriouslyAnotherOne());
+```
+
+### Output
+
+[#output](#output)
+
+```text
+foo(
+  reallyLongArg(),
+  omgSoManyParameters(),
+  IShouldRefactorThis(),
+  isThereSeriouslyAnotherOne(),
+);
+```
+
+Prettier can be run[in your editor](https://prettier.io/docs/editors)on-save, in a[pre-commit hook](https://prettier.io/docs/precommit), or in[CI environments](https://prettier.io/docs/cli#list-different)to ensure your codebase has a consistent style without devs ever having to post a nit-picky comment on a code review ever again!
+
+---
+
+**[Documentation](https://prettier.io/docs/)**
+
+[Install](https://prettier.io/docs/install)·[Options](https://prettier.io/docs/options)·[CLI](https://prettier.io/docs/cli)·[API](https://prettier.io/docs/api)
+
+**[Playground](https://prettier.io/playground/)**
+
+---
+
+## Badge
+
+[#badge](#badge)
+
+Show the world you're using*Prettier*→[![code style: prettier](https://camo.githubusercontent.com/fa1096c501361805c36b519890a25f61cd45dde376718bb2f5af65a656f4c0fa/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f636f64655f7374796c652d70726574746965722d6666363962342e7376673f7374796c653d666c61742d737175617265)](https://github.com/prettier/prettier)
+
+```text
+[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+```
+
+## Contributing
+
+[#contributing](#contributing)
+
+See[CONTRIBUTING.md](/prettier/prettier/blob/main/CONTRIBUTING.md).
+
+## About
+
+Prettier is an opinionated code formatter.
+
+[prettier.io](https://prettier.io)
+
+### Topics
+
+[angular](/topics/angular)[ast](/topics/ast)[css](/topics/css)[flow](/topics/flow)[formatter](/topics/formatter)[graphql](/topics/graphql)[html](/topics/html)[javascript](/topics/javascript)[json](/topics/json)[jsx](/topics/jsx)[less](/topics/less)[markdown](/topics/markdown)[prettier](/topics/prettier)[printer](/topics/printer)[scss](/topics/scss)[typescript](/topics/typescript)[vue](/topics/vue)[yaml](/topics/yaml)
+
+### Resources
+
+[Readme](#readme-ov-file)
+[MIT license](#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/prettier/prettier#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+[Activity](/prettier/prettier/activity)
+[Custom properties](/prettier/prettier/custom-properties)
+
+### Stars
+
+**52.2k**stars
+
+### Watchers
+
+**456**watching
+
+### Forks
+
+[**5.0k**forks](/prettier/prettier/forks)
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fprettier%2Fprettier&report=prettier+%28user%29)
+
+## Releases
+
+## Sponsor this project
+
+## Packages
+
+## Used by
+
+## Contributors
+
+## Languages
+
+## Footer
+
+[https://github.com](https://github.com)© 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

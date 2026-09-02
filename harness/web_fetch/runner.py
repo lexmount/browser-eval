@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .metrics import evaluate_content, evaluate_resources, summarize
+from .metrics import evaluate_content, evaluate_resources, summarize, task_passed
 from .dynamic_lists import evaluate_dynamic_list
 from .list_verification import verify_list
 from .models import AttemptRecord, EvalCase, ProviderResult
@@ -204,8 +204,8 @@ def run_evaluation(
                     ).to_dict()
                     from .models import execution_id
                     record['run_id'] = execution_id(record)
-                    passed = record["metrics"].get("structure_pass") if case.task_kind == "structure" else record["metrics"]["content_pass"]
-                    state = ("STRUCTURE_PASS" if passed else "STRUCTURE_FAIL") if case.task_kind == "structure" else ("PASS" if result.ok and passed else "FAIL")
+                    passed = task_passed(record['ok'],record['metrics'],case.task_kind)
+                    state = "PASS" if passed else "FAIL"
                     with result_lock:
                         records.append(record)
                         results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -233,6 +233,7 @@ def run_evaluation(
     summary = summarize(records)
     manifest["completed_at"] = utc_now()
     manifest["attempt_count"] = len(records)
+    manifest["attempt_ids"] = [r['attempt_id'] for r in records]
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

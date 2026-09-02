@@ -8,6 +8,7 @@ from pathlib import Path
 from .accounts import print_account_checklist
 from .config import load_dataset, load_runtime_env, load_provider_config
 from .providers import build_provider
+from .metrics import task_passed
 from .report_build import build_report
 from .runner import load_records, rescore_evaluation, run_evaluation
 
@@ -51,7 +52,8 @@ def command_run(args: argparse.Namespace) -> int:
     )
     report_path = build_report(args.output, args.output / 'report')
     print(f"Report: {report_path.resolve()}")
-    failures = [r for r in records if not r["ok"] or not r["metrics"]["content_pass"]]
+    kinds={case.id:case.task_kind for case in cases}
+    failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
     return 2 if args.fail_on_failure and failures else 0
 
 

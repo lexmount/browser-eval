@@ -1,0 +1,56 @@
+[![](/logo/curl-white-symbol.svg)](/)Menu
+- [Docs Overview](/docs/)
+- Project - [Project overview](/docs/projdocs.html) - [Bug Report](/docs/bugs.html) - [Code of conduct](/docs/code-of-conduct.html) - [Dependencies](/docs/libs.html) - [Donate](/donation.html) - [FAQ](/docs/faq.html) - [Features](/docs/features.html) - [Governance](/docs/governance.html) - [History](/docs/history.html) - [Install](/docs/install.html) - [Known Bugs](/docs/knownbugs.html) - [Known Risks](/docs/knownrisks.html) - [Logo](/logo/) - [TODO](/docs/todo.html) - [website Info](/about.html)
+- Protocols - [Protocols overview](/docs/protdocs.html) - [CA Extract](/docs/caextract.html) - [HTTP cookies](/docs/http-cookies.html) - [HTTP/3](/docs/http3.html) - [MQTT](/docs/mqtt.html) - [SSL certs](/docs/sslcerts.html) - [SSL libs compared](/docs/ssl-compared.html) - [URL syntax](/docs/url-syntax.html) - [WebSocket](/docs/websocket.html)
+- Releases - [Releases overview](/docs/reldocs.html) - [Changelog](/ch/) - [Release Table](/docs/releases.html) - [Version Numbering](/docs/versions.html) - [Verify](/docs/verify.html)
+- Security - [Security overview](/docs/secdocs.html) - [Security Audits](/docs/audits.html) - [curl CVEs](/docs/security.html) - [Security advisory details](/dev/advisory.html) - [Vulnerability table](/docs/vulnerabilities.html) - [Vulnerability Disclosure Policy](/dev/vuln-disclosure.html)
+- Tool - [Tool overview](/docs/tooldocs.html) - [Comparison Table](/docs/comparison-table.html) - [curl man page](/docs/manpage.html) - [HTTP Scripting](/docs/httpscripting.html) - [mk-ca-bundle](/docs/mk-ca-bundle.html) - [Tutorial](/docs/tutorial.html) - [When options were added](/docs/optionswhen.html)
+- Who and Why - [Who and Why overview](/docs/whodocs.html) - [Companies](/docs/companies.html) - [Copyright](/docs/copyright.html) - [Sponsors](/sponsors.html) - [Thanks](/docs/thanks.html) - [The name](/docs/thename.html)
+
+[curl](/)/**Documentation Overview**
+
+# Documentation Overview
+
+The main documentation is sub divided into several categories. Each category holds a number of documentation pages.
+
+## The book: Everything curl
+
+This is a detailed and totally free book, available[online](https://everything.curl.dev/)(and as a PDF as a link from there) that explains everything there is to know about curl, libcurl and the associated project.
+
+Learn how to use curl. How to use libcurl. How to build them from source or perhaps how the curl project accepts contributions. There is something for everyone in this, from the casual first-time users to the experienced libcurl hackers.
+
+## Presentations on Video
+
+We have a large selection of[video presentations](videos/)gathered about various areas in curl and related technologies.
+
+## curl tool documentation
+
+[Comparison Table](comparison-table.html),[curl man page](manpage.html),[HTTP Scripting](httpscripting.html),[mk-ca-bundle](mk-ca-bundle.html),[Tutorial](tutorial.html)
+
+## The project
+
+[Bug Report](bugs.html),[Code of conduct](code-of-conduct.html),[Dependencies](libs.html),[Donate](/donation.html),[FAQ](faq.html),[Features](features.html),[History](history.html),[Install](install.html),[Known Bugs](knownbugs.html),[Logo](/logo/),[Surveys](survey/),[TODO](todo.html),[website Info](/about.html)
+
+## Releases
+
+[Changelog](/ch/),[Release Table](releases.html),[Verify](verify.html).[Version numbering](versions.html).
+
+## Security
+
+[Security Audits](audits.html),[curl CVEs](security.html),[Security advisory details](/dev/advisory.html),[Vulnerability table](vulnerabilities.html),[Vulnerability Disclosure Policy](/dev/vuln-disclosure.html)
+
+## Protocols
+
+[CA Extract](/docs/caextract.html),[HTTP Cookies](http-cookies.html),[HTTP/3](http3.html),[SSL Certs](sslcerts.html),[SSL libs compared](ssl-compared.html),[URL syntax](url-syntax.html)
+
+## Who and Why
+
+[Companies](companies.html),[Copyright](copyright.html),[Sponsors](/sponsors.html),[Thanks](thanks.html),[The Name](thename.html)
+
+## libcurl
+
+The libcurl sub section of the site is huge!
+
+## Development
+
+Plenty of documentation and details if you want to work on curl or libcurl themselves.

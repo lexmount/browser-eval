@@ -8,7 +8,7 @@ import shutil
 import statistics
 from collections import Counter,defaultdict
 from pathlib import Path
-from .metrics import percentile
+from .metrics import percentile, task_passed
 from .methods import method_info
 from .accounts import ACCOUNT_REGISTRY
 from .report_style import STYLE
@@ -78,11 +78,7 @@ def write(out,path,title,body):
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 def succeeded(r,c):
- if not r['ok']:return False
- if c.get('task_kind')=='structure':return bool(r['metrics'].get('list_task_pass'))
- if c.get('task_kind')=='resource':return bool(r['metrics'].get('resource_pass'))
- if c.get('task_kind')=='file':return bool(r['metrics'].get('raw_file_pass'))
- return bool(r['metrics']['content_pass'])
+ return task_passed(r['ok'],r['metrics'],c.get('task_kind','body'))
 
 def failure_category(r,c):
  if succeeded(r,c):return '—'
@@ -277,6 +273,7 @@ def write_support(out,records,manifests):
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，忽略 Markdown 链接地址、行内代码与加粗标记；保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
+ methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考，但执行批次并非同时发生。时间和运行环境见环境页；实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。</p>')
  methodology+=section('动态列表边界','<p>至少返回 3 个不同条目的名称和详情入口，再以独立页面或已保存快照核验前三条名称与详情身份。三条均确认才算任务通过；有链接但没有内容证据，标为“条目内容未获证实”，不是“内容错误”。名单、排序、价格、推荐位置与整页召回均不在本任务范围，不以过去名单约束现在的输出。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  write(out,'methodology/index.html','评测方法',methodology)
@@ -285,6 +282,11 @@ def write_support(out,records,manifests):
  rows=[]
  for i,m in enumerate(manifests):
   for k,v in [('执行组',i+1),('开始（UTC）',m['started_at']),('完成（UTC）',m.get('completed_at')),('纳入调用数',m.get('attempt_count')),('Python',m['environment']['python']),('平台',m['environment']['platform']),('并发范围',m['parameters'].get('concurrency_scope')),('超时秒',m['parameters']['timeout'])]:rows.append(('',cell(k)+cell(esc(v))))
+  rows.append(('',cell('方法')+cell(esc('、'.join(p['name'] for p in m.get('providers',[]))))))
+  implementation=m.get('implementation')
+  if implementation:
+   rows.append(('',cell('方法版本')+cell(esc(implementation['provider']+' '+implementation['version']))))
+   rows.append(('',cell('可执行文件 SHA-256')+cell('<code class="tiny break">'+esc(implementation['sha256'])+'</code>')))
  errors=Counter((r['provider'],r.get('error_type') or 'unknown') for r in records if not r['ok'])
  errorrows=[('',cell(esc(n))+cell(esc(t))+cell(str(count))) for (n,t),count in sorted(errors.items())]
  write(out,'environment/index.html','环境',hero('执行环境','各组使用的运行环境、时间与请求参数。')+section('测试条件',f'<p>共纳入 {len(records):,} 次调用。任务范围与方法配置以冻结数据为准；不向参评方法提供网站登录凭据，不操作验证码。参考与调用的会话可能不同，因此动态任务只确认前三条名称和详情身份，不比较个性化名单。</p>')+section('运行参数',table(['参数','值'],rows))+section('请求失败统计',table(['方法','故障分类','次数'],errorrows)))

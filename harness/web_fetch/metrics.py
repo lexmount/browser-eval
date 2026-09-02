@@ -140,6 +140,11 @@ def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
     return round(precision, 4), round(recall, 4), round(f1, 4)
 
 
+def task_passed(ok: bool, metrics: dict, task_kind: str = 'body') -> bool:
+    field = {'structure':'list_task_pass', 'resource':'resource_pass', 'file':'raw_file_pass'}.get(task_kind, 'content_pass')
+    return bool(ok and metrics.get(field))
+
+
 def normalize_for_match(value: str) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links
     normalized = unicodedata.normalize("NFKC", value).casefold()

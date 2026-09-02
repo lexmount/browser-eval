@@ -69,7 +69,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','先了解参评方法，再看开源采用线索与本轮实测。采用热度不代替质量成绩。')
-    body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地开源库','LangChain WebBaseLoader、Crawl4AI；使用本机网络与运行环境。')]))
+    body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、采用与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
         ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集；历史已发现的引用不会因搜索排序变化被丢弃。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),

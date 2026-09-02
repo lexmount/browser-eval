@@ -1,0 +1,792 @@
+- [Skip to main content](#content)
+- [Skip to search](#search)
+
+[MDN](/en-US/)
+
+HTML
+[HTML: Markup language](/en-US/docs/Web/HTML)
+
+HTML reference
+- [Elements](/en-US/docs/Web/HTML/Reference/Elements)
+- [Global attributes](/en-US/docs/Web/HTML/Reference/Global_attributes)
+- [Attributes](/en-US/docs/Web/HTML/Reference/Attributes)
+- [See all…](/en-US/docs/Web/HTML/Reference)
+
+HTML guides
+- [Responsive images](/en-US/docs/Web/HTML/Guides/Responsive_images)
+- [HTML cheatsheet](/en-US/docs/Web/HTML/Guides/Cheatsheet)
+- [Date & time formats](/en-US/docs/Web/HTML/Guides/Date_and_time_formats)
+- [See all…](/en-US/docs/Web/HTML/Guides)
+
+Markup languages
+- [SVG](/en-US/docs/Web/SVG)
+- [MathML](/en-US/docs/Web/MathML)
+- [XML](/en-US/docs/Web/XML)
+
+CSS
+[CSS: Styling language](/en-US/docs/Web/CSS)
+
+CSS reference
+- [Properties](/en-US/docs/Web/CSS/Reference/Properties)
+- [Selectors](/en-US/docs/Web/CSS/Reference/Selectors)
+- [At-rules](/en-US/docs/Web/CSS/Reference/At-rules)
+- [Values](/en-US/docs/Web/CSS/Reference/Values)
+- [See all…](/en-US/docs/Web/CSS/Reference)
+
+CSS guides
+- [Box model](/en-US/docs/Web/CSS/Guides/Box_model/Introduction)
+- [Animations](/en-US/docs/Web/CSS/Guides/Animations/Using)
+- [Flexbox](/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts)
+- [Colors](/en-US/docs/Web/CSS/Guides/Colors/Applying_color)
+- [See all…](/en-US/docs/Web/CSS/Guides)
+
+Layout cookbook
+- [Column layouts](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts)
+- [Centering an element](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element)
+- [Card component](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card)
+- [See all…](/en-US/docs/Web/CSS/How_to/Layout_cookbook)
+
+JavaScriptJS
+[JavaScript: Scripting language](/en-US/docs/Web/JavaScript)
+
+JS reference
+- [Standard built-in objects](/en-US/docs/Web/JavaScript/Reference/Global_Objects)
+- [Expressions & operators](/en-US/docs/Web/JavaScript/Reference/Operators)
+- [Statements & declarations](/en-US/docs/Web/JavaScript/Reference/Statements)
+- [Functions](/en-US/docs/Web/JavaScript/Reference/Functions)
+- [See all…](/en-US/docs/Web/JavaScript/Reference)
+
+JS guides
+- [Control flow & error handing](/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling)
+- [Loops and iteration](/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration)
+- [Working with objects](/en-US/docs/Web/JavaScript/Guide/Working_with_objects)
+- [Using classes](/en-US/docs/Web/JavaScript/Guide/Using_classes)
+- [See all…](/en-US/docs/Web/JavaScript/Guide)
+
+Web APIs
+[Web APIs: Programming interfaces](/en-US/docs/Web/API)
+
+Web API reference
+- [File system API](/en-US/docs/Web/API/File_System_API)
+- [Fetch API](/en-US/docs/Web/API/Fetch_API)
+- [Geolocation API](/en-US/docs/Web/API/Geolocation_API)
+- [HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)
+- [Push API](/en-US/docs/Web/API/Push_API)
+- [Service worker API](/en-US/docs/Web/API/Service_Worker_API)
+- [See all…](/en-US/docs/Web/API)
+
+Web API guides
+- [Using the Web animation API](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API)
+- [Using the Fetch API](/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- [Working with the History API](/en-US/docs/Web/API/History_API/Working_with_the_History_API)
+- [Using the Web speech API](/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API)
+- [Using web workers](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
+
+All
+[All web technology](/en-US/docs/Web)
+
+Technologies
+- [Accessibility](/en-US/docs/Web/Accessibility)
+- [HTTP](/en-US/docs/Web/HTTP)
+- [URI](/en-US/docs/Web/URI)
+- [Web extensions](/en-US/docs/Mozilla/Add-ons/WebExtensions)
+- [WebAssembly](/en-US/docs/WebAssembly)
+- [WebDriver](/en-US/docs/Web/WebDriver)
+- [See all…](/en-US/docs/Web)
+
+Topics
+- [Media](/en-US/docs/Web/Media)
+- [Performance](/en-US/docs/Web/Performance)
+- [Privacy](/en-US/docs/Web/Privacy)
+- [Security](/en-US/docs/Web/Security)
+- [Progressive web apps](/en-US/docs/Web/Progressive_web_apps)
+
+Learn
+[Learn web development](/en-US/docs/Learn_web_development)
+
+Frontend developer course
+- [Getting started modules](/en-US/docs/Learn_web_development/Getting_started)
+- [Core modules](/en-US/docs/Learn_web_development/Core)
+- [MDN Curriculum](/en-US/curriculum/)
+- [Check out the video course from Scrimba, our partner](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar)
+
+Learn HTML
+- [Structuring content with HTML module](/en-US/docs/Learn_web_development/Core/Structuring_content)
+
+Learn CSS
+- [CSS styling basics module](/en-US/docs/Learn_web_development/Core/Styling_basics)
+- [CSS layout module](/en-US/docs/Learn_web_development/Core/CSS_layout)
+
+Learn JavaScript
+- [Dynamic scripting with JavaScript module](/en-US/docs/Learn_web_development/Core/Scripting)
+
+Tools
+Discover our tools
+
+- [Playground](/en-US/play)
+- [HTTP Observatory](/en-US/observatory)
+
+- [Border-image generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator)
+- [Border-radius generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator)
+- [Box-shadow generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator)
+- [Color format converter](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter)
+- [Color mixer](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer)
+- [Shape generator](/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator)
+
+About
+Get to know MDN better
+
+- [About MDN](/en-US/about)
+- [Advertise with us](/en-US/advertising)
+
+- [Community](/en-US/community)
+- [MDN on GitHub](https://github.com/mdn)
+
+[Blog](/en-US/blog/)
+
+- [Web](/en-US/docs/Web)
+- [Web APIs](/en-US/docs/Web/API)
+- [Document Object Model (DOM)](/en-US/docs/Web/API/Document_Object_Model)
+
+# Document Object Model (DOM)
+
+The**Document Object Model**(**DOM**) connects web pages to scripts or programming languages by representing the structure of a document—such as the HTML representing a web page—in memory. Usually it refers to JavaScript, even though modeling HTML, SVG, or XML documents as objects are not part of the core JavaScript language.
+
+The DOM represents a document with a logical tree. Each branch of the tree ends in a node, and each node contains objects. DOM methods allow programmatic access to the tree. With them, you can change the document's structure, style, or content.
+
+Nodes can also have event handlers attached to them. Once an event is triggered, the event handlers get executed.
+
+## In this article
+
+- [Concepts and usage](#concepts_and_usage)
+- [DOM interfaces](#dom_interfaces)
+- [HTML DOM](#html_dom)
+- [SVG DOM](#svg_dom)
+- [Examples](#examples)
+- [Specifications](#specifications)
+- [See also](#see_also)
+
+## Concepts and usage
+
+The Document Object Model (DOM) is a programming interface for web documents. It represents the page so that programs can change the document structure, style, and content. The DOM represents the document as nodes and objects; that way, programming languages can interact with the page.
+
+A web page is a document that can be either displayed in the browser window or as the HTML source. In both cases, it is the same document but the Document Object Model (DOM) representation allows it to be manipulated. As an object-oriented representation of the web page, it can be modified with a scripting language such as JavaScript.
+
+For example, the DOM specifies that the`querySelectorAll`method in this code snippet must return a list of all the[`<p>`](/en-US/docs/Web/HTML/Reference/Elements/p)elements in the document:
+
+js
+
+```text
+const paragraphs = document.querySelectorAll("p");
+// paragraphs[0] is the first <p> element
+// paragraphs[1] is the second <p> element, etc.
+alert(paragraphs[0].nodeName);
+```
+
+All of the properties, methods, and events available for manipulating and creating web pages are organized into objects. For example, the`document`object that represents the document itself, any`table`objects that implement the[`HTMLTableElement`](/en-US/docs/Web/API/HTMLTableElement)DOM interface for accessing HTML tables, and so forth, are all objects.
+
+The DOM is built using multiple APIs that work together. The core DOM defines the entities describing any document and the objects within it. This is expanded upon as needed by other APIs that add new features and capabilities to the DOM. For example, the[HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)adds support for representing HTML documents to the core DOM, and the SVG API adds support for representing SVG documents.
+
+### What is a DOM tree?
+
+A**DOM tree**is a[tree structure](https://en.wikipedia.org/wiki/Tree_structure)whose nodes represent an HTML or XML document's contents. Each HTML or XML document has a DOM tree representation. For example, consider the following document:
+
+html
+
+```text
+<html lang="en">
+  <head>
+    <title>My Document</title>
+  </head>
+  <body>
+    <h1>Header</h1>
+    <p>Paragraph</p>
+  </body>
+</html>
+```
+
+It has a DOM tree that looks like this:
+
+![The DOM as a tree-like representation of a document that has a root and node elements containing content](/en-US/docs/Web/API/Document_Object_Model/using_the_w3c_dom_level_1_core-doctree.jpg)
+
+Although the above tree is similar to the above document's DOM tree, they're not identical, as the actual DOM tree preserves[whitespace](/en-US/docs/Web/CSS/Guides/Text/Whitespace).
+
+When a web browser parses an HTML document, it builds a DOM tree and then uses it to display the document.
+
+### DOM and JavaScript
+
+The previous short example, like nearly all examples, is[JavaScript](/en-US/docs/Glossary/JavaScript). That is to say, it is*written*in JavaScript, but*uses*the DOM to access the document and its elements. The DOM is not a programming language, but without it, the JavaScript language wouldn't have any model or notion of web pages, HTML documents, SVG documents, and their component parts. The document as a whole, the head, tables within the document, table headers, text within the table cells, and all other elements in a document are parts of the document object model for that document. They can all be accessed and manipulated using the DOM and a scripting language like JavaScript.
+
+The DOM is not part of the JavaScript language, but is instead a Web API used to build websites. JavaScript can also be used in other contexts. For example, Node.js runs JavaScript programs on a computer, but provides a different set of APIs, and the DOM API is not a core part of the Node.js runtime.
+
+The DOM was designed to be independent of any particular programming language, making the structural representation of the document available from a single, consistent API. Even if most web developers will only use the DOM through JavaScript, implementations of the DOM can be built for any language, as this Python example demonstrates:
+
+python
+
+```text
+# Python DOM example
+import xml.dom.minidom as m
+doc = m.parse(r"C:\Projects\Py\chap1.xml")
+doc.nodeName # DOM property of document object
+p_list = doc.getElementsByTagName("para")
+```
+
+For more information on what technologies are involved in writing JavaScript on the web, see[JavaScript technologies overview](/en-US/docs/Web/JavaScript/Reference/JavaScript_technologies_overview).
+
+### Accessing the DOM
+
+You don't have to do anything special to begin using the DOM. You use the API directly in JavaScript from within what is called a*script*, a program run by a browser.
+
+When you create a script, whether inline in a`<script>`element or included in the web page, you can immediately begin using the API for the[`document`](/en-US/docs/Web/API/Document)or[`window`](/en-US/docs/Web/API/Window)objects to manipulate the document itself, or any of the various elements in the web page (the descendant elements of the document). Your DOM programming may be something as simple as the following example, which displays a message on the console by using the[`console.log()`](/en-US/docs/Web/API/console/log_static)function:
+
+html
+
+```text
+<body onload="console.log('Welcome to my home page!');">
+  …
+</body>
+```
+
+As it is generally not recommended to mix the structure of the page (written in HTML) and manipulation of the DOM (written in JavaScript), the JavaScript parts will be grouped together here, and separated from the HTML.
+
+For example, the following function creates a new[h1](/en-US/docs/Web/HTML/Reference/Elements/Heading_Elements)element, adds text to that element, and then adds it to the tree for the document:
+
+html
+
+```text
+<html lang="en">
+  <head> </head>
+  <body>
+    <script>
+      // create a couple of elements in an otherwise empty HTML page
+      const heading = document.createElement("h1");
+      const headingText = document.createTextNode("Big Head!");
+      heading.appendChild(headingText);
+      document.body.appendChild(heading);
+    </script>
+  </body>
+</html>
+```
+
+## DOM interfaces
+
+The following are all interfaces defined by the DOM specification:
+
+- [`AbortController`](/en-US/docs/Web/API/AbortController)
+- [`AbortSignal`](/en-US/docs/Web/API/AbortSignal)
+- [`AbstractRange`](/en-US/docs/Web/API/AbstractRange)
+- [`Attr`](/en-US/docs/Web/API/Attr)
+- [`CDATASection`](/en-US/docs/Web/API/CDATASection)
+- [`CharacterData`](/en-US/docs/Web/API/CharacterData)
+- [`Comment`](/en-US/docs/Web/API/Comment)
+- [`CustomEvent`](/en-US/docs/Web/API/CustomEvent)
+- [`Document`](/en-US/docs/Web/API/Document)
+- [`DocumentFragment`](/en-US/docs/Web/API/DocumentFragment)
+- [`DocumentType`](/en-US/docs/Web/API/DocumentType)
+- [`DOMError`](/en-US/docs/Web/API/DOMError)
+- [`DOMException`](/en-US/docs/Web/API/DOMException)
+- [`DOMImplementation`](/en-US/docs/Web/API/DOMImplementation)
+- [`DOMParser`](/en-US/docs/Web/API/DOMParser)
+- [`DOMTokenList`](/en-US/docs/Web/API/DOMTokenList)
+- [`Element`](/en-US/docs/Web/API/Element)
+- [`Event`](/en-US/docs/Web/API/Event)
+- [`EventTarget`](/en-US/docs/Web/API/EventTarget)
+- [`HTMLCollection`](/en-US/docs/Web/API/HTMLCollection)
+- [`MutationObserver`](/en-US/docs/Web/API/MutationObserver)
+- [`MutationRecord`](/en-US/docs/Web/API/MutationRecord)
+- [`NamedNodeMap`](/en-US/docs/Web/API/NamedNodeMap)
+- [`Node`](/en-US/docs/Web/API/Node)
+- [`NodeIterator`](/en-US/docs/Web/API/NodeIterator)
+- [`NodeList`](/en-US/docs/Web/API/NodeList)
+- [`ProcessingInstruction`](/en-US/docs/Web/API/ProcessingInstruction)
+- [`QuotaExceededError`](/en-US/docs/Web/API/QuotaExceededError)
+- [`Range`](/en-US/docs/Web/API/Range)
+- [`ShadowRoot`](/en-US/docs/Web/API/ShadowRoot)
+- [`StaticRange`](/en-US/docs/Web/API/StaticRange)
+- [`Text`](/en-US/docs/Web/API/Text)
+- [`TreeWalker`](/en-US/docs/Web/API/TreeWalker)
+- [`XMLDocument`](/en-US/docs/Web/API/XMLDocument)
+- [`XPathEvaluator`](/en-US/docs/Web/API/XPathEvaluator)
+- [`XPathExpression`](/en-US/docs/Web/API/XPathExpression)
+- [`XPathResult`](/en-US/docs/Web/API/XPathResult)
+- [`XSLTProcessor`](/en-US/docs/Web/API/XSLTProcessor)
+
+This guide is about the objects and the actual*things*you can use to manipulate the DOM hierarchy. There are many points where understanding how these work can be confusing. For example, the object representing the HTML`form`element gets its`name`property from the`HTMLFormElement`interface but its`className`property from the`HTMLElement`interface. In both cases, the property you want is in that form object.
+
+But the relationship between objects and the interfaces that they implement in the DOM can be confusing, and so this section attempts to say a little something about the actual interfaces in the DOM specification and how they are made available.
+
+### Interfaces and objects
+
+Many objects implement several different interfaces. The table object, for example, implements a specialized[`HTMLTableElement`](/en-US/docs/Web/API/HTMLTableElement)interface, which includes such methods as`createCaption`and`insertRow`. But since it's also an HTML element,`table`implements the`Element`interface described in the DOM[`Element`](/en-US/docs/Web/API/Element)Reference chapter. And finally, since an HTML element is also, as far as the DOM is concerned, a node in the tree of nodes that make up the object model for an HTML or XML page, the table object also implements the more basic`Node`interface, from which`Element`derives.
+
+When you get a reference to a`table`object, as in the following example, you routinely use all three of these interfaces interchangeably on the object, perhaps without knowing it.
+
+js
+
+```text
+const table = document.getElementById("table");
+const tableAttrs = table.attributes; // Node/Element interface
+for (const attr of tableAttrs) {
+  // HTMLTableElement interface: border attribute
+  if (attr.nodeName.toLowerCase() === "border") {
+    table.border = "1";
+  }
+}
+// HTMLTableElement interface: summary attribute
+table.summary = "note: increased border";
+```
+
+### Fundamental data types
+
+This page tries to describe the various objects and types in simple terms. But there are a number of different data types being passed around the API that you should be aware of.
+
+**Note:**Because the vast majority of code that uses the DOM revolves around manipulating HTML documents, it's common to refer to the nodes in the DOM as**elements**, although strictly speaking not every node is an element.
+
+The following table briefly describes these data types.
+
+Data type (Interface)Description[`Document`](/en-US/docs/Web/API/Document)When a member returns an object of type`document`(e.g., the`ownerDocument`property of an element returns the`document`to which it belongs), this object is the root`document`object itself. The[DOM`document`Reference](/en-US/docs/Web/API/Document)chapter describes the`document`object.[`Node`](/en-US/docs/Web/API/Node)Every object located within a document is a node of some kind. In an HTML document, an object can be an element node but also a text node or attribute node.[`Element`](/en-US/docs/Web/API/Element)The`element`type is based on`node`. It refers to an element or a node of type`element`returned by a member of the DOM API. Rather than saying, for example, that the[`document.createElement()`](/en-US/docs/Web/API/Document/createElement)method returns an object reference to a`node`, we just say that this method returns the`element`that has just been created in the DOM.`element`objects implement the DOM`Element`interface and also the more basic`Node`interface, both of which are included together in this reference. In an HTML document, elements are further enhanced by the HTML DOM API's[`HTMLElement`](/en-US/docs/Web/API/HTMLElement)interface as well as other interfaces describing capabilities of specific kinds of elements (for instance,[`HTMLTableElement`](/en-US/docs/Web/API/HTMLTableElement)for[`<table>`](/en-US/docs/Web/HTML/Reference/Elements/table)elements).[`Attr`](/en-US/docs/Web/API/Attr)When an`attribute`is returned by a member (e.g., by the`createAttribute()`method), it is an object reference that exposes a special (albeit small) interface for attributes. Attributes are nodes in the DOM just like elements are, though you may rarely use them as such.
+There are also some common terminology considerations to keep in mind. It's common to refer to any[`Attr`](/en-US/docs/Web/API/Attr)node as an`attribute`, for example, and to refer to an array of DOM nodes as a`nodeList`. You'll find these terms and others to be introduced and used throughout the documentation.
+
+The`document`and`window`objects are the objects whose interfaces you generally use most often in DOM programming. In simple terms, the`window`object represents something like the browser, and the`document`object is the root of the document itself.`Element`inherits from the generic`Node`interface, and together these two interfaces provide many of the methods and properties you use on individual elements. These elements may also have specific interfaces for dealing with the kind of data those elements hold, as in the`table`object example in the previous section.
+
+### Obsolete DOM interfaces
+
+The Document Object Model has been highly simplified. To achieve this, the following interfaces in the different DOM level 3 or earlier specifications have been removed. They are no longer available to web developers.
+
+- `DOMConfiguration`
+- `DOMErrorHandler`
+- `DOMImplementationList`
+- `DOMImplementationRegistry`
+- `DOMImplementationSource`
+- `DOMLocator`
+- `DOMObject`
+- `DOMSettableTokenList`
+- `DOMUserData`
+- `ElementTraversal`
+- `Entity`
+- `EntityReference`
+- `NameList`
+- `Notation`
+- `TypeInfo`
+- `UserDataHandler`
+
+## HTML DOM
+
+A document containing HTML is described using the[`Document`](/en-US/docs/Web/API/Document)interface, which is extended by the HTML specification to include various HTML-specific features. In particular, the[`Element`](/en-US/docs/Web/API/Element)interface is enhanced to become[`HTMLElement`](/en-US/docs/Web/API/HTMLElement)and various subclasses, each representing one of (or a family of closely related) elements.
+
+The HTML DOM API provides access to various browser features such as tabs and windows, CSS styles and stylesheets, browser history, etc. These interfaces are discussed further in the[HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)documentation.
+
+## SVG DOM
+
+Similarly, a document containing SVG is also described using the[`Document`](/en-US/docs/Web/API/Document)interface, which is extended by the SVG specification to include various SVG-specific features. In particular, the[`Element`](/en-US/docs/Web/API/Element)interface is enhanced to become[`SVGElement`](/en-US/docs/Web/API/SVGElement)and various subclasses, each representing an element or a family of closely related elements. These interfaces are discussed further in the[SVG API](/en-US/docs/Web/API/SVG_API)documentation.
+
+## Examples
+
+### Setting text content
+
+This example uses a[`<div>`](/en-US/docs/Web/HTML/Reference/Elements/div)element containing a[`<textarea>`](/en-US/docs/Web/HTML/Reference/Elements/textarea)and two[`<button>`](/en-US/docs/Web/HTML/Reference/Elements/button)elements. When the user clicks the first button we set some text in the`<textarea>`. When the user clicks the second button we clear the text. We use:
+
+- [`Document.querySelector()`](/en-US/docs/Web/API/Document/querySelector)to access the`<textarea>`and the button
+- [`EventTarget.addEventListener()`](/en-US/docs/Web/API/EventTarget/addEventListener)to listen for button clicks
+- [`Node.textContent`](/en-US/docs/Web/API/Node/textContent)to set and clear the text.
+
+#### HTML
+
+html
+
+```text
+<div class="container">
+  <textarea class="story"></textarea>
+  <button id="set-text" type="button">Set text content</button>
+  <button id="clear-text" type="button">Clear text content</button>
+</div>
+```
+
+#### CSS
+
+css
+
+```text
+.container {
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: column;
+}
+
+button {
+  width: 200px;
+}
+```
+
+#### JavaScript
+
+js
+
+```text
+const story = document.querySelector(".story");
+
+const setText = document.querySelector("#set-text");
+setText.addEventListener("click", () => {
+  story.textContent = "It was a dark and stormy night...";
+});
+
+const clearText = document.querySelector("#clear-text");
+clearText.addEventListener("click", () => {
+  story.textContent = "";
+});
+```
+
+#### Result
+
+### Adding a child element
+
+This example uses a[`<div>`](/en-US/docs/Web/HTML/Reference/Elements/div)element containing a[`<div>`](/en-US/docs/Web/HTML/Reference/Elements/div)and two[`<button>`](/en-US/docs/Web/HTML/Reference/Elements/button)elements. When the user clicks the first button we create a new element and add it as a child of the`<div>`. When the user clicks the second button we remove the child element. We use:
+
+- [`Document.querySelector()`](/en-US/docs/Web/API/Document/querySelector)to access the`<div>`and the buttons
+- [`EventTarget.addEventListener()`](/en-US/docs/Web/API/EventTarget/addEventListener)to listen for button clicks
+- [`Document.createElement`](/en-US/docs/Web/API/Document/createElement)to create the element
+- [`Node.appendChild()`](/en-US/docs/Web/API/Node/appendChild)to add the child
+- [`Node.removeChild()`](/en-US/docs/Web/API/Node/removeChild)to remove the child.
+
+#### HTML
+
+html
+
+```text
+<div class="container">
+  <div class="parent">parent</div>
+  <button id="add-child" type="button">Add a child</button>
+  <button id="remove-child" type="button">Remove child</button>
+</div>
+```
+
+#### CSS
+
+css
+
+```text
+.container {
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: column;
+}
+
+button {
+  width: 100px;
+}
+
+div.parent {
+  border: 1px solid black;
+  padding: 5px;
+  width: 100px;
+  height: 100px;
+}
+
+div.child {
+  border: 1px solid red;
+  margin: 10px;
+  padding: 5px;
+  width: 80px;
+  height: 60px;
+  box-sizing: border-box;
+}
+```
+
+#### JavaScript
+
+js
+
+```text
+const parent = document.querySelector(".parent");
+
+const addChild = document.querySelector("#add-child");
+addChild.addEventListener("click", () => {
+  // Only add a child if we don't already have one
+  // in addition to the text node "parent"
+  if (parent.childNodes.length > 1) {
+    return;
+  }
+  const child = document.createElement("div");
+  child.classList.add("child");
+  child.textContent = "child";
+  parent.appendChild(child);
+});
+
+const removeChild = document.querySelector("#remove-child");
+removeChild.addEventListener("click", () => {
+  const child = document.querySelector(".child");
+  parent.removeChild(child);
+});
+```
+
+#### Result
+
+### Reading and modifying the tree
+
+Suppose the author wants to change the header of the document in[What is a DOM tree?](#what_is_a_dom_tree)and write two paragraphs instead of one. The following script would do the job:
+
+#### HTML
+
+html
+
+```text
+<html lang="en">
+  <head>
+    <title>My Document</title>
+  </head>
+  <body>
+    <input type="button" value="Change this document." />
+    <h2>Header</h2>
+    <p>Paragraph</p>
+  </body>
+</html>
+```
+
+#### JavaScript
+
+js
+
+```text
+document.querySelector("input").addEventListener("click", () => {
+  // document.getElementsByTagName("h2") returns a NodeList of the <h2>
+  // elements in the document, and the first is number 0:
+  const header = document.getElementsByTagName("h2").item(0);
+
+  // The firstChild of the header is a Text node:
+  header.firstChild.data = "A dynamic document";
+
+  // Now header is "A dynamic document".
+
+  // Access the first paragraph
+  const para = document.getElementsByTagName("p").item(0);
+  para.firstChild.data = "This is the first paragraph.";
+
+  // Create a new Text node for the second paragraph
+  const newText = document.createTextNode("This is the second paragraph.");
+
+  // Create a new Element to be the second paragraph
+  const newElement = document.createElement("p");
+
+  // Put the text in the paragraph
+  newElement.appendChild(newText);
+
+  // Put the paragraph on the end of the document by appending it to
+  // the body (which is the parent of para)
+  para.parentNode.appendChild(newElement);
+});
+```
+
+### Creating a tree
+
+You can create the tree in[What is a DOM tree?](#what_is_a_dom_tree)entirely in JavaScript too.
+
+js
+
+```text
+const root = document.createElement("html");
+root.lang = "en";
+
+const head = document.createElement("head");
+const title = document.createElement("title");
+title.appendChild(document.createTextNode("My Document"));
+head.appendChild(title);
+
+const body = document.createElement("body");
+const header = document.createElement("h1");
+header.appendChild(document.createTextNode("Header"));
+const paragraph = document.createElement("p");
+paragraph.appendChild(document.createTextNode("Paragraph"));
+body.appendChild(header);
+body.appendChild(paragraph);
+
+root.appendChild(head);
+root.appendChild(body);
+```
+
+### Event Propagation
+
+This example demonstrates how events fire and are handled in the DOM in a very simple way. When the BODY of this HTML document loads, an event listener is registered with the top row of the TABLE. The event listener handles the event by executing the function stopEvent, which changes the value in the bottom cell of the table.
+
+However, stopEvent also calls an event object method,[`event.stopPropagation`](/en-US/docs/Web/API/Event/stopPropagation), which keeps the event from bubbling any further up into the DOM. Note that the table itself has an[`onclick`](/en-US/docs/Web/API/Element/click_event)event handler that ought to display a message when the table is clicked. But the stopEvent method has stopped propagation, and so after the data in the table is updated, the event phase is effectively ended, and an alert box is displayed to confirm this.
+
+html
+
+```text
+<table id="t-daddy">
+  <tbody>
+    <tr id="tbl1">
+      <td id="c1">one</td>
+    </tr>
+    <tr>
+      <td id="c2">two</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+css
+
+```text
+#t-daddy {
+  border: 1px solid red;
+}
+
+#c1 {
+  background-color: pink;
+}
+```
+
+js
+
+```text
+function stopEvent(event) {
+  const c2 = document.getElementById("c2");
+  c2.textContent = "hello";
+
+  // this ought to keep t-daddy from getting the click.
+  event.stopPropagation();
+  console.log("event propagation halted.");
+}
+
+const elem = document.getElementById("tbl1");
+elem.addEventListener("click", stopEvent);
+
+document.getElementById("t-daddy").addEventListener("click", () => {
+  console.log("t-daddy clicked");
+});
+```
+
+### Displaying event object properties
+
+This example uses DOM methods to display all the properties of the[`click`](/en-US/docs/Web/API/Element/click_event)event object and their values in a table. It also shows a useful technique of using a[`for...in`](/en-US/docs/Web/JavaScript/Reference/Statements/for...in)loop to iterate over the properties of an object to get their values.
+
+The properties of event objects differs greatly between browsers, the[WHATWG DOM Standard](https://dom.spec.whatwg.org/)lists the standard properties, however many browsers have extended these greatly.
+
+Put the following code into a blank text file and load it into a variety of browsers, you'll be surprised at the different number and names of properties. You might also like to add some elements in the page and call this function from different event handlers.
+
+html
+
+```text
+<h1>Properties of the DOM <span id="eventType"></span> Event Object</h1>
+```
+
+css
+
+```text
+table {
+  border-collapse: collapse;
+  margin-top: 2em;
+}
+thead {
+  font-weight: bold;
+}
+td {
+  padding: 2px 10px;
+}
+
+.odd {
+  background-color: #efdfef;
+}
+.even {
+  background-color: white;
+}
+```
+
+js
+
+```text
+function showEventProperties(event) {
+  function addCell(row, text) {
+    const cell = row.insertCell(-1);
+    cell.appendChild(document.createTextNode(text));
+  }
+
+  document.getElementById("eventType").textContent = event.type;
+
+  const table = document.createElement("table");
+  const thead = table.createTHead();
+  let row = thead.insertRow(-1);
+  const labelList = ["#", "Property", "Value"];
+  const len = labelList.length;
+
+  for (let i = 0; i < len; i++) {
+    addCell(row, labelList[i]);
+  }
+
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+
+  for (const p in event) {
+    row = tbody.insertRow(-1);
+    row.className = row.rowIndex % 2 ? "odd" : "even";
+    addCell(row, row.rowIndex);
+    addCell(row, p);
+    addCell(row, event[p]);
+  }
+
+  document.body.appendChild(table);
+}
+
+window.addEventListener("click", showEventProperties);
+```
+
+## Specifications
+
+Specification[DOM](https://dom.spec.whatwg.org/)
+
+## See also
+
+- [CSS Object Model (CSSOM)](/en-US/docs/Web/API/CSS_Object_Model)
+- [HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)
+- [SVG API](/en-US/docs/Web/API/SVG_API)
+
+## Help improve MDN
+
+[Learn how to contribute](/en-US/docs/MDN/Community/Getting_started)
+This page was last modified onApr 8, 2026by[MDN contributors](/en-US/docs/Web/API/Document_Object_Model/contributors.txt).
+
+[View this page on GitHub](https://github.com/mdn/content/blob/main/files/en-us/web/api/document_object_model/index.md?plain=1)•[Report a problem with this content](https://github.com/mdn/content/issues/new?template=page-report.yml&mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FDocument_Object_Model&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fdocument_object_model%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FDocument_Object_Model%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fdocument_object_model%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F20d58a48bad972cddca0630fa0fbc06fd1b23244%0A*+Document+last+modified%3A+2026-04-08T19%3A29%3A16.000Z%0A%0A%3C%2Fdetails%3E)
+
+- *[Document Object Model (DOM)](/en-US/docs/Web/API/Document_Object_Model)*
+- Guides - [Anatomy of the DOM](/en-US/docs/Web/API/Document_Object_Model/Anatomy_of_the_DOM) - [Attribute reflection](/en-US/docs/Web/API/Document_Object_Model/Reflected_attributes) - [Selection and traversal on the DOM tree](/en-US/docs/Web/API/Document_Object_Model/Selection_and_traversal_on_the_DOM_tree) - [Building and updating the DOM tree](/en-US/docs/Web/API/Document_Object_Model/Building_and_updating_the_DOM_tree) - [Working with events](/en-US/docs/Web/API/Document_Object_Model/Events)
+- Interfaces - [`AbortController`](/en-US/docs/Web/API/AbortController) - [`AbortSignal`](/en-US/docs/Web/API/AbortSignal) - [`AbstractRange`](/en-US/docs/Web/API/AbstractRange) - [`Attr`](/en-US/docs/Web/API/Attr) - [`CDATASection`](/en-US/docs/Web/API/CDATASection) - [`CharacterData`](/en-US/docs/Web/API/CharacterData) - [`Comment`](/en-US/docs/Web/API/Comment) - [`CustomEvent`](/en-US/docs/Web/API/CustomEvent) - [`Document`](/en-US/docs/Web/API/Document) - [`DocumentFragment`](/en-US/docs/Web/API/DocumentFragment) - [`DocumentType`](/en-US/docs/Web/API/DocumentType) - [`DOMError`](/en-US/docs/Web/API/DOMError) - [`DOMException`](/en-US/docs/Web/API/DOMException) - [`DOMImplementation`](/en-US/docs/Web/API/DOMImplementation) - [`DOMParser`](/en-US/docs/Web/API/DOMParser) - [`DOMTokenList`](/en-US/docs/Web/API/DOMTokenList) - [`Element`](/en-US/docs/Web/API/Element) - [`Event`](/en-US/docs/Web/API/Event) - [`EventTarget`](/en-US/docs/Web/API/EventTarget) - [`HTMLCollection`](/en-US/docs/Web/API/HTMLCollection) - [`MutationObserver`](/en-US/docs/Web/API/MutationObserver) - [`MutationRecord`](/en-US/docs/Web/API/MutationRecord) - [`NamedNodeMap`](/en-US/docs/Web/API/NamedNodeMap) - [`Node`](/en-US/docs/Web/API/Node) - [`NodeIterator`](/en-US/docs/Web/API/NodeIterator) - [`NodeList`](/en-US/docs/Web/API/NodeList) - [`ProcessingInstruction`](/en-US/docs/Web/API/ProcessingInstruction) - [`QuotaExceededError`](/en-US/docs/Web/API/QuotaExceededError) - [`Range`](/en-US/docs/Web/API/Range) - [`ShadowRoot`](/en-US/docs/Web/API/ShadowRoot) - [`StaticRange`](/en-US/docs/Web/API/StaticRange) - [`Text`](/en-US/docs/Web/API/Text) - [`TreeWalker`](/en-US/docs/Web/API/TreeWalker) - [`XMLDocument`](/en-US/docs/Web/API/XMLDocument) - [`XPathEvaluator`](/en-US/docs/Web/API/XPathEvaluator) - [`XPathExpression`](/en-US/docs/Web/API/XPathExpression) - [`XPathResult`](/en-US/docs/Web/API/XPathResult) - [`XSLTProcessor`](/en-US/docs/Web/API/XSLTProcessor)
+
+[MDN](/)
+Your blueprint for a better internet.
+
+- [https://github.com/mdn/](https://github.com/mdn/)
+- [https://bsky.app/profile/developer.mozilla.org](https://bsky.app/profile/developer.mozilla.org)
+- [https://x.com/mozdevnet](https://x.com/mozdevnet)
+- [https://mastodon.social/@mdn](https://mastodon.social/@mdn)
+- [/en-US/blog/rss.xml](/en-US/blog/rss.xml)
+
+MDN
+- [About](/en-US/about)
+- [Blog](/en-US/blog/)
+- [Mozilla careers](https://www.mozilla.org/en-US/careers/listings/)
+- [Advertise with us](/en-US/advertising)
+- [MDN Plus](/en-US/plus)
+- [Product help](https://support.mozilla.org/products/mdn-plus)
+
+Contribute
+- [MDN Community](/en-US/community)
+- [Community resources](/en-US/docs/MDN/Community)
+- [Writing guidelines](/en-US/docs/MDN/Writing_guidelines)
+- [MDN Discord](/discord)
+- [MDN on GitHub](https://github.com/mdn)
+
+Developers
+- [Web technologies](/en-US/docs/Web)
+- [Learn web development](/en-US/docs/Learn_web_development)
+- [Guides](/en-US/docs/MDN/Guides)
+- [Tutorials](/en-US/docs/MDN/Tutorials)
+- [Glossary](/en-US/docs/Glossary)
+- [Hacks blog](https://hacks.mozilla.org/)
+
+[Mozilla](https://www.mozilla.org/)
+- [Website Privacy Notice](https://www.mozilla.org/privacy/websites/)
+- [Telemetry Settings](https://www.mozilla.org/en-US/privacy/websites/data-preferences/)
+- [Legal](https://www.mozilla.org/about/legal/terms/mozilla)
+- [Community Participation Guidelines](https://www.mozilla.org/about/governance/policies/participation/)
+
+Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under[a Creative Commons license](/docs/MDN/Writing_guidelines/Attrib_copyright_license).
