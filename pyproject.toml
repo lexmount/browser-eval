@@ -1,16 +1,48 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "browser-harness-eval"
 version = "0.1.0"
-description = "Reproducible evaluation harness for agent browser tools"
-requires-python = ">=3.10"
+description = "Reproducible browser service evaluation harness"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
 browser-harness-eval = "browser_harness_eval.cli:main"
 
+[project.optional-dependencies]
+browser-use-eval = [
+  "docker>=7,<8",
+  "playwright>=1.52,<2",
+  "tiktoken>=0.7,<1",
+]
+test = [
+  "pytest>=8,<10",
+  "ruff>=0.9,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib"]
+markers = [
+  "real_smoke: starts real browser containers and accesses a public website",
+]
+
+[tool.ruff]
+line-length = 100
+include = [
+  "harness/browser_use/**/*.py",
+  "tests/browser_use/**/*.py",
+]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"harness/browser_use/report.py" = ["E501"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [tool.setuptools.packages.find]
-include = ["browser_harness_eval*"]
+include = ["harness*", "browser_harness_eval*"]

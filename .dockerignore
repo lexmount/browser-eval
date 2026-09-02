@@ -1,0 +1,7 @@
+.git
+.venv
+.browser-use-eval-venv
+artifacts
+docs/reports
+**/__pycache__
+**/*.pyc

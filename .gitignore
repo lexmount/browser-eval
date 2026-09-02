@@ -7,3 +7,10 @@ runs/
 run.log
 /publish/
 /reports/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.browser-use-eval-venv/
+artifacts/browser_use/
+/docs/reports/browser-use-evaluation-*
+uv.lock
