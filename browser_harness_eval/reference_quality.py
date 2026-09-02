@@ -31,6 +31,7 @@ def audit_reference(text, facts, *, normalize):
     issues=[]
     if not text.strip(): issues.append('empty_reference')
     if '\ufffd' in text: issues.append('replacement_character')
+    if re.search(r'此处是\{\{icon_[a-z_]+\}\}icon',text): issues.append('unresolved_renderer_placeholder')
     if re.search(r'[\x00-\x08\x0b\x0e-\x1f\x7f]',text): issues.append('unexpected_control_character')
     if clean_reference_text(text)!=text: issues.append('layout_characters')
     seen=set();folded=normalize(text)

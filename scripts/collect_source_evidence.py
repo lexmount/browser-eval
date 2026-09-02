@@ -46,7 +46,12 @@ def extract_html(raw: bytes, url: str):
                 if isinstance(value,dict):
                     html=value.get('html')
                     if isinstance(html,dict) and html.get('html'):
-                        parts.append(BeautifulSoup(html['html'],'html.parser').get_text('\n',strip=True))
+                        article=BeautifulSoup(html['html'],'html.parser')
+                        # The renderer replaces these internal icon placeholders;
+                        # they are not visible prose or an expected answer token.
+                        for node in article.find_all(string=lambda t:t and re.fullmatch(r'此处是\{\{icon_[a-z_]+\}\}icon',t)):
+                            node.extract()
+                        parts.append(article.get_text('\n',strip=True))
                         return
                     if isinstance(value.get('question'),str):questions.append(value['question'])
                     for child in value.values():visit(child)
