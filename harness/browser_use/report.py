@@ -393,27 +393,20 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
 
     if c_passes > m_passes:
         recommendation = (
-            f"本轮建议默认使用 Chromium：其结果正确任务数为 {c_passes}，高于 Moli 的 {m_passes}；"
-            "Moli 在双方均成功的任务上若表现出更低耗时或资源占用，可作为任务已验证兼容时的备选。"
+            "本轮优先选 Chromium，任务成功率更高。Moli 可在已验证兼容、且资源表现更好的任务中使用。"
         )
     elif m_passes > c_passes:
-        recommendation = (
-            f"本轮建议默认使用 Moli：其结果正确任务数为 {m_passes}，高于 Chromium 的 {c_passes}；"
-            "仍需结合双方成功任务上的资源指标和失败类型确认适用边界。"
-        )
+        recommendation = "本轮优先选 Moli，任务成功率更高；具体任务仍需结合资源表现与失败类型选择。"
     else:
-        recommendation = (
-            f"本轮两个 Provider 的结果正确任务数相同（均为 {c_passes}）；"
-            "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
-        )
+        recommendation = "本轮两个方案的任务成功率相同，需结合资源表现与失败类型选择。"
     correctness = _correctness_table(summary)
-    return f"""{_metric_guide()}<section class="card note" id="conclusions"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
-<section class="card"><h2>任务正确率</h2>{correctness}</section>
-<section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>
-<li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
-<li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
-<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="browser-use-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
-<section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。较低绝对值为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。颜色表示数值高低，不是综合胜负；<a href="browser-use-evaluation-latest.html#metric-guide">查看指标读法</a>。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
+    if smoke_html:
+        smoke_html = smoke_html.replace(
+            '<section class="card"><h2>CowAgent 端到端冒烟测试</h2>',
+            '<section class="card"><details><summary>补充验证 · CowAgent 端到端冒烟测试</summary>',
+        ).replace("</section>", "</details></section>")
+    return f"""{_metric_guide()}<section class="card note" id="conclusions"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p class="muted">评测集包含 {task_count} 个结果唯一的任务；本轮比较浏览器工具调用，不是 LLM Agent 排名。</p>{correctness}</section>
+<section class="card" id="performance"><div class="section-heading"><h2>速度与资源</h2><a href="browser-use-evaluation-latest-analysis.html">失败定位与技术分析 →</a></div><p class="muted">仅比较双方都成功的 {paired} 个同任务，不含失败与重试样本。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
 
 
 def _difficulty(value: str) -> str:
@@ -696,67 +689,61 @@ METRIC_EXPLANATIONS = {
 
 def _metric_guide() -> str:
     groups = "".join(
-        f'<div class="guide-group"><h3>{_e(group)}</h3><dl>'
+        f'<details class="guide-group"><summary>{_e(group)} · {len(metrics)} 项指标</summary><dl>'
         + "".join(
             f'<div data-metric="{key}"><dt>{_e(label)} <small>{_e(unit)}</small></dt>'
             f"<dd>{_e(METRIC_EXPLANATIONS[key])}</dd></div>"
             for key, label, _, unit in metrics
         )
-        + "</dl></div>"
+        + "</dl></details>"
         for group, metrics in METRICS
     )
     return (
         """<style>
-#metric-guide .guide-top{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
-#metric-guide .guide-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
-#metric-guide .guide-cards article{background:var(--panel);border-radius:10px;padding:14px}
-#metric-guide .guide-cards h3{margin:0 0 5px;font-size:16px}
-#metric-guide .guide-cards p{font-size:14px;margin:0}
-#metric-guide .guide-group{border-top:1px solid var(--line);margin-top:18px}
+#metric-guide{padding:14px 20px}
+#metric-guide .guide-top{display:flex;gap:8px 24px;align-items:baseline;flex-wrap:wrap}
+#metric-guide h2{font-size:16px;margin:0}#metric-guide .guide-top p{margin:0;font-size:14px;color:var(--muted)}
+#metric-guide .guide-menu{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px;align-items:start}
+#metric-guide .guide-menu>details{margin:0;background:var(--panel);padding:8px 12px}
+#metric-guide .guide-menu>details[open]{grid-column:1/-1}
+#metric-guide summary{font-size:14px}#metric-guide .guide-group dl{padding-top:8px}
 #metric-guide dl{margin:0}#metric-guide dl>div{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;padding:12px 0;border-top:1px solid var(--line)}
 #metric-guide dt{font-weight:700}#metric-guide dt small{display:block;font-weight:400;color:var(--muted)}
-#metric-guide dd{margin:0;font-size:14px}#metric-guide .guide-example{padding:14px 16px;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;margin:16px 0}
-@media(max-width:700px){#metric-guide .guide-cards{grid-template-columns:1fr}#metric-guide dl>div{grid-template-columns:1fr;gap:4px}#metric-guide dt small{display:inline;margin-left:8px}}
+#metric-guide dd{margin:0;font-size:14px}
+#performance .resource-group{padding:0;overflow:hidden;margin:12px 0}
+#performance .resource-group>summary{padding:14px 16px;background:var(--panel)}
+#performance .resource-group>summary small{margin-left:12px;color:var(--muted);font-weight:400}
+#performance .resource-content{padding:0 16px 12px}
+#metric-guide summary:focus-visible,#performance summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:700px){#metric-guide .guide-menu{grid-template-columns:1fr 1fr}#metric-guide dl>div{grid-template-columns:1fr;gap:4px}#metric-guide dt small{display:inline;margin-left:8px}#performance .resource-group>summary small{display:block;margin-left:18px}}
 </style><section class="card" id="metric-guide" aria-labelledby="metric-guide-title">
-<div class="guide-top"><h2 id="metric-guide-title">先看懂这些指标</h2><a href="browser-use-evaluation-latest.html#conclusions">已了解，直接看结果 →</a></div>
-<p>Provider 就是被比较的浏览器方案，这里是 Chromium 和 Moli。先看任务能不能做对，再看做对同一个任务需要多少时间和资源。</p>
-<div class="guide-cards">
-<article><h3>结果正确率 · 越高越好</h3><p>最终答案与标准答案逐字一致的任务数 ÷ 全部任务数。示例：27/30 = 90%，表示 30 个任务里有 27 个答对，不是每个步骤有 90% 正确。</p></article>
-<article><h3>结果与参考过程均正确 · 越高越好</h3><p>不只答案对，还要完整执行本评测规定的动作顺序，并且每次工具调用都成功。参考过程是本轮规定的路线，不代表其他路线一定错。</p></article>
-<article><h3>资源统计比较谁？</h3><p>只比较两个方案都成功的同一批任务，不混入失败和重试样本。测量的是浏览器容器，不是整台电脑，也不包含 LLM 推理费用。</p></article>
-</div>
-<h3>表头怎么读：P50、P95、平均值</h3>
-<div class="guide-cards">
-<article><h3>P50 = 中位数</h3><p>把多个任务的数值从小到大排列，取中间位置；偶数个取中间两个的平均。代表典型任务的大致水平。</p></article>
-<article><h3>P95 = 靠近高端的水平</h3><p>从小到大排列，任务数乘 95% 后向上取整，取这个位置的值。例如 20 个值取第 19 个，反映较慢或较高占用的一端；不专指最大值，小样本时可能重合，更不是“95% 的成功率”。</p></article>
-<article><h3>平均值 = 总和 ÷ 个数</h3><p>所有任务同一指标相加再除以任务数。少数特别慢的任务会拉高平均值，因此需要同时看 P50 和 P95。</p></article>
-</div>
-<div class="guide-example"><strong>为什么一张表里会有两个 P95？</strong><p>行名中的“任务内 P95”先对<strong>一次任务的连续采样</strong>计算；表头 P95 再对<strong>多个任务各自算出的数值</strong>计算。比如“任务内存 P95”这一行的 P95 列，是多个任务各自内存 P95 的高端水平，不是把所有内存采样混在一起。较高的耗时 P95 说明这批任务中较慢一端更慢，不能据此断言所有极端场景都更差。</p></div>
-<h3>比值怎么读：Moli / Chromium</h3><p>先对每个相同任务相除：0.5× 表示 Moli 是 Chromium 的一半，2× 表示两倍，1× 表示相同；再统计这些比值的 P50、P95 和平均值。<strong>逐任务比值的 P95</strong>不能用两个方案的 P95 直接相除得到。</p>
-<p class="muted">单位：ms 是毫秒；1,000 ms = 1 秒。KiB = 1,024 字节；MiB = 1,024 KiB。KiB/s 是每秒的数据量；MiB·s 是“内存大小 × 时间”，不是 MiB/s。</p>
-<p class="muted">工具调用次数：一次 navigate（打开网页）、click（点击）或 fill（填写）等动作计 1 次，动作内部的等待不另计。任务数按任务去重；执行次数包含两个方案各自的执行和失败重试，因此不等于任务数。</p>
+<div class="guide-top"><h2 id="metric-guide-title">读表指南</h2><p>P50 看典型水平 · P95 看较高一端 · 比值 1× 表示相同</p></div>
+<div class="guide-menu"><details class="guide-group"><summary>正确率、表头与单位</summary><dl>
+<div><dt>结果正确率</dt><dd>答案与标准答案逐字一致的任务数 ÷ 全部任务数；越高越好。Provider 指浏览器方案。</dd></div>
+<div><dt>结果与参考过程均正确</dt><dd>答案正确，且规定的动作顺序完整、每次调用都成功；越高越好。参考路线不是唯一解法。</dd></div>
+<div><dt>P50 / P95 / 平均值</dt><dd>P50 取排序后的中间值（偶数取中间两项平均）；P95 取 95% 位置向上取整，如 20 项取第 19 个，反映较慢或占用较高的一端；平均值是总和 ÷ 项数，容易被极端值拉高。</dd></div>
+<div><dt>两层 P95</dt><dd>“任务内 P95”对一次任务的连续采样计算；表头 P95 对多个任务各自算出的数值计算。P95 不是成功率，也不一定是最大值。</dd></div>
+<div><dt>Moli / Chromium</dt><dd>同一任务先相除，再统计比值。0.5× 表示一半，2× 表示两倍；逐任务比值的 P95 不能用两个方案的 P95 直接相除。</dd></div>
+<div><dt>单位与范围</dt><dd>1,000 ms = 1 秒；1 KiB = 1,024 字节；1 MiB = 1,024 KiB。KiB/s 是每秒流量，MiB·s 是内存大小 × 时间。资源测量覆盖浏览器容器，不含 LLM 推理。</dd></div>
+<div><dt>调用与执行次数</dt><dd>打开、点击、填写等每次工具调用计 1 步，内部等待不另计。任务数去重，执行次数包含各方案的执行与失败重试。</dd></div>
+<div><dt>颜色</dt><dd>绿色粗体标记较高正确率或较低资源数值；比值低于 1 为绿、高于 1 为红，显示值相同为中性。CPU 利用率和网络速率表示忙碌程度，并非越低越好。</dd></div>
+</dl></details>
 """
         + groups
-        + """<p class="muted">读颜色：绿色粗体表示相对更低的资源数值或更高的正确率。CPU 利用率、网络速率描述忙碌程度，不能仅凭颜色判断方案优劣。</p></section>"""
+        + "</div></section>"
     )
 
 
 def _metric_tables(summary: dict[str, Any]) -> str:
-    absolute = "".join(
-        _grouped_resource_table(summary, metrics, f"{group}绝对值") for group, metrics in METRICS
-    )
-    paired = "".join(
-        _paired_ratio_table(
-            summary,
-            metrics,
-            f"{group}逐任务 Moli / Chromium 配对比值",
-        )
-        for group, metrics in METRICS
-    )
-    return (
-        absolute
-        + '<h3>逐任务配对比值分布</h3><p><a href="browser-use-evaluation-latest.html#metric-guide">查看比值与 P95 的读法</a></p>'
-        + paired
+    descriptions = ("耗时与 CPU · 4 项", "占用与峰值 · 5 项", "流量与速率 · 5 项")
+    return "".join(
+        f'<details class="resource-group"{" open" if index == 0 else ""}>'
+        f'<summary>{_e(group)}<small>{descriptions[index]}</small></summary><div class="resource-content">'
+        + _grouped_resource_table(summary, metrics, f"{group}绝对值")
+        + '<details class="paired-disclosure"><summary>查看逐任务 Moli / Chromium 配对比值</summary>'
+        + _paired_ratio_table(summary, metrics, f"{group}逐任务 Moli / Chromium 配对比值")
+        + "</details></div></details>"
+        for index, (group, metrics) in enumerate(METRICS)
     )
 
 

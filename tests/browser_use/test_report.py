@@ -26,7 +26,8 @@ def test_homepage_guide_covers_every_displayed_metric_once():
     guide = _metric_guide()
     keys = {key for _, metrics in METRICS for key, _, _, _ in metrics}
     assert keys == set(METRIC_EXPLANATIONS)
-    assert "<details" not in guide
+    assert guide.count('<details class="guide-group">') == 4
+    assert not re.search(r"<details[^>]*\bopen\b", guide)
     for _, metrics in METRICS:
         for key, label, _, unit in metrics:
             assert guide.count(f'data-metric="{key}"') == 1
@@ -48,6 +49,19 @@ def test_homepage_guide_covers_every_displayed_metric_once():
     ):
         assert explanation in guide
     assert "均为越低越好" not in _metric_tables({})
+
+
+def test_resource_groups_preserve_all_tables_with_progressive_disclosure():
+    tables = _metric_tables({})
+    assert tables.count('<details class="resource-group"') == 3
+    assert tables.count('<details class="resource-group" open>') == 1
+    assert tables.count('<details class="paired-disclosure">') == 3
+    assert tables.count("<table>") == 6
+    for group, metrics in METRICS:
+        assert tables.count(f"<caption>{group}绝对值</caption>") == 1
+        assert tables.count(f"<caption>{group}逐任务 Moli / Chromium 配对比值</caption>") == 1
+        for _, label, _, _ in metrics:
+            assert label in tables
 
 
 def test_reproduction_links_to_real_harness_sources_not_step_only_instructions():
@@ -413,8 +427,9 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert 'id="execution-empty"' in analysis
     assert "new URLSearchParams(raw)" in analysis
     assert "document.querySelector(location.hash)" not in analysis
-    assert "CDP screencast 下采样" in homepage
-    assert "rAF 目标间隔为 16 ms" in homepage
+    assert "CDP screencast 下采样" not in homepage
+    assert "失败定位与技术分析 →" in homepage
+    assert "rAF 目标间隔为 16 ms" not in homepage
     assert analysis.count('class="execution-card"') == 1
     assert "执行记录 1" in detail
     assert "执行记录 2" in detail
