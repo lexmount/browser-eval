@@ -1,0 +1,537 @@
+"""Cgroup-v2 and network-namespace resource accounting."""
+
+from __future__ import annotations
+
+import statistics
+import threading
+import time
+from collections.abc import Iterable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+
+@dataclass(frozen=True)
+class CounterSnapshot:
+    cpu_usage_usec: int
+    network_rx_bytes: int
+    network_tx_bytes: int
+
+
+@dataclass(frozen=True)
+class ResourceSample:
+    elapsed_ms: float
+    memory_current_bytes: int
+    pids_current: int
+    cpu_usage_usec: int
+    network_rx_bytes: int
+    network_tx_bytes: int
+
+
+class LinuxContainerResources:
+    """Read one container cgroup and network namespace from an external sampler."""
+
+    def __init__(
+        self,
+        root_pid: int,
+        *,
+        proc_root: str | Path = "/host/proc",
+        cgroup_root: str | Path = "/host/cgroup",
+    ) -> None:
+        self.root_pid = int(root_pid)
+        self.proc_root = Path(proc_root)
+        self.cgroup_root = Path(cgroup_root)
+        cgroup_text = (self.proc_root / str(self.root_pid) / "cgroup").read_text(encoding="utf-8")
+        relative = None
+        for line in cgroup_text.splitlines():
+            if line.startswith("0::"):
+                relative = line[3:].lstrip("/")
+                break
+        if relative is None:
+            raise RuntimeError("target container is not using cgroup v2")
+        candidate = (self.cgroup_root / relative).resolve()
+        root = self.cgroup_root.resolve()
+        if candidate != root and root not in candidate.parents:
+            raise RuntimeError("target cgroup escapes configured cgroup root")
+        self.cgroup_path = candidate
+
+    def counters(self) -> CounterSnapshot:
+        cpu = parse_cpu_stat((self.cgroup_path / "cpu.stat").read_text(encoding="utf-8"))
+        rx, tx = parse_network_dev(
+            (self.proc_root / str(self.root_pid) / "net" / "dev").read_text(encoding="utf-8")
+        )
+        return CounterSnapshot(cpu, rx, tx)
+
+    def sample(self, *, elapsed_ms: float) -> ResourceSample:
+        memory = int((self.cgroup_path / "memory.current").read_text(encoding="ascii"))
+        pids = {
+            int(value)
+            for value in (self.cgroup_path / "cgroup.procs").read_text(encoding="ascii").split()
+        }
+        counters = self.counters()
+        return ResourceSample(elapsed_ms, memory, len(pids), *counters.__dict__.values())
+
+
+class DockerStatsResources:
+    """Read one browser container through the Docker Engine stats API."""
+
+    def __init__(self, container: Any) -> None:
+        self.container = container
+
+    def _stats(self) -> dict[str, Any]:
+        return self.container.stats(stream=False, one_shot=True)
+
+    @staticmethod
+    def _network(stats: dict[str, Any]) -> tuple[int, int]:
+        rx = 0
+        tx = 0
+        for name, values in (stats.get("networks") or {}).items():
+            if name == "lo":
+                continue
+            rx += int(values.get("rx_bytes") or 0)
+            tx += int(values.get("tx_bytes") or 0)
+        return rx, tx
+
+    def counters(self) -> CounterSnapshot:
+        stats = self._stats()
+        cpu_ns = int(
+            (((stats.get("cpu_stats") or {}).get("cpu_usage") or {}).get("total_usage")) or 0
+        )
+        rx, tx = self._network(stats)
+        return CounterSnapshot(cpu_ns // 1000, rx, tx)
+
+    def sample(self, *, elapsed_ms: float) -> ResourceSample:
+        stats = self._stats()
+        cpu_ns = int(
+            (((stats.get("cpu_stats") or {}).get("cpu_usage") or {}).get("total_usage")) or 0
+        )
+        rx, tx = self._network(stats)
+        return ResourceSample(
+            elapsed_ms=elapsed_ms,
+            memory_current_bytes=int((stats.get("memory_stats") or {}).get("usage") or 0),
+            pids_current=int((stats.get("pids_stats") or {}).get("current") or 0),
+            cpu_usage_usec=cpu_ns // 1000,
+            network_rx_bytes=rx,
+            network_tx_bytes=tx,
+        )
+
+
+class ResourceSampler:
+    """Sample current memory/PID count outside the target browser cgroup."""
+
+    def __init__(self, source: LinuxContainerResources, interval_ms: int = 50) -> None:
+        self.source = source
+        self.interval_ms = max(10, int(interval_ms))
+        self.samples: list[ResourceSample] = []
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._started = 0.0
+
+    def start(self) -> None:
+        self._started = time.monotonic()
+        self.samples.append(self.source.sample(elapsed_ms=0.0))
+
+        def loop() -> None:
+            while not self._stop.wait(self.interval_ms / 1000):
+                elapsed = (time.monotonic() - self._started) * 1000
+                try:
+                    self.samples.append(self.source.sample(elapsed_ms=elapsed))
+                except (FileNotFoundError, ProcessLookupError):
+                    return
+
+        self._thread = threading.Thread(target=loop, name="browser-resource-sampler", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2)
+        elapsed = (time.monotonic() - self._started) * 1000
+        try:
+            self.samples.append(self.source.sample(elapsed_ms=elapsed))
+        except (FileNotFoundError, ProcessLookupError):
+            pass
+
+    def summary(self) -> dict[str, int | float]:
+        if not self.samples:
+            raise RuntimeError("resource sampler has no samples")
+        baseline = self.samples[0].memory_current_bytes
+        end = self.samples[-1].memory_current_bytes
+        peak = max(sample.memory_current_bytes for sample in self.samples)
+        memories = [sample.memory_current_bytes for sample in self.samples]
+        pids = [sample.pids_current for sample in self.samples]
+        elapsed_seconds = max(0.0, self.samples[-1].elapsed_ms / 1000)
+        memory_mean = _time_weighted_mean(
+            [(sample.elapsed_ms, sample.memory_current_bytes) for sample in self.samples]
+        )
+        # microseconds / milliseconds / 10 = percentage of one logical CPU.
+        cpu_rates = _counter_rates(self.samples, "cpu_usage_usec", scale=0.1)
+        rx_rates = _counter_rates(self.samples, "network_rx_bytes", scale=1000.0)
+        tx_rates = _counter_rates(self.samples, "network_tx_bytes", scale=1000.0)
+        return {
+            "memory_baseline_bytes": baseline,
+            "memory_mean_bytes": memory_mean,
+            "memory_p50_bytes": _nearest_rank(memories, 0.50),
+            "memory_p95_bytes": _nearest_rank(memories, 0.95),
+            "memory_peak_bytes": peak,
+            "memory_end_bytes": end,
+            "memory_end_delta_bytes": end - baseline,
+            "memory_retained_bytes": max(0, end - baseline),
+            "memory_peak_delta_bytes": max(0, peak - baseline),
+            "memory_mib_seconds": memory_mean * elapsed_seconds / (1024 * 1024),
+            "pids_current_mean": statistics.fmean(pids),
+            "pids_current_p95": _nearest_rank(pids, 0.95),
+            "pids_current_peak": max(sample.pids_current for sample in self.samples),
+            "cpu_sampled_utilization_p95_pct": _nearest_rank(cpu_rates, 0.95),
+            "cpu_sampled_utilization_peak_pct": max(cpu_rates, default=0.0),
+            "network_rx_rate_p95_bytes_per_second": _nearest_rank(rx_rates, 0.95),
+            "network_rx_rate_peak_bytes_per_second": max(rx_rates, default=0.0),
+            "network_tx_rate_p95_bytes_per_second": _nearest_rank(tx_rates, 0.95),
+            "network_tx_rate_peak_bytes_per_second": max(tx_rates, default=0.0),
+            "sample_count": len(self.samples),
+        }
+
+
+def _nearest_rank(values: Iterable[int | float], quantile: float) -> float:
+    ordered = sorted(float(value) for value in values)
+    if not ordered:
+        return 0.0
+    index = min(len(ordered) - 1, max(0, int(len(ordered) * quantile + 0.999) - 1))
+    return ordered[index]
+
+
+def _time_weighted_mean(points: list[tuple[float, int | float]]) -> float:
+    if len(points) < 2 or points[-1][0] <= points[0][0]:
+        return float(points[0][1]) if points else 0.0
+    area = 0.0
+    for (left_ms, left), (right_ms, right) in zip(points, points[1:], strict=False):
+        area += (right_ms - left_ms) * (float(left) + float(right)) / 2
+    return area / (points[-1][0] - points[0][0])
+
+
+def _counter_rates(samples: list[ResourceSample], attribute: str, *, scale: float) -> list[float]:
+    rates: list[float] = []
+    for left, right in zip(samples, samples[1:], strict=False):
+        elapsed_ms = right.elapsed_ms - left.elapsed_ms
+        if elapsed_ms <= 0:
+            continue
+        delta = max(0, getattr(right, attribute) - getattr(left, attribute))
+        rates.append(delta / elapsed_ms * scale)
+    return rates
+
+
+def parse_cpu_stat(text: str) -> int:
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == "usage_usec":
+            return int(parts[1])
+    raise ValueError("usage_usec is missing from cpu.stat")
+
+
+def parse_network_dev(text: str) -> tuple[int, int]:
+    rx = 0
+    tx = 0
+    for line in text.splitlines():
+        if ":" not in line:
+            continue
+        interface, values_text = line.split(":", 1)
+        if interface.strip() == "lo":
+            continue
+        values = values_text.split()
+        if len(values) >= 16:
+            rx += int(values[0])
+            tx += int(values[8])
+    return (rx, tx)
+
+
+def delta_counters(before: CounterSnapshot, after: CounterSnapshot) -> dict[str, int | float]:
+    return {
+        "cpu_ms": max(0, after.cpu_usage_usec - before.cpu_usage_usec) / 1000,
+        "network_rx_bytes": max(0, after.network_rx_bytes - before.network_rx_bytes),
+        "network_tx_bytes": max(0, after.network_tx_bytes - before.network_tx_bytes),
+    }
+
+
+def _metric(values: Iterable[int | float]) -> dict[str, int | float | None]:
+    numbers = [float(value) for value in values]
+    if not numbers:
+        return {"n": 0, "p50": None, "median": None, "mean": None, "p95": None}
+    ordered = sorted(numbers)
+    index = min(len(ordered) - 1, max(0, int(len(ordered) * 0.95 + 0.999) - 1))
+    p50 = statistics.median(numbers)
+    return {
+        "n": len(numbers),
+        "p50": p50,
+        "median": p50,
+        "mean": statistics.fmean(numbers),
+        "p95": ordered[index],
+    }
+
+
+def _passed(row: dict[str, Any], dimension: str) -> bool:
+    field = f"{dimension}_status"
+    value = row.get(field)
+    if value is not None:
+        return value == "pass"
+    return row.get("status") == "pass"
+
+
+def _summarize_core(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
+    functional: dict[str, Any] = {}
+    for engine in engines:
+        engine_rows = [row for row in rows if row.get("engine") == engine]
+        task_ids = list(dict.fromkeys(str(row["task_id"]) for row in engine_rows))
+        first_rows = [row for row in engine_rows if not row.get("is_retry")]
+        result_first_passes = sum(_passed(row, "result") for row in first_rows)
+        combined_first_passes = sum(_passed(row, "combined") for row in first_rows)
+        result_final_passes = 0
+        combined_final_passes = 0
+        result_recovered = 0
+        combined_recovered = 0
+        for task_id in task_ids:
+            attempts = [row for row in engine_rows if str(row["task_id"]) == task_id]
+            result_passed = any(_passed(row, "result") for row in attempts)
+            combined_passed = any(_passed(row, "combined") for row in attempts)
+            result_final_passes += int(result_passed)
+            combined_final_passes += int(combined_passed)
+            result_recovered += int(
+                bool(attempts) and not _passed(attempts[0], "result") and result_passed
+            )
+            combined_recovered += int(
+                bool(attempts) and not _passed(attempts[0], "combined") and combined_passed
+            )
+        functional[engine] = {
+            "tasks": len(task_ids),
+            "attempts": len(task_ids),
+            "physical_attempts": len(engine_rows),
+            "retries": sum(bool(row.get("is_retry")) for row in engine_rows),
+            "result_first_passes": result_first_passes,
+            "result_first_pass_rate": result_first_passes / len(task_ids) if task_ids else None,
+            "result_recovered": result_recovered,
+            "result_final_passes": result_final_passes,
+            "result_final_pass_rate": (result_final_passes / len(task_ids) if task_ids else None),
+            "combined_first_passes": combined_first_passes,
+            "combined_first_pass_rate": (
+                combined_first_passes / len(task_ids) if task_ids else None
+            ),
+            "combined_recovered": combined_recovered,
+            "combined_final_passes": combined_final_passes,
+            "combined_final_pass_rate": (
+                combined_final_passes / len(task_ids) if task_ids else None
+            ),
+            # Backward-compatible aliases use the primary, result-only metric.
+            "first_passes": result_first_passes,
+            "first_pass_rate": result_first_passes / len(task_ids) if task_ids else None,
+            "recovered": result_recovered,
+            "final_passes": result_final_passes,
+            "passes": result_final_passes,
+            "final_pass_rate": result_final_passes / len(task_ids) if task_ids else None,
+            "pass_rate": result_final_passes / len(task_ids) if task_ids else None,
+            "duration_ms": _metric(
+                row["duration_ms"] for row in first_rows if _passed(row, "result")
+            ),
+            "tool_output_tokens": _metric(
+                row["tool_output_tokens"]
+                for row in first_rows
+                if _passed(row, "result")
+                and isinstance(row.get("tool_output_tokens"), (int, float))
+            ),
+        }
+    grouped: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in rows:
+        if row.get("is_retry"):
+            continue
+        grouped.setdefault(str(row["task_id"]), {})[str(row["engine"])] = row
+    intersection_items = [
+        (task_id, bucket)
+        for task_id, bucket in grouped.items()
+        if all(engine in bucket and _passed(bucket[engine], "result") for engine in engines)
+    ]
+    intersection = [bucket for _, bucket in intersection_items]
+    metric_names = (
+        "cpu_ms",
+        "cpu_average_utilization_pct",
+        "cpu_sampled_utilization_p95_pct",
+        "cpu_sampled_utilization_peak_pct",
+        "memory_baseline_bytes",
+        "memory_mean_bytes",
+        "memory_p50_bytes",
+        "memory_p95_bytes",
+        "memory_peak_bytes",
+        "memory_end_bytes",
+        "memory_end_delta_bytes",
+        "memory_retained_bytes",
+        "memory_peak_delta_bytes",
+        "memory_mib_seconds",
+        "network_rx_bytes",
+        "network_tx_bytes",
+        "network_rx_bytes_per_second",
+        "network_tx_bytes_per_second",
+        "network_rx_rate_p95_bytes_per_second",
+        "network_rx_rate_peak_bytes_per_second",
+        "network_tx_rate_p95_bytes_per_second",
+        "network_tx_rate_peak_bytes_per_second",
+        "pids_current_mean",
+        "pids_current_p95",
+        "pids_current_peak",
+    )
+    by_engine: dict[str, Any] = {}
+    for engine in engines:
+        engine_rows = [bucket[engine] for bucket in intersection]
+        values = {
+            name: _metric(
+                resource[name]
+                for row in engine_rows
+                if isinstance((resource := row.get("resource") or {}).get(name), (int, float))
+            )
+            for name in metric_names
+        }
+        values["duration_ms"] = _metric(row["duration_ms"] for row in engine_rows)
+        values["tool_output_tokens"] = _metric(
+            row["tool_output_tokens"]
+            for row in engine_rows
+            if isinstance(row.get("tool_output_tokens"), (int, float))
+        )
+        by_engine[engine] = values
+    paired_ratios: dict[str, Any] = {}
+    if len(engines) == 2:
+        denominator_engine, numerator_engine = engines
+        ratio_metric_names = (*metric_names, "duration_ms", "tool_output_tokens")
+        for name in ratio_metric_names:
+            ratios: list[float] = []
+            details: list[dict[str, float | str]] = []
+            for task_id, bucket in intersection_items:
+                denominator_row = bucket[denominator_engine]
+                numerator_row = bucket[numerator_engine]
+                if name in {"duration_ms", "tool_output_tokens"}:
+                    denominator = denominator_row.get(name)
+                    numerator = numerator_row.get(name)
+                else:
+                    denominator = (denominator_row.get("resource") or {}).get(name)
+                    numerator = (numerator_row.get("resource") or {}).get(name)
+                if (
+                    isinstance(denominator, (int, float))
+                    and denominator > 0
+                    and isinstance(numerator, (int, float))
+                ):
+                    ratio = float(numerator) / float(denominator)
+                    ratios.append(ratio)
+                    details.append(
+                        {
+                            "task_id": task_id,
+                            "denominator": float(denominator),
+                            "numerator": float(numerator),
+                            "ratio": ratio,
+                        }
+                    )
+            paired_ratios[name] = {
+                **_metric(ratios),
+                "values": sorted(
+                    details, key=lambda item: (float(item["ratio"]), str(item["task_id"]))
+                ),
+            }
+    return {
+        "functional": functional,
+        "resource_comparison": {
+            "scope": "warm browser container only",
+            "functional_score_combined": False,
+            "intersection_attempts": len(intersection),
+            "by_engine": by_engine,
+            "paired_ratios": {
+                "numerator_engine": engines[1] if len(engines) == 2 else None,
+                "denominator_engine": engines[0] if len(engines) == 2 else None,
+                "formula": "per_task_ratio = numerator / denominator",
+                "p50_method": "statistics.median",
+                "p95_method": "nearest-rank: sorted_values[ceil(0.95*n)-1]",
+                "mean_method": "statistics.fmean",
+                "metrics": paired_ratios,
+            },
+        },
+    }
+
+
+def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) -> dict[str, Any]:
+    summary = _summarize_core(rows, engines=engines)
+    complexities = sorted({str(row["complexity"]) for row in rows if row.get("complexity")})
+    summary["by_complexity"] = {
+        complexity: _summarize_core(
+            [row for row in rows if row.get("complexity") == complexity],
+            engines=engines,
+        )
+        for complexity in complexities
+    }
+    task_ids = list(dict.fromkeys(str(row["task_id"]) for row in rows))
+    summary["by_task"] = {}
+    for task_id in task_ids:
+        task_rows = [row for row in rows if str(row.get("task_id")) == task_id]
+        first = task_rows[0]
+        task_summary = _summarize_core(task_rows, engines=engines)
+        task_summary.update(
+            {
+                "title": first.get("title", task_id),
+                "complexity": first.get("complexity"),
+                "step_count": first.get("step_count"),
+                "tags": first.get("tags") or [],
+                "representative_errors": {
+                    engine: list(
+                        dict.fromkeys(
+                            str(row.get("error"))
+                            for row in task_rows
+                            if row.get("engine") == engine and row.get("error")
+                        )
+                    )[:3]
+                    for engine in engines
+                },
+                "failures": {
+                    engine: [
+                        {
+                            "attempt": row.get("attempt"),
+                            "is_retry": row.get("is_retry", False),
+                            "error": row.get("error", ""),
+                            "trace": row.get("trace") or [],
+                            "validation": row.get("validation") or [],
+                            "process_validation": row.get("process_validation") or {},
+                            "result_status": row.get("result_status", row.get("status")),
+                            "process_status": row.get("process_status", row.get("status")),
+                            "combined_status": row.get("combined_status", row.get("status")),
+                        }
+                        for row in task_rows
+                        if row.get("engine") == engine and row.get("status") == "fail"
+                    ]
+                    for engine in engines
+                },
+                "attempts": {
+                    engine: [
+                        {
+                            "attempt": row.get("attempt"),
+                            "is_retry": row.get("is_retry", False),
+                            "status": row.get("status"),
+                            "duration_ms": row.get("duration_ms"),
+                            "resource": row.get("resource") or {},
+                            "tool_output_tokens": row.get("tool_output_tokens"),
+                            "error": row.get("error", ""),
+                            "trace": row.get("trace") or [],
+                            "validation": row.get("validation") or [],
+                            "process_validation": row.get("process_validation") or {},
+                            "result_status": row.get("result_status", row.get("status")),
+                            "process_status": row.get("process_status", row.get("status")),
+                            "combined_status": row.get("combined_status", row.get("status")),
+                        }
+                        for row in task_rows
+                        if row.get("engine") == engine
+                    ]
+                    for engine in engines
+                },
+            }
+        )
+        summary["by_task"][task_id] = task_summary
+
+    summary["retry_policy"] = {
+        engine: {
+            "retries": summary["functional"][engine]["retries"],
+            "result_recovered": summary["functional"][engine]["result_recovered"],
+            "combined_recovered": summary["functional"][engine]["combined_recovered"],
+        }
+        for engine in engines
+    }
+    return summary
