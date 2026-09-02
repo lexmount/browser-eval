@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from uuid import NAMESPACE_URL, uuid5
 
 REPORT_STEM = "browser-use-evaluation-latest"
 PAGES = tuple(
@@ -22,6 +23,24 @@ PAGES = tuple(
         ("appendix", "复现与附录", "-appendix"),
     )
 )
+
+
+def _identity(kind: str, *parts: str) -> str:
+    """Stable namespaced IDs; independent of report order, titles and formatting."""
+    key = json.dumps(["https://github.com/lexmount/browser-harness-eval", kind, *parts])
+    return f"{kind}-{uuid5(NAMESPACE_URL, key)}"
+
+
+def _task_uid(task_id: str) -> str:
+    return _identity("T", task_id)
+
+
+def _sample_uid(run_id: str, task_id: str, engine: str) -> str:
+    return _identity("S", run_id, task_id, engine)
+
+
+def _id_label(label: str, value: str) -> str:
+    return f'<small class="record-id" style="display:block;font-size:11px;font-weight:400;color:var(--muted);overflow-wrap:anywhere;user-select:text">{_e(label)} <code>{_e(value)}</code></small>'
 
 
 def _e(value: Any) -> str:
@@ -175,13 +194,20 @@ def _paired_ratio_table(
     )
 
 
-def _duration_ratio_audit(summary: dict[str, Any]) -> str:
+def _duration_ratio_audit(summary: dict[str, Any], run_id: str = "unknown") -> str:
     paired = (summary.get("resource_comparison") or {}).get("paired_ratios") or {}
     metric = (paired.get("metrics") or {}).get("duration_ms") or {}
     values = metric.get("values") or []
     if not values:
         return ""
     p95_rank = max(1, (95 * len(values) + 99) // 100)
+    duration_p95_indices = {
+        key: sorted(
+            range(len(values)),
+            key=lambda i: (float(values[i][key]), str(values[i].get("task_id") or "")),
+        )[p95_rank - 1]
+        for key in ("denominator", "numerator")
+    }
     rows = []
     for rank, item in enumerate(values, 1):
         task_id = str(item.get("task_id") or "")
@@ -198,14 +224,20 @@ def _duration_ratio_audit(summary: dict[str, Any]) -> str:
             duration_cells.append(
                 f'<td data-label="{_e(engine.title())}" class="{"better" if better else ""}">'
                 f'<a class="duration-detail-link" href="{_e(_detail_filename(task_id, engine))}" '
-                f'aria-label="{_e(title)} · {_e(engine.title())} · 耗时 {_e(_show(item.get(key), suffix=" ms"))}，查看任务详情">'
-                f"{_e(_show(item.get(key), suffix=' ms'))}</a></td>"
+                f'data-sample-id="{_sample_uid(run_id, task_id, engine)}" aria-label="{_e(title)} · {_e(engine.title())} · 耗时 {_e(_show(item.get(key), suffix=" ms"))}，查看任务详情">'
+                f"{_e(_show(item.get(key), suffix=' ms'))}</a>"
+                + (
+                    f'<span class="percentile-marker">{engine.title()} 耗时 P95</span>'
+                    if rank - 1 == duration_p95_indices[key]
+                    else ""
+                )
+                + "</td>"
             )
         ratio_class = _comparison_class(_display_number(item.get("ratio")), 1)
-        marker = '<span class="percentile-marker">P95 取值</span>' if rank == p95_rank else ""
+        marker = '<span class="percentile-marker">比值 P95</span>' if rank == p95_rank else ""
         row_class = ' class="percentile-row"' if rank == p95_rank else ""
         rows.append(
-            f'<tr{row_class}><td data-label="排序">{rank}</td><td data-label="任务">{_e(title)}</td>'
+            f'<tr{row_class}><td data-label="排序">{rank}</td><td data-label="任务">{_e(title)}{_id_label("任务", _task_uid(task_id))}</td>'
             + "".join(duration_cells)
             + f'<td data-label="逐任务比值"><span class="{ratio_class}">{_e(_show(item.get("ratio"), suffix="×"))}</span>{marker}</td></tr>'
         )
@@ -216,8 +248,8 @@ def _duration_ratio_audit(summary: dict[str, Any]) -> str:
         ".duration-audit .percentile-row{background:var(--panel)}"
         ".duration-audit .percentile-marker{display:inline-block;margin-left:10px;padding:1px 7px;border-radius:5px;font-size:12px;color:var(--accent);background:#e8eefc;white-space:nowrap}"
         '</style><details class="duration-audit"><summary>查看逐任务耗时比值的完整计算审计</summary>'
-        f"<p>按同任务 <code>Moli / Chromium</code> 比值升序排列；P95 取第 {p95_rank}/{len(values)} 项"
-        f"（<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>）。点击耗时查看对应方案的任务详情。</p>"
+        f"<p>按同任务 <code>Moli / Chromium</code> 比值升序排列；比值 P95 取第 {p95_rank}/{len(values)} 项"
+        f"（<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>）。两列耗时的 P95 各自独立排序取值，通常不在同一行。点击耗时进入详情。</p>"
         '<div class="table-wrap"><table><caption>耗时配对比值原始序列</caption><thead><tr>'
         "<th>排序</th><th>任务</th><th>Chromium</th><th>Moli</th><th>逐任务比值</th>"
         "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div></details>"
@@ -406,7 +438,7 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             '<section class="card"><details><summary>补充验证 · CowAgent 端到端冒烟测试</summary>',
         ).replace("</section>", "</details></section>")
     return f"""{_metric_guide()}<section class="card note" id="conclusions"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p class="muted">评测集包含 {task_count} 个结果唯一的任务；本轮比较浏览器工具调用，不是 LLM Agent 排名。</p>{correctness}</section>
-<section class="card" id="performance"><div class="section-heading"><h2>速度与资源</h2><a href="browser-use-evaluation-latest-analysis.html">失败定位与技术分析 →</a></div><p class="muted">仅比较双方都成功的 {paired} 个同任务，不含失败与重试样本。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
+<section class="card" id="performance"><div class="section-heading"><h2>速度与资源</h2><a href="browser-use-evaluation-latest-analysis.html">失败定位与技术分析 →</a></div><p class="muted">仅比较双方都成功的 {paired} 个同任务，不含失败与重试样本。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary, str(manifest.get("run_id") or "unknown"))}</section>{smoke_html}"""
 
 
 def _difficulty(value: str) -> str:
@@ -561,14 +593,15 @@ def _suite_page(manifest: dict[str, Any]) -> str:
             if tag not in shared_tags
         )
         search_text = (
-            f"任务{index:02d} 任务 {index:02d} {task.get('task_id')} {title} {target_url} "
+            f"任务{index:02d} 任务 {index:02d} {task.get('task_id')} {_task_uid(str(task.get('task_id')))} {title} {target_url} "
             + " ".join(task.get("tags") or [])
             + " "
             + expected_inline
         )
         cards.append(
             f'<section class="card suite-task" data-difficulty="{_e(task.get("complexity"))}" data-site="{_e(urlparse(target_url).hostname or "未标注")}" data-actions="{_e(",".join(sorted({str(c.get("action")) for c in calls})))}" data-search="{_e(search_text)}"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次工具调用</span>{chips}'
-            '<div class="task-verification">'
+            + _id_label("任务 ID", _task_uid(str(task.get("task_id"))))
+            + '<div class="task-verification">'
             f"<div><strong>公网测试页面</strong><span>{source_html}</span></div>"
             f"<div><strong>参考路径</strong><span><code>{_e(reference_path)}</code></span></div>"
             f"<div><strong>唯一预期结果</strong>{expected_rows}</div>"
@@ -754,6 +787,7 @@ def _task_detail_body(
     spec: dict[str, Any],
     attempts: list[dict[str, Any]],
     diagnostic: dict[str, Any] | None,
+    run_id: str = "unknown",
 ) -> str:
     """One definition, one comparison matrix, one copy of each raw payload."""
     evidence: dict[str, tuple[str, list[str]]] = {}
@@ -794,7 +828,9 @@ def _task_detail_body(
         '<section class="card case-overview" id="case-result">'
         f'<div class="section-heading"><h1>{_e(title)}</h1><span class="chip">{_e(engine)}</span></div>'
         f'<p class="muted case-id">{_e(task_id)}</p>'
-        '<div class="case-facts">'
+        + _id_label("任务 ID", _task_uid(task_id))
+        + _id_label("样本 ID", _sample_uid(run_id, task_id, engine))
+        + '<div class="case-facts">'
         f'<div><span>结果</span><strong class="{"ok" if result == "pass" else "bad"}">{status_cell(result)}</strong></div>'
         f'<div><span>参考过程</span><strong class="{"ok" if process == "pass" else "bad"}">{status_cell(process)}</strong></div>'
         f"<div><span>累计耗时 · {len(attempts)} 次执行</span><strong>{_show(total, suffix=' ms')}</strong></div></div>"
@@ -906,10 +942,14 @@ def _task_detail_body(
     )
 
     execution_rows = []
-    for label, attempt in zip(labels, attempts, strict=True):
+    for attempt_index, (label, attempt) in enumerate(zip(labels, attempts, strict=True), 1):
         execution_rows.append(
             "<tr><td>"
             + _e(label)
+            + _id_label(
+                "执行 ID",
+                f"{_sample_uid(run_id, task_id, engine)}/a{attempt.get('attempt', attempt_index)}",
+            )
             + "</td><td>"
             + _show(attempt.get("duration_ms"), suffix=" ms")
             + "</td><td>"
@@ -1081,6 +1121,7 @@ def _execution_details(
                 task_specs.get(str(task_id)) or {},
                 attempts,
                 diagnostic,
+                str(manifest.get("run_id") or "unknown"),
             )
             # Artifact Hub injects a site-root base URL; fragment links need the file.
             detail_body = detail_body.replace('href="#', f'href="{detail_name}#')
@@ -1094,6 +1135,15 @@ def _execution_details(
             search_text = " ".join(
                 [
                     title,
+                    str(task_id),
+                    _task_uid(str(task_id)),
+                    _sample_uid(
+                        str(manifest.get("run_id") or "unknown"), str(task_id), str(engine)
+                    ),
+                    *[
+                        f"{_sample_uid(str(manifest.get('run_id') or 'unknown'), str(task_id), str(engine))}/a{a.get('attempt', i)}"
+                        for i, a in enumerate(attempts, 1)
+                    ],
                     str(engine),
                     error_category,
                     *[
@@ -1107,7 +1157,7 @@ def _execution_details(
                 ]
             )
             blocks.append(
-                f'<div id="{_e(anchor)}" class="execution-card" data-task="{_e(task_id)}" data-engine="{_e(engine)}" data-status="{_e(final_result_status)}" data-combined-status="{_e(final_combined_status)}" data-complexity="{_e(task.get("complexity"))}" data-error="{_e(error_category)}" data-actions="{_e(",".join(actions))}" data-tags="{_e(",".join(tags))}" data-search="{_e(_trace_text(search_text))}" data-duration="{_e(total_duration)}"><a href="{detail_name}" class="execution-summary"><span>{_e(title)}</span><span>{_e(engine)}</span><span class="{"ok" if final_result_status == "pass" else "bad"}">{"正确" if final_result_status == "pass" else "错误"}</span><span class="{"ok" if final_process_status == "pass" else "bad"}">{"正确" if final_process_status == "pass" else "错误"}</span><span>{_e(error_category)}</span><span>{_show(total_duration, suffix=" ms")}</span></a></div>'
+                f'<div id="{_e(anchor)}" class="execution-card" data-task="{_e(task_id)}" data-engine="{_e(engine)}" data-status="{_e(final_result_status)}" data-combined-status="{_e(final_combined_status)}" data-complexity="{_e(task.get("complexity"))}" data-error="{_e(error_category)}" data-actions="{_e(",".join(actions))}" data-tags="{_e(",".join(tags))}" data-search="{_e(_trace_text(search_text))}" data-duration="{_e(total_duration)}"><a href="{detail_name}" class="execution-summary"><span>{_e(title)}{_id_label("样本 ID", _sample_uid(str(manifest.get("run_id") or "unknown"), str(task_id), str(engine)))}</span><span>{_e(engine)}</span><span class="{"ok" if final_result_status == "pass" else "bad"}">{"正确" if final_result_status == "pass" else "错误"}</span><span class="{"ok" if final_process_status == "pass" else "bad"}">{"正确" if final_process_status == "pass" else "错误"}</span><span>{_e(error_category)}</span><span>{_show(total_duration, suffix=" ms")}</span></a></div>'
             )
     return "".join(blocks) or "<p>没有可展示的执行样本。</p>"
 
@@ -1185,7 +1235,7 @@ def _execution_explorer(
       <label>任务标签<select id="f-tag"><option value="">全部标签</option>{tag_options}</select></label>
       <label>错误类别<select id="f-error"><option value="">全部类别</option>{error_options}</select></label>
       <label>耗时<select id="f-duration"><option value="">全部耗时</option><option value="lt1000">少于 1 秒</option><option value="1000-5000">1–5 秒</option><option value="gte5000">5 秒及以上</option></select></label>
-      <label>全文搜索<input id="f-query" type="search" placeholder="任务、输出或错误"></label>
+      <label>全文搜索<input id="f-query" type="search" placeholder="任务 / 样本 ID、输出或错误"></label>
       <button type="button" id="f-all">展示全部</button><button type="button" id="f-reset">重置为错误</button><span class="filter-status" id="f-count" aria-live="polite"></span>
     </div>"""
     script = """<script>(()=>{
@@ -1221,7 +1271,13 @@ function reveal(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>card.scrollIntoView({block:'start'})));
  }
 }
-for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',apply);
+for(const x of ids)el[x].addEventListener(x==='query'?'input':'change',()=>{
+ const q=el.query.value.trim();
+ if(x==='query' && /^[TS]-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\\/a[0-9]+)?$/i.test(q)){
+  clear();el.query.value=q;
+ }
+ apply();
+});
 document.getElementById('f-all').onclick=()=>{clear();apply()};
 document.getElementById('f-reset').onclick=defaults;
 addEventListener('hashchange',reveal);apply();reveal();
@@ -1408,6 +1464,33 @@ def write_latest_report(
         },
         "functional": summary.get("functional") or {},
         "resource_comparison": summary.get("resource_comparison") or {},
+        "identity_scheme": {
+            "algorithm": "UUIDv5, URL namespace, JSON tuple prefixed by repository URL",
+            "task": "T + task_id (logical task, shared across providers and runs)",
+            "sample": "S + run_id + task_id + engine",
+            "execution": "sample_id/a{attempt}",
+        },
+        "sample_index": [
+            {
+                "task_uid": _task_uid(str(task_id)),
+                "task_id": task_id,
+                "sample_id": _sample_uid(
+                    str(manifest.get("run_id") or "unknown"), str(task_id), str(engine)
+                ),
+                "engine": engine,
+                "detail_page": _detail_filename(str(task_id), str(engine)),
+                "executions": [
+                    {
+                        "execution_id": f"{_sample_uid(str(manifest.get('run_id') or 'unknown'), str(task_id), str(engine))}/a{attempt.get('attempt', i)}",
+                        "attempt": attempt.get("attempt", i),
+                    }
+                    for i, attempt in enumerate(attempts, 1)
+                ],
+            }
+            for task_id, task in (summary.get("by_task") or {}).items()
+            for engine, attempts in (task.get("attempts") or task.get("failures") or {}).items()
+            if attempts
+        ],
     }
     (root / audit_name).write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

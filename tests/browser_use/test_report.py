@@ -19,12 +19,14 @@ from harness.browser_use.report import (
     _metric_guide,
     _metric_tables,
     _ratio_metric_cell,
+    _sample_uid,
     _task_detail_body,
+    _task_uid,
     write_latest_report,
 )
 
 
-def test_duration_audit_links_each_provider_and_marks_only_p95_without_empty_column():
+def test_duration_audit_marks_each_independent_p95_without_empty_column():
     values = [
         {"task_id": f"task-{i}", "denominator": 100, "numerator": i * 10, "ratio": i / 10}
         for i in range(1, 26)
@@ -35,15 +37,54 @@ def test_duration_audit_links_each_provider_and_marks_only_p95_without_empty_col
     audit = _duration_ratio_audit(summary)
     assert "统计位置" not in audit
     assert "第 24/25 项" in audit
-    assert audit.count('class="percentile-marker"') == 1
+    assert audit.count('class="percentile-marker"') == 3
+    for label in ("Chromium 耗时 P95", "Moli 耗时 P95", "比值 P95"):
+        assert audit.count(f">{label}</span>") == 1
     rows = re.findall(r"<tr[^>]*>.*?</tr>", audit)
     for index, row in enumerate(rows[1:], 1):
         assert row.count("<td ") == 5
         for engine in ("chromium", "moli"):
             assert f'href="{_detail_filename(f"task-{index}", engine)}"' in row
-        assert ('class="percentile-marker"' in row) == (index == 24)
+        assert (">比值 P95</span>" in row) == (index == 24)
+        assert (">Moli 耗时 P95</span>" in row) == (index == 24)
     assert 'class="duration-detail-link"' in audit
     assert _duration_ratio_audit({}) == ""
+
+
+def test_record_ids_are_stable_namespaced_and_distinguish_run_task_provider():
+    assert _task_uid("same") == _task_uid("same")
+    assert _task_uid("same") != _task_uid("other")
+    samples = {
+        _sample_uid(run, task, engine)
+        for run in ("run-1", "run-2")
+        for task in ("same", "other")
+        for engine in ("chromium", "moli")
+    }
+    assert len(samples) == 8
+    assert _sample_uid("run-1", "same", "moli") == _sample_uid("run-1", "same", "moli")
+    assert _sample_uid("a:b", "c", "d") != _sample_uid("a", "b:c", "d")
+
+
+def test_ids_join_suite_analysis_details_and_audit_index(tmp_path):
+    task = {"task_id": "task-1", "title": "标题", "calls": [], "ground_truth": {}}
+    attempts = [{"attempt": 1, "status": "fail"}, {"attempt": 2, "status": "pass"}]
+    summary = {"by_task": {"task-1": {"title": "标题", "attempts": {"moli": attempts}}}}
+    write_latest_report(tmp_path, manifest={"run_id": "run-1", "suite": [task]}, summary=summary)
+    sample = _sample_uid("run-1", "task-1", "moli")
+    task_uid = _task_uid("task-1")
+    analysis = (tmp_path / "browser-use-evaluation-latest-analysis.html").read_text()
+    suite = (tmp_path / "browser-use-evaluation-latest-suite.html").read_text()
+    detail = (tmp_path / _detail_filename("task-1", "moli")).read_text()
+    index = json.loads((tmp_path / "browser-use-evaluation-latest-data.json").read_text())[
+        "sample_index"
+    ]
+    assert task_uid in suite and task_uid in detail
+    assert sample in analysis and sample in detail
+    search = re.search(r'data-search="([^"]+)"', analysis).group(1)
+    assert sample in search and task_uid in search and f"{sample}/a2" in search
+    assert f"{sample}/a1" in detail and f"{sample}/a2" in detail
+    assert index[0]["sample_id"] == sample and index[0]["task_uid"] == task_uid
+    assert [x["execution_id"] for x in index[0]["executions"]] == [f"{sample}/a1", f"{sample}/a2"]
 
 
 def test_homepage_guide_covers_every_displayed_metric_once():

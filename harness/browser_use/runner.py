@@ -428,7 +428,7 @@ def run_evaluation(
     )
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    run_id = uuid.uuid4().hex[:12]
+    run_id = uuid.uuid4().hex
     client = docker.from_env()
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
