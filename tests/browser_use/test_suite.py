@@ -68,6 +68,21 @@ def test_load_suite_rejects_unsupported_actions(tmp_path):
         load_suite(path)
 
 
+@pytest.mark.parametrize("action", ["click", "fill", "select"])
+@pytest.mark.parametrize("selector", [None, "", "  ", 12])
+def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, selector):
+    path = tmp_path / "tasks.json"
+    calls = [
+        {"action": action, "ref": 1, "selector": selector},
+        {"action": "get_text", "selector": "h1", "save_as": "heading"},
+    ]
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", calls)]})
+    )
+    with pytest.raises(ValueError, match="bad: call 1: .*ref is not supported"):
+        load_suite(path)
+
+
 def test_load_suite_rejects_duplicate_task_ids(tmp_path):
     path = tmp_path / "tasks.json"
     task = _task(
@@ -86,7 +101,7 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
         load_suite(path)
 
 
-def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
+def test_suite_has_thirty_ground_truth_tasks_with_requested_difficulty_mix():
     suite = load_suite("examples/browser_use/tasks.v4.json")
 
     assert len(suite.tasks) == 30
@@ -96,9 +111,8 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
         difficulty: sum(task.complexity == difficulty for task in suite.tasks)
         for difficulty in ("simple", "medium", "complex")
     }
-    assert counts == {"simple": 10, "medium": 10, "complex": 10}
+    assert counts == {"simple": 5, "medium": 10, "complex": 15}
     assert all(task.ground_truth["oracle"] == "deterministic_exact" for task in suite.tasks)
-
     navigations = [
         str(call["url"])
         for task in suite.tasks
@@ -113,6 +127,16 @@ def test_suite_has_thirty_ground_truth_tasks_balanced_by_difficulty():
     )
     assert all("{fixture_origin}" not in url for url in navigations)
     assert len({urlparse(url).hostname for url in navigations}) >= 8
+
+
+def test_version_language_path_targets_desktop_controls_and_waits_for_navigation():
+    suite = load_suite("examples/browser_use/tasks.v4.json")
+    task = next(t for t in suite.tasks if t.task_id == "python-version-language")
+    selects = [call for call in task.tool_calls if call["action"] == "select"]
+    assert len(selects) == 3
+    assert all(call["selector"].startswith(".switchers ") for call in selects)
+    assert all(call.get("wait_for_navigation") is True for call in selects)
+    assert all(call.get("wait_until") == "domcontentloaded" for call in selects)
 
 
 def test_suite_uses_public_targets_and_repository_derived_capability_coverage():

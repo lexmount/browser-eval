@@ -507,6 +507,8 @@ def summarize_attempts(rows: list[dict[str, Any]], *, engines: tuple[str, ...]) 
                             "is_retry": row.get("is_retry", False),
                             "status": row.get("status"),
                             "duration_ms": row.get("duration_ms"),
+                            "resource": row.get("resource") or {},
+                            "tool_output_tokens": row.get("tool_output_tokens"),
                             "error": row.get("error", ""),
                             "trace": row.get("trace") or [],
                             "validation": row.get("validation") or [],

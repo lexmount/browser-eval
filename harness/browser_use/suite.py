@@ -86,6 +86,15 @@ def validate_ground_truth_evidence(
     return evidence
 
 
+def validate_selector(step: dict[str, Any]) -> None:
+    """The deterministic runner uses explicit selectors, not snapshot references."""
+    action = step.get("action")
+    if action in {"click", "fill", "select", "get_text", "get_attribute", "get_property"}:
+        selector = step.get("selector")
+        if not isinstance(selector, str) or not selector.strip():
+            raise ValueError(f"{action} requires a non-empty selector; ref is not supported")
+
+
 def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
     if not isinstance(step, dict):
         raise ValueError(f"{task_id}: step {index} must be an object")
@@ -96,12 +105,10 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         ("http://", "https://", "{fixture_origin}/")
     ):
         raise ValueError(f"{task_id}: navigate step {index} requires an HTTP(S) URL")
-    if action in {"click", "fill", "select"} and not (
-        str(step.get("selector") or "") or isinstance(step.get("ref"), int)
-    ):
-        raise ValueError(f"{task_id}: {action} call {index} requires selector or ref")
-    if action == "get_text" and not str(step.get("selector") or ""):
-        raise ValueError(f"{task_id}: get_text call {index} requires selector")
+    try:
+        validate_selector(step)
+    except ValueError as exc:
+        raise ValueError(f"{task_id}: call {index}: {exc}") from exc
     if action in {"get_attribute", "get_property"} and not (
         str(step.get("selector") or "") and str(step.get("name") or "")
     ):

@@ -4,7 +4,56 @@ import json
 import re
 from pathlib import Path
 
-from harness.browser_use.report import METRICS, _metric_tables, write_latest_report
+from harness.browser_use.report import (
+    METRICS,
+    _absolute_metric_cell,
+    _annotate_source_marks,
+    _correctness_table,
+    _metric_tables,
+    _ratio_metric_cell,
+    _task_detail_body,
+    write_latest_report,
+)
+
+
+def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
+    assert "class=" not in _absolute_metric_cell(1.001, 1.002, 1)
+    assert "class=" not in _ratio_metric_cell(1.004)
+    assert "class=" not in _ratio_metric_cell(None)
+    assert 'class="better"' in _ratio_metric_cell(0.8)
+    assert 'class="worse"' in _ratio_metric_cell(1.2)
+    tied = {
+        engine: {"tasks": 2, "result_final_passes": 2, "combined_final_passes": 2}
+        for engine in ("chromium", "moli")
+    }
+    assert 'class="better"' not in _correctness_table({"functional": tied})
+
+
+def test_source_permalink_character_is_annotated_not_removed():
+    from html import unescape
+
+    original = "The Python Tutorial¶"
+    rendered = _annotate_source_marks(original)
+    assert unescape(re.sub(r"<[^>]+>", "", rendered)) == original
+    assert 'title="原网页标题锚点字符 U+00B6"' in rendered
+    assert _annotate_source_marks("plain title") == "plain title"
+
+
+def test_each_provider_links_to_its_failure_filter_including_zero_failures():
+    rendered = _correctness_table(
+        {
+            "functional": {
+                "chromium": {"tasks": 30, "result_final_passes": 30, "combined_final_passes": 30},
+                "moli": {"tasks": 30, "result_final_passes": 25, "combined_final_passes": 25},
+            }
+        }
+    )
+    assert rendered.count('class="provider-failure-link"') == 2
+    assert "#provider=chromium&amp;status=fail" in rendered
+    assert "#provider=moli&amp;status=fail" in rendered
+    assert "chromium：查看 0 个失败任务" in rendered
+    assert "moli：查看 5 个失败任务" in rendered
+    assert "failure-shortcut" not in rendered
 
 
 def test_resource_tables_separate_absolute_values_from_paired_ratios():
@@ -32,6 +81,8 @@ def test_resource_tables_separate_absolute_values_from_paired_ratios():
     assert "逐任务比值 P50" in rendered
     assert "0.55×" in rendered
     assert "1.32×" in rendered
+    assert 'class="better">0.55×' in rendered
+    assert 'class="worse">1.32×' in rendered
 
 
 def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path):
@@ -43,6 +94,11 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
         reports,
         manifest={
             "run_id": "run-1",
+            "ground_truth_validation": {
+                "validator": "Codex Desktop in-app Browser Tool",
+                "human_review": {"status": "pending"},
+                "automatic_browser_replay": {"passed": 1, "total": 1, "status": "pass"},
+            },
             "environment": {"docker": "29"},
             "protocol": {"repeats": 3, "sample_interval_ms": 100},
             "suite": [
@@ -128,7 +184,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "结论与产品建议" in rendered
     assert 'lang="zh-CN"' in rendered
     assert "报告分页" in rendered
-    assert "结果正确率是默认 Provider 的第一决策指标" in rendered
+    assert "结果正确率是默认 Provider 的第一决策指标" not in rendered
     assert "评测集包含 1 个结果唯一的任务" in rendered
     assert rendered.index('<th colspan="2">P50</th>') < rendered.index('<th colspan="2">P95</th>')
     assert rendered.index('<th colspan="2">P95</th>') < rendered.index(
@@ -154,6 +210,18 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'href="https://example.com"' in suite
     assert "navigate → get_text" in suite
     assert "heading = Example" in suite
+    assert suite.count('href="https://example.com"') == 1
+    assert suite.count("navigate → get_text") == 1
+    assert "机器判定答案" not in suite
+    assert "评测可信度与解读边界" not in rendered
+    for field in ("query", "difficulty", "site", "action", "reset", "count", "empty"):
+        assert f'id="suite-{field}"' in suite
+    assert 'class="card suite-task"' in suite
+    assert 'data-search="任务01 任务 01 example' in suite
+    for html_path in reports.glob("*.html"):
+        assert "人工复核" not in html_path.read_text(encoding="utf-8")
+    audit = json.loads((reports / "browser-use-evaluation-latest-data.json").read_text())
+    assert "human_review" not in audit["ground_truth_validation"]
     method = (reports / "browser-use-evaluation-latest-method.html").read_text(encoding="utf-8")
     assert "RX = Receive" in method
     assert "P50 与中位数是同一个统计量" in method
@@ -162,7 +230,7 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert "<pre># Browser Use Evaluation" not in rendered
 
 
-def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_path):
+def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     reports = tmp_path / "reports"
     write_latest_report(
         reports,
@@ -238,7 +306,7 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
                                         "status": "fail",
                                         "duration_ms": 10,
                                         "arguments": {"url": "https://example.com"},
-                                        "output": "",
+                                        "output": "TRACE_ONLY_SEARCH_MARKER",
                                         "error": "SECOND FULL STACK TRACE",
                                     }
                                 ],
@@ -251,21 +319,31 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
         },
     )
     analysis = (reports / "browser-use-evaluation-latest-analysis.html").read_text(encoding="utf-8")
-    assert "逐任务失败分析与原始证据" in analysis
+    assert "逐任务分析与原始证据" in analysis
+    assert "TRACE_ONLY_SEARCH_MARKER" in analysis
+    assert "c.dataset.search" in analysis
     assert "逐任务对比" not in analysis
-    assert "<details" in analysis
-    assert "FIRST FULL STACK TRACE" in analysis
-    assert analysis.count("SECOND FULL STACK TRACE") == 1
-    assert "查看该调用独有错误" not in analysis
-    assert "完整执行轨迹" in analysis
+    assert "<details" not in analysis
+    detail_files = list(reports.glob("*-task-*.html"))
+    assert len(detail_files) == 1
+    assert f'href="{detail_files[0].name}"' in analysis
+    detail = detail_files[0].read_text()
+    assert "<details" not in detail
+    assert 'href="#' not in detail
+    assert f'href="{detail_files[0].name}#case-steps"' in detail
+    assert detail.count("<h1>") == 1
+    assert 'class="pager"' not in detail
+    assert "FIRST FULL STACK TRACE" in detail
+    assert detail.count("SECOND FULL STACK TRACE") == 1
+    assert "参考操作与执行对照" in detail
     assert 'class="record-grid-head"' in analysis
     assert 'class="execution-summary"' in analysis
-    assert 'class="execution-body"' in analysis
+    assert 'class="execution-body"' not in analysis
     assert 'class="failure-grid"' not in analysis
     assert 'class="failure-summary"' not in analysis
-    assert 'class="diagnosis-panel"' in analysis
-    assert "查看 actionability probe" in analysis
-    assert "查看完整异常" in analysis
+    assert 'class="diagnosis-panel"' in detail
+    assert "Actionability probe" in detail
+    assert "完整异常" in detail
     assert "BrowserTool 方法" in analysis
     assert 'id="f-status"' in analysis
     assert 'id="f-combined"' in analysis
@@ -275,21 +353,119 @@ def test_report_renders_full_failures_and_tool_trace_in_collapsible_details(tmp_
     assert 'id="f-attempt"' not in analysis
     assert '<option value="fail" selected>错误</option>' in analysis
     assert 'aria-live="polite"' in analysis
-    assert "标准答案判定" in analysis
-    assert "unique-answer" in analysis
-    assert "未产生（过程失败）" in analysis
-    assert "未判定" in analysis
+    assert "答案对照" in detail
+    assert "unique-answer" in detail
+    assert "未产生（过程失败）" in detail
+    assert "未判定" in detail
     assert "LLM 根因假设" not in analysis
     assert "未启用 LLM" not in analysis
-    assert "时序机制、假设与验证标准" in analysis
-    assert "CDP screencast 下采样节奏" in analysis
-    assert "目标间隔仍是 16 ms" in analysis
+    assert "时序机制研究" in analysis
+    homepage = (reports / "browser-use-evaluation-latest.html").read_text(encoding="utf-8")
+    assert 'class="failure-shortcut"' not in homepage
+    assert f'href="{detail_files[0].name}"' not in homepage
+    assert "#provider=moli&amp;status=fail" in homepage
+    assert 'id="execution-empty"' in analysis
+    assert "new URLSearchParams(raw)" in analysis
+    assert "document.querySelector(location.hash)" not in analysis
+    assert "CDP screencast 下采样" in homepage
+    assert "rAF 目标间隔为 16 ms" in homepage
     assert analysis.count('class="execution-card"') == 1
-    assert "执行记录 1" in analysis
-    assert "执行记录 2" in analysis
+    assert "执行记录 1" in detail
+    assert "执行记录 2" in detail
     assert "错误类别" in analysis
     assert "重试结论" not in analysis
     assert 'id="execution-task-moli"' in analysis
+
+
+def test_detail_merges_attempts_and_deduplicates_raw_evidence():
+    call = {"action": "fill", "selector": "#field", "text": "expected", "save_as": "answer"}
+    attempt = {
+        "status": "fail",
+        "error": "FULL EXCEPTION <script>",
+        "duration_ms": 10,
+        "validation": [
+            {"output": "answer", "expected": "expected", "actual": "wrong", "passed": False}
+        ],
+        "process_validation": {
+            "expected_actions": ["fill"],
+            "actual_actions": ["fill"],
+            "passed": False,
+        },
+        "resource": {"cpu_ms": 2},
+        "trace": [
+            {
+                "index": 1,
+                "action": "fill",
+                "arguments": {k: v for k, v in call.items() if k != "save_as"},
+                "status": "fail",
+                "duration_ms": 10,
+                "output": "SHARED OUTPUT",
+                "error": "FULL EXCEPTION <script>",
+            }
+        ],
+    }
+    body = _task_detail_body(
+        "task",
+        "Title",
+        "moli",
+        {
+            "tool_calls": [call, {"action": "get_text", "selector": "h1"}],
+            "ground_truth": {"expected_outputs": {"answer": "expected"}},
+        },
+        [{**attempt, "attempt": 1}, {**attempt, "attempt": 2}],
+        None,
+    )
+    assert body.count("SHARED OUTPUT") == 1
+    assert body.count("FULL EXCEPTION &lt;script&gt;") == 1
+    assert "FULL EXCEPTION <script>" not in body
+    assert body.count("<caption>答案对照</caption>") == 1
+    assert body.count("<caption>参考操作与执行对照</caption>") == 1
+    assert body.count("<caption>资源对照</caption>") == 1
+    assert body.count("未执行") == 2
+    assert 'id="evidence-dialog"' in body
+    assert 'aria-labelledby="evidence-title"' in body
+    assert 'data-evidence="evidence-' in body
+    assert "dialog.showModal()" in body
+    assert "content.textContent=" in body
+    assert "content.innerHTML" not in body
+    assert "preventScroll:true" in body
+    assert 'aria-label="实际浏览器动作">fill</code>' in body
+    assert 'class="action-name">fill</code>' in body
+    assert 'class="attempt-block"' not in body
+    assert "<details" not in body
+    targets = set(re.findall(r'id="([^"]+)"', body))
+    assert all(target in targets for target in re.findall(r'href="#([^"]+)"', body))
+
+
+def test_detail_preserves_success_and_divergent_actual_calls():
+    body = _task_detail_body(
+        "task",
+        "Title",
+        "chromium",
+        {"tool_calls": [{"action": "click", "selector": "#expected"}]},
+        [
+            {
+                "status": "pass",
+                "trace": [
+                    {
+                        "action": "fill",
+                        "status": "pass",
+                        "arguments": {"selector": "#actual"},
+                        "output": "0",
+                    }
+                ],
+                "validation": [{"output": "extra", "expected": "0", "actual": "0", "passed": True}],
+            }
+        ],
+        None,
+    )
+    assert 'aria-label="实际浏览器动作">fill</code>' in body
+    assert "与参考动作不同" in body
+    assert "#actual" in body
+    assert "额外调用" not in body
+    assert "extra" in body
+    assert "未记录资源采样" in body
+    assert 'class="ok">通过' in body
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):

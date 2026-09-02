@@ -1,0 +1,1216 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>从 Moli README 进入 Issues 并恢复历史｜Chromium 与 Moli 评测</title><style>
+:root{--ink:#172033;--muted:#5f6c81;--line:#d7deeb;--panel:#f4f7fb;--accent:#2552c7;--good:#117454;--bad:#b42318}*{box-sizing:border-box}body{margin:0;background:#edf2f8;color:var(--ink);font:15px/1.68 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}a{color:var(--accent)}header{background:#fff;border-bottom:1px solid var(--line)}.wrap,main,footer{max-width:1240px;margin:auto;padding-left:24px;padding-right:24px}.brand{padding:22px 0 10px}.eyebrow{font-size:13px;color:var(--accent);font-weight:750}h1{font-size:30px;line-height:1.25;margin:5px 0}h2{font-size:22px;margin:0 0 12px}h3{font-size:17px;margin:18px 0 8px}p,ul,ol{margin:8px 0}.muted{color:var(--muted)}nav{display:flex;gap:4px;overflow:auto;padding-bottom:14px}nav a{white-space:nowrap;text-decoration:none;color:var(--muted);padding:7px 10px;border-radius:8px}nav a.active{background:#e8eeff;color:#173fa8;font-weight:750}main{padding-top:20px;padding-bottom:40px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.metric{background:var(--panel);border-radius:10px;padding:16px}.metric strong{display:block;font-size:25px}.metric span{color:var(--muted)}.principles,.hypothesis-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}.principles>div,.hypothesis-grid>div{background:var(--panel);border-radius:10px;padding:14px}.principles strong,.principles span,.hypothesis-grid strong,.hypothesis-grid span{display:block}.principles span,.hypothesis-grid span{margin-top:4px;color:var(--muted)}.call{border-left:3px solid #9eb2ef;background:var(--panel);padding:10px 12px;margin:8px 0;border-radius:0 8px 8px 0}.chip{display:inline-block;font-size:12px;background:#eaf0fb;border-radius:999px;padding:2px 8px;margin:2px}.task-verification{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.task-verification>div,.diagnosis-facts>div{background:var(--panel);border-radius:9px;padding:11px 12px}.task-verification>div:last-child{grid-column:1/-1}.task-verification strong,.task-verification span,.diagnosis-facts strong,.diagnosis-facts span{display:block}.task-verification span,.diagnosis-facts span{margin-top:3px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}table{width:100%;border-collapse:collapse;min-width:760px}caption{text-align:left;padding:11px 12px;font-weight:750}th,td{border-top:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}th{background:var(--panel);font-size:13px}.resource-summary table{min-width:860px}.resource-summary thead:first-of-type th{text-align:center}.resource-summary thead:first-of-type th:first-child{text-align:left}.better{color:var(--good);font-weight:800}.worse{color:var(--bad);font-weight:800}details{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin:9px 0}summary{cursor:pointer;font-weight:750}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#e5edf8;padding:13px;border-radius:8px;font:12px/1.55 ui-monospace,monospace}code{font-family:ui-monospace,monospace}.trace{border-left:3px solid #b9c5da;padding-left:12px;margin:10px 0}.ok{color:var(--good)}.bad{color:var(--bad)}.note{border-left:5px solid var(--accent)}.pager{display:flex;justify-content:space-between;margin-top:22px}.filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;background:var(--panel);padding:14px;border-radius:10px;margin:14px 0}.filters label{font-size:12px;color:var(--muted);font-weight:700}.filters select,.filters input{display:block;width:100%;margin-top:4px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}.filters button{align-self:end;padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--accent);font-weight:700;cursor:pointer}.filter-status{align-self:end;color:var(--muted)}.execution-card[hidden]{display:none}.record-grid{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}.record-grid-head,.execution-summary{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(95px,.7fr) minmax(80px,.55fr) minmax(80px,.55fr) minmax(190px,1.25fr) minmax(110px,.75fr);gap:12px;align-items:center;min-width:950px;padding:10px 12px}.record-grid-head{background:var(--panel);font-size:13px;font-weight:800}.execution-card{border-top:1px solid var(--line)}.execution-card:first-of-type{border-top:0}.execution-card>details{border:0;border-radius:0;padding:0;margin:0}.execution-card>details>summary{list-style:none}.execution-card>details>summary::-webkit-details-marker{display:none}.execution-summary>span:first-child::before{content:"▸";color:var(--accent);display:inline-block;width:16px}.execution-card>details[open] .execution-summary>span:first-child::before{content:"▾"}.execution-body{border-top:1px solid var(--line);padding:18px 20px;background:#fbfcff;min-width:950px}.diagnosis-panel{border-left:4px solid var(--bad);background:#fff6f5;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:16px}.diagnosis-panel h3{margin-top:0}.diagnosis-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.raw-evidence{background:#fff}footer{padding-bottom:30px;color:var(--muted)}@media(max-width:760px){.grid,.task-verification,.diagnosis-facts,.principles,.hypothesis-grid{grid-template-columns:1fr}.task-verification>div:last-child{grid-column:auto}.filters{grid-template-columns:1fr 1fr}.card{padding:18px}h1{font-size:25px}}
+.execution-summary{text-decoration:none;color:var(--ink);font-weight:600}.execution-summary:hover{background:#edf3ff}.execution-summary:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}.execution-summary>span:first-child::before{content:"→"}.attempt-block{margin-top:24px}.ok,.bad{font-weight:750}.hypothesis-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:760px){.hypothesis-grid{grid-template-columns:1fr}}
+[hidden]{display:none!important}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}.section-heading h2,.section-heading h3{margin:0}.section-heading>a{font-size:13px;text-decoration:none}.provider-failure-link{display:inline-flex;gap:12px;align-items:center;white-space:nowrap;border:1px solid #d7e1fa;background:#f3f6ff;padding:5px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:650}.provider-failure-link:hover{background:#e5edff}.provider-failure-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.suite-filter-panel{background:#f8faff}.suite-filter-controls{display:grid;grid-template-columns:minmax(200px,1.8fr) minmax(110px,1fr) minmax(160px,1.4fr) minmax(110px,1fr) auto;gap:12px;align-items:end}.suite-filter-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650;color:var(--muted)}.suite-filter-controls input,.suite-filter-controls select,.suite-filter-controls button{width:100%;min-width:0;height:40px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px system-ui;background:white;color:var(--ink)}.suite-filter-controls button{color:var(--accent);cursor:pointer;font-weight:650}.suite-filter-controls :is(input,select,button):focus-visible{outline:2px solid var(--accent);outline-offset:2px}.empty-state{text-align:center;padding:44px;color:var(--muted)}@media(max-width:900px){.suite-filter-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.suite-search{grid-column:1/-1}}@media(max-width:600px){.section-heading{align-items:flex-start;flex-wrap:wrap}}
+.case-header{display:flex;align-items:center;gap:24px;padding:15px 0;font-size:13px}.case-header a{text-decoration:none}.case-header span{margin-left:auto}.case-detail h1{font-size:25px}.case-detail h2{font-size:19px}.case-detail h3{font-size:14px}.case-id{font-size:12px;overflow-wrap:anywhere}.case-facts{display:flex;gap:40px;padding:12px 0}.case-facts span,.case-facts strong{display:block}.case-facts span{font-size:12px;color:var(--muted)}.case-facts strong{font-size:19px}.case-detail .diagnosis-panel{padding:12px 14px;margin:10px 0}.case-detail .diagnosis-panel>span{margin-left:16px;font-size:13px}.case-start{font-size:13px;overflow-wrap:anywhere}.case-nav{position:sticky;top:0;z-index:2;background:#edf2f8;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:16px}.case-nav a{background:#fff;border:1px solid var(--line);font-size:13px}.case-nav a:hover{background:#e8eeff}.case-detail [id]{scroll-margin-top:66px}.case-detail table{min-width:600px}.case-detail th,.case-detail td{padding:9px 12px;font-size:13px;overflow-wrap:anywhere}.step-comparison table{table-layout:fixed}.step-comparison th:first-child{width:50px}.step-comparison th:nth-child(2){width:38%}.step-comparison small{display:block;color:var(--muted)}.evidence-link{display:block;font-size:12px;margin-top:3px}.evidence-item{border-top:1px solid var(--line);padding:16px 0 4px}.evidence-item .section-heading{margin-bottom:4px}.evidence-item p{font-size:12px}.evidence-item pre{max-height:260px;overflow:auto;margin:8px 0;line-height:1.55}.evidence-item:target{outline:2px solid var(--accent);outline-offset:5px}.case-detail a:focus-visible,.case-detail pre:focus-visible,.case-header a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:650px){.case-header{flex-wrap:wrap;gap:8px 18px}.case-header span{margin-left:0;width:100%}.case-facts{flex-wrap:wrap;gap:12px 24px}.case-detail .diagnosis-panel>span{display:block;margin:4px 0}.case-detail h1{font-size:22px}}
+.action-name{display:block;width:fit-content;background:#eaf0fb;color:#234887;border:1px solid #d8e3f4;border-radius:5px;padding:1px 6px;margin-bottom:5px;font-size:12px;font-weight:650}.expected-values{margin:10px 0 0}.expected-values>div{display:grid;grid-template-columns:minmax(90px,140px) 1fr;gap:16px;padding:6px 0;border-top:1px solid var(--line)}.expected-values dt{font:12px/1.8 ui-monospace,monospace;color:var(--muted);overflow-wrap:anywhere}.expected-values dd{margin:0;overflow-wrap:anywhere}.source-mark{font-family:system-ui;color:#5f6c81;background:#e2e8f0;border-radius:3px;padding:0 3px;margin-left:2px}.task-verification .source-mark{display:inline;margin:0 0 0 2px}.source-mark-note{font-size:12px;color:var(--muted);margin-top:8px}.evidence-index{display:none}.evidence-enhanced .evidence-index{display:block}.evidence-enhanced .evidence-item{display:none}.evidence-index .evidence-link{display:grid;grid-template-columns:64px 1fr 36px;gap:12px;align-items:start;border-top:1px solid var(--line);padding:10px 0;text-decoration:none;font-size:13px}.evidence-index .evidence-link>span:nth-child(2){color:var(--ink)}.evidence-index .evidence-link:hover{background:var(--panel)}html.evidence-enhanced{scrollbar-gutter:stable}html.evidence-modal-open{overflow:hidden}#evidence-dialog{width:min(960px,calc(100vw - 40px));max-height:85vh;padding:24px;border:1px solid var(--line);border-radius:14px;color:var(--ink);box-shadow:0 24px 80px #10182840}#evidence-dialog[open]{display:flex;flex-direction:column}#evidence-dialog::backdrop{background:rgba(15,23,42,.48)}.dialog-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.dialog-heading h2{font-size:19px;margin:0;line-height:1.4}.dialog-heading p{font-size:13px;margin:5px 0 12px}.dialog-heading button{padding:7px 14px;background:#f4f7fb;border:1px solid var(--line);border-radius:7px;color:var(--ink);cursor:pointer;white-space:nowrap}#evidence-dialog pre{min-height:70px;min-width:0;max-height:65vh;overflow:auto;margin:8px 0 0;font-size:13px;line-height:1.65;flex:1}#evidence-action{font-size:13px;margin:0 0 6px}#evidence-dialog :focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:600px){#evidence-dialog{width:calc(100vw - 20px);padding:16px;max-height:90vh}.expected-values>div{grid-template-columns:90px 1fr;gap:8px}}@media print{.evidence-enhanced .evidence-item{display:block}.evidence-index,#evidence-dialog{display:none!important}}
+</style></head><body><header><div class="wrap"><div class="case-header"><a href="browser-use-evaluation-latest-analysis.html#execution-github-moli-issues-history-chromium">← 返回逐任务分析</a><a href="browser-use-evaluation-latest.html">Chromium / Moli 评测</a><span class="muted">运行 78e5e3a4ddfb</span></div></div></header><main><div class="case-detail"><section class="card case-overview" id="case-result"><div class="section-heading"><h1>从 Moli README 进入 Issues 并恢复历史</h1><span class="chip">chromium</span></div><p class="muted case-id">github-moli-issues-history</p><div class="case-facts"><div><span>结果</span><strong class="ok">通过</strong></div><div><span>参考过程</span><strong class="ok">通过</strong></div><div><span>累计耗时 · 1 次执行</span><strong>4,415.70 ms</strong></div></div><p class="case-start">起始页面 <a href="https://github.com/lexmount/moli" target="_blank" rel="noopener">https://github.com/lexmount/moli</a></p></section><nav class="case-nav" aria-label="任务详情导航"><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-result">结果</a><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">操作与答案</a><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-resources">执行资源</a><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-evidence">原始证据</a></nav><section class="card" id="case-steps"><h2>操作与答案</h2><div class="table-wrap"><table><caption>答案对照</caption><thead><tr><th>输出</th><th>标准答案</th><th>执行记录 1</th></tr></thead><tbody><tr><td data-label="输出">readme</td><td data-label="标准答案">Moli</td><td data-label="执行记录 1" class="ok">Moli · 通过</td></tr><tr><td data-label="输出">issues</td><td data-label="标准答案">All issues</td><td data-label="执行记录 1" class="ok">All issues · 通过</td></tr><tr><td data-label="输出">back_readme</td><td data-label="标准答案">Moli</td><td data-label="执行记录 1" class="ok">Moli · 通过</td></tr><tr><td data-label="输出">forward_issues</td><td data-label="标准答案">All issues</td><td data-label="执行记录 1" class="ok">All issues · 通过</td></tr></tbody></table></div><p class="muted">答案依据：GitHub 仓库 README 与 Issues 固定一级标题及历史恢复。</p><div class="table-wrap step-comparison"><table><caption>参考操作与执行对照</caption><thead><tr><th>步骤</th><th>浏览器参考动作</th><th>执行记录 1</th></tr></thead><tbody><tr><td>1</td><td><code class="action-name">navigate</code><span>打开 https://github.com/lexmount/moli 并返回页面观察快照</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-1" data-evidence="evidence-1" aria-label="步骤 1 参数">参数</a><small>保存为 <code>page</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">navigate</code><strong class="ok">通过</strong> <span class="muted">2,005.00 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-2" data-evidence="evidence-2" aria-label="执行记录 1 · 步骤 1 输出">输出</a></td></tr><tr><td>2</td><td><code class="action-name">get_text</code><span>读取 article.markdown-body h1 文本</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-3" data-evidence="evidence-3" aria-label="步骤 2 参数">参数</a><small>保存为 <code>readme</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">get_text</code><strong class="ok">通过</strong> <span class="muted">64.99 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-4" data-evidence="evidence-4" aria-label="执行记录 1 · 步骤 2 输出">输出</a></td></tr><tr><td>3</td><td><code class="action-name">navigate</code><span>打开 https://github.com/lexmount/moli/issues 并返回页面观察快照</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-5" data-evidence="evidence-5" aria-label="步骤 3 参数">参数</a><small>保存为 <code>issues_page</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">navigate</code><strong class="ok">通过</strong> <span class="muted">1,334.57 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-6" data-evidence="evidence-6" aria-label="执行记录 1 · 步骤 3 输出">输出</a></td></tr><tr><td>4</td><td><code class="action-name">get_text</code><span>读取 main h1 文本</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-7" data-evidence="evidence-7" aria-label="步骤 4 参数">参数</a><small>保存为 <code>issues</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">get_text</code><strong class="ok">通过</strong> <span class="muted">9.05 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-8" data-evidence="evidence-8" aria-label="执行记录 1 · 步骤 4 输出">输出</a></td></tr><tr><td>5</td><td><code class="action-name">back</code><span>浏览器后退</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-9" data-evidence="evidence-9" aria-label="步骤 5 参数">参数</a></td><td><code class="action-name" aria-label="实际浏览器动作">back</code><strong class="ok">通过</strong> <span class="muted">66.99 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-10" data-evidence="evidence-10" aria-label="执行记录 1 · 步骤 5 输出">输出</a></td></tr><tr><td>6</td><td><code class="action-name">get_text</code><span>读取 article.markdown-body h1 文本</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-3" data-evidence="evidence-3" aria-label="步骤 6 参数">参数</a><small>保存为 <code>back_readme</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">get_text</code><strong class="ok">通过</strong> <span class="muted">31.98 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-4" data-evidence="evidence-4" aria-label="执行记录 1 · 步骤 6 输出">输出</a></td></tr><tr><td>7</td><td><code class="action-name">forward</code><span>浏览器前进</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-11" data-evidence="evidence-11" aria-label="步骤 7 参数">参数</a></td><td><code class="action-name" aria-label="实际浏览器动作">forward</code><strong class="ok">通过</strong> <span class="muted">701.30 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-12" data-evidence="evidence-12" aria-label="执行记录 1 · 步骤 7 输出">输出</a></td></tr><tr><td>8</td><td><code class="action-name">get_text</code><span>读取 main h1 文本</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-7" data-evidence="evidence-7" aria-label="步骤 8 参数">参数</a><small>保存为 <code>forward_issues</code></small></td><td><code class="action-name" aria-label="实际浏览器动作">get_text</code><strong class="ok">通过</strong> <span class="muted">201.74 ms</span><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-8" data-evidence="evidence-8" aria-label="执行记录 1 · 步骤 8 输出">输出</a></td></tr><tr><td>9</td><td>额外调用</td><td><code class="action-name" aria-label="实际浏览器动作">validate_assertions</code><strong class="ok">通过</strong> <span class="muted">0.00 ms</span><small class="bad">与参考动作不同</small><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-13" data-evidence="evidence-13" aria-label="执行记录 1 · 步骤 9 参数">实际参数</a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-14" data-evidence="evidence-14" aria-label="执行记录 1 · 步骤 9 输出">输出</a></td></tr><tr><td>—</td><td>过程判定</td><td>通过<a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-15" data-evidence="evidence-15" aria-label="执行记录 1 · 过程判定">判定详情</a></td></tr></tbody></table></div><p class="muted">设计依据：<a href="https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios" target="_blank" rel="noopener">scenarios</a></p></section><section class="card" id="case-resources"><h2>执行资源</h2><div class="table-wrap"><table><caption>执行记录</caption><thead><tr><th>记录</th><th>耗时</th><th>异常证据</th></tr></thead><tbody><tr><td>执行记录 1</td><td>4,415.70 ms</td><td>无异常</td></tr></tbody></table></div><div class="table-wrap"><table><caption>资源对照</caption><thead><tr><th>指标</th><th>执行记录 1</th></tr></thead><tbody><tr><td data-label="指标">CPU 时间 (ms)</td><td data-label="执行记录 1">3,849.83</td></tr><tr><td data-label="指标">平均 CPU 占单核 (%)</td><td data-label="执行记录 1">87.18</td></tr><tr><td data-label="指标">任务内 CPU P95 (%)</td><td data-label="执行记录 1">191.21</td></tr><tr><td data-label="指标">时间加权平均内存 (MiB)</td><td data-label="执行记录 1">381.02</td></tr><tr><td data-label="指标">任务内存 P95 (MiB)</td><td data-label="执行记录 1">499.88</td></tr><tr><td data-label="指标">峰值内存 (MiB)</td><td data-label="执行记录 1">530.63</td></tr><tr><td data-label="指标">结束保留增量 (MiB)</td><td data-label="执行记录 1">268.59</td></tr><tr><td data-label="指标">内存占用积分 (MiB·s)</td><td data-label="执行记录 1">1,686.14</td></tr><tr><td data-label="指标">接收总量 RX (KiB)</td><td data-label="执行记录 1">7,055.66</td></tr><tr><td data-label="指标">发送总量 TX (KiB)</td><td data-label="执行记录 1">539.51</td></tr><tr><td data-label="指标">平均接收速率 (KiB/s)</td><td data-label="执行记录 1">1,597.86</td></tr><tr><td data-label="指标">任务内接收速率 P95 (KiB/s)</td><td data-label="执行记录 1">5,932.32</td></tr><tr><td data-label="指标">任务内发送速率 P95 (KiB/s)</td><td data-label="执行记录 1">604.61</td></tr></tbody></table></div></section><section class="card" id="case-evidence"><h2>原始证据</h2><div class="evidence-index"><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-1" data-evidence="evidence-1" aria-label="步骤 1 参数"><strong>证据 1</strong><span>步骤 1 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-2" data-evidence="evidence-2" aria-label="执行记录 1 · 步骤 1 输出"><strong>证据 2</strong><span>执行记录 1 · 步骤 1 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-3" data-evidence="evidence-3" aria-label="步骤 2 参数"><strong>证据 3</strong><span>步骤 2 参数 / 步骤 6 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-4" data-evidence="evidence-4" aria-label="执行记录 1 · 步骤 2 输出"><strong>证据 4</strong><span>执行记录 1 · 步骤 2 输出 / 执行记录 1 · 步骤 6 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-5" data-evidence="evidence-5" aria-label="步骤 3 参数"><strong>证据 5</strong><span>步骤 3 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-6" data-evidence="evidence-6" aria-label="执行记录 1 · 步骤 3 输出"><strong>证据 6</strong><span>执行记录 1 · 步骤 3 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-7" data-evidence="evidence-7" aria-label="步骤 4 参数"><strong>证据 7</strong><span>步骤 4 参数 / 步骤 8 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-8" data-evidence="evidence-8" aria-label="执行记录 1 · 步骤 4 输出"><strong>证据 8</strong><span>执行记录 1 · 步骤 4 输出 / 执行记录 1 · 步骤 8 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-9" data-evidence="evidence-9" aria-label="步骤 5 参数"><strong>证据 9</strong><span>步骤 5 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-10" data-evidence="evidence-10" aria-label="执行记录 1 · 步骤 5 输出"><strong>证据 10</strong><span>执行记录 1 · 步骤 5 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-11" data-evidence="evidence-11" aria-label="步骤 7 参数"><strong>证据 11</strong><span>步骤 7 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-12" data-evidence="evidence-12" aria-label="执行记录 1 · 步骤 7 输出"><strong>证据 12</strong><span>执行记录 1 · 步骤 7 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-13" data-evidence="evidence-13" aria-label="执行记录 1 · 步骤 9 参数"><strong>证据 13</strong><span>执行记录 1 · 步骤 9 参数</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-14" data-evidence="evidence-14" aria-label="执行记录 1 · 步骤 9 输出"><strong>证据 14</strong><span>执行记录 1 · 步骤 9 输出</span><span>查看</span></a><a class="evidence-link" href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#evidence-15" data-evidence="evidence-15" aria-label="执行记录 1 · 过程判定"><strong>证据 15</strong><span>执行记录 1 · 过程判定</span><span>查看</span></a></div><article class="evidence-item" id="evidence-1"><div class="section-heading"><h3>证据 1</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 1 参数</p><pre tabindex="0" aria-label="步骤 1 参数">{
+  &quot;action&quot;: &quot;navigate&quot;,
+  &quot;url&quot;: &quot;https://github.com/lexmount/moli&quot;
+}</pre></article><article class="evidence-item" id="evidence-2"><div class="section-heading"><h3>证据 2</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 1 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 1 输出">Navigated to: https://github.com/lexmount/moli
+Title: GitHub - lexmount/moli: Best headless browser for AI agents. Lite, Fast, High-Compatibility. Built in Rust · GitHub
+Status: 200
+
+--- Page Snapshot ---
+Skip to content
+Navigation Menu
+Platform
+Solutions
+Resources
+Open Source
+Enterprise
+Pricing
+Sign in
+Sign up
+lexmount
+/
+moli
+Public
+Notifications
+Fork 102
+ Star 1.6k
+Code
+Issues
+13
+Pull requests
+32
+Discussions
+Actions
+Projects
+Security and quality
+Insights
+main
+Branches
+Tags
+Code
+Latest commit
+
+History
+523 Commits
+Folders and files
+Name	Last commit message	Last commit date
+
+.cargo
+
+
+
+
+
+
+.config
+
+
+
+
+
+
+.github
+
+
+
+
+
+
+assets
+
+
+
+
+
+
+docs
+
+
+
+
+
+
+licenses
+
+
+
+
+
+
+moli-action-window
+
+
+
+
+
+
+moli-benchmark
+
+
+
+
+
+
+moli-bounded-buffer
+
+
+
+
+
+
+moli-bounded-json
+
+
+
+
+
+
+moli-broadcast-channel
+
+
+
+
+
+
+moli-browser-profile
+
+
+
+
+
+
+moli-canvas
+
+
+
+
+
+
+moli-cdp-smoke
+
+
+
+
+
+
+moli-charset-parser
+
+
+
+
+
+
+moli-content-type
+
+
+
+
+
+
+moli-cookie-cache
+
+
+
+
+
+
+moli-cookie-jar
+
+
+
+
+
+
+moli-cookie-store
+
+
+
+
+
+
+moli-core
+
+
+
+
+
+
+moli-crypto
+
+
+
+
+
+
+moli-css-parse
+
+
+
+
+
+
+moli-curl
+
+
+
+
+
+
+moli-dns-resolver
+
+
+
+
+
+
+moli-dom
+
+
+
+
+
+
+moli-encoding-detector
+
+
+
+
+
+
+moli-encoding
+
+
+
+
+
+
+moli-fetch
+
+
+
+
+
+
+moli-file-api
+
+
+
+
+
+
+moli-frontend-smoke
+
+
+
+
+
+
+moli-geometry
+
+
+
+
+
+
+moli-header-field
+
+
+
+
+
+
+moli-html-input-temporal
+
+
+
+
+
+
+moli-http-cache
+
+
+
+
+
+
+moli-image
+
+
+
+
+
+
+moli-import-map
+
+
+
+
+
+
+moli-indexeddb
+
+
+
+
+
+
+moli-layout
+
+
+
+
+
+
+moli-local-executor
+
+
+
+
+
+
+moli-message-port
+
+
+
+
+
+
+moli-module-script-tree
+
+
+
+
+
+
+moli-module-syntax
+
+
+
+
+
+
+moli-multipart
+
+
+
+
+
+
+moli-opfs
+
+
+
+
+
+
+moli-owner-queue
+
+
+
+
+
+
+moli-page-types
+
+
+
+
+
+
+moli-paint
+
+
+
+
+
+
+moli-parser
+
+
+
+
+
+
+moli-playground
+
+
+
+
+
+
+moli-process-signal
+
+
+
+
+
+
+moli-protocol-cdp
+
+
+
+
+
+
+moli-protocol-server
+
+
+
+
+
+
+moli-protocol-webdriver-bidi
+
+
+
+
+
+
+moli-protocol-webdriver-classic
+
+
+
+
+
+
+moli-protocol
+
+
+
+
+
+
+moli-renderer-v8
+
+
+
+
+
+
+moli-robots
+
+
+
+
+
+
+moli-script
+
+
+
+
+
+
+moli-selector
+
+
+
+
+
+
+moli-shared-worker
+
+
+
+
+
+
+moli-site
+
+
+
+
+
+
+moli-storage-key
+
+
+
+
+
+
+moli-storage-service
+
+
+
+
+
+
+moli-streams
+
+
+
+
+
+
+moli-structured-clone
+
+
+
+
+
+
+moli-stylesheet-blocking
+
+
+
+
+
+
+moli-svg
+
+
+
+
+
+
+moli-test-support
+
+
+
+
+
+
+moli-time
+
+
+
+
+
+
+moli-trace
+
+
+
+
+
+
+moli-url-policy
+
+
+
+
+
+
+moli-url
+
+
+
+
+
+
+moli-v8-init
+
+
+
+
+
+
+moli-v8-platform
+
+
+
+
+
+
+moli-v8-test-util
+
+
+
+
+
+
+moli-v8-util
+
+
+
+
+
+
+moli-web-bot-auth
+
+
+
+
+
+
+moli-web-errors
+
+
+
+
+
+
+moli-web-mime
+
+
+
+
+
+
+moli-webapi-declare-derive
+
+
+
+
+
+
+moli-webapi-declare
+
+
+
+
+
+
+moli-webcrypto
+
+
+
+
+
+
+moli-webdriver-smoke
+
+
+
+
+
+
+moli-webidl-callback
+
+
+
+
+
+
+moli-webidl-derive
+
+
+
+
+
+
+moli-webidl
+
+
+
+
+
+
+moli-websocket
+
+
+
+
+
+
+moli-wpt-compat
+
+
+
+
+
+
+moli-xpath
+
+
+
+
+
+
+moli
+
+
+
+
+
+
+scripts
+
+
+
+
+
+
+skills
+
+
+
+
+
+
+tools/wptrunner-moli
+
+
+
+
+
+
+vendor
+
+
+
+
+
+
+.gitignore
+
+
+
+
+
+
+AGENTS.md
+
+
+
+
+
+
+Cargo.lock
+
+
+
+
+
+
+Cargo.toml
+
+
+
+
+
+
+LICENSE-APACHE
+
+
+
+
+
+
+LICENSE-MIT
+
+
+
+
+Repository files navigation
+README
+Apache-2.0 license
+MIT license
+License
+
+Moli
+
+English | 简体中文 | 日本語 | Deutsch | Français | Español
+
+Moli is a production-ready headless browser for AI agents. Its on-demand layout and rendering design combines a complete browser runtime with a lightweight resource footprint.
+
+Moli helps your AI agent fetch and extract web pages, search the web, and automate browser tasks.
+
+Use it through the CLI, CDP, WebDriver Classic, or WebDriver BiDi.
+
+Moli supports Linux, macOS, and Windows.
+
+Quick start
+
+Give this prompt to your AI agent:
+
+Install the skills under https://github.com/lexmount/moli/tree/main/skills,
+follow their instructions to download and install the latest prebuilt Moli
+binary, then use moli-webfetch to fetch https://example.com and show me the
+result.
+
+Direct installation
+
+On Linux or macOS:
+
+curl --proto &#x27;=https&#x27; --tlsv1.2 -fsSL \
+  https://github.com/lexmount/moli/releases/latest/download/moli-installer.sh | sh
+
+On Windows, run in PowerShell:
+
+powershell -ExecutionPolicy ByPass -c &quot;irm https://github.com/lexmount/moli/releases/latest/download/moli-installer.ps1 | iex&quot;
+Showcase
+
+An HTML5 game rendered by Moli and inspected live through Chrome DevTools.
+
+rust-lang.org rendered by Moli, with its live DOM, CSS, and geometry available in Chrome DevTools.
+
+CLI usage
+Extract a page
+
+Render the page as Markdown with Moli&#x27;s default completion strategy:
+
+moli fetch \
+  --dump markdown \
+  --wait-until done \
+  https://example.com
+
+Or directly return a compact, model-friendly semantic tree:
+
+moli fetch \
+  --dump semantic_tree_text \
+  --wait-selector body \
+  https://example.com
+
+For visual output, enable on-demand layout and write a viewport PNG, a full-document PNG, or a paginated PDF:
+
+moli fetch --layout --dump screenshot https://example.com &gt; page.png
+moli fetch --layout --dump screenshot_full https://example.com &gt; full-page.png
+moli fetch --layout --dump pdf https://example.com &gt; page.pdf
+
+Run fetch --help for the complete option list, including output formats, page-load/response waits, profiles, proxy settings, resource policies, and tracing options.
+
+Start the automation server
+# Basic automation server for DOM-first workloads
+moli serve
+
+# Enable real geometry, coordinate input, and screenshot/screencast surfaces
+moli serve --layout
+
+# Also fetch optional image, font, audio, video, media, and text-track resources
+moli serve --layout --resource
+
+The same endpoint serves all three protocols: CDP, WebDriver Classic, and WebDriver BiDi. Playwright can connect directly over CDP:
+
+import { chromium } from &quot;playwright&quot;;
+
+const browser = await chromium.connectOverCDP(&quot;http://[IP 已脱敏]:9222&quot;);
+const context = browser.contexts()[0];
+const page = context.pages()[0] ?? await context.newPage();
+
+await page.goto(&quot;https://example.com&quot;);
+console.log(await page.locator(&quot;body&quot;).innerText());
+
+await browser.close();
+Why Moli
+
+Three qualities matter most for agent workloads, and Moli brings them together:
+
+Full-featured — real JavaScript, DOM, CSS, networking, storage, layout, screenshots, and standard automation protocols, all integrated into one headless browser.
+Fast — most automation requests never need visual rendering, so structure-first operations skip layout and paint entirely.
+Resource-efficient — layout and pixels are generated only when needed, so Moli does not have to continuously maintain and update a fully rendered visual state.
+
+What most browser automation tasks actually need is page structure, not a continuously rendered visual world. Moli treats the native DOM and style state as the single source of truth, triggering layout or software paint only for operations that genuinely require them.
+
+Agent request	What Moli does
+Extract HTML/Markdown, query the DOM, run JS, inspect network/storage	Reads browser runtime state directly — does not trigger layout or paint
+Read an element&#x27;s box, hit-test coordinates, send coordinate input	Runs one layout calculation and retains only the latest frozen layout tree
+Capture a screenshot	Rebuilds from the current DOM/style, replaces the frozen tree, renders a fresh frame, and discards its paint state after use
+Poll a screencast	Compares generation metadata only; clean state emits no frame, while changed state rebuilds and emits one fresh frame
+
+Moli still includes the complete set of capabilities: V8, CSS, layout, text shaping, hit-testing, software paint, and more. The only difference is when visual work runs and how long its results are retained. This cost model is especially well suited to crawling, browser-use agents, retrieval pipelines, evaluation environments, and reinforcement-learning workloads.
+
+Current capabilities
+Complete web runtime — streaming HTML parsing, native DOM, V8 JavaScript, modules/timers/microtasks/events, iframes and workers, CSS cascade, Fetch/XHR/WebSocket, cookies, WebCrypto, and profile-scoped storage (localStorage, IndexedDB, OPFS).
+Extraction-optimized outputs — the CLI directly produces HTML, Markdown, JSON, semantic text trees, and frame-aware serialization, with selector/script/response waits and network tracing.
+Unified automation binary — CDP, WebDriver Classic, and WebDriver BiDi share the same kernel and scheduler. No separate ChromeDriver, geckodriver, or browser installation is required.
+Real visual capabilities on demand — add --layout to enable complete box construction, Taffy layout, Parley text layout, layout-backed hit-testing/input, viewport screenshots, and low-frequency CPU-rendered DevTools screencast frames.
+Controllable operational options — profiles, cookies, HTTP cache, proxies, resource families, connection limits, timeouts, private-network policy, user-agent overrides, diagnostic logging, and network diagnostics are all available.
+Moli&#x27;s relationship with Lexmount
+
+Moli is Lexmount&#x27;s open-source headless browser; Lexmount Browser is the managed cloud runtime and control plane built around it.
+
+The open-source headless browser is fully usable without Lexmount Browser.
+
+Cost controls
+
+Expensive browser operations in Moli require an explicit opt-in and are never enabled by default:
+
+Mode or option	Behavior
+Default	LayoutPolicy::Mock — deterministic geometry in a compatible format, with no real layout or paint
+--layout	LayoutPolicy::OnDemand — real layout, geometry, hit-testing, coordinate input, screenshots, screencast
+--resource	Fetch all optional visual/media resource families
+--image, --font, --audio, --video, --media, --text-track	Enable one specific optional resource family
+--profile-dir, --http-cache-dir, --cookie-file	Selectively enable the persistence required by the workload
+
+Layout is an on-demand snapshot rather than continuously maintained state. The first geometry request (a cold start) builds a working layout tree from the current DOM/style, freezes its canonical geometry into an immutable, DOM-independent FrozenLayoutTree, and retains only that latest tree. Ordinary geometry reads may reuse it even if the page has changed. Screenshots always rebuild and replace the frozen tree. Each screencast subscription remembers only an opaque visual-state token: an unchanged token suppresses the poll, while a changed token triggers one fresh frame. Paint results are never reused.
+
+Architecture
+
+Moli is a standalone browser kernel, not a Chromium wrapper. It is built in Rust, has its own ownership and lifecycle rules, and relies on:
+
+libcurl — network transport and multi-request runtime
+html5ever — HTML parsing
+rusty_v8 / V8 — JavaScript execution
+Servo/Stylo — selectors, cascade, computed style
+Taffy + Parley — box and text layout
+AnyRender/Vello CPU, usvg, and the Rust image ecosystem — software rendering
+
+Document and style have a single source of truth: the native DOM and its Stylo integration. Every real refresh builds a temporary working tree from that source, optionally produces and consumes one fresh paint snapshot, freezes the canonical box/fragment geometry into a compact FrozenLayoutTree, and discards the working tree, style borrows, layout caches, diagnostics, and paint state. Screencast tokens contain generation metadata, never layout or paint data. Source lookup and hit-test candidates are derived from the frozen tree when queried. The system has no incrementally maintained layout tree, damage graph, retained display list, GPU compositor, or persistent window.
+
+Benchmark
+
+The following measurements show Moli&#x27;s current capability envelope. They cover real websites, automation clients, Chromium/WPT behavior checks, and a large nextest regression suite.
+
+Mixed public-web crawl test
+
+The test covers 192 public URLs from major Chinese and international sites. A page only counts as successful if it produces meaningful content after JavaScript runs — an HTTP 200, challenge page, login wall, empty response, or shell-only application does not count.
+
+Browser	Useful pages	Success rate	Median time	Median RSS
+Moli	103	53.6%	1.43 s	73 MiB
+Chrome Headless	101	52.6%	1.43 s	773 MiB
+Lightpanda	85	44.3%	0.97 s	40 MiB
+Obscura	57	29.7%	1.30 s	39 MiB
+Sample agent workload
+Metric	Moli	Chromium
+CDP ready	34.85 ms	169.37 ms
+Episode active p50	33.40 ms	57.13 ms
+Peak PSS	102.46 MiB	348.82 MiB
+Peak processes / threads	1 / 24	11 / 123
+WPT tests
+
+In the current WPT selection used to validate Moli&#x27;s agent-browser scope, one full run passed 1.612 million tests.
+
+Moli&#x27;s performance in Lexbench-Headless-Browser
+
+The full Lexbench-Headless-Browser corpus contains 1,928 tasks covering raw CDP, 13 pinned automation tools including Playwright, Puppeteer and Selenium, and web-platform semantics. To include Kitesurf, which is only available as a remote endpoint, the chart below uses 1,308 comparable tasks. All browsers use the same task selection rules.
+
+Moli 0.1.1 passed 1,071 tasks, a success rate of 81.88%, ahead of Kitesurf at 62.08%, Lightpanda at 53.29%, and Obscura at 44.88%; Chrome, the reference engine, reached 99.85%. Kitesurf ran at k=1, uncovered tasks count as not passed, and the reproduction conditions of a remote service differ from those of local binaries. See the benchmark&#x27;s five-engine report for the full results.
+
+Kitesurf is a remote service, so its CPU, memory, and process counts cannot be measured. The resource comparison therefore covers only the four local engines. A separate 557-task run includes only work completed by all four. Moli&#x27;s median CPU time per task was 100.6 ms and its median peak memory was 92 MiB; Chrome recorded 687 ms and 697 MiB, respectively. Moli used about 15% of Chrome&#x27;s CPU time and 13% of its peak memory. See the benchmark&#x27;s resource card for the methodology and full data.
+
+Project scope
+
+Within the agent-browser scenarios defined in its documentation, Moli is ready for production use and remains under active development.
+
+Its current intentional boundaries include:
+
+No GUI browser, persistent window, GPU compositor, or retained multi-frame paint architecture.
+It does not pursue pixel-for-pixel parity with Chrome or provide high-fidelity Canvas/WebGL/media playback.
+--layout supports software screenshots and raster-backed CDP PDF generation, but not every Chrome screenshot or print mode is implemented.
+
+Unsupported protocol paths return explicit errors — Moli never pretends that a browser action, event, network observation, or visual result occurred.
+
+Star history
+
+Generated hourly from the stargazer timeline by lexmount/moli-metrics.
+
+License
+
+Unless a file or directory states otherwise, you may use Moli under either the Apache License 2.0 or the MIT License, at your option. Separately licensed third-party components and fixtures remain subject to their own licenses and notices. license-metadata.json records the machine-readable default, and additional distributable notices are collected under licenses/.
+
+About
+
+Best headless browser for AI agents. Lite, Fast, High-Compatibility. Built in Rust
+
+browser.lexmount.com
+Topics
+ai-agents
+ai-tools
+browser
+browser-automation
+cloud-browser
+playwright
+puppeteer
+rust
+servo
+web-crawler
+web-crawling
+web-scraper
+web-scraping
+Resources
+Readme
+Apache-2.0 and 2 other licenses found
+Activity
+Custom properties
+Stars
+1.6k stars
+Watchers
+3 watching
+Forks
+102 forks
+Report repository
+Releases
+Packages
+Contributors
+Languages
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information</pre></article><article class="evidence-item" id="evidence-3"><div class="section-heading"><h3>证据 3</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 2 参数 / 步骤 6 参数</p><pre tabindex="0" aria-label="步骤 2 参数">{
+  &quot;action&quot;: &quot;get_text&quot;,
+  &quot;selector&quot;: &quot;article.markdown-body h1&quot;,
+  &quot;strip&quot;: true
+}</pre></article><article class="evidence-item" id="evidence-4"><div class="section-heading"><h3>证据 4</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 2 输出 / 执行记录 1 · 步骤 6 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 2 输出">Moli</pre></article><article class="evidence-item" id="evidence-5"><div class="section-heading"><h3>证据 5</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 3 参数</p><pre tabindex="0" aria-label="步骤 3 参数">{
+  &quot;action&quot;: &quot;navigate&quot;,
+  &quot;url&quot;: &quot;https://github.com/lexmount/moli/issues&quot;
+}</pre></article><article class="evidence-item" id="evidence-6"><div class="section-heading"><h3>证据 6</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 3 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 3 输出">Navigated to: https://github.com/lexmount/moli/issues
+Title: Issues · lexmount/moli · GitHub
+Status: 200
+
+--- Page Snapshot ---
+Skip to content
+Navigation Menu
+Platform
+Solutions
+Resources
+Open Source
+Enterprise
+Pricing
+Sign in
+Sign up
+lexmount
+/
+moli
+Public
+Notifications
+Fork 102
+ Star 1.6k
+Code
+Issues
+13
+Pull requests
+32
+Discussions
+Actions
+Projects
+Security and quality
+Insights
+Issues
+Assigned to me
+Created by me
+Mentioned
+Recent activity
+Views
+Projects
+Milestones
+Labels
+Feedback
+Preview
+Collapse sidebar
+All issues
+New issue
+Issues
+Search Issues
+is:issue
+
+state:open
+
+Search results
+Open
+Closed
+Escape does not close an open dialog
+Status: Open.
+#284
+In lexmount/moli;
+· XDLCS opened
+Network.getCookies omits SameSite=None; Secure cookies visible to the page
+Status: Open.
+#283
+In lexmount/moli;
+· XDLCS opened
+Container queries parse but conditions never match
+Status: Open.
+#282
+In lexmount/moli;
+· XDLCS opened
+Network offline emulation leaves target unresponsive to navigate and evaluate
+Status: Open.
+#281
+In lexmount/moli;
+· XDLCS opened
+Fetch.enable interception never fires requestPaused and swallows page fetch
+Status: Open.
+#280
+In lexmount/moli;
+· XDLCS opened
+printToPDF output is a raster image: no embedded fonts, empty text layer
+Status: Open.
+#279
+In lexmount/moli;
+· XDLCS opened
+javascript: URL leaves ghost location state
+Status: Open.
+#215
+In lexmount/moli;
+· XDLCS opened
+getRequestPostData requires addDataCollector first
+Status: Open.
+#214
+In lexmount/moli;
+· XDLCS opened
+Canvas 2D path drawing renders no pixels
+Status: Open.
+#213
+In lexmount/moli;
+· XDLCS opened
+Cookies not shared across ports on same host
+Status: Open.
+#212
+In lexmount/moli;
+· XDLCS opened
+Content-Type charset parsing ignores quoting, so a quoted parameter can displace the real charset
+Status: Open.
+#193
+In lexmount/moli;
+· athul-22 opened
+[FR] nixpkgs support
+Status: Open.
+#118
+In lexmount/moli;
+· csmoe opened
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information</pre></article><article class="evidence-item" id="evidence-7"><div class="section-heading"><h3>证据 7</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 4 参数 / 步骤 8 参数</p><pre tabindex="0" aria-label="步骤 4 参数">{
+  &quot;action&quot;: &quot;get_text&quot;,
+  &quot;selector&quot;: &quot;main h1&quot;,
+  &quot;strip&quot;: true
+}</pre></article><article class="evidence-item" id="evidence-8"><div class="section-heading"><h3>证据 8</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 4 输出 / 执行记录 1 · 步骤 8 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 4 输出">All issues</pre></article><article class="evidence-item" id="evidence-9"><div class="section-heading"><h3>证据 9</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 5 参数</p><pre tabindex="0" aria-label="步骤 5 参数">{
+  &quot;action&quot;: &quot;back&quot;
+}</pre></article><article class="evidence-item" id="evidence-10"><div class="section-heading"><h3>证据 10</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 5 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 5 输出">Navigated back to: https://github.com/lexmount/moli</pre></article><article class="evidence-item" id="evidence-11"><div class="section-heading"><h3>证据 11</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">步骤 7 参数</p><pre tabindex="0" aria-label="步骤 7 参数">{
+  &quot;action&quot;: &quot;forward&quot;
+}</pre></article><article class="evidence-item" id="evidence-12"><div class="section-heading"><h3>证据 12</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 7 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 7 输出">Navigated forward to: https://github.com/lexmount/moli/issues</pre></article><article class="evidence-item" id="evidence-13"><div class="section-heading"><h3>证据 13</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 9 参数</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 9 参数">{
+  &quot;assertions&quot;: [
+    {
+      &quot;equals&quot;: &quot;Moli&quot;,
+      &quot;output&quot;: &quot;readme&quot;
+    },
+    {
+      &quot;equals&quot;: &quot;All issues&quot;,
+      &quot;output&quot;: &quot;issues&quot;
+    },
+    {
+      &quot;equals&quot;: &quot;Moli&quot;,
+      &quot;output&quot;: &quot;back_readme&quot;
+    },
+    {
+      &quot;equals&quot;: &quot;All issues&quot;,
+      &quot;output&quot;: &quot;forward_issues&quot;
+    }
+  ]
+}</pre></article><article class="evidence-item" id="evidence-14"><div class="section-heading"><h3>证据 14</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 步骤 9 输出</p><pre tabindex="0" aria-label="执行记录 1 · 步骤 9 输出">all assertions passed</pre></article><article class="evidence-item" id="evidence-15"><div class="section-heading"><h3>证据 15</h3><a href="browser-use-evaluation-latest-task-6769746875622d6d6f6c692d6973737565732d686973746f7279-6368726f6d69756d.html#case-steps">回到步骤</a></div><p class="muted">执行记录 1 · 过程判定</p><pre tabindex="0" aria-label="执行记录 1 · 过程判定">{
+  &quot;actual_actions&quot;: [
+    &quot;navigate&quot;,
+    &quot;get_text&quot;,
+    &quot;navigate&quot;,
+    &quot;get_text&quot;,
+    &quot;back&quot;,
+    &quot;get_text&quot;,
+    &quot;forward&quot;,
+    &quot;get_text&quot;
+  ],
+  &quot;all_calls_passed&quot;: true,
+  &quot;expected_actions&quot;: [
+    &quot;navigate&quot;,
+    &quot;get_text&quot;,
+    &quot;navigate&quot;,
+    &quot;get_text&quot;,
+    &quot;back&quot;,
+    &quot;get_text&quot;,
+    &quot;forward&quot;,
+    &quot;get_text&quot;
+  ],
+  &quot;passed&quot;: true
+}</pre></article></section><dialog id="evidence-dialog" aria-labelledby="evidence-title" aria-describedby="evidence-context"><div class="dialog-heading"><div><h2 id="evidence-title">原始证据</h2><p class="muted" id="evidence-context">chromium · 从 Moli README 进入 Issues 并恢复历史</p></div><form method="dialog"><button type="submit" autofocus aria-label="关闭证据窗口">关闭</button></form></div><p id="evidence-action" class="muted"></p><pre id="evidence-content" tabindex="0" aria-label="完整证据内容"></pre></dialog><script>(()=>{
+const dialog=document.getElementById('evidence-dialog');
+if(!dialog || typeof dialog.showModal!=='function') return;
+const title=document.getElementById('evidence-title');
+const content=document.getElementById('evidence-content');
+const action=document.getElementById('evidence-action');
+let opener=null;
+document.addEventListener('click',event=>{
+  const link=event.target.closest('a[data-evidence]');
+  if(!link || event.button!==0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+  const source=document.getElementById(link.dataset.evidence);
+  if(!source?.querySelector('pre')) return;
+  event.preventDefault(); opener=link;
+  title.textContent=link.getAttribute('aria-label') || '原始证据';
+  content.textContent=source.querySelector('pre').textContent;
+  const cell=link.closest('td');
+  const method=cell?.querySelector('.action-name')?.textContent;
+  action.textContent=method ? '浏览器动作：'+method : '';
+  action.hidden=!method;
+  document.documentElement.classList.add('evidence-modal-open');
+  dialog.showModal(); content.scrollTop=0;
+});
+dialog.addEventListener('close',()=>{
+  document.documentElement.classList.remove('evidence-modal-open');
+  opener?.focus({preventScroll:true});
+});
+dialog.addEventListener('click',event=>{
+  if(event.target!==dialog) return;
+  const r=dialog.getBoundingClientRect();
+  if(event.clientX<r.left || event.clientX>r.right || event.clientY<r.top || event.clientY>r.bottom) dialog.close();
+});
+document.documentElement.classList.add('evidence-enhanced');
+// Old deep links remain readable, even with the floating viewer enabled.
+function revealHash(){
+  const id=location.hash.slice(1);
+  if(!/^evidence-\d+$/.test(id)) return;
+  document.querySelector('a[data-evidence="'+id+'"]')?.click();
+}
+window.addEventListener('hashchange',revealHash); revealHash();
+})();</script></div></main><footer>Lexmount Browser Provider Evaluation</footer></body></html>

@@ -165,6 +165,10 @@ def _prepare_page(page: Page, visited_origins: set[str], *, settle_ms: int) -> P
     visited_origins.clear()
     page.close(run_before_unload=False)
     replacement = context.new_page()
+    replacement.set_viewport_size({"width": 1280, "height": 900})
+    viewport = replacement.evaluate("() => ({width: innerWidth, height: innerHeight})")
+    if viewport != {"width": 1280, "height": 900}:
+        raise RuntimeError(f"browser viewport mismatch: {viewport}")
     replacement.wait_for_timeout(max(0, settle_ms))
     return replacement
 
@@ -380,6 +384,25 @@ def _cleanup_runtime(
             pass
 
 
+def _write_run_artifacts(
+    output: Path, rows: list[dict[str, Any]], summary: dict[str, Any], manifest: dict[str, Any]
+) -> None:
+    attempts_bytes = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows).encode(
+        "utf-8"
+    )
+    summary_bytes = (json.dumps(summary, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    (output / "attempts.jsonl").write_bytes(attempts_bytes)
+    (output / "summary.json").write_bytes(summary_bytes)
+    manifest["artifact_provenance"] = {
+        "artifact_directory": str(output),
+        "attempts_sha256": hashlib.sha256(attempts_bytes).hexdigest(),
+        "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
+    }
+    (output / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
 def run_evaluation(
     *,
     suite_path: str | Path,
@@ -503,12 +526,6 @@ def run_evaluation(
                     if row["status"] == "pass":
                         break
         summary = summarize_attempts(rows, engines=tuple(ENGINE_IMAGES))
-        diagnose_summary(
-            summary,
-            use_llm=llm_diagnostics,
-            model=diagnosis_model,
-            reasoning_effort=diagnosis_reasoning_effort,
-        )
         manifest = {
             "schema": "lex_browser_use_manifest/2",
             "run_id": run_id,
@@ -549,6 +566,8 @@ def run_evaluation(
             ),
             "protocol": {
                 "browser_reuse": True,
+                "viewport": {"width": 1280, "height": 900},
+                "viewport_verified_before_each_task": True,
                 "step_definition": (
                     "one declared CowAgent BrowserTool-equivalent call; implicit waits excluded"
                 ),
@@ -595,20 +614,15 @@ def run_evaluation(
                     "reused_not_rerun": True,
                 },
             }
-        attempts_bytes = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows).encode(
-            "utf-8"
+        # Persist core evidence before optional remote diagnostics can fail or stall.
+        _write_run_artifacts(output, rows, summary, manifest)
+        diagnose_summary(
+            summary,
+            use_llm=llm_diagnostics,
+            model=diagnosis_model,
+            reasoning_effort=diagnosis_reasoning_effort,
         )
-        summary_bytes = (json.dumps(summary, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
-        (output / "attempts.jsonl").write_bytes(attempts_bytes)
-        (output / "summary.json").write_bytes(summary_bytes)
-        manifest["artifact_provenance"] = {
-            "artifact_directory": str(output),
-            "attempts_sha256": hashlib.sha256(attempts_bytes).hexdigest(),
-            "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
-        }
-        (output / "manifest.json").write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-        )
+        _write_run_artifacts(output, rows, summary, manifest)
         write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:

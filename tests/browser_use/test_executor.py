@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import pytest
 
 from harness.browser_use.executor import execute_steps, judge_outputs, validate_outputs
@@ -74,6 +76,44 @@ class FakePage:
 
     def press(self, key):
         self.calls.append(("press", key))
+
+
+def test_declared_navigation_wait_surrounds_form_action():
+    page = FakePage()
+
+    @contextmanager
+    def expect_navigation(**kwargs):
+        page.calls.append(("navigation_start", kwargs["wait_until"]))
+        yield
+        page.calls.append(("navigation_complete",))
+
+    page.expect_navigation = expect_navigation
+    execute_steps(
+        page,
+        (
+            {
+                "action": "select",
+                "selector": "#author",
+                "value": "Jane Austen",
+                "wait_for_navigation": True,
+                "wait_until": "domcontentloaded",
+            },
+        ),
+    )
+    assert page.calls[0] == ("navigation_start", "domcontentloaded")
+    assert page.calls[-1] == ("navigation_complete",)
+    assert ("select", "#author", "Jane Austen") in page.calls
+
+
+@pytest.mark.parametrize("action", ["click", "fill", "select"])
+def test_ref_only_calls_fail_clearly_without_browser_actions(action):
+    page = FakePage()
+    trace = []
+    with pytest.raises(ValueError, match="ref is not supported"):
+        execute_steps(page, [{"action": action, "ref": 1}], trace=trace)
+    assert page.calls == []
+    assert trace[0]["status"] == "fail"
+    assert trace[0]["error"].startswith("ValueError:")
 
 
 def test_execute_steps_counts_only_declared_browser_operations():

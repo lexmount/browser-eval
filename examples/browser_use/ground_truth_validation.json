@@ -1,43 +1,439 @@
 {
   "schema": "lex_browser_ground_truth_validation/2",
   "dataset": "tasks.v4.json",
-  "dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+  "dataset_sha256": "1dfee6873d3f62f52de47392b2ca528ce0c3549e0988e50e66e34c9323d5cc26",
   "validator": "Codex Desktop in-app Browser Tool",
-  "method": "按每题公开 URL 和 tool_calls 参考路径在独立浏览器标签中真实操作；文本使用 textContent 并去除首尾空白，属性读取 DOM 属性或页面可访问快照；实际输出与 expected_outputs 逐字比较。Codex 只做运行前标注复核，不参与正式评测、打分或统计。",
+  "method": "增量标注复核：25 个定义完全未变的任务沿用 2026-09-01 Codex in-app Browser Tool 已验证的逐字答案；5 个新增任务于 2026-09-02 通过同一浏览器工具执行公开页面交互并读取 DOM 文本。每条记录标明来源与核验日期。标注复核不参与正式评测、打分或统计。",
   "started_at": "2026-09-01T10:10:00+08:00",
-  "finished_at": "2026-09-01T10:19:00+08:00",
-  "automatic_browser_replay": {"passed": 30, "total": 30, "status": "pass"},
-  "human_review": {"status": "pending", "reviewer": null, "reviewed_at": null},
+  "finished_at": "2026-09-02T12:35:00+08:00",
+  "automatic_browser_replay": {
+    "passed": 30,
+    "total": 30,
+    "status": "pass"
+  },
+  "human_review": {
+    "status": "pending",
+    "reviewer": null,
+    "reviewed_at": null
+  },
   "results": [
-    {"task_id":"example-heading","status":"pass","observed":{"answer":"Example Domain"}},
-    {"task_id":"pypi-requests-pinned","status":"pass","observed":{"answer":"requests 2.32.5"}},
-    {"task_id":"arxiv-transformer-title","status":"pass","observed":{"answer":"Title:Attention Is All You Need"}},
-    {"task_id":"python-tutorial-heading","status":"pass","observed":{"answer":"The Python Tutorial¶"}},
-    {"task_id":"rfc9110-number","status":"pass","observed":{"answer":"RFC 9110"}},
-    {"task_id":"mdn-fetch-heading","status":"pass","observed":{"answer":"Fetch API"}},
-    {"task_id":"github-moli-readme-heading","status":"pass","observed":{"answer":"Moli"}},
-    {"task_id":"github-lexbench-readme-heading","status":"pass","observed":{"answer":"Lexbench-Headless-Browser"}},
-    {"task_id":"quotes-first-author","status":"pass","observed":{"answer":"Albert Einstein"}},
-    {"task_id":"books-catalogue-heading","status":"pass","observed":{"answer":"All products"}},
-    {"task_id":"selenium-form-submit","status":"pass","observed":{"receipt":"Received!"}},
-    {"task_id":"selenium-select-option","status":"pass","observed":{"answer":"Two"}},
-    {"task_id":"selenium-checkbox-state","status":"pass","observed":{"checked":"true"}},
-    {"task_id":"selenium-radio-state","status":"pass","observed":{"checked":"true"}},
-    {"task_id":"quotes-page-two","status":"pass","observed":{"answer":"Marilyn Monroe"}},
-    {"task_id":"quotes-author-detail","status":"pass","observed":{"answer":"March 14, 1879"}},
-    {"task_id":"books-mystery-category","status":"pass","observed":{"category":"Mystery","first_book":"Sharp Objects"}},
-    {"task_id":"books-product-detail","status":"pass","observed":{"title":"A Light in the Attic","price":"£51.77"}},
-    {"task_id":"python-appetite-navigation","status":"pass","observed":{"answer":"1. Whetting Your Appetite¶"}},
-    {"task_id":"mdn-using-fetch-navigation","status":"pass","observed":{"answer":"Using the Fetch API"}},
-    {"task_id":"selenium-delayed-reveal","status":"pass","observed":{"answer":"Lexmount public timing probe"}},
-    {"task_id":"selenium-delayed-box","status":"pass","observed":{"answer":"redbox"}},
-    {"task_id":"selenium-multi-control-submit","status":"pass","observed":{"receipt":"Received!"}},
-    {"task_id":"quotes-three-page-history","status":"pass","observed":{"one":"Albert Einstein","two":"Marilyn Monroe","three":"Pablo Neruda","back_two":"Marilyn Monroe","back_one":"Albert Einstein","forward_two":"Marilyn Monroe"}},
-    {"task_id":"quotes-login-flow","status":"pass","observed":{"answer":"Logout"}},
-    {"task_id":"books-mystery-page-two-detail","status":"pass","observed":{"list_title":"The Mysterious Affair at ...","detail_title":"The Mysterious Affair at Styles (Hercule Poirot #1)","price":"£24.80"}},
-    {"task_id":"python-two-chapter-history","status":"pass","observed":{"index":"The Python Tutorial¶","appetite":"1. Whetting Your Appetite¶","interpreter":"2. Using the Python Interpreter¶","back_appetite":"1. Whetting Your Appetite¶","back_index":"The Python Tutorial¶"}},
-    {"task_id":"rfc9110-section-history","status":"pass","observed":{"number":"RFC 9110","intro":"1. Introduction","terms":"3. Terminology and Core Concepts","back_intro":"1. Introduction","forward_terms":"3. Terminology and Core Concepts"}},
-    {"task_id":"mdn-fetch-history","status":"pass","observed":{"api":"Fetch API","guide":"Using the Fetch API","back_api":"Fetch API","forward_guide":"Using the Fetch API"}},
-    {"task_id":"github-moli-issues-history","status":"pass","observed":{"readme":"Moli","issues":"All issues","back_readme":"Moli","forward_issues":"All issues"}}
+    {
+      "task_id": "pypi-requests-pinned",
+      "status": "pass",
+      "observed": {
+        "answer": "requests 2.32.5"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "arxiv-transformer-title",
+      "status": "pass",
+      "observed": {
+        "answer": "Title:Attention Is All You Need"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "rfc9110-number",
+      "status": "pass",
+      "observed": {
+        "answer": "RFC 9110"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "github-moli-readme-heading",
+      "status": "pass",
+      "observed": {
+        "answer": "Moli"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "github-lexbench-readme-heading",
+      "status": "pass",
+      "observed": {
+        "answer": "Lexbench-Headless-Browser"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-form-submit",
+      "status": "pass",
+      "observed": {
+        "receipt": "Received!"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-select-option",
+      "status": "pass",
+      "observed": {
+        "answer": "Two"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-checkbox-state",
+      "status": "pass",
+      "observed": {
+        "checked": "true"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-radio-state",
+      "status": "pass",
+      "observed": {
+        "checked": "true"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "quotes-page-two",
+      "status": "pass",
+      "observed": {
+        "answer": "Marilyn Monroe"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "quotes-author-detail",
+      "status": "pass",
+      "observed": {
+        "answer": "March 14, 1879"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "books-mystery-category",
+      "status": "pass",
+      "observed": {
+        "category": "Mystery",
+        "first_book": "Sharp Objects"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "books-product-detail",
+      "status": "pass",
+      "observed": {
+        "title": "A Light in the Attic",
+        "price": "£51.77"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "python-appetite-navigation",
+      "status": "pass",
+      "observed": {
+        "answer": "1. Whetting Your Appetite¶"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "mdn-using-fetch-navigation",
+      "status": "pass",
+      "observed": {
+        "answer": "Using the Fetch API"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-delayed-reveal",
+      "status": "pass",
+      "observed": {
+        "answer": "Lexmount public timing probe"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-delayed-box",
+      "status": "pass",
+      "observed": {
+        "answer": "redbox"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "selenium-multi-control-submit",
+      "status": "pass",
+      "observed": {
+        "receipt": "Received!"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "quotes-three-page-history",
+      "status": "pass",
+      "observed": {
+        "one": "Albert Einstein",
+        "two": "Marilyn Monroe",
+        "three": "Pablo Neruda",
+        "back_two": "Marilyn Monroe",
+        "back_one": "Albert Einstein",
+        "forward_two": "Marilyn Monroe"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "quotes-login-flow",
+      "status": "pass",
+      "observed": {
+        "answer": "Logout"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "books-mystery-page-two-detail",
+      "status": "pass",
+      "observed": {
+        "list_title": "The Mysterious Affair at ...",
+        "detail_title": "The Mysterious Affair at Styles (Hercule Poirot #1)",
+        "price": "£24.80"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "python-two-chapter-history",
+      "status": "pass",
+      "observed": {
+        "index": "The Python Tutorial¶",
+        "appetite": "1. Whetting Your Appetite¶",
+        "interpreter": "2. Using the Python Interpreter¶",
+        "back_appetite": "1. Whetting Your Appetite¶",
+        "back_index": "The Python Tutorial¶"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "rfc9110-section-history",
+      "status": "pass",
+      "observed": {
+        "number": "RFC 9110",
+        "intro": "1. Introduction",
+        "terms": "3. Terminology and Core Concepts",
+        "back_intro": "1. Introduction",
+        "forward_terms": "3. Terminology and Core Concepts"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "mdn-fetch-history",
+      "status": "pass",
+      "observed": {
+        "api": "Fetch API",
+        "guide": "Using the Fetch API",
+        "back_api": "Fetch API",
+        "forward_guide": "Using the Fetch API"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "github-moli-issues-history",
+      "status": "pass",
+      "observed": {
+        "readme": "Moli",
+        "issues": "All issues",
+        "back_readme": "Moli",
+        "forward_issues": "All issues"
+      },
+      "provenance": {
+        "kind": "retained_unchanged",
+        "source_dataset_sha256": "3b22fbc4fd2b70b7ba5c3457c402b3b4cdc321b1d9711a56fc94c9402cd02e40",
+        "verified_at": "2026-09-01T10:19:00+08:00",
+        "task_definition_unchanged": true
+      }
+    },
+    {
+      "task_id": "quotes-cascading-search",
+      "status": "pass",
+      "observed": {
+        "first_tag_ready": "simplicity",
+        "second_tag_ready": "friendship",
+        "first_author": "Albert Einstein",
+        "first_quote": "“If you can't explain it to a six year old, you don't understand it yourself.”",
+        "second_author": "Jane Austen",
+        "second_quote": "“There is nothing I would not do for those who are really my friends. I have no notion of loving people by halves, it is not my nature.”"
+      },
+      "provenance": {
+        "kind": "browser_replay",
+        "verified_at": "2026-09-02T12:22:00+08:00"
+      }
+    },
+    {
+      "task_id": "quotes-infinite-scroll",
+      "status": "pass",
+      "observed": {
+        "first": "Albert Einstein",
+        "second_batch": "Marilyn Monroe",
+        "third_batch": "Pablo Neruda",
+        "preserved": "Albert Einstein"
+      },
+      "provenance": {
+        "kind": "browser_replay",
+        "verified_at": "2026-09-02T12:07:18+08:00"
+      }
+    },
+    {
+      "task_id": "python-search-two-symbols",
+      "status": "pass",
+      "observed": {
+        "first_symbol": "enumerate",
+        "second_symbol": "zip"
+      },
+      "provenance": {
+        "kind": "browser_replay",
+        "verified_at": "2026-09-02T12:07:18+08:00"
+      }
+    },
+    {
+      "task_id": "python-version-language",
+      "status": "pass",
+      "observed": {
+        "version": "3.13.15 Documentation",
+        "chinese": "内置函数¶",
+        "symbol": "enumerate",
+        "english": "Built-in Functions¶",
+        "retained_version": "3.13"
+      },
+      "provenance": {
+        "kind": "browser_replay",
+        "verified_at": "2026-09-02T12:35:00+08:00",
+        "control_scope": ".switchers desktop navigation"
+      }
+    },
+    {
+      "task_id": "github-module-file-search",
+      "status": "pass",
+      "observed": {
+        "core_package": "name = \"moli-core\"",
+        "server_package": "name = \"moli-protocol-server\""
+      },
+      "provenance": {
+        "kind": "browser_replay",
+        "verified_at": "2026-09-02T12:07:18+08:00"
+      }
+    }
   ]
 }

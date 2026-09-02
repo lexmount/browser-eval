@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterable
+from contextlib import nullcontext
 from typing import Any
+
+from .suite import validate_selector
 
 
 def _body_text(page: Any, timeout: int, limit: int) -> str:
@@ -65,6 +68,7 @@ def execute_steps(
         }
         records.append(record)
         try:
+            validate_selector(call)
             observation = ""
             if action == "navigate":
                 response = page.goto(
@@ -82,7 +86,15 @@ def execute_steps(
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"
                 )
             elif action == "click":
-                page.locator(call["selector"]).first.click(timeout=timeout)
+                navigation = (
+                    page.expect_navigation(
+                        wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
+                    )
+                    if call.get("wait_for_navigation")
+                    else nullcontext()
+                )
+                with navigation:
+                    page.locator(call["selector"]).first.click(timeout=timeout)
                 observation = "Clicked successfully."
             elif action == "fill":
                 page.locator(call["selector"]).first.fill(
@@ -90,9 +102,17 @@ def execute_steps(
                 )
                 observation = "Filled text successfully."
             elif action == "select":
-                page.locator(call["selector"]).first.select_option(
-                    str(call.get("value", "")), timeout=timeout
+                navigation = (
+                    page.expect_navigation(
+                        wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
+                    )
+                    if call.get("wait_for_navigation")
+                    else nullcontext()
                 )
+                with navigation:
+                    page.locator(call["selector"]).first.select_option(
+                        str(call.get("value", "")), timeout=timeout
+                    )
                 observation = f"Selected option {call.get('value', '')}."
             elif action == "get_text":
                 locator = page.locator(call["selector"]).first

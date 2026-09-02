@@ -1,6 +1,44 @@
 from __future__ import annotations
 
+import json
+from urllib.error import URLError
+
+import pytest
+
+from harness.browser_use import diagnostics
 from harness.browser_use.diagnostics import build_failure_groups, classify_failure
+
+
+@pytest.mark.parametrize(
+    "error", [URLError("unavailable"), json.JSONDecodeError("bad", "", 0), KeyError("choices")]
+)
+def test_optional_llm_errors_preserve_rules_and_scores(monkeypatch, error):
+    summary = {
+        "score": {"moli": 0},
+        "by_task": {"task": {"failures": {"moli": [{"error": "TimeoutError", "trace": []}]}}},
+    }
+
+    def fail(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(diagnostics, "add_llm_diagnoses", fail)
+    result = diagnostics.diagnose_summary(
+        summary, use_llm=True, api_key="test", api_base="https://test.invalid"
+    )
+    assert result is summary
+    assert summary["score"] == {"moli": 0}
+    diagnosis = summary["failure_diagnostics"]
+    assert len(diagnosis["rule_engine"]["groups"]) == 1
+    assert diagnosis["llm"]["status"] == "error"
+    assert diagnosis["llm"]["error_type"] == type(error).__name__
+    assert diagnosis["llm"]["affects_scoring"] is False
+
+
+def test_missing_llm_credentials_are_nonfatal(monkeypatch):
+    for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_BASE"):
+        monkeypatch.delenv(name, raising=False)
+    summary = diagnostics.diagnose_summary({}, use_llm=True)
+    assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
 
 
 def test_rule_diagnosis_extracts_failed_tool_call_and_selector():

@@ -29,6 +29,11 @@ def text(selector: str, save_as: str) -> dict[str, object]:
     return {"action": "get_text", "selector": selector, "save_as": save_as, "strip": True}
 
 
+def settled_text(selector: str, save_as: str, expected: str) -> dict[str, object]:
+    """Wait for an observable page transition, identically for both providers."""
+    return {**text(selector, save_as), "wait_for_text": expected}
+
+
 def click(selector: str, timeout_ms: int | None = None) -> dict[str, object]:
     result: dict[str, object] = {"action": "click", "selector": selector}
     if timeout_ms is not None:
@@ -115,16 +120,6 @@ SELENIUM_DYNAMIC = "https://www.selenium.dev/selenium/web/dynamic.html"
 TASKS = [
     # Simple: one public page and one exact observation.
     task(
-        "example-heading",
-        "读取 Example Domain 标题",
-        "simple",
-        ["observation"],
-        [nav(EXAMPLE), text("h1", "answer")],
-        {"answer": "Example Domain"},
-        target_url=EXAMPLE,
-        derivation="IANA 保留示例域名首页的唯一 h1。",
-    ),
-    task(
         "pypi-requests-pinned",
         "读取固定版本 requests 包标题",
         "simple",
@@ -145,16 +140,6 @@ TASKS = [
         derivation="固定 arXiv 论文编号页面标题。",
     ),
     task(
-        "python-tutorial-heading",
-        "读取 Python 教程标题",
-        "simple",
-        ["documentation"],
-        [nav(PYTHON), text("h1", "answer")],
-        {"answer": "The Python Tutorial¶"},
-        target_url=PYTHON,
-        derivation="Python 官方教程索引页唯一 h1。",
-    ),
-    task(
         "rfc9110-number",
         "读取 RFC 9110 编号",
         "simple",
@@ -163,16 +148,6 @@ TASKS = [
         {"answer": "RFC 9110"},
         target_url=RFC,
         derivation="RFC Editor 固定标准页编号。",
-    ),
-    task(
-        "mdn-fetch-heading",
-        "读取 MDN Fetch API 标题",
-        "simple",
-        ["documentation"],
-        [nav(MDN), text("h1", "answer")],
-        {"answer": "Fetch API"},
-        target_url=MDN,
-        derivation="MDN Fetch API 文档唯一 h1。",
     ),
     task(
         "github-moli-readme-heading",
@@ -193,26 +168,6 @@ TASKS = [
         {"answer": "Lexbench-Headless-Browser"},
         target_url=LEXBENCH,
         derivation="Lexbench 仓库 README 的一级标题。",
-    ),
-    task(
-        "quotes-first-author",
-        "读取首页首位名言作者",
-        "simple",
-        ["catalogue"],
-        [nav(QUOTES), text(".quote:first-of-type .author", "answer")],
-        {"answer": "Albert Einstein"},
-        target_url=QUOTES,
-        derivation="Quotes to Scrape 首页第一条记录作者。",
-    ),
-    task(
-        "books-catalogue-heading",
-        "读取图书目录标题",
-        "simple",
-        ["catalogue"],
-        [nav(BOOKS), text(".page-header h1", "answer")],
-        {"answer": "All products"},
-        target_url=BOOKS,
-        derivation="Books to Scrape 根目录标题。",
     ),
     # Medium: distinct control and navigation spaces, not repeated click-only probes.
     task(
@@ -556,7 +511,152 @@ TASKS = [
         target_url=MOLI,
         derivation="GitHub 仓库 README 与 Issues 固定一级标题及历史恢复。",
     ),
+    task(
+        "quotes-cascading-search",
+        "切换作者与联动标签并检索两组名言",
+        "complex",
+        ["cascading-select", "search", "dependent-state"],
+        [
+            nav(QUOTES + "search.aspx"),
+            select("#author", "Albert Einstein"),
+            text("#tag option[value='simplicity']", "first_tag_ready"),
+            select("#tag", "simplicity"),
+            click("input[type='submit']"),
+            settled_text(".quote .author", "first_author", "Albert Einstein"),
+            text(".quote .content", "first_quote"),
+            select("#author", "Jane Austen"),
+            text("#tag option[value='friendship']", "second_tag_ready"),
+            select("#tag", "friendship"),
+            click("input[type='submit']"),
+            settled_text(".quote .author", "second_author", "Jane Austen"),
+            text(".quote .content", "second_quote"),
+        ],
+        {
+            "first_tag_ready": "simplicity",
+            "second_tag_ready": "friendship",
+            "first_author": "Albert Einstein",
+            "first_quote": "“If you can't explain it to a six year old, you don't understand it yourself.”",
+            "second_author": "Jane Austen",
+            "second_quote": "“There is nothing I would not do for those who are really my friends. I have no notion of loving people by halves, it is not my nature.”",
+        },
+        target_url=QUOTES + "search.aspx",
+        derivation="Lexbench form_select_option 的 change 事件检查扩展为公网级联筛选；切换作者后标签集重新生成，两个唯一组合分别核验作者与完整名言。",
+    ),
+    task(
+        "quotes-infinite-scroll",
+        "连续滚动加载三批名言并验证首批仍保留",
+        "complex",
+        ["infinite-scroll", "progressive-list", "async-render"],
+        [
+            nav(QUOTES + "scroll"),
+            text(".quote:nth-of-type(1) .author", "first"),
+            {"action": "scroll", "direction": "down", "amount": 2500},
+            text(".quote:nth-of-type(11) .author", "second_batch"),
+            {"action": "scroll", "direction": "down", "amount": 5000},
+            text(".quote:nth-of-type(21) .author", "third_batch"),
+            text(".quote:nth-of-type(1) .author", "preserved"),
+        ],
+        {
+            "first": "Albert Einstein",
+            "second_batch": "Marilyn Monroe",
+            "third_batch": "Pablo Neruda",
+            "preserved": "Albert Einstein",
+        },
+        target_url=QUOTES + "scroll",
+        derivation="Lexbench wait_list_progressive_fill 与 dyn_paging_final 的公网扩展：真实滚动触发网络分页，核验第 1、11、21 项及早期记录保留。",
+        timing_probe=True,
+    ),
+    task(
+        "python-search-two-symbols",
+        "站内检索两个函数并进入对应 API 定义",
+        "complex",
+        ["site-search", "async-index", "anchor", "history"],
+        [
+            nav("https://docs.python.org/3/search.html"),
+            fill("input[name='q']", "enumerate"),
+            click("input[type='submit']"),
+            click("a[href='library/functions.html#enumerate']"),
+            text("#enumerate .sig-name", "first_symbol"),
+            {"action": "back"},
+            fill("input[name='q']", "zip"),
+            click("input[type='submit']"),
+            click("a[href='library/functions.html#zip']"),
+            text("#zip .sig-name", "second_symbol"),
+        ],
+        {"first_symbol": "enumerate", "second_symbol": "zip"},
+        target_url="https://docs.python.org/3/search.html",
+        derivation="Python 官方站内搜索异步加载索引；分别搜索 enumerate 与 zip，通过搜索结果进入 API 定义并核验函数名。",
+    ),
+    task(
+        "python-version-language",
+        "切换文档版本与语言并恢复英文 API 页面",
+        "complex",
+        ["version-switch", "locale-switch", "dependent-navigation"],
+        [
+            nav("https://docs.python.org/3/library/functions.html#enumerate"),
+            select(".switchers select.version-select", "3.13"),
+            settled_text("a[href='../index.html']", "version", "3.13.15 Documentation"),
+            select(".switchers select.language-select", "zh-cn"),
+            settled_text("h1", "chinese", "内置函数¶"),
+            text("#enumerate .sig-name", "symbol"),
+            select(".switchers select.language-select", "en"),
+            settled_text("h1", "english", "Built-in Functions¶"),
+            prop(".switchers select.version-select", "value", "retained_version"),
+        ],
+        {
+            "version": "3.13.15 Documentation",
+            "chinese": "内置函数¶",
+            "symbol": "enumerate",
+            "english": "Built-in Functions¶",
+            "retained_version": "3.13",
+        },
+        target_url="https://docs.python.org/3/library/functions.html#enumerate",
+        derivation="通过真实版本和语言下拉框跨文档路由；核验当前 3.13.15 标签、中英文标题、API 定义与版本保留。版本标签按标注日期固定。",
+    ),
+    task(
+        "github-module-file-search",
+        "检索两个 Rust 模块文件并核验包名",
+        "complex",
+        ["file-search", "dynamic-dialog", "code-view", "history"],
+        [
+            nav(MOLI),
+            click("input[aria-label='Go to file']"),
+            fill("input[aria-label='Go to file']", "moli-core/Cargo.toml"),
+            click("[role='option']:has-text('moli-core/Cargo.toml')"),
+            settled_text("#LC3", "core_package", 'name = "moli-core"'),
+            {"action": "back"},
+            click("input[aria-label='Go to file']"),
+            fill("input[aria-label='Go to file']", "moli-protocol-server/Cargo.toml"),
+            click("[role='option']:has-text('moli-protocol-server/Cargo.toml')"),
+            settled_text("#LC2", "server_package", 'name = "moli-protocol-server"'),
+        ],
+        {"core_package": 'name = "moli-core"', "server_package": 'name = "moli-protocol-server"'},
+        target_url=MOLI,
+        derivation="GitHub 文件查找加载仓库索引，在动态候选框中进入代码视图；核验两个不同模块 Cargo.toml 的 package name 字段。",
+    ),
 ]
+
+for item in TASKS:
+    if item["id"] == "python-version-language":
+        for call in item["tool_calls"]:
+            if call["action"] == "select":
+                call["wait_for_navigation"] = True
+                call["wait_until"] = "domcontentloaded"
+    if item["id"] == "quotes-cascading-search":
+        for call in item["tool_calls"]:
+            if call["action"] == "click" or (
+                call["action"] == "select" and call["selector"] == "#author"
+            ):
+                call["wait_for_navigation"] = True
+                call["wait_until"] = "domcontentloaded"
+    if item["id"] in {"quotes-cascading-search", "python-version-language"}:
+        item["source"]["design_basis"] = [LEXBENCH_BASIS + "/form_select_option.scenario.json"]
+    elif item["id"] == "quotes-infinite-scroll":
+        item["source"]["design_basis"] = [
+            LEXBENCH_BASIS + "/wait_list_progressive_fill.scenario.json",
+            LEXBENCH_BASIS + "/dyn_paging_final.scenario.json",
+            MOLI_TIMING_BASIS,
+        ]
 
 
 def main() -> None:

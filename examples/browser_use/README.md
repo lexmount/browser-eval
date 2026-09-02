@@ -11,8 +11,7 @@ Requirements:
 - Linux with Docker Engine and cgroup v2, or Docker Desktop/Colima backed by a
   Linux VM
 - Python 3.11+ with venv support, at least 4 CPU cores, 6 GiB available memory,
-  and Internet access for dependency/image installation (the measured tasks use
-  local deterministic fixtures)
+  and Internet access for dependencies, images, and measured public websites
 - Docker access for the current user
 
 Run:
@@ -50,17 +49,33 @@ the browsers again:
 
     uv run python examples/browser_use/rebuild_report.py
 
+Independent raw-data audit (does not import the aggregation implementation):
+
+    uv run python examples/browser_use/verify_metrics.py --artifacts artifacts/browser_use/latest
+
+`run.sh` runs this audit automatically. It checks correctness counts, the
+successful-task intersection, 81 aggregate/ratio metric groups, and every
+paired ratio's task identity and operands. Any mismatch exits with an error.
+
 Neither command invokes Codex or another coding agent for scoring or
 statistics.
 
 ## Protocol
 
+- Element-targeted calls require a non-empty string `selector`. Snapshot `ref`
+  identifiers are not resolved by this deterministic runner.
+- Core attempts, summary, and manifest are saved before failure diagnostics.
+  Optional LLM diagnostic errors preserve rule-based findings and scoring; the
+  diagnostic status and exception type are recorded without remote error text.
+
 - Both browser containers receive the same 2 CPU, 2 GiB memory, 512 MiB shared
   memory, and 512 PID limits by default.
+- Each new page uses a 1280 × 900 CSS-pixel viewport. The runner checks actual
+  `innerWidth`/`innerHeight` before measuring each task and fails on mismatch.
 - Each engine receives its own temporary Docker bridge with no peer containers;
   its CDP port is published only on host loopback. The bridge preserves public
-  web access without exposing CDP to containers on Docker's default bridge. A
-  temporary read-only fixture server on the host supplies the measured pages.
+  web access without exposing CDP to containers on Docker's default bridge.
+  The active suite uses public HTTPS pages, not local fixtures.
 - Chromium runs as a non-root user with Docker isolation and
   no-new-privileges. Its unavailable nested setuid browser sandbox is disabled;
   the container boundary is therefore security-relevant and these evaluation
@@ -80,8 +95,9 @@ statistics.
   100 ms one-shot per-container samples. The report includes time-weighted mean,
   within-attempt P95, peak, retained memory, MiB-seconds, totals, and rates.
 - Each task runs once per engine. Only a failure triggers a retry (one by
-  default). The report separates first-pass rate, retry recovery, and final
-  task success. Result correctness is the primary score; result plus completion
+  default). The report presents one final result per task and provider; all
+  attempt evidence is available on its linked detail page. Result correctness
+  is the primary score; result plus completion
   of the fixed reference path is reported separately. Resource comparison uses
   only tasks both engines passed on the first attempt; retries and failed tasks
   do not enter the normal-path resource baseline.
@@ -106,12 +122,17 @@ traceable hypothesis, and never changes pass/fail scoring.
 One step is one declared BrowserTool-equivalent call: navigate, click, fill,
 get_text, snapshot, scroll, back, or forward. Internal page-readiness and
 locator waits are not separate steps.
+For form controls that navigate, `wait_for_navigation: true` explicitly waits
+for the declared `wait_until` event as part of that same action. Cascading
+select tasks use `domcontentloaded` so the next control's handler is ready.
 
-The suite has thirty deterministic tasks: ten simple, ten medium, and ten
-complex. Fifteen preserve earlier baseline/regression cases and fifteen expand
-the interaction-space probes using both
+The suite has thirty public-web tasks: five simple, ten medium, and fifteen
+complex. Twenty-five retain the previous public suite's task definitions;
+five add cascading search, infinite scrolling, site search, version/language
+switching, and repository file search. Capability designs may come from
 [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser)
-and [Moli](https://github.com/lexmount/moli) as source material. Every task
+and [Moli](https://github.com/lexmount/moli). Lexbench's local-fixture scenarios
+are design references, not measured public targets. Every task
 declares a fixed reference action sequence, exact expected
 outputs, derivation, and source attribution. Expected outputs are unique; the
 reference sequence is replayed by this provider-isolation microbenchmark but is
@@ -121,12 +142,18 @@ no LLM-as-a-Judge, fuzzy contains check, or minimum-length heuristic is used. A
 free-planning Agent evaluation should judge required milestones, forbidden
 shortcuts, and a step budget instead of exact sequence identity.
 
-Ground-truth annotation has three separate stages: deterministic derivation
-from fixture code and state machines; one real per-task replay by Codex
-Desktop's in-app Browser Tool with exact output comparison; then human review
-and sign-off. The browser replay evidence is versioned in
-`ground_truth_validation.json` and bound to the dataset SHA-256. Human review
-remains a distinct status and is never inferred from the automated replay.
+Ground-truth annotation uses actual public-page operations through Codex
+Desktop's in-app Browser Tool, followed by exact comparison of observed
+outputs. `ground_truth_validation.json` is bound to the dataset SHA-256 and
+records dates and provenance per task. The 2026-09-02 revision retains 25
+unchanged task annotations from 2026-09-01 and adds five browser-verified
+annotations; it does not claim all 30 were re-annotated that day. Benchmark
+runs and statistical calculations remain entirely programmatic.
+
+Absolute P50/P95/mean values describe each provider's cross-task distribution.
+Paired ratios are computed per successful task first, then summarized. The P95
+of those ratios is not a division of two marginal P95 values. Comparison cells
+share one highlighting rule; rounded ties and unavailable data stay neutral.
 
 ## CubeSandbox
 

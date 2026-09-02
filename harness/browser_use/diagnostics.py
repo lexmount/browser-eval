@@ -237,14 +237,23 @@ def diagnose_summary(
     if use_llm:
         key = api_key or os.environ.get("OPENAI_API_KEY")
         base = api_base or os.environ.get("OPENAI_BASE_URL") or os.environ.get("OPENAI_API_BASE")
-        if not key or not base:
-            raise RuntimeError("OPENAI_API_KEY and OPENAI_BASE_URL are required")
-        result["llm"] = add_llm_diagnoses(
-            groups,
-            api_key=key,
-            api_base=base,
-            model=model,
-            reasoning_effort=reasoning_effort,
-        )
+        try:
+            if not key or not base:
+                raise RuntimeError("OPENAI_API_KEY and OPENAI_BASE_URL are required")
+            result["llm"] = add_llm_diagnoses(
+                groups,
+                api_key=key,
+                api_base=base,
+                model=model,
+                reasoning_effort=reasoning_effort,
+            )
+        except Exception as exc:
+            # Optional explanation must not discard deterministic rules or run results.
+            result["llm"].update(
+                enabled=True,
+                status="error",
+                model=model,
+                error_type=type(exc).__name__,
+            )
     summary["failure_diagnostics"] = result
     return summary
