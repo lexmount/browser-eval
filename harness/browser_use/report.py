@@ -186,41 +186,41 @@ def _duration_ratio_audit(summary: dict[str, Any]) -> str:
     for rank, item in enumerate(values, 1):
         task_id = str(item.get("task_id") or "")
         title = str(((summary.get("by_task") or {}).get(task_id) or {}).get("title") or task_id)
+        duration_cells = []
+        for engine, key, other in (
+            ("chromium", "denominator", "numerator"),
+            ("moli", "numerator", "denominator"),
+        ):
+            better = (
+                _comparison_class(_display_number(item.get(key)), _display_number(item.get(other)))
+                == "better"
+            )
+            duration_cells.append(
+                f'<td data-label="{_e(engine.title())}" class="{"better" if better else ""}">'
+                f'<a class="duration-detail-link" href="{_e(_detail_filename(task_id, engine))}" '
+                f'aria-label="{_e(title)} · {_e(engine.title())} · 耗时 {_e(_show(item.get(key), suffix=" ms"))}，查看任务详情">'
+                f"{_e(_show(item.get(key), suffix=' ms'))}</a></td>"
+            )
+        ratio_class = _comparison_class(_display_number(item.get("ratio")), 1)
+        marker = '<span class="percentile-marker">P95 取值</span>' if rank == p95_rank else ""
+        row_class = ' class="percentile-row"' if rank == p95_rank else ""
         rows.append(
-            [
-                str(rank),
-                title,
-                *[
-                    ComparedValue(
-                        _show(item.get(key), suffix=" ms"),
-                        "better"
-                        if _comparison_class(
-                            _display_number(item.get(key)), _display_number(item.get(other))
-                        )
-                        == "better"
-                        else "",
-                    )
-                    for key, other in (("denominator", "numerator"), ("numerator", "denominator"))
-                ],
-                ComparedValue(
-                    _show(item.get("ratio"), suffix="×"),
-                    _comparison_class(_display_number(item.get("ratio")), 1),
-                ),
-                "P95 取值" if rank == p95_rank else "",
-            ]
+            f'<tr{row_class}><td data-label="排序">{rank}</td><td data-label="任务">{_e(title)}</td>'
+            + "".join(duration_cells)
+            + f'<td data-label="逐任务比值"><span class="{ratio_class}">{_e(_show(item.get("ratio"), suffix="×"))}</span>{marker}</td></tr>'
         )
     return (
-        "<details><summary>查看逐任务耗时比值的完整计算审计</summary>"
-        f"<p>脚本先对每个计入成功交集的同任务计算 <code>Moli 耗时 / Chromium 耗时</code>，再排序。"
-        f"本轮 <code>n={len(values)}</code>，nearest-rank P95 的序号为 "
-        f"<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>；因此表中的 P95 是排序后第 "
-        f"{p95_rank} 个配对比值。</p>"
-        + _table(
-            ["排序", "任务", "Chromium", "Moli", "逐任务比值", "统计位置"],
-            rows,
-            "耗时配对比值原始序列",
-        )
-        + "</details>"
+        "<style>.duration-audit .duration-detail-link{color:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px}"
+        ".duration-audit .duration-detail-link:hover{color:var(--accent);text-decoration-style:solid}"
+        ".duration-audit .duration-detail-link:focus-visible{outline:2px solid var(--accent);outline-offset:4px}"
+        ".duration-audit .percentile-row{background:var(--panel)}"
+        ".duration-audit .percentile-marker{display:inline-block;margin-left:10px;padding:1px 7px;border-radius:5px;font-size:12px;color:var(--accent);background:#e8eefc;white-space:nowrap}"
+        '</style><details class="duration-audit"><summary>查看逐任务耗时比值的完整计算审计</summary>'
+        f"<p>按同任务 <code>Moli / Chromium</code> 比值升序排列；P95 取第 {p95_rank}/{len(values)} 项"
+        f"（<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>）。点击耗时查看对应方案的任务详情。</p>"
+        '<div class="table-wrap"><table><caption>耗时配对比值原始序列</caption><thead><tr>'
+        "<th>排序</th><th>任务</th><th>Chromium</th><th>Moli</th><th>逐任务比值</th>"
+        "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div></details>"
     )
 
 

@@ -14,12 +14,36 @@ from harness.browser_use.report import (
     _annotate_source_marks,
     _appendix_page,
     _correctness_table,
+    _detail_filename,
+    _duration_ratio_audit,
     _metric_guide,
     _metric_tables,
     _ratio_metric_cell,
     _task_detail_body,
     write_latest_report,
 )
+
+
+def test_duration_audit_links_each_provider_and_marks_only_p95_without_empty_column():
+    values = [
+        {"task_id": f"task-{i}", "denominator": 100, "numerator": i * 10, "ratio": i / 10}
+        for i in range(1, 26)
+    ]
+    summary = {
+        "resource_comparison": {"paired_ratios": {"metrics": {"duration_ms": {"values": values}}}}
+    }
+    audit = _duration_ratio_audit(summary)
+    assert "统计位置" not in audit
+    assert "第 24/25 项" in audit
+    assert audit.count('class="percentile-marker"') == 1
+    rows = re.findall(r"<tr[^>]*>.*?</tr>", audit)
+    for index, row in enumerate(rows[1:], 1):
+        assert row.count("<td ") == 5
+        for engine in ("chromium", "moli"):
+            assert f'href="{_detail_filename(f"task-{index}", engine)}"' in row
+        assert ('class="percentile-marker"' in row) == (index == 24)
+    assert 'class="duration-detail-link"' in audit
+    assert _duration_ratio_audit({}) == ""
 
 
 def test_homepage_guide_covers_every_displayed_metric_once():
