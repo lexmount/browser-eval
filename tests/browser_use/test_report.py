@@ -21,7 +21,6 @@ from harness.browser_use.report import (
     _ratio_metric_cell,
     _sample_uid,
     _task_detail_body,
-    _task_uid,
     write_latest_report,
 )
 
@@ -52,8 +51,6 @@ def test_duration_audit_marks_each_independent_p95_without_empty_column():
 
 
 def test_record_ids_are_stable_namespaced_and_distinguish_run_task_provider():
-    assert _task_uid("same") == _task_uid("same")
-    assert _task_uid("same") != _task_uid("other")
     samples = {
         _sample_uid(run, task, engine)
         for run in ("run-1", "run-2")
@@ -71,20 +68,21 @@ def test_ids_join_suite_analysis_details_and_audit_index(tmp_path):
     summary = {"by_task": {"task-1": {"title": "标题", "attempts": {"moli": attempts}}}}
     write_latest_report(tmp_path, manifest={"run_id": "run-1", "suite": [task]}, summary=summary)
     sample = _sample_uid("run-1", "task-1", "moli")
-    task_uid = _task_uid("task-1")
     analysis = (tmp_path / "browser-use-evaluation-latest-analysis.html").read_text()
     suite = (tmp_path / "browser-use-evaluation-latest-suite.html").read_text()
     detail = (tmp_path / _detail_filename("task-1", "moli")).read_text()
     index = json.loads((tmp_path / "browser-use-evaluation-latest-data.json").read_text())[
         "sample_index"
     ]
-    assert task_uid in suite and task_uid in detail
     assert sample in analysis and sample in detail
     search = re.search(r'data-search="([^"]+)"', analysis).group(1)
-    assert sample in search and task_uid in search and f"{sample}/a2" in search
-    assert f"{sample}/a1" in detail and f"{sample}/a2" in detail
-    assert index[0]["sample_id"] == sample and index[0]["task_uid"] == task_uid
-    assert [x["execution_id"] for x in index[0]["executions"]] == [f"{sample}/a1", f"{sample}/a2"]
+    assert sample in search
+    assert detail.count('class="record-id"') == 1
+    assert "任务 ID" not in detail and "执行 ID" not in detail
+    assert 'class="record-id"' not in suite
+    assert index[0]["sample_id"] == sample
+    assert "task_uid" not in index[0]
+    assert index[0]["executions"] == [{"attempt": 1}, {"attempt": 2}]
 
 
 def test_homepage_guide_covers_every_displayed_metric_once():

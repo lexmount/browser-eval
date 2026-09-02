@@ -31,10 +31,6 @@ def _identity(kind: str, *parts: str) -> str:
     return f"{kind}-{uuid5(NAMESPACE_URL, key)}"
 
 
-def _task_uid(task_id: str) -> str:
-    return _identity("T", task_id)
-
-
 def _sample_uid(run_id: str, task_id: str, engine: str) -> str:
     return _identity("S", run_id, task_id, engine)
 
@@ -237,7 +233,7 @@ def _duration_ratio_audit(summary: dict[str, Any], run_id: str = "unknown") -> s
         marker = '<span class="percentile-marker">比值 P95</span>' if rank == p95_rank else ""
         row_class = ' class="percentile-row"' if rank == p95_rank else ""
         rows.append(
-            f'<tr{row_class}><td data-label="排序">{rank}</td><td data-label="任务">{_e(title)}{_id_label("任务", _task_uid(task_id))}</td>'
+            f'<tr{row_class}><td data-label="排序">{rank}</td><td data-label="任务">{_e(title)}</td>'
             + "".join(duration_cells)
             + f'<td data-label="逐任务比值"><span class="{ratio_class}">{_e(_show(item.get("ratio"), suffix="×"))}</span>{marker}</td></tr>'
         )
@@ -593,14 +589,13 @@ def _suite_page(manifest: dict[str, Any]) -> str:
             if tag not in shared_tags
         )
         search_text = (
-            f"任务{index:02d} 任务 {index:02d} {task.get('task_id')} {_task_uid(str(task.get('task_id')))} {title} {target_url} "
+            f"任务{index:02d} 任务 {index:02d} {task.get('task_id')} {title} {target_url} "
             + " ".join(task.get("tags") or [])
             + " "
             + expected_inline
         )
         cards.append(
             f'<section class="card suite-task" data-difficulty="{_e(task.get("complexity"))}" data-site="{_e(urlparse(target_url).hostname or "未标注")}" data-actions="{_e(",".join(sorted({str(c.get("action")) for c in calls})))}" data-search="{_e(search_text)}"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次工具调用</span>{chips}'
-            + _id_label("任务 ID", _task_uid(str(task.get("task_id"))))
             + '<div class="task-verification">'
             f"<div><strong>公网测试页面</strong><span>{source_html}</span></div>"
             f"<div><strong>参考路径</strong><span><code>{_e(reference_path)}</code></span></div>"
@@ -827,8 +822,6 @@ def _task_detail_body(
     overview = (
         '<section class="card case-overview" id="case-result">'
         f'<div class="section-heading"><h1>{_e(title)}</h1><span class="chip">{_e(engine)}</span></div>'
-        f'<p class="muted case-id">{_e(task_id)}</p>'
-        + _id_label("任务 ID", _task_uid(task_id))
         + _id_label("样本 ID", _sample_uid(run_id, task_id, engine))
         + '<div class="case-facts">'
         f'<div><span>结果</span><strong class="{"ok" if result == "pass" else "bad"}">{status_cell(result)}</strong></div>'
@@ -942,14 +935,10 @@ def _task_detail_body(
     )
 
     execution_rows = []
-    for attempt_index, (label, attempt) in enumerate(zip(labels, attempts, strict=True), 1):
+    for label, attempt in zip(labels, attempts, strict=True):
         execution_rows.append(
             "<tr><td>"
             + _e(label)
-            + _id_label(
-                "执行 ID",
-                f"{_sample_uid(run_id, task_id, engine)}/a{attempt.get('attempt', attempt_index)}",
-            )
             + "</td><td>"
             + _show(attempt.get("duration_ms"), suffix=" ms")
             + "</td><td>"
@@ -1136,14 +1125,9 @@ def _execution_details(
                 [
                     title,
                     str(task_id),
-                    _task_uid(str(task_id)),
                     _sample_uid(
                         str(manifest.get("run_id") or "unknown"), str(task_id), str(engine)
                     ),
-                    *[
-                        f"{_sample_uid(str(manifest.get('run_id') or 'unknown'), str(task_id), str(engine))}/a{a.get('attempt', i)}"
-                        for i, a in enumerate(attempts, 1)
-                    ],
                     str(engine),
                     error_category,
                     *[
@@ -1235,7 +1219,7 @@ def _execution_explorer(
       <label>任务标签<select id="f-tag"><option value="">全部标签</option>{tag_options}</select></label>
       <label>错误类别<select id="f-error"><option value="">全部类别</option>{error_options}</select></label>
       <label>耗时<select id="f-duration"><option value="">全部耗时</option><option value="lt1000">少于 1 秒</option><option value="1000-5000">1–5 秒</option><option value="gte5000">5 秒及以上</option></select></label>
-      <label>全文搜索<input id="f-query" type="search" placeholder="任务 / 样本 ID、输出或错误"></label>
+      <label>全文搜索<input id="f-query" type="search" placeholder="样本 ID、任务名称或关键词"></label>
       <button type="button" id="f-all">展示全部</button><button type="button" id="f-reset">重置为错误</button><span class="filter-status" id="f-count" aria-live="polite"></span>
     </div>"""
     script = """<script>(()=>{
@@ -1466,13 +1450,10 @@ def write_latest_report(
         "resource_comparison": summary.get("resource_comparison") or {},
         "identity_scheme": {
             "algorithm": "UUIDv5, URL namespace, JSON tuple prefixed by repository URL",
-            "task": "T + task_id (logical task, shared across providers and runs)",
             "sample": "S + run_id + task_id + engine",
-            "execution": "sample_id/a{attempt}",
         },
         "sample_index": [
             {
-                "task_uid": _task_uid(str(task_id)),
                 "task_id": task_id,
                 "sample_id": _sample_uid(
                     str(manifest.get("run_id") or "unknown"), str(task_id), str(engine)
@@ -1481,7 +1462,6 @@ def write_latest_report(
                 "detail_page": _detail_filename(str(task_id), str(engine)),
                 "executions": [
                     {
-                        "execution_id": f"{_sample_uid(str(manifest.get('run_id') or 'unknown'), str(task_id), str(engine))}/a{attempt.get('attempt', i)}",
                         "attempt": attempt.get("attempt", i),
                     }
                     for i, attempt in enumerate(attempts, 1)
