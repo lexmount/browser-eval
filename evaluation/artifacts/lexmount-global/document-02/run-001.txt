@@ -1,0 +1,5 @@
+This page is an arXiv PDF endpoint snapshot.
+The captured HTML contains raw binary PDF data rather than the normal abstract-page HTML, so a reliable paper title, author list, abstract, and full readable body text cannot be extracted from this snapshot alone.
+arXiv ID: 1810.04805.
+Use the abstract page for structured metadata: https://arxiv.org/abs/1810.04805
+Normalized PDF URL: https://arxiv.org/pdf/1810.04805

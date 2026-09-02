@@ -1,0 +1,180 @@
+{
+  "case_id": "video-bilibili-current",
+  "url": "https://www.bilibili.com/",
+  "checked_at": "2026-09-02T07:47:28.837519+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.bilibili.com/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.bilibili.com/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 118917,
+  "sha256": "db5392d9538cde9bbf51ffe6b7803c898e4e831c8772de4a4afcb80a36517b1a",
+  "response_headers": {
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "哔哩哔哩 (゜-゜)つロ 干杯~-bilibili",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/archive/27cc73b1eb44368966ceca7583d41ec04c43375e.png@3840w_360h_1c?mirror_report_banner=1",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/banner/9dd1c34a2577565292dc7c93fea5632decc2acf1.png@976w_550h_!web-home-carousel-cover?mirror_report_swipe=1",
+      "alt": "战力不详，吃货力MAX"
+    },
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/banner/9dd1c34a2577565292dc7c93fea5632decc2acf1.png@976w_550h_!web-home-carousel-cover?mirror_report_swipe=1",
+      "alt": "战力不详，吃货力MAX"
+    },
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/archive/ec521b38241750a2ff0187d3a34e9b9aabe19d4b.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "AI短片《那些年我们曾经玩过的游戏》来看看这里有你的回忆吗？【AI全民制作人】"
+    },
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/archive/fd207330e86754eb4c2754a520c8c6435741faf1.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "牧场保安队巡逻一整天没食欲，开胃大餐安排上"
+    },
+    {
+      "tag": "img",
+      "url": "https://i1.hdslb.com/bfs/archive/ea7c3241edf4b2bb4914a3cf6ed649102576f80b.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "🐬地图是5代的2倍！《GTA6》海量玩法解析，情侣系统、胖瘦系统、世界探索、小游戏等等「GameStar」"
+    },
+    {
+      "tag": "img",
+      "url": "https://i1.hdslb.com/bfs/archive/c6739657efe49a8f7bfbe4ba29975d941508b44a.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "逆天小游戏2374"
+    },
+    {
+      "tag": "img",
+      "url": "https://i0.hdslb.com/bfs/archive/1b0cc23eff48e6f426cbfa53a3fa4aeb9e5c7a53.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "寿星来切蛋糕啦！！「谁是杀手」？？！"
+    },
+    {
+      "tag": "img",
+      "url": "https://i2.hdslb.com/bfs/archive/1e9845a73d588ef064af45dfd3ecdb07c81f10a0.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "怎么都在胡说八道?米哈游新作世界观深度解析"
+    },
+    {
+      "tag": "img",
+      "url": "https://i1.hdslb.com/bfs/archive/fe732343276155fe6f2961ce3bc2507460208089.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "2233娘是男扮女装的男娘?关于6699郎你不知道的冷知识"
+    },
+    {
+      "tag": "img",
+      "url": "https://i2.hdslb.com/bfs/archive/93dc132e9bf4041d8c20bd270f02dd994e1c48cb.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "是我捡到影视飓风遗失8个月的相机"
+    },
+    {
+      "tag": "img",
+      "url": "https://i2.hdslb.com/bfs/archive/780f843cd29b5b2548e24d074f8f1243de64e422.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "浪漫没天分，反应够迟钝"
+    },
+    {
+      "tag": "img",
+      "url": "https://i2.hdslb.com/bfs/archive/097a4376e0cd0c2c0ccb6018a6521bb6bb176e5d.jpg@672w_378h_1c_!web-home-common-cover",
+      "alt": "400℃！这下能拖干净了吧！云鲸 S3 Steam 实测"
+    }
+  ],
+  "text_chars": 586,
+  "excerpt": "战力不详，吃货力MAX\n64.5万\n1237\n03:12\nAI短片《那些年我们曾经玩过的游戏》来看看这里有你的回忆吗？【AI全民制作人】\n往事留声机\n· 08-28\n34.2万\n669\n07:14\n牧场保安队巡逻一整天没食欲，开胃大餐安排上\n高崇元的蒙古獒\n· 08-28\n48.3万\n2588\n16:03\n🐬地图是5代的2倍！《GTA6》海量玩法解析，情侣系统、胖瘦系统、世界探索、小游戏等等「GameStar」\n游戏星GameStar\n· 08-30\n138.3万\n248\n00:35\n逆天小游戏2374\n小白云玩游戏\n· 08-26\n172.9万\n7.7万\n27:10\n寿星来切蛋糕啦！！「谁是杀手」？？！\n大炒面制造者Cen\n· 08-28\n33.3万\n554\n07:31\n怎么都在胡说八道?米哈游新作世界观深度解析\n一万也\n· 08-27\n74.2万\n919\n01:54\n2233娘是男扮女装的男娘?关于6699郎你不知道的冷知识\n威尔斯耍流氓\n· 08-28\n55.3万\n1190\n08:26\n是我捡到影视飓风遗失8个月的相机\n黑白猫名字被占用\n· 08-28\n169.2万\n411\n00:22\n浪漫没天分，反应够迟钝\nDYNCme\n· 08-28\n10.1万\n220\n07:58\n400℃！这下能拖干净了吧！云鲸 S3 Steam 实测\n科技体验派\n· 昨天",
+  "missing_facts": [],
+  "state": "captured",
+  "resource_checks": [
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV18Pt46hE5G",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV18Pt46hE5G",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1vQtA6GEQo",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1vQtA6GEQo",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1xAhj6PENa",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1xAhj6PENa",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1H7tw62E7H",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1H7tw62E7H",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1TXtP6hEnP",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1TXtP6hEnP",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1iXtA6rEXD",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1iXtA6rEXD",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1U2hw6qEUk",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1U2hw6qEUk",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1R5tA6qEC8",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1R5tA6qEC8",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1m5tb6YEmj",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1m5tb6YEmj",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    },
+    {
+      "id": "video",
+      "url": "https://www.bilibili.com/video/BV1KF8d61EC9",
+      "status": 412,
+      "final_url": "https://www.bilibili.com/video/BV1KF8d61EC9",
+      "mime": "text/html",
+      "prefix_bytes": 512
+    }
+  ],
+  "task_kind": "resource",
+  "track": "video",
+  "requires_browser": false,
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "原任务要求当前推荐，规则却绑定 10 个历史 BV 号；改为本站视频详情地址规则。"
+}

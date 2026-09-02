@@ -18,14 +18,16 @@ class EvalCase:
     min_content_chars: int = 1
     fact_coverage_threshold: float = 1.0
     ground_truth_evidence: list[dict[str, str]] = field(default_factory=list)
-    annotation_notes: str = ""
     task_prompt: str = ""
     reference_answer: str = ""
-    human_review_checklist: list[str] = field(default_factory=list)
     source_benchmark: dict[str, Any] = field(default_factory=dict)
     ground_truth_main_content: str = ""
     expected_resources: list[dict[str, Any]] = field(default_factory=list)
     content_score_applicable: bool = True
+    track: str = "web"
+    required_patterns: list[dict[str, Any]] = field(default_factory=list)
+    source_verification: dict[str, Any] = field(default_factory=dict)
+    task_kind: str = "body"
 
 
 @dataclass

@@ -1,0 +1,13 @@
+{
+  "case_id": "challenge-08",
+  "url": "https://www.reddit.com/r/programming/",
+  "checked_at": "2026-09-02",
+  "frozen_at": "2026-09-02T06:16:27.644900+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "d6f11d49aabc907f3465d39bfc524d2c7b968780171428cd0ae9403a52482ae4",
+  "reference_sha256": "082e70963bc8d6d4e8c9ef5324003ff2d65934f5544bc5c0a9cbcfd360f202a5",
+  "scope": "已保存列表",
+  "items": 27,
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据",
+  "privacy": "仅公开列表；不包含账号页头、脚本、Cookie、私信或个人资料。"
+}

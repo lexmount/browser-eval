@@ -1,1 +1,0 @@
-User-friendly AI Interface (Supports Ollama, OpenAI API, ...) Repository stats: stars 151k, forks 22k, issues 157, pull requests 49.

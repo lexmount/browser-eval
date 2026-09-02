@@ -1,0 +1,17 @@
+---
+title: "Just a moment..."
+---
+
+![Icon for www.w3.org](https://www.w3.org/favicon.ico)
+
+# www.w3.org
+
+## Performing security verification
+
+This website uses a security service to protect against malicious bots. This page is displayed while the website verifies you are not a bot.
+
+## Verification successful. Waiting for www.w3.org to respond
+
+Ray ID: `a3499959f8e5ed38`
+
+Performance and Security by [Cloudflare](https://www.cloudflare.com?utm_source=challenge&utm_campaign=m) [Privacy](https://www.cloudflare.com/privacypolicy/)

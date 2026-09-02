@@ -25,11 +25,11 @@ class CloudflareMarkdownProvider(Provider):
             payload = {}
         content = payload.get("result") if isinstance(payload.get("result"), str) else ""
         errors = payload.get("errors") or []
-        ok = 200 <= response.status < 300 and payload.get("success") is True and bool(content)
+        ok = 200 <= response.status < 300 and payload.get("success") is True
         meta = payload.get("meta") or {}
         return ProviderResult(
             ok=ok,
-            content=content or response.text(),
+            content=content if ok else response.text(),
             status_code=response.status,
             final_url=meta.get("finalUrl") or case.url,
             title=meta.get("title"),
@@ -37,6 +37,8 @@ class CloudflareMarkdownProvider(Provider):
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
             metadata={
                 "upstream_status": meta.get("status"),
+                "empty_content": ok and not content,
+                "content_type": (meta.get("headers") or {}).get("content-type"),
                 "redirect_chain": meta.get("redirectChain"),
                 "errors": errors,
                 "retry_after": response.headers.get("retry-after"),

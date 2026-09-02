@@ -1,0 +1,1 @@
+{"requestId":"fea6ecee6ce6a0442edc69790b193892","results":[],"statuses":[{"id":"https://www.anthropologie.com/help/returns-exchanges","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":1688.0702200001106}

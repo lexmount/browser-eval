@@ -1,0 +1,29 @@
+{
+  "case_id": "web-retail-returns",
+  "url": "https://www.anthropologie.com/help/returns-exchanges",
+  "checked_at": "2026-09-02T08:02:52.684720+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 403,
+      "url": "https://www.anthropologie.com/help/returns-exchanges"
+    }
+  ],
+  "status": 403,
+  "final_url": "https://www.anthropologie.com/help/returns-exchanges",
+  "mime": "text/html;charset=utf-8",
+  "bytes": 780,
+  "sha256": "8988e7222429a8ebb1f86cfb488f0d2baabaf35d4eccfad30130159da1448288",
+  "response_headers": {
+    "Content-Type": "text/html;charset=utf-8"
+  },
+  "title": "anthropologie.com",
+  "selector": "body",
+  "resources": [],
+  "text_chars": 43,
+  "excerpt": "Please enable JS and disable any ad blocker",
+  "missing_facts": [],
+  "state": "needs_review",
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "动态商品列表不适用固定商品名和整页词语匹配；源站可访问，保留其结构任务。"
+}

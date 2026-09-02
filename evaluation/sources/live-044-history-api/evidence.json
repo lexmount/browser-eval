@@ -1,0 +1,24 @@
+{
+  "case_id": "live-044-history-api",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/History_API",
+  "checked_at": "2026-09-02T03:38:01.780268+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/History_API"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://developer.mozilla.org/en-US/docs/Web/API/History_API",
+  "mime": "text/html",
+  "bytes": 154747,
+  "sha256": "27af5325f64bc54e4a5ac47377efd6180bd5f2b65439c1791b8be214b357f4f4",
+  "title": "History API - Web APIs | MDN",
+  "selector": "main",
+  "resources": [],
+  "text_chars": 3146,
+  "excerpt": "History API\nBaseline\nWidely available\nThis feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.\nLearn more\nSee full compatibility\nThe\nHistory API\nprovides access to the browser's session history (not to be confused with\nWebExtensions history\n) through the\nhistory\nglobal object. It exposes useful methods and properties that let you navigate back and forth through the user's history, and manipulate the contents of the history stack.\nNote:\nThis API is only available on the main thread (\nWindow\n). It cannot be accessed in\nWorker\nor\nWorklet\ncontexts.\nConcepts and usage\nMoving backward and forward through the user's history is done using the\nback()\n,\nforward()\n, and\ngo()\nmethods.\nMoving forward and backward\nTo move b",
+  "missing_facts": [],
+  "state": "captured"
+}

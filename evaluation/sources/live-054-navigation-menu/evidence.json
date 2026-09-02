@@ -1,0 +1,77 @@
+{
+  "case_id": "live-054-navigation-menu",
+  "url": "https://github.com/aio-libs/aiohttp",
+  "checked_at": "2026-09-02T03:38:03.507661+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/aio-libs/aiohttp"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/aio-libs/aiohttp",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 395517,
+  "sha256": "f6f2faa48df1e2cd6a7d7271e51f42771b215fb986b231186c85b18414dd5448",
+  "title": "GitHub - aio-libs/aiohttp: Asynchronous HTTP client/server framework for asyncio and Python · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/aio-libs/aiohttp/master/docs/aiohttp-plain.svg",
+      "alt": "aiohttp logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/aio-libs/aiohttp/workflows/CI/badge.svg",
+      "alt": "GitHub Actions status for master branch"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/272670c78378eaf465c27ce13e4a7c6b00395980a566961d9e7cd0586337d998/68747470733a2f2f636f6465636f762e696f2f67682f61696f2d6c6962732f61696f687474702f6272616e63682f6d61737465722f67726170682f62616467652e737667",
+      "alt": "codecov.io status for master branch"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/2c826f38e95f1c0aac692338b0d711dbdfbedb8b0fece4249193b91be0a99fd5/68747470733a2f2f62616467652e667572792e696f2f70792f61696f687474702e737667",
+      "alt": "Latest PyPI package version"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/d744646068321b71e1fe90254f26f7f4d2a0653936c9f6d61a2b797b0c197db7/68747470733a2f2f696d672e736869656c64732e696f2f707970692f646d2f61696f68747470",
+      "alt": "Downloads count"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/9525a54053103a3ee64f182f6e50e103df22d052e520315cc9f2282d3b43e548/68747470733a2f2f72656164746865646f63732e6f72672f70726f6a656374732f61696f687474702f62616467652f3f76657273696f6e3d6c6174657374",
+      "alt": "Latest Read The Docs"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/06a66eaab8d0af3b50301152f7ac162f6eacdafda054e858b2182fdc82e64d6e/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f636f6473706565642e696f2f62616467652e6a736f6e",
+      "alt": "Codspeed.io status for aiohttp"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/9bf7378e61a5d285c1569879184cde749d30f277d567b5dc0569096c0db9ab1d/68747470733a2f2f696d672e736869656c64732e696f2f6d61747269782f61696f2d6c6962733a6d61747269782e6f72673f6c6162656c3d446973637573732532306f6e2532304d6174726978253230617425323025323361696f2d6c6962732533416d61747269782e6f7267266c6f676f3d6d6174726978267365727665725f6671646e3d6d61747269782e6f7267267374796c653d666c6174",
+      "alt": "Matrix Room — #aio-libs:matrix.org"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/1083352e5edd9cfbb9488d3c34a9ba187937b12a4f61736aa87612aef427ff55/68747470733a2f2f696d672e736869656c64732e696f2f6d61747269782f61696f2d6c6962732d73706163653a6d61747269782e6f72673f6c6162656c3d446973637573732532306f6e2532304d6174726978253230617425323025323361696f2d6c6962732d73706163652533416d61747269782e6f7267266c6f676f3d6d6174726978267365727665725f6671646e3d6d61747269782e6f7267267374796c653d666c6174",
+      "alt": "Matrix Space — #aio-libs-space:matrix.org"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/9068c47b16ea2b920f1c415a9e8fc6eb5eb47b7f0173dfa2c661c6cb170b00f5/68747470733a2f2f696e7369676874732e6c696e7578666f756e646174696f6e2e6f72672f6170692f62616467652f6865616c74682d73636f72653f70726f6a6563743d61696f68747470",
+      "alt": "LFX Health Score"
+    }
+  ],
+  "text_chars": 2604,
+  "excerpt": "Async http client/server framework\nKey Features\nSupports both client and server side of HTTP protocol.\nSupports both client and server Web-Sockets out-of-the-box and avoids\nCallback Hell.\nProvides Web-server with middleware and pluggable routing.\nGetting started\nClient\nTo get something from the web:\nimport\naiohttp\nimport\nasyncio\nasync\ndef\nmain\n():\nasync\nwith\naiohttp\n.\nClientSession\n()\nas\nsession\n:\nasync\nwith\nsession\n.\nget\n(\n'https://python.org'\n)\nas\nresponse\n:\nprint\n(\n\"Status:\"\n,\nresponse\n.\nstatus\n)\nprint\n(\n\"Content-type:\"\n,\nresponse\n.\nheaders\n[\n'content-type'\n])\nhtml\n=\nawait\nresponse\n.\ntext\n()\nprint\n(\n\"Body:\"\n,\nhtml\n[:\n15\n],\n\"...\"\n)\nasyncio\n.\nrun\n(\nmain\n())\nThis prints:\nStatus: 200\nContent-type: text/html; charset=utf-8\nBody: <!doctype html> ...\nComing from\nrequests\n? Read\nwhy we need so ",
+  "missing_facts": [
+    "anchor-2"
+  ],
+  "state": "captured"
+}

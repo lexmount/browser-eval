@@ -1,0 +1,105 @@
+Travel | Books to Scrape - Sandbox 
+
+# Travel
+
+Warning! This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+
+1. 
+
+### It's Only the Himalayas
+
+£45.17
+
+ In stock 
+
+ Add to basket 
+2. 
+
+### Full Moon over Noah’s ...
+
+£49.43
+
+ In stock 
+
+ Add to basket 
+3. 
+
+### See America: A Celebration ...
+
+£48.87
+
+ In stock 
+
+ Add to basket 
+4. 
+
+### Vagabonding: An Uncommon Guide ...
+
+£36.94
+
+ In stock 
+
+ Add to basket 
+5. 
+
+### Under the Tuscan Sun
+
+£37.33
+
+ In stock 
+
+ Add to basket 
+6. 
+
+### A Summer In Europe
+
+£44.34
+
+ In stock 
+
+ Add to basket 
+7. 
+
+### The Great Railway Bazaar
+
+£30.54
+
+ In stock 
+
+ Add to basket 
+8. 
+
+### A Year in Provence ...
+
+£56.88
+
+ In stock 
+
+ Add to basket 
+9. 
+
+### The Road to Little ...
+
+£23.21
+
+ In stock 
+
+ Add to basket 
+10. 
+
+### Neither Here nor There: ...
+
+£38.95
+
+ In stock 
+
+ Add to basket 
+11. 
+
+### 1,000 Places to See ...
+
+£26.08
+
+ In stock 
+
+ Add to basket

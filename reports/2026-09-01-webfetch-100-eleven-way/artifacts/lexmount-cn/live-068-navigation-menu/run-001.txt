@@ -1,1 +1,0 @@
-Declarative routing for React. Contribute to remix-run/react-router development by creating an account on GitHub. Repository stats: stars 56.6k, forks 10.9k, issues 102, pull requests 71.

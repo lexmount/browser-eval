@@ -1,0 +1,42 @@
+{
+  "case_id": "live-029-fetch",
+  "url": "https://fetch.spec.whatwg.org/",
+  "checked_at": "2026-09-02T03:37:57.329667+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://fetch.spec.whatwg.org/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://fetch.spec.whatwg.org/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 1929970,
+  "sha256": "253132e5b4226b34726a340cc902eb725e1f3e946d9458d985963f33d372785b",
+  "title": "Fetch Standard",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://resources.whatwg.org/logo-fetch.svg",
+      "alt": "WHATWG"
+    },
+    {
+      "tag": "img",
+      "url": "https://resources.whatwg.org/tracking-vector.svg",
+      "alt": "(This is a tracking vector.)"
+    },
+    {
+      "tag": "img",
+      "url": "https://resources.whatwg.org/tracking-vector.svg",
+      "alt": "(This is a tracking vector.)"
+    }
+  ],
+  "text_chars": 307053,
+  "excerpt": "Goals\nThe goal is to unify fetching across the web platform and provide consistent handling of\neverything that involves, including:\nURL schemes\nRedirects\nCross-origin semantics\nCSP\n[CSP]\nFetch Metadata\n[FETCH-METADATA]\nService workers\n[SW]\nMixed Content\n[MIX]\nUpgrade Insecure Requests\n[UPGRADE-INSECURE-REQUESTS]\n`\nReferer\n`\n[REFERRER]\nTo do so it also supersedes the HTTP `\nOrigin\n` header semantics\noriginally defined in\nThe Web Origin Concept\n.\n[ORIGIN]\n1.\nPreface\nAt a high level, fetching a resource is a fairly simple operation. A request goes in, a\nresponse comes out. The details of that operation are\nhowever quite involved and used to not be written down carefully and differ from one API\nto the next.\nNumerous APIs provide the ability to fetch a resource, e.g. HTML’s\nimg\nand\nscript\neleme",
+  "missing_facts": [
+    "anchor-3"
+  ],
+  "state": "captured"
+}

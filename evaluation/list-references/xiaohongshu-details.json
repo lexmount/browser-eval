@@ -1,0 +1,93 @@
+[
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a711633000000002500f00f",
+    "restriction": false,
+    "title": "要脸的人真吃不了这碗饭",
+    "checked_at": "2026-09-02T09:50:10.254Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a58654a000000001f01ce54",
+    "restriction": false,
+    "title": "带我的小公主去看看马儿",
+    "checked_at": "2026-09-02T09:50:10.269Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a3de25b000000000f033ba8",
+    "restriction": false,
+    "title": "白玉兰评委的权威——内娱最有语言天赋男演员",
+    "checked_at": "2026-09-02T09:50:10.283Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a3b5f48000000001503e217",
+    "restriction": false,
+    "title": "程潇的妹妹程晨毕业啦",
+    "checked_at": "2026-09-02T09:50:10.292Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a7385a1000000002202d861",
+    "restriction": false,
+    "title": "不知道说什么好了",
+    "checked_at": "2026-09-02T09:50:10.313Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a5ae8df000000000401de89",
+    "restriction": false,
+    "title": "庄超英终于意识到这一点了啊！！！",
+    "checked_at": "2026-09-02T09:50:10.326Z",
+    "method": "Independent rendered detail page; original returned URL used"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a51a3bd0000000016024807",
+    "restriction": true,
+    "restriction_message": "当前笔记暂时无法浏览；请打开小红书App扫码查看",
+    "independent_feedback": {"reported_on": "2026-09-02", "method": "人工独立访问反馈", "same_restriction_observed": true, "title_verified": false},
+    "title": "",
+    "checked_at": "2026-09-02T09:50:10.334Z",
+    "method": "Independent browser check of query-stripped URL; not the original provider link"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a6975bc000000000a039df2",
+    "restriction": true,
+    "restriction_message": "当前笔记暂时无法浏览；请打开小红书App扫码查看",
+    "independent_feedback": {"reported_on": "2026-09-02", "method": "人工独立访问反馈", "same_restriction_observed": true, "title_verified": false},
+    "title": "",
+    "checked_at": "2026-09-02T09:50:10.343Z",
+    "method": "Independent browser check of query-stripped URL; not the original provider link"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a42ffe2000000000702a887",
+    "restriction": true,
+    "restriction_message": "当前笔记暂时无法浏览；请打开小红书App扫码查看",
+    "independent_feedback": {"reported_on": "2026-09-02", "method": "人工独立访问反馈", "same_restriction_observed": true, "title_verified": false},
+    "title": "",
+    "checked_at": "2026-09-02T09:50:10.402Z",
+    "method": "Independent browser check of query-stripped URL; not the original provider link"
+  }
+,
+{
+    "url": "https://www.xiaohongshu.com/explore/6a51a3bd0000000016024807?xsec_token=AB5M1sl2HL9hcJlYHsx1UBoxb3a7ttPmw5zq4qZd4aEvk=&xsec_source=",
+    "title": "工资到账了，咬碎牙挣来的！",
+    "restriction": false,
+    "checked_at": "2026-09-02T10:27:13.871Z",
+    "method": "Independent rendered detail page h1; complete provider URL including query parameters"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a6975bc000000000a039df2?xsec_token=ABH1QMLxCcdo14MGzCOuFcv839mnXTFX5WCbl9ZB0MXMU=&xsec_source=",
+    "title": "他还是个孩子这句话居然能从我嘴里说出来",
+    "restriction": false,
+    "checked_at": "2026-09-02T10:27:13.878Z",
+    "method": "Independent rendered detail page h1; complete provider URL including query parameters"
+  },
+  {
+    "url": "https://www.xiaohongshu.com/explore/6a42ffe2000000000702a887?xsec_token=ABnQ6RnziWc-yN_DISZ28OI9KhhB6YoKHIGNsY7m9LAug=&xsec_source=",
+    "title": "男朋友送的包包是正品吗",
+    "restriction": false,
+    "checked_at": "2026-09-02T10:27:13.886Z",
+    "method": "Independent rendered detail page h1; complete provider URL including query parameters"
+  }
+]

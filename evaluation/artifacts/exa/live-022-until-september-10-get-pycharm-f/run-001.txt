@@ -1,0 +1,31 @@
+Getting started | Django documentation | Django
+
+# Getting started¶
+
+New to Django? Or to web development in general? Well, you came to the right place: read this material to quickly get up and running.
+
+- Django at a glance
+- Quick install guide
+- Writing your first Django app, part 1
+- Writing your first Django app, part 2
+- Writing your first Django app, part 3
+- Writing your first Django app, part 4
+- Writing your first Django app, part 5
+- Writing your first Django app, part 6
+- Writing your first Django app, part 7
+- Writing your first Django app, part 8
+- Advanced tutorial: How to write reusable apps
+- What to read next
+- Writing your first contribution for Django
+
+If you’re new to Python, you might want to start by getting an idea of what the language is like. Django is 100% Python, so if you’ve got minimal comfort with Python you’ll probably get a lot more out of Django.
+
+If you’re new to programming entirely, you might want to start with this list of Python resources for non-programmers
+
+If you already know a few other languages and want to get up to speed with Python quickly, we recommend referring to the official Python documentation, which provides comprehensive and authoritative information about the language, as well as links to other resources such as a list of books about Python.
+
+### Contents
+
+- Getting started
+
+ Offline (Django 6.1): HTML | PDF | ePub Provided by Read the Docs.

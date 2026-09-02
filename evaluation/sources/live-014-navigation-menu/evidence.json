@@ -1,0 +1,27 @@
+{
+  "case_id": "live-014-navigation-menu",
+  "url": "https://github.com/postgres/postgres",
+  "checked_at": "2026-09-02T03:37:53.393118+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/postgres/postgres"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/postgres/postgres",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 286207,
+  "sha256": "28d2580f8284e093d437322d01779eefe929b14ea228106969348dcde39ef3b8",
+  "title": "GitHub - postgres/postgres: Mirror of the official PostgreSQL GIT repository. Note that this is just a *mirror* - we don't work with pull requests on github. To contribute, please see https://wiki.postgresql.org/wiki/Submitting_a_Patch · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [],
+  "text_chars": 941,
+  "excerpt": "PostgreSQL Database Management System\nThis directory contains the source code distribution of the PostgreSQL\ndatabase management system.\nPostgreSQL is an advanced object-relational database management system\nthat supports an extended subset of the SQL standard, including\ntransactions, foreign keys, subqueries, triggers, user-defined types\nand functions.  This distribution also contains C language bindings.\nCopyright and license information can be found in the file COPYRIGHT.\nGeneral documentation about this version of PostgreSQL can be found at\nhttps://www.postgresql.org/docs/devel/\n.  In particular, information\nabout building PostgreSQL from the source code can be found at\nhttps://www.postgresql.org/docs/devel/installation.html\n.\nThe latest version of this software, and related software, ",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2"
+  ],
+  "state": "captured"
+}

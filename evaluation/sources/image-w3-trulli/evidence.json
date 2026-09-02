@@ -1,0 +1,46 @@
+{
+  "case_id": "image-w3-trulli",
+  "url": "https://www.w3schools.com/html/tryit.asp?filename=tryhtml_images_trulli",
+  "checked_at": "2026-09-02T08:02:52.685427+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.w3schools.com/html/tryit.asp?filename=tryhtml_images_trulli"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.w3schools.com/html/tryit.asp?filename=tryhtml_images_trulli",
+  "mime": "text/html",
+  "bytes": 37261,
+  "sha256": "3fd686be8c5edc02a421dc69e965776d0cee6635e38765a5f2bac99736c15a5b",
+  "response_headers": {
+    "Content-Security-Policy": "frame-ancestors 'self' https://mycourses.w3schools.com https://pathfinder.w3schools.com; upgrade-insecure-requests",
+    "Content-Type": "text/html"
+  },
+  "title": "W3Schools Tryit Editor",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "iframe",
+      "url": "https://www.googletagmanager.com/ns.html?id=GTM-KTCFC3S",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://www.w3schools.com/images/spaces-icon-tryit.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://www.w3schools.com/html/pic_trulli.jpg",
+      "alt": "Trulli"
+    }
+  ],
+  "text_chars": 158,
+  "excerpt": "Run ❯\nGet your\nown\nwebsite\n❯\nRun Code\nCtrl+Alt+R\nSave Code\nCtrl+Alt+A\nChange Orientation\nCtrl+Alt+O\nChange Theme\nCtrl+Alt+D\nGo to Spaces\nCtrl+Alt+P\nHTML Image",
+  "missing_facts": [],
+  "state": "captured",
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "旧目标是教程推广缩略图，独立请求 403 且浏览器未加载；改为可见的建筑图片示例。"
+}

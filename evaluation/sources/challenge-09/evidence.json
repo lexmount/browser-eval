@@ -1,0 +1,13 @@
+{
+  "case_id": "challenge-09",
+  "url": "https://www.imdb.com/chart/top/",
+  "checked_at": "2026-09-02",
+  "frozen_at": "2026-09-02T06:16:27.644900+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "e2f8dcd2e25baaa7986ac1788ad6a90beed0a66df0fe626efeed6e3ed4ddcd6f",
+  "reference_sha256": "ff5705feed51b20505195ca9f7581a1f68521532c0cdb3dee12462cd1c608e1a",
+  "scope": "完整 Top 250 榜单",
+  "items": 250,
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据",
+  "privacy": "仅公开列表；不包含账号页头、脚本、Cookie、私信或个人资料。"
+}

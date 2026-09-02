@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from .metrics import evaluate_content, evaluate_resources, summarize
+from .dynamic_lists import evaluate_dynamic_list
+from .list_verification import verify_list
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
 
@@ -145,10 +147,15 @@ def run_evaluation(
                         min_content_chars=case.min_content_chars,
                         fact_coverage_threshold=case.fact_coverage_threshold,
                         ground_truth_main_content=case.ground_truth_main_content,
+                        required_patterns=case.required_patterns,
                     )
                     measured["content_score_applicable"] = case.content_score_applicable
                     if not case.content_score_applicable:
                         measured["content_pass"] = False
+                    if not result.ok:
+                        measured['content_pass'] = False
+                        if measured['word_f1'] is not None:
+                            measured.update(word_precision=0.0, word_recall=0.0, word_f1=0.0)
                     measured.update(evaluate_resources(
                         result.content,
                         result.metadata,
@@ -157,6 +164,11 @@ def run_evaluation(
                         eligible=result.ok,
                     ))
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
+                    if case.source_benchmark.get('mode')=='dynamic_list_structure':
+                        measured.update(evaluate_dynamic_list(result.content,case.source_benchmark,case.url,result.ok))
+                        if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
+                            reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
+                            measured.update(verify_list(result.content,case.source_benchmark,case.url,reference,result.ok))
                     measured["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
                     record = AttemptRecord(
                         attempt_id=attempt_id,
@@ -183,7 +195,8 @@ def run_evaluation(
                             "client_throttle_wait_ms": throttle_wait_ms,
                         },
                     ).to_dict()
-                    state = "PASS" if result.ok and record["metrics"]["content_pass"] else "FAIL"
+                    passed = record["metrics"].get("structure_pass") if case.task_kind == "structure" else record["metrics"]["content_pass"]
+                    state = ("STRUCTURE_PASS" if passed else "STRUCTURE_FAIL") if case.task_kind == "structure" else ("PASS" if result.ok and passed else "FAIL")
                     with result_lock:
                         records.append(record)
                         results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -249,10 +262,15 @@ def rescore_evaluation(
             min_content_chars=case.min_content_chars,
             fact_coverage_threshold=case.fact_coverage_threshold,
             ground_truth_main_content=case.ground_truth_main_content,
+            required_patterns=case.required_patterns,
         )
         record["metrics"]["content_score_applicable"] = case.content_score_applicable
         if not case.content_score_applicable:
             record["metrics"]["content_pass"] = False
+        if not record['ok']:
+            record['metrics']['content_pass'] = False
+            if record['metrics']['word_f1'] is not None:
+                record['metrics'].update(word_precision=0.0,word_recall=0.0,word_f1=0.0)
         record["metrics"].update(evaluate_resources(
             content,
             record.get("provider_metadata", {}),
@@ -261,6 +279,11 @@ def rescore_evaluation(
             eligible=bool(record.get("ok")),
         ))
         record["metrics"]["deadline_overrun"] = previous_deadline
+        if case.source_benchmark.get('mode')=='dynamic_list_structure':
+            record['metrics'].update(evaluate_dynamic_list(content,case.source_benchmark,case.url,bool(record['ok'])))
+            if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
+                reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
+                record['metrics'].update(verify_list(content,case.source_benchmark,case.url,reference,bool(record['ok'])))
         record["metrics"]["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
 
     tmp = run_dir / "results.jsonl.tmp"

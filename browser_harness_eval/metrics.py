@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
+import math
 import hashlib
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
 from typing import Any
-from urllib.parse import urljoin, urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
 
 
 METRIC_DEFINITIONS = {
@@ -24,7 +25,7 @@ METRIC_DEFINITIONS = {
     "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
-    "word_f1": "仅对含完整人工正文的案例计算：供应商输出与标准正文的词袋 precision/recall 调和平均值。",
+    "word_f1": "完整参考正文与输出的词语重合评分，同时衡量正文遗漏和额外噪声；无完整参考的案例不计算。",
     "resource_recall": "从网页输出或结构化元数据中发现的预登记资源数，除以该案例全部必需资源数；输入 URL 本身不计为发现。",
 }
 
@@ -46,7 +47,14 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
         return None
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
-    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, parsed.query, ""))
+    path,query=parsed.path,parsed.query
+    # Same asset at different presentation sizes. Never drop signed query
+    # parameters on arbitrary hosts or collapse distinct resources globally.
+    if parsed.hostname in {'images.unsplash.com','plus.unsplash.com','images.pexels.com','images-assets.nasa.gov','www.nasa.gov'}:
+        query=''
+    if parsed.hostname and parsed.hostname.endswith('wikimedia.org') and '/thumb/' in path:
+        path=path.replace('/thumb/','/').rsplit('/',1)[0];query=''
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc.lower().replace('thumb.wikimedia.org','upload.wikimedia.org'), unquote(path), query, ""))
 
 
 def _metadata_resource_urls(value: Any, *, key: str = "") -> list[str]:
@@ -81,6 +89,7 @@ def evaluate_resources(
         candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
         candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
     normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
+    normalized_candidates = [url for url in normalized_candidates if url != normalize_resource_url(base_url,base_url)]
     results = []
     for index, resource in enumerate(expected_resources):
         alternatives = [
@@ -88,6 +97,7 @@ def evaluate_resources(
             if (url := normalize_resource_url(str(item), base_url))
         ]
         matched = sorted(set(alternatives) & set(normalized_candidates))
+        matched += [u for u in normalized_candidates if any(re.search(p,u) for p in resource.get('url_patterns',[])) and u not in matched]
         results.append({
             "id": str(resource.get("id") or f"resource-{index + 1}"),
             "kind": str(resource.get("kind") or "resource"),
@@ -109,8 +119,15 @@ def evaluate_resources(
 
 
 def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
-    predicted_words = Counter(re.findall(r"\w+", predicted.casefold()))
-    reference_words = Counter(re.findall(r"\w+", reference.casefold()))
+    # CJK characters are individual tokens, not an entire unsegmented paragraph.
+    # Strip Markdown link destinations/formatting from both sides: punctuation
+    # and link spelling must not masquerade as missing prose.
+    def tokens(value):
+        value = unicodedata.normalize('NFKC', value).casefold()
+        value = re.sub(r'!?\[([^\]]*)\]\([^)]*\)', r'\1', value)
+        return Counter(re.findall(r'[\u3400-\u9fff]|[^\W_\u3400-\u9fff]+', value))
+    predicted_words = tokens(predicted)
+    reference_words = tokens(reference)
     if not reference_words:
         return (1.0, 1.0, 1.0) if not predicted_words else (0.0, 1.0, 0.0)
     if not predicted_words:
@@ -137,6 +154,7 @@ def evaluate_content(
     min_content_chars: int = 1,
     fact_coverage_threshold: float = 1.0,
     ground_truth_main_content: str = "",
+    required_patterns: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if normalize_for_match(marker) in folded]
@@ -153,18 +171,31 @@ def evaluate_content(
         })
     fact_hits = sum(item["pass"] for item in fact_results)
     fact_coverage = round(fact_hits / len(fact_results), 4) if fact_results else 1.0
-    forbidden = [item for item in (forbidden_any or []) if normalize_for_match(item) in folded]
+    # A reference can legitimately explain HTTP errors or CAPTCHA handling.
+    # Such text is not evidence that the returned document is an error page.
+    # Keep length, facts and structural gates active, including for short errors.
+    reference_folded = normalize_for_match(ground_truth_main_content)
+    reference_exemptions = [item for item in (forbidden_any or [])
+                            if reference_folded and normalize_for_match(item) in reference_folded]
+    forbidden = [item for item in (forbidden_any or [])
+                 if item not in reference_exemptions and normalize_for_match(item) in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
     content_pass = legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold and not forbidden
+    pattern_results = []
+    for rule in required_patterns or []:
+        count = len(set(re.findall(rule['pattern'], content, re.I)))
+        pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
+    content_pass = content_pass and all(item['pass'] for item in pattern_results)
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
         word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
     return {
         "content_pass": content_pass,
+        "pattern_results": pattern_results,
         "legacy_marker_pass": legacy_pass,
         "matched_markers": matched,
         "expected_markers": expected,
@@ -177,6 +208,7 @@ def evaluate_content(
         "fact_coverage": fact_coverage,
         "fact_coverage_threshold": fact_coverage_threshold,
         "forbidden_hits": forbidden,
+        "reference_term_exemptions": reference_exemptions,
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
         "content_chars": len(content),
@@ -195,7 +227,10 @@ def percentile(values: list[float], fraction: float) -> float | None:
     if not values:
         return None
     ordered = sorted(values)
-    index = round((len(ordered) - 1) * fraction)
+    if fraction == 0.5:
+        return round(statistics.median(ordered), 2)
+    # Nearest rank: at least the requested fraction is at or below this value.
+    index = max(0, min(len(ordered)-1, math.ceil(len(ordered)*fraction)-1))
     return round(ordered[index], 2)
 
 
@@ -220,8 +255,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
             "content_pass_rate": round(
-                sum(item["metrics"]["content_pass"] for item in items) / len(items), 4
+                sum(item['ok'] and item["metrics"]["content_pass"] for item in items) / len(items), 4
             ),
+            "conditional_content_pass_rate": (round(sum(item['ok'] and item['metrics']['content_pass'] for item in items) / sum(item['ok'] for item in items), 4) if any(item['ok'] for item in items) else None),
             "mean_marker_recall": round(
                 statistics.mean(item["metrics"]["marker_recall"] for item in items), 4
             ),
@@ -257,7 +293,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
             "content_pass_rate": round(
-                sum(item["metrics"]["content_pass"] for item in items) / len(items), 4
+                sum(item['ok'] and item["metrics"]["content_pass"] for item in items) / len(items), 4
             ),
         }
     return {"providers": provider_summary, "cases": case_summary}

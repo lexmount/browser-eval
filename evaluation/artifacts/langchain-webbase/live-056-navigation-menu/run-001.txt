@@ -1,0 +1,609 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GitHub - denoland/deno: A modern runtime for JavaScript and TypeScript. · GitHub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Skip to content
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Navigation MenuSign inAppearance settingsPlatformAI CODE CREATIONGitHub CopilotWrite better code with AIGitHub Copilot appDirect agents from issue to mergeMCP RegistryIntegrate external toolsDEVELOPER WORKFLOWSActionsAutomate any workflowCodespacesInstant dev environmentsIssuesPlan and track workCode ReviewManage code changesCode QualityEnforce quality at mergeAPPLICATION SECURITYGitHub Advanced SecurityFind and fix vulnerabilitiesCode securitySecure your code as you buildSecret protectionStop leaks before they startEXPLOREWhy GitHubDocumentationBlogChangelogMarketplaceView all featuresSolutionsBY COMPANY SIZEEnterprisesSmall and medium teamsStartupsNonprofitsBY USE CASEApp ModernizationDevSecOpsDevOpsCI/CDView all use casesBY INDUSTRYHealthcareFinancial servicesManufacturingGovernmentView all industriesView all solutionsResourcesEXPLORE BY TOPICAISoftware DevelopmentDevOpsSecurityView all topicsEXPLORE BY TYPECustomer storiesEvents & webinarsEbooks & reportsBusiness insightsGitHub SkillsSUPPORT & SERVICESDocumentationCustomer supportCommunity forumTrust centerPartnersView all resourcesOpen SourceCOMMUNITYGitHub SponsorsFund open source developersPROGRAMSSecurity LabMaintainer CommunityGitHub StarsArchive ProgramREPOSITORIESTopicsTrendingCollectionsEnterpriseENTERPRISE SOLUTIONSEnterprise platformAI-powered developer platformAVAILABLE ADD-ONSGitHub Advanced SecurityEnterprise-grade security featuresCopilot for BusinessEnterprise-grade AI featuresPremium SupportEnterprise-grade 24/7 supportPricingSearch/Sign inSign upAppearance settings
+
+
+
+
+
+You signed in with another tab or window. Reload to refresh your session.
+You signed out in another tab or window. Reload to refresh your session.
+You switched accounts on another tab or window. Reload to refresh your session.
+ 
+
+
+Dismiss alert
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        Uh oh!
+
+ There was an error while loading. Please reload this page.
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+        denoland
+ 
+/
+
+deno
+
+Public
+
+
+
+
+
+ 
+
+Notifications
+ You must be signed in to change notification settings
+
+
+ 
+
+Fork
+    6.4k
+
+
+
+
+ 
+
+
+          Star
+ 108k
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Code
+
+
+
+
+
+
+
+Issues
+1.2k
+
+
+
+
+
+
+Pull requests
+337
+
+
+
+
+
+
+Discussions
+
+
+
+
+
+
+
+Actions
+
+
+
+
+
+
+
+Wiki
+
+
+
+
+
+
+
+Security and quality
+40
+
+
+
+
+
+
+Insights
+
+
+
+ 
+
+ 
+
+
+Additional navigation options
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+          Code
+
+
+
+
+
+
+
+
+
+
+
+          Issues
+
+
+
+
+
+
+
+
+
+
+
+          Pull requests
+
+
+
+
+
+
+
+
+
+
+
+          Discussions
+
+
+
+
+
+
+
+
+
+
+
+          Actions
+
+
+
+
+
+
+
+
+
+
+
+          Wiki
+
+
+
+
+
+
+
+
+
+
+
+          Security and quality
+
+
+
+
+
+
+
+
+
+
+
+          Insights
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+   mainBranchesTagsGo to fileCodeOpen more actions menuLatest commit History17,341 Commits17,341 CommitsFolders and filesNameNameLast commit messageLast commit date.cargo.cargo  .claude/skills.claude/skills  .devcontainer.devcontainer  .github.github  clicli  docdoc  extext  libslibs  runtimeruntime  teststests  toolstools  .dprint.json.dprint.json  .editorconfig.editorconfig  .gitattributes.gitattributes  .gitignore.gitignore  .gitmodules.gitmodules  .rustfmt.toml.rustfmt.toml  CLAUDE.mdCLAUDE.md  Cargo.lockCargo.lock  Cargo.tomlCargo.toml  LICENSE.mdLICENSE.md  README.mdREADME.md  Releases.mdReleases.md  flake.lockflake.lock  flake.nixflake.nix  import_map.jsonimport_map.json  rust-toolchain.tomlrust-toolchain.toml  xx  View all filesRepository files navigationREADMECode of conductContributingMIT licenseSecurityMore itemsDeno
+
+ 
+ 
+
+Deno
+(/ˈdiːnoʊ/, pronounced
+dee-no) is a JavaScript, TypeScript, and WebAssembly runtime with secure
+defaults and a great developer experience. It's built on V8,
+Rust, and Tokio.
+Learn more about the Deno runtime
+in the documentation.
+Installation
+Install the Deno runtime on your system using one of the commands below. Note
+that there are a number of ways to install Deno - a comprehensive list of
+installation options can be found
+here.
+Shell (Mac, Linux):
+curl -fsSL https://deno.land/install.sh | sh
+PowerShell (Windows):
+irm https://deno.land/install.ps1 | iex
+Homebrew (Mac):
+brew install deno
+Chocolatey (Windows):
+choco install deno
+WinGet (Windows):
+winget install --id=DenoLand.Deno
+Scoop
+(Windows):
+scoop install main/deno
+Build and install from source
+Complete instructions for building Deno from source can be found
+here.
+Your first Deno program
+Deno can be used for many different applications, but is most commonly used to
+build web servers. Create a file called server.ts and include the following
+TypeScript code:
+Deno.serve((_req: Request) => {
+  return new Response("Hello, world!");
+});
+Run your server with the following command:
+deno run --allow-net server.ts
+This should start a local web server on
+http://localhost:8000.
+Learn more about writing and running Deno programs
+in the docs.
+Additional resources
+
+Deno Docs: official guides and reference docs for
+the Deno runtime, Deno Deploy, and beyond.
+Deno Standard Library: officially supported common
+utilities for Deno programs.
+JSR: The open-source package registry for modern
+JavaScript and TypeScript
+Developer Blog: Product updates, tutorials, and
+more from the Deno team.
+
+Contributing
+We appreciate your help! To contribute, please read our
+contributing instructions.
+AboutA modern runtime for JavaScript and TypeScript.deno.comTopicsdenojavascriptrusttypescriptResourcesReadmeMIT licenseCode of conductCode of conductContributingContributingSecurity policySecurity policyActivityCustom propertiesStars108.4k starsWatchers1.4k watchingForks6.4k forksReport repositoryReleasesUsed byContributorsLanguages   
+
+
+
+
+
+
+
+Footer
+
+
+
+
+
+
+
+
+        © 2026 GitHub, Inc.
+      
+
+
+Footer navigation
+
+
+Terms
+
+
+Privacy
+
+
+Security
+
+
+Status
+
+
+Community
+
+
+Docs
+
+
+Contact
+
+
+
+
+      Manage cookies
+    
+
+
+
+
+
+        Do not share my personal information
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    You can’t perform that action at this time.
+  
+
+
+
+
+
+
+
+
+
+
+
+

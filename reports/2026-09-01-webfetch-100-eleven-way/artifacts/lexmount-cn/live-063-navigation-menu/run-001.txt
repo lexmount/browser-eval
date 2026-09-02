@@ -1,1 +1,0 @@
-An extremely fast Python linter and code formatter, written in Rust. Repository stats: stars 49.4k, forks 2.4k, issues 1.7k, pull requests 455.

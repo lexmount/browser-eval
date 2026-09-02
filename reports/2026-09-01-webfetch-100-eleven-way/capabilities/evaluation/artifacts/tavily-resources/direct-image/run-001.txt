@@ -1,1 +1,0 @@
-{"results":[],"failed_results":[{"url":"https://httpbin.org/image/png","error":"Failed to fetch url"}],"response_time":0.37,"request_id":"3c10aa8f-2ac6-4d20-a3f5-350581bc311b"}

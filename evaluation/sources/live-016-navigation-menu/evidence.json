@@ -1,0 +1,34 @@
+{
+  "case_id": "live-016-navigation-menu",
+  "url": "https://github.com/openai/openai-python",
+  "checked_at": "2026-09-02T03:37:53.760580+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/openai/openai-python"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/openai/openai-python",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 684041,
+  "sha256": "7a0a7e43c247ccfc02f7fce6c80ce4e463a01bd1b7c65f8a9c303a7905fd63b2",
+  "title": "GitHub - openai/openai-python: The official Python library for the OpenAI API · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/8604f02a8c199de45f717e017aad786238bf1115870db170c2d54c09a8d9bc4b/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f6f70656e61692e7376673f6c6162656c3d7079706925323028737461626c6529",
+      "alt": "PyPI version"
+    }
+  ],
+  "text_chars": 34481,
+  "excerpt": "OpenAI Python API library\nThe OpenAI Python library provides convenient access to the OpenAI REST API from any Python 3.10+\napplication. The library includes type definitions for all request params and response fields,\nand offers both synchronous and asynchronous clients powered by\nHTTPX2\n.\nIt is generated from our\nOpenAPI specification\n.\nDocumentation\nThe REST API documentation can be found on\nplatform.openai.com\n. The full API of this library can be found in\napi.md\n.\nInstallation\n#\ninstall from PyPI\npip install openai\nUsage\nThe full API of this library can be found in\napi.md\n.\nThe primary API for interacting with OpenAI models is the\nResponses API\n. You can generate text from the model with the code below.\nimport\nos\nfrom\nopenai\nimport\nOpenAI\nclient\n=\nOpenAI\n(\n# This is the default and ca",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2",
+    "anchor-3"
+  ],
+  "state": "captured"
+}

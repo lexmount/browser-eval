@@ -1,1 +1,0 @@
-HTTPError('403 Client Error: Forbidden for url: https://www.wellmeright.com/glossary/fitness-exercise-training')

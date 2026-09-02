@@ -14,7 +14,7 @@ from urllib.parse import urljoin
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=Path, default=Path("datasets/file_media_capabilities.json"))
+    parser.add_argument("--dataset", type=Path, default=Path("evaluation/dataset.json"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=25)
     args = parser.parse_args()

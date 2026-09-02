@@ -1,0 +1,1 @@
+Define and run multi-container applications with Docker Repository stats: stars 38.1k, forks 5.8k, issues 64, pull requests 47. README excerpt: Docker Compose Where to get Docker Compose Windows and macOS Linux Quick Start Contributing Legacy Docker Compose

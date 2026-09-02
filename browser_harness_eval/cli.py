@@ -8,7 +8,7 @@ from pathlib import Path
 from .accounts import print_account_checklist
 from .config import load_dataset, load_env_file, load_provider_config
 from .providers import build_provider
-from .report import generate_report
+from .report_build import build_report
 from .runner import load_records, rescore_evaluation, run_evaluation
 
 
@@ -50,17 +50,14 @@ def command_run(args: argparse.Namespace) -> int:
         delay=args.delay,
         provider_concurrency=args.provider_concurrency,
     )
-    report_path = generate_report(args.output, dataset_meta, records)
+    report_path = build_report(args.output, args.output / 'report')
     print(f"Report: {report_path.resolve()}")
     failures = [r for r in records if not r["ok"] or not r["metrics"]["content_pass"]]
     return 2 if args.fail_on_failure and failures else 0
 
 
 def command_report(args: argparse.Namespace) -> int:
-    dataset_path = args.dataset or (args.run_dir / "dataset.json")
-    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
-    records = load_records(args.run_dir)
-    report_path = generate_report(args.run_dir, dataset, records)
+    report_path = build_report(args.run_dir, args.run_dir / 'report')
     print(f"Report: {report_path.resolve()}")
     return 0
 
@@ -68,7 +65,7 @@ def command_report(args: argparse.Namespace) -> int:
 def command_rescore(args: argparse.Namespace) -> int:
     dataset, cases = load_dataset(args.dataset)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
-    report_path = generate_report(args.run_dir, dataset, records)
+    report_path = build_report(args.run_dir, args.run_dir / 'report')
     print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
@@ -109,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
-    run.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_100.json")
+    run.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     run.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
@@ -129,16 +126,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")
     report.add_argument("run_dir", type=Path)
-    report.add_argument("--dataset", type=Path)
     report.set_defaults(handler=command_report)
 
-    rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts using a dataset version")
+    rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts and task rules")
     rescore.add_argument("run_dir", type=Path)
-    rescore.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_100.json")
+    rescore.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     rescore.set_defaults(handler=command_rescore)
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")
-    validate.add_argument("--dataset", type=Path, default=ROOT / "datasets/public_webfetch_100.json")
+    validate.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     validate.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
     validate.add_argument("--providers", default="fixture")
     validate.add_argument("--env-file", type=Path)

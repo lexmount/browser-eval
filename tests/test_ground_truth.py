@@ -1,65 +1,36 @@
+import hashlib
 import json
 import unittest
+from collections import Counter
 from pathlib import Path
-
 from browser_harness_eval.config import load_dataset
 
 
 class GroundTruthTest(unittest.TestCase):
-    def test_every_case_has_reviewable_ground_truth(self) -> None:
-        metadata, cases = load_dataset(Path("datasets/public_webfetch.json"))
-        self.assertEqual(metadata["id"], "public-webfetch-v3.0-hil")
-        self.assertEqual(metadata["ground_truth"]["verified_at"], "2026-09-01")
-        for case in cases:
-            self.assertGreaterEqual(len(case.required_facts), 3, case.id)
-            self.assertGreater(case.min_content_chars, 1, case.id)
-            self.assertTrue(case.ground_truth_evidence, case.id)
-            self.assertTrue(case.annotation_notes, case.id)
-            self.assertTrue(case.task_prompt, case.id)
-            self.assertTrue(case.reference_answer, case.id)
-            self.assertGreaterEqual(len(case.human_review_checklist), 3, case.id)
-            for fact in case.required_facts:
-                self.assertTrue(fact.get("id"), case.id)
-                self.assertTrue(fact.get("alternatives"), f"{case.id}/{fact.get('id')}")
+    def test_current_task_set_and_reference_integrity(self):
+        data,cases=load_dataset(Path('evaluation/dataset.json'))
+        self.assertEqual(data['id'],'webfetch')
+        self.assertEqual(Counter(c.track for c in cases),dict(web=100,document=10,image=10,video=10,challenge=10))
+        self.assertEqual(len({c.id for c in cases}),140)
+        for c in data['cases']:
+            self.assertTrue(c['task_prompt'],c['id'])
+            if c['track'] in {'web','document'}:
+                self.assertTrue(c['ground_truth_main_content'],c['id'])
+                self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
+            elif c['track']=='challenge':
+                self.assertEqual(c['task_kind'],'structure')
+                self.assertEqual(c['required_facts'],[])
+                self.assertEqual(c['source_benchmark']['minimum_entries'],3)
+                self.assertEqual(c['source_benchmark']['verification_scope'],'first_three_name_detail_pairs')
+                reference=json.loads((Path('evaluation/list-references')/(c['id']+'.json')).read_text())
+                self.assertGreaterEqual(len(reference['items']),3,c['id'])
+            elif c['task_kind']=='file':self.assertFalse(c['content_score_applicable'])
+            elif c['task_kind']=='resource':self.assertTrue(c['expected_resources'])
 
-    def test_expanded_suite_has_one_hundred_webpage_cases(self) -> None:
-        metadata, cases = load_dataset(Path("datasets/public_webfetch_100.json"))
-        self.assertEqual(metadata["id"], "public-webfetch-v7.0-100-live-verified")
-        self.assertTrue(metadata["policy"]["exclude_invalid_cases"])
-        self.assertEqual(len(cases), 100)
-        self.assertEqual(len({case.id for case in cases}), 100)
-        self.assertEqual(len({case.url for case in cases}), 100)
-        self.assertEqual(sum(case.id.startswith("live-") for case in cases), 84)
-        self.assertEqual(sum(not case.id.startswith("live-") for case in cases), 16)
-        for case in cases:
-            self.assertNotIn(case.category, {"pdf", "document_pdf", "document_docx", "document_txt", "media_image", "media_video"})
-            self.assertGreaterEqual(len(case.required_facts), 3, case.id)
-            normalized_facts = [
-                tuple(" ".join(value.split()).casefold() for value in fact["alternatives"])
-                for fact in case.required_facts
-            ]
-            self.assertEqual(len(normalized_facts), len(set(normalized_facts)), case.id)
-            self.assertTrue(case.reference_answer, case.id)
-            self.assertGreaterEqual(len(case.human_review_checklist), 3, case.id)
-
-        audit = json.loads(Path(metadata["ground_truth"]["live_browser_audit_file"]).read_text(encoding="utf-8"))
-        self.assertEqual(audit["dataset_id"], metadata["id"])
-        self.assertEqual(audit["summary"]["total"], 100)
-        self.assertEqual(audit["summary"]["verified"], 100)
-        self.assertEqual({item["case_id"] for item in audit["results"]}, {case.id for case in cases})
-        self.assertTrue(all(item["status"] == "verified" for item in audit["results"]))
-
-        deprecated = json.loads(Path("research/deprecated-cases-2026-09-01.json").read_text(encoding="utf-8"))
-        self.assertEqual(deprecated["count"], 84)
-        self.assertFalse({item["url"] for item in deprecated["cases"]} & {case.url for case in cases})
-
-    def test_direct_media_cases_do_not_use_webpage_content_score(self) -> None:
-        _, cases = load_dataset(Path("datasets/file_media_capabilities.json"))
-        by_id = {case.id: case for case in cases}
-        self.assertFalse(by_id["direct-image"].content_score_applicable)
-        self.assertFalse(by_id["direct-video"].content_score_applicable)
-        self.assertTrue(by_id["embedded-image-page"].content_score_applicable)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_restricted_tasks_retain_existing_evidence(self):
+        data,_=load_dataset(Path('evaluation/dataset.json'))
+        by={c['id']:c for c in data['cases']}
+        for cid,count in [('challenge-04',30),('challenge-06',15)]:
+            self.assertEqual(by[cid]['source_verification']['state'],'restricted')
+            self.assertEqual(len(json.loads((Path('evaluation/sources')/cid/'items.json').read_text())),count)
+            self.assertNotIn('需用户辅助',by[cid]['source_verification']['note'])

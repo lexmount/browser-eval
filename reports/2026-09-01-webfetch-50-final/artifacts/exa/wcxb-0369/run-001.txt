@@ -1,1 +1,0 @@
-{"requestId":"38e984d1e69854268b0b6caa738c1a3c","results":[],"statuses":[{"id":"https://www.wellmeright.com/glossary/fitness-exercise-training","status":"error","error":{"httpStatusCode":504,"tag":"CRAWL_LIVECRAWL_TIMEOUT"}}],"costDollars":{"total":0},"searchTime":10015.12982300017}

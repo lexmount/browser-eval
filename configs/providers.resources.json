@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "providers": {
+    "fixture": {
+      "type": "fixture",
+      "fail_cases": [
+        "javascript-spa"
+      ]
+    },
+    "http-local": {
+      "type": "http",
+      "max_bytes": 10000000
+    },
+    "cowagent-built-in": {
+      "type": "cowagent_builtin",
+      "repo_path": "${COWAGENT_REPO}",
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-runs/cowagent-workspace}"
+    },
+    "lexmount-global": {
+      "type": "lexmount",
+      "base_url": "https://api.lexmount.com",
+      "api_key": "${LEXMOUNT_API_KEY}",
+      "project_id": "${LEXMOUNT_PROJECT_ID}",
+      "max_bytes": 20000000
+    },
+    "lexmount-cn": {
+      "type": "lexmount_cn",
+      "base_url": "https://api.lexmount.cn",
+      "api_key": "${LEXMOUNT_CN_API_KEY}",
+      "project_id": "${LEXMOUNT_CN_PROJECT_ID}",
+      "max_bytes": 20000000
+    },
+    "firecrawl": {
+      "type": "firecrawl",
+      "base_url": "https://api.firecrawl.dev",
+      "api_key": "${FIRECRAWL_API_KEY:-}",
+      "max_age": 0,
+      "max_bytes": 20000000,
+      "min_interval_seconds": 6.1,
+      "formats": [
+        "markdown",
+        "links",
+        "images"
+      ]
+    },
+    "firecrawl-resources": {
+      "type": "firecrawl",
+      "base_url": "https://api.firecrawl.dev",
+      "api_key": "${FIRECRAWL_API_KEY:-}",
+      "formats": [
+        "markdown",
+        "links",
+        "images"
+      ],
+      "max_age": 0,
+      "max_bytes": 20000000,
+      "min_interval_seconds": 6.1
+    },
+    "tavily": {
+      "type": "tavily_extract",
+      "base_url": "https://api.tavily.com",
+      "api_key": "${TAVILY_API_KEY}",
+      "extract_depth": "basic",
+      "max_bytes": 20000000,
+      "include_images": true
+    },
+    "tavily-resources": {
+      "type": "tavily_extract",
+      "base_url": "https://api.tavily.com",
+      "api_key": "${TAVILY_API_KEY}",
+      "extract_depth": "basic",
+      "include_images": true,
+      "max_bytes": 20000000
+    },
+    "exa": {
+      "type": "exa_contents",
+      "base_url": "https://api.exa.ai",
+      "api_key": "${EXA_API_KEY}",
+      "max_age_hours": 0,
+      "max_bytes": 20000000,
+      "include_resource_links": true
+    },
+    "exa-resources": {
+      "type": "exa_contents",
+      "base_url": "https://api.exa.ai",
+      "api_key": "${EXA_API_KEY}",
+      "include_resource_links": true,
+      "max_age_hours": 0,
+      "max_bytes": 20000000
+    },
+    "cloudflare-markdown": {
+      "type": "cloudflare_markdown",
+      "api_token": "${CLOUDFLARE_API_TOKEN}",
+      "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
+      "max_bytes": 20000000,
+      "wait_until": "networkidle2"
+    },
+    "cloudflare-content": {
+      "type": "cloudflare_content",
+      "api_token": "${CLOUDFLARE_API_TOKEN}",
+      "account_id": "${CLOUDFLARE_ACCOUNT_ID}",
+      "max_bytes": 20000000,
+      "wait_until": "networkidle2"
+    },
+    "openclaw-built-in": {
+      "type": "subprocess_jsonl",
+      "method_type": "openclaw_builtin",
+      "repo_path": "${OPENCLAW_REPO:-/private/tmp/openclaw-eval}",
+      "command": [
+        "${OPENCLAW_NODE:-/private/tmp/openclaw-node/node_modules/node/bin/node}",
+        "--import",
+        "tsx",
+        "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
+      ],
+      "env": {
+        "OPENCLAW_REPO": "${OPENCLAW_REPO:-/private/tmp/openclaw-eval}"
+      }
+    },
+    "deepseek-harness-built-in": {
+      "type": "subprocess_jsonl",
+      "method_type": "deepseek_harness_builtin",
+      "repo_path": "${DEEPSEEK_HARNESS_REPO:-/private/tmp/deepseek-harness-eval}",
+      "command": [
+        "{repo_path}/node_modules/.bin/tsx",
+        "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts"
+      ]
+    },
+    "langchain-webbase": {
+      "type": "subprocess_jsonl",
+      "method_type": "langchain_webbase",
+      "repo_path": ".",
+      "command": [
+        "${OSS_PYTHON:-python3}",
+        "{harness_root}/scripts/oss/langchain_webbase_worker.py"
+      ]
+    },
+    "crawl4ai": {
+      "type": "subprocess_jsonl",
+      "method_type": "crawl4ai",
+      "repo_path": ".",
+      "command": [
+        "${OSS_PYTHON:-python3}",
+        "{harness_root}/scripts/oss/crawl4ai_worker.py"
+      ]
+    }
+  }
+}

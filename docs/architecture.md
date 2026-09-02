@@ -1,39 +1,11 @@
 # Architecture
 
-Browser Harness Eval treats an agent-facing browser harness as a collection of
-tools. `web_fetch` is the first implemented tool; browser interaction can be
-added later without changing the run artifact contract.
+- `evaluation/dataset.json` owns current task rules and independently obtained references.
+- Providers fetch content without scoring it. Credentials are expanded locally and never published.
+- `metrics.py` and `dynamic_lists.py` evaluate persisted output. Task success depends on the task kind: body, resource, file or dynamic structure.
+- `report_build.py` checks output hashes, stages selected evidence, then calls the sole renderer `report.py`. It replaces only a marked generated directory.
+- `scripts/build_report.py` builds `reports/webfetch/` directly from `evaluation/`. There is no older-report dependency or compatibility renderer.
 
-## Four independent contracts
+`evaluation/execution.json` associates the selected attempts with their actual runtime parameters and timestamps. Measurements retain original content hashes. `sources/` contains publishable reference evidence; signed-in raw HTML and private account information are excluded.
 
-1. **Dataset** — defines what is evaluated: URLs, capability categories and
-   deterministic acceptance markers. It contains no provider configuration.
-2. **Provider** — defines how one method calls a service or local
-   implementation. It contains no scoring logic.
-3. **Metrics** — converts persisted output into deterministic per-attempt
-   measurements and aggregates them. It contains no provider-specific rules.
-4. **Report** — renders only persisted manifests, JSONL and text artifacts. It
-   does not rerun requests or silently repair results.
-
-## Run artifact contract
-
-```text
-run-directory/
-├── manifest.json        # environment, parameters and selected methods
-├── dataset.json         # immutable dataset snapshot
-├── results.jsonl        # one structured record per attempt
-├── summary.json         # reproducible aggregates
-├── artifacts/           # full provider output, including error bodies/traces
-└── report/
-    ├── index.html
-    ├── datasets/        # dataset index and one page per case
-    ├── providers/       # method index and one page per provider
-    ├── metrics/         # formal metric definitions
-    ├── attempts/        # one diagnostic page per request
-    └── artifacts/       # copied full content for portable offline viewing
-```
-
-Every attempt is retained. A network exception is serialized as a classified
-failure and its traceback becomes the artifact. An HTTP/API failure retains its
-response body. A transport success that misses content markers is reported as a
-separate content-validation failure.
+Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, integration, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.

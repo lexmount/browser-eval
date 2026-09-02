@@ -1,0 +1,30 @@
+{
+  "case_id": "video-06",
+  "url": "https://videojs.com/",
+  "checked_at": "2026-09-02T03:42:38.033134+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://videojs.org/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://videojs.org/",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 3494148,
+  "sha256": "198f520c98a0b0e227058ce9771698b7613e15a5f5c13fc76a6b375870051d0e",
+  "title": "Video.js | Open Source Video Player",
+  "selector": "#main-content",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://image.mux.com/BV3YZtogl89mg9VcNBhhnHm02Y34zI1nlMuMQfAbl3dM/thumbnail.webp?time=15.8",
+      "alt": ""
+    }
+  ],
+  "text_chars": 75420,
+  "excerpt": "v10\nbeta\nThe Open Source Player\nfor the Web\nFor over 15 years, Video.js has been the world's web video player. Now rebuilt in v10 for modern development and performance.\n0:00\n0:00\n0:00\nVideo hosting sponsored by\nDefault\nMinimal\nReact\nHTML\nAssemble your player\nFeel at home with your framework, skin, and media source\nReact\nHTML\nReact\nimport\n{\nVideoPlayer\n,\nVideoSkin\n,\nVideo\n}\nfrom\n'\n@videojs/react/video\n'\n;\nimport\n'\n@videojs/react/video/skin.css\n'\n;\nexport\nfunction\nApp\n()\n{\nreturn\n(\n<\nVideoPlayer\nposter\n=\n\"\nhttps://image.mux.com/BV3YZtogl89mg9VcNBhhnHm02Y34zI1nlMuMQfAbl3dM/thumbnail.webp\n\"\n>\n<\nVideoSkin\n>\n<\nVideo\nsrc\n=\n\"\nhttps://stream.mux.com/BV3YZtogl89mg9VcNBhhnHm02Y34zI1nlMuMQfAbl3dM/highest.mp4\n\"\nplaysInline\n/>\n</\nVideoSkin\n>\n</\nVideoPlayer\n>\n)\n;\n}\nTake full control\nMake your player tru",
+  "missing_facts": [],
+  "state": "captured"
+}

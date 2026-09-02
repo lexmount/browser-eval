@@ -1,0 +1,44 @@
+{
+  "case_id": "live-013-navigation-menu",
+  "url": "https://github.com/sveltejs/svelte",
+  "checked_at": "2026-09-02T03:37:52.893457+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/sveltejs/svelte"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/sveltejs/svelte",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 333629,
+  "sha256": "40fe5f7ef51ac9775ef5816f9f898881e5cd337442883328de560bf9ed48a698",
+  "title": "GitHub - sveltejs/svelte: web development for the rest of us · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://github.com/sveltejs/svelte/raw/main/assets/banner.png",
+      "alt": "Svelte - web development for the rest of us"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/ef9a8ed9f8e40651e333c134ffc59fd63ced260158f4ed6a798720dbee59e89b/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f6c2f7376656c74652e737667",
+      "alt": "License"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/1ed0a94c2de08697acd79df4f7ba9f9b1321c7b55587a4b08db046a8e202a1eb/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3435373931323037373237373835353736343f6c6162656c3d63686174266c6f676f3d646973636f7264",
+      "alt": "Chat"
+    }
+  ],
+  "text_chars": 1092,
+  "excerpt": "What is Svelte?\nSvelte is a new way to build web applications. It's a compiler that takes your declarative components and converts them into efficient JavaScript that surgically updates the DOM.\nLearn more at the\nSvelte website\n, or stop by the\nDiscord chatroom\n.\nSupporting Svelte\nSvelte is an MIT-licensed open source project with its ongoing development made possible entirely by fantastic volunteers. If you'd like to support their efforts, please consider:\nBecoming a backer on Open Collective\n.\nFunds donated via Open Collective will be used for compensating expenses related to Svelte's development such as hosting costs. If sufficient donations are received, funds may also be used to support Svelte's development more directly.\nRoadmap\nYou may view\nour roadmap\nif you'd like to see what we'r",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2",
+    "anchor-3"
+  ],
+  "state": "captured"
+}

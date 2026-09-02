@@ -1,0 +1,24 @@
+{
+  "case_id": "live-047-push-api",
+  "url": "https://developer.mozilla.org/en-US/docs/Web/API/Push_API",
+  "checked_at": "2026-09-02T03:38:02.503230+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Push_API"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://developer.mozilla.org/en-US/docs/Web/API/Push_API",
+  "mime": "text/html",
+  "bytes": 157539,
+  "sha256": "939b96c3a20f2cb6fb4560c5f645005fe0c0be0efba568f18c0f9b550b02b95d",
+  "title": "Push API - Web APIs | MDN",
+  "selector": "main",
+  "resources": [],
+  "text_chars": 4332,
+  "excerpt": "Push API\nBaseline\nWidely available\nThis feature is well established and works across many devices and browser versions. It’s been available across browsers since March 2023.\nLearn more\nSee full compatibility\nNote:\nThis feature is available in\nWeb Workers\n.\nThe\nPush API\ngives web applications the ability to receive messages pushed to them from a server, whether or not the web app is in the foreground, or even currently loaded, on a user agent. This lets developers deliver asynchronous notifications and updates to users that opt in, resulting in better engagement with timely new content.\nPush concepts and usage\nWarning:\nWhen implementing PushManager subscriptions, it is vitally important that you protect against CSRF/XSRF issues in your app. See the following articles for more information:\nC",
+  "missing_facts": [],
+  "state": "captured"
+}

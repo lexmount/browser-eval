@@ -1,0 +1,16 @@
+Run ❯
+Get your
+own
+website
+❯
+Run Code
+Ctrl+Alt+R
+Save Code
+Ctrl+Alt+A
+Change Orientation
+Ctrl+Alt+O
+Change Theme
+Ctrl+Alt+D
+Go to Spaces
+Ctrl+Alt+P
+HTML Image

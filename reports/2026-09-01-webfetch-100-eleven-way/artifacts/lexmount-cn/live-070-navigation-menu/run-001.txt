@@ -1,1 +1,0 @@
-A JS library for predictable global state management Repository stats: stars 61.5k, forks 15.2k, issues 39, pull requests 11. README excerpt: Redux is a JS library for predictable and maintainable global state management.

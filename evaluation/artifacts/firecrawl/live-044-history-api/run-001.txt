@@ -1,0 +1,180 @@
+- [Skip to main content](https://developer.mozilla.org/en-US/docs/Web/API/History_API#content)
+- [Skip to search](https://developer.mozilla.org/en-US/docs/Web/API/History_API#search)
+
+Learn frontend, backend, and AI from our course partner
+[Scrimba](https://scrimba.com/learn/frontend?via=mdn)
+
+# History API
+
+
+Baseline
+
+Widely available
+
+
+This feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.
+
+- [Learn more](https://developer.mozilla.org/en-US/docs/Glossary/Baseline/Compatibility)
+- [See full compatibility](https://developer.mozilla.org/en-US/docs/Web/API/History_API#browser_compatibility)
+
+The **History API** provides access to the browser's session history (not to be confused with [WebExtensions history](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/history)) through the [`history`](https://developer.mozilla.org/en-US/docs/Web/API/Window/history "history") global object. It exposes useful methods and properties that let you navigate back and forth through the user's history, and manipulate the contents of the history stack.
+
+**Note:**
+This API is only available on the main thread ( [`Window`](https://developer.mozilla.org/en-US/docs/Web/API/Window)). It cannot be accessed in [`Worker`](https://developer.mozilla.org/en-US/docs/Web/API/Worker) or [`Worklet`](https://developer.mozilla.org/en-US/docs/Web/API/Worklet) contexts.
+
+## [Concepts and usage](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#concepts_and_usage)
+
+Moving backward and forward through the user's history is done using the [`back()`](https://developer.mozilla.org/en-US/docs/Web/API/History/back "back()"), [`forward()`](https://developer.mozilla.org/en-US/docs/Web/API/History/forward "forward()"), and [`go()`](https://developer.mozilla.org/en-US/docs/Web/API/History/go "go()") methods.
+
+### [Moving forward and backward](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#moving_forward_and_backward)
+
+To move backward through history:
+
+jsCopy
+
+```
+history.back();
+```
+
+This acts exactly as if the user clicked on the `Back` button in their browser toolbar.
+
+Similarly, you can move forward (as if the user clicked the `Forward` button), like this:
+
+jsCopy
+
+```
+history.forward();
+```
+
+### [Moving to a specific point in history](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#moving_to_a_specific_point_in_history)
+
+You can use the [`go()`](https://developer.mozilla.org/en-US/docs/Web/API/History/go "go()") method to load a specific page from session history, identified by its relative position to the current page. (The current page's relative position is `0`.)
+
+To move back one page (the equivalent of calling [`back()`](https://developer.mozilla.org/en-US/docs/Web/API/History/back "back()")):
+
+jsCopy
+
+```
+history.go(-1);
+```
+
+To move forward a page, just like calling [`forward()`](https://developer.mozilla.org/en-US/docs/Web/API/History/forward "forward()"):
+
+jsCopy
+
+```
+history.go(1);
+```
+
+Similarly, you can move forward 2 pages by passing `2`, and so forth.
+
+Another use for the `go()` method is to refresh the current page by either passing `0`, or by invoking it without an argument:
+
+jsCopy
+
+```
+// The following statements
+// both have the effect of
+// refreshing the page
+history.go(0);
+history.go();
+```
+
+You can determine the number of pages in the history stack by looking at the value of the `length` property:
+
+jsCopy
+
+```
+const numberOfEntries = history.length;
+```
+
+## [Interfaces](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#interfaces)
+
+[`History`](https://developer.mozilla.org/en-US/docs/Web/API/History)
+
+Allows manipulation of the browser _session history_ (that is, the pages visited in the tab or frame that the current page is loaded in).
+
+[`PopStateEvent`](https://developer.mozilla.org/en-US/docs/Web/API/PopStateEvent)
+
+The interface of the [`popstate`](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event "popstate") event.
+
+## [Examples](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#examples)
+
+The following example assigns a listener for the [`popstate`](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event "popstate") event. It then illustrates some of the methods of the history object to add, replace, and move within the browser history for the current tab.
+
+jsCopy
+
+```
+window.addEventListener("popstate", (event) => {
+  alert(
+    `location: ${document.location}, state: ${JSON.stringify(event.state)}`,
+  );
+});
+
+history.pushState({ page: 1 }, "title 1", "?page=1");
+history.pushState({ page: 2 }, "title 2", "?page=2");
+history.replaceState({ page: 3 }, "title 3", "?page=3");
+history.back(); // alerts "location: http://example.com/example.html?page=1, state: {"page":1}"
+history.back(); // alerts "location: http://example.com/example.html, state: null"
+history.go(2); // alerts "location: http://example.com/example.html?page=3, state: {"page":3}"
+```
+
+## [Specifications](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#specifications)
+
+| Specification |
+| --- |
+| [HTML\<br>\# the-history-interface](https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-history-interface) |
+
+## [Browser compatibility](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#browser_compatibility)
+
+[Report problems with this compatibility data](https://github.com/mdn/browser-compat-data/issues/new?mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FHistory_API&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EMDN+page+report+details%3C%2Fsummary%3E%0A%0A*+Query%3A+%60api.History%60%0A*+Report+started%3A+2026-09-02T03%3A58%3A16.388Z%0A%0A%3C%2Fdetails%3E&title=api.History+-+%3CSUMMARIZE+THE+PROBLEM%3E&template=data-problem.yml "Report an issue with this compatibility data") •
+[View data on GitHub](https://github.com/mdn/browser-compat-data/tree/main/api/History.json "File: api/History.json")
+
+|  | desktop | mobile |
+| --- | --- | --- |
+|  | Chrome | Edge | Firefox | Opera | Safari | Chrome Android | Firefox for Android | Opera Android | Safari on iOS | Samsung Browser | WebView Android | WebView on iOS |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `History` | Chrome – Full support<br>Chrome1 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox1 | Opera – Full support<br>Opera3 | Safari – Full support<br>Safari1 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android10.1 | Safari on iOS – Full support<br>Safari on iOS1 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS1 |
+| [`back`](https://developer.mozilla.org/en-US/docs/Web/API/History/back) | Chrome – Full support<br>Chrome1 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox1 | Opera – Full support<br>Opera12.1 | Safari – Full support<br>Safari1 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android12.1 | Safari on iOS – Full support<br>Safari on iOS1 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS1 |
+| [`forward`](https://developer.mozilla.org/en-US/docs/Web/API/History/forward) | Chrome – Full support<br>Chrome1 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox1 | Opera – Full support<br>Opera12.1 | Safari – Full support<br>Safari1 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android12.1 | Safari on iOS – Full support<br>Safari on iOS1 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS1 |
+| [`go`](https://developer.mozilla.org/en-US/docs/Web/API/History/go) | Chrome – Full support<br>Chrome1 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox1 | Opera – Full support<br>Opera12.1 | Safari – Full support<br>Safari1 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android12.1 | Safari on iOS – Full support<br>Safari on iOS1 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS1 |
+| [`length`](https://developer.mozilla.org/en-US/docs/Web/API/History/length) | Chrome – Full support<br>Chrome1 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox1 | Opera – Full support<br>Opera12.1 | Safari – Full support<br>Safari1 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android12.1 | Safari on iOS – Full support<br>Safari on iOS1 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS1 |
+| [`pushState`](https://developer.mozilla.org/en-US/docs/Web/API/History/pushState) | Chrome – Full support<br>Chrome5 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox4<br>footnote | Opera – Full support<br>Opera11.5 | Safari – Full support<br>Safari5 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4<br>footnote | Opera Android – Full support<br>Opera Android11.5 | Safari on iOS – Full support<br>Safari on iOS4 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS4 |
+| Whether the `unused` parameter is used<br>DeprecatedNon-standard | Chrome – No support<br>ChromeNo | Edge – No support<br>EdgeNo | Firefox – No support<br>FirefoxNo | Opera – No support<br>OperaNo | Safari – No support<br>Safari5 – 17.6 | Chrome Android – No support<br>Chrome AndroidNo | Firefox for Android – No support<br>Firefox for AndroidNo | Opera Android – No support<br>Opera AndroidNo | Safari on iOS – No support<br>Safari on iOS4 – 17.6 | Samsung Browser – No support<br>Samsung BrowserNo | WebView Android – No support<br>WebView AndroidNo | WebView on iOS – No support<br>WebView on iOS4 – 17.6 |
+| [`replaceState`](https://developer.mozilla.org/en-US/docs/Web/API/History/replaceState) | Chrome – Full support<br>Chrome5 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox4<br>footnote | Opera – Full support<br>Opera11.5 | Safari – Full support<br>Safari5 | Chrome Android – Full support<br>Chrome Android18 | Firefox for Android – Full support<br>Firefox for Android4<br>footnote | Opera Android – Full support<br>Opera Android11.5 | Safari on iOS – Full support<br>Safari on iOS4 | Samsung Browser – Full support<br>Samsung Browser1 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS4 |
+| Whether the `unused` parameter is used<br>DeprecatedNon-standard | Chrome – No support<br>ChromeNo | Edge – No support<br>EdgeNo | Firefox – No support<br>FirefoxNo | Opera – No support<br>OperaNo | Safari – No support<br>Safari5 – 17.6 | Chrome Android – No support<br>Chrome AndroidNo | Firefox for Android – No support<br>Firefox for AndroidNo | Opera Android – No support<br>Opera AndroidNo | Safari on iOS – No support<br>Safari on iOS4 – 17.6 | Samsung Browser – No support<br>Samsung BrowserNo | WebView Android – No support<br>WebView AndroidNo | WebView on iOS – No support<br>WebView on iOS4 – 17.6 |
+| [`scrollRestoration`](https://developer.mozilla.org/en-US/docs/Web/API/History/scrollRestoration) | Chrome – Full support<br>Chrome46 | Edge – Full support<br>Edge79 | Firefox – Full support<br>Firefox46 | Opera – Full support<br>Opera33 | Safari – Full support<br>Safari11 | Chrome Android – Full support<br>Chrome Android46 | Firefox for Android – Full support<br>Firefox for Android46 | Opera Android – Full support<br>Opera Android33 | Safari on iOS – Full support<br>Safari on iOS11 | Samsung Browser – Full support<br>Samsung Browser5 | WebView Android – Full support<br>WebView Android46 | WebView on iOS – Full support<br>WebView on iOS11 |
+| [`state`](https://developer.mozilla.org/en-US/docs/Web/API/History/state) | Chrome – Full support<br>Chrome19 | Edge – Full support<br>Edge12 | Firefox – Full support<br>Firefox4 | Opera – Full support<br>Opera12.1 | Safari – Full support<br>Safari6 | Chrome Android – Full support<br>Chrome Android25 | Firefox for Android – Full support<br>Firefox for Android4 | Opera Android – Full support<br>Opera Android12.1 | Safari on iOS – Full support<br>Safari on iOS6 | Samsung Browser – Full support<br>Samsung Browser1.5 | WebView Android – Full support<br>WebView Android4.4 | WebView on iOS – Full support<br>WebView on iOS6 |
+
+### Legend
+
+Tip: you can click/tap on a cell for more information.
+
+
+Full supportFull support
+
+No supportNo support
+
+Non-standard. Check cross-browser support before using.
+
+Deprecated. Not for use in new websites.
+
+See implementation notes.
+
+## [See also](https://developer.mozilla.org/en-US/docs/Web/API/History_API\#see_also)
+
+- [`history`](https://developer.mozilla.org/en-US/docs/Web/API/Window/history "history") global object
+- [`popstate`](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event "popstate") event
+
+## Help improve MDN
+
+Was this page helpful to you?
+
+YesNo
+
+[Learn how to contribute](https://developer.mozilla.org/en-US/docs/MDN/Community/Getting_started)
+
+This page was last modified on Jul 26, 2024 by [MDN contributors](https://developer.mozilla.org/en-US/docs/Web/API/History_API/contributors.txt).
+
+
+[View this page on GitHub](https://github.com/mdn/content/blob/main/files/en-us/web/api/history_api/index.md?plain=1 "Folder: en-us/web/api/history_api (Opens in a new tab)") • [Report a problem with this content](https://github.com/mdn/content/issues/new?template=page-report.yml&mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FHistory_API&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fhistory_api%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FHistory_API%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fhistory_api%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2Fe9e2ec643ac69c132f31427a0b586ab2cf83ed58%0A*+Document+last+modified%3A+2024-07-26T02%3A56%3A30.000Z%0A%0A%3C%2Fdetails%3E "This will take you to GitHub to file a new issue.")

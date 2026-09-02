@@ -1,9 +1,0 @@
-Multiple format video example
-
-# Below is a video that will play in all modern browsers
-
-Your browser doesn't support HTML5 video. Here is a link to the video instead.
-
-Multiple format video example
-# Below is a video that will play in all modern browsers
-Your browser doesn't support HTML5 video. Here is a [link to the video](rabbit320.mp4) instead.

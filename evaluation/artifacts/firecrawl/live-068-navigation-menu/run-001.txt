@@ -1,0 +1,272 @@
+[Skip to content](https://github.com/remix-run/react-router#start-of-content)
+
+You signed in with another tab or window. [Reload](https://github.com/remix-run/react-router) to refresh your session.You signed out in another tab or window. [Reload](https://github.com/remix-run/react-router) to refresh your session.You switched accounts on another tab or window. [Reload](https://github.com/remix-run/react-router) to refresh your session.Dismiss alert
+
+{{ message }}
+
+### Uh oh!
+
+There was an error while loading. [Please reload this page](https://github.com/remix-run/react-router).
+
+[remix-run](https://github.com/remix-run)/ **[react-router](https://github.com/remix-run/react-router)** Public
+
+- Sponsor
+
+
+
+
+
+
+
+# Sponsor remix-run/react-router
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### External links
+
+
+
+
+
+![open_collective](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)
+
+
+
+[opencollective.com/ **react-router**](https://opencollective.com/react-router)
+
+
+
+
+
+
+
+
+
+[Learn more about funding links in repositories](https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository).
+
+
+
+
+[Report abuse](https://github.com/contact/report-abuse?report=remix-run%2Freact-router+%28Repository+Funding+Links%29)
+
+- [Notifications](https://github.com/login?return_to=%2Fremix-run%2Freact-router) You must be signed in to change notification settings
+- [Fork\\
+10.9k](https://github.com/login?return_to=%2Fremix-run%2Freact-router)
+- [Star\\
+56.6k](https://github.com/login?return_to=%2Fremix-run%2Freact-router)
+
+
+main
+
+[**44** Branches](https://github.com/remix-run/react-router/branches) [**2027** Tags](https://github.com/remix-run/react-router/tags)
+
+[Go to Branches page](https://github.com/remix-run/react-router/branches)[Go to Tags page](https://github.com/remix-run/react-router/tags)
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Latest commit
+
+![ryanflorence](https://avatars.githubusercontent.com/u/100200?v=4&size=40)![remix-run-bot](https://avatars.githubusercontent.com/u/72662859?v=4&size=40)
+
+[ryanflorence](https://github.com/remix-run/react-router/commits?author=ryanflorence)
+
+and
+
+[remix-run-bot](https://github.com/remix-run/react-router/commits?author=remix-run-bot)
+
+[Release v8.3.1 (](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109) [#15368](https://github.com/remix-run/react-router/pull/15368) [)](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109)
+
+Open commit detailssuccess
+
+5 days agoAug 28, 2026
+
+[da2a0f0](https://github.com/remix-run/react-router/commit/da2a0f0948af60ba45d9590b427d5e58fe4b0109) · 5 days agoAug 28, 2026
+
+## History
+
+[11,195 Commits](https://github.com/remix-run/react-router/commits/main/)
+
+Open commit details
+
+[View commit history for this file.](https://github.com/remix-run/react-router/commits/main/) 11,195 Commits
+
+## Folders and files
+
+| Name | Name | Last commit message | Last commit date |
+| --- | --- | --- | --- |
+| [.agents/skills](https://github.com/remix-run/react-router/tree/main/.agents/skills "This path skips through empty directories") | [.agents/skills](https://github.com/remix-run/react-router/tree/main/.agents/skills "This path skips through empty directories") |  |  |
+| [.github](https://github.com/remix-run/react-router/tree/main/.github ".github") | [.github](https://github.com/remix-run/react-router/tree/main/.github ".github") |  |  |
+| [.vscode](https://github.com/remix-run/react-router/tree/main/.vscode ".vscode") | [.vscode](https://github.com/remix-run/react-router/tree/main/.vscode ".vscode") |  |  |
+| [decisions](https://github.com/remix-run/react-router/tree/main/decisions "decisions") | [decisions](https://github.com/remix-run/react-router/tree/main/decisions "decisions") |  |  |
+| [docs](https://github.com/remix-run/react-router/tree/main/docs "docs") | [docs](https://github.com/remix-run/react-router/tree/main/docs "docs") |  |  |
+| [examples](https://github.com/remix-run/react-router/tree/main/examples "examples") | [examples](https://github.com/remix-run/react-router/tree/main/examples "examples") |  |  |
+| [integration](https://github.com/remix-run/react-router/tree/main/integration "integration") | [integration](https://github.com/remix-run/react-router/tree/main/integration "integration") |  |  |
+| [jest](https://github.com/remix-run/react-router/tree/main/jest "jest") | [jest](https://github.com/remix-run/react-router/tree/main/jest "jest") |  |  |
+| [packages](https://github.com/remix-run/react-router/tree/main/packages "packages") | [packages](https://github.com/remix-run/react-router/tree/main/packages "packages") |  |  |
+| [playground](https://github.com/remix-run/react-router/tree/main/playground "playground") | [playground](https://github.com/remix-run/react-router/tree/main/playground "playground") |  |  |
+| [scripts](https://github.com/remix-run/react-router/tree/main/scripts "scripts") | [scripts](https://github.com/remix-run/react-router/tree/main/scripts "scripts") |  |  |
+| [static](https://github.com/remix-run/react-router/tree/main/static "static") | [static](https://github.com/remix-run/react-router/tree/main/static "static") |  |  |
+| [tutorials/address-book](https://github.com/remix-run/react-router/tree/main/tutorials/address-book "This path skips through empty directories") | [tutorials/address-book](https://github.com/remix-run/react-router/tree/main/tutorials/address-book "This path skips through empty directories") |  |  |
+| [.browserslistrc](https://github.com/remix-run/react-router/blob/main/.browserslistrc ".browserslistrc") | [.browserslistrc](https://github.com/remix-run/react-router/blob/main/.browserslistrc ".browserslistrc") |  |  |
+| [.gitattributes](https://github.com/remix-run/react-router/blob/main/.gitattributes ".gitattributes") | [.gitattributes](https://github.com/remix-run/react-router/blob/main/.gitattributes ".gitattributes") |  |  |
+| [.gitignore](https://github.com/remix-run/react-router/blob/main/.gitignore ".gitignore") | [.gitignore](https://github.com/remix-run/react-router/blob/main/.gitignore ".gitignore") |  |  |
+| [.npmrc](https://github.com/remix-run/react-router/blob/main/.npmrc ".npmrc") | [.npmrc](https://github.com/remix-run/react-router/blob/main/.npmrc ".npmrc") |  |  |
+| [.nvmrc](https://github.com/remix-run/react-router/blob/main/.nvmrc ".nvmrc") | [.nvmrc](https://github.com/remix-run/react-router/blob/main/.nvmrc ".nvmrc") |  |  |
+| [.prettierignore](https://github.com/remix-run/react-router/blob/main/.prettierignore ".prettierignore") | [.prettierignore](https://github.com/remix-run/react-router/blob/main/.prettierignore ".prettierignore") |  |  |
+| [AGENTS.md](https://github.com/remix-run/react-router/blob/main/AGENTS.md "AGENTS.md") | [AGENTS.md](https://github.com/remix-run/react-router/blob/main/AGENTS.md "AGENTS.md") |  |  |
+| [CHANGELOG.md](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md "CHANGELOG.md") | [CHANGELOG.md](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md "CHANGELOG.md") |  |  |
+| [CLAUDE.md](https://github.com/remix-run/react-router/blob/main/CLAUDE.md "CLAUDE.md") | [CLAUDE.md](https://github.com/remix-run/react-router/blob/main/CLAUDE.md "CLAUDE.md") |  |  |
+| [CODE\_OF\_CONDUCT.md](https://github.com/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") | [CODE\_OF\_CONDUCT.md](https://github.com/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md "CODE_OF_CONDUCT.md") |  |  |
+| [CONTRIBUTING.md](https://github.com/remix-run/react-router/blob/main/CONTRIBUTING.md "CONTRIBUTING.md") | [CONTRIBUTING.md](https://github.com/remix-run/react-router/blob/main/CONTRIBUTING.md "CONTRIBUTING.md") |  |  |
+| [DEVELOPMENT.md](https://github.com/remix-run/react-router/blob/main/DEVELOPMENT.md "DEVELOPMENT.md") | [DEVELOPMENT.md](https://github.com/remix-run/react-router/blob/main/DEVELOPMENT.md "DEVELOPMENT.md") |  |  |
+| [GOVERNANCE.md](https://github.com/remix-run/react-router/blob/main/GOVERNANCE.md "GOVERNANCE.md") | [GOVERNANCE.md](https://github.com/remix-run/react-router/blob/main/GOVERNANCE.md "GOVERNANCE.md") |  |  |
+| [LICENSE.md](https://github.com/remix-run/react-router/blob/main/LICENSE.md "LICENSE.md") | [LICENSE.md](https://github.com/remix-run/react-router/blob/main/LICENSE.md "LICENSE.md") |  |  |
+| [README.md](https://github.com/remix-run/react-router/blob/main/README.md "README.md") | [README.md](https://github.com/remix-run/react-router/blob/main/README.md "README.md") |  |  |
+| [SECURITY.md](https://github.com/remix-run/react-router/blob/main/SECURITY.md "SECURITY.md") | [SECURITY.md](https://github.com/remix-run/react-router/blob/main/SECURITY.md "SECURITY.md") |  |  |
+| [build.utils.ts](https://github.com/remix-run/react-router/blob/main/build.utils.ts "build.utils.ts") | [build.utils.ts](https://github.com/remix-run/react-router/blob/main/build.utils.ts "build.utils.ts") |  |  |
+| [eslint.config.ts](https://github.com/remix-run/react-router/blob/main/eslint.config.ts "eslint.config.ts") | [eslint.config.ts](https://github.com/remix-run/react-router/blob/main/eslint.config.ts "eslint.config.ts") |  |  |
+| [package.json](https://github.com/remix-run/react-router/blob/main/package.json "package.json") | [package.json](https://github.com/remix-run/react-router/blob/main/package.json "package.json") |  |  |
+| [pnpm-lock.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-lock.yaml "pnpm-lock.yaml") | [pnpm-lock.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-lock.yaml "pnpm-lock.yaml") |  |  |
+| [pnpm-workspace.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-workspace.yaml "pnpm-workspace.yaml") | [pnpm-workspace.yaml](https://github.com/remix-run/react-router/blob/main/pnpm-workspace.yaml "pnpm-workspace.yaml") |  |  |
+| [prettier.config.js](https://github.com/remix-run/react-router/blob/main/prettier.config.js "prettier.config.js") | [prettier.config.js](https://github.com/remix-run/react-router/blob/main/prettier.config.js "prettier.config.js") |  |  |
+| [tsconfig.base.json](https://github.com/remix-run/react-router/blob/main/tsconfig.base.json "tsconfig.base.json") | [tsconfig.base.json](https://github.com/remix-run/react-router/blob/main/tsconfig.base.json "tsconfig.base.json") |  |  |
+| [typedoc.mjs](https://github.com/remix-run/react-router/blob/main/typedoc.mjs "typedoc.mjs") | [typedoc.mjs](https://github.com/remix-run/react-router/blob/main/typedoc.mjs "typedoc.mjs") |  |  |
+| View all files |
+
+## Repository files navigation
+
+[![npm package](https://camo.githubusercontent.com/b74bace96f2b6508be60a9758a8899b2a6cfd73c54108f1ad66530fa1226a638/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656163742d726f757465722e737667)](https://www.npmjs.org/package/react-router)[![build](https://camo.githubusercontent.com/06def92801cb5f3f3fdeb06fe5017dfdba6b5ee76d279808340b8425b206092b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656d69782d72756e2f72656163742d726f757465722f746573742d756e69742e796d6c3f6272616e63683d6d61696e267374796c653d737175617265)](https://github.com/remix-run/react-router/actions/workflows/test-unit.yml)
+
+React Router is a multi-strategy router for React. You can use it maximally as a React framework or minimally as a library with your own architecture.
+
+- [Getting Started - Framework](https://reactrouter.com/start/framework/installation)
+- [Getting Started - Library](https://reactrouter.com/start/library/installation)
+- [Upgrade from v7](https://reactrouter.com/upgrading/v7)
+- [Changelog](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md)
+
+## Packages
+
+[Permalink: Packages](https://github.com/remix-run/react-router#packages)
+
+- [`react-router`](https://github.com/remix-run/react-router/blob/main/packages/react-router)
+- [`create-react-router`](https://github.com/remix-run/react-router/blob/main/packages/create-react-router)
+- [`@react-router/dev`](https://github.com/remix-run/react-router/blob/main/packages/react-router-dev)
+- [`@react-router/node`](https://github.com/remix-run/react-router/blob/main/packages/react-router-node)
+- [`@react-router/serve`](https://github.com/remix-run/react-router/blob/main/packages/react-router-serve)
+- [`@react-router/express`](https://github.com/remix-run/react-router/blob/main/packages/react-router-express)
+- [`@react-router/architect`](https://github.com/remix-run/react-router/blob/main/packages/react-router-architect)
+- [`@react-router/cloudflare`](https://github.com/remix-run/react-router/blob/main/packages/react-router-cloudflare)
+- [`@react-router/fs-routes`](https://github.com/remix-run/react-router/blob/main/packages/react-router-fs-routes)
+
+## Previous Versions
+
+[Permalink: Previous Versions](https://github.com/remix-run/react-router#previous-versions)
+
+- [v7](https://reactrouter.com/v7)
+- [v6](https://reactrouter.com/v6)
+- [v5](https://v5.reactrouter.com/)
+
+## About
+
+Declarative routing for React
+
+[reactrouter.com](https://reactrouter.com/)
+
+### Resources
+
+[Readme](https://github.com/remix-run/react-router#readme-ov-file)
+
+[MIT license](https://github.com/remix-run/react-router#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](https://github.com/remix-run/react-router#coc-ov-file)
+
+### Contributing
+
+[Contributing](https://github.com/remix-run/react-router#contributing-ov-file)
+
+### Security policy
+
+[Security policy](https://github.com/remix-run/react-router#security-ov-file)
+
+[Activity](https://github.com/remix-run/react-router/activity)
+
+[Custom properties](https://github.com/remix-run/react-router/custom-properties)
+
+### Stars
+
+**56.6k** stars
+
+### Watchers
+
+**806** watching
+
+### Forks
+
+[**10.9k** forks](https://github.com/remix-run/react-router/forks)
+
+[Report repository](https://github.com/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router&report=remix-run+%28user%29)
+
+## [Releases](https://github.com/remix-run/react-router/releases) 346 (346)
+
+[v8.3.1Latest\\
+\\
+5 days agoAug 28, 2026](https://github.com/remix-run/react-router/releases/tag/react-router%408.3.1)
+
+[\+ 345 releases](https://github.com/remix-run/react-router/releases)
+
+## Sponsor this project
+
+- ![](https://github.githubassets.com/assets/open_collective-0a706523753d.svg)[opencollective.com/react-router](https://opencollective.com/react-router)
+
+## [Used by](https://github.com/remix-run/react-router/network/dependents) 11M (11M)
+
+[![@tomwire](https://avatars.githubusercontent.com/u/11864327?s=64&v=4)![@captain-n3m0](https://avatars.githubusercontent.com/u/45399832?s=64&v=4)![@11mirror](https://avatars.githubusercontent.com/u/280230405?s=64&v=4)![@krait4g](https://avatars.githubusercontent.com/u/109941931?s=64&v=4)![@sgpublic](https://avatars.githubusercontent.com/u/37202870?s=64&v=4)\\
+\+ 11,056,163](https://github.com/remix-run/react-router/network/dependents)
+
+## [Contributors](https://github.com/remix-run/react-router/graphs/contributors) 1,175 (1,175)
+
+- [![@brophdawg11](https://avatars.githubusercontent.com/u/1609022?s=64&v=4)](https://github.com/brophdawg11)
+- [![@mjackson](https://avatars.githubusercontent.com/u/92839?s=64&v=4)](https://github.com/mjackson)
+- [![@ryanflorence](https://avatars.githubusercontent.com/u/100200?s=64&v=4)](https://github.com/ryanflorence)
+- [![@markdalgleish](https://avatars.githubusercontent.com/u/696693?s=64&v=4)](https://github.com/markdalgleish)
+- [![@timdorr](https://avatars.githubusercontent.com/u/17882?s=64&v=4)](https://github.com/timdorr)
+- [![@taion](https://avatars.githubusercontent.com/u/3112159?s=64&v=4)](https://github.com/taion)
+- [![@remix-run-bot](https://avatars.githubusercontent.com/u/72662859?s=64&v=4)](https://github.com/remix-run-bot)
+- [![@github-actions[bot]](https://avatars.githubusercontent.com/in/15368?s=64&v=4)](https://github.com/github-actions[bot])
+- [![@pcattori](https://avatars.githubusercontent.com/u/1477317?s=64&v=4)](https://github.com/pcattori)
+- [![@jacob-ebey](https://avatars.githubusercontent.com/u/12063586?s=64&v=4)](https://github.com/jacob-ebey)
+- [![@MichaelDeBoey](https://avatars.githubusercontent.com/u/6643991?s=64&v=4)](https://github.com/MichaelDeBoey)
+- [![@chaance](https://avatars.githubusercontent.com/u/3082153?s=64&v=4)](https://github.com/chaance)
+- [![@pshrmn](https://avatars.githubusercontent.com/u/1127037?s=64&v=4)](https://github.com/pshrmn)
+- [![@remix-cla-bot[bot]](https://avatars.githubusercontent.com/u/64235328?s=64&v=4)](https://github.com/remix-cla-bot[bot])
+
+[\+ 1,161 contributors](https://github.com/remix-run/react-router/graphs/contributors)
+
+## Languages
+
+- [TypeScript99.1%](https://github.com/remix-run/react-router/search?l=typescript)
+- [Other0.9%](https://github.com/remix-run/react-router/search?l=Other)
+
+You can’t perform that action at this time.

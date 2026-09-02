@@ -38,7 +38,8 @@ class LexmountProvider(Provider):
         metadata = payload.get("metadata") or {}
         ok = 200 <= response.status < 300 and bool(result)
         content = result.get("main_text") or response.text()
-        message = payload.get("message")
+        error = payload.get("error") or {}
+        message = error.get("message") or payload.get("message")
         return ProviderResult(
             ok=ok,
             content=content,
@@ -50,7 +51,9 @@ class LexmountProvider(Provider):
             metadata={
                 "request_id": payload.get("request_id"),
                 "engine": result.get("engine"),
-                "upstream_status": result.get("status_code"),
+                "upstream_status": result.get("status_code") or error.get("upstream_status_code"),
+                "fetch_error_code": error.get("code"),
+                "fetch_error_stage": error.get("stage"),
                 "server_elapsed_ms": metadata.get("server_elapsed_ms"),
                 "dom_id": result.get("dom_id") or metadata.get("dom_id"),
                 "links_count": len(result.get("links") or []),
