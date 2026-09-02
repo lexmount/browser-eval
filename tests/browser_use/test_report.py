@@ -5,15 +5,60 @@ import re
 from pathlib import Path
 
 from harness.browser_use.report import (
+    METRIC_EXPLANATIONS,
     METRICS,
+    SOURCE_FILES,
+    SOURCE_REF,
+    SOURCE_REPOSITORY,
     _absolute_metric_cell,
     _annotate_source_marks,
+    _appendix_page,
     _correctness_table,
+    _metric_guide,
     _metric_tables,
     _ratio_metric_cell,
     _task_detail_body,
     write_latest_report,
 )
+
+
+def test_homepage_guide_covers_every_displayed_metric_once():
+    guide = _metric_guide()
+    keys = {key for _, metrics in METRICS for key, _, _, _ in metrics}
+    assert keys == set(METRIC_EXPLANATIONS)
+    assert "<details" not in guide
+    for _, metrics in METRICS:
+        for key, label, _, unit in metrics:
+            assert guide.count(f'data-metric="{key}"') == 1
+            assert label in guide and unit in guide
+    for explanation in (
+        "结果正确率",
+        "结果与参考过程均正确",
+        "100%",
+        "200%",
+        "逻辑核",
+        "1,024",
+        "MiB·s",
+        "第 19 个",
+        "一次任务的连续采样",
+        "多个任务各自算出的数值",
+        "不能用两个方案的 P95 直接相除",
+        "不能证明内存泄漏",
+        "不等于绝对最高瞬时值",
+    ):
+        assert explanation in guide
+    assert "均为越低越好" not in _metric_tables({})
+
+
+def test_reproduction_links_to_real_harness_sources_not_step_only_instructions():
+    page = _appendix_page({})
+    assert "复现步骤" not in page
+    assert "获取复现源码" in page
+    assert f'href="{SOURCE_REPOSITORY}/tree/{SOURCE_REF}"' in page
+    for _, path, _ in SOURCE_FILES:
+        assert Path(path).is_file()
+        assert f'href="{SOURCE_REPOSITORY}/blob/{SOURCE_REF}/{path}"' in page
+    assert "browser-use-evaluation-latest-data.json" in page
 
 
 def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
@@ -193,7 +238,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert '<td>100.00</td><td class="better">50.00</td>' in rendered
     assert '<td class="better">200.00</td><td>300.00</td>' in rendered
     assert "9.90×" in rendered
-    assert "边际分位数相除" in rendered
+    assert rendered.index('id="metric-guide"') < rendered.index("结论与产品建议")
+    assert "不能用两个方案的 P95 直接相除" in rendered
     assert "结果重试恢复" not in rendered
     assert "首次结果正确" not in rendered
     assert (reports / "browser-use-evaluation-latest-suite.html").exists()
@@ -223,8 +269,8 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     audit = json.loads((reports / "browser-use-evaluation-latest-data.json").read_text())
     assert "human_review" not in audit["ground_truth_validation"]
     method = (reports / "browser-use-evaluation-latest-method.html").read_text(encoding="utf-8")
-    assert "RX = Receive" in method
-    assert "P50 与中位数是同一个统计量" in method
+    assert "browser-use-evaluation-latest.html#metric-guide" in method
+    assert "RX = Receive" in rendered
     assert "Codex" in method
     assert "<table" in rendered
     assert "<pre># Browser Use Evaluation" not in rendered

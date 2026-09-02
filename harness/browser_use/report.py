@@ -407,13 +407,13 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
         )
     correctness = _correctness_table(summary)
-    return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
+    return f"""{_metric_guide()}<section class="card note" id="conclusions"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
 <section class="card"><h2>任务正确率</h2>{correctness}</section>
 <section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>
 <li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
 <li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
 <li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="browser-use-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
-<section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
+<section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。较低绝对值为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。颜色表示数值高低，不是综合胜负；<a href="browser-use-evaluation-latest.html#metric-guide">查看指标读法</a>。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
 
 
 def _difficulty(value: str) -> str:
@@ -640,7 +640,7 @@ def _method_page(manifest: dict[str, Any]) -> str:
         ],
         ["采样", f"每 {p.get('sample_interval_ms', '?')} ms 采样内存、PID、CPU、网络计数"],
     ]
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该工具调用内部，不单列、不计步。每次调用的参数、耗时、输出和状态写入执行轨迹。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2><ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 CowAgent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="browser-use-evaluation-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该工具调用内部，不单列、不计步。每次调用的参数、耗时、输出和状态写入执行轨迹。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2><ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 CowAgent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol></section><section class="card"><h2>指标定义与统计读法</h2><p><a href="browser-use-evaluation-latest.html#metric-guide">查看首页指标说明</a>：正确率、耗时、CPU、内存、网络、P50/P95 与配对比值。</p></section>"""
 
 
 METRICS = (
@@ -676,22 +676,86 @@ METRICS = (
 )
 
 
+METRIC_EXPLANATIONS = {
+    "duration_ms": "完成一次任务实际等了多久，包含页面加载、工具调用与调用内部等待，不含启动和任务前清理。1,000 ms = 1 秒；同样成功的任务通常越短越好。",
+    "cpu_ms": "浏览器实际消耗的计算时间，把所有逻辑核的忙碌时间加起来。等待网络时耗时仍增加，CPU 时间却可能很少；两个核各忙 1 秒就是 2,000 ms，通常越少越省计算。",
+    "cpu_average_utilization_pct": "平均用了多少个逻辑核的算力：CPU 时间 ÷ 总耗时 × 100%。100% 相当于一个核持续忙，200% 相当于两个核；超过 100% 不是算错。低值也可能是在等待，不能单独说明更快。",
+    "cpu_sampled_utilization_p95_pct": "一次任务中分段采样 CPU 忙碌程度，再取 P95，观察较忙时的计算压力。不是该任务的总计算时间，也不是最高瞬时值；需和总耗时、CPU 时间一起看。",
+    "memory_mean_bytes": "任务期间平均占用了多少内存，持续越久的占用水平权重越大。例如 100 MiB 持续 3 秒、200 MiB 持续 1 秒，约为 125 MiB，而不是 150 MiB。通常越低越省内存。",
+    "memory_p95_bytes": "对一次任务的内存采样值从小到大排序，取约 95% 位置，表示较高负载时的内存水平。它不是峰值，也不是这台电脑全部程序的内存。",
+    "memory_peak_bytes": "本次任务采样到的最高内存占用，可用于估计需要留多少内存余量。采样间隙的短暂尖峰可能漏掉，所以不等于绝对最高瞬时值。",
+    "memory_retained_bytes": "结束时比开始时多留下多少内存，按 max(0, 结束值 − 开始值) 计算。结束时更少也显示 0。较高值可能来自缓存或分配器保留，单次增量不能证明内存泄漏。",
+    "memory_mib_seconds": "把占用大小与持续时间合起来看，约等于时间加权平均内存 × 采样时长。例如 100 MiB 持续 2 秒是 200 MiB·s；占得多或占得久都会增大，通常越低越省。",
+    "network_rx_bytes": "RX = Receive，浏览器容器一共收到了多少数据，包括网页、图片、脚本和浏览器控制通信（CDP）。这是总流量，不是下载速度；相同成功任务下通常越少越省流量。",
+    "network_tx_bytes": "TX = Transmit，浏览器容器一共发出了多少数据，包括网络请求和控制通信回复。它不是页面文件大小；相同成功任务下通常越少越省流量。",
+    "network_rx_bytes_per_second": "接收总量 ÷ 任务总耗时，表示平均每秒收到多少数据。低值可能是流量少，也可能是任务更慢；不能把更低直接理解成网络性能更好。",
+    "network_rx_rate_p95_bytes_per_second": "先计算相邻采样点之间每秒接收的数据量，再在一次任务内取 P95，观察较忙时的接收带宽压力。它不是总流量，也不是网络链路能达到的最高下载速度。",
+    "network_tx_rate_p95_bytes_per_second": "先计算相邻采样点之间每秒发送的数据量，再在一次任务内取 P95，观察较忙时的发送带宽压力。高值可能是更集中地发送，不应脱离耗时和总量判断好坏。",
+}
+
+
+def _metric_guide() -> str:
+    groups = "".join(
+        f'<div class="guide-group"><h3>{_e(group)}</h3><dl>'
+        + "".join(
+            f'<div data-metric="{key}"><dt>{_e(label)} <small>{_e(unit)}</small></dt>'
+            f"<dd>{_e(METRIC_EXPLANATIONS[key])}</dd></div>"
+            for key, label, _, unit in metrics
+        )
+        + "</dl></div>"
+        for group, metrics in METRICS
+    )
+    return (
+        """<style>
+#metric-guide .guide-top{display:flex;justify-content:space-between;gap:16px;align-items:baseline;flex-wrap:wrap}
+#metric-guide .guide-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+#metric-guide .guide-cards article{background:var(--panel);border-radius:10px;padding:14px}
+#metric-guide .guide-cards h3{margin:0 0 5px;font-size:16px}
+#metric-guide .guide-cards p{font-size:14px;margin:0}
+#metric-guide .guide-group{border-top:1px solid var(--line);margin-top:18px}
+#metric-guide dl{margin:0}#metric-guide dl>div{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;padding:12px 0;border-top:1px solid var(--line)}
+#metric-guide dt{font-weight:700}#metric-guide dt small{display:block;font-weight:400;color:var(--muted)}
+#metric-guide dd{margin:0;font-size:14px}#metric-guide .guide-example{padding:14px 16px;border-left:3px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;margin:16px 0}
+@media(max-width:700px){#metric-guide .guide-cards{grid-template-columns:1fr}#metric-guide dl>div{grid-template-columns:1fr;gap:4px}#metric-guide dt small{display:inline;margin-left:8px}}
+</style><section class="card" id="metric-guide" aria-labelledby="metric-guide-title">
+<div class="guide-top"><h2 id="metric-guide-title">先看懂这些指标</h2><a href="browser-use-evaluation-latest.html#conclusions">已了解，直接看结果 →</a></div>
+<p>Provider 就是被比较的浏览器方案，这里是 Chromium 和 Moli。先看任务能不能做对，再看做对同一个任务需要多少时间和资源。</p>
+<div class="guide-cards">
+<article><h3>结果正确率 · 越高越好</h3><p>最终答案与标准答案逐字一致的任务数 ÷ 全部任务数。示例：27/30 = 90%，表示 30 个任务里有 27 个答对，不是每个步骤有 90% 正确。</p></article>
+<article><h3>结果与参考过程均正确 · 越高越好</h3><p>不只答案对，还要完整执行本评测规定的动作顺序，并且每次工具调用都成功。参考过程是本轮规定的路线，不代表其他路线一定错。</p></article>
+<article><h3>资源统计比较谁？</h3><p>只比较两个方案都成功的同一批任务，不混入失败和重试样本。测量的是浏览器容器，不是整台电脑，也不包含 LLM 推理费用。</p></article>
+</div>
+<h3>表头怎么读：P50、P95、平均值</h3>
+<div class="guide-cards">
+<article><h3>P50 = 中位数</h3><p>把多个任务的数值从小到大排列，取中间位置；偶数个取中间两个的平均。代表典型任务的大致水平。</p></article>
+<article><h3>P95 = 靠近高端的水平</h3><p>从小到大排列，任务数乘 95% 后向上取整，取这个位置的值。例如 20 个值取第 19 个，反映较慢或较高占用的一端；不专指最大值，小样本时可能重合，更不是“95% 的成功率”。</p></article>
+<article><h3>平均值 = 总和 ÷ 个数</h3><p>所有任务同一指标相加再除以任务数。少数特别慢的任务会拉高平均值，因此需要同时看 P50 和 P95。</p></article>
+</div>
+<div class="guide-example"><strong>为什么一张表里会有两个 P95？</strong><p>行名中的“任务内 P95”先对<strong>一次任务的连续采样</strong>计算；表头 P95 再对<strong>多个任务各自算出的数值</strong>计算。比如“任务内存 P95”这一行的 P95 列，是多个任务各自内存 P95 的高端水平，不是把所有内存采样混在一起。较高的耗时 P95 说明这批任务中较慢一端更慢，不能据此断言所有极端场景都更差。</p></div>
+<h3>比值怎么读：Moli / Chromium</h3><p>先对每个相同任务相除：0.5× 表示 Moli 是 Chromium 的一半，2× 表示两倍，1× 表示相同；再统计这些比值的 P50、P95 和平均值。<strong>逐任务比值的 P95</strong>不能用两个方案的 P95 直接相除得到。</p>
+<p class="muted">单位：ms 是毫秒；1,000 ms = 1 秒。KiB = 1,024 字节；MiB = 1,024 KiB。KiB/s 是每秒的数据量；MiB·s 是“内存大小 × 时间”，不是 MiB/s。</p>
+<p class="muted">工具调用次数：一次 navigate（打开网页）、click（点击）或 fill（填写）等动作计 1 次，动作内部的等待不另计。任务数按任务去重；执行次数包含两个方案各自的执行和失败重试，因此不等于任务数。</p>
+"""
+        + groups
+        + """<p class="muted">读颜色：绿色粗体表示相对更低的资源数值或更高的正确率。CPU 利用率、网络速率描述忙碌程度，不能仅凭颜色判断方案优劣。</p></section>"""
+    )
+
+
 def _metric_tables(summary: dict[str, Any]) -> str:
     absolute = "".join(
-        _grouped_resource_table(summary, metrics, f"{group}绝对值（均为越低越好）")
-        for group, metrics in METRICS
+        _grouped_resource_table(summary, metrics, f"{group}绝对值") for group, metrics in METRICS
     )
     paired = "".join(
         _paired_ratio_table(
             summary,
             metrics,
-            f"{group}逐任务 Moli / Chromium 配对比值（均为越低越好）",
+            f"{group}逐任务 Moli / Chromium 配对比值",
         )
         for group, metrics in METRICS
     )
     return (
         absolute
-        + "<h3>逐任务配对比值分布</h3><p>先对每个同任务计算 <code>Moli / Chromium</code>，再汇总这些比值；P50、P95 与平均值都来自同一批逐任务比值，不是两个 Provider 边际分位数相除。</p>"
+        + '<h3>逐任务配对比值分布</h3><p><a href="browser-use-evaluation-latest.html#metric-guide">查看比值与 P95 的读法</a></p>'
         + paired
     )
 
@@ -1200,6 +1264,60 @@ def _analysis_page(
     return f"""<section class="card"><h2>时序机制研究</h2><div class="hypothesis-grid"><div><strong>研究假设</strong><span>低频 screencast 或其触发的布局快照，可能放大动态 DOM 更新后几何、可见性或命中测试状态的滞后。</span></div><div><strong>对照设计</strong><span>固定页面、选择器和调用，比较立即显现、双 rAF、定时器、DOM 替换、动画与视口进入；延迟覆盖 16 ms 到 1 s。</span></div><div><strong>验证指标</strong><span>记录 DOM/rAF 完成时间与 actionability 恢复时间，检验其差值是否随 screencast 条件系统性变化。</span></div></div></section>{_execution_explorer(manifest, summary, detail_pages)}"""
 
 
+SOURCE_REPOSITORY = "https://github.com/lexmount/browser-harness-eval"
+SOURCE_REF = "codex/browser-evaluation-harness"
+SOURCE_FILES = (
+    ("运行入口", "examples/browser_use/run.sh", "构建浏览器环境、执行任务并生成报告的一键入口。"),
+    ("运行说明", "examples/browser_use/README.md", "依赖、资源要求、配置参数与完整运行方式。"),
+    (
+        "评测任务与标准答案",
+        "examples/browser_use/tasks.v4.json",
+        "每个任务的网站、动作参数、标准答案和来源。",
+    ),
+    (
+        "浏览器执行器",
+        "harness/browser_use/executor.py",
+        "navigate、click、fill 等动作如何调用浏览器。",
+    ),
+    (
+        "评测调度与资源采样",
+        "harness/browser_use/runner.py",
+        "两个 Provider 的隔离、任务调度、重试与结果落盘。",
+    ),
+    (
+        "指标计算",
+        "harness/browser_use/metrics.py",
+        "耗时、CPU、内存、网络、分位数和逐任务比值的计算。",
+    ),
+    (
+        "独立指标审计",
+        "examples/browser_use/verify_metrics.py",
+        "从原始执行记录独立核对统计值与每个比值。",
+    ),
+    (
+        "报告重建",
+        "examples/browser_use/rebuild_report.py",
+        "读取已有原始记录，重新计算汇总并生成报告。",
+    ),
+)
+
+
+def _source_code_entry() -> str:
+    cards = "".join(
+        f'<div><a href="{SOURCE_REPOSITORY}/blob/{SOURCE_REF}/{path}" target="_blank" rel="noopener noreferrer"><strong>{_e(title)} ↗</strong></a><span>{_e(description)}</span><small>{_e(path)}</small></div>'
+        for title, path, description in SOURCE_FILES
+    )
+    return (
+        '<section class="card" id="reproduction-source"><h2>获取复现源码</h2>'
+        "<p>复现代码位于独立仓库 <strong>lexmount/browser-harness-eval</strong>。"
+        "打开下面的评测分支，即可获取任务集、执行器、统计计算和运行入口。</p>"
+        f'<p><a href="{SOURCE_REPOSITORY}/tree/{SOURCE_REF}" target="_blank" rel="noopener noreferrer"><strong>打开 Browser Harness Eval 评测源码 ↗</strong></a>'
+        f' · <a href="{SOURCE_REPOSITORY}/pull/2" target="_blank" rel="noopener noreferrer">查看评测 PR</a></p>'
+        f'<div class="principles">{cards}</div>'
+        '<p><a href="browser-use-evaluation-latest-data.json">下载本轮机器可读审计摘要</a></p></section>'
+    )
+
+
 def _appendix_page(manifest: dict[str, Any]) -> str:
     p = manifest.get("protocol") or {}
     provenance = manifest.get("artifact_provenance") or {}
@@ -1223,7 +1341,10 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["attempts.jsonl SHA-256", str(provenance.get("attempts_sha256") or "未记录")],
         ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
     ]
-    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/browser_use/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>BROWSER_USE_EVAL_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run python examples/browser_use/rebuild_report.py</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML；所有比值、分位数和均值均由仓库脚本计算，Codex 不参与统计。</li></ol><p><a href="browser-use-evaluation-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>全部任务来自公网，页面内容、网络状态或站点策略变化可能导致数据集漂移；运行前需复核数据集 SHA 与标注证据。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    return (
+        _source_code_entry()
+        + f"""<section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>全部任务来自公网，页面内容、网络状态或站点策略变化可能导致数据集漂移；运行前需复核数据集 SHA 与标注证据。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    )
 
 
 def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
