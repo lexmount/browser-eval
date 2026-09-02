@@ -21,6 +21,9 @@ def main() -> None:
     parser.add_argument("--settle-ms", type=int, default=1500)
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
+    parser.add_argument(
+        "--moli-image", help="Use a separate Moli image without retagging the baseline"
+    )
     parser.add_argument("--llm-diagnostics", action="store_true")
     parser.add_argument("--diagnosis-model", default="gpt-5.6-sol")
     parser.add_argument("--diagnosis-reasoning-effort", default="low")
@@ -35,6 +38,7 @@ def main() -> None:
         settle_ms=args.settle_ms,
         cpus=args.cpus,
         memory=args.memory,
+        moli_image=args.moli_image,
         llm_diagnostics=args.llm_diagnostics,
         diagnosis_model=args.diagnosis_model,
         diagnosis_reasoning_effort=args.diagnosis_reasoning_effort,

@@ -270,11 +270,12 @@ def _start_browser_container(
     cpus: float,
     memory: str,
     network: str,
+    image: str | None = None,
 ) -> Any:
     name = f"lex-browser-use-eval-{run_id}-{engine}"
     cdp_port = ENGINE_PORTS[engine]
     return client.containers.run(
-        ENGINE_IMAGES[engine],
+        image or ENGINE_IMAGES[engine],
         name=name,
         detach=True,
         ports={f"{cdp_port}/tcp": ("127.0.0.1", None)},
@@ -417,6 +418,7 @@ def run_evaluation(
     llm_diagnostics: bool = False,
     diagnosis_model: str = "gpt-5.6-sol",
     diagnosis_reasoning_effort: str = "low",
+    moli_image: str | None = None,
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
@@ -466,6 +468,7 @@ def run_evaluation(
                 cpus=cpus,
                 memory=memory,
                 network=network.name,
+                image=moli_image if engine == "moli" else None,
             )
             containers[engine] = container
             container.reload()

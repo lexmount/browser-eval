@@ -25,6 +25,22 @@ def test_browser_engines_publish_their_external_cdp_ports():
     assert ENGINE_PORTS == {"chromium": 9223, "moli": 9222}
 
 
+def test_moli_version_override_does_not_retag_or_change_baseline():
+    client = MagicMock()
+    original = dict(runner.ENGINE_IMAGES)
+    runner._start_browser_container(
+        client,
+        engine="moli",
+        run_id="test",
+        cpus=2,
+        memory="2g",
+        network="test",
+        image="lex-browser-use-eval-moli:1.1.1",
+    )
+    assert client.containers.run.call_args.args[0] == "lex-browser-use-eval-moli:1.1.1"
+    assert runner.ENGINE_IMAGES == original
+
+
 @pytest.mark.parametrize("unexpected_diagnostic_error", [False, True])
 def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     tmp_path, monkeypatch, unexpected_diagnostic_error

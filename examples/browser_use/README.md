@@ -60,6 +60,35 @@ paired ratio's task identity and operands. Any mismatch exits with an error.
 Neither command invokes Codex or another coding agent for scoring or
 statistics.
 
+## Side-by-side Moli version evaluation
+
+Keep the baseline `:local` image and its raw output unchanged. Tag its recorded
+image ID as `lex-browser-use-eval-moli:1.0.6`, then build the upgrade image:
+
+    docker build -f examples/browser_use/docker/moli-upgrade.Dockerfile \
+      -t lex-browser-use-eval-moli:1.1.1 .
+
+This Dockerfile replaces only the verified Moli binary in the baseline image;
+it retains the OS, fonts, libraries, user and entrypoint. Release checksums for
+both Linux architectures are pinned in the file. The runner accepts
+`--moli-image lex-browser-use-eval-moli:1.1.1`; use distinct `--output` and
+`--reports` directories for each version and retain all existing artifacts.
+The same invocation with `--moli-image lex-browser-use-eval-moli:1.0.6` provides
+a fresh old-version control. Both runs still alternate Chromium/Moli by task.
+
+Generate a version comparison from the two raw runs (without re-scoring by LLM):
+
+    uv run --extra browser-use-eval python -m harness.browser_use.version_comparison \
+      --old artifacts/browser_use/moli-1.0.6-rerun-20260902 \
+      --new artifacts/browser_use/moli-1.1.1-20260902 \
+      --output artifacts/browser_use/version-comparison-20260902
+
+`harness/browser_use/version_comparison.py` rejects mismatched task definitions,
+protocol, VM resources or Chromium images. Correctness uses every task; resource
+comparisons use the fixed intersection that succeeded without retries in both
+engines of both runs. Sequential public-web runs show observed differences,
+not a controlled proof that every difference was caused by a version change.
+
 ## Protocol
 
 - Element-targeted calls require a non-empty string `selector`. Snapshot `ref`
