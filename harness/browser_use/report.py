@@ -274,7 +274,7 @@ def _shell(
         f'<div class="case-header"><a href="{REPORT_STEM}-analysis.html#{_e(back_anchor)}">← 返回逐任务分析</a>'
         f'<a href="{REPORT_STEM}.html">Chromium / Moli 评测</a><span class="muted">运行 {_e(manifest.get("run_id", "unknown"))}</span></div>'
         if detail_title
-        else f'<div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>Chromium 与 Moli 浏览器工具调用评测</h1><div class="muted">运行编号：{_e(manifest.get("run_id", "unknown"))} · 第 {index + 1}/{len(PAGES)} 页</div></div>{_nav(active)}'
+        else f'<div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>Chromium 与 Moli 浏览器工具调用评测</h1><div class="muted">{_e(manifest.get("report_label") or "运行编号：" + str(manifest.get("run_id", "unknown")))} · 第 {index + 1}/{len(PAGES)} 页</div></div>{_nav(active)}'
     )
     pager = "" if detail_title else f'<div class="pager">{prev_link}{next_link}</div>'
     return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(detail_title) or label}｜Chromium 与 Moli 评测</title><style>
@@ -1103,7 +1103,7 @@ def _execution_details(
             # Artifact Hub injects a site-root base URL; fragment links need the file.
             detail_body = detail_body.replace('href="#', f'href="{detail_name}#')
             detail_pages[detail_name] = _shell(
-                manifest,
+                (manifest.get("provider_runs") or {}).get(engine, manifest),
                 "analysis",
                 detail_body,
                 detail_title=title,
@@ -1147,6 +1147,10 @@ def _execution_explorer(
     task_options = "".join(
         f'<option value="{_e(task_id)}">{_e(task.get("title") or task_id)}</option>'
         for task_id, task in (summary.get("by_task") or {}).items()
+    )
+    engine_options = "".join(
+        f'<option value="{_e(engine)}">{_e(engine)}</option>'
+        for engine in (summary.get("functional") or {})
     )
     action_values = sorted(
         {
@@ -1196,7 +1200,7 @@ def _execution_explorer(
     )
     filters = f"""<div class="filters" id="execution-filters" aria-label="任务执行记录筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option>{task_options}</select></label>
-      <label>Provider<select id="f-engine"><option value="">全部 Provider</option><option>chromium</option><option>moli</option></select></label>
+      <label>Provider<select id="f-engine"><option value="">全部 Provider</option>{engine_options}</select></label>
       <label>结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail" selected>错误</option></select></label>
       <label>结果与过程<select id="f-combined"><option value="">全部</option><option value="pass">均正确</option><option value="fail">未同时正确</option></select></label>
       <label>难度<select id="f-complexity"><option value="">全部难度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>
@@ -1229,7 +1233,7 @@ function reveal(){
  const raw=location.hash.slice(1);
  if(raw.startsWith('provider=')){
   const params=new URLSearchParams(raw),provider=params.get('provider');
-  if(!['chromium','moli'].includes(provider))return;
+  if(![...el.engine.options].some(option=>option.value===provider))return;
   clear();el.engine.value=provider;el.status.value=params.get('status')==='fail'?'fail':'';apply();
   document.getElementById('execution-filters').scrollIntoView({block:'start'});return;
  }

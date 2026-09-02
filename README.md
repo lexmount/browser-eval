@@ -41,6 +41,24 @@ uv run python examples/browser_use/rebuild_report.py
 See [examples/browser_use/README.md](examples/browser_use/README.md) for the
 measurement protocol, complexity tiers, overrides, and CubeSandbox decision.
 
+### Consolidate preserved version runs
+
+The report uses one task suite and one analysis view for Chromium, Moli 1.0.6,
+and Moli 1.1.1. Inputs remain unchanged; each execution detail retains its source
+run ID. Historical Chromium results are shown separately from the fresh control.
+
+```bash
+uv run python -m harness.browser_use.consolidated_report \
+  --historical artifacts/browser_use/moli-1.0.6-baseline-78e5e3a4ddfb \
+  --old artifacts/browser_use/moli-1.0.6-rerun-20260902 \
+  --new artifacts/browser_use/moli-1.1.1-20260902 \
+  --output artifacts/browser_use/consolidated-20260902
+```
+
+The output includes the five report pages, version-specific task details, and
+byte-preserved source records with SHA-256 checksums. Resource comparisons use
+the common successful tasks across both runs and both engines, excluding retries.
+
 ## Harness layout
 
 - `harness/browser_use`: interactive browser-use execution, metrics, and reports
