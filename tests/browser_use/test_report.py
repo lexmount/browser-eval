@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from harness.browser_use.report import (
     METRIC_EXPLANATIONS,
     METRICS,
@@ -19,7 +21,6 @@ from harness.browser_use.report import (
     _metric_guide,
     _metric_tables,
     _ratio_metric_cell,
-    _sample_uid,
     _task_detail_body,
     write_latest_report,
 )
@@ -50,39 +51,42 @@ def test_duration_audit_marks_each_independent_p95_without_empty_column():
     assert _duration_ratio_audit({}) == ""
 
 
-def test_record_ids_are_stable_namespaced_and_distinguish_run_task_provider():
-    samples = {
-        _sample_uid(run, task, engine)
-        for run in ("run-1", "run-2")
-        for task in ("same", "other")
-        for engine in ("chromium", "moli")
-    }
-    assert len(samples) == 8
-    assert _sample_uid("run-1", "same", "moli") == _sample_uid("run-1", "same", "moli")
-    assert _sample_uid("a:b", "c", "d") != _sample_uid("a", "b:c", "d")
+@pytest.mark.parametrize("ids", [["same", "same"], [""]])
+def test_source_task_ids_must_be_nonempty_and_unique(tmp_path, ids):
+    with pytest.raises(ValueError, match="Task IDs"):
+        write_latest_report(tmp_path, manifest={"suite": [{"task_id": x} for x in ids]}, summary={})
 
 
 def test_ids_join_suite_analysis_details_and_audit_index(tmp_path):
     task = {"task_id": "task-1", "title": "标题", "calls": [], "ground_truth": {}}
     attempts = [{"attempt": 1, "status": "fail"}, {"attempt": 2, "status": "pass"}]
-    summary = {"by_task": {"task-1": {"title": "标题", "attempts": {"moli": attempts}}}}
+    summary = {
+        "by_task": {
+            "task-1": {"title": "标题", "attempts": {"moli": attempts, "chromium": attempts}}
+        }
+    }
     write_latest_report(tmp_path, manifest={"run_id": "run-1", "suite": [task]}, summary=summary)
-    sample = _sample_uid("run-1", "task-1", "moli")
     analysis = (tmp_path / "browser-use-evaluation-latest-analysis.html").read_text()
     suite = (tmp_path / "browser-use-evaluation-latest-suite.html").read_text()
     detail = (tmp_path / _detail_filename("task-1", "moli")).read_text()
     index = json.loads((tmp_path / "browser-use-evaluation-latest-data.json").read_text())[
-        "sample_index"
+        "task_index"
     ]
-    assert sample in analysis and sample in detail
+    label = "任务 ID <code>task-1</code>"
+    assert label in suite and label in analysis and label in detail
+    chromium_detail = (tmp_path / _detail_filename("task-1", "chromium")).read_text()
+    assert label in chromium_detail
     search = re.search(r'data-search="([^"]+)"', analysis).group(1)
-    assert sample in search
+    assert "task-1" in search
     assert detail.count('class="record-id"') == 1
-    assert "任务 ID" not in detail and "执行 ID" not in detail
-    assert 'class="record-id"' not in suite
-    assert index[0]["sample_id"] == sample
-    assert "task_uid" not in index[0]
-    assert index[0]["executions"] == [{"attempt": 1}, {"attempt": 2}]
+    assert "样本 ID" not in detail and "执行 ID" not in detail
+    assert suite.count('class="record-id"') == 1
+    assert index[0]["task_id"] == "task-1"
+    assert len(index) == 1 and len(index[0]["executions"]) == 2
+    assert index[0]["executions"][0]["attempts"] == [1, 2]
+    other_run = tmp_path / "other-run"
+    write_latest_report(other_run, manifest={"run_id": "run-2", "suite": [task]}, summary=summary)
+    assert label in (other_run / _detail_filename("task-1", "moli")).read_text()
 
 
 def test_homepage_guide_covers_every_displayed_metric_once():
