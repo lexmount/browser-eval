@@ -8573,6 +8573,1638 @@
           "supports": "独立观察的全部 10 条记录及其文字字段"
         }
       ]
+    },
+    {
+      "id": "dynamic-reviews-graphql",
+      "name": "ScrapFly · GraphQL 评论",
+      "url": "https://web-scraping.dev/reviews",
+      "category": "graphql",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-date",
+          "alternatives": [
+            "2023-05-18"
+          ]
+        },
+        {
+          "id": "entry-1-text",
+          "alternatives": [
+            "Unique flavor and great energy boost. It's the perfect gamer's drink!"
+          ]
+        },
+        {
+          "id": "entry-2-date",
+          "alternatives": [
+            "2023-05-17"
+          ]
+        },
+        {
+          "id": "entry-2-text",
+          "alternatives": [
+            "Good flavor and keeps me energized. The bottle design is really fun."
+          ]
+        },
+        {
+          "id": "entry-3-date",
+          "alternatives": [
+            "2023-05-16"
+          ]
+        },
+        {
+          "id": "entry-3-text",
+          "alternatives": [
+            "Excellent energy drink for gamers. The tropical flavor is refreshing."
+          ]
+        },
+        {
+          "id": "entry-4-date",
+          "alternatives": [
+            "2023-05-15"
+          ]
+        },
+        {
+          "id": "entry-4-text",
+          "alternatives": [
+            "It’s fun, tastes good, and the energy boost is helpful during intense gaming sessions."
+          ]
+        },
+        {
+          "id": "entry-5-date",
+          "alternatives": [
+            "2023-05-15"
+          ]
+        },
+        {
+          "id": "entry-5-text",
+          "alternatives": [
+            "The best sneakers I've bought in a long time. Stylish, comfortable and the leather quality is top-notch."
+          ]
+        },
+        {
+          "id": "entry-6-date",
+          "alternatives": [
+            "2023-05-12"
+          ]
+        },
+        {
+          "id": "entry-6-text",
+          "alternatives": [
+            "The cherry cola flavor is a win. Keeps me energized and focused."
+          ]
+        },
+        {
+          "id": "entry-7-date",
+          "alternatives": [
+            "2023-05-10"
+          ]
+        },
+        {
+          "id": "entry-7-text",
+          "alternatives": [
+            "These shoes are a hit with my twins. They love the lights and they seem to be quite durable."
+          ]
+        },
+        {
+          "id": "entry-8-date",
+          "alternatives": [
+            "2023-05-01"
+          ]
+        },
+        {
+          "id": "entry-8-text",
+          "alternatives": [
+            "Excellent boots for outdoor adventures. They offer great support and are very comfortable."
+          ]
+        },
+        {
+          "id": "entry-9-date",
+          "alternatives": [
+            "2023-05-01"
+          ]
+        },
+        {
+          "id": "entry-9-text",
+          "alternatives": [
+            "Nice design and good quality, but a bit too tight for me. Otherwise, it's a pretty cool beanie."
+          ]
+        },
+        {
+          "id": "entry-10-date",
+          "alternatives": [
+            "2023-04-25"
+          ]
+        },
+        {
+          "id": "entry-10-text",
+          "alternatives": [
+            "Really enjoyed the citrus flavor and the energy boost it gives."
+          ]
+        },
+        {
+          "id": "entry-11-date",
+          "alternatives": [
+            "2023-04-25"
+          ]
+        },
+        {
+          "id": "entry-11-text",
+          "alternatives": [
+            "Great concept, but the sizing is a bit off. Order a size larger."
+          ]
+        },
+        {
+          "id": "entry-12-date",
+          "alternatives": [
+            "2023-04-18"
+          ]
+        },
+        {
+          "id": "entry-12-text",
+          "alternatives": [
+            "Delicious chocolates, and the box is pretty substantial. It'd make a nice gift."
+          ]
+        },
+        {
+          "id": "entry-13-date",
+          "alternatives": [
+            "2023-04-12"
+          ]
+        },
+        {
+          "id": "entry-13-text",
+          "alternatives": [
+            "The boots are durable, but the laces could be better quality."
+          ]
+        },
+        {
+          "id": "entry-14-date",
+          "alternatives": [
+            "2023-04-11"
+          ]
+        },
+        {
+          "id": "entry-14-text",
+          "alternatives": [
+            "This potion is a game changer. Love the energy boost and the flavor."
+          ]
+        },
+        {
+          "id": "entry-15-date",
+          "alternatives": [
+            "2023-04-10"
+          ]
+        },
+        {
+          "id": "entry-15-text",
+          "alternatives": [
+            "Light, comfortable, and nice design. I'm buying another pair."
+          ]
+        },
+        {
+          "id": "entry-16-date",
+          "alternatives": [
+            "2023-04-10"
+          ]
+        },
+        {
+          "id": "entry-16-text",
+          "alternatives": [
+            "Highly recommend! These shoes are great for evening walks. Kids love them!"
+          ]
+        },
+        {
+          "id": "entry-17-date",
+          "alternatives": [
+            "2023-04-09"
+          ]
+        },
+        {
+          "id": "entry-17-text",
+          "alternatives": [
+            "It's like a health potion for gamers! The energy boost is spot on."
+          ]
+        },
+        {
+          "id": "entry-18-date",
+          "alternatives": [
+            "2023-04-07"
+          ]
+        },
+        {
+          "id": "entry-18-text",
+          "alternatives": [
+            "Really helps me focus during intense gaming marathons. The teal color is a nice touch."
+          ]
+        },
+        {
+          "id": "entry-19-date",
+          "alternatives": [
+            "2023-04-07"
+          ]
+        },
+        {
+          "id": "entry-19-text",
+          "alternatives": [
+            "The shoes are nice but they didn't fit me well. I had to exchange for a larger size."
+          ]
+        },
+        {
+          "id": "entry-20-date",
+          "alternatives": [
+            "2023-04-05"
+          ]
+        },
+        {
+          "id": "entry-20-text",
+          "alternatives": [
+            "Great taste, and the energy kick is awesome. Feels just like a strength potion."
+          ]
+        }
+      ],
+      "min_content_chars": 1246,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "2023-05-18\nUnique flavor and great energy boost. It's the perfect gamer's drink!\n\n2023-05-17\nGood flavor and keeps me energized. The bottle design is really fun.\n\n2023-05-16\nExcellent energy drink for gamers. The tropical flavor is refreshing.\n\n2023-05-15\nIt’s fun, tastes good, and the energy boost is helpful during intense gaming sessions.\n\n2023-05-15\nThe best sneakers I've bought in a long time. Stylish, comfortable and the leather quality is top-notch.\n\n2023-05-12\nThe cherry cola flavor is a win. Keeps me energized and focused.\n\n2023-05-10\nThese shoes are a hit with my twins. They love the lights and they seem to be quite durable.\n\n2023-05-01\nExcellent boots for outdoor adventures. They offer great support and are very comfortable.\n\n2023-05-01\nNice design and good quality, but a bit too tight for me. Otherwise, it's a pretty cool beanie.\n\n2023-04-25\nReally enjoyed the citrus flavor and the energy boost it gives.\n\n2023-04-25\nGreat concept, but the sizing is a bit off. Order a size larger.\n\n2023-04-18\nDelicious chocolates, and the box is pretty substantial. It'd make a nice gift.\n\n2023-04-12\nThe boots are durable, but the laces could be better quality.\n\n2023-04-11\nThis potion is a game changer. Love the energy boost and the flavor.\n\n2023-04-10\nLight, comfortable, and nice design. I'm buying another pair.\n\n2023-04-10\nHighly recommend! These shoes are great for evening walks. Kids love them!\n\n2023-04-09\nIt's like a health potion for gamers! The energy boost is spot on.\n\n2023-04-07\nReally helps me focus during intense gaming marathons. The teal color is a nice touch.\n\n2023-04-07\nThe shoes are nice but they didn't fit me well. I had to exchange for a larger size.\n\n2023-04-05\nGreat taste, and the energy kick is awesome. Feels just like a strength potion.",
+      "task_prompt": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More",
+        "expected_entries": 20,
+        "render_evidence": {
+          "scope": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-reviews-graphql: 20 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 1321,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:49:04.320Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:43:29.705Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://web-scraping.dev/reviews",
+          "supports": "独立观察的全部 20 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-react-cart",
+      "name": "React · 商品与分期信息",
+      "url": "https://react-shopping-cart-67954.firebaseapp.com/",
+      "category": "react_app",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-name",
+          "alternatives": [
+            "Cropped Stay Groovy off white"
+          ]
+        },
+        {
+          "id": "entry-1-price",
+          "alternatives": [
+            "$10.90"
+          ]
+        },
+        {
+          "id": "entry-1-financing",
+          "alternatives": [
+            "or 9 x$1.21"
+          ]
+        },
+        {
+          "id": "entry-1-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-2-name",
+          "alternatives": [
+            "Basic Cactus White T-shirt"
+          ]
+        },
+        {
+          "id": "entry-2-price",
+          "alternatives": [
+            "$13.25"
+          ]
+        },
+        {
+          "id": "entry-2-financing",
+          "alternatives": [
+            "or 3 x$4.42"
+          ]
+        },
+        {
+          "id": "entry-2-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-3-name",
+          "alternatives": [
+            "Skater Black Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-3-price",
+          "alternatives": [
+            "$25.90"
+          ]
+        },
+        {
+          "id": "entry-3-financing",
+          "alternatives": [
+            "or 12 x$2.16"
+          ]
+        },
+        {
+          "id": "entry-4-name",
+          "alternatives": [
+            "Black Tule Oversized"
+          ]
+        },
+        {
+          "id": "entry-4-price",
+          "alternatives": [
+            "$29.45"
+          ]
+        },
+        {
+          "id": "entry-4-financing",
+          "alternatives": [
+            "or 5 x$5.89"
+          ]
+        },
+        {
+          "id": "entry-4-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-5-name",
+          "alternatives": [
+            "Black Batman T-shirt"
+          ]
+        },
+        {
+          "id": "entry-5-price",
+          "alternatives": [
+            "$10.90"
+          ]
+        },
+        {
+          "id": "entry-5-financing",
+          "alternatives": [
+            "or 9 x$1.21"
+          ]
+        },
+        {
+          "id": "entry-5-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-6-name",
+          "alternatives": [
+            "Blue T-Shirt"
+          ]
+        },
+        {
+          "id": "entry-6-price",
+          "alternatives": [
+            "$9.00"
+          ]
+        },
+        {
+          "id": "entry-6-financing",
+          "alternatives": [
+            "or 3 x$3.00"
+          ]
+        },
+        {
+          "id": "entry-6-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-7-name",
+          "alternatives": [
+            "Loose Black T-shirt"
+          ]
+        },
+        {
+          "id": "entry-7-price",
+          "alternatives": [
+            "$14.00"
+          ]
+        },
+        {
+          "id": "entry-7-financing",
+          "alternatives": [
+            "or 5 x$2.80"
+          ]
+        },
+        {
+          "id": "entry-7-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-8-name",
+          "alternatives": [
+            "Ringer Hall Pass"
+          ]
+        },
+        {
+          "id": "entry-8-price",
+          "alternatives": [
+            "$10.90"
+          ]
+        },
+        {
+          "id": "entry-8-financing",
+          "alternatives": [
+            "or 9 x$1.21"
+          ]
+        },
+        {
+          "id": "entry-8-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-9-name",
+          "alternatives": [
+            "Grey T-shirt"
+          ]
+        },
+        {
+          "id": "entry-9-price",
+          "alternatives": [
+            "$14.90"
+          ]
+        },
+        {
+          "id": "entry-9-financing",
+          "alternatives": [
+            "or 7 x$2.13"
+          ]
+        },
+        {
+          "id": "entry-9-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-10-name",
+          "alternatives": [
+            "Black T-shirt with white stripes"
+          ]
+        },
+        {
+          "id": "entry-10-price",
+          "alternatives": [
+            "$14.90"
+          ]
+        },
+        {
+          "id": "entry-10-financing",
+          "alternatives": [
+            "or 7 x$2.13"
+          ]
+        },
+        {
+          "id": "entry-10-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-11-name",
+          "alternatives": [
+            "Turtles Ninja T-shirt"
+          ]
+        },
+        {
+          "id": "entry-11-price",
+          "alternatives": [
+            "$10.90"
+          ]
+        },
+        {
+          "id": "entry-11-financing",
+          "alternatives": [
+            "or 9 x$1.21"
+          ]
+        },
+        {
+          "id": "entry-12-name",
+          "alternatives": [
+            "Slim black T-shirt"
+          ]
+        },
+        {
+          "id": "entry-12-price",
+          "alternatives": [
+            "$49.90"
+          ]
+        },
+        {
+          "id": "entry-12-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-13-name",
+          "alternatives": [
+            "Blue Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-13-price",
+          "alternatives": [
+            "$22.50"
+          ]
+        },
+        {
+          "id": "entry-13-financing",
+          "alternatives": [
+            "or 4 x$5.63"
+          ]
+        },
+        {
+          "id": "entry-13-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-14-name",
+          "alternatives": [
+            "White T-shirt Gucci"
+          ]
+        },
+        {
+          "id": "entry-14-price",
+          "alternatives": [
+            "$18.70"
+          ]
+        },
+        {
+          "id": "entry-14-financing",
+          "alternatives": [
+            "or 4 x$4.67"
+          ]
+        },
+        {
+          "id": "entry-15-name",
+          "alternatives": [
+            "Tropical Wine T-shirt"
+          ]
+        },
+        {
+          "id": "entry-15-price",
+          "alternatives": [
+            "$134.90"
+          ]
+        },
+        {
+          "id": "entry-15-financing",
+          "alternatives": [
+            "or 5 x$26.98"
+          ]
+        },
+        {
+          "id": "entry-15-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        },
+        {
+          "id": "entry-16-name",
+          "alternatives": [
+            "Marine Blue T-shirt"
+          ]
+        },
+        {
+          "id": "entry-16-price",
+          "alternatives": [
+            "$49.00"
+          ]
+        },
+        {
+          "id": "entry-16-financing",
+          "alternatives": [
+            "or 9 x$5.44"
+          ]
+        },
+        {
+          "id": "entry-16-shipping",
+          "alternatives": [
+            "Free shipping"
+          ]
+        }
+      ],
+      "min_content_chars": 579,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "Cropped Stay Groovy off white\n$10.90\nor 9 x$1.21\nFree shipping\n\nBasic Cactus White T-shirt\n$13.25\nor 3 x$4.42\nFree shipping\n\nSkater Black Sweatshirt\n$25.90\nor 12 x$2.16\n\nBlack Tule Oversized\n$29.45\nor 5 x$5.89\nFree shipping\n\nBlack Batman T-shirt\n$10.90\nor 9 x$1.21\nFree shipping\n\nBlue T-Shirt\n$9.00\nor 3 x$3.00\nFree shipping\n\nLoose Black T-shirt\n$14.00\nor 5 x$2.80\nFree shipping\n\nRinger Hall Pass\n$10.90\nor 9 x$1.21\nFree shipping\n\nGrey T-shirt\n$14.90\nor 7 x$2.13\nFree shipping\n\nBlack T-shirt with white stripes\n$14.90\nor 7 x$2.13\nFree shipping\n\nTurtles Ninja T-shirt\n$10.90\nor 9 x$1.21\n\nSlim black T-shirt\n$49.90\nFree shipping\n\nBlue Sweatshirt\n$22.50\nor 4 x$5.63\nFree shipping\n\nWhite T-shirt Gucci\n$18.70\nor 4 x$4.67\n\nTropical Wine T-shirt\n$134.90\nor 5 x$26.98\nFree shipping\n\nMarine Blue T-shirt\n$49.00\nor 9 x$5.44\nFree shipping",
+      "task_prompt": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告",
+        "expected_entries": 16,
+        "render_evidence": {
+          "scope": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-react-cart: 16 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 3992,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:49:08.312Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:43:35.148Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://react-shopping-cart-67954.firebaseapp.com/",
+          "supports": "独立观察的全部 16 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-angular-phones",
+      "name": "Angular · 手机目录",
+      "url": "https://angular.github.io/angular-phonecat/step-12/app/",
+      "category": "client_router",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-name",
+          "alternatives": [
+            "Motorola XOOM™ with Wi-Fi"
+          ]
+        },
+        {
+          "id": "entry-1-description",
+          "alternatives": [
+            "The Next, Next Generation Experience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ]
+        },
+        {
+          "id": "entry-2-name",
+          "alternatives": [
+            "MOTOROLA XOOM™"
+          ]
+        },
+        {
+          "id": "entry-2-description",
+          "alternatives": [
+            "The Next, Next Generation Experience the future with MOTOROLA XOOM, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ]
+        },
+        {
+          "id": "entry-3-name",
+          "alternatives": [
+            "MOTOROLA ATRIX™ 4G"
+          ]
+        },
+        {
+          "id": "entry-3-description",
+          "alternatives": [
+            "MOTOROLA ATRIX 4G the world's most powerful smartphone."
+          ]
+        },
+        {
+          "id": "entry-4-name",
+          "alternatives": [
+            "Dell Streak 7"
+          ]
+        },
+        {
+          "id": "entry-4-description",
+          "alternatives": [
+            "Introducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around."
+          ]
+        },
+        {
+          "id": "entry-5-name",
+          "alternatives": [
+            "Samsung Gem™"
+          ]
+        },
+        {
+          "id": "entry-5-description",
+          "alternatives": [
+            "The Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price."
+          ]
+        },
+        {
+          "id": "entry-6-name",
+          "alternatives": [
+            "Dell Venue"
+          ]
+        },
+        {
+          "id": "entry-6-description",
+          "alternatives": [
+            "The Dell Venue; Your Personal Express Lane to Everything"
+          ]
+        },
+        {
+          "id": "entry-7-name",
+          "alternatives": [
+            "Nexus S"
+          ]
+        },
+        {
+          "id": "entry-7-description",
+          "alternatives": [
+            "Fast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet."
+          ]
+        },
+        {
+          "id": "entry-8-name",
+          "alternatives": [
+            "LG Axis"
+          ]
+        },
+        {
+          "id": "entry-8-description",
+          "alternatives": [
+            "Android Powered, Google Maps Navigation, 5 Customizable Home Screens"
+          ]
+        },
+        {
+          "id": "entry-9-name",
+          "alternatives": [
+            "Samsung Galaxy Tab™"
+          ]
+        },
+        {
+          "id": "entry-9-description",
+          "alternatives": [
+            "Feel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility."
+          ]
+        },
+        {
+          "id": "entry-10-name",
+          "alternatives": [
+            "Samsung Showcase™ a Galaxy S™ phone"
+          ]
+        },
+        {
+          "id": "entry-10-description",
+          "alternatives": [
+            "The Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors"
+          ]
+        },
+        {
+          "id": "entry-11-name",
+          "alternatives": [
+            "DROID™ 2 Global by Motorola"
+          ]
+        },
+        {
+          "id": "entry-11-description",
+          "alternatives": [
+            "The first smartphone with a 1.2 GHz processor and global capabilities."
+          ]
+        },
+        {
+          "id": "entry-12-name",
+          "alternatives": [
+            "DROID™ Pro by Motorola"
+          ]
+        },
+        {
+          "id": "entry-12-description",
+          "alternatives": [
+            "The next generation of DOES."
+          ]
+        },
+        {
+          "id": "entry-13-name",
+          "alternatives": [
+            "MOTOROLA BRAVO™ with MOTOBLUR™"
+          ]
+        },
+        {
+          "id": "entry-13-description",
+          "alternatives": [
+            "An experience to cheer about."
+          ]
+        },
+        {
+          "id": "entry-14-name",
+          "alternatives": [
+            "Motorola DEFY™ with MOTOBLUR™"
+          ]
+        },
+        {
+          "id": "entry-14-description",
+          "alternatives": [
+            "Are you ready for everything life throws your way?"
+          ]
+        },
+        {
+          "id": "entry-15-name",
+          "alternatives": [
+            "T-Mobile myTouch 4G"
+          ]
+        },
+        {
+          "id": "entry-15-description",
+          "alternatives": [
+            "The T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi."
+          ]
+        },
+        {
+          "id": "entry-16-name",
+          "alternatives": [
+            "Samsung Mesmerize™ a Galaxy S™ phone"
+          ]
+        },
+        {
+          "id": "entry-16-description",
+          "alternatives": [
+            "The Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors"
+          ]
+        },
+        {
+          "id": "entry-17-name",
+          "alternatives": [
+            "SANYO ZIO"
+          ]
+        },
+        {
+          "id": "entry-17-description",
+          "alternatives": [
+            "The Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value."
+          ]
+        },
+        {
+          "id": "entry-18-name",
+          "alternatives": [
+            "Samsung Transform™"
+          ]
+        },
+        {
+          "id": "entry-18-description",
+          "alternatives": [
+            "The Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”."
+          ]
+        },
+        {
+          "id": "entry-19-name",
+          "alternatives": [
+            "T-Mobile G2"
+          ]
+        },
+        {
+          "id": "entry-19-description",
+          "alternatives": [
+            "The T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible."
+          ]
+        },
+        {
+          "id": "entry-20-name",
+          "alternatives": [
+            "Motorola CHARM™ with MOTOBLUR™"
+          ]
+        },
+        {
+          "id": "entry-20-description",
+          "alternatives": [
+            "Motorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service."
+          ]
+        }
+      ],
+      "min_content_chars": 1949,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "Motorola XOOM™ with Wi-Fi\nThe Next, Next Generation Experience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb).\n\nMOTOROLA XOOM™\nThe Next, Next Generation Experience the future with MOTOROLA XOOM, the world's first tablet powered by Android 3.0 (Honeycomb).\n\nMOTOROLA ATRIX™ 4G\nMOTOROLA ATRIX 4G the world's most powerful smartphone.\n\nDell Streak 7\nIntroducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around.\n\nSamsung Gem™\nThe Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price.\n\nDell Venue\nThe Dell Venue; Your Personal Express Lane to Everything\n\nNexus S\nFast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet.\n\nLG Axis\nAndroid Powered, Google Maps Navigation, 5 Customizable Home Screens\n\nSamsung Galaxy Tab™\nFeel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility.\n\nSamsung Showcase™ a Galaxy S™ phone\nThe Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors\n\nDROID™ 2 Global by Motorola\nThe first smartphone with a 1.2 GHz processor and global capabilities.\n\nDROID™ Pro by Motorola\nThe next generation of DOES.\n\nMOTOROLA BRAVO™ with MOTOBLUR™\nAn experience to cheer about.\n\nMotorola DEFY™ with MOTOBLUR™\nAre you ready for everything life throws your way?\n\nT-Mobile myTouch 4G\nThe T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi.\n\nSamsung Mesmerize™ a Galaxy S™ phone\nThe Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors\n\nSANYO ZIO\nThe Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value.\n\nSamsung Transform™\nThe Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”.\n\nT-Mobile G2\nThe T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible.\n\nMotorola CHARM™ with MOTOBLUR™\nMotorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service.",
+      "task_prompt": "默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情",
+        "expected_entries": 20,
+        "render_evidence": {
+          "scope": "默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-angular-phones: 20 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 21269,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:49:29.581Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:43:39.015Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://angular.github.io/angular-phonecat/step-12/app/",
+          "supports": "独立观察的全部 20 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-swagger",
+      "name": "Swagger · 接口目录",
+      "url": "https://petstore.swagger.io/",
+      "category": "schema_render",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-1-path",
+          "alternatives": [
+            "/pet/{petId}/uploadImage"
+          ]
+        },
+        {
+          "id": "entry-1-summary",
+          "alternatives": [
+            "uploads an image"
+          ]
+        },
+        {
+          "id": "entry-2-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-2-path",
+          "alternatives": [
+            "/pet"
+          ]
+        },
+        {
+          "id": "entry-2-summary",
+          "alternatives": [
+            "Add a new pet to the store"
+          ]
+        },
+        {
+          "id": "entry-3-method",
+          "alternatives": [
+            "PUT"
+          ]
+        },
+        {
+          "id": "entry-3-path",
+          "alternatives": [
+            "/pet"
+          ]
+        },
+        {
+          "id": "entry-3-summary",
+          "alternatives": [
+            "Update an existing pet"
+          ]
+        },
+        {
+          "id": "entry-4-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-4-path",
+          "alternatives": [
+            "/pet/findByStatus"
+          ]
+        },
+        {
+          "id": "entry-4-summary",
+          "alternatives": [
+            "Finds Pets by status"
+          ]
+        },
+        {
+          "id": "entry-5-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-5-path",
+          "alternatives": [
+            "/pet/findByTags"
+          ]
+        },
+        {
+          "id": "entry-5-summary",
+          "alternatives": [
+            "Finds Pets by tags"
+          ]
+        },
+        {
+          "id": "entry-6-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-6-path",
+          "alternatives": [
+            "/pet/{petId}"
+          ]
+        },
+        {
+          "id": "entry-6-summary",
+          "alternatives": [
+            "Find pet by ID"
+          ]
+        },
+        {
+          "id": "entry-7-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-7-path",
+          "alternatives": [
+            "/pet/{petId}"
+          ]
+        },
+        {
+          "id": "entry-7-summary",
+          "alternatives": [
+            "Updates a pet in the store with form data"
+          ]
+        },
+        {
+          "id": "entry-8-method",
+          "alternatives": [
+            "DELETE"
+          ]
+        },
+        {
+          "id": "entry-8-path",
+          "alternatives": [
+            "/pet/{petId}"
+          ]
+        },
+        {
+          "id": "entry-8-summary",
+          "alternatives": [
+            "Deletes a pet"
+          ]
+        },
+        {
+          "id": "entry-9-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-9-path",
+          "alternatives": [
+            "/store/inventory"
+          ]
+        },
+        {
+          "id": "entry-9-summary",
+          "alternatives": [
+            "Returns pet inventories by status"
+          ]
+        },
+        {
+          "id": "entry-10-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-10-path",
+          "alternatives": [
+            "/store/order"
+          ]
+        },
+        {
+          "id": "entry-10-summary",
+          "alternatives": [
+            "Place an order for a pet"
+          ]
+        },
+        {
+          "id": "entry-11-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-11-path",
+          "alternatives": [
+            "/store/order/{orderId}"
+          ]
+        },
+        {
+          "id": "entry-11-summary",
+          "alternatives": [
+            "Find purchase order by ID"
+          ]
+        },
+        {
+          "id": "entry-12-method",
+          "alternatives": [
+            "DELETE"
+          ]
+        },
+        {
+          "id": "entry-12-path",
+          "alternatives": [
+            "/store/order/{orderId}"
+          ]
+        },
+        {
+          "id": "entry-12-summary",
+          "alternatives": [
+            "Delete purchase order by ID"
+          ]
+        },
+        {
+          "id": "entry-13-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-13-path",
+          "alternatives": [
+            "/user/createWithList"
+          ]
+        },
+        {
+          "id": "entry-13-summary",
+          "alternatives": [
+            "Creates list of users with given input array"
+          ]
+        },
+        {
+          "id": "entry-14-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-14-path",
+          "alternatives": [
+            "/user/{username}"
+          ]
+        },
+        {
+          "id": "entry-14-summary",
+          "alternatives": [
+            "Get user by user name"
+          ]
+        },
+        {
+          "id": "entry-15-method",
+          "alternatives": [
+            "PUT"
+          ]
+        },
+        {
+          "id": "entry-15-path",
+          "alternatives": [
+            "/user/{username}"
+          ]
+        },
+        {
+          "id": "entry-15-summary",
+          "alternatives": [
+            "Updated user"
+          ]
+        },
+        {
+          "id": "entry-16-method",
+          "alternatives": [
+            "DELETE"
+          ]
+        },
+        {
+          "id": "entry-16-path",
+          "alternatives": [
+            "/user/{username}"
+          ]
+        },
+        {
+          "id": "entry-16-summary",
+          "alternatives": [
+            "Delete user"
+          ]
+        },
+        {
+          "id": "entry-17-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-17-path",
+          "alternatives": [
+            "/user/login"
+          ]
+        },
+        {
+          "id": "entry-17-summary",
+          "alternatives": [
+            "Logs user into the system"
+          ]
+        },
+        {
+          "id": "entry-18-method",
+          "alternatives": [
+            "GET"
+          ]
+        },
+        {
+          "id": "entry-18-path",
+          "alternatives": [
+            "/user/logout"
+          ]
+        },
+        {
+          "id": "entry-18-summary",
+          "alternatives": [
+            "Logs out current logged in user session"
+          ]
+        },
+        {
+          "id": "entry-19-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-19-path",
+          "alternatives": [
+            "/user/createWithArray"
+          ]
+        },
+        {
+          "id": "entry-19-summary",
+          "alternatives": [
+            "Creates list of users with given input array"
+          ]
+        },
+        {
+          "id": "entry-20-method",
+          "alternatives": [
+            "POST"
+          ]
+        },
+        {
+          "id": "entry-20-path",
+          "alternatives": [
+            "/user"
+          ]
+        },
+        {
+          "id": "entry-20-summary",
+          "alternatives": [
+            "Create user"
+          ]
+        }
+      ],
+      "min_content_chars": 650,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "POST\n/pet/{petId}/uploadImage\nuploads an image\n\nPOST\n/pet\nAdd a new pet to the store\n\nPUT\n/pet\nUpdate an existing pet\n\nGET\n/pet/findByStatus\nFinds Pets by status\n\nGET\n/pet/findByTags\nFinds Pets by tags\n\nGET\n/pet/{petId}\nFind pet by ID\n\nPOST\n/pet/{petId}\nUpdates a pet in the store with form data\n\nDELETE\n/pet/{petId}\nDeletes a pet\n\nGET\n/store/inventory\nReturns pet inventories by status\n\nPOST\n/store/order\nPlace an order for a pet\n\nGET\n/store/order/{orderId}\nFind purchase order by ID\n\nDELETE\n/store/order/{orderId}\nDelete purchase order by ID\n\nPOST\n/user/createWithList\nCreates list of users with given input array\n\nGET\n/user/{username}\nGet user by user name\n\nPUT\n/user/{username}\nUpdated user\n\nDELETE\n/user/{username}\nDelete user\n\nGET\n/user/login\nLogs user into the system\n\nGET\n/user/logout\nLogs out current logged in user session\n\nPOST\n/user/createWithArray\nCreates list of users with given input array\n\nPOST\n/user\nCreate user",
+      "task_prompt": "默认展开分组中全部 20 条操作摘要：HTTP 方法、路径和说明；不展开参数、不执行 API、不含 Cookie 横幅。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "默认展开分组中全部 20 条操作摘要：HTTP 方法、路径和说明；不展开参数、不执行 API、不含 Cookie 横幅",
+        "expected_entries": 20,
+        "render_evidence": {
+          "scope": "默认展开分组中全部 20 条操作摘要：HTTP 方法、路径和说明；不展开参数、不执行 API、不含 Cookie 横幅",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-swagger: 20 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 4875,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:50:58.961Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:45:16.601Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://petstore.swagger.io/",
+          "supports": "独立观察的全部 20 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-product-reviews",
+      "name": "ScrapFly · 内嵌评论数据",
+      "url": "https://web-scraping.dev/product/1",
+      "category": "embedded_state",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-date",
+          "alternatives": [
+            "2022-07-22"
+          ]
+        },
+        {
+          "id": "entry-1-text",
+          "alternatives": [
+            "Absolutely delicious! The orange flavor is my favorite."
+          ]
+        },
+        {
+          "id": "entry-2-date",
+          "alternatives": [
+            "2022-08-16"
+          ]
+        },
+        {
+          "id": "entry-2-text",
+          "alternatives": [
+            "I bought these as a gift, and they were well received. Will definitely purchase again."
+          ]
+        },
+        {
+          "id": "entry-3-date",
+          "alternatives": [
+            "2022-09-10"
+          ]
+        },
+        {
+          "id": "entry-3-text",
+          "alternatives": [
+            "Nice variety of flavors. The chocolate is rich and smooth."
+          ]
+        },
+        {
+          "id": "entry-4-date",
+          "alternatives": [
+            "2022-10-02"
+          ]
+        },
+        {
+          "id": "entry-4-text",
+          "alternatives": [
+            "The cherry flavor is amazing. Will be buying more."
+          ]
+        },
+        {
+          "id": "entry-5-date",
+          "alternatives": [
+            "2022-11-05"
+          ]
+        },
+        {
+          "id": "entry-5-text",
+          "alternatives": [
+            "A bit pricey, but the quality of the chocolate is worth it."
+          ]
+        }
+      ],
+      "min_content_chars": 259,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "2022-07-22\nAbsolutely delicious! The orange flavor is my favorite.\n\n2022-08-16\nI bought these as a gift, and they were well received. Will definitely purchase again.\n\n2022-09-10\nNice variety of flavors. The chocolate is rich and smooth.\n\n2022-10-02\nThe cherry flavor is amazing. Will be buying more.\n\n2022-11-05\nA bit pricey, but the quality of the chocolate is worth it.",
+      "task_prompt": "商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More",
+        "expected_entries": 5,
+        "render_evidence": {
+          "scope": "商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-product-reviews: 5 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 4482,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:51:03.443Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:45:20.821Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://web-scraping.dev/product/1",
+          "supports": "独立观察的全部 5 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-iframe",
+      "name": "Scrape This Site · 内嵌分类目录",
+      "url": "https://www.scrapethissite.com/pages/frames/",
+      "category": "embedded_frame",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-family",
+          "alternatives": [
+            "Carettochelyidae"
+          ]
+        },
+        {
+          "id": "entry-2-family",
+          "alternatives": [
+            "Cheloniidae"
+          ]
+        },
+        {
+          "id": "entry-3-family",
+          "alternatives": [
+            "Chelydridae"
+          ]
+        },
+        {
+          "id": "entry-4-family",
+          "alternatives": [
+            "Dermatemydidae"
+          ]
+        },
+        {
+          "id": "entry-5-family",
+          "alternatives": [
+            "Dermochelyidae"
+          ]
+        },
+        {
+          "id": "entry-6-family",
+          "alternatives": [
+            "Emydidae"
+          ]
+        },
+        {
+          "id": "entry-7-family",
+          "alternatives": [
+            "Geoemydidae"
+          ]
+        },
+        {
+          "id": "entry-8-family",
+          "alternatives": [
+            "Kinosternidae"
+          ]
+        },
+        {
+          "id": "entry-9-family",
+          "alternatives": [
+            "Platysternidae"
+          ]
+        },
+        {
+          "id": "entry-10-family",
+          "alternatives": [
+            "Testudinidae"
+          ]
+        },
+        {
+          "id": "entry-11-family",
+          "alternatives": [
+            "Trionychidae"
+          ]
+        },
+        {
+          "id": "entry-12-family",
+          "alternatives": [
+            "Chelidae"
+          ]
+        },
+        {
+          "id": "entry-13-family",
+          "alternatives": [
+            "Pelomedusidae"
+          ]
+        },
+        {
+          "id": "entry-14-family",
+          "alternatives": [
+            "Podocnemididae"
+          ]
+        }
+      ],
+      "min_content_chars": 137,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "Carettochelyidae\n\nCheloniidae\n\nChelydridae\n\nDermatemydidae\n\nDermochelyidae\n\nEmydidae\n\nGeoemydidae\n\nKinosternidae\n\nPlatysternidae\n\nTestudinidae\n\nTrionychidae\n\nChelidae\n\nPelomedusidae\n\nPodocnemididae",
+      "task_prompt": "父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "description": "公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字",
+        "expected_entries": 14,
+        "render_evidence": {
+          "scope": "父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-iframe: 14 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 45000,
+            "elapsed_ms": 3175,
+            "satisfied": true,
+            "checked_at": "2026-09-03T06:51:06.618Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T06:45:24.053Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://www.scrapethissite.com/pages/frames/",
+          "supports": "独立观察的全部 14 条记录及其文字字段"
+        }
+      ]
     }
   ],
   "coverage_plan": {

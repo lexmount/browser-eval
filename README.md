@@ -53,7 +53,7 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Web Fetch 评测
 
-历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 4 个任务、3 种方法的独立补测；不与历史组混成总榜，未测方法不计失败。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围。
+历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 10 个任务、12 种方法的独立补测，覆盖异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档；不与历史组混成总榜。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围，未运行不算失败。
 包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
 
 ## 唯一当前入口
@@ -95,6 +95,8 @@ python3 scripts/run_benchmark.py --output runs/webfetch
 python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-webfetch
 # 仅检查新增动态组配置，不创建输出、不调用接口
 python3 scripts/run_benchmark.py --track dynamic --validate-only
+# 扩充案例时，只运行已独立冻结的新案例 JSON；源页证据放在其旁边的 sources/
+python3 scripts/run_benchmark.py --dataset runs/new-reference/dataset.json --track dynamic --output runs/new-cases
 # 仅补跑指定的托管方法；其余已测记录不受影响
 python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output runs/dynamic-hosted
 ```

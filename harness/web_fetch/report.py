@@ -99,7 +99,7 @@ def reason(r,c):
  if not m.get('length_pass'):parts.append('正文过短')
  if m.get('forbidden_hits'):parts.append('命中排除文本：'+', '.join(m['forbidden_hits']))
  missing=[x['id'] for x in m.get('fact_results',[]) if not x['pass']]
- if missing:parts.append('缺少核对点：'+', '.join(missing))
+ if missing:parts.append(('条目字段未完整匹配：' if any(x.get('match_scope')=='entry' for x in m.get('fact_results',[])) else '缺少核对点：')+', '.join(missing))
  for x in m.get('pattern_results',[]):
   if not x['pass']:parts.append(f"{x['id']}仅{x['count']}项，要求{x['minimum']}项")
  return '；'.join(parts) or '正文核对点通过；完整程度另见全文指标。'
@@ -212,7 +212,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   verified=c.get('source_verification',{});state='受限' if verified.get('state')=='restricted' else '有效'
   rows.append((dataset_attrs(c),cell(link(c['id']+'.html',c['name']))+cell(esc(c['category']))+cell(link(c['url'],'源页 ↗'))+cell(link(c['id']+'.html#facts',basis_label(c)))+cell(reference_label(c))+cell(state)+cell(rate(sum(succeeded(r,c) for r in bycase[c['id']]),len(bycase[c['id']])))))
  anchors=''.join(f'<span id="track-{t}"></span>' for t in TRACKS)
- dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；动态列表核验前三条名称与链接，不固定当天的榜单。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
+ dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；复杂热门网站的列表核验前三条名称与链接，不固定当天的榜单。动态内容按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
  for c in cases.values():
@@ -255,10 +255,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    rows[5]=('',cell('条目内容核验')+cell(f"{m.get('confirmed_entries',0)} 条已确认；范围为前三条。整页 F1 不适用。"))
    rows.append(('',cell('具名详情入口')+cell(str(m.get('named_entry_count',0)))))
   rows.extend(('',cell(k)+cell(f'<code class="break">{esc(v)}</code>')) for k,v in [('运行 ID',r.get('run_id') or execution_id(r)),('执行记录',r['attempt_id']),('开始时间（UTC）',r.get('started_at','—')),('供应商请求 ID',r.get('provider_metadata',{}).get('request_id') or '未返回')])
-  checks=[('',cell(esc(x['id']))+cell(esc(' / '.join(x.get('alternatives',x.get('expected_urls',[])))))+cell('命中' if x['pass'] else '缺失')+cell(esc(' / '.join(x.get('matched',x.get('matched_urls',[])))))) for x in m.get('fact_results',[])+m.get('resource_results',[])]
+  checks=[('',cell(esc(x['id']))+cell(esc(' / '.join(x.get('alternatives',x.get('expected_urls',[])))))+cell('命中' if x['pass'] else '条目未完整匹配' if x.get('match_scope')=='entry' else '缺失')+cell(esc(' / '.join(x.get('matched',x.get('matched_urls',[])))))) for x in m.get('fact_results',[])+m.get('resource_results',[])]
   if c.get('task_kind')=='structure':
    checks=[('',cell(link(x['url'],x['title']))+cell(esc(' / '.join(x['reference_titles']) or '没有匹配的独立名称证据'))+cell('已确认' if x['verdict']=='confirmed' else '访问受限 · 未证实' if x.get('access_restricted') else '未确认')+cell(esc(' · '.join(filter(None,[x.get('evidence_checked_at'),x.get('access_note')]))))) for x in m.get('list_checks',[])]
   caveat=''
+  if c.get('track')=='dynamic':caveat='<p class="source-note">按完整条目核验字段对应关系，不能从其他条目借用相同值。“条目未完整匹配”表示未找到该条目的完整字段组合，不表示每个字段都不存在。支持本例声明的字段顺序及常见 Markdown 排版，不做语义改写判定。</p>'
   if c.get('task_kind')=='structure':caveat='<p class="source-note">检验前三条名称与详情是否对应；不核验当前排名、价格、整页召回。'+link('../datasets/'+c['id']+'.html','规则与独立参考')+'</p>'
   detail_metrics=['请求','结果','耗时','HTTP 状态','输出字符','输出校验值']+(['具名详情入口'] if c.get('task_kind')=='structure' else ['完整度','纯净度','F1'] if c.get('ground_truth_main_content') else [])
   body=hero(esc(c['name']),esc(c.get('task_prompt','')))+section('执行结果',caveat+f'<div class="callout">{esc(reason(r,c))}</div><details><summary>指标说明</summary>'+metric_legend(detail_metrics)+'</details>'+table(['项目','结果'],rows,metrics=[])+f'<p>{link(c["url"],"打开源页 ↗")} · {link("../datasets/"+c["id"]+".html","该案例与全部方法")}</p>')

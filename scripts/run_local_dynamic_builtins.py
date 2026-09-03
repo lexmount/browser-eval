@@ -1,4 +1,4 @@
-"""Run only CowAgent/OpenClaw/DeepSeek on current canonical dynamic cases.
+"""Run only CowAgent/OpenClaw/DeepSeek on a frozen dynamic dataset.
 
 Always starts a clean child environment; never loads dotenv, merges results,
 builds reports, installs dependencies, or overwrites an existing run directory.
@@ -133,7 +133,7 @@ def package_providers(output: Path, records: list[dict], manifest: dict, *, dire
         print(f"Merge-ready: {target}", flush=True)
 
 
-def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: Path) -> int:
+def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: Path, dataset_path: Path) -> int:
     # Parent exclusively created the directory and supplies only declared vars.
     # macOS injects this locale hint even into an explicitly empty environment.
     os.environ.pop("__CF_USER_TEXT_ENCODING", None)
@@ -146,8 +146,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     from harness.web_fetch.render_evidence import validate_render_reference
     from harness.web_fetch.runner import run_evaluation
 
-    canonical = ROOT / "evaluation"
-    raw = (canonical / "dataset.json").read_bytes()
+    raw = dataset_path.read_bytes()
     dataset = selected_dataset(json.loads(raw), track)
     case_ids = {case["id"] for case in dataset["cases"]}
     config = resolved_config(json.loads((ROOT / "configs/providers.resources.json").read_text()), output, runtime_paths)
@@ -155,7 +154,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     write_json(output / "providers.json", config)
     audits = {}
     for case in dataset["cases"]:
-        source = canonical / "sources" / case["id"]
+        source = dataset_path.parent / "sources" / case["id"]
         shutil.copytree(source, output / "sources" / case["id"])
         saved = output / "sources" / case["id"]
         audit = validate_render_reference(case, (saved / "initial.html.txt").read_bytes(),
@@ -184,7 +183,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
             ROOT / "scripts/oss/dsh_webfetch_worker.mts").read_bytes():
         raise ValueError("Installed DeepSeek worker differs from current harness worker")
     identity = {
-        "canonical_dataset_sha256": hashlib.sha256(raw).hexdigest(),
+        "source_dataset_sha256": hashlib.sha256(raw).hexdigest(),
         "frozen_subset_sha256": digest(output / "dataset.json"),
         "provider_config_sha256": digest(output / "providers.json"),
         "python": sys.version, "python_executable": sys.executable,
@@ -248,7 +247,9 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--track", default="dynamic", help="Canonical track with paired render evidence")
+    parser.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json",
+                        help="Frozen dataset JSON; paired sources are resolved beside it")
+    parser.add_argument("--track", default="dynamic", help="Dataset track with paired render evidence")
     parser.add_argument("--cowagent-repo", type=Path, required=True)
     parser.add_argument("--openclaw-repo", type=Path, required=True)
     parser.add_argument("--deepseek-repo", type=Path, required=True)
@@ -257,6 +258,7 @@ def main() -> int:
     parser.add_argument("--runtime-tmp", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     output = args.output.resolve()
+    dataset_path = args.dataset.resolve()
     runtime_paths = RuntimePaths(args.cowagent_repo.resolve(), args.openclaw_repo.resolve(),
                                  args.deepseek_repo.resolve(), args.node.resolve())
     if not output.is_relative_to(ROOT / "runs") or output == ROOT / "runs":
@@ -264,7 +266,7 @@ def main() -> int:
     if args.isolated_child:
         if args.runtime_tmp is None:
             raise ValueError("Isolated child requires its allocated temporary directory")
-        return run_child(output, runtime_paths, args.track, args.runtime_tmp)
+        return run_child(output, runtime_paths, args.track, args.runtime_tmp, dataset_path)
     output.mkdir(parents=True, exist_ok=False)
     for folder in ("openclaw-home", "openclaw-state", "cowagent-data", "cowagent-workspace"):
         (output / "runtime" / folder).mkdir(parents=True)
@@ -274,6 +276,7 @@ def main() -> int:
         temporary = Path(allocated)
         result = subprocess.run([sys.executable, "-B", str(Path(__file__).resolve()),
                                  "--output", str(output), "--isolated-child", "--track", args.track,
+                                 "--dataset", str(dataset_path),
                                  "--runtime-tmp", str(temporary),
                                  "--cowagent-repo", str(runtime_paths.cowagent),
                                  "--openclaw-repo", str(runtime_paths.openclaw),

@@ -1,0 +1,3 @@
+Explore
+
+[https://validator.swagger.io/validator/debug?url=https%3A%2F%2Fpetstore.swagger.io%2Fv2%2Fswagger.json](https://validator.swagger.io/validator/debug?url=https%3A%2F%2Fpetstore.swagger.io%2Fv2%2Fswagger.json)

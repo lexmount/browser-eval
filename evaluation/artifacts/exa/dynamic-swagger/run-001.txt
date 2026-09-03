@@ -1,0 +1,1 @@
+{"requestId":"a2febe43247d11b8a16e1c4f54ce45a3","results":[],"statuses":[{"id":"https://petstore.swagger.io/","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":482.80230100033805}

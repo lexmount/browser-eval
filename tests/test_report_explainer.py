@@ -105,9 +105,9 @@ class ExplainerTests(unittest.TestCase):
         self.assertEqual(len(data['tracks']['dynamic']['providers']),6)
         self.assertEqual(data['historical'],collect_evidence(self.cases,historical)['historical'])
         figure = _dynamic_section(data,self.cases)
-        for i in range(6):
-            self.assertIn(f'>fixture-method-{i}</a>',figure)
-        self.assertEqual(figure.count('<th scope="col">'), 6)  # Number, method, four tasks.
+        self.assertIn('6 种已运行方法',figure)
+        self.assertEqual(figure.count('<th scope="col">'), 4)  # Number, task, mechanism, result.
+        self.assertEqual(figure.count('<tr>'),len(base)+1)
 
     def test_article_keeps_argument_evidence_without_reprinting_all_rankings(self):
         page = self.render(self.records)

@@ -84,7 +84,10 @@ def diagnose(r,c,raw,source=None):
         if not m.get('length_pass'):
             category,stage,proof=set_result('正文不足','内容核验','提取正文没有达到本例最低长度要求')
         elif any(not f['pass'] for f in m.get('fact_results',[])):
-            category,stage,proof=set_result('缺少关键信息','内容核验','未命中核对点：'+', '.join(f['id'] for f in m['fact_results'] if not f['pass']))
+            if any(f.get('match_scope')=='entry' for f in m['fact_results']):
+                category,stage,proof=set_result('条目未完整匹配','内容核验','没有匹配到条目的完整字段组合；这不表示每个字段都不存在。见逐项判定。')
+            else:
+                category,stage,proof=set_result('缺少关键信息','内容核验','未命中核对点：'+', '.join(f['id'] for f in m['fact_results'] if not f['pass']))
         else:category,stage,proof=set_result('内容结构不完整','内容核验','未满足本例字段或数量规则，见逐项判定')
     if not category:return None
     return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty,

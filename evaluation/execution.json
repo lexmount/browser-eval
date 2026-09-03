@@ -2755,6 +2755,512 @@
         "cloudflare-markdown__dynamic-catalog__r001",
         "cloudflare-markdown__dynamic-delayed__r001"
       ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.685811+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "lexmount-global",
+          "type": "lexmount",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:25.122554+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "lexmount-global__dynamic-reviews-graphql__r001",
+        "lexmount-global__dynamic-react-cart__r001",
+        "lexmount-global__dynamic-angular-phones__r001",
+        "lexmount-global__dynamic-swagger__r001",
+        "lexmount-global__dynamic-product-reviews__r001",
+        "lexmount-global__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.685311+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "lexmount-cn",
+          "type": "lexmount_cn",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:40.227435+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "lexmount-cn__dynamic-reviews-graphql__r001",
+        "lexmount-cn__dynamic-react-cart__r001",
+        "lexmount-cn__dynamic-angular-phones__r001",
+        "lexmount-cn__dynamic-swagger__r001",
+        "lexmount-cn__dynamic-product-reviews__r001",
+        "lexmount-cn__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.690676+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "firecrawl",
+          "type": "firecrawl",
+          "min_interval_seconds": 6.1
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:48:13.256744+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "firecrawl__dynamic-reviews-graphql__r001",
+        "firecrawl__dynamic-react-cart__r001",
+        "firecrawl__dynamic-angular-phones__r001",
+        "firecrawl__dynamic-swagger__r001",
+        "firecrawl__dynamic-product-reviews__r001",
+        "firecrawl__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.685449+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "tavily",
+          "type": "tavily_extract",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:24.583364+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "tavily__dynamic-reviews-graphql__r001",
+        "tavily__dynamic-react-cart__r001",
+        "tavily__dynamic-angular-phones__r001",
+        "tavily__dynamic-swagger__r001",
+        "tavily__dynamic-product-reviews__r001",
+        "tavily__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.690525+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "exa",
+          "type": "exa_contents",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:30.650236+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "exa__dynamic-reviews-graphql__r001",
+        "exa__dynamic-react-cart__r001",
+        "exa__dynamic-angular-phones__r001",
+        "exa__dynamic-swagger__r001",
+        "exa__dynamic-product-reviews__r001",
+        "exa__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.688090+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "cloudflare-markdown",
+          "type": "cloudflare_markdown",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:34.200476+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "cloudflare-markdown__dynamic-reviews-graphql__r001",
+        "cloudflare-markdown__dynamic-react-cart__r001",
+        "cloudflare-markdown__dynamic-angular-phones__r001",
+        "cloudflare-markdown__dynamic-swagger__r001",
+        "cloudflare-markdown__dynamic-product-reviews__r001",
+        "cloudflare-markdown__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.690797+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "langchain-webbase",
+          "type": "langchain_webbase",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:22.460276+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "langchain-webbase__dynamic-reviews-graphql__r001",
+        "langchain-webbase__dynamic-react-cart__r001",
+        "langchain-webbase__dynamic-angular-phones__r001",
+        "langchain-webbase__dynamic-swagger__r001",
+        "langchain-webbase__dynamic-product-reviews__r001",
+        "langchain-webbase__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.690909+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "crawl4ai",
+          "type": "crawl4ai",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:47.203886+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "crawl4ai__dynamic-reviews-graphql__r001",
+        "crawl4ai__dynamic-react-cart__r001",
+        "crawl4ai__dynamic-angular-phones__r001",
+        "crawl4ai__dynamic-swagger__r001",
+        "crawl4ai__dynamic-product-reviews__r001",
+        "crawl4ai__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:13.690571+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "moli-webfetch",
+          "type": "moli_webfetch",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:47:31.541474+00:00",
+      "attempt_count": 6,
+      "attempt_ids": [
+        "moli-webfetch__dynamic-reviews-graphql__r001",
+        "moli-webfetch__dynamic-react-cart__r001",
+        "moli-webfetch__dynamic-angular-phones__r001",
+        "moli-webfetch__dynamic-swagger__r001",
+        "moli-webfetch__dynamic-product-reviews__r001",
+        "moli-webfetch__dynamic-iframe__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:47:24.563148+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content--local-dynamic-builtins",
+        "name": "动态内容独立补测",
+        "source": "frozen-dynamic-supplement/dataset.json",
+        "case_count": 6
+      },
+      "providers": [
+        {
+          "name": "cowagent-built-in",
+          "type": "cowagent_builtin",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "openclaw-built-in",
+          "type": "openclaw_builtin",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "deepseek-harness-built-in",
+          "type": "deepseek_harness_builtin",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 3,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "isolated local overrides; see runtime_identity_record.provider_config_sha256",
+      "completed_at": "2026-09-03T06:47:35.966241+00:00",
+      "attempt_count": 18,
+      "attempt_ids": [
+        "cowagent-built-in__dynamic-reviews-graphql__r001",
+        "cowagent-built-in__dynamic-react-cart__r001",
+        "cowagent-built-in__dynamic-angular-phones__r001",
+        "cowagent-built-in__dynamic-swagger__r001",
+        "cowagent-built-in__dynamic-product-reviews__r001",
+        "cowagent-built-in__dynamic-iframe__r001",
+        "openclaw-built-in__dynamic-reviews-graphql__r001",
+        "openclaw-built-in__dynamic-react-cart__r001",
+        "openclaw-built-in__dynamic-angular-phones__r001",
+        "openclaw-built-in__dynamic-swagger__r001",
+        "openclaw-built-in__dynamic-product-reviews__r001",
+        "openclaw-built-in__dynamic-iframe__r001",
+        "deepseek-harness-built-in__dynamic-reviews-graphql__r001",
+        "deepseek-harness-built-in__dynamic-react-cart__r001",
+        "deepseek-harness-built-in__dynamic-angular-phones__r001",
+        "deepseek-harness-built-in__dynamic-swagger__r001",
+        "deepseek-harness-built-in__dynamic-product-reviews__r001",
+        "deepseek-harness-built-in__dynamic-iframe__r001"
+      ],
+      "runtime_identity": "runtime-identity.json",
+      "runtime_identity_sha256": "fa49a21b91e325824c653c2f9247cbf56bb5268712eeb49fb906c5c697244f2d",
+      "dataset_sha256": "2390f2fe29da83c050b96624ae6174b478968afa5488312ad0e3ad647a7a8811",
+      "reference_validation": "reference-validation.json",
+      "runtime_identity_record": {
+        "source_dataset_sha256": "463f8b67c09e8ac880fd602211ee314615e1900d7743179b7328c074526f5d9e",
+        "frozen_subset_sha256": "2390f2fe29da83c050b96624ae6174b478968afa5488312ad0e3ad647a7a8811",
+        "provider_config_sha256": "fa933783e5216d73ffcbff2929e717added061666b635a51c78161f4074361fd",
+        "python": "3.13.3 (main, May 17 2025, 13:30:59) [Clang 20.1.4 ]",
+        "python_packages": {
+          "requests": "2.34.2",
+          "beautifulsoup4": "4.15.0"
+        },
+        "node_version": "v24.15.0",
+        "dotenv_loaded": false,
+        "inherited_credentials": false,
+        "timeout_note": "Harness 45s; unchanged CowAgent and OpenClaw internal HTTP defaults 30s; subprocess adapter has 5s shutdown allowance.",
+        "sources_sha256": {
+          "sources/dynamic-swagger/evidence.json": "21f56faaf3380723e8a6836305c81eecb8e175df98b5240f7dd812d2f9e55e3e",
+          "sources/dynamic-swagger/reference.txt": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054",
+          "sources/dynamic-swagger/render-audit.json": "25bb3f66c8ec01566b7f186fb07e690524b1acb742ac855abcd63411b5f4d041",
+          "sources/dynamic-swagger/rendered.txt": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054",
+          "sources/dynamic-swagger/initial.html.txt": "7b9bafc5d8b1bde52b53d50e595aff01c0f2449c2f45dc778f46b540e3695e6b",
+          "sources/dynamic-reviews-graphql/evidence.json": "3e698a11ede42584c8f749218a35d6041fca58f4875f569b613d7239c07ff5bc",
+          "sources/dynamic-reviews-graphql/reference.txt": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
+          "sources/dynamic-reviews-graphql/render-audit.json": "950837e445657e75c1dd0a89733ad6c471314bca93a627673bd078a6a04d1b63",
+          "sources/dynamic-reviews-graphql/rendered.txt": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
+          "sources/dynamic-reviews-graphql/initial.html.txt": "77a5e13ddd2d8d9d65ba531340293d16870224866f7d52bbf7377f113b514665",
+          "sources/dynamic-product-reviews/evidence.json": "7ca6bc0ca65ca3c1846e281b7d6ed2171262dae3d271c4b678aee4c786ee273b",
+          "sources/dynamic-product-reviews/reference.txt": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+          "sources/dynamic-product-reviews/render-audit.json": "5905c56610ed4e0a3766f84208b6e87e4a7ad11571ce52197b2553e99f73c0c2",
+          "sources/dynamic-product-reviews/rendered.txt": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+          "sources/dynamic-product-reviews/initial.html.txt": "f6fcba817d82e366420bc5aacc356abc524129391ed49e05565d68a05123cbba",
+          "sources/dynamic-iframe/evidence.json": "b9b07645c39bdbb38f2847cca35de1e9136be99dbe54785d5d2d949464528003",
+          "sources/dynamic-iframe/reference.txt": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca",
+          "sources/dynamic-iframe/render-audit.json": "afab7596933dad9fd1c9d0f2bb972322e22b5917d3b9e4519154b8ec20910947",
+          "sources/dynamic-iframe/rendered.txt": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca",
+          "sources/dynamic-iframe/initial.html.txt": "c15cf12b2fa2c6d8c25c36b598fbcaca516fc93f87409d92eb9932a3644cca77",
+          "sources/dynamic-angular-phones/evidence.json": "dcd2f8f1b829cf31e4ceed4caf4be7f8408a61a855596ab546c29d45a7811ba0",
+          "sources/dynamic-angular-phones/reference.txt": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+          "sources/dynamic-angular-phones/render-audit.json": "3e53ca89364262b6a27d96fd833e6ee07010749ecf3a7d1f4456bb026f28a58c",
+          "sources/dynamic-angular-phones/rendered.txt": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+          "sources/dynamic-angular-phones/initial.html.txt": "7c3764ba94011fe3ccdafd51eeb679e49a2fa0519bbc09e6b31aa7438b727954",
+          "sources/dynamic-react-cart/evidence.json": "eb72850a1e749cc646373bf8bcbae69ac0c6f469a379ff5cf8976f9c294763db",
+          "sources/dynamic-react-cart/reference.txt": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df",
+          "sources/dynamic-react-cart/render-audit.json": "5b9c8a85252855f1ecaad3186e7e8fe487d806076a50d3c9d7b61778e0bfed4c",
+          "sources/dynamic-react-cart/rendered.txt": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df",
+          "sources/dynamic-react-cart/initial.html.txt": "02a1977864cf6faadbb2ea10daf394a4a22243d2474ba001c1654d8d2721b843"
+        },
+        "file_sha256": {
+          "runtime/node": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32",
+          "runtime/python": "58c3ee0adab49434db12179b5ea9a5538a723fc86a57cb411adf937b21b95f4b",
+          "harness/scripts/run_local_dynamic_builtins.py": "c5e0b17e354e8f6d4afc5c6638df83d3606f3a11c3a08a77160b89ed92ac5ae1",
+          "harness/configs/providers.resources.json": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+          "harness/harness/web_fetch/runner.py": "d92c941fc60506f03cb4aab5cf2957b8eee6fc182568f16df6383ded80280430",
+          "harness/harness/web_fetch/metrics.py": "dad1081297dc62ba2c9aa9f18ae492f8c228c50051596b4ca79999203fb225eb",
+          "harness/harness/web_fetch/providers/cowagent.py": "1ff2e8766a8a3522664222be64aece1291b76946a21ba8aabf4b5c2184b23dc8",
+          "harness/harness/web_fetch/providers/subprocess_jsonl.py": "d1dc9f5c9d51cec5e59248fbaa39b5b76f0be27cfeabb3091f3f1b6b6c65ab0e",
+          "harness/scripts/oss/openclaw_webfetch_worker.mts": "e77c9ebf53b6a32f640ba2e7aa6138b6ae94c42881ae08e0eb5e868e9333dba6",
+          "harness/scripts/oss/dsh_webfetch_worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "deepseek/node_modules/.pnpm/.browser-harness-dsh-worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "cowagent/agent/tools/web_fetch/web_fetch.py": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+          "cowagent/agent/tools/utils/url_safety.py": "d5aa4a05abb9a04e7392781b2db5abb21af1c500d7b8035fafec0ba94bc7a0a5",
+          "openclaw/src/agents/tools/web-fetch.ts": "bcb2f4d2fd86aa54f12eda2ce3b2421762b7493c07bd0db879897fd376034a86",
+          "openclaw/pnpm-lock.yaml": "70fea8f41ee6b40b8f039333f0896cbff765cf0f950de60f820ab46d9be92cae",
+          "deepseek/packages/web/web-fetch-http/src/provider.ts": "4f854483496c9af130c8ac578e0233c4d20e7af1879a49df73524271f4e1cc0b",
+          "deepseek/pnpm-lock.yaml": "17bbd38216e31a8b821957f77d2e3f57b859046cc3a18076ad16e94ca952a8da"
+        },
+        "repositories": {
+          "cowagent": {
+            "head": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+            "tracked_status": ""
+          },
+          "openclaw": {
+            "head": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "tracked_status": ""
+          },
+          "deepseek": {
+            "head": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "tracked_status": ""
+          }
+        },
+        "environment_policy": "Explicit clean environment; no dotenv or inherited credentials; isolated state and NETRC"
+      }
     }
   ]
 }

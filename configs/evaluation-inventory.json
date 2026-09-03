@@ -57,10 +57,16 @@
   },
   "dynamic": {
     "case_ids": [
+      "dynamic-angular-phones",
       "dynamic-catalog",
       "dynamic-delayed",
+      "dynamic-iframe",
+      "dynamic-product-reviews",
       "dynamic-products-api",
-      "dynamic-quotes-api"
+      "dynamic-quotes-api",
+      "dynamic-react-cart",
+      "dynamic-reviews-graphql",
+      "dynamic-swagger"
     ],
     "providers": [
       "cloudflare-markdown",

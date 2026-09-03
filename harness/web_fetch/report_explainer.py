@@ -248,15 +248,21 @@ def _dynamic_section(data, cases):
                 '当前输入没有独立动态内容补充实验，不能把所有网页称为静态任务，'
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
+    routes = {'async_api':'异步接口', 'client_catalog':'客户端目录',
+              'delayed_render':'内嵌数据＋延迟呈现', 'graphql':'GraphQL 异步接口',
+              'react_app':'React 应用', 'client_router':'Angular 路由＋JSON',
+              'schema_render':'接口规范转为可读目录', 'embedded_state':'内嵌 JSON 呈现',
+              'embedded_frame':'iframe 子文档（不依赖 JS）'}
     rows = []
-    for p in providers:
-        row = [_link('providers/' + p + '.html', PROVIDER_NAMES.get(p, p))]
-        for item in total['cases']:
-            r = next((r for r in item['results'] if r['provider'] == p), None)
-            row.append(_attempt(r, '通过' if r['task_pass'] else '未通过') if r else '未运行')
-        rows.append(row)
-    figure = _table(['方法'] + [cases[item['case_id']]['name'] for item in total['cases']], rows,
-                    f'独立补充组：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；未运行不算失败')
+    for item in total['cases']:
+        case = cases[item['case_id']]
+        count = len(item['results'])
+        passed = sum(r['task_pass'] for r in item['results'])
+        rows.append([_link('datasets/' + item['case_id'] + '.html', case['name']),
+                     escape(routes.get(case.get('category'),case.get('category','未分类'))),
+                     f'{passed}/{count}' if count else '未运行'])
+    figure = _table(['任务','内容呈现方式','通过 / 已运行'], rows,
+                    f'独立补充组：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；分母按每个任务实际运行数计算')
     # Task-specific interpretation is only attached when its evidence cases are present.
     mechanism = ''
     ids = set(scope['case_ids'])
@@ -288,6 +294,11 @@ def _dynamic_section(data, cases):
             '但卡片文字为空。只等 DOM 数量达标，会把空占位当成加载完成。独立复核改用“数量达标且必需字段非空”，'
             '在有上限的等待内取得目标条目，并与运行前冻结参考核对。'
             '数量与字段要同时满足，才能把“布局已经出现”与“内容可以交付”区分开。</p>')
+    if {'dynamic-iframe','dynamic-swagger','dynamic-product-reviews'} <= ids:
+        mechanism += ('<p>动态取数也不只涉及脚本等待。Swagger 页要把外部接口规范变成可读目录；'
+            '商品评论已经放在内嵌 JSON 中，页面稍后才把它显示出来；龟类目录位于另一个 iframe 文档，'
+            '沿着父页给出的地址继续获取即可，不需要 JavaScript。它们都说明初始页面的文字抽取不等于内容交付，'
+            '但所需的补救路径并不相同。这组样本来自公开练习站和应用示例，适合检验机制，不能代表生产网站的分布。</p>')
     return (f'<section id="dynamic-coverage"><h2>动态内容补测，让网页高分遇到新的边界</h2>'
             f'<p>历史网页组保持不变，另加 {scope["case_count"]} 个动态内容任务。'
             f'补充组实际有 {len(providers)} 种方法、{total["records"]} 条调用，'

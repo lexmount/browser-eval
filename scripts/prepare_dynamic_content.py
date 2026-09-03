@@ -24,6 +24,21 @@ SPECS = {
     'dynamic-products-api': ('Scraping Course · 异步商品', 'https://www.scrapingcourse.com/javascript-rendering', 'async_api', 12),
     'dynamic-catalog': ('Web Scraper · 客户端商品目录', 'https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops', 'client_catalog', 6),
     'dynamic-delayed': ('Quotes · 延迟呈现', 'https://quotes.toscrape.com/js-delayed/?delay=3000', 'delayed_render', 10),
+    'dynamic-reviews-graphql': ('ScrapFly · GraphQL 评论', 'https://web-scraping.dev/reviews', 'graphql', 20),
+    'dynamic-react-cart': ('React · 商品与分期信息', 'https://react-shopping-cart-67954.firebaseapp.com/', 'react_app', 16),
+    'dynamic-angular-phones': ('Angular · 手机目录', 'https://angular.github.io/angular-phonecat/step-12/app/', 'client_router', 20),
+    'dynamic-swagger': ('Swagger · 接口目录', 'https://petstore.swagger.io/', 'schema_render', 20),
+    'dynamic-product-reviews': ('ScrapFly · 内嵌评论数据', 'https://web-scraping.dev/product/1', 'embedded_state', 5),
+    'dynamic-iframe': ('Scrape This Site · 内嵌分类目录', 'https://www.scrapethissite.com/pages/frames/', 'embedded_frame', 14),
+}
+
+SCOPES = {
+    'dynamic-reviews-graphql': '首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More',
+    'dynamic-react-cart': '默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告',
+    'dynamic-angular-phones': '默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情',
+    'dynamic-swagger': '默认展开分组中全部 20 条操作摘要：HTTP 方法、路径和说明；不展开参数、不执行 API、不含 Cookie 横幅',
+    'dynamic-product-reviews': '商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More',
+    'dynamic-iframe': '父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字',
 }
 
 
@@ -49,10 +64,11 @@ def prepare(captures, output, completion_checks):
         (dest/'initial.html.txt').write_bytes(response.content)
         (dest/'rendered.txt').write_text(capture['rendered_text'])
         (dest/'reference.txt').write_text(reference)
+        scope = SCOPES.get(key, f'Initial page automatic loading completed; exactly {count} visible entries, no scrolling/clicking/pagination')
         evidence = {'case_id': key, 'url': url, 'source': 'Independent HTTP response + separately observed browser DOM; no candidate output',
                     'checked_at': capture['checked_at'], 'initial_checked_at': datetime.now(timezone.utc).isoformat(),
                     'selector': capture['selector'], 'expected_entries': count, 'observed_entries': len(capture['entries']),
-                    'completion': f'Initial page automatic loading completed; exactly {count} visible entries, no scrolling/clicking/pagination',
+                    'completion': scope,
                     'initial_status': response.status_code, 'initial_sha256': hashlib.sha256(response.content).hexdigest(),
                     'rendered_sha256': hashlib.sha256(capture['rendered_text'].encode()).hexdigest(),
                     'reference_sha256': hashlib.sha256(reference.encode()).hexdigest()}
@@ -60,8 +76,8 @@ def prepare(captures, output, completion_checks):
         dataset['cases'].append({'id':key, 'name':name, 'url':url, 'category':category, 'track':'dynamic', 'task_kind':'body',
             'expected_any':[], 'required_facts':facts, 'min_content_chars':int(len(reference)*.7), 'fact_coverage_threshold':1.0,
             'forbidden_any':['Access denied','CAPTCHA'], 'ground_truth_main_content':reference,
-            'task_prompt':f'读取初次自动加载完成后的 {count} 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。',
-            'description':'源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。',
+            'task_prompt':f'{scope}。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。',
+            'description':'公开练习站及应用示例；核对声明范围内固定示例数据，不代表生产网站分布。',
             'source_benchmark':{'capture_scope':evidence['completion'], 'expected_entries':count,
                 'render_evidence':{'scope':evidence['completion'], 'rendered_truncated':False,
                     'completion':{'condition':f'{count} target records visible without interaction',

@@ -20,3 +20,9 @@ class FailureDiagnosisTests(unittest.TestCase):
  def test_capability_and_security_separated(self):
   for code,expected in [('WEB_REDIRECT_BLOCKED','方法禁止跨站跳转'),('WEB_UNSUPPORTED_CONTENT_TYPE','不支持输入类型'),('WEB_BLOCKED_URL','方法安全限制')]:
    self.assertEqual(diagnose(self.record(error_type=code),{},'')['category'],expected)
+ def test_entry_binding_failure_does_not_claim_every_field_absent(self):
+  r=self.record(ok=True,status_code=200,metrics={'content_pass':False,'length_pass':True,
+    'fact_results':[{'id':'entry-1-price','pass':False,'match_scope':'entry'}]})
+  d=diagnose(r,{'track':'dynamic','task_kind':'body'},'A product and some text')
+  self.assertEqual(d['category'],'条目未完整匹配')
+  self.assertIn('不表示每个字段都不存在',d['evidence'])

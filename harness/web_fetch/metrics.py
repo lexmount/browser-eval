@@ -155,7 +155,7 @@ def normalize_for_match(value: str) -> str:
     normalized = visible_markdown_links(normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
-    normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-"}))
+    normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
     normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])', '', normalized)
@@ -164,6 +164,11 @@ def normalize_for_match(value: str) -> str:
     # or English word boundaries. Fold layout newlines on both sides first:
     # plain-text DOM extraction may put every menu label on a separate line.
     normalized = re.sub(r"\s+", " ", normalized).strip()
+    # Inline styling often separates a currency symbol from its amount.
+    # Normalize only currency/financing syntax, never digit or decimal boundaries.
+    normalized = re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', normalized)
+    normalized = re.sub(r'\bor(?=\d+ *[x×] *[$£€¥][+-]?\d)', 'or ', normalized)
+    normalized = re.sub(r'\b(\d+) *[x×] *(?=[$£€¥][+-]?\d)', r'\1 x ', normalized)
     return re.sub(r'(?<=\w) *> *(?=\w)', '>', normalized)
 
 
@@ -171,9 +176,13 @@ def fact_in_text(text: str, fact: str) -> bool:
     """Exact normalized fact; do not accept a fragment of a different number."""
     if not fact:
         return False
-    left = r'(?<![0-9.+\-])' if fact[0].isdigit() else ''
+    left = r'(?<![0-9.+\-])' if fact[0].isdigit() or fact[0] in '$£€¥' else ''
     right = r'(?![0-9]|\.[0-9])' if fact[-1].isdigit() else ''
-    return re.search(left + re.escape(fact) + right, text) is not None
+    for match in re.finditer(left + re.escape(fact) + right, text):
+        if fact[0] in '$£€¥' and text[:match.start()].rstrip().endswith(('-', '+')):
+            continue
+        return True
+    return False
 
 
 def evaluate_content(
@@ -190,15 +199,20 @@ def evaluate_content(
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
+    from .dynamic_entry_matching import matching_entry_facts
+    entry_hits = matching_entry_facts(folded, facts, normalize_for_match, fact_in_text)
     fact_results = []
     for index, fact in enumerate(facts):
         alternatives = [str(item) for item in fact.get("alternatives", [])]
-        hits = [item for item in alternatives if fact_in_text(folded, normalize_for_match(item))]
+        identifier = str(fact.get("id") or f"fact-{index + 1}")
+        hits = (entry_hits[identifier] if identifier in entry_hits else
+                [item for item in alternatives if fact_in_text(folded, normalize_for_match(item))])
         fact_results.append({
-            "id": str(fact.get("id") or f"fact-{index + 1}"),
+            "id": identifier,
             "alternatives": alternatives,
             "matched": hits,
             "pass": bool(hits),
+            **({'match_scope': 'entry'} if identifier in entry_hits else {}),
         })
     fact_hits = sum(item["pass"] for item in fact_results)
     fact_coverage = round(fact_hits / len(fact_results), 4) if fact_results else 1.0

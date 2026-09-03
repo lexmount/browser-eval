@@ -12,8 +12,8 @@ class GroundTruthTest(unittest.TestCase):
     def test_current_task_set_and_reference_integrity(self):
         data,cases=load_dataset(Path('evaluation/dataset.json'))
         self.assertEqual(data['id'],'webfetch')
-        self.assertEqual(Counter(c.track for c in cases),dict(web=100,dynamic=4,document=10,image=10,video=10,challenge=10))
-        self.assertEqual(len({c.id for c in cases}),144)
+        self.assertEqual(Counter(c.track for c in cases),dict(web=100,dynamic=10,document=10,image=10,video=10,challenge=10))
+        self.assertEqual(len({c.id for c in cases}),150)
         for c in data['cases']:
             self.assertTrue(c['task_prompt'],c['id'])
             if c['track'] in {'web','dynamic','document'}:

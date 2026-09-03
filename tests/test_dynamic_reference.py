@@ -9,6 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 class DynamicReferenceTests(unittest.TestCase):
     def test_all_observed_fields_are_required(self):
         captures=json.loads((ROOT/'research/dynamic-browser-captures.json').read_text())
+        captures+=json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text())
         for c in captures:
             facts=entry_facts(c['id'],c['entries'])
             ref=c['rendered_text']
@@ -17,7 +18,7 @@ class DynamicReferenceTests(unittest.TestCase):
             # Delete each occurrence: duplicated fields cannot mask missing field coverage.
             for fact in facts:
                 value=fact['alternatives'][0]
-                self.assertFalse(score(ref.replace(value,''))['content_pass'],(c['id'],fact['id']))
+                self.assertFalse(score(ref.casefold().replace(value.casefold(),''))['content_pass'],(c['id'],fact['id']))
 
     def test_placeholder_or_incomplete_card_is_rejected(self):
         for entries in [[''],['Only a product name']]:

@@ -1,0 +1,59 @@
+[web-scraping.dev](https://web-scraping.dev/)
+- [Docs](#) - [API](/docs) - [Graphql](/api/graphql)
+- [Products](https://web-scraping.dev/products)
+- [Reviews](https://web-scraping.dev/reviews)
+- [Testimonials](https://web-scraping.dev/testimonials)
+- [File Download](https://web-scraping.dev/file-download)
+- [MCP Tools](https://web-scraping.dev/mcp-tools)
+
+- [login](https://web-scraping.dev/login)
+- 0 Clear[Continue](/cart)
+
+- [Home](/)
+- [Products](/products)
+- Box of Chocolate Candy
+
+### Box of Chocolate Candy
+
+![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-1.webp)![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-2.webp)![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-3.webp)![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-4.webp)
+
+#### Description
+
+Indulge your sweet tooth with our Box of Chocolate Candy. Each box contains an assortment of rich, flavorful chocolates with a smooth, creamy filling. Choose from a variety of flavors including zesty orange and sweet cherry. Whether you're looking for the perfect gift or just want to treat yourself, our Box of Chocolate Candy is sure to satisfy.
+
+$9.99from$12.99
+Quantity12345678910
+DeliveryStandard Delivery
+
+- [Standard Delivery](#)
+- [Fast Delivery (+$9.99)](#)
+
+Total:$9.99
+Add to CartBuy Now
+### Variants
+
+[orange, small](https://web-scraping.dev/product/1?variant=orange-small)[orange, medium](https://web-scraping.dev/product/1?variant=orange-medium)[orange, large](https://web-scraping.dev/product/1?variant=orange-large)[cherry, small](https://web-scraping.dev/product/1?variant=cherry-small)[cherry, medium](https://web-scraping.dev/product/1?variant=cherry-medium)[cherry, large](https://web-scraping.dev/product/1?variant=cherry-large)
+
+### Features Vertical Table
+
+materialPremium quality chocolateflavorsAvailable in Orange and Cherry flavorssizesAvailable in small, medium, and large boxesbrandChocoDelightcare instructionsStore in a cool, dry placepurposeIdeal for gifting or self-indulgence
+### Packs Horizontal Table
+
+VersionPackage WeightPackage DimensionVariantsDelivery TypePack 11,00 kg100x230 cm6 available1 Day shippingPack 22,11 kg200x460 cm6 available1 Day shippingPack 33,22 kg300x690 cm6 available1 Day shippingPack 44,33 kg400x920 cm6 available1 Day shippingPack 55,44 kg500x1150 cm6 available1 Day shipping
+
+### Reviews
+
+Load More
+
+### Similar Products
+
+[![thumbnail of Running Shoes for Men](https://web-scraping.dev/assets/products/men-running-shoes.webp) ### Running Shoes for Men 49.99](https://web-scraping.dev/product/21)[![thumbnail of Dragon Energy Potion](https://web-scraping.dev/assets/products/dragon-potion.webp) ### Dragon Energy Potion 4.99](https://web-scraping.dev/product/18)[![thumbnail of Teal Energy Potion](https://web-scraping.dev/assets/products/teal-potion.webp) ### Teal Energy Potion 4.99](https://web-scraping.dev/product/15)[![thumbnail of Cat-Ear Beanie](https://web-scraping.dev/assets/products/cat-ear-beanie-grey.webp) ### Cat-Ear Beanie 14.99](https://web-scraping.dev/product/24)
+
+[SCRAPFLY ACADEMY](https://scrapfly.io/academy)
+
+- [API Docs](/docs)
+- [Sitemap](/sitemap.xml)
+- [Blog](https://scrapfly.io/blog)
+- [GitHub](https://github.com/scrapfly)
+- v1.3.0
+- made by[ScrapFly](https://web-scraping.dev/)

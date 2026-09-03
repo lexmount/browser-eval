@@ -1,0 +1,15 @@
+{
+  "case_id": "dynamic-angular-phones",
+  "url": "https://angular.github.io/angular-phonecat/step-12/app/",
+  "source": "Independent HTTP response + separately observed browser DOM; no candidate output",
+  "checked_at": "2026-09-03T06:43:39.015Z",
+  "initial_checked_at": "2026-09-03T06:46:06.676953+00:00",
+  "selector": "li.thumbnail",
+  "expected_entries": 20,
+  "observed_entries": 20,
+  "completion": "默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情",
+  "initial_status": 200,
+  "initial_sha256": "7c3764ba94011fe3ccdafd51eeb679e49a2fa0519bbc09e6b31aa7438b727954",
+  "rendered_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+  "reference_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1"
+}

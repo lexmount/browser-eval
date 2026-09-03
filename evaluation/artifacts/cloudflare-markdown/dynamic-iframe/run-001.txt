@@ -1,0 +1,29 @@
+---
+title: "Turtles All the Way Down: Frames &amp; iFrames | Scrape This Site | A public sandbox for learning web scraping"
+meta:
+  description: "Some older sites might still use frames to break up thier pages. Modern ones might be using iFrames to expose data. Learn about turtles as you scrape content inside frames."
+---
+
+- [![](https://www.scrapethissite.com/static/images/scraper-icon.png)Scrape This Site](/)
+- [Sandbox](https://www.scrapethissite.com/pages/)
+- [Lessons](https://www.scrapethissite.com/lessons/)
+- [FAQ](https://www.scrapethissite.com/faq/)
+- [Login](https://www.scrapethissite.com/login/)
+
+# Turtles All the Way Down: Frames & iFrames 14 items
+
+---
+
+Some older sites might still use frames to break up thier pages. Modern ones might be using iFrames to expose data. Learn about turtles as you scrape content inside frames. See if you can find the 'real' URL that our content is being loaded from, and scrape that page. Also practice interating over a list of items and loading their detail pages to get more information about each one.
+
+---
+
+There are [3 video lessons](https://www.scrapethissite.com/lessons/) that show you how to scrape this page.
+
+---
+
+Data via [https://en.wikipedia.org/wiki/List\_of\_Testudines\_families](https://en.wikipedia.org/wiki/List_of_Testudines_families)
+
+---
+
+Lessons and Videos © Hartley Brody 2023
