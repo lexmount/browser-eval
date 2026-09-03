@@ -12,7 +12,7 @@ from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
 
 
-def rescore(source):
+def rescore(source, case_ids=None):
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
     path = contained_path(source, 'results.jsonl')
     records = [json.loads(line) for line in path.read_text().splitlines()]
@@ -22,6 +22,8 @@ def rescore(source):
     keys = ['required_facts', 'forbidden_any', 'min_content_chars',
             'fact_coverage_threshold', 'ground_truth_main_content', 'required_patterns']
     for r in records:
+        if case_ids is not None and r['case_id'] not in case_ids:
+            continue
         c = cases[r['case_id']]
         raw = contained_path(source, r['artifact_path']).read_bytes()
         if hashlib.sha256(raw).hexdigest() != r['metrics']['content_sha256']:

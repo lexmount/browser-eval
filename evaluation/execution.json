@@ -2131,6 +2131,63 @@
         "adapter_revision": "d265585c23ce67bd3cc287cca55f27122d359682",
         "verification": "Fixed official binary; fingerprint checked before and after the full run and against every result."
       }
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T04:30:57.168742+00:00",
+      "dataset": {
+        "id": "web-fetch-dynamic-content",
+        "name": "动态内容独立补测",
+        "source": "dynamic-content-reference/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "langchain-webbase",
+          "type": "langchain_webbase",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "crawl4ai",
+          "type": "crawl4ai",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "moli-webfetch",
+          "type": "moli_webfetch",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 3,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O",
+        "hostname": "8yg55-7.local"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T04:31:31.750215+00:00",
+      "attempt_count": 12,
+      "attempt_ids": [
+        "langchain-webbase__dynamic-quotes-api__r001",
+        "langchain-webbase__dynamic-products-api__r001",
+        "langchain-webbase__dynamic-catalog__r001",
+        "langchain-webbase__dynamic-delayed__r001",
+        "crawl4ai__dynamic-quotes-api__r001",
+        "crawl4ai__dynamic-products-api__r001",
+        "crawl4ai__dynamic-catalog__r001",
+        "crawl4ai__dynamic-delayed__r001",
+        "moli-webfetch__dynamic-quotes-api__r001",
+        "moli-webfetch__dynamic-products-api__r001",
+        "moli-webfetch__dynamic-catalog__r001",
+        "moli-webfetch__dynamic-delayed__r001"
+      ]
     }
   ]
 }

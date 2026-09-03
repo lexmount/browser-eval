@@ -64,7 +64,7 @@ function fixLinks(root,page,m){
   const href=a.getAttribute('href');if(/^(https?:|mailto:|data:|blob:)/i.test(href)){a.target='_blank';a.rel='noopener noreferrer';return}
   const dest=resolvePath(href,page);
   if(!m.files[dest.path])return;
-  if(dest.path.endsWith('.html'))a.href=route(dest.path,dest.anchor);
+  if(dest.path.endsWith('.html')&&!a.hasAttribute('download'))a.href=route(dest.path,dest.anchor);
   else{a.href='#';a.dataset.download=dest.path}
  });
 }

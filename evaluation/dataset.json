@@ -7727,6 +7727,929 @@
         "minimum_entries": 3,
         "verification_scope": "first_three_name_detail_pairs"
       }
+    },
+    {
+      "id": "dynamic-quotes-api",
+      "name": "Quotes · 异步引文",
+      "url": "https://quotes.toscrape.com/scroll",
+      "category": "async_api",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-quote",
+          "alternatives": [
+            "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+          ]
+        },
+        {
+          "id": "entry-1-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-1-tags",
+          "alternatives": [
+            "change deep-thoughts thinking world"
+          ]
+        },
+        {
+          "id": "entry-2-quote",
+          "alternatives": [
+            "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+          ]
+        },
+        {
+          "id": "entry-2-author",
+          "alternatives": [
+            "J.K. Rowling"
+          ]
+        },
+        {
+          "id": "entry-2-tags",
+          "alternatives": [
+            "abilities choices"
+          ]
+        },
+        {
+          "id": "entry-3-quote",
+          "alternatives": [
+            "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+          ]
+        },
+        {
+          "id": "entry-3-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-3-tags",
+          "alternatives": [
+            "inspirational life live miracle miracles"
+          ]
+        },
+        {
+          "id": "entry-4-quote",
+          "alternatives": [
+            "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+          ]
+        },
+        {
+          "id": "entry-4-author",
+          "alternatives": [
+            "Jane Austen"
+          ]
+        },
+        {
+          "id": "entry-4-tags",
+          "alternatives": [
+            "aliteracy books classic humor"
+          ]
+        },
+        {
+          "id": "entry-5-quote",
+          "alternatives": [
+            "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+          ]
+        },
+        {
+          "id": "entry-5-author",
+          "alternatives": [
+            "Marilyn Monroe"
+          ]
+        },
+        {
+          "id": "entry-5-tags",
+          "alternatives": [
+            "be-yourself inspirational"
+          ]
+        },
+        {
+          "id": "entry-6-quote",
+          "alternatives": [
+            "“Try not to become a man of success. Rather become a man of value.”"
+          ]
+        },
+        {
+          "id": "entry-6-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-6-tags",
+          "alternatives": [
+            "adulthood success value"
+          ]
+        },
+        {
+          "id": "entry-7-quote",
+          "alternatives": [
+            "“It is better to be hated for what you are than to be loved for what you are not.”"
+          ]
+        },
+        {
+          "id": "entry-7-author",
+          "alternatives": [
+            "André Gide"
+          ]
+        },
+        {
+          "id": "entry-7-tags",
+          "alternatives": [
+            "life love"
+          ]
+        },
+        {
+          "id": "entry-8-quote",
+          "alternatives": [
+            "“I have not failed. I've just found 10,000 ways that won't work.”"
+          ]
+        },
+        {
+          "id": "entry-8-author",
+          "alternatives": [
+            "Thomas A. Edison"
+          ]
+        },
+        {
+          "id": "entry-8-tags",
+          "alternatives": [
+            "edison failure inspirational paraphrased"
+          ]
+        },
+        {
+          "id": "entry-9-quote",
+          "alternatives": [
+            "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+          ]
+        },
+        {
+          "id": "entry-9-author",
+          "alternatives": [
+            "Eleanor Roosevelt"
+          ]
+        },
+        {
+          "id": "entry-9-tags",
+          "alternatives": [
+            "misattributed-eleanor-roosevelt"
+          ]
+        },
+        {
+          "id": "entry-10-quote",
+          "alternatives": [
+            "“A day without sunshine is like, you know, night.”"
+          ]
+        },
+        {
+          "id": "entry-10-author",
+          "alternatives": [
+            "Steve Martin"
+          ]
+        },
+        {
+          "id": "entry-10-tags",
+          "alternatives": [
+            "humor obvious simile"
+          ]
+        }
+      ],
+      "min_content_chars": 1000,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+      "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+        "expected_entries": 10,
+        "render_evidence": {
+          "scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-quotes-api: 10 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 30000,
+            "elapsed_ms": 3814,
+            "satisfied": true,
+            "checked_at": "2026-09-03T04:35:13.202Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T04:27:53.297Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://quotes.toscrape.com/scroll",
+          "supports": "独立观察的全部 10 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-products-api",
+      "name": "Scraping Course · 异步商品",
+      "url": "https://www.scrapingcourse.com/javascript-rendering",
+      "category": "async_api",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-name",
+          "alternatives": [
+            "Chaz Kangeroo Hoodie"
+          ]
+        },
+        {
+          "id": "entry-1-price",
+          "alternatives": [
+            "$52"
+          ]
+        },
+        {
+          "id": "entry-2-name",
+          "alternatives": [
+            "Teton Pullover Hoodie"
+          ]
+        },
+        {
+          "id": "entry-2-price",
+          "alternatives": [
+            "$70"
+          ]
+        },
+        {
+          "id": "entry-3-name",
+          "alternatives": [
+            "Bruno Compete Hoodie"
+          ]
+        },
+        {
+          "id": "entry-3-price",
+          "alternatives": [
+            "$63"
+          ]
+        },
+        {
+          "id": "entry-4-name",
+          "alternatives": [
+            "Frankie Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-4-price",
+          "alternatives": [
+            "$60"
+          ]
+        },
+        {
+          "id": "entry-5-name",
+          "alternatives": [
+            "Hollister Backyard Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-5-price",
+          "alternatives": [
+            "$52"
+          ]
+        },
+        {
+          "id": "entry-6-name",
+          "alternatives": [
+            "Stark Fundamental Hoodie"
+          ]
+        },
+        {
+          "id": "entry-6-price",
+          "alternatives": [
+            "$42"
+          ]
+        },
+        {
+          "id": "entry-7-name",
+          "alternatives": [
+            "Hero Hoodie"
+          ]
+        },
+        {
+          "id": "entry-7-price",
+          "alternatives": [
+            "$54"
+          ]
+        },
+        {
+          "id": "entry-8-name",
+          "alternatives": [
+            "Oslo Trek Hoodie"
+          ]
+        },
+        {
+          "id": "entry-8-price",
+          "alternatives": [
+            "$42"
+          ]
+        },
+        {
+          "id": "entry-9-name",
+          "alternatives": [
+            "Abominable Hoodie"
+          ]
+        },
+        {
+          "id": "entry-9-price",
+          "alternatives": [
+            "$69"
+          ]
+        },
+        {
+          "id": "entry-10-name",
+          "alternatives": [
+            "Mach Street Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-10-price",
+          "alternatives": [
+            "$62"
+          ]
+        },
+        {
+          "id": "entry-11-name",
+          "alternatives": [
+            "Grayson Crewneck Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-11-price",
+          "alternatives": [
+            "$64"
+          ]
+        },
+        {
+          "id": "entry-12-name",
+          "alternatives": [
+            "Ajax Full-Zip Sweatshirt"
+          ]
+        },
+        {
+          "id": "entry-12-price",
+          "alternatives": [
+            "$69"
+          ]
+        }
+      ],
+      "min_content_chars": 223,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "Chaz Kangeroo Hoodie\n$52\n\nTeton Pullover Hoodie\n$70\n\nBruno Compete Hoodie\n$63\n\nFrankie Sweatshirt\n$60\n\nHollister Backyard Sweatshirt\n$52\n\nStark Fundamental Hoodie\n$42\n\nHero Hoodie\n$54\n\nOslo Trek Hoodie\n$42\n\nAbominable Hoodie\n$69\n\nMach Street Sweatshirt\n$62\n\nGrayson Crewneck Sweatshirt\n$64\n\nAjax Full-Zip Sweatshirt\n$69",
+      "task_prompt": "读取初次自动加载完成后的 12 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "Initial page automatic loading completed; exactly 12 visible entries, no scrolling/clicking/pagination",
+        "expected_entries": 12,
+        "render_evidence": {
+          "scope": "Initial page automatic loading completed; exactly 12 visible entries, no scrolling/clicking/pagination",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-products-api: 12 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 30000,
+            "elapsed_ms": 4970,
+            "satisfied": true,
+            "checked_at": "2026-09-03T04:35:18.172Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T04:27:56.472Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://www.scrapingcourse.com/javascript-rendering",
+          "supports": "独立观察的全部 12 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-catalog",
+      "name": "Web Scraper · 客户端商品目录",
+      "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+      "category": "client_catalog",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-price",
+          "alternatives": [
+            "$295.99"
+          ]
+        },
+        {
+          "id": "entry-1-title",
+          "alternatives": [
+            "Asus VivoBook X4"
+          ]
+        },
+        {
+          "id": "entry-1-description",
+          "alternatives": [
+            "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+          ]
+        },
+        {
+          "id": "entry-1-reviews",
+          "alternatives": [
+            "1 reviews",
+            "1reviews"
+          ]
+        },
+        {
+          "id": "entry-2-price",
+          "alternatives": [
+            "$299"
+          ]
+        },
+        {
+          "id": "entry-2-title",
+          "alternatives": [
+            "Prestigio SmartB"
+          ]
+        },
+        {
+          "id": "entry-2-description",
+          "alternatives": [
+            "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+          ]
+        },
+        {
+          "id": "entry-2-reviews",
+          "alternatives": [
+            "9 reviews",
+            "9reviews"
+          ]
+        },
+        {
+          "id": "entry-3-price",
+          "alternatives": [
+            "$299"
+          ]
+        },
+        {
+          "id": "entry-3-title",
+          "alternatives": [
+            "Prestigio SmartB"
+          ]
+        },
+        {
+          "id": "entry-3-description",
+          "alternatives": [
+            "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+          ]
+        },
+        {
+          "id": "entry-3-reviews",
+          "alternatives": [
+            "9 reviews",
+            "9reviews"
+          ]
+        },
+        {
+          "id": "entry-4-price",
+          "alternatives": [
+            "$306.99"
+          ]
+        },
+        {
+          "id": "entry-4-title",
+          "alternatives": [
+            "Aspire E1-510"
+          ]
+        },
+        {
+          "id": "entry-4-description",
+          "alternatives": [
+            "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+          ]
+        },
+        {
+          "id": "entry-4-reviews",
+          "alternatives": [
+            "2 reviews",
+            "2reviews"
+          ]
+        },
+        {
+          "id": "entry-5-price",
+          "alternatives": [
+            "$321.94"
+          ]
+        },
+        {
+          "id": "entry-5-title",
+          "alternatives": [
+            "Lenovo V110-15IA"
+          ]
+        },
+        {
+          "id": "entry-5-description",
+          "alternatives": [
+            "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+          ]
+        },
+        {
+          "id": "entry-5-reviews",
+          "alternatives": [
+            "12 reviews",
+            "12reviews"
+          ]
+        },
+        {
+          "id": "entry-6-price",
+          "alternatives": [
+            "$356.49"
+          ]
+        },
+        {
+          "id": "entry-6-title",
+          "alternatives": [
+            "Lenovo V110-15IA"
+          ]
+        },
+        {
+          "id": "entry-6-description",
+          "alternatives": [
+            "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+          ]
+        },
+        {
+          "id": "entry-6-reviews",
+          "alternatives": [
+            "12 reviews",
+            "12reviews"
+          ]
+        }
+      ],
+      "min_content_chars": 555,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "$295.99\nAsus VivoBook X4\n\nAsus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd\n\n1 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$306.99\nAspire E1-510\n\n15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux\n\n2 reviews\n\n$321.94\nLenovo V110-15IA\n\nLenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home\n\n12 reviews\n\n$356.49\nLenovo V110-15IA\n\nAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd\n\n12 reviews",
+      "task_prompt": "读取初次自动加载完成后的 6 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "Initial page automatic loading completed; exactly 6 visible entries, no scrolling/clicking/pagination",
+        "expected_entries": 6,
+        "render_evidence": {
+          "scope": "Initial page automatic loading completed; exactly 6 visible entries, no scrolling/clicking/pagination",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-catalog: 6 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 30000,
+            "elapsed_ms": 3050,
+            "satisfied": true,
+            "checked_at": "2026-09-03T04:35:21.222Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T04:28:01.199Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+          "supports": "独立观察的全部 6 条记录及其文字字段"
+        }
+      ]
+    },
+    {
+      "id": "dynamic-delayed",
+      "name": "Quotes · 延迟呈现",
+      "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+      "category": "delayed_render",
+      "track": "dynamic",
+      "task_kind": "body",
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "entry-1-quote",
+          "alternatives": [
+            "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+          ]
+        },
+        {
+          "id": "entry-1-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-1-tags",
+          "alternatives": [
+            "change deep-thoughts thinking world"
+          ]
+        },
+        {
+          "id": "entry-2-quote",
+          "alternatives": [
+            "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+          ]
+        },
+        {
+          "id": "entry-2-author",
+          "alternatives": [
+            "J.K. Rowling"
+          ]
+        },
+        {
+          "id": "entry-2-tags",
+          "alternatives": [
+            "abilities choices"
+          ]
+        },
+        {
+          "id": "entry-3-quote",
+          "alternatives": [
+            "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+          ]
+        },
+        {
+          "id": "entry-3-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-3-tags",
+          "alternatives": [
+            "inspirational life live miracle miracles"
+          ]
+        },
+        {
+          "id": "entry-4-quote",
+          "alternatives": [
+            "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+          ]
+        },
+        {
+          "id": "entry-4-author",
+          "alternatives": [
+            "Jane Austen"
+          ]
+        },
+        {
+          "id": "entry-4-tags",
+          "alternatives": [
+            "aliteracy books classic humor"
+          ]
+        },
+        {
+          "id": "entry-5-quote",
+          "alternatives": [
+            "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+          ]
+        },
+        {
+          "id": "entry-5-author",
+          "alternatives": [
+            "Marilyn Monroe"
+          ]
+        },
+        {
+          "id": "entry-5-tags",
+          "alternatives": [
+            "be-yourself inspirational"
+          ]
+        },
+        {
+          "id": "entry-6-quote",
+          "alternatives": [
+            "“Try not to become a man of success. Rather become a man of value.”"
+          ]
+        },
+        {
+          "id": "entry-6-author",
+          "alternatives": [
+            "Albert Einstein"
+          ]
+        },
+        {
+          "id": "entry-6-tags",
+          "alternatives": [
+            "adulthood success value"
+          ]
+        },
+        {
+          "id": "entry-7-quote",
+          "alternatives": [
+            "“It is better to be hated for what you are than to be loved for what you are not.”"
+          ]
+        },
+        {
+          "id": "entry-7-author",
+          "alternatives": [
+            "André Gide"
+          ]
+        },
+        {
+          "id": "entry-7-tags",
+          "alternatives": [
+            "life love"
+          ]
+        },
+        {
+          "id": "entry-8-quote",
+          "alternatives": [
+            "“I have not failed. I've just found 10,000 ways that won't work.”"
+          ]
+        },
+        {
+          "id": "entry-8-author",
+          "alternatives": [
+            "Thomas A. Edison"
+          ]
+        },
+        {
+          "id": "entry-8-tags",
+          "alternatives": [
+            "edison failure inspirational paraphrased"
+          ]
+        },
+        {
+          "id": "entry-9-quote",
+          "alternatives": [
+            "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+          ]
+        },
+        {
+          "id": "entry-9-author",
+          "alternatives": [
+            "Eleanor Roosevelt"
+          ]
+        },
+        {
+          "id": "entry-9-tags",
+          "alternatives": [
+            "misattributed-eleanor-roosevelt"
+          ]
+        },
+        {
+          "id": "entry-10-quote",
+          "alternatives": [
+            "“A day without sunshine is like, you know, night.”"
+          ]
+        },
+        {
+          "id": "entry-10-author",
+          "alternatives": [
+            "Steve Martin"
+          ]
+        },
+        {
+          "id": "entry-10-tags",
+          "alternatives": [
+            "humor obvious simile"
+          ]
+        }
+      ],
+      "min_content_chars": 1000,
+      "fact_coverage_threshold": 1.0,
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA"
+      ],
+      "ground_truth_main_content": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+      "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+      "source_benchmark": {
+        "capture_scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+        "expected_entries": 10,
+        "render_evidence": {
+          "scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+          "rendered_truncated": false,
+          "completion": {
+            "condition": "dynamic-delayed: 10 nonempty target records with populated text fields; no interaction",
+            "timeout_ms": 30000,
+            "elapsed_ms": 10598,
+            "satisfied": true,
+            "checked_at": "2026-09-03T04:35:31.820Z",
+            "phase": "post-run independent reproduction of pre-run frozen reference"
+          }
+        }
+      },
+      "source_verification": {
+        "state": "valid",
+        "checked_at": "2026-09-03T04:28:05.890Z",
+        "method": "独立 HTTP 与浏览器可见正文对照",
+        "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+      },
+      "ground_truth_evidence": [
+        {
+          "source": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+          "supports": "独立观察的全部 10 条记录及其文字字段"
+        }
+      ]
     }
-  ]
+  ],
+  "coverage_plan": {
+    "dynamic": [
+      "crawl4ai",
+      "langchain-webbase",
+      "moli-webfetch"
+    ],
+    "document": [
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
+      "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in",
+      "tavily"
+    ],
+    "image": [
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
+      "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in",
+      "tavily"
+    ],
+    "video": [
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
+      "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in",
+      "tavily"
+    ],
+    "challenge": [
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
+      "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in",
+      "tavily"
+    ],
+    "web": [
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "crawl4ai",
+      "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
+      "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
+      "moli-webfetch",
+      "openclaw-built-in",
+      "tavily"
+    ]
+  }
 }

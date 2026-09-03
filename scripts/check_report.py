@@ -19,10 +19,14 @@ class Tables(HTMLParser):
 
 root=Path(sys.argv[1]);d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
-expected=len(d['cases'])*len(names)
-assert len(d['cases'])==140 and len(rs)==expected
-assert Counter(c['track'] for c in d['cases'])==dict(web=100,document=10,image=10,video=10,challenge=10)
-assert set(Counter(r['provider'] for r in rs).values())=={140}
+inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
+assert {(c['id'],c.get('track','web')) for c in d['cases']}=={(cid,t) for t,v in inventory.items() for cid in v['case_ids']},'Dataset differs from reviewed independent inventory'
+plan=d.get('coverage_plan',{})
+assert {t:set(p) for t,p in plan.items()}=={t:set(v['providers']) for t,v in inventory.items()},'Provider coverage differs from reviewed inventory'
+expected_pairs={(p,c['id']) for c in d['cases'] for p in plan.get(c.get('track','web'),names)}
+expected=len(expected_pairs)
+assert len(rs)==expected
+assert {(r['provider'],r['case_id']) for r in rs}==expected_pairs
 assert len({r['attempt_id'] for r in rs})==expected
 assert len({(r['provider'],r['case_id']) for r in rs})==expected
 case_by_id={c['id']:c for c in d['cases']}
@@ -31,12 +35,12 @@ for r in rs:
  if not r['ok']:assert not r['metrics']['content_pass']
  if r['metrics'].get('word_f1') is not None:assert case_by_id[r['case_id']].get('ground_truth_main_content')
 for c in d['cases']:
- if c['track'] in {'web','document'}:assert c.get('ground_truth_main_content'),c['id']
+ if c['track'] in {'web','dynamic','document'}:assert c.get('ground_truth_main_content'),c['id']
  if c.get('ground_truth_main_content'):
   expected=c['ground_truth_main_content'].encode()
   assert hashlib.sha256(expected).hexdigest()==c['source_verification']['reference_sha256'],c['id']
   assert (root/'references'/f"{c['id']}.txt").read_bytes()==expected,c['id']
- assert {r['provider'] for r in rs if r['case_id']==c['id']}==names,c['id']
+ assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
 for p in root.rglob('*.html'):
  text=p.read_text();visible=re.sub(r'<pre>.*?</pre>','',text,flags=re.S)
  for banned in ['人工复核','人工检查','HIL','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2']:

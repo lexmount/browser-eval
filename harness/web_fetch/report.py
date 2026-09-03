@@ -17,13 +17,14 @@ from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
 
-TRACKS={'web':'网页正文','document':'文档正文','image':'图片获取','video':'视频获取','challenge':'真实网站访问'}
+TRACKS={'web':'网页正文','dynamic':'动态内容','document':'文档正文','image':'图片获取','video':'视频获取','challenge':'复杂热门网站'}
 CONTRACTS={
  'web':'100 条网页，读取完整正文；项目仓库以 README 为准。',
+ 'dynamic':'独立补测：初次自动加载后的完整内容。覆盖异步取数、客户端目录和延迟呈现；每例固定完成条件，不要求滚动、翻页或点击。允许通过渲染、内嵌数据或公开接口完成任务。',
  'document':'10 条：6 个直接 PDF、1 个 DOCX、1 个 TXT 和 2 个嵌入文档页面。必须读出文档文字，仅给下载链接不算正文通过。',
  'image':'10 条：9 个含图页面和 1 个直接 PNG。含图页面检查指定正文图片地址；直接 PNG 检查原文件。没有测试图片内容理解。',
  'video':'10 条：7 个视频入口页面、2 个直接视频文件、1 个视频基本信息页。分别检查播放入口、原文件、标题与发布者；没有测试字幕转写或画面理解。',
- 'challenge':'10 条真实网站：电商、生活社区、影视和开发社区。不给方法提供站点登录凭据，不操作验证码；目标内容、登录限制与接口故障分别记录。',
+ 'challenge':'10 个复杂热门网站，重点观察风控、登录限制和复杂页面中的内容获取。不给方法提供站点登录凭据，不操作验证码；访问受限不等于网站无效。',
 }
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
@@ -117,7 +118,7 @@ def ranking(records,cases,track,base='',id=None):
   avg=lambda key:statistics.mean(r['metrics'][key] for r in full) if full else None
   times=[r['elapsed_ms'] for r in rs if succeeded(r,cases[r['case_id']])]
   values=cell(link(base+f'providers/{name}.html',name))+cell(rate(ok,n),ok/n)
-  if track in {'web','document','challenge'}:
+  if track in {'web','dynamic','document','challenge'}:
    values+=cell(rate(passed,n),passed/n)
    if track!='challenge':values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
   else:
@@ -128,15 +129,19 @@ def ranking(records,cases,track,base='',id=None):
   values+=cell(ms(statistics.mean(times)) if times else '—',statistics.mean(times) if times else -1)+cell(ms(percentile(times,.5)),percentile(times,.5) or -1)+cell(ms(percentile(times,.95)),percentile(times,.95) or -1)
   rows.append(('',values))
  heads=['方法','请求成功率']
- if track in {'web','document','challenge'}:
+ if track in {'web','dynamic','document','challenge'}:
   heads+=['任务通过率']
   if track!='challenge':heads+=['完整度','纯净度','F1']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
  heads+=['均值','P50','P95']
  note='请求成功率和任务通过率以全部任务为分母。'
  if dynamic:note='通过须返回至少 3 条具名详情链接，且前三条均有独立内容证据。分母为全部任务；未证实不算通过，但不等于内容错误。不测实时排名、价格和整页 F1。'
- elif track in {'web','document'}:note+=f' 全文指标覆盖 {len(next(iter(groups.values()),[]))} 例；请求失败计 0，请求成功但任务未通过仍按实际正文评分。'
+ elif track in {'web','dynamic','document'}:note+=f' 全文指标覆盖 {len(next(iter(groups.values()),[]))} 例；请求失败计 0，请求成功但任务未通过仍按实际正文评分。'
  elif track!='challenge':note='任务通过率以全部任务为分母；资源、文件、信息三列各按对应子任务计算。耗时只统计通过项。'
+ if track=='dynamic':
+  missing=sorted({r['provider'] for r in records}-set(groups))
+  note+=' 本组为独立补测，仅比较已测方法，不与历史网页组混成总分。'
+  if missing:note+=' 未测方法（不计为失败）：'+esc('、'.join(missing))+'。'
  result=table(heads,rows,id or 'ranking-'+track,True,'ranking')
  from .report_components import task_pass_guide
  return task_pass_guide(track,base)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
@@ -189,11 +194,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   count=len([c for c in cases.values() if c.get('track','web')==track])
   if not count:continue
   cards+=f'<div class="card"><div class="eyebrow">{count} 例</div><h3>{link("#home-rankings-"+track,label)}</h3><p>{esc(winners)}</p><p>最高任务通过 <b>{pct(maximum/count)}</b></p></div>'
- home=hero('Web Fetch 评测',f'{len(cases)} 例 · {len(names)} 种方法 · 网页、文档、图片、视频与真实网站。')
+ home=hero('Web Fetch 评测',f'{len(cases)} 例 · {len(names)} 种方法 · 网页、动态内容、文档、媒体与复杂热门网站。各组参评覆盖见表。')
  from .report_explainer import TITLE,render_explainer
- home+=section('先读懂，再看榜单',f'<div class="reading-entry"><div><p class="eyebrow">报告解读</p><h3>{link("guide/index.html",TITLE)}</h3><p>任务怎样才算通过？CowAgent 为什么网页通过率高，却不一定交付更干净的正文？沿着真实案例、判分代码和一个离线实验，把结论与边界说清楚。</p></div>{link("guide/index.html","阅读全文 →")}</div>')
+ home+=section('报告解读',f'<div class="reading-entry"><div><p class="eyebrow">技术文章</p><h3>{link("guide/index.html",TITLE)}</h3><p>高通过率为何仍可能留下难用的正文？从质量差异、动态取数和失败互补性，讨论网页抓取的工程选择。</p></div>{link("guide/index.html","阅读全文 →")}</div>')
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
- home+=section('结果概览','<div class="grid">'+cards+'</div><p class="source-note">小样本实测，不代表全网成功率。真实网站组核对前三条名称与详情身份；其他组按完整正文或指定资源判定。</p>')
+ home+=section('结果概览','<div class="grid">'+cards+'</div><p class="source-note">小样本实测，不代表全网成功率。复杂热门网站核对前三条名称与详情身份；动态内容为独立补测，其余组按正文或指定资源判定。</p>')
  webrows={n:[r for r in byprovider[n] if cases[r['case_id']].get('track','web')=='web'] for n in names}
  quality={n:statistics.mean(r['metrics']['word_f1'] for r in rs if r['metrics'].get('word_f1') is not None) for n,rs in webrows.items() if any(r['metrics'].get('word_f1') is not None for r in rs)}
  leader=max(quality,key=quality.get) if quality else None
@@ -227,6 +232,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    status_note='<p class="callout">核对前三条的名称与详情身份；参考未覆盖的条目须补独立证据，不将榜单变化判作内容错误。</p><p>'+link('../list-references/'+c['id']+'.json','名称与链接核验依据')+' · '+link('../sources/'+c['id']+'/reference.txt','公开条目快照')+'</p>'
    rules='<div class="guide-grid"><article class="guide-card"><h3>固定任务</h3><p>至少 3 个不同条目，每个包含有意义的名称及本站详情入口。</p></article><article class="guide-card"><h3>不固定内容</h3><p>不要求特定标题、排序、价格或条目 ID；登录页、重复入口、空链接不计入。</p></article></div>'
   source_record=link('../sources/'+c['id']+'/evidence.json','获取记录') if (out/'sources'/c['id']/'evidence.json').exists() else '未保存源页快照'
+  if c.get('track')=='dynamic':
+   source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
+   observed=sorted({r['provider'] for r in bycase[c['id']]})
+   status_note+='<p class="source-note">独立动态内容补测；已测 '+esc('、'.join(observed))+'。其余方法未测，不计为失败。</p>'
   body=hero(esc(c['name']),esc(c.get('task_prompt','')))+section('源页与参考',status_note+f'<p>{link(c["url"],c["url"])}</p><details><summary>来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details><p>{link("../references/"+c["id"]+".txt","下载参考")} · {source_record}</p><details><summary>参考正文 / 目标结果</summary><pre>{esc(ref)}</pre></details>')
   body+=section('评分核对点',(table(['核对点','允许表达'],facts) if facts else '')+rules+(table(['资源','允许地址'],resources) if resources else '')+('<p>检查是否返回可核对的原始文件。</p>' if c.get('task_kind')=='file' else ''),'facts')
   if c.get('task_kind')=='structure':
@@ -293,7 +302,7 @@ def write_support(out,records,manifests):
    rows.append(('',cell('可执行文件 SHA-256')+cell('<code class="tiny break">'+esc(implementation['sha256'])+'</code>')))
  errors=Counter((r['provider'],r.get('error_type') or 'unknown') for r in records if not r['ok'])
  errorrows=[('',cell(esc(n))+cell(esc(t))+cell(str(count))) for (n,t),count in sorted(errors.items())]
- write(out,'environment/index.html','环境',hero('执行环境','各组使用的运行环境、时间与请求参数。')+section('测试条件',f'<p>共纳入 {len(records):,} 次调用。任务范围与方法配置以冻结数据为准；不向参评方法提供网站登录凭据，不操作验证码。参考与调用的会话可能不同，因此动态任务只确认前三条名称和详情身份，不比较个性化名单。</p>')+section('运行参数',table(['参数','值'],rows))+section('请求失败统计',table(['方法','故障分类','次数'],errorrows)))
+ write(out,'environment/index.html','环境',hero('执行环境','各组使用的运行环境、时间与请求参数。')+section('测试条件',f'<p>共纳入 {len(records):,} 次调用。任务范围与方法配置以冻结数据为准；不向参评方法提供网站登录凭据，不操作验证码。复杂热门网站的参考与调用会话可能不同，列表核验前三条名称与详情身份，不比较个性化名单。动态内容补测另按各例固定首批记录与完整文字参考评分。</p>')+section('运行参数',table(['参数','值'],rows))+section('请求失败统计',table(['方法','故障分类','次数'],errorrows)))
  write(out,'integration/index.html','集成',hero('按任务选择方法','分别看正文、文档、资源和文件任务的结果。')+section('使用边界',table(['任务','接入方式'],[('',cell(a)+cell(b)) for a,b in [('网页正文','结合任务通过率、完整度、F1 和通过耗时选择，保留原始输出及错误类型。'),('文档','确认方法实际返回文档文字；下载链接不等于文档正文。'),('图片、视频','资源地址、原文件和内容理解是不同任务；本轮不测多模态理解。'),('登录、验证码','交互操作另行授权和评测；登录页不能算作取得目标内容。')]])))
  accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in ACCOUNT_REGISTRY]
  write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))

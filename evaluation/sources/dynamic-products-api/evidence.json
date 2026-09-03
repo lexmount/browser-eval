@@ -1,0 +1,15 @@
+{
+  "case_id": "dynamic-products-api",
+  "url": "https://www.scrapingcourse.com/javascript-rendering",
+  "source": "Independent HTTP response + separately observed browser DOM; no candidate output",
+  "checked_at": "2026-09-03T04:27:56.472Z",
+  "initial_checked_at": "2026-09-03T04:29:47.004262+00:00",
+  "selector": "#product-grid > div",
+  "expected_entries": 12,
+  "observed_entries": 12,
+  "completion": "Initial page automatic loading completed; exactly 12 visible entries, no scrolling/clicking/pagination",
+  "initial_status": 200,
+  "initial_sha256": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+  "rendered_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+  "reference_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c"
+}

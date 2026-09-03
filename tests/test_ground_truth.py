@@ -12,14 +12,19 @@ class GroundTruthTest(unittest.TestCase):
     def test_current_task_set_and_reference_integrity(self):
         data,cases=load_dataset(Path('evaluation/dataset.json'))
         self.assertEqual(data['id'],'webfetch')
-        self.assertEqual(Counter(c.track for c in cases),dict(web=100,document=10,image=10,video=10,challenge=10))
-        self.assertEqual(len({c.id for c in cases}),140)
+        self.assertEqual(Counter(c.track for c in cases),dict(web=100,dynamic=4,document=10,image=10,video=10,challenge=10))
+        self.assertEqual(len({c.id for c in cases}),144)
         for c in data['cases']:
             self.assertTrue(c['task_prompt'],c['id'])
-            if c['track'] in {'web','document'}:
+            if c['track'] in {'web','dynamic','document'}:
                 self.assertTrue(c['ground_truth_main_content'],c['id'])
                 self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
-                self.assertEqual(audit_reference(c['ground_truth_main_content'],c['required_facts'],normalize=normalize_for_match),[],c['id'])
+                if c['track']=='dynamic':
+                    from harness.web_fetch.render_evidence import validate_render_reference
+                    folder=Path('evaluation/sources')/c['id']
+                    audit=validate_render_reference(c,(folder/'initial.html.txt').read_bytes(),(folder/'rendered.txt').read_text())
+                    self.assertTrue(audit['valid'],audit['errors'])
+                else:self.assertEqual(audit_reference(c['ground_truth_main_content'],c['required_facts'],normalize=normalize_for_match),[],c['id'])
             elif c['track']=='challenge':
                 self.assertEqual(c['task_kind'],'structure')
                 self.assertEqual(c['required_facts'],[])

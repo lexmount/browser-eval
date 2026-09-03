@@ -53,7 +53,7 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Web Fetch 评测
 
-当前存档为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、真实网站各 10 个。
+历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 4 个任务、3 种方法的独立补测；不与历史组混成总榜，未测方法不计失败。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围。
 包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
 
 ## 唯一当前入口
@@ -105,7 +105,7 @@ python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-we
 
 官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与当前 Markdown 适配器分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。非 HTML 原响应仅支持 html/json，不暗中回退或借用其他 provider。
 
-独立源页检查：`python3 scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。真实网站的动态列表按字段结构评分，不耦合当前标题、排序或价格。
+独立源页检查：`python3 scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 
 ## 发布
 

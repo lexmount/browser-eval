@@ -1,0 +1,15 @@
+{
+  "case_id": "dynamic-quotes-api",
+  "url": "https://quotes.toscrape.com/scroll",
+  "source": "Independent HTTP response + separately observed browser DOM; no candidate output",
+  "checked_at": "2026-09-03T04:27:53.297Z",
+  "initial_checked_at": "2026-09-03T04:29:43.799153+00:00",
+  "selector": ".quotes .quote",
+  "expected_entries": 10,
+  "observed_entries": 10,
+  "completion": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+  "initial_status": 200,
+  "initial_sha256": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5",
+  "rendered_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+  "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+}
