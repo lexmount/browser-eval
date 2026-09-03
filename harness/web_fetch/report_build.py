@@ -4,8 +4,8 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
-from .report import generate, succeeded, failure_category, TRACKS
-from .failure_diagnosis import diagnose, normalize_empty_response
+from .report import generate, succeeded, measured, failure_category, TRACKS
+from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 
@@ -72,8 +72,14 @@ def build_report(source: Path, output: Path) -> Path:
                 raise ValueError(f'Output integrity failure: {path}')
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(raw, target)
+            for file in r.get('provider_metadata', {}).get('file_evaluation', {}).get('files', []):
+                binary = contained_path(source, file['artifact_path'])
+                if hashlib.sha256(binary.read_bytes()).hexdigest() != file['sha256']:
+                    raise ValueError('File output integrity failure: '+r['attempt_id'])
+                target_file = contained_path(staging, file['artifact_path'])
+                target_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(binary, target_file)
             text=raw.read_text(encoding='utf-8',errors='replace')
-            normalize_empty_response(r,text)
             from .title_quality import add_title_quality
             add_title_quality(r, cases[r['case_id']], source)
             r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
@@ -105,6 +111,8 @@ def build_report(source: Path, output: Path) -> Path:
             for provider, row in providers.items():
                 subset = [r for r in records if r['provider'] == provider and cases[r['case_id']].get('track','web') == track]
                 row['scoring_scope'] = scoring_scope(subset, cases)
+                row['task_evaluated_attempts'] = sum(measured(r, cases[r['case_id']]) for r in subset)
+                row['task_unmeasured_attempts'] = len(subset) - row['task_evaluated_attempts']
                 text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
                 row['text_checked_attempts']=len(text)
                 row['text_checked_cases']=len({r['case_id'] for r in text})
@@ -112,6 +120,8 @@ def build_report(source: Path, output: Path) -> Path:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
         copy_methodology_assets(staging)
+        if (source/'scoring-revisions.json').is_file():
+            shutil.copy2(source/'scoring-revisions.json', staging/'scoring-revisions.json')
         generate(staging,dataset,records,manifests)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.

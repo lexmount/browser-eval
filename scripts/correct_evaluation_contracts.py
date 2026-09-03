@@ -1,0 +1,51 @@
+"""Apply reviewed reference-scope and acceptance corrections without provider calls.
+
+Original source bytes and call records are never rewritten here. A separate
+shared rescore records the metric changes and their rule provenance.
+"""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from collect_source_evidence import extract_html
+from harness.web_fetch.body_coverage import body_requirements
+from harness.web_fetch.reference_quality import clean_reference_text
+
+
+def correct(source):
+    path = source / 'dataset.json'
+    data = json.loads(path.read_text())
+    reviewed = {
+        'live-024-cascading-style-sheets-level-2-r': '完整标准页面，包含 Quick 与 Full Table of Contents；排除脚本、样式与站点导航。',
+        'live-022-until-september-10-get-pycharm-f': 'article#docs-content 内的文档正文；排除语言、版本切换器、站点导航与返回顶部控件。',
+    }
+    for case in data['cases']:
+        if case['id'] in reviewed:
+            relative = f"sources/{case['id']}/source.html.txt"
+            raw = (source / relative).read_bytes()
+            _, text, selector, _ = extract_html(raw, case['url'])
+            text = clean_reference_text(text)
+            case['ground_truth_main_content'] = text
+            case['source_verification'].update(selector=selector,
+                reference_scope=reviewed[case['id']],
+                reference_sha256=hashlib.sha256(text.encode()).hexdigest(),
+                source_snapshot_sha256=hashlib.sha256(raw).hexdigest(),
+                scope_revision={'basis': 'independent_saved_source_scope_review', 'source_path': relative})
+        if (case.get('track', 'web') in {'web', 'document'} and case.get('task_kind', 'body') == 'body'
+                and case.get('ground_truth_main_content') and not case.get('acceptance_contract')):
+            case['body_requirements'] = body_requirements(case['ground_truth_main_content'])
+        if case['id'] == 'dynamic-react-cart':
+            # Field coverage of the declared sixteen-product demonstration.
+            # No exact price, title, ordering or per-product commercial value.
+            case['acceptance_contract']['field_minimum_records'] = {'financing': 15, 'shipping': 13}
+            case['source_benchmark']['stable_annotation']['note'] = (
+                '独立参考的 16 件商品范围内，至少 15 条分期、13 条配送字段须归属于完整且唯一的商品记录。'
+                '不固定商品名、价格和顺序，不要求每件商品均具备这两个字段。')
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+
+
+if __name__ == '__main__':
+    correct(ROOT / 'evaluation')

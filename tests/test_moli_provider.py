@@ -31,6 +31,7 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             'import sys\nassert sys.argv[1:]==["fetch","--dump","markdown","--wait-until","done","--timeout","2000","--block-private-networks","https://example.com/?a=1&b=2"]\nprint("# Example Domain")\nprint("diagnostic only",file=sys.stderr)\n'
         )
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case, 2)
         self.assertTrue(result.ok)
         self.assertEqual(result.content, "# Example Domain\n")
@@ -85,8 +86,10 @@ class MoliTests(unittest.TestCase):
 
     def test_binary_replacement_updates_audit_hash(self):
         provider = self.provider('print("first")')
+        provider.validate()
         first = provider.fetch(self.case, 2)
         self.provider('print("second")')  # Replace the executable at the same path.
+        provider.validate()  # Revalidate the changed runtime before measuring.
         second = provider.fetch(self.case, 2)
         self.assertEqual(second.content, "second\n")
         self.assertNotEqual(first.metadata["binary_sha256"], second.metadata["binary_sha256"])
@@ -99,7 +102,7 @@ class MoliTests(unittest.TestCase):
         with patch(
             "harness.web_fetch.providers.moli.open", side_effect=FileNotFoundError("removed")
         ):
-            self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+            self.assertIn('binary (unreadable)', provider.validate())
         with patch(
             "harness.web_fetch.providers.moli.subprocess.Popen",
             side_effect=PermissionError("not executable"),

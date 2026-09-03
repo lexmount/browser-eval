@@ -24,6 +24,9 @@ class Provider(ABC):
     def validate(self) -> list[str]:
         return []
 
+    def cancel(self) -> None:
+        """Best-effort cancellation; non-cancellable calls are quarantined."""
+
 
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")

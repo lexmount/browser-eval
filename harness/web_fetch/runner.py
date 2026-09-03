@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import json
 import platform
 import socket
@@ -23,6 +24,8 @@ from .reference_lifecycle import (
     check_case_reference_fresh, preflight_reference_checks,
 )
 from .safety import contained_path, safe_identifier
+from .call_boundary import fetch_with_deadline
+from .response_input import apply_request_status
 
 
 def utc_now() -> str:
@@ -59,6 +62,8 @@ def run_evaluation(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if provider_concurrency < 1:
         raise ValueError("provider_concurrency must be at least 1")
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError('timeout must be positive and finite')
     for provider in providers:
         safe_identifier(provider.name)
     for case in cases:
@@ -74,6 +79,13 @@ def run_evaluation(
 
     manifest = {
         "schema_version": 1,
+        "runtime_source_sha256": hashlib.sha256(b'\0'.join(
+            p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
+            for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
+        "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
+        "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
+        "unexecuted": [],
+        "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "tool": "web_fetch",
         "started_at": started_at,
         "dataset": {
@@ -140,8 +152,9 @@ def run_evaluation(
                     check_case_reference_fresh(case, dataset_path, binding)
                     begin = time.perf_counter()
                     started = utc_now()
+                    pending = None
                     try:
-                        result = provider.fetch(case, timeout)
+                        result, pending = fetch_with_deadline(provider, case, timeout)
                     except Exception as error:  # each failure must remain inspectable
                         error_type, error_message = classify_exception(error)
                         result = ProviderResult(
@@ -153,6 +166,9 @@ def run_evaluation(
                     elapsed_ms = round((time.perf_counter() - begin) * 1000, 2)
                     finished = utc_now()
                     previous_request_completed = time.monotonic()
+                    if case.task_kind == 'file':
+                        result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
+                            'scope': 'returned_bytes_signature_length_sha256'})
                     artifact_rel = Path("artifacts") / provider.name / case.id / f"run-{run_number:03d}.txt"
                     artifact = contained_path(output_dir, artifact_rel)
                     artifact.parent.mkdir(parents=True, exist_ok=True)
@@ -160,8 +176,14 @@ def run_evaluation(
                     measured = score_attempt(
                         case, artifact.read_bytes(), ok=result.ok, metadata=result.metadata,
                         list_reference=load_list_reference(case, dataset_path.parent),
+                        status_code=result.status_code,
                     )
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
+                    measured['deadline_budget_ms'] = timeout * 1000
+                    for index, item in enumerate(result.files):
+                        binary = artifact.with_name(f'run-{run_number:03d}-file-{index:03d}.bin')
+                        binary.write_bytes(item['data'])
+                        result.metadata['file_evaluation']['files'][index]['artifact_path'] = binary.relative_to(output_dir).as_posix()
                     if binding is not None:
                         measured["reference_sha256"] = binding["reference_sha256"]
                     record = AttemptRecord(
@@ -189,6 +211,7 @@ def run_evaluation(
                             "client_throttle_wait_ms": throttle_wait_ms,
                         },
                     ).to_dict()
+                    apply_request_status(record)
                     record["completed_at"] = finished
                     from .models import execution_id
                     record['run_id'] = execution_id(record)
@@ -205,6 +228,12 @@ def run_evaluation(
                         )
                     if delay:
                         time.sleep(delay)
+                    if result.error_type == 'timeout' and pending is not None and pending.is_alive():
+                        with result_lock:
+                            manifest['unexecuted'].append({'provider': provider.name,
+                                'after_attempt_id': attempt_id,
+                                'reason': 'non_cancellable_call_still_running; remaining provider cases not executed'})
+                        return
 
         workers = min(provider_concurrency, max(1, len(providers)))
         try:
@@ -285,7 +314,9 @@ def rescore_evaluation(
             case, artifact.read_bytes(), ok=bool(record.get("ok")),
             metadata=record.get("provider_metadata", {}), previous_metrics=record["metrics"],
             list_reference=load_list_reference(case, dataset_path.parent),
+            status_code=record.get('status_code'),
         )
+        apply_request_status(record)
         record["metrics"]["deadline_overrun"] = previous_deadline
 
     tmp = run_dir / "results.jsonl.tmp"

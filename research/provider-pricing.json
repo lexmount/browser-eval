@@ -10,7 +10,7 @@
       "commitment": "Hobby $19/月；年付 $190 起",
       "discount": "套餐量越大单价越低；年付省 16.7%–20.0%；追加 $1–5/千积分",
       "headline": "月套餐 + 年付优惠 + $5 批次追加",
-      "scope": "本轮使用云端 Scrape 返回 Markdown、链接与图片地址；下面基础单价按 1 credit/网页换算。当前增强代理不另加积分；模型抽取、PDF 页数、特殊域名及浏览器交互另有规则。",
+      "scope": "本轮云端 Scrape 的正文配置返回 Markdown，资源配置额外请求链接与图片地址；下面基础单价按 1 credit/网页换算。当前增强代理不另加积分；模型抽取、PDF 页数、特殊域名及浏览器交互另有规则。",
       "credits_per_page": 1,
       "sources": [
         {"label":"价格与账期明细", "url":"https://www.firecrawl.dev/pricing.md"},

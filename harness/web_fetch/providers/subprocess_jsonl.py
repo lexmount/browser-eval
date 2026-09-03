@@ -76,13 +76,13 @@ class SubprocessJsonlProvider(Provider):
             del self._stderr_lines[:-200]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        deadline = time.monotonic() + timeout
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
         request = {"url": case.url, "timeout_seconds": timeout}
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 
-        deadline = time.monotonic() + timeout + 5
         worker_logs: list[str] = []
         payload: dict[str, Any] | None = None
         while payload is None:
@@ -90,7 +90,7 @@ class SubprocessJsonlProvider(Provider):
             if remaining <= 0:
                 process.kill()
                 self._process = None
-                raise TimeoutError(f"worker timed out after {timeout + 5:.1f}s")
+                raise TimeoutError(f"worker timed out after {timeout:.1f}s")
             try:
                 line = self._stdout_queue.get(timeout=remaining)
             except queue.Empty:
@@ -122,6 +122,11 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={**dict(payload.get("metadata") or {}), "worker_logs": worker_logs[-20:]},
         )
+
+    def cancel(self) -> None:
+        process = self._process
+        if process is not None and process.poll() is None:
+            process.kill()
 
     def __del__(self) -> None:
         process = self._process

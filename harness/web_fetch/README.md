@@ -8,6 +8,53 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+The answer envelope accepts body text and explicitly paired name/link records
+from the returned `links` field (including internal/external groups). Arbitrary
+logs, request echoes and bare URLs are not named entities. HTML and Markdown
+including single soft breaks use the same link validator. Resource discovery
+reads only declared answer-resource fields, not arbitrary nested diagnostics.
+Explicit successful empty API envelopes are normalized by their response fields,
+not by provider name. Original adapter status remains in `raw_request_status`;
+the report never changes the meaning of a request.
+
+Full-body cases may declare `body_requirements`: up to five contiguous regions
+of the independent reference, with at least 80% token-count recall in each.
+This coverage floor rejects small prefixes without using the aggregate F1 as an
+acceptance gate. It does not verify order, ownership or semantic correctness.
+The thresholds and regions are stored in each case, never selected by provider.
+
+## End-to-end budget and missing measurements
+
+The common call boundary includes provider acquisition, network retries, rendering,
+local extraction and required answer normalization. Artifact persistence, scoring,
+reporting and between-call throttling are outside this latency. Runtime source and
+configuration hashes are captured before calls. Moli binary hashing occurs during
+validation, not each measured fetch; a changed binary requires revalidation.
+
+Late answers cannot pass. A common daemon boundary stops accepting output at the
+deadline and requests cancellation. An adapter that cannot cancel is quarantined:
+remaining calls on it are recorded as unexecuted, not fabricated failures. This
+avoids overlapping abandoned requests. The harness does not claim to forcibly
+terminate arbitrary in-process Python work. Native subprocess adapters cancel
+their processes; cleanup is never extra answer budget.
+
+New file evaluations accept `ProviderResult.files` entries containing actual
+`data: bytes`, retain separate binary artifacts and verify signature, length,
+SHA-256 and a declared independent target hash when present. Link-only output
+cannot pass a measured byte contract. This does not decode or understand media.
+Historical records without `raw_file_pass` are unmeasured even if their HTTP
+request failed: all report/summary denominators and failure filters exclude them.
+The three result filters remain pass/fail/all; unmeasured rows appear in all.
+
+`scripts/correct_evaluation_contracts.py` applies reviewed scope and contract
+changes without reading provider outputs. `scripts/rescore_content.py` rescales
+all applicable records through the shared scorer without supplier calls.
+`scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
+and revised scores in `evaluation/scoring-revisions.json`, checking original
+output hashes, identities and timing. Historical hard deadlines and timing
+overhead cannot be retroactively certified. Conditional successful-task latency
+and same-task common-success latency are separate, explicitly scoped tables.
+
 `content_check_coverage` measures matched required text groups, not body recall.
 All declared groups are required by stable contracts; record count/type/uniqueness
 remain independent requirements. Empty text groups yield null coverage. The report

@@ -38,7 +38,17 @@ class MoliWebFetchProvider(Provider):
         return errors
 
     def validate(self) -> list[str]:
-        return self._configuration_errors(self._resolve_binary())
+        binary = self._resolve_binary()
+        errors = self._configuration_errors(binary)
+        if not errors:
+            try:
+                with open(binary, 'rb') as source:
+                    self._binary_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
+                stat = Path(binary).stat()
+                self._binary_identity = (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+            except OSError:
+                errors.append('binary (unreadable)')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         validate_http_url(case.url)
@@ -72,8 +82,11 @@ class MoliWebFetchProvider(Provider):
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }
         try:
-            with open(binary, "rb") as source:
-                metadata["binary_sha256"] = hashlib.file_digest(source, "sha256").hexdigest()
+            if hasattr(self, '_binary_identity'):
+                stat = Path(binary).stat()
+                if (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns) != self._binary_identity:
+                    return ProviderResult(False, '', error_type='configuration', error_message='Moli binary changed; validate runtime before measurement')
+            metadata['binary_sha256'] = getattr(self, '_binary_sha256', None)
         except OSError as error:
             return ProviderResult(
                 False,
@@ -92,6 +105,7 @@ class MoliWebFetchProvider(Provider):
                     stderr=diagnostic,
                     start_new_session=os.name == "posix",
                 )
+                self._active_process = process
             except OSError as error:
                 return ProviderResult(
                     False,
@@ -170,3 +184,14 @@ class MoliWebFetchProvider(Provider):
             error_message=None if ok else stderr or "Moli returned no usable output",
             metadata=metadata,
         )
+
+    def cancel(self) -> None:
+        process = getattr(self, '_active_process', None)
+        if process is not None and process.poll() is None:
+            try:
+                if os.name == 'posix':
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass

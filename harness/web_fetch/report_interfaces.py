@@ -17,17 +17,17 @@ SPECS={
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
  {'extract':{'url':URL}},'harness/web_fetch/providers/lexmount.py','本轮为实时提取。中国区与国际区分开调用、分开计分。'),
  'firecrawl':spec('POST https://api.firecrawl.dev/v2/scrape','Authorization: Bearer <API_KEY>',
- [('url','string · 必填','目标网页或文档'),('formats','array','本轮请求 markdown、links、images'),('maxAge','number','本轮 0，不复用旧缓存')],
+ [('url','string · 必填','目标网页或文档'),('formats','array','正文配置为 markdown；资源配置为 markdown、links、images'),('maxAge','number','本轮 0，不复用旧缓存')],
  [('success','boolean','接口成功标记'),('data.markdown','string','正文 → content'),('data.links / images','array','资源 → provider_metadata'),('data.metadata','object','标题、源 URL、源站状态、积分等'),('error / reason','string','错误或额度原因')],
- {'url':URL,'formats':['markdown','links','images'],'maxAge':0},'harness/web_fetch/providers/firecrawl.py','本轮每次响应后冷却 6.1 秒；冷却不计入单次请求耗时。'),
+ {'url':URL,'formats':['markdown'],'maxAge':0},'harness/web_fetch/providers/firecrawl.py','本轮每次响应后冷却 6.1 秒；冷却不计入单次请求耗时，不代表无速率限制的吞吐量。'),
  'tavily':spec('POST https://api.tavily.com/extract','Authorization: Bearer <API_KEY>',
- [('urls','array · 必填','接口接受网址数组；本轮每次只放一个'),('extract_depth','string','本轮 basic'),('format','string','本轮 markdown'),('include_images','boolean','本轮 true，额外返回图片地址')],
+ [('urls','array · 必填','接口接受网址数组；本轮每次只放一个'),('extract_depth','string','本轮 basic'),('format','string','本轮 markdown'),('include_images','boolean','正文配置 false；资源配置 true，额外返回图片地址')],
  [('results[].raw_content','string','提取正文 → content'),('results[].url','string','结果 URL'),('results[].images / images','array','结果条目或响应顶层的图片地址'),('failed_results','array','未成功提取的网址及原因'),('response_time','number','服务端耗时')],
- {'urls':[URL],'extract_depth':'basic','format':'markdown','include_images':True},'harness/web_fetch/providers/tavily.py','HTTP 200 但没有 raw_content 仍按请求失败记录。'),
+ {'urls':[URL],'extract_depth':'basic','format':'markdown','include_images':False},'harness/web_fetch/providers/tavily.py','HTTP 200 但没有 raw_content 仍按适配器请求失败记录；原始状态与规范化依据分开保留。'),
  'exa':spec('POST https://api.exa.ai/contents','x-api-key: <API_KEY>',
- [('urls','array · 必填','本轮每次一个目标 URL，不调用搜索'),('text','boolean','本轮 true，要求正文'),('maxAgeHours','number','本轮 0'),('extras','object','本轮 links:20、imageLinks:20')],
+ [('urls','array · 必填','本轮每次一个目标 URL，不调用搜索'),('text','boolean','本轮 true，要求正文'),('maxAgeHours','number','本轮 0'),('extras','object','正文配置不传；资源配置 links:20、imageLinks:20')],
  [('results[].text','string','正文 → content'),('results[].title / url','string','标题与结果网址'),('results[].extras','object','额外链接和图片'),('statuses[]','array','逐网址的成功状态或错误'),('costDollars','object','费用信息')],
- {'urls':[URL],'text':True,'maxAgeHours':0,'extras':{'links':20,'imageLinks':20}},'harness/web_fetch/providers/exa.py','没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功。'),
+ {'urls':[URL],'text':True,'maxAgeHours':0},'harness/web_fetch/providers/exa.py','没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功。'),
  'cloudflare-markdown':spec('POST https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/browser-rendering/markdown','Authorization: Bearer <API_TOKEN>',
  [('url','string · 必填','目标页面'),('gotoOptions.waitUntil','string','本轮 networkidle2，等待页面网络活动趋于空闲')],
  [('success','boolean','接口是否成功'),('result','string','Markdown 正文 → content'),('errors[]','array','接口错误代码与信息'),('meta','object · 若提供','最终 URL、标题、源站状态等')],
@@ -61,7 +61,7 @@ def render_interfaces(out,records):
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  names=sorted({r['provider'] for r in records if r['provider'] in SPECS})
- body='<p>按本轮实际适配器介绍，不混用完整产品能力。输入示例采用当前配置；输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
+ body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置以环境页保存证据为准。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next(r for r in records if r['provider']==name))
   content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)

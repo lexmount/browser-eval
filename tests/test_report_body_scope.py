@@ -105,7 +105,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(row[2], '100.0%')  # Transport remains measured.
         self.assertEqual(row[3], '100.0%')
         self.assertEqual(row[4:7], ['—'] * 3)
-        self.assertEqual(row[8:], ['100 ms'] * 3)
+        self.assertEqual(row[8:11], ['100 ms'] * 3)
+        self.assertEqual(row[11], '10/10')
         self.assertNotIn('auxiliary',rendered)
         self.assertNotIn('正文未评测',rendered)
         self.assertIn('名称—链接身份核验',rendered)
@@ -125,7 +126,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         c=case('body','body','web')
         row=table_cells(ranking([record(c,passed=False)], {'body':c}, 'web'),'ranking-web')[0]
         self.assertEqual(row[3:7], ['0.0%', '80.0%', '80.0%', '80.0%'])
-        self.assertEqual(row[8:], ['—']*3)
+        self.assertEqual(row[8:11], ['—']*3)
+        self.assertEqual(row[11], '1/1')
 
     def test_request_failure_zero_and_macro_case_average(self):
         first,second=case('a','body'),case('b','body')

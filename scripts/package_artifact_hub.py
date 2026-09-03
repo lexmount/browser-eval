@@ -19,6 +19,7 @@ from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
+(ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
 LOADER=r'''

@@ -8,9 +8,8 @@ import shutil
 import tempfile
 import unittest
 
-from harness.web_fetch.metrics import evaluate_content
-from harness.web_fetch.failure_diagnosis import normalize_empty_response
-from harness.web_fetch.report import cell, link, table, succeeded
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.report import cell, link, table, succeeded, measured
 from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, _dynamic_section, collect_evidence, render_explainer
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
@@ -23,8 +22,6 @@ class ExplainerTests(unittest.TestCase):
     def setUpClass(cls):
         cls.cases = {c['id']: c for c in json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']}
         cls.records = [json.loads(line) for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()]
-        for record in cls.records:
-            normalize_empty_response(record, (ROOT/'evaluation'/record['artifact_path']).read_text())
 
     def render(self, records, *, figures=False):
         with tempfile.TemporaryDirectory() as folder:
@@ -50,8 +47,8 @@ class ExplainerTests(unittest.TestCase):
             stats = self.evidence[key]
             self.assertEqual(stats['records'], len(rows))
             self.assertEqual(stats['task_pass'], sum(succeeded(r,self.cases[r['case_id']]) for r in rows))
-            self.assertEqual(stats['post_response_failures'], sum(r['ok'] and not succeeded(r,self.cases[r['case_id']]) for r in rows))
-            self.assertEqual(stats['task_pass'] + stats['request_failures'] + stats['post_response_failures'], len(rows))
+            self.assertEqual(stats['post_response_failures'], sum(r['ok'] and measured(r,self.cases[r['case_id']]) and not succeeded(r,self.cases[r['case_id']]) for r in rows))
+            self.assertEqual(stats['task_pass'] + stats['request_failures'] + stats['post_response_failures'] + stats['task_unmeasured'], len(rows))
         for anchor in ('rules', 'limits', 'dynamic-coverage', 'quality', 'evidence'):
             self.assertIn(f'id="{anchor}"', page)
         self.assertEqual(len(re.findall(r'<article\b', page)), 1)
@@ -325,10 +322,9 @@ class ExplainerTests(unittest.TestCase):
         c = self.cases['ecommerce-list']
         r = next(r for r in self.records if r['case_id']==c['id'] and r['provider']=='cowagent-built-in')
         path = ROOT/'evaluation'/r['artifact_path'];before = path.read_bytes()
-        keys = ['required_facts','forbidden_any','min_content_chars','fact_coverage_threshold','ground_truth_main_content','required_patterns']
-        kwargs = {k:c[k] for k in keys if k in c}
-        original = evaluate_content(before.decode(),c['expected_any'],**kwargs)
-        changed = evaluate_content(before.decode().replace('51.77','999.99'),c['expected_any'],**kwargs)
+        kwargs = {'ok': r['ok'], 'status_code': r.get('status_code'), 'metadata': r.get('provider_metadata', {})}
+        original = score_attempt(c, before, **kwargs)
+        changed = score_attempt(c, before.decode().replace('51.77','999.99').encode(), **kwargs)
         self.assertTrue(original['content_pass'])
         self.assertFalse(changed['content_pass'])
         self.assertTrue(changed['length_pass'])
