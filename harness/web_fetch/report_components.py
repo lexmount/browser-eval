@@ -63,7 +63,58 @@ def metric_legend(headers):
     return '<div class="metric-help" aria-label="本表指标说明"><dl>'+''.join('<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>' for k,v in entries)+'</dl><p class="source-note">'+missing+'</p></div>'
 
 
-def task_pass_guide(track, base=''):
+TRACK_CONTEXT = {
+    'web': {
+        'flow': ['请求网页', '定位正文区域', '去除导航等杂文', '输出正文'],
+        'flow_note': '目标是读出页面内容，而不是保存整份网页源码。正文若已在响应中，普通 HTTP 加解析器就可能完成。',
+        'meaning': '常见网页的正文提取：从文章、文档站、百科或项目主页中取回要读的内容，剔除导航、广告等干扰。难点是找对正文边界，既不漏段落，也不混入大量杂文。',
+        'example': '项目仓库页以 README 为正文：只返回仓库名称和简介不够；把文件目录、导航一起带回来，也可能降低纯净度。',
+        'boundary': '这组按正文提取任务选样，没有逐页按渲染方式分组，不能等同于“纯静态网页”。请求成功、任务通过、全文质量分别衡量；不测站内搜索、点击或多页浏览。',
+    },
+    'dynamic': {
+        'flow': ['取得页面外壳', '浏览器运行页面', '加载数据或嵌入子页', '目标内容就绪', '提取正文与字段'],
+        'flow_note': '这是常见的浏览器渲染路径，可由 Web Fetch 内部完成，无需先手动打开网页。只取初始 HTML 可能缺正文；但若能直接解析内嵌数据、请求公开接口或读取子页，也不必走完浏览器渲染流程。',
+        'meaning': '这里的“动态”指内容的加载方式，不是文字经常更新。目标正文不直接以完整可读文本出现在初始页面中，还需异步取数、客户端组装、等待呈现或加载嵌入子页。难点是从页面壳找到真正的数据。',
+        'example': 'Quotes 异步引文页：只拿到页面标题不够，要取得首批引文及每条对应的作者、标签；不能把不同条目的字段拼在一起。',
+        'case_id': 'dynamic-quotes-api',
+        'boundary': '只测各案例声明的初次自动加载范围，不要求滚动、翻页或点击。执行 JavaScript 不是唯一合格路线，解析内嵌数据或调用公开接口也可。固定演示文字仍核对内容，易变字段不固定旧值。',
+    },
+    'challenge': {
+        'flow': ['请求目标网站', '识别内容页或受限页', '定位目标列表', '提取标题与详情链接'],
+        'flow_note': '接口正常返回也可能只是登录页或验证页。只有到达目标内容，并满足本例条目要求，才算任务通过。',
+        'meaning': '在有风控、登录限制或复杂内容组织的热门网站上取数。难点是实际拿到目标条目，而不是登录提示、验证页或空页面。本轮具体考题是列表取数，不是整页正文保真。',
+        'example': '知乎热榜：取得至少三条不同的标题与本站详情链接；不要求仍是采集时的前三名。只有登录提示、空标题或重复链接不算完成。',
+        'case_id': 'challenge-04',
+        'boundary': '不向方法提供站点登录凭据，不操作验证码；某一次访问受限不等于网站失效。通过不证明实时排名、价格或条目事实正确；没有完整、可比的正文参考时，完整度、纯净度与 F1 显示 —。',
+    },
+    'document': {
+        'flow': ['打开文件或查看页', '定位实际文档', '解析页面、段落与表格', '输出文档文字'],
+        'flow_note': '下载链接只是入口；正文提取还需读取文件内容。内嵌查看器的菜单、按钮不是文档正文。',
+        'meaning': '读取 PDF、DOCX、TXT 以及网页内嵌文档中的文字。与普通网页不同，正文可能在文件或查看器后面；难点是识别文档并保留跨页、段落和表格中的内容。',
+        'example': 'Attention Is All You Need PDF：需要论文正文并命中标题、Transformer 等核对点；只返回下载地址不通过，只提取首页会丢失后续全文。',
+        'case_id': 'document-01',
+        'boundary': '衡量文字提取，不衡量原版排版还原、图表理解，也不能据此推断扫描件 OCR 能力。拿到文件与读出文件内容是两件事，全文质量仍单独计算。',
+    },
+    'image': {
+        'flow': ['读取含图页面', '定位指定正文图片', '解析实际资源地址', '返回图片链接'],
+        'flow_note': '这是含图网页的任务路径。直接图片 URL 属于另一类文件任务：请求图片 → 返回原始字节 → 校验文件，不能用链接代替文件。',
+        'meaning': '定位网页中的目标图片，或取得直接图片文件。难点是区分正文图片、缩略图和装饰图，并保留可用的资源地址；这不是让方法描述图片里画了什么。',
+        'example': 'MDN 响应式图片页：返回参考清单中的两张图片地址。文字写着“这里有图片”不算命中；直接 PNG 任务则不能仅复述输入网址。',
+        'case_id': 'image-01',
+        'boundary': '资源命中只证明返回了指定地址，不证明图片字节已下载或内容已理解。本轮统一原文件字节验收链路未接通，文件取得率不能用于断言某产品不支持下载。',
+    },
+    'video': {
+        'flow': ['读取视频页面', '定位播放器或信息区', '解析媒体入口或文字', '交付本例指定结果'],
+        'flow_note': '按题目返回播放地址，或标题与发布者，不要求每题同时完成所有步骤。直接视频 URL 另走文件下载与字节校验路径。',
+        'meaning': '分别测试网页播放入口、直接视频文件，以及视频标题和发布者。难点是辨别播放器外壳、实际媒体地址与文字信息；这三类输出不能互相替代。',
+        'example': 'YouTube 的 Me at the zoo 信息任务核对标题与发布者 jawed；MDN 视频页另测播放地址。前者通过，不代表已经下载或看懂了视频。',
+        'case_id': 'video-09',
+        'boundary': '不测画面理解、语音转写或字幕质量。找到播放入口不等于取得视频字节；本轮统一原文件字节验收链路未接通，相关未通过结果不是产品能力结论。',
+    },
+}
+
+
+def task_pass_guide(track, base='', cases=None):
     rules = {
         'dynamic': '核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。',
         'web': '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。',
@@ -73,7 +124,22 @@ def task_pass_guide(track, base=''):
         'challenge': '请求成功，取得至少 3 条具名详情链接，字段完整、类型正确、条目不重复，链接符合目标站点规则；有独立内容证据的稳定标题、栏目、说明还须命中。频繁变化的名单和价格不固定旧值。通过表示满足上述取数要求，不证明变化值真实或最新。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
-    return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p><a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></div>'
+    context = TRACK_CONTEXT.get(track)
+    if not context:
+        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+    example_link = ''
+    if context.get('case_id') in (cases or {}):
+        example_link = ' <a href="'+escape(base+'datasets/'+context['case_id']+'.html')+'">查看案例 →</a>'
+    return ('<div class="track-guide" data-track-guide="'+escape(track)+'">'
+            '<p class="track-meaning">'+escape(context['meaning'])+'</p>'
+            '<figure class="track-flow" aria-label="典型处理流程"><figcaption>典型处理流程</figcaption><ol>'
+            + ''.join('<li><span>'+escape(step)+'</span></li>' for step in context['flow'])+'</ol>'
+            '<p>'+escape(context['flow_note'])+'</p></figure>'
+            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
+            '<details class="track-more"><summary>任务例子与评测边界</summary><dl>'
+            '<div><dt>一个例子</dt><dd>'+escape(context['example'])+example_link+'</dd></div>'
+            '<div><dt>范围与边界</dt><dd>'+escape(context['boundary'])+'</dd></div></dl>'
+            '<a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></details></div>')
 
 
 def examples():

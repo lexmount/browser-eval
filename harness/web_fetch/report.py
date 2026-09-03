@@ -18,14 +18,6 @@ from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
 
 TRACKS={'web':'网站正文','dynamic':'动态网页正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
-CONTRACTS={
- 'web':'100 条网页，读取完整正文；项目仓库以 README 为准。',
- 'dynamic':'初次自动加载后的完整目标正文。覆盖异步取数、客户端目录、延迟呈现和嵌入页面；按声明范围验收，不要求滚动、翻页或点击。允许通过渲染、内嵌数据或公开接口取数。',
- 'document':'10 条：6 个直接 PDF、1 个 DOCX、1 个 TXT 和 2 个嵌入文档页面。必须读出文档文字，仅给下载链接不算正文通过。',
- 'image':'10 条：9 个含图页面和 1 个直接 PNG。含图页面检查指定正文图片地址；直接 PNG 检查原文件。没有测试图片内容理解。',
- 'video':'10 条：7 个视频入口页面、2 个直接视频文件、1 个视频基本信息页。分别检查播放入口、原文件、标题与发布者；没有测试字幕转写或画面理解。',
- 'challenge':'具有风控、登录限制或复杂页面的网站。按案例声明的列表或正文规则比较任务通过率与耗时；完整度、纯净度和 F1 仅在具备完整参考时另算。不向参评方法提供站点登录凭据。',
-}
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
 function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=`显示 ${count} 条`}
@@ -139,7 +131,7 @@ def stable_checks(m):
  records=[('',cell(esc(json.dumps(x.get('fields',{}),ensure_ascii=False)))+cell('通过' if x.get('valid') else '未通过')+cell(esc('；'.join(x.get('errors',[])) or '—'))) for x in m.get('stable_records',[])]
  return content+table(['条目字段','结构判定','原因'],records)+('<p>任务检查错误：'+esc('；'.join(m['stable_task_errors']))+'</p>' if m.get('stable_task_errors') else '')
 
-def ranking(records,cases,track,base='',id=None):
+def ranking(records,cases,track,base='',id=None,compact=False):
  text_track=track in {'web','dynamic','document','challenge'}
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
  groups=defaultdict(list)
@@ -188,9 +180,11 @@ def ranking(records,cases,track,base='',id=None):
   missing=sorted({r['provider'] for r in records}-set(groups))
   note+=' 各类型按各自任务范围比较，不合并为跨类型总分。'
   if missing:note+=' 未测方法（不计为失败）：'+esc('、'.join(missing))+'。'
- result=table(heads,rows,id or 'ranking-'+track,True,'ranking')
+ result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None)
+ if compact:
+  result='<details class="ranking-metric-help"><summary>指标说明 · 通过率、质量与耗时</summary>'+metric_legend(heads)+'</details>'+result
  from .report_components import task_pass_guide
- return task_pass_guide(track,base)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+ return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
 
 def filter_controls(options):
  controls=''
@@ -234,17 +228,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  cards=''
  for track,label in TRACKS.items():
   cards+=overview_card(records,cases,track,label,names)
- home=hero('Web Fetch 评测',f'{len(cases)} 例 · {len(names)} 种方法 · 网页、动态网页正文、文档、媒体与热门网站正文。各组参评覆盖见表。')
+ home='<div class="home-page">'+hero('Web Fetch 评测',f'{len(cases)} 个案例 · {len(names)} 种方法 · 六类任务分别评测，不混成一个总分。')
  from .report_explainer import TITLE,render_explainer
- home+=section('报告解读',f'<div class="reading-entry"><div><p class="eyebrow">技术文章</p><h3>{link("guide/index.html",TITLE)}</h3><p>高通过率为何仍可能留下难用的正文？从质量差异、动态取数和失败互补性，讨论网页抓取的工程选择。</p></div>{link("guide/index.html","阅读全文 →")}</div>')
+ home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
- home+=section('结果概览','<div class="grid">'+cards+'</div><p class="source-note">小样本实测，不代表全网成功率。主表比较按登记规则判定的任务通过率与耗时：稳定标题、栏目、说明等内容锚点与字段结构、类型、数量及唯一性共同验收。频繁变化的名单和价格不固定旧快照取值，通过不证明这些变化值的事实准确性或实时性。完整度、纯净度和 F1 仅在有完整、可比的文本参考时另算。</p>')
  panels=[]
  for track,label in TRACKS.items():
   if not any(c.get('track','web')==track for c in cases.values()):continue
-  panels.append((track,label,f'<h3>{label}</h3><p>{CONTRACTS[track]}</p>'+ranking(records,cases,track)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- home+=section('实测结果',tabs('home-rankings',panels))
- write(out,'index.html','首页',home)
+  selected=[c for c in cases.values() if c.get('track','web')==track]
+  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
+  panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
+ home+=section('实测结果','<p class="ranking-orientation">按任务选榜，不合并跨类型总分。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
+ home+='<div class="wrap"><details class="home-overview"><summary>各类结果概览 · 样本与最高通过率</summary><p class="source-note">不同榜单的任务要求不同，最高通过率不能直接作跨榜能力比较。</p><div class="grid">'+cards+'</div></details></div>'
+ write(out,'index.html','首页',home+'</div>')
  controls=filter_controls([('track','类型',list(TRACKS.items())),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
  for c in cases.values():

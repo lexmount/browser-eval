@@ -6,6 +6,18 @@ ROOT=Path(__file__).resolve().parents[1]
 out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
 for path in out.rglob('*.html'):
     soup=BeautifulSoup(path.read_text(),'html.parser')
+    if path==out/'index.html':
+        overview=soup.select_one('.home-overview')
+        assert overview and not overview.has_attr('open'),path
+        panels=soup.select('#home-rankings > [role="tabpanel"]')
+        assert sum(not p.has_attr('hidden') for p in panels)==1,path
+        for panel in panels:
+            assert len(panel.select('.track-guide'))==1,path
+            assert len(panel.select('.track-flow li'))>=4,path
+            for selector in ('.track-meaning','.track-flow','.pass-contract'):
+                assert panel.select_one(selector).find_parent('details') is None,path
+            for selector in ('.track-more','.ranking-metric-help'):
+                assert not panel.select_one(selector).has_attr('open'),path
     for pre in soup.select('pre'):pre.decompose()
     assert '条件通过率' not in soup.get_text() and '条件达标率' not in soup.get_text(),path
     for table in soup.select('table'):
@@ -16,7 +28,8 @@ for path in out.rglob('*.html'):
         sort=int(table['data-col'])
         expected=['命中仓库数'] if path.parent.name=='adoption' else ['任务通过率','正文通过率']
         assert any(label in headers[sort].get_text() for label in expected),(path,sort)
-        assert table.parent.find_previous_sibling('div',class_='metric-help'),path
+        legend=table.parent.find_previous_sibling('div',class_='metric-help') or table.parent.find_previous_sibling('details',class_='ranking-metric-help')
+        assert legend and legend.select('dt'),path
     track=soup.select_one('select[data-filter="track"]')
     if track:assert track.select('option')[0]['value']=='',path
     if path.parent.name in {'providers','analysis'}:
