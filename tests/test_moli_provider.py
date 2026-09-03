@@ -78,7 +78,8 @@ class MoliTests(unittest.TestCase):
         with patch(
             "harness.web_fetch.providers.moli.shutil.which", side_effect=[str(self.binary), None]
         ) as which:
-            self.assertTrue(provider.fetch(self.case, 2).ok)
+            result = provider.fetch(self.case, 2)
+            self.assertTrue(result.ok, repr(result))
             self.assertEqual(which.call_count, 1)
             self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
 

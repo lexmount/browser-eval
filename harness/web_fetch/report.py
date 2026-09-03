@@ -73,7 +73,7 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None):
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
- nav=[('index.html','首页'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('adoption/index.html','方法介绍'),('environment/index.html','环境'),('reproduce/index.html','复现'),('integration/index.html','集成'),('accounts/index.html','账号')]
+ nav=[('index.html','首页'),('guide/index.html','报告解读'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('adoption/index.html','方法介绍'),('environment/index.html','环境'),('reproduce/index.html','复现'),('integration/index.html','集成'),('accounts/index.html','账号')]
  page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
@@ -138,7 +138,8 @@ def ranking(records,cases,track,base='',id=None):
  elif track in {'web','document'}:note+=f' 全文指标覆盖 {len(next(iter(groups.values()),[]))} 例；请求失败计 0，请求成功但任务未通过仍按实际正文评分。'
  elif track!='challenge':note='任务通过率以全部任务为分母；资源、文件、信息三列各按对应子任务计算。耗时只统计通过项。'
  result=table(heads,rows,id or 'ranking-'+track,True,'ranking')
- return '<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+ from .report_components import task_pass_guide
+ return task_pass_guide(track,base)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
 
 def filter_controls(options):
  controls=''
@@ -189,6 +190,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   if not count:continue
   cards+=f'<div class="card"><div class="eyebrow">{count} 例</div><h3>{link("#home-rankings-"+track,label)}</h3><p>{esc(winners)}</p><p>最高任务通过 <b>{pct(maximum/count)}</b></p></div>'
  home=hero('Web Fetch 评测',f'{len(cases)} 例 · {len(names)} 种方法 · 网页、文档、图片、视频与真实网站。')
+ from .report_explainer import TITLE,render_explainer
+ home+=section('先读懂，再看榜单',f'<div class="reading-entry"><div><p class="eyebrow">报告解读</p><h3>{link("guide/index.html",TITLE)}</h3><p>任务怎样才算通过？CowAgent 为什么网页通过率高，却不一定交付更干净的正文？沿着真实案例、判分代码和一个离线实验，把结论与边界说清楚。</p></div>{link("guide/index.html","阅读全文 →")}</div>')
+ write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  home+=section('结果概览','<div class="grid">'+cards+'</div><p class="source-note">小样本实测，不代表全网成功率。真实网站组核对前三条名称与详情身份；其他组按完整正文或指定资源判定。</p>')
  webrows={n:[r for r in byprovider[n] if cases[r['case_id']].get('track','web')=='web'] for n in names}
  quality={n:statistics.mean(r['metrics']['word_f1'] for r in rs if r['metrics'].get('word_f1') is not None) for n,rs in webrows.items() if any(r['metrics'].get('word_f1') is not None for r in rs)}
@@ -196,7 +200,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  mainleader=max(webrows,key=lambda n:sum(succeeded(r,cases[r['case_id']]) for r in webrows[n]))
  files=[r for r in records if cases[r['case_id']].get('task_kind')=='file']
  if leader:
-  home+=section('主要结论',f'<p>网页任务通过率以 {esc(mainleader)} 最高；全文 F1 以 {esc(leader)} 最高（{pct(quality[leader])}）。选型需同时看关键内容是否齐全、全文是否完整。</p><p>文档测文字，图片与视频测入口或文件，不测内容理解。本轮 {sum(succeeded(r,cases[r["case_id"]]) for r in files)} 次原文件调用通过，共 {len(files)} 次。</p>')
+  home+=section('主要结论',f'<p>网页任务通过率以 {esc(mainleader)} 最高；全文 F1 以 {esc(leader)} 最高（{pct(quality[leader])}）。任务通过是规则门槛，不是全文质量认证。</p><p>文档测文字，图片与视频测入口或文件，不测内容理解。本轮 {sum(succeeded(r,cases[r["case_id"]]) for r in files)} 次原文件调用有已验证通过记录，共 {len(files)} 次；当前原文件验收链路未完整接通，不能据此推断产品不支持下载。{link("guide/index.html#limits","查看评测边界 →")}</p>')
  panels=[]
  for track,label in TRACKS.items():
   if not any(c.get('track','web')==track for c in cases.values()):continue
