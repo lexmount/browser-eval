@@ -4,6 +4,19 @@ from harness.web_fetch.metrics import evaluate_content, evaluate_resources, norm
 
 
 class MetricsTest(unittest.TestCase):
+    def test_adjacent_markdown_links_keep_distinct_label_boundaries(self):
+        text='[change](https://example.com/a(b))[deep-thoughts](https://example.com)[thinking](u)[world](v)'
+        reference='change deep-thoughts thinking world'
+        self.assertEqual(normalize_for_match(text),reference)
+        self.assertEqual(word_overlap(text,reference),(1.0,1.0,1.0))
+        self.assertTrue(evaluate_content(text,[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+        # No guessing where boundaries were already lost in plaintext.
+        self.assertFalse(evaluate_content('changedeep-thoughtsthinkingworld',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+        self.assertEqual(normalize_for_match('pre[fix](u)'),'prefix')
+        self.assertEqual(normalize_for_match('[read](u)able'),'readable')
+        self.assertFalse(evaluate_content('[5](u)[1](v)',[],required_facts=[{'id':'number','alternatives':['51']}])['content_pass'])
+        self.assertFalse(evaluate_content('[change](u)[world](v)',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+
     def test_markdown_balanced_urls_and_f1_share_layout_cleaning(self):
         raw='hello [world](https://example.com/a(b)) end'
         self.assertEqual(normalize_for_match(raw),'hello world end')

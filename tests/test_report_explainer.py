@@ -124,6 +124,14 @@ class ExplainerTests(unittest.TestCase):
         self.assertEqual(set(self.evidence['tracks']['web']['providers']),
                          {r['provider'] for r in self.records if self.cases[r['case_id']].get('track','web')=='web'})
 
+    def test_delayed_outcome_is_derived_not_a_fixed_failure_claim(self):
+        data = collect_evidence(self.cases,self.records)
+        delayed = next(x for x in data['dynamic']['cases'] if x['case_id']=='dynamic-delayed')
+        for row in delayed['results']:
+            row['task_pass']=True
+        count=len(delayed['results'])
+        self.assertIn(f'{count} 次调用中，{count} 次满足完整内容规则',_dynamic_section(data,self.cases))
+
     def test_standalone_has_identical_article_inline_style_no_dependencies(self):
         page = self.render(self.records)
         article = lambda html: re.search(r'<article\b.*?</article>',html,re.S).group()

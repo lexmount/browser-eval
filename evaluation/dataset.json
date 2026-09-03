@@ -8577,12 +8577,18 @@
   ],
   "coverage_plan": {
     "dynamic": [
+      "cloudflare-markdown",
       "cowagent-built-in",
       "crawl4ai",
       "deepseek-harness-built-in",
+      "exa",
+      "firecrawl",
       "langchain-webbase",
+      "lexmount-cn",
+      "lexmount-global",
       "moli-webfetch",
-      "openclaw-built-in"
+      "openclaw-built-in",
+      "tavily"
     ],
     "document": [
       "cloudflare-markdown",

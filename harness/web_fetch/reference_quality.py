@@ -8,8 +8,8 @@ def clean_reference_text(text: str) -> str:
 
 
 def visible_markdown_links(text: str) -> str:
-    """Keep link labels, consuming balanced/escaped destination parentheses."""
-    result=[];start=0
+    """Keep labels and adjacent link boundaries, consuming balanced destinations."""
+    result=[];start=0;previous_label=''
     for match in re.finditer(r'!?\[([^\]\n]*)\]\(',text):
         if match.start()<start:continue
         end=match.end();depth=1
@@ -21,7 +21,13 @@ def visible_markdown_links(text: str) -> str:
             elif char==')':depth-=1
             end+=1
         if depth:continue
-        result.extend([text[start:match.start()],match[1]])
+        # Distinct adjacent link labels retain a token boundary. Plain text
+        # (including a link inside a word) is never split or re-segmented.
+        gap = text[start:match.start()]
+        if match.start()==start and previous_label and match[1]:
+            gap=' '
+        result.extend([gap,match[1]])
+        previous_label=match[1]
         start=end
     result.append(text[start:])
     return ''.join(result)

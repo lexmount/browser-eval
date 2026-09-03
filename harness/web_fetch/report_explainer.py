@@ -267,8 +267,12 @@ def _dynamic_section(data, cases):
             '这支持“单靠初始 HTML 不够”，但不支持“必须执行 JavaScript”：'
             '直接调用页面使用的内容 API，只要返回满足同一任务契约，也是一条有效路线。</p>')
     if 'dynamic-delayed' in ids:
+        delayed = next(item for item in total['cases'] if item['case_id']=='dynamic-delayed')['results']
+        delayed_passes = sum(r['task_pass'] for r in delayed)
+        delayed_observation = (f'本次延迟页的 {len(delayed)} 次调用中，{delayed_passes} 次满足完整内容规则。'
+                               if delayed else '')
         mechanism += ('<p>延迟名言页把等待条件的问题暴露得更直接。页面可以已经完成初始请求，'
-            '网络暂时空闲，正文却还要等计时器触发。浏览器启动成功或 network-idle 到达，'
+            '网络暂时空闲，正文却还要等计时器触发。' + delayed_observation + '浏览器启动成功或 network-idle 到达，'
             '都不能单独充当内容完成的证据。应按目标条目出现、数量与关键内容稳定来判断何时取结果；'
             '本轮没有对各种等待策略做消融，不能从一次失败计算换策略后的收益。</p>')
     loading = total.get('loading_attempts', [])
@@ -288,7 +292,7 @@ def _dynamic_section(data, cases):
             f'<p>历史网页组保持不变，另加 {scope["case_count"]} 个动态内容任务。'
             f'补充组实际有 {len(providers)} 种方法、{total["records"]} 条调用，'
             f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
-            '这是单列的小样本补测，不是所有历史参评方法都重跑后的新总榜。</p>'
+            '各方法的运行时间见原始记录。历史任务没有在这一批重跑；两组分开排名，不能拼成同批次的新总榜。</p>'
             + figure + mechanism
             + '<p>对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，'
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')

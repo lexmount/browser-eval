@@ -1,0 +1,3214 @@
+{
+  "scope": "All persisted outputs; adjacent Markdown-link labels retain distinct boundaries.",
+  "records_checked": 1728,
+  "before_records_sha256": "744846052f0ac2142c64741cb3628dac9786db07912076214714a8be8cbf819a",
+  "after_records_sha256": "2e6c4fdbe3280528a03143be8353b33b0cde9874b3135e9f6376ff5aba5f2676",
+  "raw_output_hashes_unchanged": true,
+  "call_identities_unchanged": true,
+  "pass_changes": [
+    {
+      "attempt_id": "tavily__dynamic-quotes-api__r001",
+      "before": false,
+      "after": true
+    }
+  ],
+  "metric_changes": [
+    {
+      "attempt_id": "firecrawl__english-encyclopedia__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.79,
+          "after": 0.7905
+        },
+        "word_recall": {
+          "before": 0.9964,
+          "after": 0.9976
+        },
+        "word_f1": {
+          "before": 0.8813,
+          "after": 0.8821
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__github-repository__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4673,
+          "after": 0.4672
+        },
+        "word_f1": {
+          "before": 0.6369,
+          "after": 0.6368
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__html-table__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3778,
+          "after": 0.3761
+        },
+        "word_f1": {
+          "before": 0.5484,
+          "after": 0.5466
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-003-the-rust-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9177,
+          "after": 0.9158
+        },
+        "word_f1": {
+          "before": 0.9551,
+          "after": 0.9541
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-010-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0673,
+          "after": 0.0672
+        },
+        "word_f1": {
+          "before": 0.1262,
+          "after": 0.126
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-011-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5975,
+          "after": 0.5966
+        },
+        "word_f1": {
+          "before": 0.748,
+          "after": 0.7473
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2902,
+          "after": 0.2896
+        },
+        "word_f1": {
+          "before": 0.4498,
+          "after": 0.4492
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-013-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1948,
+          "after": 0.1946
+        },
+        "word_f1": {
+          "before": 0.3261,
+          "after": 0.3258
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-014-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1878,
+          "after": 0.1875
+        },
+        "word_f1": {
+          "before": 0.3162,
+          "after": 0.3158
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-016-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8104,
+          "after": 0.8103
+        },
+        "word_f1": {
+          "before": 0.8953,
+          "after": 0.8952
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-017-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4907,
+          "after": 0.4898
+        },
+        "word_f1": {
+          "before": 0.6584,
+          "after": 0.6575
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-018-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1107,
+          "after": 0.1106
+        },
+        "word_f1": {
+          "before": 0.1993,
+          "after": 0.1992
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-019-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6884,
+          "after": 0.6882
+        },
+        "word_f1": {
+          "before": 0.8155,
+          "after": 0.8153
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-020-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7613,
+          "after": 0.7611
+        },
+        "word_f1": {
+          "before": 0.8645,
+          "after": 0.8644
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-024-cascading-style-sheets-level-2-r__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0912,
+          "after": 0.0914
+        },
+        "word_recall": {
+          "before": 0.99,
+          "after": 0.9925
+        },
+        "word_f1": {
+          "before": 0.167,
+          "after": 0.1674
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-027-sponsors__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8284,
+          "after": 0.8275
+        },
+        "word_f1": {
+          "before": 0.903,
+          "after": 0.9025
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-029-fetch__r001",
+      "fields": {
+        "word_recall": {
+          "before": 0.9848,
+          "after": 0.9849
+        },
+        "word_f1": {
+          "before": 0.961,
+          "after": 0.9611
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-035-part-i-tutorial__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7833,
+          "after": 0.7333
+        },
+        "word_f1": {
+          "before": 0.8785,
+          "after": 0.8462
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-043-syntax__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8748,
+          "after": 0.8749
+        },
+        "word_recall": {
+          "before": 0.993,
+          "after": 0.9933
+        },
+        "word_f1": {
+          "before": 0.9301,
+          "after": 0.9303
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-054-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2483,
+          "after": 0.2482
+        },
+        "word_f1": {
+          "before": 0.3979,
+          "after": 0.3977
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-055-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2459,
+          "after": 0.2458
+        },
+        "word_f1": {
+          "before": 0.3948,
+          "after": 0.3946
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-056-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2594,
+          "after": 0.2589
+        },
+        "word_f1": {
+          "before": 0.4119,
+          "after": 0.4113
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-057-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.432,
+          "after": 0.4317
+        },
+        "word_f1": {
+          "before": 0.6034,
+          "after": 0.6031
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-058-navigation-menu__r001",
+      "fields": {
+        "word_f1": {
+          "before": 0.3408,
+          "after": 0.3407
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-059-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3215,
+          "after": 0.3209
+        },
+        "word_f1": {
+          "before": 0.4866,
+          "after": 0.4859
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-060-database__r001",
+      "fields": {
+        "word_recall": {
+          "before": 0.9974,
+          "after": 0.9975
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-063-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7801,
+          "after": 0.7798
+        },
+        "word_f1": {
+          "before": 0.8747,
+          "after": 0.8745
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-064-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4592,
+          "after": 0.4589
+        },
+        "word_f1": {
+          "before": 0.6294,
+          "after": 0.6291
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-065-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7714,
+          "after": 0.771
+        },
+        "word_f1": {
+          "before": 0.8709,
+          "after": 0.8707
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-066-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6523,
+          "after": 0.651
+        },
+        "word_f1": {
+          "before": 0.7896,
+          "after": 0.7886
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-067-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4456,
+          "after": 0.4446
+        },
+        "word_f1": {
+          "before": 0.6165,
+          "after": 0.6155
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-068-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1069,
+          "after": 0.1065
+        },
+        "word_f1": {
+          "before": 0.1931,
+          "after": 0.1926
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-069-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1229,
+          "after": 0.1227
+        },
+        "word_f1": {
+          "before": 0.2178,
+          "after": 0.2177
+        }
+      }
+    },
+    {
+      "attempt_id": "firecrawl__live-070-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5013,
+          "after": 0.5011
+        },
+        "word_f1": {
+          "before": 0.6679,
+          "after": 0.6676
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__cowagent-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7545,
+          "after": 0.7511
+        },
+        "word_f1": {
+          "before": 0.8601,
+          "after": 0.8579
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__lexmount-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7386,
+          "after": 0.7322
+        },
+        "word_f1": {
+          "before": 0.8462,
+          "after": 0.842
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__github-repository__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6856,
+          "after": 0.6821
+        },
+        "word_f1": {
+          "before": 0.804,
+          "after": 0.8016
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__javascript-spa__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9184,
+          "after": 0.9623
+        },
+        "word_recall": {
+          "before": 0.8824,
+          "after": 1.0
+        },
+        "word_f1": {
+          "before": 0.9,
+          "after": 0.9808
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-010-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1436,
+          "after": 0.1406
+        },
+        "word_f1": {
+          "before": 0.2512,
+          "after": 0.2466
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-011-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8228,
+          "after": 0.8189
+        },
+        "word_f1": {
+          "before": 0.8944,
+          "after": 0.892
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5338,
+          "after": 0.5258
+        },
+        "word_f1": {
+          "before": 0.696,
+          "after": 0.6892
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-013-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3586,
+          "after": 0.3564
+        },
+        "word_f1": {
+          "before": 0.5279,
+          "after": 0.5255
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-014-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3418,
+          "after": 0.3409
+        },
+        "word_f1": {
+          "before": 0.5094,
+          "after": 0.5085
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-016-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9354,
+          "after": 0.9351
+        },
+        "word_f1": {
+          "before": 0.9649,
+          "after": 0.9647
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-017-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6709,
+          "after": 0.6543
+        },
+        "word_f1": {
+          "before": 0.803,
+          "after": 0.791
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-018-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0863,
+          "after": 0.0862
+        },
+        "word_f1": {
+          "before": 0.1585,
+          "after": 0.1583
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-019-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7932,
+          "after": 0.7871
+        },
+        "word_f1": {
+          "before": 0.8841,
+          "after": 0.8803
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-020-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9082,
+          "after": 0.9061
+        },
+        "word_f1": {
+          "before": 0.9392,
+          "after": 0.938
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-026-getting-started__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8346,
+          "after": 0.8326
+        },
+        "word_recall": {
+          "before": 0.702,
+          "after": 0.7027
+        },
+        "word_f1": {
+          "before": 0.7626,
+          "after": 0.7622
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-031-agent__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7894,
+          "after": 0.7887
+        },
+        "word_recall": {
+          "before": 0.9691,
+          "after": 0.9697
+        },
+        "word_f1": {
+          "before": 0.8701,
+          "after": 0.8699
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-036-build-on-the-openai-api-platform__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2738,
+          "after": 0.2737
+        },
+        "word_f1": {
+          "before": 0.4283,
+          "after": 0.4281
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-054-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4578,
+          "after": 0.4533
+        },
+        "word_f1": {
+          "before": 0.627,
+          "after": 0.6228
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-056-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4749,
+          "after": 0.4713
+        },
+        "word_f1": {
+          "before": 0.632,
+          "after": 0.6289
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-057-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6702,
+          "after": 0.6674
+        },
+        "word_f1": {
+          "before": 0.8026,
+          "after": 0.8005
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-058-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3391,
+          "after": 0.3358
+        },
+        "word_f1": {
+          "before": 0.5062,
+          "after": 0.5026
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-059-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5316,
+          "after": 0.5275
+        },
+        "word_f1": {
+          "before": 0.6942,
+          "after": 0.6907
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-060-database__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8773,
+          "after": 0.8784
+        },
+        "word_recall": {
+          "before": 0.996,
+          "after": 1.0
+        },
+        "word_f1": {
+          "before": 0.9329,
+          "after": 0.9353
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-063-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8333,
+          "after": 0.8301
+        },
+        "word_recall": {
+          "before": 0.9448,
+          "after": 0.9459
+        },
+        "word_f1": {
+          "before": 0.8856,
+          "after": 0.8842
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-064-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7136,
+          "after": 0.7098
+        },
+        "word_f1": {
+          "before": 0.826,
+          "after": 0.8235
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-065-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8117,
+          "after": 0.8059
+        },
+        "word_recall": {
+          "before": 0.987,
+          "after": 0.9883
+        },
+        "word_f1": {
+          "before": 0.8908,
+          "after": 0.8879
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-066-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7942,
+          "after": 0.7899
+        },
+        "word_f1": {
+          "before": 0.8822,
+          "after": 0.8796
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-067-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6882,
+          "after": 0.6839
+        },
+        "word_f1": {
+          "before": 0.7935,
+          "after": 0.7906
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-068-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1733,
+          "after": 0.1728
+        },
+        "word_f1": {
+          "before": 0.2954,
+          "after": 0.2947
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-069-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2684,
+          "after": 0.2596
+        },
+        "word_f1": {
+          "before": 0.4189,
+          "after": 0.408
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__live-070-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7201,
+          "after": 0.7196
+        },
+        "word_f1": {
+          "before": 0.8305,
+          "after": 0.8301
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__english-encyclopedia__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7955,
+          "after": 0.7954
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__cowagent-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3536,
+          "after": 0.3528
+        },
+        "word_f1": {
+          "before": 0.5224,
+          "after": 0.5216
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__html-table__r001",
+      "fields": {
+        "word_f1": {
+          "before": 0.2483,
+          "after": 0.2482
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__lm-vite-guide__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7455,
+          "after": 0.7451
+        },
+        "word_f1": {
+          "before": 0.8481,
+          "after": 0.8479
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1486,
+          "after": 0.1485
+        },
+        "word_f1": {
+          "before": 0.2587,
+          "after": 0.2586
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-025-api-reference__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.68,
+          "after": 0.6795
+        },
+        "word_f1": {
+          "before": 0.8095,
+          "after": 0.8092
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-027-sponsors__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6117,
+          "after": 0.6112
+        },
+        "word_f1": {
+          "before": 0.7589,
+          "after": 0.7585
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-031-agent__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8414,
+          "after": 0.841
+        },
+        "word_f1": {
+          "before": 0.907,
+          "after": 0.9067
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-041-python-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6973,
+          "after": 0.6972
+        },
+        "word_f1": {
+          "before": 0.8215,
+          "after": 0.8214
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-043-syntax__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7754,
+          "after": 0.7753
+        },
+        "word_f1": {
+          "before": 0.8731,
+          "after": 0.873
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-060-database__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.784,
+          "after": 0.7839
+        },
+        "word_f1": {
+          "before": 0.8789,
+          "after": 0.8788
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-061-version-control__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.845,
+          "after": 0.8448
+        },
+        "word_f1": {
+          "before": 0.916,
+          "after": 0.9159
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-062-natural-language-processing__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7938,
+          "after": 0.7936
+        },
+        "word_f1": {
+          "before": 0.885,
+          "after": 0.8849
+        }
+      }
+    },
+    {
+      "attempt_id": "cloudflare-markdown__live-068-navigation-menu__r001",
+      "fields": {
+        "word_f1": {
+          "before": 0.0585,
+          "after": 0.0584
+        }
+      }
+    },
+    {
+      "attempt_id": "openclaw-built-in__lm-vite-guide__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9244,
+          "after": 0.9302
+        },
+        "word_recall": {
+          "before": 0.9371,
+          "after": 0.948
+        },
+        "word_f1": {
+          "before": 0.9307,
+          "after": 0.939
+        }
+      }
+    },
+    {
+      "attempt_id": "openclaw-built-in__live-041-python-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8059,
+          "after": 0.8062
+        },
+        "word_recall": {
+          "before": 0.9518,
+          "after": 0.9526
+        },
+        "word_f1": {
+          "before": 0.8728,
+          "after": 0.8733
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__cowagent-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3301,
+          "after": 0.3294
+        },
+        "word_f1": {
+          "before": 0.4963,
+          "after": 0.4956
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__lm-vite-guide__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8346,
+          "after": 0.8331
+        },
+        "word_f1": {
+          "before": 0.8986,
+          "after": 0.8978
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__lm-node-intro__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3528,
+          "after": 0.3497
+        },
+        "word_f1": {
+          "before": 0.5209,
+          "after": 0.5175
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__lm-pnpm-install__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8789,
+          "after": 0.8776
+        },
+        "word_f1": {
+          "before": 0.9325,
+          "after": 0.9318
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2042,
+          "after": 0.2034
+        },
+        "word_f1": {
+          "before": 0.195,
+          "after": 0.1947
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-014-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0939,
+          "after": 0.0937
+        },
+        "word_f1": {
+          "before": 0.1333,
+          "after": 0.133
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-025-api-reference__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7845,
+          "after": 0.7836
+        },
+        "word_f1": {
+          "before": 0.4664,
+          "after": 0.4663
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-026-getting-started__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7472,
+          "after": 0.7348
+        },
+        "word_f1": {
+          "before": 0.8553,
+          "after": 0.8471
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-027-sponsors__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6183,
+          "after": 0.6184
+        },
+        "word_recall": {
+          "before": 0.9736,
+          "after": 0.974
+        },
+        "word_f1": {
+          "before": 0.7563,
+          "after": 0.7565
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__live-039-welcome-to-redis-docs__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6314,
+          "after": 0.6293
+        },
+        "word_f1": {
+          "before": 0.7741,
+          "after": 0.7725
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__english-encyclopedia__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7928,
+          "after": 0.7965
+        },
+        "word_recall": {
+          "before": 0.916,
+          "after": 0.9232
+        },
+        "word_f1": {
+          "before": 0.8499,
+          "after": 0.8552
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__lexmount-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8868,
+          "after": 0.8776
+        },
+        "word_f1": {
+          "before": 0.9379,
+          "after": 0.9327
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__github-repository__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4158,
+          "after": 0.4147
+        },
+        "word_f1": {
+          "before": 0.5874,
+          "after": 0.5863
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__lm-node-intro__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3295,
+          "after": 0.3204
+        },
+        "word_recall": {
+          "before": 0.0488,
+          "after": 0.0556
+        },
+        "word_f1": {
+          "before": 0.085,
+          "after": 0.0947
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__lm-pnpm-install__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.941,
+          "after": 0.9402
+        },
+        "word_f1": {
+          "before": 0.951,
+          "after": 0.9506
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-010-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0313,
+          "after": 0.0312
+        },
+        "word_f1": {
+          "before": 0.0607,
+          "after": 0.0605
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-011-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4269,
+          "after": 0.426
+        },
+        "word_f1": {
+          "before": 0.5981,
+          "after": 0.5972
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1646,
+          "after": 0.1639
+        },
+        "word_f1": {
+          "before": 0.2826,
+          "after": 0.2816
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-017-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.134,
+          "after": 0.1334
+        },
+        "word_f1": {
+          "before": 0.2363,
+          "after": 0.2353
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-019-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5903,
+          "after": 0.5871
+        },
+        "word_f1": {
+          "before": 0.7424,
+          "after": 0.7399
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-020-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3855,
+          "after": 0.3852
+        },
+        "word_f1": {
+          "before": 0.5565,
+          "after": 0.5561
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-023-guides__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0595,
+          "after": 0.0627
+        },
+        "word_recall": {
+          "before": 0.8333,
+          "after": 0.9167
+        },
+        "word_f1": {
+          "before": 0.1111,
+          "after": 0.1174
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-025-api-reference__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9784,
+          "after": 0.9742
+        },
+        "word_f1": {
+          "before": 0.9891,
+          "after": 0.9869
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-036-build-on-the-openai-api-platform__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3349,
+          "after": 0.3358
+        },
+        "word_recall": {
+          "before": 0.9923,
+          "after": 0.9969
+        },
+        "word_f1": {
+          "before": 0.5008,
+          "after": 0.5023
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-039-welcome-to-redis-docs__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7893,
+          "after": 0.786
+        },
+        "word_f1": {
+          "before": 0.8822,
+          "after": 0.8802
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-041-python-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7507,
+          "after": 0.7521
+        },
+        "word_recall": {
+          "before": 0.9653,
+          "after": 0.9681
+        },
+        "word_f1": {
+          "before": 0.8446,
+          "after": 0.8465
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-043-syntax__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7728,
+          "after": 0.7738
+        },
+        "word_recall": {
+          "before": 0.9542,
+          "after": 0.956
+        },
+        "word_f1": {
+          "before": 0.854,
+          "after": 0.8553
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-054-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0585,
+          "after": 0.0584
+        },
+        "word_f1": {
+          "before": 0.1105,
+          "after": 0.1103
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-055-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0995,
+          "after": 0.0994
+        },
+        "word_f1": {
+          "before": 0.181,
+          "after": 0.1809
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-057-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2704,
+          "after": 0.2701
+        },
+        "word_f1": {
+          "before": 0.4257,
+          "after": 0.4253
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-058-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1192,
+          "after": 0.1188
+        },
+        "word_f1": {
+          "before": 0.213,
+          "after": 0.2124
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-059-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1031,
+          "after": 0.103
+        },
+        "word_f1": {
+          "before": 0.187,
+          "after": 0.1868
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-060-database__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8753,
+          "after": 0.877
+        },
+        "word_recall": {
+          "before": 0.9046,
+          "after": 0.9078
+        },
+        "word_f1": {
+          "before": 0.8897,
+          "after": 0.8921
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-061-version-control__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8331,
+          "after": 0.8343
+        },
+        "word_recall": {
+          "before": 0.9742,
+          "after": 0.9768
+        },
+        "word_f1": {
+          "before": 0.8981,
+          "after": 0.9
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-062-natural-language-processing__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8065,
+          "after": 0.8114
+        },
+        "word_recall": {
+          "before": 0.9578,
+          "after": 0.9676
+        },
+        "word_f1": {
+          "before": 0.8756,
+          "after": 0.8826
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-063-navigation-menu__r001",
+      "fields": {
+        "word_f1": {
+          "before": 0.1646,
+          "after": 0.1645
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-064-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3016,
+          "after": 0.301
+        },
+        "word_f1": {
+          "before": 0.4634,
+          "after": 0.4627
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-065-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2353,
+          "after": 0.2348
+        },
+        "word_f1": {
+          "before": 0.381,
+          "after": 0.3803
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-066-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.408,
+          "after": 0.4069
+        },
+        "word_f1": {
+          "before": 0.5795,
+          "after": 0.5785
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-067-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2276,
+          "after": 0.2272
+        },
+        "word_f1": {
+          "before": 0.3708,
+          "after": 0.3703
+        }
+      }
+    },
+    {
+      "attempt_id": "crawl4ai__live-069-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.055,
+          "after": 0.0546
+        },
+        "word_f1": {
+          "before": 0.104,
+          "after": 0.1033
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__document-05__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9837,
+          "after": 0.9831
+        },
+        "word_f1": {
+          "before": 0.9902,
+          "after": 0.9899
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__document-08__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0959,
+          "after": 0.0951
+        },
+        "word_f1": {
+          "before": 0.0535,
+          "after": 0.0534
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__web-retail-returns__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1026,
+          "after": 0.1024
+        },
+        "word_f1": {
+          "before": 0.1852,
+          "after": 0.185
+        }
+      }
+    },
+    {
+      "attempt_id": "deepseek-harness-built-in__web-retail-returns__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1015,
+          "after": 0.1014
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__english-encyclopedia__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.858,
+          "after": 0.8618
+        },
+        "word_recall": {
+          "before": 0.9051,
+          "after": 0.9147
+        },
+        "word_f1": {
+          "before": 0.8809,
+          "after": 0.8875
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__cowagent-doc__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4311,
+          "after": 0.43
+        },
+        "word_f1": {
+          "before": 0.6025,
+          "after": 0.6014
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__github-repository__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5961,
+          "after": 0.5935
+        },
+        "word_f1": {
+          "before": 0.7392,
+          "after": 0.7371
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__html-table__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1941,
+          "after": 0.1749
+        },
+        "word_recall": {
+          "before": 0.9286,
+          "after": 0.9365
+        },
+        "word_f1": {
+          "before": 0.3211,
+          "after": 0.2948
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__web-retail-returns__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1039,
+          "after": 0.1038
+        },
+        "word_f1": {
+          "before": 0.1881,
+          "after": 0.188
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__lm-feishu-help__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6204,
+          "after": 0.62
+        },
+        "word_f1": {
+          "before": 0.7657,
+          "after": 0.7654
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__lm-vite-guide__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8146,
+          "after": 0.8157
+        },
+        "word_recall": {
+          "before": 0.9289,
+          "after": 0.9446
+        },
+        "word_f1": {
+          "before": 0.868,
+          "after": 0.8754
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__lm-node-intro__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5185,
+          "after": 0.5086
+        },
+        "word_recall": {
+          "before": 0.9899,
+          "after": 0.9916
+        },
+        "word_f1": {
+          "before": 0.6806,
+          "after": 0.6724
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__lm-pnpm-install__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8718,
+          "after": 0.8685
+        },
+        "word_f1": {
+          "before": 0.919,
+          "after": 0.9171
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-003-the-rust-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3825,
+          "after": 0.3815
+        },
+        "word_f1": {
+          "before": 0.5533,
+          "after": 0.5523
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-004-deployments__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6951,
+          "after": 0.6948
+        },
+        "word_f1": {
+          "before": 0.8188,
+          "after": 0.8186
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-008-service__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6633,
+          "after": 0.663
+        },
+        "word_f1": {
+          "before": 0.7944,
+          "after": 0.7942
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-009-run-a-stateless-application-usin__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2007,
+          "after": 0.2006
+        },
+        "word_f1": {
+          "before": 0.3339,
+          "after": 0.3337
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-010-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.0753,
+          "after": 0.0744
+        },
+        "word_f1": {
+          "before": 0.139,
+          "after": 0.1374
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-011-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6097,
+          "after": 0.6076
+        },
+        "word_f1": {
+          "before": 0.7535,
+          "after": 0.7519
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-012-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3606,
+          "after": 0.3569
+        },
+        "word_f1": {
+          "before": 0.5287,
+          "after": 0.5247
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-013-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2241,
+          "after": 0.2232
+        },
+        "word_f1": {
+          "before": 0.3642,
+          "after": 0.3631
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-014-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1982,
+          "after": 0.1979
+        },
+        "word_f1": {
+          "before": 0.3287,
+          "after": 0.3283
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-015-configmaps__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3843,
+          "after": 0.384
+        },
+        "word_f1": {
+          "before": 0.5537,
+          "after": 0.5534
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-016-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.868,
+          "after": 0.8677
+        },
+        "word_f1": {
+          "before": 0.9247,
+          "after": 0.9245
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-017-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4879,
+          "after": 0.4799
+        },
+        "word_recall": {
+          "before": 0.9924,
+          "after": 0.9943
+        },
+        "word_f1": {
+          "before": 0.6542,
+          "after": 0.6473
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-018-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1152,
+          "after": 0.115
+        },
+        "word_f1": {
+          "before": 0.2038,
+          "after": 0.2036
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-019-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7065,
+          "after": 0.703
+        },
+        "word_recall": {
+          "before": 0.9898,
+          "after": 0.9917
+        },
+        "word_f1": {
+          "before": 0.8245,
+          "after": 0.8228
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-020-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8366,
+          "after": 0.835
+        },
+        "word_recall": {
+          "before": 0.9874,
+          "after": 0.9877
+        },
+        "word_f1": {
+          "before": 0.9058,
+          "after": 0.905
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-022-until-september-10-get-pycharm-f__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.347,
+          "after": 0.3461
+        },
+        "word_f1": {
+          "before": 0.5138,
+          "after": 0.5128
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-023-guides__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2449,
+          "after": 0.2427
+        },
+        "word_f1": {
+          "before": 0.3934,
+          "after": 0.3906
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-024-cascading-style-sheets-level-2-r__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4314,
+          "after": 0.4231
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-025-api-reference__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.9067,
+          "after": 0.8978
+        },
+        "word_f1": {
+          "before": 0.9488,
+          "after": 0.944
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-026-getting-started__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7577,
+          "after": 0.7257
+        },
+        "word_recall": {
+          "before": 0.9936,
+          "after": 0.9958
+        },
+        "word_f1": {
+          "before": 0.8598,
+          "after": 0.8395
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-027-sponsors__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6433,
+          "after": 0.6419
+        },
+        "word_f1": {
+          "before": 0.7793,
+          "after": 0.7783
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-028-getting-started-with-rails__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.938,
+          "after": 0.9355
+        },
+        "word_recall": {
+          "before": 0.9942,
+          "after": 0.9949
+        },
+        "word_f1": {
+          "before": 0.9653,
+          "after": 0.9643
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-029-fetch__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8184,
+          "after": 0.8195
+        },
+        "word_recall": {
+          "before": 0.6654,
+          "after": 0.6672
+        },
+        "word_f1": {
+          "before": 0.734,
+          "after": 0.7355
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-030-rfc-9110__r001",
+      "fields": {
+        "word_recall": {
+          "before": 0.9498,
+          "after": 0.9501
+        },
+        "word_f1": {
+          "before": 0.9554,
+          "after": 0.9555
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-035-part-i-tutorial__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.684,
+          "after": 0.642
+        },
+        "word_recall": {
+          "before": 0.8814,
+          "after": 0.8933
+        },
+        "word_f1": {
+          "before": 0.7703,
+          "after": 0.7471
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-036-build-on-the-openai-api-platform__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3019,
+          "after": 0.3025
+        },
+        "word_recall": {
+          "before": 0.9769,
+          "after": 0.9923
+        },
+        "word_f1": {
+          "before": 0.4613,
+          "after": 0.4637
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-037-breadcrumb__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3558,
+          "after": 0.3546
+        },
+        "word_f1": {
+          "before": 0.5249,
+          "after": 0.5236
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-039-welcome-to-redis-docs__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6978,
+          "after": 0.6678
+        },
+        "word_recall": {
+          "before": 0.9974,
+          "after": 1.0
+        },
+        "word_f1": {
+          "before": 0.8211,
+          "after": 0.8008
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-041-python-programming-language__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7923,
+          "after": 0.7953
+        },
+        "word_recall": {
+          "before": 0.8699,
+          "after": 0.8776
+        },
+        "word_f1": {
+          "before": 0.8293,
+          "after": 0.8344
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-043-syntax__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.839,
+          "after": 0.8394
+        },
+        "word_recall": {
+          "before": 0.919,
+          "after": 0.9226
+        },
+        "word_f1": {
+          "before": 0.8772,
+          "after": 0.8791
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-047-push-api__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6164,
+          "after": 0.6168
+        },
+        "word_recall": {
+          "before": 0.9785,
+          "after": 0.9801
+        },
+        "word_f1": {
+          "before": 0.7564,
+          "after": 0.7571
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-049-functools-higher-order-functions__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8996,
+          "after": 0.9001
+        },
+        "word_recall": {
+          "before": 0.9875,
+          "after": 0.9885
+        },
+        "word_f1": {
+          "before": 0.9415,
+          "after": 0.9422
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-052-objects-in-kubernetes__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.277,
+          "after": 0.2768
+        },
+        "word_f1": {
+          "before": 0.4329,
+          "after": 0.4327
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-053-dns-for-services-and-pods__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4117,
+          "after": 0.4114
+        },
+        "word_f1": {
+          "before": 0.5816,
+          "after": 0.5813
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-054-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3292,
+          "after": 0.3269
+        },
+        "word_f1": {
+          "before": 0.4944,
+          "after": 0.4918
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-055-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3452,
+          "after": 0.3435
+        },
+        "word_f1": {
+          "before": 0.5063,
+          "after": 0.5046
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-056-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3021,
+          "after": 0.3007
+        },
+        "word_f1": {
+          "before": 0.4603,
+          "after": 0.4587
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-057-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4921,
+          "after": 0.4905
+        },
+        "word_f1": {
+          "before": 0.6485,
+          "after": 0.6471
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-058-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.2931,
+          "after": 0.2906
+        },
+        "word_f1": {
+          "before": 0.4502,
+          "after": 0.4472
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-059-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.3631,
+          "after": 0.3612
+        },
+        "word_f1": {
+          "before": 0.5295,
+          "after": 0.5274
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-060-database__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7894,
+          "after": 0.7907
+        },
+        "word_recall": {
+          "before": 0.9496,
+          "after": 0.9531
+        },
+        "word_f1": {
+          "before": 0.8621,
+          "after": 0.8644
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-061-version-control__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8682,
+          "after": 0.8692
+        },
+        "word_recall": {
+          "before": 0.9561,
+          "after": 0.9592
+        },
+        "word_f1": {
+          "before": 0.91,
+          "after": 0.912
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-062-natural-language-processing__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.8324,
+          "after": 0.8374
+        },
+        "word_recall": {
+          "before": 0.928,
+          "after": 0.938
+        },
+        "word_f1": {
+          "before": 0.8776,
+          "after": 0.8849
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-063-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7232,
+          "after": 0.7201
+        },
+        "word_f1": {
+          "before": 0.827,
+          "after": 0.825
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-064-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5131,
+          "after": 0.5111
+        },
+        "word_f1": {
+          "before": 0.6692,
+          "after": 0.6675
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-065-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.6908,
+          "after": 0.6858
+        },
+        "word_f1": {
+          "before": 0.8136,
+          "after": 0.8102
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-066-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.7077,
+          "after": 0.7042
+        },
+        "word_f1": {
+          "before": 0.825,
+          "after": 0.8227
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-067-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5929,
+          "after": 0.5902
+        },
+        "word_recall": {
+          "before": 0.9912,
+          "after": 0.9919
+        },
+        "word_f1": {
+          "before": 0.742,
+          "after": 0.74
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-068-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.102,
+          "after": 0.1019
+        },
+        "word_f1": {
+          "before": 0.1852,
+          "after": 0.1849
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-069-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.1683,
+          "after": 0.1647
+        },
+        "word_f1": {
+          "before": 0.2848,
+          "after": 0.2796
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__live-070-navigation-menu__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.5828,
+          "after": 0.5824
+        },
+        "word_f1": {
+          "before": 0.734,
+          "after": 0.7338
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__document-08__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.096,
+          "after": 0.0953
+        },
+        "word_f1": {
+          "before": 0.0535,
+          "after": 0.0534
+        }
+      }
+    },
+    {
+      "attempt_id": "moli-webfetch__dynamic-catalog__r001",
+      "fields": {
+        "word_precision": {
+          "before": 0.4057,
+          "after": 0.3994
+        },
+        "word_f1": {
+          "before": 0.5621,
+          "after": 0.556
+        }
+      }
+    },
+    {
+      "attempt_id": "tavily__dynamic-quotes-api__r001",
+      "fields": {
+        "content_pass": {
+          "before": false,
+          "after": true
+        },
+        "fact_results": {
+          "before": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-tags",
+              "alternatives": [
+                "change deep-thoughts thinking world"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [
+                "J.K. Rowling"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-tags",
+              "alternatives": [
+                "abilities choices"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-tags",
+              "alternatives": [
+                "inspirational life live miracle miracles"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [
+                "Jane Austen"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-tags",
+              "alternatives": [
+                "aliteracy books classic humor"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [
+                "Marilyn Monroe"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-tags",
+              "alternatives": [
+                "be-yourself inspirational"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-tags",
+              "alternatives": [
+                "adulthood success value"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [
+                "André Gide"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-tags",
+              "alternatives": [
+                "life love"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [
+                "Thomas A. Edison"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-tags",
+              "alternatives": [
+                "edison failure inspirational paraphrased"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [
+                "Eleanor Roosevelt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-tags",
+              "alternatives": [
+                "misattributed-eleanor-roosevelt"
+              ],
+              "matched": [
+                "misattributed-eleanor-roosevelt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [
+                "Steve Martin"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-tags",
+              "alternatives": [
+                "humor obvious simile"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "after": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-tags",
+              "alternatives": [
+                "change deep-thoughts thinking world"
+              ],
+              "matched": [
+                "change deep-thoughts thinking world"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [
+                "J.K. Rowling"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-tags",
+              "alternatives": [
+                "abilities choices"
+              ],
+              "matched": [
+                "abilities choices"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-tags",
+              "alternatives": [
+                "inspirational life live miracle miracles"
+              ],
+              "matched": [
+                "inspirational life live miracle miracles"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [
+                "Jane Austen"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-tags",
+              "alternatives": [
+                "aliteracy books classic humor"
+              ],
+              "matched": [
+                "aliteracy books classic humor"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [
+                "Marilyn Monroe"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-tags",
+              "alternatives": [
+                "be-yourself inspirational"
+              ],
+              "matched": [
+                "be-yourself inspirational"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-tags",
+              "alternatives": [
+                "adulthood success value"
+              ],
+              "matched": [
+                "adulthood success value"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [
+                "André Gide"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-tags",
+              "alternatives": [
+                "life love"
+              ],
+              "matched": [
+                "life love"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [
+                "Thomas A. Edison"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-tags",
+              "alternatives": [
+                "edison failure inspirational paraphrased"
+              ],
+              "matched": [
+                "edison failure inspirational paraphrased"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [
+                "Eleanor Roosevelt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-tags",
+              "alternatives": [
+                "misattributed-eleanor-roosevelt"
+              ],
+              "matched": [
+                "misattributed-eleanor-roosevelt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [
+                "Steve Martin"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-tags",
+              "alternatives": [
+                "humor obvious simile"
+              ],
+              "matched": [
+                "humor obvious simile"
+              ],
+              "pass": true
+            }
+          ]
+        },
+        "fact_hits": {
+          "before": 21,
+          "after": 30
+        },
+        "fact_coverage": {
+          "before": 0.7,
+          "after": 1.0
+        },
+        "word_precision": {
+          "before": 0.9061,
+          "after": 0.9509
+        },
+        "word_recall": {
+          "before": 0.881,
+          "after": 1.0
+        },
+        "word_f1": {
+          "before": 0.8934,
+          "after": 0.9749
+        }
+      }
+    }
+  ]
+}

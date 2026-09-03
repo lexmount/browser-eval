@@ -2527,6 +2527,234 @@
         "environment_policy": "Explicit clean environment; no dotenv or inherited credentials; isolated state and NETRC"
       },
       "reference_validation_sha256": "f7c2a030671068dd73ca55536472cc0051428737c9c810e79ee6d4d7e1713819"
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.083834+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "lexmount-global",
+          "type": "lexmount",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:02:32.579093+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "lexmount-global__dynamic-quotes-api__r001",
+        "lexmount-global__dynamic-products-api__r001",
+        "lexmount-global__dynamic-catalog__r001",
+        "lexmount-global__dynamic-delayed__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.085323+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "lexmount-cn",
+          "type": "lexmount_cn",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:02:43.694289+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "lexmount-cn__dynamic-quotes-api__r001",
+        "lexmount-cn__dynamic-products-api__r001",
+        "lexmount-cn__dynamic-catalog__r001",
+        "lexmount-cn__dynamic-delayed__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.084811+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "firecrawl",
+          "type": "firecrawl",
+          "min_interval_seconds": 6.1
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:03:23.984875+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "firecrawl__dynamic-quotes-api__r001",
+        "firecrawl__dynamic-products-api__r001",
+        "firecrawl__dynamic-catalog__r001",
+        "firecrawl__dynamic-delayed__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.085214+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "tavily",
+          "type": "tavily_extract",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:02:33.441246+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "tavily__dynamic-quotes-api__r001",
+        "tavily__dynamic-products-api__r001",
+        "tavily__dynamic-catalog__r001",
+        "tavily__dynamic-delayed__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.085242+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "exa",
+          "type": "exa_contents",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:02:30.694290+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "exa__dynamic-quotes-api__r001",
+        "exa__dynamic-products-api__r001",
+        "exa__dynamic-catalog__r001",
+        "exa__dynamic-delayed__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T06:02:23.084330+00:00",
+      "dataset": {
+        "id": "webfetch",
+        "name": "Web Fetch 评测",
+        "source": "evaluation/dataset.json",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "cloudflare-markdown",
+          "type": "cloudflare_markdown",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json",
+      "completed_at": "2026-09-03T06:02:39.204363+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "cloudflare-markdown__dynamic-quotes-api__r001",
+        "cloudflare-markdown__dynamic-products-api__r001",
+        "cloudflare-markdown__dynamic-catalog__r001",
+        "cloudflare-markdown__dynamic-delayed__r001"
+      ]
     }
   ]
 }

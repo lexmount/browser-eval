@@ -1,5 +1,28 @@
 # Private editorial review
 
+## Complete dynamic cohort acceptance (2026-09-03)
+
+The dynamic supplement now contains four frozen tasks and all twelve methods,
+48 unique calls. The hosted batch added 24 calls without retries. Every original
+artifact hash, timing and run identity remains unchanged. General adjacent
+Markdown-link normalization was then applied to all 1,728 stored outputs; its
+189 metric differences and one task-pass change are recorded in
+`research/markdown-boundary-score-audit.json`. Only Tavily's asynchronous quote
+case changes task verdict: its distinct adjacent link labels retain boundaries.
+Firecrawl's concatenated plaintext tags are not guessed back into separate tags.
+No reference, fact requirement, forbidden marker or length threshold changed.
+
+The article keeps the Moli web/dynamic contrast as its opening, now backed by
+the complete twelve-method supplement matrix. The independent article and
+dashboard both state the actual 48-call coverage; historical tasks were not
+rerun in this batch. The delayed-page paragraph derives its zero successes out
+of twelve from records, not a fixed prose claim. Full normalization rules stay
+in Methodology rather than duplicating an implementation changelog in the essay.
+The Humanizer pass preserved concrete limits and removed the potentially
+ambiguous partial-provider wording. Desktop and 390px article screenshots were
+inspected; the matrix remains inside its horizontal scroll container on narrow
+screens. The local QA wrapper was removed before packaging.
+
 This file is source-only and must not enter the report bundle. No publication or commit was performed by this editor.
 
 ## Duplication audit and content ownership (2026-09-03)
