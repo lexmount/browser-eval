@@ -14,8 +14,15 @@ class MetricsTest(unittest.TestCase):
         self.assertFalse(evaluate_content('changedeep-thoughtsthinkingworld',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
         self.assertEqual(normalize_for_match('pre[fix](u)'),'prefix')
         self.assertEqual(normalize_for_match('[read](u)able'),'readable')
-        self.assertFalse(evaluate_content('[5](u)[1](v)',[],required_facts=[{'id':'number','alternatives':['51']}])['content_pass'])
+        self.assertEqual(normalize_for_match('[5](u)[1](v)'),'51')
         self.assertFalse(evaluate_content('[change](u)[world](v)',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+
+    def test_adjacent_numeric_links_cannot_invent_positive_number_hits(self):
+        for text, visible in [('[-](u)[10](v)','-10'),('[10](u)[.5](v)','10.5'),
+                              ('[10](u)[0](v)','100'),('[+](u)[10](v)','+10')]:
+            with self.subTest(text=text):
+                self.assertEqual(normalize_for_match(text),visible)
+                self.assertFalse(evaluate_content(text,[],required_facts=[{'id':'number','alternatives':['10']}])['content_pass'])
 
     def test_markdown_balanced_urls_and_f1_share_layout_cleaning(self):
         raw='hello [world](https://example.com/a(b)) end'

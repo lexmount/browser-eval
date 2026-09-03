@@ -1,8 +1,9 @@
 {
   "scope": "All persisted outputs; adjacent Markdown-link labels retain distinct boundaries.",
+  "numeric_continuity": "Adjacent numeric/sign fragments stay joined; no invented positive-number hits.",
   "records_checked": 1728,
   "before_records_sha256": "744846052f0ac2142c64741cb3628dac9786db07912076214714a8be8cbf819a",
-  "after_records_sha256": "2e6c4fdbe3280528a03143be8353b33b0cde9874b3135e9f6376ff5aba5f2676",
+  "after_records_sha256": "6f6f48c087f3aa8f96f0382cc741ec610615c4dd8153a75622785895e356e4ad",
   "raw_output_hashes_unchanged": true,
   "call_identities_unchanged": true,
   "pass_changes": [
@@ -762,7 +763,7 @@
       "fields": {
         "word_precision": {
           "before": 0.8773,
-          "after": 0.8784
+          "after": 0.8788
         },
         "word_recall": {
           "before": 0.996,
@@ -770,7 +771,7 @@
         },
         "word_f1": {
           "before": 0.9329,
-          "after": 0.9353
+          "after": 0.9355
         }
       }
     },
@@ -1716,11 +1717,11 @@
         },
         "word_recall": {
           "before": 0.9051,
-          "after": 0.9147
+          "after": 0.913
         },
         "word_f1": {
           "before": 0.8809,
-          "after": 0.8875
+          "after": 0.8867
         }
       }
     },
@@ -2241,15 +2242,15 @@
       "fields": {
         "word_precision": {
           "before": 0.7923,
-          "after": 0.7953
+          "after": 0.7942
         },
         "word_recall": {
           "before": 0.8699,
-          "after": 0.8776
+          "after": 0.8743
         },
         "word_f1": {
           "before": 0.8293,
-          "after": 0.8344
+          "after": 0.8323
         }
       }
     },
@@ -2258,15 +2259,15 @@
       "fields": {
         "word_precision": {
           "before": 0.839,
-          "after": 0.8394
+          "after": 0.8398
         },
         "word_recall": {
           "before": 0.919,
-          "after": 0.9226
+          "after": 0.9218
         },
         "word_f1": {
           "before": 0.8772,
-          "after": 0.8791
+          "after": 0.8789
         }
       }
     },
@@ -2413,11 +2414,11 @@
       "fields": {
         "word_precision": {
           "before": 0.7894,
-          "after": 0.7907
+          "after": 0.7909
         },
         "word_recall": {
           "before": 0.9496,
-          "after": 0.9531
+          "after": 0.9529
         },
         "word_f1": {
           "before": 0.8621,
@@ -2430,7 +2431,7 @@
       "fields": {
         "word_precision": {
           "before": 0.8682,
-          "after": 0.8692
+          "after": 0.8696
         },
         "word_recall": {
           "before": 0.9561,
@@ -2438,7 +2439,7 @@
         },
         "word_f1": {
           "before": 0.91,
-          "after": 0.912
+          "after": 0.9122
         }
       }
     },
@@ -2447,7 +2448,7 @@
       "fields": {
         "word_precision": {
           "before": 0.8324,
-          "after": 0.8374
+          "after": 0.8375
         },
         "word_recall": {
           "before": 0.928,

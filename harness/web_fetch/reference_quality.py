@@ -25,7 +25,10 @@ def visible_markdown_links(text: str) -> str:
         # (including a link inside a word) is never split or re-segmented.
         gap = text[start:match.start()]
         if match.start()==start and previous_label and match[1]:
-            gap=' '
+            # A numeric value may span links: never turn -10, 10.5 or 100
+            # into a separately matchable positive 10 by adding whitespace.
+            numeric = lambda char: char.isdigit() or char in '+-.−'
+            gap='' if numeric(previous_label[-1]) and numeric(match[1][0]) else ' '
         result.extend([gap,match[1]])
         previous_label=match[1]
         start=end

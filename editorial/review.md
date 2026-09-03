@@ -11,6 +11,10 @@ Markdown-link normalization was then applied to all 1,728 stored outputs; its
 case changes task verdict: its distinct adjacent link labels retain boundaries.
 Firecrawl's concatenated plaintext tags are not guessed back into separate tags.
 No reference, fact requirement, forbidden marker or length threshold changed.
+Independent review caught numeric continuity across adjacent links: `[-](u)[10](v)`,
+`[10](u)[.5](v)` and `[10](u)[0](v)` must never match a positive `10`.
+The normalizer retains those numeric/sign joins; focused regression tests and
+a second full rescore verify this before publication.
 
 The article keeps the Moli web/dynamic contrast as its opening, now backed by
 the complete twelve-method supplement matrix. The independent article and
