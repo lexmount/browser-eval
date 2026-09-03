@@ -272,7 +272,7 @@ def main() -> int:
         (output / "runtime" / folder).mkdir(parents=True)
     # macOS Unix-domain socket paths have a small limit; tsx appends its socket
     # name to TMPDIR. Keep this isolated path short regardless of output length.
-    with tempfile.TemporaryDirectory(prefix="wfd-", dir="/private/tmp") as allocated:
+    with tempfile.TemporaryDirectory(prefix="wfd-", dir="/tmp") as allocated:
         temporary = Path(allocated)
         result = subprocess.run([sys.executable, "-B", str(Path(__file__).resolve()),
                                  "--output", str(output), "--isolated-child", "--track", args.track,
