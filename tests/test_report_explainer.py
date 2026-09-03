@@ -9,7 +9,7 @@ import unittest
 from harness.web_fetch.metrics import evaluate_content
 from harness.web_fetch.failure_diagnosis import normalize_empty_response
 from harness.web_fetch.report import cell, link, table, succeeded
-from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, collect_evidence, render_explainer
+from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, _dynamic_section, collect_evidence, render_explainer
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
 
@@ -94,6 +94,34 @@ class ExplainerTests(unittest.TestCase):
         dynamic = page.split('id="dynamic-coverage"',1)[1].split('</section>',1)[0]
         self.assertEqual(dynamic.count('<thead>'),1)
         self.assertNotIn('<th scope="col">Crawl4AI</th>',dynamic)
+
+    def test_dynamic_figure_accepts_six_methods_without_changing_historical_cohort(self):
+        historical = [r for r in self.records if self.cases[r['case_id']].get('track') != 'dynamic']
+        base = [r for r in self.records if r['provider']=='moli-webfetch'
+                and self.cases[r['case_id']].get('track')=='dynamic']
+        supplement = [dict(r, provider=f'fixture-method-{i}', attempt_id=f'fixture-{i}-{r["case_id"]}')
+                      for i in range(6) for r in base]
+        data = collect_evidence(self.cases,historical+supplement)
+        self.assertEqual(len(data['tracks']['dynamic']['providers']),6)
+        self.assertEqual(data['historical'],collect_evidence(self.cases,historical)['historical'])
+        figure = _dynamic_section(data,self.cases)
+        for i in range(6):
+            self.assertIn(f'<th scope="col">fixture-method-{i}</th>',figure)
+
+    def test_article_keeps_argument_evidence_without_reprinting_all_rankings(self):
+        page = self.render(self.records)
+        quality = page.split('id="quality"',1)[1].split('</section>',1)[0]
+        self.assertEqual(quality.count('<tbody>'),1)
+        self.assertEqual(quality.count('<tr>'),4)  # Header plus three relevant methods.
+        media = page.split('id="other-tasks"',1)[1].split('</section>',1)[0]
+        self.assertNotIn('<table>',media)
+        for case_id in ('ecommerce-list','image-03'):
+            record = next(r for r in self.records if r['provider']=='cowagent-built-in' and r['case_id']==case_id)
+            self.assertIn(record['attempt_id'],media)
+        for key in ('price_counterfactual','probe','cow_moli','initial_reference_audit'):
+            self.assertIsNotNone(self.evidence[key])
+        self.assertEqual(set(self.evidence['tracks']['web']['providers']),
+                         {r['provider'] for r in self.records if self.cases[r['case_id']].get('track','web')=='web'})
 
     def test_standalone_has_identical_article_inline_style_no_dependencies(self):
         page = self.render(self.records)

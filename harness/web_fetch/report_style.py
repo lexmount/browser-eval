@@ -25,6 +25,8 @@ STYLE += r"""
 .editorial-table{max-width:100%;overflow-x:auto;margin:28px 0;border-top:2px solid var(--line);border-bottom:1px solid var(--line)}
 .publication-article .editorial-table table{min-width:0;width:100%;font-size:13px;line-height:1.7}
 .editorial-table caption{text-align:left;color:var(--muted);padding:12px 0;font-size:12px;caption-side:bottom}
+.publication-article .editorial-table-hint{display:none}
+@media screen and (max-width:600px){.publication-article .editorial-table-hint{display:block;font-size:12px;color:var(--muted);margin-bottom:0}}
 .publication-article .editorial-table th{position:static;white-space:normal;font-weight:650;font-size:12px}
 .editorial-table th,.editorial-table td{padding:10px 9px;overflow-wrap:anywhere}
 .editorial-table td:first-child,.editorial-table th:first-child{width:3em;color:var(--muted)}

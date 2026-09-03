@@ -2,6 +2,49 @@
 
 This file is source-only and must not enter the report bundle. No publication or commit was performed by this editor.
 
+## Duplication audit and content ownership (2026-09-03)
+
+Re-read AGENTS.md, the complete local benchmark-editorial skill and both references, and Humanizer in full for this turn. Used them to judge whether repeated material helps an independent reader, not to impose a repetition/word-count threshold.
+
+### Read-only coverage
+
+Traversed and parsed all 1,859 generated HTML pages before changes: root 1; accounts 1; adoption 1; analysis 1; attempts 1,692; datasets 145; environment 1; guide 2; integration 1; methodology 1; providers 12; reproduce 1. Extracted headings, prose and repeated paragraphs across the entire corpus. Read the substantive top-level prose, method/interface structure, and representative case/attempt pages in detail, including ecommerce-list, dynamic-products-api and Moli dynamic-quotes-api. Repeated task prompts across 1,300 body-related pages and repeated measurement definitions in result tables are necessary local context, not 1,300 independent editorial defects. The report corpus was not edited or rebuilt in place by this editor.
+
+### Ownership map
+
+| Surface / source owner | Primary responsibility | What the independent article retains |
+|---|---|---|
+| Homepage, report.py (main) | Coverage, overview and complete quantitative rankings | Only comparisons that drive the argument; no second all-track winners table. Main removed duplicated “主要结论” and added method coverage to cards. |
+| Methodology and task_pass_guide, report.py/report_components.py (main) | Full task contracts, matching rules, metric formulas, sampling boundaries | One short pass/F1 definition, enough to understand the rank reversal and intervention. Main changed rule links to methodology task anchors, so dashboard readers need not read the article. |
+| datasets/index and per-case pages (main) | Reference scope, source provenance, permitted fact expressions, all methods on each case | Selected case facts with direct evidence links; book fact table remains optional detail. |
+| analysis and attempts (main) | Filtering, diagnostics, timings, full output and per-fact results | Failure partition, observed Loading output, price intervention and specific counterexamples, not an explanation of filter controls. |
+| providers and adoption/method introduction (main) | Configurations, native interfaces, examples, official capabilities and adoption evidence | Current extractor mechanism only where needed to explain its observed trade-off. No API catalog or popularity commentary. |
+| environment (main) | Full execution manifests, timing windows and network/session conditions | Historical figure's time window; batch differences beside matched-latency inference. |
+| reproduce and accounts (main) | Rebuild steps, downloads, account setup | Evidence/reproduction links, no duplicated instructions. |
+| Integration page (main, removed) | Previously repeated four generic boundaries without an independent workflow | No replacement article checklist. Actual interface material remains in method introduction. Removal and nav updates belong to main. |
+| guide/index and guide/article, template + explainer (this editor) | Explain surprising results, actual mechanisms, rival explanations and the decision they change | Moli web/dynamic contrast; delayed/placeholder completion; CF/Exa reversal; CSS low-purity case; price intervention; extractor probe; initial-reference recoverability; Cow/Moli overlap with paired latency; same-site body/resource mismatch; common challenge gaps and file-verification limit. |
+
+### Decisions applied, not blanket deduplication
+
+- Reduced the quality comparison from six methods to CF, Exa and CowAgent: the first two establish the reversal; the third connects it to the low-F1 passing case and extractor probe. Removed methods are still fully present in computed evidence and the dashboard.
+- Removed the article's other-track winners table. Its maxima merely repeated homepage rankings and did not explain a choice. Replaced it with linked CowAgent Books to Scrape body/resource outcomes computed from the same input records; this demonstrates the contract change on one site rather than reciting leaders.
+- Kept the dynamic case-by-method matrix: it shows distinct failures that an aggregate score hides. Kept failure-set partition, rescue-case table, matched-success latency and all underlying IDs. These are original decision analyses, not redundant ranking lists.
+- Kept minimal metric definitions and a concrete scope/denominator beside each comparison. Removed the reference-error-word exception and Unicode/Markdown matching inventory from article prose because those are full-protocol material, available in methodology. The article still states that pass rules have no F1 gate and overlap is not semantic correctness.
+- Put the full book fact-expression table in optional details; the actual price intervention, original/altered results and implication remain visible without opening it. No essential conclusion depends on an accordion.
+- Removed prose that restated figure counts, chapter-tour transitions, the repeated dynamic-provider aggregate list, and the generic fallback capability warning. The new dynamic closing names the engineering decision: where data arrives and what permits delivery.
+- Retained file-verification missingness and complex-site validity boundaries because deleting them would change the meaning of the results. Condensed their definitions and finished with the actual common-gap decision, not generic advice.
+- Renderer coverage continues to derive from actual track records; added a six-method synthetic rendering test. No missing method is assigned a failure and no historical statistic changes when supplement coverage expands.
+
+### Ownership and invariants
+
+This turn edits only harness/web_fetch/templates/interpretation.html, harness/web_fetch/report_explainer.py, editorial/review.md, and permitted semantic tests in tests/test_report_explainer.py. report.py, report_components.py, report_methods.py, styles, dataset, scoring, runners and packaging are owned elsewhere and were not edited or reverted. No provider calls, publication or commits. All collected statistics and the JSON evidence schema remain intact; changes select and explain existing evidence, with a computed body/resource cross-reference replacing a duplicate ranking.
+
+### Final reading and verification for the duplication pass
+
+Read the generated standalone article in order with optional details removed. Its argument still includes scope, observed difference, concrete case, mechanism and decision without needing the dashboard. Removed residual “below we will see” transitions, a fact-table announcement that no longer fit optional details, and an unnecessary repeated historical-causality warning in the media paragraph (that paragraph now makes no causal claim). The main historical fingerprint limitation stays beside the mechanism experiment.
+
+Validation: 15 explainer tests passed, including six-method supplement rendering and preservation of selected argument evidence; full current-worktree suite 270 passed, 13 skipped, 57 subtests passed. Both JavaScript suites passed. Isolated build at /private/tmp/editorial-dedup-qa-vzaytthf/report passed integrity and link checks: 144 cases, 1,692 records, 1,858 pages, zero broken local links. The difference from the 1,859-page audit inventory is main's Integration removal. Subsequent provider runs and publication remain main-owned; these validation counts describe the captured inputs, not a promise that the pending supplement is complete. No new visual design or CSS change in this turn; main retains final visual QA.
+
 ## Read before editing
 
 Read AGENTS.md, benchmark-editorial/SKILL.md, both complete local references (editorial-standard.md and html-delivery.md), and the complete Humanizer skill. The initial combined tool output truncated Humanizer; it was re-read in two complete ranges before editing. Also personally read the Browser Use SOTA article and the internal income-certificate RSI reference, extracting the article text rather than accepting truncated HTML. Read the linked Sentry, blog-writing-specialist, results-report and HTML research-report guides; their marketing voice, external runtimes and SEO structures were not activated. No project orchestration was installed globally.

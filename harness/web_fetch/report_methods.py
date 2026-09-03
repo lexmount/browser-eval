@@ -73,7 +73,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
     body+=section('能力、采用与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
         ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集；历史已发现的引用不会因搜索排序变化被丢弃。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),
-        ('profiles','方法详情','<p>下表介绍本轮实际调用的实现；方法名称可打开其 140 个案例结果。功能范围以本轮配置为准。</p>'+table(['方法','形态','做什么','本轮输出','本轮新鲜度设置','来源'],intro)),
+        ('profiles','方法详情','<p>下表介绍本轮实际调用的实现；方法名称可打开其全部已测案例。各组覆盖数量以执行记录为准，功能范围以本轮配置为准。</p>'+table(['方法','形态','做什么','本轮输出','本轮新鲜度设置','来源'],intro)),
         ('interfaces','接口与示例',render_interfaces(out,records)),
         ('scope','统计口径',scope),
     ]))

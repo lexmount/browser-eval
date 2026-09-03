@@ -20,6 +20,9 @@ class Tables(HTMLParser):
 root=Path(sys.argv[1]);d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
+assert len({c['id'] for c in d['cases']})==len(d['cases']),'Duplicate dataset case IDs'
+inventory_ids=[cid for group in inventory.values() for cid in group['case_ids']]
+assert len(set(inventory_ids))==len(inventory_ids),'Duplicate inventory case IDs'
 assert {(c['id'],c.get('track','web')) for c in d['cases']}=={(cid,t) for t,v in inventory.items() for cid in v['case_ids']},'Dataset differs from reviewed independent inventory'
 plan=d.get('coverage_plan',{})
 assert {t:set(p) for t,p in plan.items()}=={t:set(v['providers']) for t,v in inventory.items()},'Provider coverage differs from reviewed inventory'

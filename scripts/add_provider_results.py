@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", type=Path)
     parser.add_argument("--provider", required=True)
+    parser.add_argument("--track", help="Add only a complete, previously unmeasured track for this provider")
     parser.add_argument(
         "--implementation", type=Path, help="Verified implementation version/source/hash JSON"
     )
@@ -20,6 +21,6 @@ if __name__ == "__main__":
     implementation = json.loads(args.implementation.read_text()) if args.implementation else None
     print(
         "Added",
-        add_provider_run(ROOT / "evaluation", args.run_dir, args.provider, implementation),
+        add_provider_run(ROOT / "evaluation", args.run_dir, args.provider, implementation, track=args.track),
         "records",
     )

@@ -23,7 +23,9 @@ TRACK_NAMES = {'web': '网页正文', 'document': '文档文字', 'image': '图�
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
-                  'crawl4ai': 'Crawl4AI'}
+                  'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
+                  'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
+                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区'}
 
 
 def evidence_url(path):
@@ -196,7 +198,8 @@ def _table(headers, rows, caption):
     rows = [(str(index), *row) for index, row in enumerate(rows, 1)]
     head = ''.join(f'<th scope="col">{escape(x)}</th>' for x in headers)
     body = ''.join('<tr>' + ''.join(f'<td>{x}</td>' for x in row) + '</tr>' for row in rows)
-    return ('<div class="editorial-table" role="region" tabindex="0" aria-label="' + escape(caption) + '">'
+    return ('<p class="editorial-table-hint">表格可横向滚动查看全部列。</p>'
+            '<div class="editorial-table" role="region" tabindex="0" aria-label="' + escape(caption) + '">'
             '<table><caption>' + escape(caption) + '</caption><thead><tr>' + head + '</tr></thead>'
             '<tbody>' + body + '</tbody></table></div>')
 
@@ -226,8 +229,9 @@ def _price_experiment(out, cases, records):
     state = lambda flag: '通过' if flag else '未通过'
     html = (f'<p>{_link("datasets/ecommerce-list.html", "Books to Scrape 的书目页")}要求书名、价格和库存核对点满足，'
             f'返回长度至少为 {case["min_content_chars"]:,} 字符。'
-            f'{_attempt(sample, "CowAgent 的已保存输出")}有 {len(raw):,} 字符，实际核对结果如下。</p>'
-            + _table(['核对点', '可接受表达', '实际命中'], rows, '书目页：规则实际检查了什么')
+            f'{_attempt(sample, "CowAgent 的已保存输出")}有 {len(raw):,} 字符。</p>'
+            + '<details class="editorial-probe"><summary>核对本例的书名、价格与库存规则</summary>'
+            + _table(['核对点', '可接受表达', '实际命中'], rows, '书目页：规则实际检查了什么') + '</details>'
             + f'<p>在这份输出的内存副本中，把 <code>{before}</code> 换成 <code>{after}</code>，'
             f'再运行同一个 <code>evaluate_content</code>。原文正文规则{state(original["content_pass"])}；'
             f'替换后长度规则{state(altered["length_pass"])}，价格核对点{state(fact["pass"] if fact else False)}，'
@@ -252,8 +256,6 @@ def _dynamic_section(data, cases):
             r = byprovider.get(p)
             row.append(_attempt(r, '通过' if r['task_pass'] else '未通过') if r else '未运行')
         rows.append(row)
-    stats = '；'.join(f'{PROVIDER_NAMES.get(p, p)} 通过 {s["task_pass"]}/{s["records"]}'
-                      for p, s in scope['providers'].items())
     figure = _table(['动态内容任务'] + [PROVIDER_NAMES.get(p, p) for p in providers], rows,
                     f'独立补充组：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；未运行不算失败')
     # Task-specific interpretation is only attached when its evidence cases are present.
@@ -286,13 +288,11 @@ def _dynamic_section(data, cases):
     return (f'<section id="dynamic-coverage"><h2>动态内容补测，让网页高分遇到新的边界</h2>'
             f'<p>历史网页组保持不变，另加 {scope["case_count"]} 个动态内容任务。'
             f'补充组实际有 {len(providers)} 种方法、{total["records"]} 条调用，'
-            f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。{escape(stats)}。'
+            f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
             '这是单列的小样本补测，不是所有历史参评方法都重跑后的新总榜。</p>'
             + figure + mechanism
-            + '<p>这组结果也限制了本文的后备方法建议。正文组里表现互补的两个方法，'
-              '未必能处理另一个任务组的内容到达时机。需要在自己的目标页面上验证提取路径与完成条件，'
-              '不能仅凭接口带有“浏览器”或“动态”标签就默认问题已解决。缺少本组实测记录的方法，'
-              '目前不能排序，也不应被填成零分。</p></section>')
+            + '<p>对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，'
+              '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
 
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
@@ -364,13 +364,13 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         f'<div class="editorial-bar-row"><span>{label}</span><span class="editorial-bar-track" aria-hidden="true">'
         f'<i style="width:{count / max(t["records"], 1) * 100:.4f}%"></i></span>'
         f'<b>{count:,} / {t["records"]:,}</b></div>' for label, count in failure_rows
-    ) + '</div><figcaption>历史组记录按最终状态分成互斥的三组，不混入动态补测。正常返回由适配器判定，不等于源站 HTTP 200。</figcaption></figure>'
-    selected = ['cloudflare-markdown', 'exa', 'cowagent-built-in', 'langchain-webbase', 'moli-webfetch', 'firecrawl']
+    ) + f'</div><figcaption>历史组互斥状态分解；调用开始时间 {values["time_window"]}。不混入动态补测，正常返回不等于源站 HTTP 200。</figcaption></figure>'
+    selected = ['cloudflare-markdown', 'exa', 'cowagent-built-in']
     values['quality_figure'] = _table(['网页方法', '任务通过 / 调用', '平均 F1', 'F1 样本数'], [
         (_link('providers/' + p + '.html', PROVIDER_NAMES[p]), f'{s["task_pass"]}/{s["records"]}',
          f'{s["mean_f1"]:.4f}' if s['mean_f1'] is not None else '未测', str(s['f1_records']))
         for p in selected if (s := web['providers'].get(p))],
-        '同一网页组的不同目标：通过数量与全文词频重合（F1 为逐例算术平均）')
+        '用于比较排名逆转与提取机制的方法：同一网页组，F1 为有指标记录的逐例算术平均')
     cf, exa = (web['providers'].get(p) for p in ('cloudflare-markdown', 'exa'))
     values['rank_reversal'] = '<p>当前输入不足以比较 Cloudflare Markdown 与 Exa。</p>'
     if cf and exa:
@@ -460,17 +460,17 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
                   challenge_unpassed='、'.join(_link('datasets/' + k + '.html', cases[k]['name'])
                                              for k in challenge['unpassed_ids']) or '无',
                   challenge_missing_count=str(len(challenge['unpassed_ids'])))
-    rows = []
-    for track in ('document', 'image', 'video', 'challenge'):
-        scope = tracks[track]
-        if not scope['case_count']:
-            continue
-        maximum = max((s['task_pass'] for s in scope['providers'].values()), default=0)
-        leaders = '、'.join(PROVIDER_NAMES.get(p, p) for p, s in scope['providers'].items()
-                           if s['task_pass'] == maximum) if maximum else '没有已验证通过记录'
-        rows.append((TRACK_NAMES[track], str(scope['case_count']), str(maximum), escape(leaders)))
-    values['other_tasks_figure'] = _table(['任务组', '案例数', '单方法最高通过数', '对应方法'], rows,
-        '正文之外的交付任务；各组任务契约不同，不能跨组比较分数含义')
+    catalog = {r['case_id']: r for r in records if r['provider'] == 'cowagent-built-in'
+               and r['case_id'] in {'ecommerce-list', 'image-03'}}
+    values['media_case'] = '<p>同一网页的正文与媒体地址是两种交付目标；文字保留完整，地址仍可能丢失。</p>'
+    if set(catalog) == {'ecommerce-list', 'image-03'}:
+        states = {k: '通过' if task_passed(r['ok'], r['metrics'], cases[k].get('task_kind', 'body'))
+                  else '未通过' for k, r in catalog.items()}
+        values['media_case'] = (f'<p>同一个 Books to Scrape 站点，CowAgent 的 '
+            f'{_attempt(catalog["ecommerce-list"], "书目正文任务")}{states["ecommerce-list"]}，'
+            f'{_attempt(catalog["image-03"], "商品封面地址任务")}{states["image-03"]}。'
+            '书名和价格留在文本里，不能保证封面地址也交付了。'
+            '下游需要分别验收文字和资源地址，才能发现这种交付差异。</p>')
     body = Template(TEMPLATE.read_text()).substitute(values)
     contained_path(out, 'guide').mkdir(parents=True, exist_ok=True)
     if probe:

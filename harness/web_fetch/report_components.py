@@ -71,7 +71,7 @@ def task_pass_guide(track, base=''):
         'challenge': '请求成功，至少 3 个不同的具名详情入口，且返回顺序中的前三条名称与详情身份均有独立证据；不核对当天名单、名次或价格。缺证据不等于内容错误。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
-    return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p><a href="'+escape(base+'guide/index.html#rules')+'">用具体案例理解判断过程 →</a></div>'
+    return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p><a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></div>'
 
 
 def examples():

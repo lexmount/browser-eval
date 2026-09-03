@@ -91,13 +91,13 @@ node tests/test_report_ui.mjs
 
 ```bash
 python3 scripts/run_benchmark.py --output runs/webfetch
-# 或仅实测 Moli（140 个案例，不调用其他供应商）
+# 或仅实测 Moli（当前完整评测集，不调用其他供应商）
 python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-webfetch
 ```
 
 使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
 
-新增方法完成同一评测集后，可执行 `python3 scripts/add_provider_results.py runs/<完整运行目录> --provider <新方法>`。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变。已存在的方法不允许用此入口覆盖。之后重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
+新增方法完成同一评测集后，可执行 `python3 scripts/add_provider_results.py runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 

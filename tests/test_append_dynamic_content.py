@@ -84,7 +84,7 @@ class AppendDynamicContentTests(unittest.TestCase):
 
     def assert_preflight_rejects(self, message=None):
         before = self.snapshot()
-        with patch('scripts.append_dynamic_content.tempfile.mkdtemp') as stage:
+        with patch('scripts.append_dynamic_content.tempfile.mkdtemp', wraps=tempfile.mkdtemp) as stage:
             with self.assertRaises(ValueError) as caught:
                 self.run_append()
             if message:
@@ -170,6 +170,58 @@ class AppendDynamicContentTests(unittest.TestCase):
         self.records[-1]['artifact_path'] = self.records[0]['artifact_path']
         self.save_records()
         self.assert_preflight_rejects('Duplicate supplement artifact paths')
+
+    def test_parent_relative_artifact_cannot_escape_staging(self):
+        incoming = self.root/'incoming'
+        incoming.mkdir()
+        self.measured = self.measured.rename(incoming/'measured')
+        original = self.measured/self.records[0]['artifact_path']
+        original.rename(incoming/'outside.txt')
+        self.records[0]['artifact_path'] = '../outside.txt'
+        self.save_records()
+        self.assert_preflight_rejects('relative')
+
+    def test_symlinked_artifact_cannot_read_outside_measured_tree(self):
+        artifact = self.measured/self.records[0]['artifact_path']
+        outside = artifact.rename(self.root/'outside.txt')
+        artifact.symlink_to(outside)
+        self.assert_preflight_rejects('symlink')
+
+    def test_output_cannot_overwrite_source_evidence(self):
+        self.records[0]['artifact_path'] = 'sources/one/render-audit.json'
+        self.save_records()
+        self.assert_preflight_rejects('inside artifacts/')
+
+    def test_normalized_duplicate_artifact_paths_preflight(self):
+        self.records[1]['artifact_path'] = self.records[0]['artifact_path'].replace('/', '//')
+        self.save_records()
+        self.assert_preflight_rejects('Duplicate supplement artifact paths')
+
+    def test_case_identifier_cannot_escape_sources(self):
+        self.cases[0]['id'] = '../outside'
+        self.save_datasets()
+        self.records[0]['case_id'] = '../outside'
+        self.save_records()
+        self.checks[0]['id'] = '../outside'
+        (self.reference/'sources/one').rename(self.reference/'outside')
+        self.assert_preflight_rejects('Identifiers')
+
+    def test_reference_changed_during_copy_never_promoted(self):
+        import shutil
+        before = self.snapshot()
+        copytree = shutil.copytree
+
+        def corrupt_copy(src, dst, *args, **kwargs):
+            result = copytree(src, dst, *args, **kwargs)
+            if Path(src) == self.reference/'sources/two':
+                (Path(dst)/'rendered.txt').write_text('changed after preflight')
+            return result
+
+        with patch('scripts.append_dynamic_content.shutil.copytree', corrupt_copy):
+            with self.assertRaisesRegex(ValueError, 'Staged source evidence'):
+                self.run_append()
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(list(self.root.glob('.source-append-*')), [])
 
     def test_staging_write_failure_keeps_original(self):
         before = self.snapshot()

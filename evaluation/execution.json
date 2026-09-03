@@ -2188,6 +2188,345 @@
         "moli-webfetch__dynamic-catalog__r001",
         "moli-webfetch__dynamic-delayed__r001"
       ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T05:36:32.289292+00:00",
+      "dataset": {
+        "id": "webfetch--local-dynamic-builtins",
+        "name": "Web Fetch 评测",
+        "source": "canonical dynamic cases, frozen in original order",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "cowagent-built-in",
+          "type": "cowagent_builtin",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 3,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json with explicit local runtime path overrides",
+      "completed_at": "2026-09-03T05:36:40.435012+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "cowagent-built-in__dynamic-quotes-api__r001",
+        "cowagent-built-in__dynamic-products-api__r001",
+        "cowagent-built-in__dynamic-catalog__r001",
+        "cowagent-built-in__dynamic-delayed__r001"
+      ],
+      "runtime_identity_sha256": "c1bce568d6946d051b83565797a5dc027a0e128db14960cd08e244eff73de6e6",
+      "dataset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+      "original_measurement_manifest_sha256": "ba6dd7638fb889b2642e53a431c597245e8be2fcc25497ddf3c026ed399ff81f",
+      "parent_measurement_manifest_sha256": "4bcf18972389ca7a50f5b8089ad8dde4a218c7054ba2de098c19eade7f249888",
+      "runtime_identity_evidence": {
+        "canonical_dataset_sha256": "5e4afc4d0a8870a802d8177810acc4578250a9e19f6dea9b65b0c166397d24b9",
+        "frozen_subset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+        "provider_config_sha256": "375175720a5259b313d24e6796b6acb3feadd23a3e20df2ecce7ee3bb46c686b",
+        "python": "3.13.3 (main, May 17 2025, 13:30:59) [Clang 20.1.4 ]",
+        "python_packages": {
+          "requests": "2.34.2",
+          "beautifulsoup4": "4.15.0"
+        },
+        "node_version": "v24.15.0",
+        "dotenv_loaded": false,
+        "inherited_credentials": false,
+        "timeout_note": "Harness 45s; unchanged CowAgent and OpenClaw internal HTTP defaults 30s; subprocess adapter has 5s shutdown allowance.",
+        "sources_sha256": {
+          "sources/dynamic-delayed/evidence.json": "26209353e22b59194c182985aa24f71301ce2da0e888e6b77a184f5a89cd4028",
+          "sources/dynamic-delayed/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/render-audit.json": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+          "sources/dynamic-delayed/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/initial.html.txt": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+          "sources/dynamic-products-api/evidence.json": "9be92f5c318cb0881e4807fc8b03cc73d2b28557e58b89056e646a763310bd99",
+          "sources/dynamic-products-api/reference.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/render-audit.json": "9c1705607ffca11287755bf973406111fde824cafab2f652e8509e1feeb914dc",
+          "sources/dynamic-products-api/rendered.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/initial.html.txt": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+          "sources/dynamic-catalog/evidence.json": "4d9909d4f38405587411daa60bd87b2f72f3e208e91906f62e94ba2ebd537bdc",
+          "sources/dynamic-catalog/reference.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/render-audit.json": "3ca7557260399e93b4fa70f353243c4bba9a286cbb04abe1533a6a43684b5c40",
+          "sources/dynamic-catalog/rendered.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/initial.html.txt": "e783830ff739f9007b90614a3c439fdab994fd33119a7326fff76299d6d31445",
+          "sources/dynamic-quotes-api/evidence.json": "cff06fde65caaf284b330a498ddf7e65a0b62c3ea6f0c92f3f6a716d4b319904",
+          "sources/dynamic-quotes-api/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/render-audit.json": "edfb44ada3e09556e79aad09ca658171a6391e6b840c300718da28d636a30442",
+          "sources/dynamic-quotes-api/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/initial.html.txt": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5"
+        },
+        "file_sha256": {
+          "runtime/node": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32",
+          "runtime/python": "58c3ee0adab49434db12179b5ea9a5538a723fc86a57cb411adf937b21b95f4b",
+          "harness/scripts/run_local_dynamic_builtins.py": "b0f553bae003883fc3b84aad8d7ffd314be3193ff31a48c4c04a9ffeb591965e",
+          "harness/configs/providers.resources.json": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+          "harness/harness/web_fetch/runner.py": "d92c941fc60506f03cb4aab5cf2957b8eee6fc182568f16df6383ded80280430",
+          "harness/harness/web_fetch/metrics.py": "dad1081297dc62ba2c9aa9f18ae492f8c228c50051596b4ca79999203fb225eb",
+          "harness/harness/web_fetch/providers/cowagent.py": "1ff2e8766a8a3522664222be64aece1291b76946a21ba8aabf4b5c2184b23dc8",
+          "harness/harness/web_fetch/providers/subprocess_jsonl.py": "d1dc9f5c9d51cec5e59248fbaa39b5b76f0be27cfeabb3091f3f1b6b6c65ab0e",
+          "harness/scripts/oss/openclaw_webfetch_worker.mts": "e77c9ebf53b6a32f640ba2e7aa6138b6ae94c42881ae08e0eb5e868e9333dba6",
+          "harness/scripts/oss/dsh_webfetch_worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "deepseek/node_modules/.pnpm/.browser-harness-dsh-worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "cowagent/agent/tools/web_fetch/web_fetch.py": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+          "cowagent/agent/tools/utils/url_safety.py": "d5aa4a05abb9a04e7392781b2db5abb21af1c500d7b8035fafec0ba94bc7a0a5",
+          "openclaw/src/agents/tools/web-fetch.ts": "bcb2f4d2fd86aa54f12eda2ce3b2421762b7493c07bd0db879897fd376034a86",
+          "openclaw/pnpm-lock.yaml": "70fea8f41ee6b40b8f039333f0896cbff765cf0f950de60f820ab46d9be92cae",
+          "deepseek/packages/web/web-fetch-http/src/provider.ts": "4f854483496c9af130c8ac578e0233c4d20e7af1879a49df73524271f4e1cc0b",
+          "deepseek/pnpm-lock.yaml": "17bbd38216e31a8b821957f77d2e3f57b859046cc3a18076ad16e94ca952a8da"
+        },
+        "repositories": {
+          "cowagent": {
+            "head": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+            "tracked_status": ""
+          },
+          "openclaw": {
+            "head": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "tracked_status": ""
+          },
+          "deepseek": {
+            "head": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "tracked_status": ""
+          }
+        },
+        "environment_policy": "Explicit clean environment; no dotenv or inherited credentials; isolated state and NETRC"
+      },
+      "reference_validation_sha256": "f7c2a030671068dd73ca55536472cc0051428737c9c810e79ee6d4d7e1713819"
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T05:36:32.289292+00:00",
+      "dataset": {
+        "id": "webfetch--local-dynamic-builtins",
+        "name": "Web Fetch 评测",
+        "source": "canonical dynamic cases, frozen in original order",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "openclaw-built-in",
+          "type": "openclaw_builtin",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 3,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json with explicit local runtime path overrides",
+      "completed_at": "2026-09-03T05:36:40.435012+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "openclaw-built-in__dynamic-quotes-api__r001",
+        "openclaw-built-in__dynamic-products-api__r001",
+        "openclaw-built-in__dynamic-catalog__r001",
+        "openclaw-built-in__dynamic-delayed__r001"
+      ],
+      "runtime_identity_sha256": "c1bce568d6946d051b83565797a5dc027a0e128db14960cd08e244eff73de6e6",
+      "dataset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+      "original_measurement_manifest_sha256": "ba6dd7638fb889b2642e53a431c597245e8be2fcc25497ddf3c026ed399ff81f",
+      "parent_measurement_manifest_sha256": "4bcf18972389ca7a50f5b8089ad8dde4a218c7054ba2de098c19eade7f249888",
+      "runtime_identity_evidence": {
+        "canonical_dataset_sha256": "5e4afc4d0a8870a802d8177810acc4578250a9e19f6dea9b65b0c166397d24b9",
+        "frozen_subset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+        "provider_config_sha256": "375175720a5259b313d24e6796b6acb3feadd23a3e20df2ecce7ee3bb46c686b",
+        "python": "3.13.3 (main, May 17 2025, 13:30:59) [Clang 20.1.4 ]",
+        "python_packages": {
+          "requests": "2.34.2",
+          "beautifulsoup4": "4.15.0"
+        },
+        "node_version": "v24.15.0",
+        "dotenv_loaded": false,
+        "inherited_credentials": false,
+        "timeout_note": "Harness 45s; unchanged CowAgent and OpenClaw internal HTTP defaults 30s; subprocess adapter has 5s shutdown allowance.",
+        "sources_sha256": {
+          "sources/dynamic-delayed/evidence.json": "26209353e22b59194c182985aa24f71301ce2da0e888e6b77a184f5a89cd4028",
+          "sources/dynamic-delayed/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/render-audit.json": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+          "sources/dynamic-delayed/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/initial.html.txt": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+          "sources/dynamic-products-api/evidence.json": "9be92f5c318cb0881e4807fc8b03cc73d2b28557e58b89056e646a763310bd99",
+          "sources/dynamic-products-api/reference.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/render-audit.json": "9c1705607ffca11287755bf973406111fde824cafab2f652e8509e1feeb914dc",
+          "sources/dynamic-products-api/rendered.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/initial.html.txt": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+          "sources/dynamic-catalog/evidence.json": "4d9909d4f38405587411daa60bd87b2f72f3e208e91906f62e94ba2ebd537bdc",
+          "sources/dynamic-catalog/reference.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/render-audit.json": "3ca7557260399e93b4fa70f353243c4bba9a286cbb04abe1533a6a43684b5c40",
+          "sources/dynamic-catalog/rendered.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/initial.html.txt": "e783830ff739f9007b90614a3c439fdab994fd33119a7326fff76299d6d31445",
+          "sources/dynamic-quotes-api/evidence.json": "cff06fde65caaf284b330a498ddf7e65a0b62c3ea6f0c92f3f6a716d4b319904",
+          "sources/dynamic-quotes-api/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/render-audit.json": "edfb44ada3e09556e79aad09ca658171a6391e6b840c300718da28d636a30442",
+          "sources/dynamic-quotes-api/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/initial.html.txt": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5"
+        },
+        "file_sha256": {
+          "runtime/node": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32",
+          "runtime/python": "58c3ee0adab49434db12179b5ea9a5538a723fc86a57cb411adf937b21b95f4b",
+          "harness/scripts/run_local_dynamic_builtins.py": "b0f553bae003883fc3b84aad8d7ffd314be3193ff31a48c4c04a9ffeb591965e",
+          "harness/configs/providers.resources.json": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+          "harness/harness/web_fetch/runner.py": "d92c941fc60506f03cb4aab5cf2957b8eee6fc182568f16df6383ded80280430",
+          "harness/harness/web_fetch/metrics.py": "dad1081297dc62ba2c9aa9f18ae492f8c228c50051596b4ca79999203fb225eb",
+          "harness/harness/web_fetch/providers/cowagent.py": "1ff2e8766a8a3522664222be64aece1291b76946a21ba8aabf4b5c2184b23dc8",
+          "harness/harness/web_fetch/providers/subprocess_jsonl.py": "d1dc9f5c9d51cec5e59248fbaa39b5b76f0be27cfeabb3091f3f1b6b6c65ab0e",
+          "harness/scripts/oss/openclaw_webfetch_worker.mts": "e77c9ebf53b6a32f640ba2e7aa6138b6ae94c42881ae08e0eb5e868e9333dba6",
+          "harness/scripts/oss/dsh_webfetch_worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "deepseek/node_modules/.pnpm/.browser-harness-dsh-worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "cowagent/agent/tools/web_fetch/web_fetch.py": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+          "cowagent/agent/tools/utils/url_safety.py": "d5aa4a05abb9a04e7392781b2db5abb21af1c500d7b8035fafec0ba94bc7a0a5",
+          "openclaw/src/agents/tools/web-fetch.ts": "bcb2f4d2fd86aa54f12eda2ce3b2421762b7493c07bd0db879897fd376034a86",
+          "openclaw/pnpm-lock.yaml": "70fea8f41ee6b40b8f039333f0896cbff765cf0f950de60f820ab46d9be92cae",
+          "deepseek/packages/web/web-fetch-http/src/provider.ts": "4f854483496c9af130c8ac578e0233c4d20e7af1879a49df73524271f4e1cc0b",
+          "deepseek/pnpm-lock.yaml": "17bbd38216e31a8b821957f77d2e3f57b859046cc3a18076ad16e94ca952a8da"
+        },
+        "repositories": {
+          "cowagent": {
+            "head": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+            "tracked_status": ""
+          },
+          "openclaw": {
+            "head": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "tracked_status": ""
+          },
+          "deepseek": {
+            "head": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "tracked_status": ""
+          }
+        },
+        "environment_policy": "Explicit clean environment; no dotenv or inherited credentials; isolated state and NETRC"
+      },
+      "reference_validation_sha256": "f7c2a030671068dd73ca55536472cc0051428737c9c810e79ee6d4d7e1713819"
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
+      "started_at": "2026-09-03T05:36:32.289292+00:00",
+      "dataset": {
+        "id": "webfetch--local-dynamic-builtins",
+        "name": "Web Fetch 评测",
+        "source": "canonical dynamic cases, frozen in original order",
+        "case_count": 4
+      },
+      "providers": [
+        {
+          "name": "deepseek-harness-built-in",
+          "type": "deepseek_harness_builtin",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45,
+        "delay": 0.5,
+        "provider_concurrency": 3,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.resources.json with explicit local runtime path overrides",
+      "completed_at": "2026-09-03T05:36:40.435012+00:00",
+      "attempt_count": 4,
+      "attempt_ids": [
+        "deepseek-harness-built-in__dynamic-quotes-api__r001",
+        "deepseek-harness-built-in__dynamic-products-api__r001",
+        "deepseek-harness-built-in__dynamic-catalog__r001",
+        "deepseek-harness-built-in__dynamic-delayed__r001"
+      ],
+      "runtime_identity_sha256": "c1bce568d6946d051b83565797a5dc027a0e128db14960cd08e244eff73de6e6",
+      "dataset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+      "original_measurement_manifest_sha256": "ba6dd7638fb889b2642e53a431c597245e8be2fcc25497ddf3c026ed399ff81f",
+      "parent_measurement_manifest_sha256": "4bcf18972389ca7a50f5b8089ad8dde4a218c7054ba2de098c19eade7f249888",
+      "runtime_identity_evidence": {
+        "canonical_dataset_sha256": "5e4afc4d0a8870a802d8177810acc4578250a9e19f6dea9b65b0c166397d24b9",
+        "frozen_subset_sha256": "f06a4981f3f0ea375c4bdf71c7e25dadbf5c9105f9219c67c13471d7fd6bfd50",
+        "provider_config_sha256": "375175720a5259b313d24e6796b6acb3feadd23a3e20df2ecce7ee3bb46c686b",
+        "python": "3.13.3 (main, May 17 2025, 13:30:59) [Clang 20.1.4 ]",
+        "python_packages": {
+          "requests": "2.34.2",
+          "beautifulsoup4": "4.15.0"
+        },
+        "node_version": "v24.15.0",
+        "dotenv_loaded": false,
+        "inherited_credentials": false,
+        "timeout_note": "Harness 45s; unchanged CowAgent and OpenClaw internal HTTP defaults 30s; subprocess adapter has 5s shutdown allowance.",
+        "sources_sha256": {
+          "sources/dynamic-delayed/evidence.json": "26209353e22b59194c182985aa24f71301ce2da0e888e6b77a184f5a89cd4028",
+          "sources/dynamic-delayed/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/render-audit.json": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+          "sources/dynamic-delayed/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-delayed/initial.html.txt": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+          "sources/dynamic-products-api/evidence.json": "9be92f5c318cb0881e4807fc8b03cc73d2b28557e58b89056e646a763310bd99",
+          "sources/dynamic-products-api/reference.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/render-audit.json": "9c1705607ffca11287755bf973406111fde824cafab2f652e8509e1feeb914dc",
+          "sources/dynamic-products-api/rendered.txt": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+          "sources/dynamic-products-api/initial.html.txt": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+          "sources/dynamic-catalog/evidence.json": "4d9909d4f38405587411daa60bd87b2f72f3e208e91906f62e94ba2ebd537bdc",
+          "sources/dynamic-catalog/reference.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/render-audit.json": "3ca7557260399e93b4fa70f353243c4bba9a286cbb04abe1533a6a43684b5c40",
+          "sources/dynamic-catalog/rendered.txt": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+          "sources/dynamic-catalog/initial.html.txt": "e783830ff739f9007b90614a3c439fdab994fd33119a7326fff76299d6d31445",
+          "sources/dynamic-quotes-api/evidence.json": "cff06fde65caaf284b330a498ddf7e65a0b62c3ea6f0c92f3f6a716d4b319904",
+          "sources/dynamic-quotes-api/reference.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/render-audit.json": "edfb44ada3e09556e79aad09ca658171a6391e6b840c300718da28d636a30442",
+          "sources/dynamic-quotes-api/rendered.txt": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+          "sources/dynamic-quotes-api/initial.html.txt": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5"
+        },
+        "file_sha256": {
+          "runtime/node": "3200fbd9f7fd4410426dd541e10d1ab829d3472f270d743c7fabd1696c03fe32",
+          "runtime/python": "58c3ee0adab49434db12179b5ea9a5538a723fc86a57cb411adf937b21b95f4b",
+          "harness/scripts/run_local_dynamic_builtins.py": "b0f553bae003883fc3b84aad8d7ffd314be3193ff31a48c4c04a9ffeb591965e",
+          "harness/configs/providers.resources.json": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+          "harness/harness/web_fetch/runner.py": "d92c941fc60506f03cb4aab5cf2957b8eee6fc182568f16df6383ded80280430",
+          "harness/harness/web_fetch/metrics.py": "dad1081297dc62ba2c9aa9f18ae492f8c228c50051596b4ca79999203fb225eb",
+          "harness/harness/web_fetch/providers/cowagent.py": "1ff2e8766a8a3522664222be64aece1291b76946a21ba8aabf4b5c2184b23dc8",
+          "harness/harness/web_fetch/providers/subprocess_jsonl.py": "d1dc9f5c9d51cec5e59248fbaa39b5b76f0be27cfeabb3091f3f1b6b6c65ab0e",
+          "harness/scripts/oss/openclaw_webfetch_worker.mts": "e77c9ebf53b6a32f640ba2e7aa6138b6ae94c42881ae08e0eb5e868e9333dba6",
+          "harness/scripts/oss/dsh_webfetch_worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "deepseek/node_modules/.pnpm/.browser-harness-dsh-worker.mts": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+          "cowagent/agent/tools/web_fetch/web_fetch.py": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+          "cowagent/agent/tools/utils/url_safety.py": "d5aa4a05abb9a04e7392781b2db5abb21af1c500d7b8035fafec0ba94bc7a0a5",
+          "openclaw/src/agents/tools/web-fetch.ts": "bcb2f4d2fd86aa54f12eda2ce3b2421762b7493c07bd0db879897fd376034a86",
+          "openclaw/pnpm-lock.yaml": "70fea8f41ee6b40b8f039333f0896cbff765cf0f950de60f820ab46d9be92cae",
+          "deepseek/packages/web/web-fetch-http/src/provider.ts": "4f854483496c9af130c8ac578e0233c4d20e7af1879a49df73524271f4e1cc0b",
+          "deepseek/pnpm-lock.yaml": "17bbd38216e31a8b821957f77d2e3f57b859046cc3a18076ad16e94ca952a8da"
+        },
+        "repositories": {
+          "cowagent": {
+            "head": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+            "tracked_status": ""
+          },
+          "openclaw": {
+            "head": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+            "tracked_status": ""
+          },
+          "deepseek": {
+            "head": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+            "tracked_status": ""
+          }
+        },
+        "environment_policy": "Explicit clean environment; no dotenv or inherited credentials; isolated state and NETRC"
+      },
+      "reference_validation_sha256": "f7c2a030671068dd73ca55536472cc0051428737c9c810e79ee6d4d7e1713819"
     }
   ]
 }

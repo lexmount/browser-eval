@@ -63,9 +63,12 @@
       "dynamic-quotes-api"
     ],
     "providers": [
+      "cowagent-built-in",
       "crawl4ai",
+      "deepseek-harness-built-in",
       "langchain-webbase",
-      "moli-webfetch"
+      "moli-webfetch",
+      "openclaw-built-in"
     ]
   },
   "image": {

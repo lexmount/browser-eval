@@ -8577,9 +8577,12 @@
   ],
   "coverage_plan": {
     "dynamic": [
+      "cowagent-built-in",
       "crawl4ai",
+      "deepseek-harness-built-in",
       "langchain-webbase",
-      "moli-webfetch"
+      "moli-webfetch",
+      "openclaw-built-in"
     ],
     "document": [
       "cloudflare-markdown",
