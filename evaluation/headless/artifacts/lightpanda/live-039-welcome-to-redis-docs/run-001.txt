@@ -1,0 +1,509 @@
+Docs
+=================================
+
+
+{"categories":null,"description":"","duplicateOf":"head:data-ai-metadata","location":"body","title":"Docs","tableOfContents":{"sections":[]},"codeExamples":[]}
+
+
+[                                                                  ](https://redis.io/)    
+
+
+[AI agent builder](/docs/latest/develop/ai/agent-builder/)             
+[          Redis install                  ](/docs/latest/operate/oss_and_stack/install/install-stack/)        [         
+Data types                  ](/docs/latest/develop/data-types/)            [Tools](/docs/latest/develop/tools/)     
+[Community](/docs/latest/operate/oss_and_stack/)      [Docs](https://redis.io/docs/)     
+
+
+Search            [Login](https://cloud.redis.io/)      [Sign up](https://redis.io/try-free/)       
+Open search                                    Open main menu             
+
+-         
+
+[AI agent builder                                              ](/docs/latest/develop/ai/agent-builder/)              
+-         
+
+[Redis install](/docs/latest/operate/oss_and_stack/install/install-stack/)      
+-         
+
+[Data types](/docs/latest/develop/data-types/)      
+-         
+
+[Tools](/docs/latest/develop/tools/)      
+-         
+
+[Community](/docs/latest/operate/oss_and_stack/)      
+-         
+
+[Docs](https://redis.io/docs/)      
+
+
+- [Sign up](https://redis.io/try-free/)
+-         [          Login                      ](https://cloud.redis.io/)      
+
+
+Docs            
+
+
+- [Develop with Redis](/docs/latest/develop)
+- [Libraries and tools](/docs/latest/integrate)
+- [Redis products](/docs/latest/operate)
+- [Commands](/docs/latest/commands)
+- [APIs](/docs/latest/apis)
+
+
+[Develop with Redis](/docs/latest/develop)            [Libraries and tools](/docs/latest/integrate)            [Redis products](/docs/latest/operate)           
+
+
+[Commands](/docs/latest/commands)            [APIs](/docs/latest/apis)           
+
+
+# Welcome to Redis Docs
+
+
+Quickly set up a Redis cache, primary, vector or custom database
+
+
+[              Develop with Redis Open Source            ](./develop/)            [              Run Redis in production            ](./operate/rc/)           
+
+
+## Develop in your language
+
+
+[                                                        
+
+
+](./develop/clients/jedis/)                        [               
+
+
+](./develop/clients/nodejs/)                        [               
+
+
+](./develop/clients/redis-py/)                        [               
+](./develop/clients/ruby/)                        [               
+
+
+](./develop/clients/dotnet/)                        [               
+
+](./develop/clients/go/)                        [               
+](./develop/clients/rust/)                        [               
+](https://redis.io/docs/latest/index.xml "description")                        [               
+](/docs/latest/images/favicons/apple-touch-icon-76x76.png "description")                        [               
+
+
+RedisVL            ](/docs/latest/scss/style.min.ffd35a3be9b20fcc50a3caf3964670dfd229adc7a66c976768747546ae98a824.css "description")           
+
+
+## Redis for AI and search
+
+
+[                                                    
+
+### Vector database
+
+Get started with vector databases
+](/docs/latest/fonts/SpaceMono-Regular.ttf "script")                            [                 
+
+### AI development
+
+Build AI applications with Redis
+](/docs/latest/fonts/SpaceMono-Regular.ttf "script")                            [                 
+
+### JSON
+
+Store and query JSON documents
+](/docs/latest/fonts/GeistMono-Regular.woff2 "script")                            [                 
+
+### Streams
+
+Real-time data streaming and event processing
+](script "script")                                    
+
+
+AI Applications                
+
+Chatbots, agents, RAG systems                                          
+
+
+[                                
+
+
+Real-time context engine                                
+
+Memory, retrieval, state, streaming                            
+](https://redis.io/ "×")                            
+
+
+AI models & infrastructure                
+
+LLMs, embeddings, vector models                                                  
+
+
+## From open source to production scale
+
+
+[                                                        
+
+### Redis Open Source
+
+Experimentation and local development
+
+- • Core data structures
+- • Vector search
+- • Streams & pub/sub
+- • Community support
+
+](https://redis.io/ "×")                        [                   
+
+### Redis Software
+
+Enterprise on-prem / hybrid
+
+- • Active-Active geo-distribution
+- • Auto-tiering
+- • 99.999% uptime SLA
+- • Enterprise support
+
+](https://redis.io/ "×")                        [                   
+
+### Redis for Kubernetes
+
+Enterprise on Kubernetes
+
+- • Cloud-native deployment
+- • Kubernetes operator
+- • Auto-scaling & HA
+- • Enterprise support
+
+](https://redis.io/ "×")                        [                   
+
+### Redis Cloud
+
+Global, managed, production workloads
+
+- • Fully managed service
+- • Fast cloud deployment
+- • Auto-scaling
+- • 24/7 support available
+
+](https://redis.io/ "×")                    
+
+
+Same Redis. Same APIs. Same data structures.            
+
+
+## Choose your next step
+
+
+### Build fast apps
+
+- [→ Redis vector library](https://redis.io/ "text/javascript")
+- [→ Python](https://redis.io/ "text/javascript")
+- [→ Node.js](https://redis.io/ "text/javascript")
+- [→ Ruby](https://redis.io/ "text/javascript")
+- [→ Java Jedis](https://redis.io/ "text/javascript")
+- [→ Java Lettuce](https://redis.io/ "text/javascript")
+- [→ C#/.NET](https://redis.io/ "text/javascript")
+- [→ Go](https://redis.io/ "text/javascript")
+- [→ Rust](https://redis.io/ "text/javascript")
+- [→ PHP](https://redis.io/ "text/javascript")
+- [→ C](https://redis.io/ "text/javascript")
+
+
+### Run Redis in production
+
+Deploy and scale Redis for production workloads
+
+- [→ Operate Redis](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+- [→ Flex](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+- [→ LangCache](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+- [→ LangChain](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+- [→ Amazon Bedrock](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+- [→ Spring Data](https://redis.io/ "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R")
+
+
+### Get Redis tools
+
+Explore CLI, GUI, VS Code, and MCP tools. Get started with JSON and vector queries
+in the Redis Sandbox.
+
+- [→ Client tools](https://redis.io/)
+- [→ Redis CLI](https://redis.io/)
+- [→ Redis Insight GUI](https://redis.io/)
+- [→ Redis for VS Code](https://redis.io/)
+- [→ Redis MCP](/docs/latest/develop/ai/agent-builder/)
+- [→ Try Redis Sandbox](/docs/latest/develop/ai/agent-builder/)
+
+
+## Data integration & observability
+
+
+[              
+### RIOT
+
+Redis Input/Output Tools for data migration
+](/docs/latest/develop/ai/agent-builder/)                        [              
+### Redis Data Integration
+
+Ingest live data from databases to Redis
+](/docs/latest/develop/ai/agent-builder/)                        [              
+### Prometheus & Grafana
+
+Collect and visualize Redis metrics
+](/docs/latest/develop/ai/agent-builder/)                        [              
+### Datadog
+
+Monitor Redis Cloud with Datadog
+](/docs/latest/develop/ai/agent-builder/)                        [              
+### Dynatrace
+
+Monitor Redis Cloud with Dynatrace
+](/docs/latest/develop/ai/agent-builder/)                        [              
+### New Relic
+
+Monitor Redis Cloud with New Relic
+](/docs/latest/develop/ai/agent-builder/)                            
+
+
+## Explore additional resources
+
+
+[              
+### Tutorials
+
+Step-by-step guides and examples
+](/docs/latest/develop/ai/agent-builder/)            [              
+### Redis University
+
+Free courses and certifications
+](/docs/latest/develop/ai/agent-builder/)            [              
+### Blog
+
+Latest updates and insights
+](/docs/latest/develop/ai/agent-builder/)            [              
+### Redis Knowledge Base
+
+Search support articles
+](/docs/latest/develop/ai/agent-builder/)                            
+
+
+## Contribute
+
+
+### Rate our pages
+
+You can rate any page of our docs at the bottom and give us your feedback
+
+
+### Contribute on GitHub
+
+Provide feedback or contribute to our documentation
+[View repository →](/docs/latest/develop/tools/)                 
+
+
+### Improve our AI chatbot
+
+Provide feedback on AI chatbot answers to help us improve
+[Try the chatbot →](/docs/latest/operate/oss_and_stack/)             
+
+
+### AI Agent Resources
+
+Documentation and guides for AI agents
+[Explore resources →](https://cloud.redis.io/)                   
+
+
+[                                                                      ](/docs/latest/develop/ai/agent-builder/)      
+
+
+[                      ](https://redis.io/try-free/)          [             
+](/docs/latest/develop)          [                      ](/docs/latest/develop)          [             
+](/docs/latest/develop)          [                      ](/docs/latest/develop)          [             
+](/docs/latest/commands)                    
+
+[Trust](./develop/)        [Privacy](./develop/)        [Terms of use](./develop/)        [Legal notices](./develop/)       
+
+
+### Compare
+
+
+[Redis vs Elasticache](./operate/rc/)          [Redis vs Memcached](./operate/rc/)          [Redis vs Memory Store](./develop/clients/jedis/)          [Redis vs. Open Source](./develop/clients/jedis/)         
+
+
+### Company
+
+
+[Mission & values](./develop/clients/jedis/)[Leadership](./develop/clients/jedis/)          [Careers](./develop/clients/jedis/)         
+
+
+### Partners
+
+
+[Amazon Web Services](./develop/clients/nodejs/)          [Google Cloud](./develop/clients/nodejs/)          [Microsoft Azure](./develop/clients/nodejs/)          [All partners](./develop/clients/nodejs/)         
+
+
+### Support
+
+
+[Professional            services](./develop/clients/nodejs/)[Support](./develop/clients/nodejs/)         
+
+
+[Trust](./develop/clients/nodejs/)      [Privacy](./develop/clients/nodejs/)      [Terms of use](./develop/clients/nodejs/)      [Legal notices](./develop/clients/nodejs/)     
+');    background-repeat: no-repeat;    background-position: right 1rem center;
+background-size: 1rem;  }  .search-magnifier-label svg {    color: #9ca3af;  }
+.search-item-title {    font-weight: 500;  }  .search-item-path {    font-size:
+0.875rem;    color: #9ca3af;  }  .search-term-match {    background-color: #fbbf24;
+color: #1f2937;    padding: 0.125rem 0.25rem;    border-radius: 0.25rem;  }
+
+
+All products  
+Redis Software  
+Redis Cloud  
+Redis Open Source  
+Redis Insight  
+Redis Enterprise for K8s  
+Redis Data Integration  
+Client Libraries  
+ESC         {          const req = new XMLHttpRequest()      
+req.open('GET', url)          req.onload = function() {            if (req.status
+=== 200) {              resolve(JSON.parse(req.response))            } else {    
+reject(Error(req.status))            }          }          req.send()  
+})          return promise      }        function sortData(data) {         
+const deriveCategory = (record) => {          const url = (record && record.url)
+|| ''          if (/^https?:\\/\\/(www\\.)?redis\\.io\\/blog(\\/|$|\\?|#)/i.test(url))
+return 'Blog'          if (/^https?:\\/\\/(www\\.)?redis\\.io\\/tutorials(\\/|$|\\?|#)/i.test(url))
+return 'Tutorials'          if (/^https?:\\/\\/support\\.redislabs\\.com(\\/|$|\\?|#)/i.test(url))
+return 'Support'          return record.hierarchy && record.hierarchy[0]        }
+const getCategories = (data) =>          data.reduce((a, c) => {  
+const cat = deriveCategory(c)            if (!a.includes(cat)) {       
+a.push(cat)            }            return a          }, [])              
+const constructSectionTitle = (record) => {          if (record.hierarchy &&
+record.hierarchy.length > 2) {            return record.hierarchy[1]          }
+else {            return record.title          }        }                const mergeData
+= (data, categories) =>          categories.map((category) => {            const
+obj = {}            obj.category = category              data.forEach((record) =>
+{              if (deriveCategory(record) === category) {                obj[record.title]
+= {                  path: constructSectionTitle(record),                  product:
+record.hierarchy[2],                  url: record.url,                }          
+}            })              return obj          })          return mergeData(data.results,
+getCategories(data.results))      }        function escape_evil_chars(str_in) {  
+return str_in.replaceAll('>','>').replaceAll('${escapedSearchTerm}:     
+No results for \\"${escapedSearchTerm}\\"            \`     
+)        } else {          sortData(data).forEach((result) => {           
+resultsContainer.insertAdjacentHTML(              'beforeend',               \`
+${result.category}              \`            )            delete
+result.category            Object.keys(result).forEach((key, index) => {         
+resultsContainer.insertAdjacentHTML(                'beforeend',            
+\`                  [                                                        
+${result[key].path && result[key].product ? \`
+
+${result[key].path}→${result[key].product}\` : ''}                      ${key.replace(new
+RegExp(\`(^|)(${searchTerm})(|$)\`, 'ig'), '$1**$2**$3')}                        
+](./develop/clients/go/ "sr-only w-screen h-screen fixed z-[200] top-0 left-0 cursor-auto flex flex-col bg-redis-ink-900/75 p-4 sm:p-6 md:p-[10vh] lg:p-[12vh]")               
+\`              )            })                        if
+(!resultsContainer.querySelector('[aria-selected]'))
+resultsContainer.querySelector('.search-item').setAttribute('aria-selected', '')
+})        }        return      }        function displayError(error) {  
+console.log(error)      }             
+search(\`\\/convai\\/api\\/search-service?q=${searchTerm}\*&p=${searchProduct}&site=${searchSite}\`)
+.then(displayData)          .catch(displayError)          }      function
+loadHandler(event) {      style.innerHTML = \`        [data-scroll-disabled="on"],
+[data-scroll-disabled="on"] body {          touch-action: none;          
+overscroll-behavior: none;          -webkit-overflow-scrolling: auto;          overflow:
+hidden;        }          [data-scroll-disabled="on"] .sticky {          position:
+fixed;        }      \`        document.head.appendChild(style)     
+document.documentElement.dataset.searchState = 'off'    }      function getNextSibling(elem,
+selector, direction) {      let sibling = direction === 'down' ? elem.nextElementSibling
+: elem.previousElementSibling          while (sibling) {        if (sibling.matches(selector))
+return sibling        sibling = direction === 'down' ? sibling.nextElementSibling
+: sibling.previousElementSibling      }    }      function tabSelection(direction)
+{      const currentSelection = resultsContainer.querySelector('[aria-selected]')
+if (!currentSelection || direction === 'down' && !currentSelection.nextElementSibling
+|| direction === 'up' && !currentSelection.previousElementSibling) return false  
+const nextSelection = getNextSibling(currentSelection, '.search-item',
+direction)      if (!nextSelection) return false           
+nextSelection.setAttribute('aria-selected', '')     
+currentSelection.removeAttribute('aria-selected')      resultsContainer.scrollTop
+= nextSelection.offsetTop - resultsContainer.offsetTop    }        function keyDownHandler(event)
+{      switch (event.key) {                  case 'ArrowDown':          if
+(document.documentElement.dataset.searchState === 'off' || !document.querySelector('.search-item'))
+return false          event.preventDefault()          tabSelection('down')       
+break          case 'ArrowUp':          if (document.documentElement.dataset.searchState
+=== 'off' || !document.querySelector('.search-item')) return false          event.preventDefault()
+tabSelection('up')          break                  case 'Tab':          
+if (document.documentElement.dataset.searchState === 'off') return false         
+if (focusable.length === 1) {            event.preventDefault()            break
+}                      if (event.shiftKey) {            if (document.activeElement
+=== firstFocusable) {              event.preventDefault()              lastFocusable.focus()
+}                        } else {            if (document.activeElement
+=== lastFocusable) {              event.preventDefault()              firstFocusable.focus()
+}          }          break                  case 'Escape':          if
+(document.documentElement.dataset.searchState === 'off') return false          stopSearch()
+break                        case 'Enter':          if
+(!document.querySelector('.search-item:focus-within') &&
+document.querySelector('.search-item[aria-selected]')) {            event.preventDefault()
+document.querySelector('.search-item[aria-selected] a').click()       
+}          break                  case '/':          if
+(document.documentElement.dataset.searchState === 'on') return false         
+event.preventDefault()          startSearch()          break                    
+default:          return false          break      }    }    function changeHandler(event)
+{      searchSubmit(document.activeElement.closest('form'))    }      function keyUpHandler(event)
+{      if (document.documentElement.dataset.searchState === 'off' ||
+!document.activeElement.matches('.search-input')) return false      switch (event.key)
+{        case 'Meta':          return false          break        case 'ArrowDown':
+return false          break        case 'ArrowUp':          return false
+break        case 'ArrowLeft':          return false          break     
+case 'ArrowRight':          return false          break        case 'Tab':    
+return false          break        case 'Escape':          return false    
+break        case 'Enter':          return false          break        case
+'/':          return false          break        default:         
+searchSubmit(document.activeElement.closest('form'))          break      }    }
+function multiKeyHandler(event) {      if (document.documentElement.dataset.searchState
+=== 'on') return false        let { key, type } = event      let isKeyDown = (type
+== 'keydown')      keys[key] = isKeyDown              if (isKeyDown && (keys.Control
+|| keys.Meta) && keys.k) {        event.preventDefault()        startSearch()    
+}    }          function clickHandler(event) {      if (event.target.closest('#search-button')
+|| event.target.closest('#search-button-mobile')) {        startSearch()      } else
+if (event.target.closest('#search-cancel') || event.target.matches('#search-container'))
+{        stopSearch()      }    }      function startSearch() {     
+sessionStorage.setItem('scroll-position', document.documentElement.scrollTop)   
+document.documentElement.dataset.scrollDisabled = 'on'     
+document.documentElement.dataset.searchState = 'on'      allowFocus(searchContainer,
+true)      trapFocus(searchContainer)      searchInput.focus()    }      function
+stopSearch() {      document.documentElement.dataset.searchState = 'off'     
+document.documentElement.dataset.scrollDisabled = 'off'      document.documentElement.scrollTop
+= sessionStorage.getItem('scroll-position')      allowFocus(searchContainer, false)
+document.activeElement.blur()      resultsContainer.innerHTML = ''      searchInput.value
+= ''      keys = {}    }      function submitHandler(event) {      if (event.target.id
+=== 'search-form') {        event.preventDefault()        return false      }    
+}      function allowFocus(selector, state) {      const focusable =
+selector.querySelectorAll('button, [href], input, select, textarea')      focusable.forEach(el
+=> el.setAttribute('tabindex', state ? '' : '-1'))      selector.classList.toggle('sr-only')
+}      function trapFocus(selector) {      focusable = selector.querySelectorAll('button,
+[href], input, select, textarea, [tabindex]:not([tabindex="-1"]')      firstFocusable
+= focusable[0]      lastFocusable = focusable[focusable.length - 1]    }         
+document.addEventListener('DOMContentLoaded', loadHandler)    document.addEventListener('click',
+clickHandler)    document.addEventListener('keydown', event => debounce(keyDownHandler(event),
+100))    document.addEventListener('keyup', event => debounce(keyUpHandler(event),
+100))    searchSelect.addEventListener('change', event => debounce(changeHandler(event),
+100))    document.addEventListener('keydown', multiKeyHandler)    document.addEventListener('keyup',
+multiKeyHandler)    document.addEventListener('submit', submitHandler)  })()'s scroll-behavior
+so anchor nav / scrollIntoView() keep the             host's smooth scroll instead
+of body's UA-default 'auto'. \*/          scroll-behavior: inherit !important;   
+}        [data-q-overflow-trap] {          /\* clip: not a scroll container
+(wheel passes through to body)             while preserving the host's intentional
+clipping. \*/          overflow: clip !important;          /\* clip does NOT establish
+a block formatting context, so a host             that relied on its own 'overflow:
+hidden'/'auto' to contain a             floated child (e.g. a 'float: left' main)
+loses that containment             once we override to clip — the child escapes
+and the trap             collapses to near-zero height, clipping the page blank.
+'contain: layout' re-establishes an independent formatting context   
+that contains the float without turning the element into a scroll      
+container. \*/          contain: layout !important;        }       
+html[data-q-margin-swapped] {          padding: 0 !important;        }       
+body[data-q-margin-swapped] {          margin-top: 0px !important;          padding-top:
+calc(            var(--q-orig-padding-top, 0px) +            var(--q-orig-margin-top,
+0px) +            var(--q-html-orig-padding-top, 0px)          ) !important;     
+}        [data-q-bg-override] {          background: transparent !important;  
+}      
+
+

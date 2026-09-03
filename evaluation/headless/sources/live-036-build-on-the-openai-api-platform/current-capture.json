@@ -1,0 +1,36 @@
+{
+  "case_id": "live-036-build-on-the-openai-api-platform",
+  "url": "https://developers.openai.com/api/docs",
+  "checked_at": "2026-09-03T14:15:47.188023+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://developers.openai.com/api/docs"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://developers.openai.com/api/docs",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 367330,
+  "sha256": "c892135bdd8a407bf07b26819603d8c2c06399962f46ab145a5f28cf26971d16",
+  "response_headers": {
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "OpenAI API Platform Documentation",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://developers.openai.com/OpenAI_Developers.svg",
+      "alt": "OpenAI Developers"
+    }
+  ],
+  "extracted_sha256": "3ef938827d4be0a5f1cbfa9833aad1b847696e1889af826b9444e49e28db58da",
+  "reference_sha256": "3ef938827d4be0a5f1cbfa9833aad1b847696e1889af826b9444e49e28db58da",
+  "text_chars": 4493,
+  "excerpt": "API Platform\nDeveloper quickstart\nMake your first API request in minutes. Learn the basics of the OpenAI platform.\nGet started\nCreate API key\nJavaScript\ncurl https://api.openai.com/v1/responses \\\n-H \"Content-Type: application/json\" \\\n-H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n-d '{\n\"model\": \"gpt-5.6\",\n\"input\": \"Write a short bedtime story about a unicorn.\"\n}'\nimport\nOpenAI\nfrom\n\"openai\"\n;\nconst\nclient\n=\nnew\nOpenAI\n();\nconst\nresponse\n=\nawait\nclient.responses.\ncreate\n({\nmodel:\n\"gpt-5.6\"\n,\ninput:\n\"Write a short bedtime story about a unicorn.\"\n,\n});\nconsole.\nlog\n(response.output_text);\nfrom openai import OpenAI\nclient = OpenAI()\nresponse = client.responses.create(model=\"gpt-5.6\", input=\"Write a short bedtime story about a unicorn.\")\nprint(response.output_text)\npackage main\nimport (\n\"context\"",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

@@ -1,0 +1,466 @@
+Cache - Web APIs | MDN
+====================================================
+
+
+.token.string{--csstools-light-dark-toggle-92f7e96b-6:var(--csstools-color-scheme--light)
+#bea5ff;color:var(--csstools-light-dark-toggle-92f7e96b-6,#872bff);color:light-dark(#872bff,#bea5ff)}:is(.code-example,.css-formal-syntax)
+.token.bold,:is(.code-example,.css-formal-syntax)
+.token.important{font-weight:700}:is(.code-example,.css-formal-syntax)
+.token.italic{font-style:italic}:is(.code-example,.css-formal-syntax)
+.token.entity{cursor:help}.content-section{line-height:var(--font-line-content)}.content-section
+:target{scroll-margin-top:var(--sticky-header-height)}.content-section h2,.content-section
+h3,.content-section h4,.content-section h5,.content-section
+h6{font-weight:var(--font-weight-normal);line-height:var(--font-line-header);margin:1rem
+0 0}:is(.content-section h2,.content-section h3,.content-section h4,.content-section
+h5,.content-section h6) code{padding:0 .125em}.content-section
+h2{font-size:var(--font-size-larger)}.content-section
+h3{font-size:var(--font-size-large)}.content-section
+h4{font-size:var(--font-size-medium)}.content-section h5,.content-section
+h6{font-size:var(--font-size-normal);font-weight:var(--font-weight-bold)}:is(.content-section
+a):visited{color:var(--color-link-visited)}:is(.content-section
+a):not([href^="#"]){-webkit-text-decoration:underline;text-decoration:underline}:is(.content-section
+a):not([href^="#"]):hover,[href^="#"]:is(.content-section
+a){-webkit-text-decoration:none;text-decoration:none}[href^="#"]:is(.content-section
+a):hover{-webkit-text-decoration:underline;text-decoration:underline}.content-section
+blockquote{border-inline-start:.25rem solid
+var(--color-border-primary);color:var(--color-text-secondary);margin-inline:0}:is(.content-section
+blockquote)>p{padding:1rem 2rem}.content-section code,.content-section
+pre{background-color:var(--color-background-secondary);font-family:var(--font-family-code)}.content-section
+pre{white-space:pre-wrap}.content-section pre:not(.code-example pre){border:1px solid
+var(--color-border-primary);border-radius:.25rem;overflow:auto;padding:1rem}.css-formal-syntax:is(.content-section
+pre:not(.code-example
+pre)){border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;text-wrap:wrap}.css-formal-syntax:is(.content-section
+pre:not(.code-example pre))~footer{border:1px solid
+var(--color-border-primary);border-bottom-left-radius:.25rem;border-bottom-right-radius:.25rem;border-top:0;margin-bottom:1rem;padding:.5rem
+1rem}.example-bad:is(.content-section pre:not(.code-example pre)),.example-good:is(.content-section
+pre:not(.code-example
+pre)){display:flex;justify-content:space-between}:is(.example-good:is(.content-section
+pre:not(.code-example pre)),.example-bad:is(.content-section pre:not(.code-example
+pre))):after{content:"";display:inline-block;flex-shrink:0;height:var(--font-size-medium);mask-size:cover;width:var(--font-size-medium)}.example-good:is(.content-section
+pre:not(.code-example
+pre)){background-color:var(--color-background-green)}.example-good:is(.content-section
+pre:not(.code-example
+pre)):after{background-color:var(--color-text-green);mask-image:url("https://developer.mozilla.org/static/client/circle-check.205f48f66c3c9d17.svg")}.example-bad:is(.content-section
+pre:not(.code-example
+pre)){background-color:var(--color-background-red)}.example-bad:is(.content-section
+pre:not(.code-example
+pre)):after{background-color:var(--color-text-red);mask-image:url("https://developer.mozilla.org/static/client/circle-x.4b1c3fa0511867e7.svg")}.content-section
+code{border-radius:var(--radius-normal);padding:.125em .25em}.content-section
+kbd{background-color:var(--color-background-primary);border:solid
+var(--color-border-primary);border-radius:var(--radius-normal);border-width:1px
+1px 2px;color:var(--color-text-secondary);font-family:var(--font-family-code);padding:.0625em
+.125em}.content-section img{background-color:var(--color-white);display:block;margin:2rem
+auto}.content-section iframe,.content-section img{border:1px solid
+var(--color-border-primary);border-radius:.25rem}.content-section
+table{border-collapse:collapse;width:100%}:is(.content-section table)
+tr{background-color:var(--color-background-primary)}:is(.content-section table)
+thead tr,:is(.content-section table)
+tr:nth-of-type(2n){background-color:var(--color-background-page)}:is(.content-section
+table) td,:is(.content-section table) th{border:1px solid var(--color-border-primary);padding:.5rem
+.75rem}:is(.content-section table)
+th{font-weight:var(--font-weight-bold);text-align:left}.properties:is(.content-section
+table) td,.properties:is(.content-section table) th{border-width:1px
+0}.properties:is(.content-section table)
+th{background-color:initial;font-weight:var(--font-weight-bold);min-width:25%}.content-section
+.code-example,.content-section .table-container,.content-section mdn-code-example,.content-section
+mdn-live-sample-result{margin:1rem 0}:is(.content-section .code-example,.content-section
+mdn-code-example,.content-section mdn-live-sample-result)+:is(.content-section
+.code-example,.content-section mdn-code-example,.content-section
+mdn-live-sample-result){margin-top:1.5rem}.content-section
+interactive-example{display:block;height:375px;margin:1rem 0}[name^="JavaScript
+Demo:" i]:is(.content-section interactive-example){height:444px}[height=shorter]:is(.content-section
+interactive-example){height:364px}[height=taller]:is(.content-section
+interactive-example){height:654px}[height=tabbed-shorter]:is(.content-section
+interactive-example){height:351px;margin-top:1.5rem}[height=tabbed-standard]:is(.content-section
+interactive-example){height:421px}[height=tabbed-taller]:is(.content-section
+interactive-example){height:631px}@media (width
+summary{margin-bottom:.5rem}:is([open]:is(:is(.content-section ul.specifications-list)
+details)>summary):before{transform:rotate(90deg)}:is(:is(.content-section ul.specifications-list)
+details) summary{align-items:center;cursor:pointer;display:flex}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):before{background-color:currentcolor;content:"";display:inline-block;flex-shrink:0;height:1rem;margin:.125rem;mask-image:url("https://developer.mozilla.org/static/client/chevron-right.a81fc439dd5e4839.svg");mask-size:cover;width:1rem}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):hover{background-color:var(--color-background-secondary)}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):hover:has(a:hover){background-color:unset}:is(.content-section .index)
+.index-nav
+ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(1.75rem,1fr));list-style:none;padding:0}:is(:is(.content-section
+.index) .index-nav ul) li{margin:0;text-align:center}:is(:is(.content-section .index)
+.index-nav ul) a{display:block}:is(.content-section
+.index)>ul{column-gap:2rem;columns:18rem}:is(.content-section .index)
+li{break-inside:avoid;page-break-inside:avoid}:is(.content-section .index)
+.icon{margin-left:.5ch}.content-section.article-footer{margin:2rem 0}/\*#
+sourceMappingURL=styles-content-section.1eb240d1720d8ac3.css.map\*/
+1044px){:root{--navigation-height:4.125rem}.navigation{align-items:center;column-gap:1rem;display:grid;grid-template-columns:min-content
+1fr min-content
+min-content;height:var(--navigation-height);justify-items:center;padding-block:.75rem;padding-inline:var(--layout-side-padding)}.navigation__logo{margin-inline-start:-6px}.navigation__popup{display:contents}.navigation__button,.navigation__search[data-view=mobile]{display:none}.navigation__search[data-view=desktop]{display:block}mdn-user-menu{height:2.125rem;width:2.125rem}}/\*#
+sourceMappingURL=styles-navigation.c3ebf384e65df345.css.map\*/
+1044px){.menu{--menu-button-padding:0.5rem
+0.7rem;position:relative}.menu,.menu__tab-button{align-items:center;display:flex}.menu__tab-button{border:1px
+solid
+#0000;border-bottom:none;column-gap:.125rem;padding:var(--menu-button-padding)}.menu__tab-button[aria-expanded=true]{position:relative;z-index:1}.menu__tab-button:after{margin-right:-4px}.menu__tab-link{padding:var(--menu-button-padding)}.menu__tab-label[data-type=short]{display:none}@media
+(width                                 
+-         [Skip to main content](/static/client/270.66bae6059a1c23f9.css "#")      
+-         [Skip to search](/static/client/270.66bae6059a1c23f9.css "#")      
+
+
+[                  MDN
+============================
+
+](/static/client/270.66bae6059a1c23f9.css "#")     
+
+
+HTML                       
+
+
+[ /en-US/docs/Web/HTML">HTML: Markup language            
+
+
+HTML reference           
+
+-                                   [ /en-US/docs/Web/HTML/Reference/Elements">Elements                                -                                    /en-US/docs/Web/HTML/Reference/Global_attributes">Global attributes                                -                                    /en-US/docs/Web/HTML/Reference/Attributes">Attributes                                -                                    /en-US/docs/Web/HTML/Reference">See all…                                                                                                                        HTML guides                                                            -                                    /en-US/docs/Web/HTML/Guides/Responsive_images">Responsive images                                -                                    /en-US/docs/Web/HTML/Guides/Cheatsheet">HTML cheatsheet                                -                                    /en-US/docs/Web/HTML/Guides/Date_and_time_formats">Date & time formats                                -                                    /en-US/docs/Web/HTML/Guides">See all…                                                                                                                        Markup languages                                                            -                                    /en-US/docs/Web/SVG">SVG                                -                                    /en-US/docs/Web/MathML">MathML                                -                                    /en-US/docs/Web/XML">XML                                                                                                                                                              
+
+CSS                                        
+
+[ /en-US/docs/Web/CSS">CSS: Styling language                                            
+
+CSS reference                                                            -                                   [ /en-US/docs/Web/CSS/Reference/Properties">Properties                                -                                    /en-US/docs/Web/CSS/Reference/Selectors">Selectors                                -                                    /en-US/docs/Web/CSS/Reference/At-rules">At-rules                                -                                    /en-US/docs/Web/CSS/Reference/Values">Values                                -                                    /en-US/docs/Web/CSS/Reference">See all…                                                                                                                        CSS guides                                                            -                                    /en-US/docs/Web/CSS/Guides/Box_model/Introduction">Box model                                -                                    /en-US/docs/Web/CSS/Guides/Animations/Using">Animations                                -                                    /en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts">Flexbox                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Applying_color">Colors                                -                                    /en-US/docs/Web/CSS/Guides">See all…                                                                                                                        Layout cookbook                                                            -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts">Column layouts                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element">Centering an element                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Card">Card component                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook">See all…                                                                                                                                                              
+
+JavaScriptJS                                        
+
+[ /en-US/docs/Web/JavaScript">JavaScript: Scripting language                                            
+
+JS reference                                                            -                                   [ /en-US/docs/Web/JavaScript/Reference/Global_Objects">Standard built-in objects                                -                                    /en-US/docs/Web/JavaScript/Reference/Operators">Expressions & operators                                -                                    /en-US/docs/Web/JavaScript/Reference/Statements">Statements & declarations                                -                                    /en-US/docs/Web/JavaScript/Reference/Functions">Functions                                -                                    /en-US/docs/Web/JavaScript/Reference">See all…                                                                                                                        JS guides                                                            -                                    /en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling">Control flow & error handing                                -                                    /en-US/docs/Web/JavaScript/Guide/Loops_and_iteration">Loops and iteration                                -                                    /en-US/docs/Web/JavaScript/Guide/Working_with_objects">Working with objects                                -                                    /en-US/docs/Web/JavaScript/Guide/Using_classes">Using classes                                -                                    /en-US/docs/Web/JavaScript/Guide">See all…                                                                                                                                                              
+
+Web APIs                                        
+
+[ /en-US/docs/Web/API">Web APIs: Programming interfaces                                            
+
+Web API reference                                                            -                                   [ /en-US/docs/Web/API/File_System_API">File system API                                -                                    /en-US/docs/Web/API/Fetch_API">Fetch API                                -                                    /en-US/docs/Web/API/Geolocation_API">Geolocation API                                -                                    /en-US/docs/Web/API/HTML_DOM_API">HTML DOM API                                -                                    /en-US/docs/Web/API/Push_API">Push API                                -                                    /en-US/docs/Web/API/Service_Worker_API">Service worker API                                -                                    /en-US/docs/Web/API">See all…                                                                                                                        Web API guides                                                            -                                    /en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API">Using the Web animation API                                -                                    /en-US/docs/Web/API/Fetch_API/Using_Fetch">Using the Fetch API                                -                                    /en-US/docs/Web/API/History_API/Working_with_the_History_API">Working with the History API                                -                                    /en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API">Using the Web speech API                                -                                    /en-US/docs/Web/API/Web_Workers_API/Using_web_workers">Using web workers                                                                                                                                                              
+
+All                                        
+
+[ /en-US/docs/Web">All web technology                                            
+
+Technologies                                                            -                                   [ /en-US/docs/Web/Accessibility">Accessibility                                -                                    /en-US/docs/Web/HTTP">HTTP                                -                                    /en-US/docs/Web/URI">URI                                -                                    /en-US/docs/Mozilla/Add-ons/WebExtensions">Web extensions                                -                                    /en-US/docs/WebAssembly">WebAssembly                                -                                    /en-US/docs/Web/WebDriver">WebDriver                                -                                    /en-US/docs/Web">See all…                                                                                                                        Topics                                                            -                                    /en-US/docs/Web/Media">Media                                -                                    /en-US/docs/Web/Performance">Performance                                -                                    /en-US/docs/Web/Privacy">Privacy                                -                                    /en-US/docs/Web/Security">Security                                -                                    /en-US/docs/Web/Progressive_web_apps">Progressive web apps                                                                                                                                                              
+
+Learn                                        
+
+[ /en-US/docs/Learn_web_development">Learn web development                                            
+
+Frontend developer course                                                            -                                   [ /en-US/docs/Learn_web_development/Getting_started">Getting started modules                                -                                    /en-US/docs/Learn_web_development/Core">Core modules                                -                                    /en-US/curriculum/">MDN Curriculum                                -                                   [ https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar">Check out the video course from Scrimba, our partner                                                                                                                        Learn HTML                                                            -                                    /en-US/docs/Learn_web_development/Core/Structuring_content">Structuring content with HTML module                                                                                                                        Learn CSS                                                            -                                    /en-US/docs/Learn_web_development/Core/Styling_basics">CSS styling basics module                                -                                    /en-US/docs/Learn_web_development/Core/CSS_layout">CSS layout module                                                                                                                        Learn JavaScript                                                            -                                    /en-US/docs/Learn_web_development/Core/Scripting">Dynamic scripting with JavaScript module                                                                                                                                                              
+
+Tools                                        
+
+Discover our tools                      
+
+
+-                                   [ /en-US/play">Playground                                -                                   [ /en-US/observatory">HTTP Observatory                                                                                      -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator">Border-image generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator">Border-radius generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator">Box-shadow generator                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_format_converter">Color format converter                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_mixer">Color mixer                                -                                    /en-US/docs/Web/CSS/Guides/Shapes/Shape_generator">Shape generator                                                                                                                                
+
+About                                        
+
+Get to know MDN better                      
+
+
+-                                   [ /en-US/about">About MDN                                -                                   [ /en-US/advertising">Advertise with us                                                                                      -                                   [ /en-US/community">Community                                -                                   [ https://github.com/mdn">MDN on GitHub                                                                                                                                
+
+[ /en-US/blog/">Blog                              
+
+
+1.               [Web](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")                          
+2.               [Web APIs](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")                          
+3.               [Cache](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")                          
+
+
+# Cache
+
+
+Baseline                                      Widely available                                                                            
+
+
+This feature is well established and works across many devices and browser versions. It’s been available across browsers since April 2018.
+-             [              Learn more            ](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")          
+-             [              See full compatibility            ](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")          
+
+
+**Secure context:** This feature is available only in [secure contexts](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet") (HTTPS), in some or all [supporting browsers](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet").
+
+
+**Note:** This feature is available in [Web Workers](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet").
+
+The **`Cache`** interface provides a persistent storage mechanism for [`Request`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet") / [`Response`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet") object pairs that are cached in long lived memory. How long a `Cache`
+object lives is browser dependent, but a single origin's scripts can typically rely
+on the presence of a previously populated `Cache` object. Note that the `Cache` interface is
+exposed to windowed scopes as well as workers. You don't have to use it in conjunction
+with service workers, even though it is defined in the service worker spec.
+
+An origin can have multiple, named `Cache` objects. You are responsible for implementing
+how your script (e.g., in a [`ServiceWorker`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet")) handles `Cache`
+updates. Items in a `Cache` do not get updated unless explicitly requested; they don't
+expire unless deleted. Use [`CacheStorage.open()`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "stylesheet") to open a specific named `Cache`
+object and then call any of the `Cache` methods to maintain the `Cache`.
+
+You are also responsible for periodically purging cache entries. Each browser has
+a hard limit on the amount of cache storage that a given origin can use. `Cache` quota
+usage estimates are available via the [`StorageManager.estimate()`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") method. The browser does its best to manage disk space, but it may delete the `Cache`
+storage for an origin. The browser will generally delete all of the data for an origin
+or none of the data for an origin. Make sure to version caches by name and use the
+caches only from the version of the script that they can safely operate on. See [Deleting old caches](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") for more information.
+
+
+**Note:**The key matching algorithm depends on the [VARY header](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") in the value. So matching a new key requires looking at both key and value for entries in the `Cache`
+object.
+
+
+**Note:**The caching API doesn't honor HTTP caching headers.
+
+## In this article
+
+-               [Instance methods](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Examples](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Specifications](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Browser compatibility](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [See also](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+
+
+## [Instance methods](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+[`Cache.match()`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Returns a [`Promise`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") that resolves to the response associated with the first matching request in the `Cache`
+object.
+[`Cache.matchAll()`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Returns a [`Promise`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") that resolves to an array of all matching responses in the `Cache`
+object.
+[`Cache.add()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Takes a URL, retrieves it and adds the resulting response object to the given cache.
+This is functionally equivalent to calling `fetch()`, then using `put()` to add the results to
+the cache.
+[`Cache.addAll()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Takes an array of URLs, retrieves them, and adds the resulting response objects to
+the given cache.
+[`Cache.put()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Takes both a request and its response and adds it to the given cache.
+[`Cache.delete()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Finds the `Cache` entry whose key is the request, returning a [`Promise`](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") that resolves to `true`
+if a matching `Cache` entry is found and deleted. If no `Cache` entry is found, the promise
+resolves to `false`.
+[`Cache.keys()`](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Returns a [`Promise`](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") that resolves to an array of `Cache`
+keys.
+
+## [Examples](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+This code snippet is from the [service worker selective caching sample](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg"). (see [selective caching live](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")) The code uses [`CacheStorage.open()`](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") to open any `Cache`
+objects with a `Content-Type` header that starts with `font/`.
+
+The code then uses [`Cache.match()`](/static/client/styles-global.edd46645a22dfb0f.css "theme") to see if there's already a matching font in the cache, and if so, returns it. If there isn't a matching font, the code fetches the font from the network and uses [`Cache.put()`](/static/client/styles-global.edd46645a22dfb0f.css "#") to cache the fetched resource.
+
+The code handles exceptions thrown from the [`fetch()`](/static/client/styles-global.edd46645a22dfb0f.css "#") operation. Note that an HTTP error response (e.g., 404) will not trigger an exception. It will return a normal response object that has the appropriate error code.
+
+The code snippet also shows a best practice for versioning caches used by the service
+worker. Though there's only one cache in this example, the same approach can be used
+for multiple caches. It maps a shorthand identifier for a cache to a specific, versioned
+cache name. The code also deletes all caches that aren't named in `CURRENT_CACHES`.
+
+In the code example, `caches` is a property of the [`ServiceWorkerGlobalScope`](/static/client/270.66bae6059a1c23f9.css "#"). It holds the `CacheStorage`
+object, by which it can access the [`CacheStorage`](/static/client/270.66bae6059a1c23f9.css "#") interface.
+
+
+**Note:**In Chrome, visit `chrome://inspect/#service-workers` and click on the "inspect" link below the registered
+service worker to view logging statements for the various actions the [`service-worker.js`](/static/client/270.66bae6059a1c23f9.css "#") script is performing.
+
+js
+
+```position: absolute
+const CACHE_VERSION = 1;
+const CURRENT_CACHES = {
+  font: `font-cache-v${CACHE_VERSION}`,
+};
+
+self.addEventListener("activate", (event) => {
+  // Delete all caches that aren't named in CURRENT_CACHES.
+  // While there is only one cache in this example, the same logic
+  // will handle the case where there are multiple versioned caches.
+  const expectedCacheNamesSet = new Set(Object.values(CURRENT_CACHES));
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames.map((cacheName) => {
+          if (!expectedCacheNamesSet.has(cacheName)) {
+            // If this cache name isn't present in the set of
+            // "expected" cache names, then delete it.
+            console.log("Deleting out of date cache:", cacheName);
+            return caches.delete(cacheName);
+          }
+          return undefined;
+        }),
+      ),
+    ),
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  console.log("Handling fetch event for", event.request.url);
+
+  event.respondWith(
+    caches
+      .open(CURRENT_CACHES.font)
+      .then((cache) => cache.match(event.request))
+      .then((response) => {
+        if (response) {
+          // If there is an entry in the cache for event.request,
+          // then response will be defined and we can just return it.
+          // Note that in this example, only font resources are cached.
+          console.log(" Found response in cache:", response);
+
+          return response;
+        }
+
+        // Otherwise, if there is no entry in the cache for event.request,
+        // response will be undefined, and we need to fetch() the resource.
+        console.log(
+          " No response for %s found in cache. About to fetch " +
+            "from network…",
+          event.request.url,
+        );
+
+        // We call .clone() on the request since we might use it
+        // in a call to cache.put() later on.
+        // Both fetch() and cache.put() "consume" the request,
+        // so we need to make a copy.
+        // (see https://developer.mozilla.org/en-US/docs/Web/API/Request/clone)
+        return fetch(event.request.clone()).then((response) => {
+          console.log(
+            "  Response for %s from network is: %O",
+            event.request.url,
+            response,
+          );
+
+          if (
+            response.status < 400 &&
+            response.headers.has("content-type") &&
+            response.headers.get("content-type").match(/^font\//i)
+          ) {
+            // This avoids caching responses that we know are errors
+            // (i.e. HTTP status code of 4xx or 5xx).
+            // We also only want to cache responses that correspond
+            // to fonts, i.e. have a Content-Type response header that
+            // starts with "font/".
+            // Note that for opaque filtered responses
+            // https://fetch.spec.whatwg.org/#concept-filtered-response-opaque
+            // we can't access to the response headers, so this check will
+            // always fail and the font won't be cached.
+            // All of the Google Web Fonts are served from a domain that
+            // supports CORS, so that isn't an issue here.
+            // It is something to keep in mind if you're attempting
+            // to cache other resources from a cross-origin
+            // domain that doesn't support CORS, though!
+            console.log("  Caching the response to", event.request.url);
+            // We call .clone() on the response to save a copy of it
+            // to the cache. By doing so, we get to keep the original
+            // response object which we will return back to the controlled
+            // page.
+            // https://developer.mozilla.org/en-US/docs/Web/API/Request/clone
+            cache.put(event.request, response.clone());
+          } else {
+            console.log("  Not caching the response to", event.request.url);
+          }
+
+          // Return the original response object, which will be used to
+          // fulfill the resource request.
+          return response;
+        });
+      })
+      .catch((error) => {
+        // This catch() will handle exceptions that arise from the match()
+        // or fetch() operations.
+        // Note that a HTTP error response (e.g. 404) will NOT trigger
+        // an exception.
+        // It will return a normal response object that has the appropriate
+        // error code set.
+        console.error("  Error in fetch handler:", error);
+
+        throw error;
+      }),
+  );
+});
+```
+
+### [Cookies and Cache objects](/static/client/270.66bae6059a1c23f9.css "#")
+
+The [Fetch API](/static/client/270.66bae6059a1c23f9.css "#") requires [`Set-Cookie`](/static/client/270.66bae6059a1c23f9.css "#") headers to be stripped before returning a [`Response`](/static/client/270.66bae6059a1c23f9.css "#") object from [`fetch()`](/static/client/270.66bae6059a1c23f9.css "#"). So a `Response`
+stored in a `Cache` won't contain `Set-Cookie` headers, and therefore won't cause any cookies to
+be stored.
+
+## [Specifications](/static/client/270.66bae6059a1c23f9.css "#")
+
+|   |
+||---------------------------------------------------------------------------------------------|
+| - |
+|   |
+|   | [Service Workers Nightly<br># cache-interface](/static/client/270.66bae6059a1c23f9.css "#") |  |
+
+## [Browser compatibility](/static/client/270.66bae6059a1c23f9.css "#")
+
+## [See also](/static/client/270.66bae6059a1c23f9.css "#")
+
+- [Using Service Workers](/static/client/270.66bae6059a1c23f9.css "#")
+- [Service workers basic code example](/static/client/270.66bae6059a1c23f9.css "#")
+- [Using web workers](/static/client/270.66bae6059a1c23f9.css "#")
+
+
+##             Help improve MDN                              [Learn how to contribute](/static/client/270.66bae6059a1c23f9.css "#")
+This page was last modified on May 23, 2025 by [MDN contributors](/static/client/270.66bae6059a1c23f9.css "#").  
+
+[View this page on GitHub](/static/client/270.66bae6059a1c23f9.css "#") • [Report a problem with this content](/static/client/270.66bae6059a1c23f9.css "#")   
+
+
+1. [Service Worker API](/static/client/270.66bae6059a1c23f9.css "#")
+2. *[`Cache`](/static/client/270.66bae6059a1c23f9.css "#")*
+3. Instance
+methods
+1. [`add()`](/static/client/270.66bae6059a1c23f9.css "#")
+2. [`addAll()`](/static/client/270.66bae6059a1c23f9.css "#")
+3. [`delete()`](/static/client/270.66bae6059a1c23f9.css "#")
+4. [`keys()`](/static/client/270.66bae6059a1c23f9.css "#")
+5. [`match()`](/static/client/270.66bae6059a1c23f9.css "#")
+6. [`matchAll()`](/static/client/270.66bae6059a1c23f9.css "#")
+7. [`put()`](/static/client/270.66bae6059a1c23f9.css "#")
+
+- Related pages for Service Workers
+API
+1. [`CacheStorage`](/static/client/270.66bae6059a1c23f9.css "#")
+2. [`Client`](/static/client/270.66bae6059a1c23f9.css "#")
+3. [`Clients`](/static/client/270.66bae6059a1c23f9.css "#")
+4. [`ExtendableEvent`](/static/client/270.66bae6059a1c23f9.css "#")
+5. [`ExtendableMessageEvent`](/static/client/270.66bae6059a1c23f9.css "#")
+6. [`FetchEvent`](/static/client/270.66bae6059a1c23f9.css "#")
+7. [`InstallEvent`](/static/client/270.66bae6059a1c23f9.css "#")
+8. [`NavigationPreloadManager`](/static/client/270.66bae6059a1c23f9.css "#")
+9. [`Navigator.serviceWorker`](/static/client/270.66bae6059a1c23f9.css "#")
+10. [`ServiceWorker`](/static/client/270.66bae6059a1c23f9.css "#")
+11. [`ServiceWorkerContainer`](/static/client/270.66bae6059a1c23f9.css "#")
+12. [`ServiceWorkerGlobalScope`](/static/client/270.66bae6059a1c23f9.css "#")
+13. [`ServiceWorkerRegistration`](/static/client/270.66bae6059a1c23f9.css "#")
+14. [`Window.caches`](/static/client/270.66bae6059a1c23f9.css "#")
+15. [`WindowClient`](/static/client/270.66bae6059a1c23f9.css "#")
+16. [`WorkerGlobalScope.caches`](/static/client/270.66bae6059a1c23f9.css "#")
+17. [`WorkerNavigator.serviceWorker`](/static/client/270.66bae6059a1c23f9.css "#")
+
+-
+Guides
+1. [Using Service Workers](/static/client/270.66bae6059a1c23f9.css "#")
+
+
+[MDN
+================
+
+](/static/client/270.66bae6059a1c23f9.css "#")            
+Your blueprint for a better internet.            
+
+-                   [ github">                                              -                    bluesky">                                              -                    x">                                              -                    mastodon">                                              -                    rss">                                                                                MDN                                                                              -                           [ /en-US/about">                            About                                                                                                -                            /en-US/blog/">                            Blog                                                                                                -                            https://www.mozilla.org/en-US/careers/listings/">                            Mozilla careers                                                                                                -                            /en-US/advertising">                            Advertise with us                                                                                                -                            /en-US/plus">                            MDN Plus                                                                                                -                            https://support.mozilla.org/products/mdn-plus">                            Product help                                                                                                                                                                  Contribute                                                                              -                           [ /en-US/community">                            MDN Community                                                                                                -                            /en-US/docs/MDN/Community">                            Community resources                                                                                                -                            /en-US/docs/MDN/Writing_guidelines">                            Writing guidelines                                                                                                -                            /discord">                            MDN Discord                                                                                                -                            https://github.com/mdn">                            MDN on GitHub                                                                                                                                                                  Developers                                                                              -                           [ /en-US/docs/Web">                            Web technologies                                                                                                -                            /en-US/docs/Learn_web_development">                            Learn web development                                                                                                -                            /en-US/docs/MDN/Guides">                            Guides                                                                                                -                            /en-US/docs/MDN/Tutorials">                            Tutorials                                                                                                -                            /en-US/docs/Glossary">                            Glossary                                                                                                -                            https://hacks.mozilla.org/">                            Hacks blog                                                                                                                                                    
+
+[Mozilla
+==================
+
+](/static/client/270.66bae6059a1c23f9.css "#")                                      -                   [ https://www.mozilla.org/privacy/websites/">Website Privacy Notice                                              -                    https://www.mozilla.org/en-US/privacy/websites/data-preferences/">Telemetry Settings                                              -                    https://www.mozilla.org/about/legal/terms/mozilla">Legal                                              -                    https://www.mozilla.org/about/governance/policies/participation/">Community Participation Guidelines                                                              Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license](/static/client/styles-reference-layout.632d2f3884f10ca3.css "#").          
+

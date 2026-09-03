@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <title>PostgreSQL: Documentation: 18: Part I. Tutorial</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="Content-Type" content="text/xhtml; charset=utf-8" />
+   
+  <meta name="theme-color" content="#336791"/>
+  <meta name="copyright" content="The PostgreSQL Global Development Group" />
+  <meta property="og:url" content="https://www.postgresql.org/docs/18/tutorial.html" />
+  <meta property="og:type" content="article" />
+
+  <meta property="article:published_time" content="2026-08-13T12:52:54.741344" />
+  <meta property="og:image" content="https://www.postgresql.org/media/img/about/press/elephant.png" />
+  <meta property="og:title" content="Part I. Tutorial" />
+  <meta property="og:description" content="Part&amp;nbsp;I.&amp;nbsp;Tutorial Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL, relational database concepts, and …" />
+  <meta property="og:site_name" content="PostgreSQL Documentation" />
+  <link href="/media/css/fontawesome.css?7257af21" rel="stylesheet">
+  <link rel="stylesheet" href="/media/css/bootstrap-4.4.1.min.css">
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  <link rel="stylesheet" type="text/css" href="/dyncss/base.css?7257af21">
+
+  <script src="/media/js/theme.js?7257af21"></script>
+
+  
+
+
+  <link rel="canonical" href="https://www.postgresql.org/docs/current/tutorial.html" />
+
+
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row justify-content-md-center">
+        <div class="col">
+          <!-- Header -->
+          <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand p-0" href="/">
+              <img class="logo" src="/media/img/about/press/elephant.png" alt="PostgreSQL Elephant Logo">
+            </a>
+            <input type="checkbox" id="navbar-toggler" aria-controls="pgNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <label for="navbar-toggler" id="navbar-toggler-label" class="navbar-toggler" tabindex="0"><span class="navbar-toggler-icon"></span></label>
+            <div class="navbar-collapse" id="pgNavbar">
+              <ul class="navbar-nav mr-auto">
+                <li class="nav-item p-2"><a href="/" title="Home">Home</a></li>
+                <li class="nav-item p-2"><a href="/about/" title="About">About</a></li>
+                <li class="nav-item p-2"><a href="/download/" title="Download">Download</a></li>
+                <li class="nav-item p-2"><a href="/docs/" title="Documentation">Documentation</a></li>
+                <li class="nav-item p-2"><a href="/community/" title="Community">Community</a></li>
+                <li class="nav-item p-2"><a href="/developer/" title="Developers">Developers</a></li>
+                <li class="nav-item p-2"><a href="/support/" title="Support">Support</a></li>
+                <li class="nav-item p-2"><a href="/about/donate/" title="Donate">Donate</a></li>
+                <li class="nav-item p-2"><a href="/account/" title="Your account">Your account</a></li>
+              </ul>
+              <form role="search" method="get" action="/search/">
+                <div class="input-group">
+                  <input id="q" name="q" type="text" size="20" maxlength="255" accesskey="s"  class="form-control" placeholder="Search for...">
+                  <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit"><i class="fas fa-search"></i></button>
+                  </span>
+                </div><!-- /input-group -->
+              </form>
+              <form id="form-theme" class="form-inline d-none">
+                <button id="btn-theme" class="btn btn-default ml-1" type="button"></button>
+              </form>
+            </div>
+          </nav>
+        </div>
+      </div>
+      <div class="row justify-content-center pg-shout-box">
+        <div class="col text-white text-center">August 13, 2026: <a href="/about/news/postgresql-186-1711-1615-1519-1424-and-19-beta-3-released-3365/">PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!</a>
+
+</div>
+      </div>
+    </div>
+    
+    <div class="container-fluid margin">
+      <div class="row">
+        <div id="pgContentWrap" class="col-11">
+          <div class="row">
+            <div class="col-md-6 mb-2">
+              <div class="row">
+                <div class="col">
+                  <div>
+                    <a href="/docs/" title="Documentation">Documentation</a> &rarr; <a href="/docs/18/index.html">PostgreSQL 18</a>
+                  </div>
+                </div>
+              </div>
+              
+                <div class="row">
+                  <div class="col">
+                    Supported Versions:
+                      
+                        
+                        
+                          <a href="/docs/current/tutorial.html" title="PostgreSQL 18 - Part I. Tutorial" class="docs-version-selected">Current</a>
+                          (<a href="/docs/18/tutorial.html" title="PostgreSQL 18 - Part I. Tutorial" class="docs-version-selected">18</a>)
+                        
+                      
+                         / 
+                        
+                          <a href="/docs/17/tutorial.html" title="PostgreSQL 17 - Part I. Tutorial" >17</a>
+                        
+                      
+                         / 
+                        
+                          <a href="/docs/16/tutorial.html" title="PostgreSQL 16 - Part I. Tutorial" >16</a>
+                        
+                      
+                         / 
+                        
+                          <a href="/docs/15/tutorial.html" title="PostgreSQL 15 - Part I. Tutorial" >15</a>
+                        
+                      
+                         / 
+                        
+                          <a href="/docs/14/tutorial.html" title="PostgreSQL 14 - Part I. Tutorial" >14</a>
+                        
+                      
+                  </div>
+                </div>
+              
+              
+                <div class="row">
+                  <div class="col">
+                    Development Versions:
+                    
+                      
+                      <a href="/docs/19/tutorial.html" title="PostgreSQL 19 - Part I. Tutorial"  rel="nofollow">19</a>
+                    
+                       / 
+                      <a href="/docs/devel/tutorial.html" title="PostgreSQL devel - Part I. Tutorial"  rel="nofollow">devel</a>
+                    
+                  </div>
+                </div>
+              
+              
+                <div class="row">
+                  <div class="col-12">
+                    Unsupported versions:
+                    
+                      
+                      <a href="/docs/13/tutorial.html" title="PostgreSQL 13 - Part I. Tutorial"  rel="nofollow">13</a>
+                    
+                       / 
+                      <a href="/docs/12/tutorial.html" title="PostgreSQL 12 - Part I. Tutorial"  rel="nofollow">12</a>
+                    
+                       / 
+                      <a href="/docs/11/tutorial.html" title="PostgreSQL 11 - Part I. Tutorial"  rel="nofollow">11</a>
+                    
+                       / 
+                      <a href="/docs/10/tutorial.html" title="PostgreSQL 10 - Part I. Tutorial"  rel="nofollow">10</a>
+                    
+                       / 
+                      <a href="/docs/9.6/tutorial.html" title="PostgreSQL 9.6 - Part I. Tutorial"  rel="nofollow">9.6</a>
+                    
+                       / 
+                      <a href="/docs/9.5/tutorial.html" title="PostgreSQL 9.5 - Part I. Tutorial"  rel="nofollow">9.5</a>
+                    
+                       / 
+                      <a href="/docs/9.4/tutorial.html" title="PostgreSQL 9.4 - Part I. Tutorial"  rel="nofollow">9.4</a>
+                    
+                       / 
+                      <a href="/docs/9.3/tutorial.html" title="PostgreSQL 9.3 - Part I. Tutorial"  rel="nofollow">9.3</a>
+                    
+                       / 
+                      <a href="/docs/9.2/tutorial.html" title="PostgreSQL 9.2 - Part I. Tutorial"  rel="nofollow">9.2</a>
+                    
+                       / 
+                      <a href="/docs/9.1/tutorial.html" title="PostgreSQL 9.1 - Part I. Tutorial"  rel="nofollow">9.1</a>
+                    
+                       / 
+                      <a href="/docs/9.0/tutorial.html" title="PostgreSQL 9.0 - Part I. Tutorial"  rel="nofollow">9.0</a>
+                    
+                       / 
+                      <a href="/docs/8.4/tutorial.html" title="PostgreSQL 8.4 - Part I. Tutorial"  rel="nofollow">8.4</a>
+                    
+                       / 
+                      <a href="/docs/8.3/tutorial.html" title="PostgreSQL 8.3 - Part I. Tutorial"  rel="nofollow">8.3</a>
+                    
+                       / 
+                      <a href="/docs/8.2/tutorial.html" title="PostgreSQL 8.2 - Part I. Tutorial"  rel="nofollow">8.2</a>
+                    
+                       / 
+                      <a href="/docs/8.1/tutorial.html" title="PostgreSQL 8.1 - Part I. Tutorial"  rel="nofollow">8.1</a>
+                    
+                       / 
+                      <a href="/docs/8.0/tutorial.html" title="PostgreSQL 8.0 - Part I. Tutorial"  rel="nofollow">8.0</a>
+                    
+                       / 
+                      <a href="/docs/7.4/tutorial.html" title="PostgreSQL 7.4 - Part I. Tutorial"  rel="nofollow">7.4</a>
+                    
+                       / 
+                      <a href="/docs/7.3/tutorial.html" title="PostgreSQL 7.3 - Part I. Tutorial"  rel="nofollow">7.3</a>
+                    
+                       / 
+                      <a href="/docs/7.2/tutorial.html" title="PostgreSQL 7.2 - Part I. Tutorial"  rel="nofollow">7.2</a>
+                    
+                       / 
+                      <a href="/docs/7.1/tutorial.html" title="PostgreSQL 7.1 - Part I. Tutorial"  rel="nofollow">7.1</a>
+                    
+                  </div>
+                </div>
+              
+            </div>
+            <div class="col-md-6 col-lg-5 offset-lg-1">
+              <form id="docSearchForm" role="search" method="get" action="/search/">
+                <input type="hidden" name="u" value="/docs/18/" />
+                <div class="input-group">
+                  <input type="text" id="q" name="q" class="form-control" placeholder="Search the documentation for..."/>
+                  <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit"><i class="fas fa-search"></i></button>
+                  </span>
+                </div><!-- /input-group -->
+              </form>
+            </div>
+          </div>
+
+          <div id="docContent">
+            <div class="navheader">
+  <table width="100%" summary="Navigation header">
+    <tr>
+      <th colspan="5" align="center">Part&nbsp;I.&nbsp;Tutorial</th>
+    </tr>
+    <tr>
+      <td width="10%" align="left"><a accesskey="p" href="bug-reporting.html" title="5.&nbsp;Bug Reporting Guidelines">Prev</a>&nbsp;</td>
+      <td width="10%" align="left"><a accesskey="u" href="index.html" title="PostgreSQL 18.6 Documentation">Up</a></td>
+      <th width="60%" align="center">PostgreSQL 18.6 Documentation</th>
+      <td width="10%" align="right"><a accesskey="h" href="index.html" title="PostgreSQL 18.6 Documentation">Home</a></td>
+      <td width="10%" align="right">&nbsp;<a accesskey="n" href="tutorial-start.html" title="Chapter&nbsp;1.&nbsp;Getting Started">Next</a></td>
+    </tr>
+  </table>
+  <hr />
+</div>
+<div class="part" id="TUTORIAL">
+  <div class="titlepage">
+    <div>
+      <div>
+        <h1 class="title">Part&nbsp;I.&nbsp;Tutorial</h1>
+      </div>
+    </div>
+  </div>
+  <div class="partintro" id="id-1.4.2">
+    <p>Welcome to the <span class="productname">PostgreSQL</span> Tutorial. The tutorial is intended to give an introduction to <span class="productname">PostgreSQL</span>, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the <span class="productname">PostgreSQL</span> system. It makes no attempt to be a comprehensive treatment of the topics it covers.</p>
+    <p>After you have successfully completed this tutorial you will want to read the <a class="xref" href="sql.html" title="Part&nbsp;II.&nbsp;The SQL Language">Part&nbsp;II</a> section to gain a better understanding of the SQL language, or <a class="xref" href="client-interfaces.html" title="Part&nbsp;IV.&nbsp;Client Interfaces">Part&nbsp;IV</a> for information about developing applications with <span class="productname">PostgreSQL</span>. Those who provision and manage their own PostgreSQL installation should also read <a class="xref" href="admin.html" title="Part&nbsp;III.&nbsp;Server Administration">Part&nbsp;III</a>.</p>
+    <div class="toc">
+      <p><strong>Table of Contents</strong></p>
+      <dl class="toc">
+        <dt><span class="chapter"><a href="tutorial-start.html">1. Getting Started</a></span></dt>
+        <dd>
+          <dl>
+            <dt><span class="sect1"><a href="tutorial-install.html">1.1. Installation</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-arch.html">1.2. Architectural Fundamentals</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-createdb.html">1.3. Creating a Database</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-accessdb.html">1.4. Accessing a Database</a></span></dt>
+          </dl>
+        </dd>
+        <dt><span class="chapter"><a href="tutorial-sql.html">2. The <acronym class="acronym">SQL</acronym> Language</a></span></dt>
+        <dd>
+          <dl>
+            <dt><span class="sect1"><a href="tutorial-sql-intro.html">2.1. Introduction</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-concepts.html">2.2. Concepts</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-table.html">2.3. Creating a New Table</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-populate.html">2.4. Populating a Table With Rows</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-select.html">2.5. Querying a Table</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-join.html">2.6. Joins Between Tables</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-agg.html">2.7. Aggregate Functions</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-update.html">2.8. Updates</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-delete.html">2.9. Deletions</a></span></dt>
+          </dl>
+        </dd>
+        <dt><span class="chapter"><a href="tutorial-advanced.html">3. Advanced Features</a></span></dt>
+        <dd>
+          <dl>
+            <dt><span class="sect1"><a href="tutorial-advanced-intro.html">3.1. Introduction</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-views.html">3.2. Views</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-fk.html">3.3. Foreign Keys</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-transactions.html">3.4. Transactions</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-window.html">3.5. Window Functions</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-inheritance.html">3.6. Inheritance</a></span></dt>
+            <dt><span class="sect1"><a href="tutorial-conclusion.html">3.7. Conclusion</a></span></dt>
+          </dl>
+        </dd>
+      </dl>
+    </div>
+  </div>
+</div>
+<div class="navfooter">
+  <hr />
+  <table width="100%" summary="Navigation footer">
+    <tr>
+      <td width="40%" align="left"><a accesskey="p" href="bug-reporting.html" title="5.&nbsp;Bug Reporting Guidelines">Prev</a>&nbsp;</td>
+      <td width="20%" align="center"><a accesskey="u" href="index.html" title="PostgreSQL 18.6 Documentation">Up</a></td>
+      <td width="40%" align="right">&nbsp;<a accesskey="n" href="tutorial-start.html" title="Chapter&nbsp;1.&nbsp;Getting Started">Next</a></td>
+    </tr>
+    <tr>
+      <td width="40%" align="left" valign="top">5.&nbsp;Bug Reporting Guidelines&nbsp;</td>
+      <td width="20%" align="center"><a accesskey="h" href="index.html" title="PostgreSQL 18.6 Documentation">Home</a></td>
+      <td width="40%" align="right" valign="top">&nbsp;Chapter&nbsp;1.&nbsp;Getting Started</td>
+    </tr>
+  </table>
+</div>
+
+          </div>
+          
+            <div id="docComments">
+              <h2>Submit correction</h2>
+              <p>
+              If you see anything in the documentation that is not correct, does not match
+              your experience with the particular feature or requires further clarification,
+              please use
+              <a href="/account/comments/new/18/tutorial.html/" rel="nofollow">this form</a>
+              to report a documentation issue.
+              </p>
+            </div>
+          
+        </div> <!-- pgContentWrap -->
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="footer">
+      <!-- Copyright -->
+      <div class="container">
+        <a href="/about/policies/">Policies</a> |
+        <a href="/about/policies/coc/">Code of Conduct</a> |
+        <a href="/about/">About PostgreSQL</a> |
+        <a href="/about/contact/">Contact</a><br/>
+        <p>Copyright &copy; 1996-2026 The PostgreSQL Global Development Group</p>
+      </div>
+    </footer>
+    <script src="/media/js/main.js?7257af21"></script>
+
+  </body>
+</html>

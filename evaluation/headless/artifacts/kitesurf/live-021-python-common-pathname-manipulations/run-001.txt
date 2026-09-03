@@ -1,0 +1,732 @@
+os.path — Common pathname manipulations — Python 3.14.7 documentation
+=====================================================================================
+
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+dev (3.16)pre (3.15)  
+dev (3.16)3.14.7  
+3.14.73.13  
+3.14.73.12  
+3.14.73.11  
+3.14.73.10  
+3.14.73.9  
+3.14.73.8  
+3.14.73.7  
+3.14.73.6  
+3.14.73.5  
+3.14.73.4  
+3.14.73.3  
+3.14.73.2  
+3.14.73.1  
+3.14.73.0  
+3.14.72.7  
+3.14.72.6  
+dev (3.16)                                                                       
+
+
+Greek | Ελληνικά  
+Greek | ΕλληνικάEnglish  
+EnglishSpanish | español  
+EnglishFrench | français  
+EnglishItalian | italiano  
+EnglishJapanese | 日本語  
+EnglishKorean | 한국어  
+EnglishPolish | polski  
+EnglishBrazilian Portuguese | Português brasileiro  
+EnglishRomanian | Românește  
+EnglishRussian | Русский  
+EnglishTurkish | Türkçe  
+EnglishSimplified Chinese | 简体中文  
+EnglishTraditional Chinese | 繁體中文  
+Greek | Ελληνικά                Theme            Auto  
+Light  
+Dark  
+Auto  
+
+
+#### Previous topic
+
+[`pathlib` — Object-oriented filesystem paths](pathlib.html "previous chapter")
+
+
+#### Next topic
+
+[`stat` — Interpreting `stat()` results](stat.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=os.path+%E2%80%94+Common+pathname+manipulations&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fos.path.html&pagesource=library%2Fos.path.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/os.path.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](stat.html "stat — Interpreting stat() results") |
+-           [previous](pathlib.html "pathlib — Object-oriented filesystem paths") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+Greek | ΕλληνικάEnglish  
+EnglishSpanish | español  
+EnglishFrench | français  
+EnglishItalian | italiano  
+EnglishJapanese | 日本語  
+EnglishKorean | 한국어  
+EnglishPolish | polski  
+EnglishBrazilian Portuguese | Português brasileiro  
+EnglishRomanian | Românește  
+EnglishRussian | Русский  
+EnglishTurkish | Türkçe  
+EnglishSimplified Chinese | 简体中文  
+EnglishTraditional Chinese | 繁體中文  
+Greek | Ελληνικά            
+
+dev (3.16)  
+dev (3.16)pre (3.15)  
+dev (3.16)3.14.7  
+3.14.73.13  
+3.14.73.12  
+3.14.73.11  
+3.14.73.10  
+3.14.73.9  
+3.14.73.8  
+3.14.73.7  
+3.14.73.6  
+3.14.73.5  
+3.14.73.4  
+3.14.73.3  
+3.14.73.2  
+3.14.73.1  
+3.14.73.0  
+3.14.72.7  
+3.14.72.6  
+dev (3.16)          
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [File and Directory Access](filesys.html) »
+- [`os.path` — Common pathname manipulations]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+Auto |
+
+
+# `os.path` — Common pathname manipulations[¶](#module-os.path "Link to this heading")
+
+**Source code:** [Lib/genericpath.py](https://github.com/python/cpython/tree/3.14/Lib/genericpath.py), [Lib/posixpath.py](https://github.com/python/cpython/tree/3.14/Lib/posixpath.py) (for POSIX) and[Lib/ntpath.py](https://github.com/python/cpython/tree/3.14/Lib/ntpath.py) (for Windows).
+
+---
+
+This module implements some useful functions on pathnames. To read or writefiles
+see [`open()`](functions.html#open "open"), and for accessing the filesystem see the [`os`](os.html#module-os "os: Miscellaneous operating system interfaces.")module. The path parameters can be passed as strings, or bytes, or any objectimplementing the [`os.PathLike`](os.html#os.PathLike "os.PathLike") protocol.
+
+Unlike a Unix shell, Python does not do any *automatic* path expansions.Functions
+such as [`expanduser()`](#os.path.expanduser "os.path.expanduser") and [`expandvars()`](#os.path.expandvars "os.path.expandvars") can be invokedexplicitly when an application desires shell-like path expansion.  (See alsothe [`glob`](glob.html#module-glob "glob: Unix shell style pathname pattern expansion.") module.)
+
+
+See also
+
+The [`pathlib`](pathlib.html#module-pathlib "pathlib: Object-oriented filesystem paths") module offers high-level path objects.
+
+
+Note
+
+All of these functions accept either only bytes or only string objects astheir parameters.
+The result is an object of the same type, if a path orfile name is returned.
+
+
+Note
+
+Since different operating systems have different path name conventions, thereare
+several versions of this module in the standard library.  The`os.path` module is always
+the path module suitable for the operatingsystem Python is running on, and therefore
+usable for local paths.  However,you can also import and use the individual modules
+if you want to manipulatea path that is *always* in one of the different formats.
+They all have thesame interface:
+
+- `posixpath` for UNIX-style paths
+- `ntpath` for Windows paths
+
+
+Changed in version 3.8: [`exists()`](#os.path.exists "os.path.exists"), [`lexists()`](#os.path.lexists "os.path.lexists"), [`isdir()`](#os.path.isdir "os.path.isdir"), [`isfile()`](#os.path.isfile "os.path.isfile"),[`islink()`](#os.path.islink "os.path.islink"), and [`ismount()`](#os.path.ismount "os.path.ismount") now return `False`
+instead ofraising an exception for paths that contain characters or bytesunrepresentable
+at the OS level.
+os.path.abspath(*path*)[¶](#os.path.abspath "Link to this definition")
+Return a normalized absolutized version of the pathname *path*. On mostplatforms,
+this is equivalent to calling `normpath(join(os.getcwd(), path))`.
+
+On Windows the path is normalized by the operating system,therefore the result can
+differ from `normpath(join(os.getcwd(), path))`.A drive-relative path is resolved against the current directoryof
+the specified drive, and the drive letter is capitalized.Trailing dots and spaces
+are stripped.For example:
+
+Copy
+
+```>>> os.path.abspath('c:spam')'C:\\\\Temp\\\\spam'>>>
+os.path.abspath('c:/temp/spam. . .')'c:\\\\temp\\\\spam'```
+
+
+See also
+
+[`os.path.join()`](#os.path.join "os.path.join") and [`os.path.normpath()`](#os.path.normpath "os.path.normpath").
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.basename(*path*, */*)[¶](#os.path.basename "Link to this definition")
+Return the base name of pathname *path*.  This is the second element of thepair returned 
+by passing *path* to the function [`split()`](#os.path.split "os.path.split").  Note thatthe result of this function is differentfrom the Unix
+**basename** program; where **basename** for`'/foo/bar/'` returns `'bar'`, the `basename()` function returns 
+anempty string (`''`).
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.commonpath(*paths*)[¶](#os.path.commonpath "Link to this definition")
+Return the longest common sub-path of each pathname in the iterable*paths*.  Raise 
+[`ValueError`](exceptions.html#ValueError "ValueError") if *paths* contain both absoluteand 
+relative pathnames, if *paths* are on different drives, orif *paths* is empty.  Unlike 
+[`commonprefix()`](#os.path.commonprefix "os.path.commonprefix"), this returns avalid path.
+
+
+Added in version 3.5.
+
+
+Changed in version 3.6: Accepts a sequence of [path-like objects](../glossary.html#term-path-like-object).
+
+
+Changed in version 3.13: Any iterable can now be passed, rather than just sequences.
+os.path.commonprefix(*list*, */*)[¶](#os.path.commonprefix "Link to this definition")
+Return the longest string prefix (taken character-by-character) that is aprefix of 
+all strings in *list*.  If *list* is empty, return the empty string(`''`).
+
+
+Warning
+
+This function may return invalid paths because it works acharacter at a time.If you 
+need a **common path prefix**, then the algorithmimplemented in this function is 
+not secure. Use[`commonpath()`](#os.path.commonpath "os.path.commonpath") for finding a common path prefix.
+
+Copy
+
+```>>> os.path.commonprefix(['/usr/lib', '/usr/local/lib'])'/usr/l'>>>
+os.path.commonpath(['/usr/lib', '/usr/local/lib'])'/usr'```
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.dirname(*path*, */*)[¶](#os.path.dirname "Link to this definition")
+Return the directory name of pathname *path*.  This is the first element ofthe pair
+returned by passing *path* to the function [`split()`](#os.path.split "os.path.split").
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.exists(*path*)[¶](#os.path.exists "Link to this definition")
+Return `True` if *path* refers to an existing path or an openfile descriptor.  Returns
+`False` for broken symbolic links.  Onsome platforms, this function may return `False` if permission
+isnot granted to execute [`os.stat()`](os.html#os.stat "os.stat") on the requested file, evenif the *path*
+physically exists.
+
+
+Changed in version 3.3: *path* can now be an integer: `True` is returned if it is an
+open file descriptor, `False` otherwise.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.lexists(*path*)[¶](#os.path.lexists "Link to this definition")
+Return `True` if *path* refers to an existing path, includingbroken symbolic links.  
+Equivalent to [`exists()`](#os.path.exists "os.path.exists") on platforms lacking[`os.lstat()`](os.html#os.lstat "os.lstat").
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.expanduser(*path*)[¶](#os.path.expanduser "Link to this definition")
+On Unix and Windows, return the argument with an initial component of `~` or`~user` replaced
+by that *user*’s home directory.
+
+On Unix, an initial `~` is replaced by the environment variable `HOME`if it is set; otherwise
+the current user’s home directory is looked up in thepassword directory through
+the built-in module [`pwd`](pwd.html#module-pwd "pwd: The password database (getpwnam() and friends)."). An initial
+`~user`is looked up directly in the password directory.
+
+On Windows, `USERPROFILE` will be used if set, otherwise a combinationof `HOMEPATH` and `HOMEDRIVE` will be used.
+An initial`~user` is handled by checking that the last directory component of the currentuser’s
+home directory matches `USERNAME`, and replacing it if so.
+
+If the expansion fails or if the path does not begin with a tilde, the path isreturned
+unchanged.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+
+
+Changed in version 3.8: No longer uses `HOME` on Windows.
+os.path.expandvars(*path*)[¶](#os.path.expandvars "Link to this definition")
+Return the argument with environment variables expanded.  Substrings of the form`$name`
+or `${name}` are replaced by the value of environment variable*name*.  Malformed variable
+names and references to non-existing variables areleft unchanged.
+
+On Windows, `%name%` expansions are supported in addition to `$name` and`${name}`.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.getatime(*path*, */*)[¶](#os.path.getatime "Link to this definition")
+Return the time of last access of *path*.  The return value is a floating-point number
+givingthe number of seconds since the epoch (see the  [`time`](time.html#module-time "time: Time access and conversions.") module).  Raise[`OSError`](exceptions.html#OSError "OSError") if the file does not exist or is inaccessible.
+os.path.getmtime(*path*, */*)[¶](#os.path.getmtime "Link to this definition")
+Return the time of last modification of *path*.  The return value is a floating-point
+numbergiving the number of seconds since the epoch (see the  [`time`](time.html#module-time "time: Time access and conversions.") module).Raise [`OSError`](exceptions.html#OSError "OSError") if the file does not exist or is inaccessible.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.getctime(*path*, */*)[¶](#os.path.getctime "Link to this definition")
+Return the system’s ctime which, on some systems (like Unix) is the time of thelast
+metadata change, and, on others (like Windows), is the creation time for *path*.The
+return value is a number giving the number of seconds since the epoch (seethe  [`time`](time.html#module-time "time: Time access and conversions.") module).  Raise [`OSError`](exceptions.html#OSError "OSError") if the file does not exist oris inaccessible.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.getsize(*path*, */*)[¶](#os.path.getsize "Link to this definition")
+Return the size, in bytes, of *path*.  Raise [`OSError`](exceptions.html#OSError "OSError") if the file doesnot exist or is inaccessible.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.isabs(*path*, */*)[¶](#os.path.isabs "Link to this definition")
+Return `True` if *path* is an absolute pathname.  On Unix, that means itbegins with a
+slash, on Windows that it begins with two (back)slashes, or adrive letter, colon,
+and (back)slash together.
+
+
+See also
+
+[`abspath()`](#os.path.abspath "os.path.abspath")
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+
+
+Changed in version 3.13: On Windows, returns `False` if the given path starts with exactly
+one(back)slash.
+os.path.isfile(*path*)[¶](#os.path.isfile "Link to this definition")
+Return `True` if *path* is an [`existing`](#os.path.exists "os.path.exists") regular file.This follows symbolic links, so both [`islink()`](#os.path.islink "os.path.islink") and `isfile()`
+canbe true for the same path.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.isdir(*path*, */*)[¶](#os.path.isdir "Link to this definition")
+Return `True` if *path* is an [`existing`](#os.path.exists "os.path.exists") directory.  Thisfollows symbolic links, so both [`islink()`](#os.path.islink "os.path.islink") and `isdir()`
+can be truefor the same path.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.isjunction(*path*)[¶](#os.path.isjunction "Link to this definition")
+Return `True` if *path* refers to an [`existing`](#os.path.lexists "os.path.lexists") directoryentry that is a junction.  Always return `False`
+if junctions are notsupported on the current platform.
+
+
+Added in version 3.12.
+os.path.islink(*path*)[¶](#os.path.islink "Link to this definition")
+Return `True` if *path* refers to an [`existing`](#os.path.exists "os.path.exists") directoryentry that is a symbolic link.  Always `False`
+if symbolic links are notsupported by the Python runtime.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.ismount(*path*)[¶](#os.path.ismount "Link to this definition")
+Return `True` if pathname *path* is a *mount point*: a point in afile system where a
+different file system has been mounted.  On POSIX, thefunction checks whether *path*’s
+parent, `*path*/..`, is on a differentdevice than *path*, or whether `*path*/..` and *path* point
+to the samei-node on the same device — this should detect mount points for all
+Unixand POSIX variants.  It is not able to reliably detect bind mounts on thesame
+filesystem. On Linux systems, it will always return `True` for btrfssubvolumes, even
+if they aren’t mount points. On Windows, a drive letter rootand a share UNC are
+always mount points, and for any other path`GetVolumePathName` is called to see if it is different
+from the input path.
+
+
+Changed in version 3.4: Added support for detecting non-root mount points on Windows.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.isdevdrive(*path*)[¶](#os.path.isdevdrive "Link to this definition")
+Return `True` if pathname *path* is located on a Windows Dev Drive.A Dev Drive is optimized
+for developer scenarios, and offers fasterperformance for reading and writing files.
+It is recommended for use forsource code, temporary build directories, package caches,
+and otherIO-intensive operations.
+
+May raise an error for an invalid path, for example, one without arecognizable drive,
+but returns `False` on platforms that do not supportDev Drives. See [the Windows documentation](https://learn.microsoft.com/windows/dev-drive/)for information on enabling and creating Dev Drives.
+
+
+Added in version 3.12.
+
+
+Changed in version 3.13: The function is now available on all platforms, and will
+always return `False` on those that have no support for Dev Drives
+os.path.isreserved(*path*)[¶](#os.path.isreserved "Link to this definition")
+Return `True` if *path* is a reserved pathname on the current system.
+
+On Windows, reserved filenames include those that end with a space or dot;those that
+contain colons (i.e. file streams such as “name:stream”),wildcard characters
+(i.e. `'*?"<>'`), pipe, or ASCII control characters;as well as DOS device names such as
+“NUL”, “CON”, “CONIN$”, “CONOUT$”,“AUX”, “PRN”, “COM1”,
+and “LPT1”.
+
+
+Note
+
+This function approximates rules for reserved paths on most Windowssystems. These
+rules change over time in various Windows releases.This function may be updated in
+future Python releases as changes tothe rules become broadly available.
+
+
+[Availability](intro.html#availability): Windows.
+
+
+Added in version 3.13.
+os.path.join(*path*, */*, *\*paths*)[¶](#os.path.join "Link to this definition")
+Join one or more path segments intelligently.  The return value is theconcatenation
+of *path* and all members of *\*paths*, with exactly onedirectory separator following
+each non-empty part, except the last. That is,the result will only end in a separator
+if the last part is either empty orends in a separator.
+
+If a segment is an absolute path (which on Windows requires both a drive anda root),
+then all previous segments are ignored and joining continues from theabsolute path
+segment. On Linux, for example:
+
+Copy
+
+```>>> os.path.join('/home/foo', 'bar')'/home/foo/bar'>>>
+os.path.join('/home/foo', '/home/bar')'/home/bar'```
+
+On Windows, the drive is not reset when a rooted path segment (e.g.,`r'\foo'`) is encountered. 
+If a segment is on a different drive or is anabsolute path, all previous segments 
+are ignored and the drive is reset. Forexample:
+
+Copy
+
+```>>> os.path.join('c:\\\\', 'foo')'c:\\\\foo'>>> os.path.join('c:\\\\foo',
+'d:\\\\bar')'d:\\\\bar'```
+
+Note that since there is a current directory for each drive,`os.path.join("c:", "foo")` represents a path
+relative to the currentdirectory on drive `C:` (`c:foo`), not `c:\foo`.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object) for
+*path* and *paths*.
+os.path.normcase(*path*, */*)[¶](#os.path.normcase "Link to this definition")
+Normalize the case of a pathname.  On Windows, convert all characters in thepathname
+to lowercase, and also convert forward slashes to backward slashes.On other operating
+systems, return the path unchanged.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.normpath(*path*)[¶](#os.path.normpath "Link to this definition")
+Normalize a pathname by collapsing redundant separators and up-levelreferences so
+that `A//B`, `A/B/`, `A/./B` and `A/foo/../B` allbecome `A/B`.  This string manipulation may change the meaning
+of a paththat contains symbolic links.  On Windows, it converts forward slashes tobackward
+slashes. To normalize case, use [`normcase()`](#os.path.normcase "os.path.normcase").
+
+
+Note
+
+On POSIX systems, in accordance with [IEEE Std 1003.1 2013 Edition; 4.13Pathname Resolution](https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13),if a pathname begins with exactly two slashes, the first componentfollowing the leading characters may be interpreted in an implementation-definedmanner, although more than two leading characters shall be treated as asingle character.
+
+
+Changed in version 3.6: Accepts a [path-like object](../glossary.html#term-path-like-object).
+os.path.realpath(*path*, */*, *\**, *strict=False*)[¶](#os.path.realpath "Link to this definition")
+Return the canonical path of the specified filename, eliminating any symboliclinks
+encountered in the path (if they are supported by the operatingsystem). On Windows,
+this function will also resolve MS-DOS (also called 8.3)style names such as `C:\\PROGRA~1` to
+`C:\\Program Files`.The returned path uses the case reported by the operating system,which can differ
+from the case of *path*,in particular the drive letter is capitalized.
+
+By default, the path is evaluated up to the first component that does notexist, is
+a symlink loop, or whose evaluation raises [`OSError`](exceptions.html#OSError "OSError").All such components are appended unchanged to the existing part of the path.
+
+Some errors that are handled this way include “access denied”, “not adirectory”,
+or “bad argument to internal function”. Thus, theresulting path may be missing
+or inaccessible, may still containlinks or loops, and may traverse non-directories.
+
+This behavior can be modified by keyword arguments:
+
+If *strict* is `True`, the first error encountered when evaluating the path isre-raised.In
+particular, [`FileNotFoundError`](exceptions.html#FileNotFoundError "FileNotFoundError") is raised if *path*
+does not exist,or another [`OSError`](exceptions.html#OSError "OSError") if it is otherwise inaccessible.
+
+If *strict* is [`os.path.ALLOW_MISSING`](../_static/pygments.css?v=b86133f3 "os.path — Common pathname manipulations"), errors other than[`FileNotFoundError`](../_static/pygments.css?v=b86133f3 "viewport") are re-raised (as with
+`strict=True`).Thus, the returned path will not contain any symbolic links, but
+the namedfile and some of its parent directories may be missing.
+
+
+Note
+
+This function emulates the operating system’s procedure for making a pathcanonical,
+which differs slightly between Windows and UNIX with respectto how links and subsequent
+path components interact.
+
+Operating system APIs make paths canonical as needed, so it’s notnormally necessary
+to call this function.
+
+
+Changed in version 3.6: Accepts a [path-like object](../_static/pygments.css?v=b86133f3 "viewport").
+
+
+Changed in version 3.8: Symbolic links and junctions are now resolved on Windows.
+
+
+Changed in version 3.10: The *strict* parameter was added.
+
+
+Changed in version 3.14: The [`ALLOW_MISSING`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation") value for the
+*strict* parameterwas added.
+os.path.ALLOW_MISSING[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Special value used for the *strict* argument in [`realpath()`](../about.html "Index").
+
+
+Added in version 3.14.
+os.path.relpath(*path*, *start=os.curdir*)[¶](../_static/py.svg "previous chapter")
+Return a relative filepath to *path* either from the current directory orfrom an
+optional *start* directory.  This is a path computation:  thefilesystem is not accessed
+to confirm the existence or nature of *path* or*start*.  On Windows, [`ValueError`](https://www.python.org/ "previous chapter") is raised when
+*path* and *start*are on different drives.
+
+*start* defaults to [`os.curdir`](https://www.python.org/ "previous chapter").
+
+
+Changed in version 3.6: Accepts a [path-like object](https://www.python.org/ "previous chapter").
+os.path.samefile(*path1*, *path2*, */*)[¶](pathlib.html "previous chapter")
+Return `True` if both pathname arguments refer to the same file or directory.This is
+determined by the device number and i-node number and raises anexception if an [`os.stat()`](pathlib.html "previous chapter") call on either pathname fails.
+
+
+Changed in version 3.2: Added Windows support.
+
+
+Changed in version 3.4: Windows now uses the same implementation as all other platforms.
+
+
+Changed in version 3.6: Accepts a [path-like object](pathlib.html "previous chapter").
+os.path.sameopenfile(*fp1*, *fp2*)[¶](pathlib.html "previous chapter")
+Return `True` if the file descriptors *fp1* and *fp2* refer to the same file.
+
+
+Changed in version 3.2: Added Windows support.
+
+
+Changed in version 3.6: Accepts a [path-like object](pathlib.html "previous chapter").
+os.path.samestat(*stat1*, *stat2*, */*)[¶](? "meta[property="og:title"]")
+Return `True` if the stat tuples *stat1* and *stat2* refer to the same file.These structures
+may have been returned by [`os.fstat()`](? "meta[property="og:title"]"),[`os.lstat()`](note "note"), or [`os.stat()`](note "note").  This function implements theunderlying comparison used by [`samefile()`](../bugs.html ">Improve this page</a></li>
+<li>
+<a href=") and [`sameopenfile()`](https://github.com/python/cpython/blob/main/Doc/library/os.path.rst?plain=1 ">Improve this page</a></li>
+<li>
+<a href=").
+
+
+Changed in version 3.4: Added Windows support.
+os.path.split(*path*, */*)[¶](pathlib.html "pathlib — Object-oriented filesystem paths")
+Split the pathname *path* into a pair, `(head, tail)` where *tail* is thelast pathname component
+and *head* is everything leading up to that.  The*tail* part will never contain a
+slash; if *path* ends in a slash, *tail*will be empty.  If there is no slash in *path*,
+*head* will be empty.  If*path* is empty, both *head* and *tail* are empty.  Trailing
+slashes arestripped from *head* unless it is the root (one or more slashes only).
+Inall cases, `join(head, tail)` returns a path to the same location as *path*(but the strings may
+differ).  Also see the functions [`join()`](../index.html "Link to this heading"),[`dirname()`](../index.html "Link to this heading") and [`basename()`](../index.html "Link to this heading").
+
+
+Changed in version 3.6: Accepts a [path-like object](../index.html "Link to this heading").
+os.path.splitdrive(*path*, */*)[¶](../index.html "Link to this heading")
+Split the pathname *path* into a pair `(drive, tail)` where *drive* is eithera mount point or
+the empty string.  On systems which do not use drivespecifications, *drive* will
+always be the empty string.  In all cases, `drive
++ tail` will be the same as *path*.
+
+On Windows, splits a pathname into drive/UNC sharepoint and relative path.
+
+If the path contains a drive letter, drive will contain everythingup to and including
+the colon:
+
+Copy
+
+```>>> splitdrive("c:/dir")("c:", "/dir")```
+
+If the path contains a UNC path, drive will contain the host nameand share:
+
+Copy
+
+```>>> splitdrive("//host/computer/dir")("//host/computer", "/dir")```
+
+
+Changed in version 3.6: Accepts a [path-like object](https://github.com/python/cpython/tree/3.14/Lib/genericpath.py "open").
+os.path.splitroot(*path*, */*)[¶](os.html#module-os "os: Miscellaneous operating system interfaces.")
+Split the pathname *path* into a 3-item tuple `(drive, root, tail)` where*drive* is a device name or
+mount point, *root* is a string of separatorsafter the drive, and *tail* is everything
+after the root. Any of theseitems may be the empty string. In all cases, `drive + root + tail` willbe
+the same as *path*.
+
+On POSIX systems, *drive* is always empty. The *root* may be empty (if *path* isrelative),
+a single forward slash (if *path* is absolute), or two forward slashes(implementation-defined
+per [IEEE Std 1003.1-2017; 4.13 Pathname Resolution](glob.html#module-glob "glob: Unix shell style pathname pattern expansion.").)For example:
+
+Copy
+
+```>>> splitroot('/home/sam')('', '/', 'home/sam')>>> splitroot('//home/sam')('', 
+'//', 'home/sam')>>> splitroot('///home/sam')('', '/', '//home/sam')```
+
+On Windows, *drive* may be empty, a drive-letter name, a UNC share, or a devicename. 
+The *root* may be empty, a forward slash, or a backward slash. Forexample:
+
+Copy
+
+```>>> splitroot('C:/Users/Sam')('C:', '/', 'Users/Sam')>>>
+splitroot('//Server/Share/Users/Sam')('//Server/Share', '/', 'Users/Sam')```
+
+
+Added in version 3.12.
+os.path.splitext(*path*, */*)[¶](#os.path.isfile "os.path.isfile")
+Split the pathname *path* into a pair `(root, ext)`  such that `root + ext ==
+path`, and the extension, *ext*,
+is empty or begins with a period and contains atmost one period.
+
+If the path contains no extension, *ext* will be `''`:
+
+Copy
+
+```>>> splitext('bar')('bar', '')```
+
+If the path contains an extension, then *ext* will be set to this extension,including 
+the leading period. Note that previous periods will be ignored:
+
+Copy
+
+```>>> splitext('foo.bar.exe')('foo.bar', '.exe')>>>
+splitext('/foo/bar.exe')('/foo/bar', '.exe')```
+
+Leading periods of the last component of the path are considered tobe part of the
+root:
+
+Copy
+
+```>>> splitext('.cshrc')('.cshrc', '')>>>
+splitext('/foo/....jpg')('/foo/....jpg', '')```
+
+
+Changed in version 3.6: Accepts a [path-like object](#os.path.join "reference internal").
+os.path.supports_unicode_filenames[¶](../glossary.html#term-path-like-object "Positional-only parameter separator (PEP 570)")
+`True` if arbitrary Unicode strings can be used as file names (within limitationsimposed 
+by the file system).
+            
+
+                              
+
+        
+
+  
+
+    
+#### Previous topic
+    
+[`pathlib` — Object-oriented filesystem paths](#os.path.basename "Positional-only parameter separator (PEP 570)")
+    
+
+    
+#### Next topic
+    
+[`stat` — Interpreting `stat()` results](#os.path.basename "Link to this definition")
+    
+
+    
+### This page
+    
+      - [Report a bug](../glossary.html#term-path-like-object "Link to this definition")
+      - [Improve this page](../glossary.html#term-path-like-object "Link to this definition")
+      -         [Show source        ](#os.path.commonpath "Link to this definition")      
+          
+          
+
+«            
+
+          
+
+      
+### Navigation
+      
+        -           [index](exceptions.html#ValueError "ValueError")
+        -           [modules](#os.path.commonprefix "ValueError") |
+        -           [next](#os.path.commonprefix "os.path.commonprefix") |
+        -           [previous](#os.path.commonprefix "os.path.commonprefix") |
+          - 
+![versionchanged](../_static/py.svg "os.path.commonprefix")
+          - [Python](../glossary.html#term-path-like-object "Positional-only parameter separator (PEP 570)") »
+          -             
+
+Greek | Ελληνικά  
+Greek | ΕλληνικάEnglish  
+EnglishSpanish | español  
+EnglishFrench | français  
+EnglishItalian | italiano  
+EnglishJapanese | 日本語  
+EnglishKorean | 한국어  
+EnglishPolish | polski  
+EnglishBrazilian Portuguese | Português brasileiro  
+EnglishRomanian | Românește  
+EnglishRussian | Русский  
+EnglishTurkish | Türkçe  
+EnglishSimplified Chinese | 简体中文  
+EnglishTraditional Chinese | 繁體中文  
+Greek | Ελληνικά            
+
+dev (3.16)  
+dev (3.16)pre (3.15)  
+dev (3.16)3.14.7  
+3.14.73.13  
+3.14.73.12  
+3.14.73.11  
+3.14.73.10  
+3.14.73.9  
+3.14.73.8  
+3.14.73.7  
+3.14.73.6  
+3.14.73.5  
+3.14.73.4  
+3.14.73.3  
+3.14.73.2  
+3.14.73.1  
+3.14.73.0  
+3.14.72.7  
+3.14.72.6  
+dev (3.16)          
+          -                         
+    -       [3.14.7 Documentation](../glossary.html#term-path-like-object "Copy to clipboard") »    
+          - [The Python Standard Library](../glossary.html#term-path-like-object "Copy to clipboard") »
+          - [File and Directory Access](../glossary.html#term-path-like-object "Positional-only parameter separator (PEP 570)") »
+        - [`os.path` — Common pathname manipulations](../glossary.html#term-path-like-object "Positional-only parameter separator (PEP 570)")
+                -                         
+
+                                                             |                
+            -     Theme            Auto  
+        Light  
+        Dark  
+Auto |
+                  
+          
+
+    © [Copyright](#os.path.dirname "Positional-only parameter separator (PEP 570)") 2001 Python Software Foundation.      
+    This page is licensed under the Python Software Foundation License Version 2. 
+     
+    Examples, recipes, and other code in the documentation are additionally licensed 
+under the Zero Clause BSD License.      
+          See [History and License](#os.path.dirname "Positional-only parameter separator (PEP 570)") for more information.  
+              
+    The Python Software Foundation is a non-profit corporation.[Please donate.](#os.path.split "Link to this definition")  
+      
+      Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](#os.path.split "os.path.split")?          
+    Created using [Sphinx](#os.path.split "os.path.split") 8.2.3.        

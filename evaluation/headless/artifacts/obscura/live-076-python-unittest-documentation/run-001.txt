@@ -1,0 +1,2273 @@
+unittest — Unit testing framework — Python 3.14.7 documentation
+===============================================================================
+
+\*/}#sidebarbutton:hover {    background-color: white;}#sidebarbutton span
+{    display: table-cell;    vertical-align: middle;}div.sphinxsidebarwrapper {  
+float: left;    margin-right: 0;}/\* -- hyperlink styles
+------------------------------------------------------ \*/a {    color: #0090c0;
+text-decoration: none;}a:visited {    color: #00608f;    text-decoration: none;}a:hover
+{    text-decoration: underline;}/\* -- body styles
+----------------------------------------------------------- \*/div.body h1,div.body
+h2,div.body h3,div.body h4,div.body h5,div.body h6 {    font-family: -apple-system,
+BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell,
+Ubuntu, roboto, noto, arial, sans-serif;    background-color: white;    font-weight:
+normal;    color: #1a1a1a;    border-bottom: 1px solid #ccc;    margin: 20px -20px
+10px -20px;    padding: 3px 0 3px 10px;}div.body h1 { margin-top: 0; font-size: 200%;
+}div.body h2 { font-size: 160%; }div.body h3 { font-size: 140%; }div.body h4 { font-size:
+120%; }div.body h5 { font-size: 110%; }div.body h6 { font-size: 100%; }a.headerlink
+{    color: #aaaaaa;    font-size: 0.8em;    padding: 0 4px 0 4px;    text-decoration:
+none;}a.headerlink:hover {    background-color: #aaaaaa;    color: white;}div.body
+p, div.body dd, div.body li, div.body blockquote {    text-align: justify;    line-height:
+130%;}div.admonition p.admonition-title + p {    display: inline;}div.admonition
+p {    margin-bottom: 5px;}div.admonition pre {    margin-bottom: 5px;}div.admonition
+ul, div.admonition ol {    margin-bottom: 5px;}div.note {    background-color: #eee;
+border: 1px solid #ccc;}div.seealso {    background-color: #ffc;    border: 1px
+solid #ff6;}nav.contents,aside.topic,div.topic {    background-color: #eee;}div.warning
+{    background-color: #ffe4e4;    border: 1px solid #f66;}p.admonition-title {  
+display: inline;}p.admonition-title:after {    content: ":";}pre {    padding:
+5px;    background-color: #eeffcc;    color: #333333;    line-height: 120%;    border:
+1px solid #ac9;    border-left: none;    border-right: none;}code {    background-color:
+#ecf0f3;    padding: 0 1px 0 1px;    font-size: 0.95em;}th, dl.field-list > dt {
+background-color: #ede;}.warning code {    background: #efc2c2;}.note code {  
+background: #d6d6d6;}.viewcode-back {    font-family: -apple-system, BlinkMacSystemFont,
+avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto,
+noto, arial, sans-serif;}div.viewcode-block:target {    background-color: #f4debf;
+border-top: 1px solid #ac9;    border-bottom: 1px solid #ac9;}div.code-block-caption
+{    color: #efefef;    background-color: #1c4e63;}  
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+Theme            Auto  
+Light  
+Dark  
+
+
+### [Table of Contents](../contents.html)
+
+- [`unittest` — Unit testing framework](#)- [Basic example](#basic-example)
+- [Command-Line Interface](#command-line-interface)- [Command-line options](#command-line-options)
+- [Test Discovery](#test-discovery)
+- [Organizing test code](#organizing-test-code)
+- [Re-using old test code](#re-using-old-test-code)
+- [Skipping tests and expected failures](#skipping-tests-and-expected-failures)
+- [Distinguishing test iterations using subtests](#distinguishing-test-iterations-using-subtests)
+- [Classes and functions](#classes-and-functions)
+- [Test cases](#test-cases)
+- [Grouping tests](#grouping-tests)
+- [Loading and running tests](#loading-and-running-tests)- [load_tests Protocol](#load-tests-protocol)
+- [Class and Module Fixtures](#class-and-module-fixtures)
+- [setUpClass and tearDownClass](#setupclass-and-teardownclass)
+- [setUpModule and tearDownModule](#setupmodule-and-teardownmodule)
+- [Signal Handling](#signal-handling)
+
+
+#### Previous topic
+
+[`doctest` — Test interactive Python examples](doctest.html "previous chapter")
+
+
+#### Next topic
+
+[`unittest.mock` — mock object library](unittest.mock.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=unittest+%E2%80%94+Unit+testing+framework&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Funittest.html&pagesource=library%2Funittest.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/unittest.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](unittest.mock.html "unittest.mock — mock object library") |
+-           [previous](doctest.html "doctest — Test interactive Python examples") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [Development Tools](development.html) »
+- [`unittest` — Unit testing framework]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+# `unittest` — Unit testing framework[¶](../_static/pygments.css?v=b86133f3 "viewport")
+
+**Source code:** [Lib/unittest/__init__.py](../_static/pygments.css?v=b86133f3 "viewport")
+
+---
+
+(If you are already familiar with the basic concepts of testing, you might wantto
+skip to [the list of assert methods](../_static/pygments.css?v=b86133f3 "viewport").)
+
+The `unittest` unit testing framework was originally inspired by JUnitand has a similar flavor
+as major unit testing frameworks in otherlanguages.  It supports test automation,
+sharing of setup and shutdown codefor tests, aggregation of tests into collections,
+and independence of thetests from the reporting framework.
+
+To achieve this, `unittest` supports some important concepts in anobject-oriented way:
+test fixture
+A *test fixture* represents the preparation needed to perform one or moretests, and
+any associated cleanup actions.  This may involve, for example,creating temporary
+or proxy databases, directories, or starting a serverprocess.
+test case
+A *test case* is the individual unit of testing.  It checks for a specificresponse
+to a particular set of inputs.  `unittest` provides a base class,[`TestCase`](../_static/classic.css?v=234b1a7c "highlight-"), which may be used to create new test cases.
+test suite
+A *test suite* is a collection of test cases, test suites, or both.  It isused to
+aggregate tests that should be executed together.
+test runner
+A *test runner* is a component which orchestrates the execution of testsand provides
+the outcome to the user.  The runner may use a graphical interface,a textual interface,
+or return a special value to indicate the results ofexecuting the tests.
+
+
+See also
+Module [`doctest`](../_static/classic.css?v=234b1a7c "highlight-")
+Another test-support module with a very different flavor.
+[Simple Smalltalk Testing: With Patterns](../_static/classic.css?v=234b1a7c "highlight-")
+Kent Beck’s original paper on testing frameworks using the pattern sharedby `unittest`.
+[pytest](../_static/classic.css?v=234b1a7c "highlight-")
+Third-party unittest framework with a lighter-weight syntax for writingtests.  For
+example, `assert func(10) == 42`.
+[The Python Testing Tools Taxonomy](../_static/classic.css?v=234b1a7c "highlight-")
+An extensive list of Python testing tools including functional testingframeworks
+and mock object libraries.
+[Testing in Python Mailing List](../_static/classic.css?v=234b1a7c "highlight-")
+A special-interest-group for discussion of testing, and testing tools,in Python.
+
+The script `Tools/unittestgui/unittestgui.py` in the Python source distribution isa GUI tool for test discovery and
+execution.  This is intended largely for ease of usefor those new to unit testing.
+For production environments it isrecommended that tests be driven by a continuous
+integration system such as[Buildbot](../_static/classic.css?v=234b1a7c "highlight-"), [Jenkins](../_static/classic.css?v=234b1a7c "highlight-"),[GitHub Actions](../_static/classic.css?v=234b1a7c "highlight-"), or[AppVeyor](../_static/classic.css?v=234b1a7c "highlight-").
+
+## Basic example[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+The `unittest` module provides a rich set of tools for constructing andrunning tests.  This
+section demonstrates that a small subset of the toolssuffice to meet the needs of
+most users.
+
+Here is a short script to test three string methods:
+
+Copy
+
+```import unittestclass TestStringMethods(unittest.TestCase):    def test_upper(self): 
+       self.assertEqual('foo'.upper(), 'FOO')    def test_isupper(self):       
+self.assertTrue('FOO'.isupper())        self.assertFalse('Foo'.isupper())    def 
+test_split(self):        s = 'hello world'        self.assertEqual(s.split(), ['hello', 
+'world'])        # check that s.split fails when the separator is not a string   
+     with self.assertRaises(TypeError):            s.split(2)if __name__ == '__main__': 
+   unittest.main()```
+
+A test case is created by subclassing [`unittest.TestCase`](../_static/pydoctheme.css?v=4365c8fe "highlight-").  The threeindividual tests are defined with methods whose names start with the
+letters`test`.  This naming convention informs the test runner about which methodsrepresent 
+tests.
+
+The crux of each test is a call to [`assertEqual()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") to check for anexpected result; [`assertTrue()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") or [`assertFalse()`](../_static/pydoctheme.css?v=4365c8fe "highlight-")to verify a condition; or [`assertRaises()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") to verify that aspecific exception gets raised.  These methods are used instead of the[`assert`](../_static/pydoctheme.css?v=4365c8fe "highlight-") statement so the test runner can accumulate all test resultsand produce a report.
+
+The [`setUp()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") and [`tearDown()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") methods allow youto define instructions that will be executed before and after each test method.They are covered in more detail in the section
+[Organizing test code](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+
+The final block shows a simple way to run the tests. [`unittest.main()`](../_static/pydoctheme.css?v=4365c8fe "highlight-")provides a command-line interface to the test script.  When run from the commandline, the above script produces an output that looks like this:
+
+Copy
+
+```...----------------------------------------------------------------------Ran 3
+tests in 0.000sOK```
+
+Passing the `-v` option to your test script will instruct [`unittest.main()`](../_static/pydoctheme.css?v=4365c8fe "highlight-")to enable a higher level of verbosity, and produce the following output:
+
+Copy
+
+```test_isupper (__main__.TestStringMethods.test_isupper) ... oktest_split
+(__main__.TestStringMethods.test_split) ... oktest_upper (__main__.TestStringMethods.test_upper) 
+... ok----------------------------------------------------------------------Ran 3 
+tests in 0.001sOK```
+
+The above examples show the most commonly used `unittest` features whichare sufficient to 
+meet many everyday testing needs.  The remainder of thedocumentation explores the 
+full feature set from first principles.
+
+
+Changed in version 3.11: The behavior of returning a value from a test method (other 
+than the default`None` value), is now deprecated.
+
+## Command-Line Interface[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+The unittest module can be used from the command line to run tests frommodules, classes 
+or even individual test methods:
+
+Copy
+
+```python -m unittest test_module1 test_module2python -m unittest test_module.TestClasspython
+-m unittest test_module.TestClass.test_method```
+
+You can pass in a list with any combination of module names, and fullyqualified class
+or method names.
+
+Test modules can be specified by file path as well:
+
+Copy
+
+```python -m unittest tests/test_something.py```
+
+This allows you to use the shell filename completion to specify the test module.The 
+file specified must still be importable as a module. The path is convertedto a module 
+name by removing the ‘.py’ and converting path separators into ‘.’.If you 
+want to execute a test file that isn’t importable as a module you shouldexecute 
+the file directly instead.
+
+You can run tests with more detail (higher verbosity) by passing in the -v flag:
+
+Copy
+
+```python -m unittest -v test_module```
+
+When executed without arguments [Test Discovery](../_static/pydoctheme.css?v=4365c8fe "stylesheet") is started:
+
+Copy
+
+```python -m unittest```
+
+For a list of all the command-line options:
+
+Copy
+
+```python -m unittest -h```
+
+
+Changed in version 3.2: In earlier versions it was only possible to run individual
+test methods andnot modules or classes.
+
+
+Added in version 3.14: Output is colorized by default and can be[controlled using
+environment variables](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+### Command-line options[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+**unittest** supports these command-line options:
+-b, --buffer[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+The standard output and standard error streams are buffered during the testrun. Output
+during a passing test is discarded. Output is echoed normallyon test fail or error
+and is added to the failure messages.
+-c, --catch[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Control-C during the test run waits for the current test to end and thenreports all
+the results so far. A second Control-C raises the normal[`KeyboardInterrupt`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") exception.
+
+See [Signal Handling](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for the functions that provide this functionality.
+-f, --failfast[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Stop the test run on the first error or failure.
+-k[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Only run test methods and classes that match the pattern or substring.This option
+may be used multiple times, in which case all test cases thatmatch any of the given
+patterns are included.
+
+Patterns that contain a wildcard character (`*`) are matched against thetest name
+using [`fnmatch.fnmatchcase()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"); otherwise simple case-sensitivesubstring matching is used.
+
+Patterns are matched against the fully qualified test method name asimported by the
+test loader.
+
+For example, `-k foo` matches `foo_tests.SomeTest.test_something`,`bar_tests.SomeTest.test_foo`, but not `bar_tests.FooTest.test_something`.
+--locals[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Show local variables in tracebacks.
+--durations N[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Show the N slowest test cases (N=0 for all).
+
+
+Added in version 3.2: The command-line options `-b`, `-c` and `-f` were added.
+
+
+Added in version 3.5: The command-line option `--locals`.
+
+
+Added in version 3.7: The command-line option `-k`.
+
+
+Added in version 3.12: The command-line option `--durations`.
+
+The command line can also be used for test discovery, for running all of thetests
+in a project or just a subset.
+
+## Test Discovery[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+
+Added in version 3.2.
+
+Unittest supports simple test discovery. In order to be compatible with testdiscovery,
+all of the test files must be [modules](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+or[packages](../_static/pydoctheme.css?v=4365c8fe "stylesheet") importable from the top-level directory ofthe project (this means that their filenames must be valid
+[identifiers](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")).
+
+Test discovery is implemented in [`TestLoader.discover()`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation"), but can also beused from the command line. The basic command-line usage is:
+
+Copy
+
+```cd project_directorypython -m unittest discover```
+
+
+Note
+
+As a shortcut, `python -m unittest` is the equivalent of`python -m unittest discover`. If you want to pass arguments to testdiscovery 
+the `discover` sub-command must be used explicitly.
+
+The `discover` sub-command has the following options:
+-v, --verbose[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Verbose output
+-s, --start-directory directory[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Directory to start discovery (`.` default)
+-p, --pattern pattern[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Pattern to match test files (`test*.py` default)
+-t, --top-level-directory directory[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Top level directory of project (defaults to start directory)
+
+The [`-s`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), [`-p`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), and [`-t`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") options can be passed inas positional arguments in that order. The following two command linesare equivalent:
+
+Copy
+
+```python -m unittest discover -s project_directory -p "\*_test.py"python -m unittest
+discover project_directory "\*_test.py"```
+
+As well as being a path it is possible to pass a package name, for example`myproject.subpackage.test`, as
+the start directory. The package name yousupply will then be imported and its location
+on the filesystem will be usedas the start directory.
+
+
+Caution
+
+Test discovery loads tests by importing them. Once test discovery has foundall the
+test files from the start directory you specify it turns the pathsinto package names
+to import. For example `foo/bar/baz.py` will beimported as `foo.bar.baz`.
+
+If you have a package installed globally and attempt test discovery ona different
+copy of the package then the import *could* happen from thewrong place. If this happens
+test discovery will warn you and exit.
+
+If you supply the start directory as a package name rather than apath to a directory
+then discover assumes that whichever location itimports from is the location you
+intended, so you will not get thewarning.
+
+Test modules and packages can customize test loading and discovery by throughthe
+[load_tests protocol](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Changed in version 3.4: Test discovery supports [namespace packages](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Changed in version 3.11: Test discovery dropped the [namespace packages](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")support. It has been broken since Python 3.7.Start directory and its subdirectories containing tests must be regularpackage that have `__init__.py`
+file.
+
+If the start directory is the dotted name of the package, the ancestor packagescan
+be namespace packages.
+
+
+Changed in version 3.14: Test discovery supports [namespace package](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") as start directory again.To avoid scanning directories unrelated to Python,tests are not searched in subdirectories that do not contain
+`__init__.py`.
+
+## Organizing test code[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+The basic building blocks of unit testing are *test cases* — singlescenarios that
+must be set up and checked for correctness.  In `unittest`,test cases are represented by
+[`unittest.TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") instances.To make your own test cases you must write subclasses of[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") or use [`FunctionTestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+The testing code of a [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") instance should be entirely selfcontained, such that it can be run either in isolation or in arbitrarycombination with any number of other test cases.
+
+The simplest [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") subclass will simply implement a test method(i.e. a method whose name starts with
+`test`) in order to perform specifictesting code:
+
+Copy
+
+```import unittestclass DefaultWidgetSizeTestCase(unittest.TestCase):    def
+test_default_widget_size(self):        widget = Widget('The widget')       
+self.assertEqual(widget.size(), (50, 50))```
+
+Note that in order to test something, we use one of the [assert\* methods](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")provided by the [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") base class.  If the test fails, anexception will be raised with an explanatory message, and
+`unittest`will identify the test case as a *failure*.  Any other exceptions will 
+betreated as *errors*.
+
+Tests can be numerous, and their set-up can be repetitive.  Luckily, wecan factor 
+out set-up code by implementing a method called[`setUp()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), which the testing framework will automaticallycall for every single test we run:
+
+Copy
+
+```import unittestclass WidgetTestCase(unittest.TestCase):    def setUp(self):   
+self.widget = Widget('The widget')    def test_default_widget_size(self):   
+self.assertEqual(self.widget.size(), (50,50),                         'incorrect
+default size')    def test_widget_resize(self):        self.widget.resize(100,150)
+self.assertEqual(self.widget.size(), (100,150),                         'wrong
+size after resize')```
+
+
+Note
+
+The order in which the various tests will be run is determinedby sorting the test
+method names with respect to the built-inordering for strings.
+
+If the [`setUp()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method raises an exception while the test isrunning, the framework will consider the test to have suffered an error, andthe test method will not be executed.
+
+Similarly, we can provide a [`tearDown()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method that tidies upafter the test method has been run:
+
+Copy
+
+```import unittestclass WidgetTestCase(unittest.TestCase):    def setUp(self):   
+     self.widget = Widget('The widget')    def tearDown(self):        self.widget.dispose()```
+
+If [`setUp()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") succeeded, [`tearDown()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") will berun whether the test method succeeded or not.
+
+Such a working environment for the testing code is called a*test fixture*.  A new 
+TestCase instance is created as a uniquetest fixture used to execute each individual 
+test method.  Thus[`setUp()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), [`tearDown()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), and
+`TestCase.__init__()`will be called once per test.
+
+It is recommended that you use TestCase implementations to group tests togetheraccording 
+to the features they test.  `unittest` provides a mechanism forthis: the *test suite*, represented 
+by `unittest`’s[`TestSuite`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") class.  In most cases, calling [`unittest.main()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") will dothe right thing and collect all the module’s test cases for you and executethem.
+
+However, should you want to customize the building of your test suite,you can do 
+it yourself:
+
+Copy
+
+```def suite():    suite = unittest.TestSuite()   
+suite.addTest(WidgetTestCase('test_default_widget_size'))   
+suite.addTest(WidgetTestCase('test_widget_resize'))    return suiteif __name__ ==
+'__main__':    runner = unittest.TextTestRunner()    runner.run(suite())```
+
+You can place the definitions of test cases and test suites in the same modulesas
+the code they are to test (such as `widget.py`), but there are severaladvantages to placing
+the test code in a separate module, such as`test_widget.py`:
+
+- The test module can be run standalone from the command line.
+- The test code can more easily be separated from shipped code.
+- There is less temptation to change test code to fit the code it tests withouta good reason.
+- Test code should be modified much less frequently than the code it tests.
+- Tested code can be refactored more easily.
+- Tests for modules written in C must be in separate modules anyway, so why notbe consistent?
+- If the testing strategy changes, there is no need to change the source code.
+
+## Re-using old test code[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+Some users will find that they have existing test code that they would like torun
+from `unittest`, without converting every old test function to a[`TestCase`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") subclass.
+
+For this reason, `unittest` provides a [`FunctionTestCase`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") class.This subclass of [`TestCase`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") can be used to wrap an existing testfunction.  Set-up and tear-down functions can also be provided.
+
+Given the following test function:
+
+Copy
+
+```def testSomething():    something = makeSomething()    assert something.name is 
+not None    # ...```
+
+one can create an equivalent test case instance as follows, with optionalset-up and 
+tear-down methods:
+
+Copy
+
+```testcase = unittest.FunctionTestCase(testSomething,                           
+setUp=makeSomethingDB,                                     tearDown=deleteSomethingDB)```
+
+
+Note
+
+Even though [`FunctionTestCase`](../_static/py.svg "previous chapter") can be used to quickly convert anexisting test base over to a
+`unittest`-based system, this approach isnot recommended.  Taking the time to set
+up proper [`TestCase`](../_static/py.svg "previous chapter")subclasses will make future test refactorings infinitely easier.
+
+In some cases, the existing tests may have been written using the [`doctest`](../_static/py.svg "previous chapter")module.  If so, `doctest`
+provides a [`DocTestSuite`](../_static/py.svg "previous chapter") class that canautomatically build [`unittest.TestSuite`](../_static/py.svg "previous chapter") instances from the
+existing`doctest`-based tests.
+
+## Skipping tests and expected failures[¶](../_static/py.svg "previous chapter")
+
+
+Added in version 3.1.
+
+Unittest supports skipping individual test methods and even whole classes oftests.
+In addition, it supports marking a test as an “expected failure,” a testthat
+is broken and will fail, but shouldn’t be counted as a failure on a[`TestResult`](../_static/py.svg "previous chapter").
+
+Skipping a test is simply a matter of using the [`@skip`](../_static/py.svg "previous chapter")
+[decorator](../_static/py.svg "previous chapter")or one of its conditional variants, calling [`TestCase.skipTest()`](../_static/py.svg "previous chapter") within a[`setUp()`](https://www.python.org/ "previous chapter") or test method, or raising [`SkipTest`](https://www.python.org/ "previous chapter") directly.
+
+Basic skipping looks like this:
+
+Copy
+
+```class MyTestCase(unittest.TestCase):    @unittest.skip("demonstrating skipping") 
+   def test_nothing(self):        self.fail("shouldn't happen")   
+@unittest.skipIf(mylib.__version__ < (1, 3),                     "not supported 
+in this library version")    def test_format(self):        # Tests that work for 
+only a certain version of the library.        pass   
+@unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")    def 
+test_windows_support(self):        # windows specific testing code        pass   
+ def test_maybe_skipped(self):        if not external_resource_available():      
+      self.skipTest("external resource not available")        # test code that depends 
+on the external resource        pass```
+
+This is the output of running the example above in verbose mode:
+
+Copy
+
+```test_format (__main__.MyTestCase.test_format) ... skipped 'not supported in this
+library version'test_nothing (__main__.MyTestCase.test_nothing) ... skipped 'demonstrating
+skipping'test_maybe_skipped (__main__.MyTestCase.test_maybe_skipped) ... skipped
+'external resource not available'test_windows_support (__main__.MyTestCase.test_windows_support)
+... skipped 'requires
+Windows'----------------------------------------------------------------------Ran
+4 tests in 0.005sOK (skipped=4)```
+
+Classes can be skipped just like methods:
+
+Copy
+
+```@unittest.skip("showing class skipping")class MySkippedTestCase(unittest.TestCase): 
+   def test_not_run(self):        pass```
+
+[`TestCase.setUp()`](? "note") can also skip the test.  This is useful when a resourcethat needs to be set up is not available.
+
+Expected failures use the [`@expectedFailure`](note ">Improve this page</a></li>
+      <li>
+        <a href=") decorator.
+
+Copy
+
+```class ExpectedFailureTestCase(unittest.TestCase):    @unittest.expectedFailure
+def test_fail(self):        self.assertEqual(1, 0, "broken")```
+
+It’s easy to roll your own skipping decorators by making a decorator that calls[`skip()`](https://www.python.org/ "doctest — Test interactive Python examples") on the test when it wants it to be skipped.  This decorator skipsthe test unless the passed object has a certain attribute:
+
+Copy
+
+```def skipUnlessHasattr(obj, attr):    if hasattr(obj, attr):        return lambda 
+func: func    return unittest.skip("{!r} doesn't have {!r}".format(obj, attr))```
+
+The following decorators and exception implement test skipping and expected failures:
+@unittest.skip(*reason*)[¶](index.html "Link to this heading")
+Unconditionally skip the decorated test.  *reason* should describe why thetest is 
+being skipped.
+@unittest.skipIf(*condition*, *reason*)[¶](../_static/pygments.css?v=b86133f3 "unittest — Unit testing framework")
+Skip the decorated test if *condition* is true.
+@unittest.skipUnless(*condition*, *reason*)[¶](../_static/pygments.css?v=b86133f3 "viewport")
+Skip the decorated test unless *condition* is true.
+@unittest.expectedFailure[¶](../_static/pygments.css?v=b86133f3 "viewport")
+Mark the test as an expected failure or error.  If the test fails or errorsin the 
+test function itself (rather than in one of the *test fixture*methods) then it will 
+be considered a success.  If the test passes, it willbe considered a failure.
+*exception *unittest.SkipTest(*reason*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+This exception is raised to skip a test.
+
+Usually you can use [`TestCase.skipTest()`](../_static/classic.css?v=234b1a7c "highlight-") or one of the skippingdecorators instead of raising this directly.
+
+Skipped tests will not have [`setUp()`](../_static/classic.css?v=234b1a7c "highlight-") or [`tearDown()`](../_static/classic.css?v=234b1a7c "highlight-") run around them.Skipped classes will not have [`setUpClass()`](../_static/classic.css?v=234b1a7c "highlight-") or [`tearDownClass()`](../_static/classic.css?v=234b1a7c "highlight-") run.Skipped modules will not have [`setUpModule()`](../_static/classic.css?v=234b1a7c "highlight-") or [`tearDownModule()`](../_static/classic.css?v=234b1a7c "highlight-") run.
+
+## Distinguishing test iterations using subtests[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+
+Added in version 3.4.
+
+When there are very small differences among your tests, forinstance some parameters, 
+unittest allows you to distinguish them insidethe body of a test method using the 
+[`subTest()`](../_static/classic.css?v=234b1a7c "highlight-") context manager.
+
+For example, the following test:
+
+Copy
+
+```class NumbersTest(unittest.TestCase):    def test_even(self):        """      
+Test that numbers between 0 and 5 are all even.        """        for i in range(0,
+6):            with self.subTest(i=i):                self.assertEqual(i % 2, 0)```
+
+will produce the following output:
+
+Copy
+
+```======================================================================FAIL: test_even 
+(__main__.NumbersTest.test_even) (i=1)Test that numbers between 0 and 5 are all
+even.----------------------------------------------------------------------Traceback 
+(most recent call last):  File "subtests.py", line 11, in test_even    self.assertEqual(i 
+% 2, 0)    ^^^^^^^^^^^^^^^^^^^^^^^^^^AssertionError: 1 !=
+0======================================================================FAIL: test_even 
+(__main__.NumbersTest.test_even) (i=3)Test that numbers between 0 and 5 are all
+even.----------------------------------------------------------------------Traceback 
+(most recent call last):  File "subtests.py", line 11, in test_even    self.assertEqual(i 
+% 2, 0)    ^^^^^^^^^^^^^^^^^^^^^^^^^^AssertionError: 1 !=
+0======================================================================FAIL: test_even 
+(__main__.NumbersTest.test_even) (i=5)Test that numbers between 0 and 5 are all
+even.----------------------------------------------------------------------Traceback 
+(most recent call last):  File "subtests.py", line 11, in test_even    self.assertEqual(i 
+% 2, 0)    ^^^^^^^^^^^^^^^^^^^^^^^^^^AssertionError: 1 != 0```
+
+Without using a subtest, execution would stop after the first failure,and the error 
+would be less easy to diagnose because the value of `i`wouldn’t be displayed:
+
+Copy
+
+```======================================================================FAIL: test_even
+(__main__.NumbersTest.test_even)----------------------------------------------------------------------Traceback
+(most recent call last):  File "subtests.py", line 32, in test_even    self.assertEqual(i
+% 2, 0)AssertionError: 1 != 0```
+
+## Classes and functions[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+This section describes in depth the API of `unittest`.
+
+### Test cases[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+*class *unittest.TestCase(*methodName='runTest'*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Instances of the `TestCase` class represent the logical test unitsin the `unittest` universe.  This
+class is intended to be used as a baseclass, with specific tests being implemented
+by concrete subclasses.  This classimplements the interface needed by the test runner
+to allow it to drive thetests, and methods that the test code can use to check for
+and report variouskinds of failure.
+
+Each instance of `TestCase` will run a single base method: the methodnamed *methodName*.In
+most uses of `TestCase`, you will neither changethe *methodName* nor reimplement the default
+`runTest()` method.
+
+
+Changed in version 3.2: `TestCase` can be instantiated successfully without providing a*methodName*.
+This makes it easier to experiment with `TestCase`from the interactive interpreter.
+
+`TestCase` instances provide three groups of methods: one group usedto run the test, another
+used by the test implementation to check conditionsand report failures, and some
+inquiry methods allowing information about thetest itself to be gathered.
+
+Methods in the first group (running the test) are:
+setUp()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Method called to prepare the test fixture.  This is called immediatelybefore calling
+the test method; other than [`AssertionError`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") or [`SkipTest`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"),any exception raised by this method will be considered an error rather thana test failure. The default implementation does nothing.
+tearDown()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Method called immediately after the test method has been called and theresult recorded.
+This is called even if the test method raised anexception, so the implementation
+in subclasses may need to be particularlycareful about checking internal state.  
+Any exception, other than[`AssertionError`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") or [`SkipTest`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), raised by this method will beconsidered an additional error rather than a test failure (thus increasingthe total number of reported errors). This method will only be called ifthe [`setUp()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") succeeds, regardless of the outcome of the test method.The default implementation does nothing.
+setUpClass()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A class method called before tests in an individual class are run.`setUpClass` is called with
+the class as the only argumentand must be decorated as a [`@classmethod`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"):
+
+Copy
+
+```@classmethoddef setUpClass(cls):    ...```
+
+See [Class and Module Fixtures](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for more details.
+
+
+Added in version 3.2.
+tearDownClass()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A class method called after tests in an individual class have run.`tearDownClass` is called with 
+the class as the only argumentand must be decorated as a [`@classmethod`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"):
+
+Copy
+
+```@classmethoddef tearDownClass(cls):    ...```
+
+See [Class and Module Fixtures](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for more details.
+
+
+Added in version 3.2.
+run(*result=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Run the test, collecting the result into the [`TestResult`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") objectpassed as
+*result*.  If *result* is omitted or `None`, a temporaryresult object is created (by
+calling the [`defaultTestResult()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")method) and used. The result object is returned to
+`run()`’scaller.
+
+The same effect may be had by simply calling the `TestCase`instance.
+
+
+Changed in version 3.3: Previous versions of `run` did not return the result. Neither
+didcalling an instance.
+skipTest(*reason*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Calling this during a test method or [`setUp()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") skips the currenttest.  See
+[Skipping tests and expected failures](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for more information.
+
+
+Added in version 3.1.
+subTest(*msg=None*, *\*\*params*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Return a context manager which executes the enclosed code block as asubtest.  *msg*
+and *params* are optional, arbitrary values which aredisplayed whenever a subtest
+fails, allowing you to identify themclearly.
+
+A test case can contain any number of subtest declarations, andthey can be arbitrarily
+nested.
+
+See [Distinguishing test iterations using subtests](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for more information.
+
+
+Added in version 3.4.
+debug()[¶](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")
+Run the test without collecting the result.  This allows exceptions raisedby the
+test to be propagated to the caller, and can be used to supportrunning tests under
+a debugger.
+
+The `TestCase` class provides several assert methods to check for andreport failures.  The
+following table lists the most commonly used methods(see the tables below for more
+assert methods):
+
+|                                                                                                                    |
+|--------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                    |
+| Checks that                                                                                                        |
+|                                                                                                                    |
+| New in                                                                                                             |
+| -                                                                                                                  | - | - |
+|                                                                                                                    |
+| [`assertEqual(a, b)`]( "Search within Python 3.14.7 documentation")                                                |
+|                                                                                                                    |
+| `a == b`                                                                                                           |
+|                                                                                                                    |
+| [`assertNotEqual(a, b)`]( "Search within Python 3.14.7 documentation")                                             |
+|                                                                                                                    |
+| `a != b`                                                                                                           |
+|                                                                                                                    |
+| [`assertTrue(x)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")             |
+|                                                                                                                    |
+| `bool(x) is True`                                                                                                  |
+|                                                                                                                    |
+| [`assertFalse(x)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")            |
+|                                                                                                                    |
+| `bool(x) is False`                                                                                                 |
+|                                                                                                                    |
+| [`assertIs(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")            |
+|                                                                                                                    |
+| `a is b`                                                                                                           |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertIsNot(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")         |
+|                                                                                                                    |
+| `a is not b`                                                                                                       |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertIsNone(x)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")           |
+|                                                                                                                    |
+| `x is None`                                                                                                        |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertIsNotNone(x)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")        |
+|                                                                                                                    |
+| `x is not None`                                                                                                    |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertIn(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")            |
+|                                                                                                                    |
+| `a in b`                                                                                                           |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertNotIn(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")         |
+|                                                                                                                    |
+| `a not in b`                                                                                                       |
+|                                                                                                                    |
+| 3.1                                                                                                                |
+| [`assertIsInstance(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")    |
+|                                                                                                                    |
+| `isinstance(a, b)`                                                                                                 |
+|                                                                                                                    |
+| 3.2                                                                                                                |
+| [`assertNotIsInstance(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+|                                                                                                                    |
+| `not isinstance(a, b)`                                                                                             |
+|                                                                                                                    |
+| 3.2                                                                                                                |
+| [`assertIsSubclass(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")    |
+|                                                                                                                    |
+| `issubclass(a, b)`                                                                                                 |
+|                                                                                                                    |
+| 3.14                                                                                                               |
+| [`assertNotIsSubclass(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+|                                                                                                                    |
+| `not issubclass(a, b)`                                                                                             |
+|                                                                                                                    |
+| 3.14                                                                                                               |
+
+All the assert methods accept a *msg* argument that, if specified, is usedas the
+error message on failure (see also [`longMessage`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")).Note that the
+*msg* keyword argument can be passed to [`assertRaises()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"),[`assertRaisesRegex()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), [`assertWarns()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), [`assertWarnsRegex()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")only when they are used as a context manager.
+assertEqual(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that *first* and *second* are equal.  If the values do notcompare equal, the
+test will fail.
+
+In addition, if *first* and *second* are the exact same type and one oflist, tuple,
+dict, set, frozenset or str or any type that a subclassregisters with [`addTypeEqualityFunc()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") the type-specific equalityfunction will be called in order to generate a more useful defaulterror message (see also the
+[list of type-specific methods](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")).
+
+
+Changed in version 3.1: Added the automatic calling of type-specific equality function.
+
+
+Changed in version 3.2: [`assertMultiLineEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") added as the default type equalityfunction for comparing strings.
+assertNotEqual(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that *first* and *second* are not equal.  If the values docompare equal, the
+test will fail.
+assertTrue(*expr*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertFalse(*expr*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that *expr* is true (or false).
+
+Note that this is equivalent to `bool(expr) is True` and not to `expr
+is True` (use `assertIs(expr, True)` for the latter).  This methodshould
+also be avoided when more specific methods are available (e.g.`assertEqual(a, b)` instead of `assertTrue(a == b)`),
+because theyprovide a better error message in case of failure.
+assertIs(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertIsNot(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that *first* and *second* are (or are not) the same object.
+
+
+Added in version 3.1.
+assertIsNone(*expr*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertIsNotNone(*expr*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that *expr* is (or is not) `None`.
+
+
+Added in version 3.1.
+assertIn(*member*, *container*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertNotIn(*member*, *container*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Test that *member* is (or is not) in *container*.
+
+
+Added in version 3.1.
+assertIsInstance(*obj*, *cls*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7
+documentation")assertNotIsInstance(*obj*, *cls*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Test that *obj* is (or is not) an instance of *cls* (which can be aclass or a tuple
+of classes, as supported by [`isinstance()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation")).To check for the exact type, use [`assertIs(type(obj), cls)`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.2.
+assertIsSubclass(*cls*, *superclass*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7
+documentation")assertNotIsSubclass(*cls*, *superclass*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Test that *cls* is (or is not) a subclass of *superclass* (which can be aclass or
+a tuple of classes, as supported by [`issubclass()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation")).To check for the exact type, use [`assertIs(cls, superclass)`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.14.
+
+It is also possible to check the production of exceptions, warnings, andlog messages
+using the following methods:
+
+|                                                                                                                  |
+|------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                  |
+| Checks that                                                                                                      |
+|                                                                                                                  |
+| New in                                                                                                           |
+| -                                                                                                                | - | - |
+|                                                                                                                  |
+| [`assertRaises(exc, fun, *args, **kwds)`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") |
+|                                                                                                                  |
+| `fun(*args, **kwds)` raises *exc*                                                                                |
+|                                                                                                                  |
+| [`assertRaisesRegex(exc, r, fun, *args, **kwds)`](../about.html "About these documents")                         |
+|                                                                                                                  |
+| `fun(*args, **kwds)` raises *exc*and the message matches regex *r*                                               |
+|                                                                                                                  |
+| 3.1                                                                                                              |
+| [`assertWarns(warn, fun, *args, **kwds)`](https://docs.python.org/3/library/unittest.html "previous chapter")    |
+|                                                                                                                  |
+| `fun(*args, **kwds)` raises *warn*                                                                               |
+|                                                                                                                  |
+| 3.2                                                                                                              |
+| [`assertWarnsRegex(warn, r, fun, *args, **kwds)`](../_static/py.svg "previous chapter")                          |
+|                                                                                                                  |
+| `fun(*args, **kwds)` raises *warn*and the message matches regex *r*                                              |
+|                                                                                                                  |
+| 3.2                                                                                                              |
+| [`assertLogs(logger, level)`](../_static/py.svg "previous chapter")                                              |
+|                                                                                                                  |
+| The `with` block logs on *logger*with minimum *level*                                                            |
+|                                                                                                                  |
+| 3.4                                                                                                              |
+| [`assertNoLogs(logger, level)`](../_static/py.svg "previous chapter")                                            |
+| The `with` block does not log on                                                                                 |
+| *logger* with minimum *level*                                                                                    |
+|                                                                                                                  |
+| 3.10                                                                                                             |
+assertRaises(*exception*, *callable*, *\*args*, *\*\*kwds*)[¶](../_static/py.svg "previous
+chapter")assertRaises(*exception*, *\**, *msg=None*)
+Test that an exception is raised when *callable* is called with anypositional or
+keyword arguments that are also passed to`assertRaises()`.  The test passes if *exception* is raised,
+is anerror if another exception is raised, or fails if no exception is raised.To
+catch any of a group of exceptions, a tuple containing the exceptionclasses may be
+passed as *exception*.
+
+If only the *exception* and possibly the *msg* arguments are given,return a context
+manager so that the code under test can be writteninline rather than as a function:
+
+Copy
+
+```with self.assertRaises(SomeException):    do_something()```
+
+When used as a context manager, `assertRaises()` accepts theadditional keyword argument *msg*.
+
+The context manager will store the caught exception object in its`exception` attribute.  This 
+can be useful if the intentionis to perform additional checks on the exception raised:
+
+Copy
+
+```with self.assertRaises(SomeException) as cm:    do_something()the_exception =
+cm.exceptionself.assertEqual(the_exception.error_code, 3)```
+
+
+Changed in version 3.1: Added the ability to use `assertRaises()` as a context manager.
+
+
+Changed in version 3.2: Added the `exception` attribute.
+
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+assertRaisesRegex(*exception*, *regex*, *callable*, *\*args*, *\*\*kwds*)[¶](../contents.html "previous
+chapter")assertRaisesRegex(*exception*, *regex*, *\**, *msg=None*)
+Like [`assertRaises()`](#command-line-interface "previous chapter") but also tests that *regex*
+matcheson the string representation of the raised exception.  *regex* may bea regular
+expression object or a string containing a regular expressionsuitable for use by
+[`re.search()`](#skipping-tests-and-expected-failures "previous chapter").  Examples:
+
+Copy
+
+```self.assertRaisesRegex(ValueError, "invalid literal for.\*XYZ'$",             
+          int, 'XYZ')```
+
+or:
+
+Copy
+
+```with self.assertRaisesRegex(ValueError, 'literal'):   int('XYZ')```
+
+
+Added in version 3.1: Added under the name `assertRaisesRegexp`.
+
+
+Changed in version 3.2: Renamed to `assertRaisesRegex()`.
+
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+assertWarns(*warning*, *callable*, *\*args*, *\*\*kwds*)[¶](https://github.com/python/cpython/blob/main/Doc/library/unittest.rst?plain=1 "General
+Index")assertWarns(*warning*, *\**, *msg=None*)
+Test that a warning is triggered when *callable* is called with anypositional or
+keyword arguments that are also passed to`assertWarns()`.  The test passes if *warning* is triggered
+andfails if it isn’t.  Any exception is an error.To catch any of a group of warnings,
+a tuple containing the warningclasses may be passed as *warnings*.
+
+If only the *warning* and possibly the *msg* arguments are given,return a context
+manager so that the code under test can be writteninline rather than as a function:
+
+Copy
+
+```with self.assertWarns(SomeWarning):    do_something()```
+
+When used as a context manager, `assertWarns()` accepts theadditional keyword argument *msg*.
+
+The context manager will store the caught warning object in its`warning` attribute, and 
+the source line which triggered thewarnings in the `filename` and `lineno` attributes.This can 
+be useful if the intention is to perform additional checkson the warning caught:
+
+Copy
+
+```with self.assertWarns(SomeWarning) as cm:    do_something()self.assertIn('myfile.py',
+cm.filename)self.assertEqual(320, cm.lineno)```
+
+This method works regardless of the warning filters in place when itis called.
+
+
+Added in version 3.2.
+
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+assertWarnsRegex(*warning*, *regex*, *callable*, *\*args*, *\*\*kwds*)[¶](../_static/pygments.css?v=b86133f3
+"viewport")assertWarnsRegex(*warning*, *regex*, *\**, *msg=None*)
+Like [`assertWarns()`](../_static/classic.css?v=234b1a7c "highlight-") but also tests that *regex*
+matches on themessage of the triggered warning.  *regex* may be a regular expressionobject
+or a string containing a regular expression suitable for useby [`re.search()`](../_static/classic.css?v=234b1a7c "highlight-").  Example:
+
+Copy
+
+```self.assertWarnsRegex(DeprecationWarning,                      r'legacy_function\\(\\) 
+is deprecated',                      legacy_function, 'XYZ')```
+
+or:
+
+Copy
+
+```with self.assertWarnsRegex(RuntimeWarning, 'unsafe frobnicating'):    frobnicate('/etc/passwd')```
+
+
+Added in version 3.2.
+
+
+Changed in version 3.3: Added the *msg* keyword argument when used as a context manager.
+assertLogs(*logger=None*, *level=None*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+A context manager to test that at least one message is logged onthe *logger* or one
+of its children, with at least the given*level*.
+
+If given, *logger* should be a [`logging.Logger`](../_static/classic.css?v=234b1a7c "highlight-") object or a[`str`](../_static/classic.css?v=234b1a7c "highlight-") giving the name of a logger.  The default is the rootlogger, which will catch all messages that were not blocked by anon-propagating descendent logger.
+
+If given, *level* should be either a numeric logging level orits string equivalent
+(for example either `"ERROR"` or[`logging.ERROR`](../_static/classic.css?v=234b1a7c "highlight-")).  The default is [`logging.INFO`](../_static/classic.css?v=234b1a7c "highlight-").
+
+The test passes if at least one message emitted inside the `with`block matches the *logger*
+and *level* conditions, otherwise it fails.
+
+The object returned by the context manager is a recording helperwhich keeps tracks
+of the matching log messages.  It has twoattributes:
+records[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+A list of [`logging.LogRecord`](../_static/pydoctheme.css?v=4365c8fe "highlight-") objects of the matchinglog messages.
+output[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+A list of [`str`](../_static/pydoctheme.css?v=4365c8fe "highlight-") objects with the formatted output ofmatching messages.
+
+Example:
+
+Copy
+
+```with self.assertLogs('foo', level='INFO') as cm:    logging.getLogger('foo').info('first 
+message')    logging.getLogger('foo.bar').error('second message')self.assertEqual(cm.output, 
+['INFO:foo:first message',                             'ERROR:foo.bar:second message'])```
+
+
+Added in version 3.4.
+assertNoLogs(*logger=None*, *level=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+A context manager to test that no messages are logged onthe *logger* or one of its 
+children, with at least the given*level*.
+
+If given, *logger* should be a [`logging.Logger`](../_static/pydoctheme.css?v=4365c8fe "highlight-") object or a[`str`](../_static/pydoctheme.css?v=4365c8fe "highlight-") giving the name of a logger.  The default is the rootlogger, which will catch all messages.
+
+If given, *level* should be either a numeric logging level orits string equivalent 
+(for example either `"ERROR"` or[`logging.ERROR`](../_static/pydoctheme.css?v=4365c8fe "highlight-")).  The default is [`logging.INFO`](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+
+Unlike [`assertLogs()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), nothing will be returned by the contextmanager.
+
+
+Added in version 3.10.
+
+There are also other methods used to perform more specific checks, such as:
+
+|                                                                                   |
+|-----------------------------------------------------------------------------------|
+|                                                                                   |
+| Checks that                                                                       |
+|                                                                                   |
+| New in                                                                            |
+| -                                                                                 | - | - |
+|                                                                                   |
+| [`assertAlmostEqual(a, b)`](../_static/pydoctheme.css?v=4365c8fe "highlight-")    |
+|                                                                                   |
+| `round(a-b, 7) == 0`                                                              |
+|                                                                                   |
+| [`assertNotAlmostEqual(a, b)`](../_static/pydoctheme.css?v=4365c8fe "highlight-") |
+|                                                                                   |
+| `round(a-b, 7) != 0`                                                              |
+|                                                                                   |
+| [`assertGreater(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")        |
+|                                                                                   |
+| `a > b`                                                                        |
+|                                                                                   |
+| 3.1                                                                               |
+| [`assertGreaterEqual(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")   |
+|                                                                                   |
+| `a >= b`                                                                       |
+|                                                                                   |
+| 3.1                                                                               |
+| [`assertLess(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")           |
+|                                                                                   |
+| `a < b`                                                                        |
+|                                                                                   |
+| 3.1                                                                               |
+| [`assertLessEqual(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")      |
+|                                                                                   |
+| `a <= b`                                                                       |
+|                                                                                   |
+| 3.1                                                                               |
+| [`assertRegex(s, r)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")          |
+|                                                                                   |
+| `r.search(s)`                                                                     |
+|                                                                                   |
+| 3.1                                                                               |
+| [`assertNotRegex(s, r)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")       |
+|                                                                                   |
+| `not r.search(s)`                                                                 |
+|                                                                                   |
+| 3.2                                                                               |
+| [`assertCountEqual(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")     |
+|                                                                                   |
+| *a* contains the same elementsas *b*, regardless of theirorder.                   |
+|                                                                                   |
+| 3.2                                                                               |
+| [`assertStartsWith(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")     |
+|                                                                                   |
+| `a.startswith(b)`                                                                 |
+|                                                                                   |
+| 3.14                                                                              |
+| [`assertNotStartsWith(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")  |
+|                                                                                   |
+| `not a.startswith(b)`                                                             |
+|                                                                                   |
+| 3.14                                                                              |
+| [`assertEndsWith(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")       |
+|                                                                                   |
+| `a.endswith(b)`                                                                   |
+|                                                                                   |
+| 3.14                                                                              |
+| [`assertNotEndsWith(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")    |
+|                                                                                   |
+| `not a.endswith(b)`                                                               |
+|                                                                                   |
+| 3.14                                                                              |
+| [`assertHasAttr(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")        |
+|                                                                                   |
+| `hasattr(a, b)`                                                                   |
+|                                                                                   |
+| 3.14                                                                              |
+| [`assertNotHasAttr(a, b)`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")     |
+|                                                                                   |
+| `not hasattr(a, b)`                                                               |
+|                                                                                   |
+| 3.14                                                                              |
+assertAlmostEqual(*first*, *second*, *places=7*, *msg=None*, *delta=None*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")assertNotAlmostEqual(*first*, *second*, *places=7*, *msg=None*, *delta=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Test that *first* and *second* are approximately (or not approximately)equal by computing 
+the difference, rounding to the given number ofdecimal *places* (default 7), and 
+comparing to zero.  Note that thesemethods round the values to the given number of 
+*decimal places* (i.e.like the [`round()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") function) and not
+*significant digits*.
+
+If *delta* is supplied instead of *places* then the differencebetween *first* and 
+*second* must be less or equal to (or greater than) *delta*.
+
+Supplying both *delta* and *places* raises a [`TypeError`](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+
+Changed in version 3.2: `assertAlmostEqual()` automatically considers almost equal objectsthat compare 
+equal.  `assertNotAlmostEqual()` automatically failsif the objects compare equal.  Added the *delta* keyword 
+argument.
+assertGreater(*first*, *second*, *msg=None*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")assertGreaterEqual(*first*, *second*, *msg=None*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")assertLess(*first*, *second*, *msg=None*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")assertLessEqual(*first*, *second*, *msg=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Test that *first* is respectively >, >=, < or <= than *second* dependingon 
+the method name.  If not, the test will fail:
+
+Copy
+
+```>>> self.assertGreaterEqual(3, 4)AssertionError: "3" unexpectedly not
+greater than or equal to "4"```
+
+
+Added in version 3.1.
+assertRegex(*text*, *regex*, *msg=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7
+documentation")assertNotRegex(*text*, *regex*, *msg=None*)[¶]( "Search within Python 3.14.7 documentation")
+Test that a *regex* search matches (or does not match) *text*.  In caseof failure,
+the error message will include the pattern and the *text* (orthe pattern and the
+part of *text* that unexpectedly matched).  *regex*may be a regular expression object
+or a string containing a regularexpression suitable for use by [`re.search()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.1: Added under the name `assertRegexpMatches`.
+
+
+Changed in version 3.2: The method `assertRegexpMatches()` has been renamed to`assertRegex()`.
+
+
+Added in version 3.2: `assertNotRegex()`.
+assertCountEqual(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that sequence *first* contains the same elements as *second*,regardless of their
+order. When they don’t, an error message listing thedifferences between the sequences
+will be generated.
+
+Duplicate elements are *not* ignored when comparing *first* and*second*. It verifies
+whether each element has the same count in bothsequences. Equivalent to:`assertEqual(Counter(list(first)), Counter(list(second)))`but works
+with sequences of unhashable objects as well.
+
+
+Added in version 3.2.
+assertStartsWith(*s*, *prefix*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertNotStartsWith(*s*, *prefix*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that the Unicode or byte string *s* starts (or does not start)with a *prefix*.*prefix*
+can also be a tuple of strings to try.
+
+
+Added in version 3.14.
+assertEndsWith(*s*, *suffix*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertNotEndsWith(*s*, *suffix*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that the Unicode or byte string *s* ends (or does not end)with a *suffix*.*suffix*
+can also be a tuple of strings to try.
+
+
+Added in version 3.14.
+assertHasAttr(*obj*, *name*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")assertNotHasAttr(*obj*, *name*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that the object *obj* has (or has not) an attribute *name*.
+
+
+Added in version 3.14.
+
+The [`assertEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method dispatches the equality check for objects ofthe same type to different type-specific methods.  These methods are alreadyimplemented for most of the built-in types, but it’s also possible toregister new methods using [`addTypeEqualityFunc()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"):
+addTypeEqualityFunc(*typeobj*, *function*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Registers a type-specific method called by [`assertEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") to checkif two objects of exactly the same
+*typeobj* (not subclasses) compareequal.  *function* must take two positional arguments
+and a third msg=Nonekeyword argument just as `assertEqual()` does.  It must raise[`self.failureException(msg)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") when inequalitybetween the first two parameters is detected – possibly providing usefulinformation and explaining the inequalities in details in the errormessage.
+
+
+Added in version 3.1.
+
+The list of type-specific methods automatically used by[`assertEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") are summarized in the following table.  Notethat it’s usually not necessary to invoke these methods directly.
+
+|                                                                                                                     |
+|---------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                     |
+| Used to compare                                                                                                     |
+|                                                                                                                     |
+| New in                                                                                                              |
+| -                                                                                                                   | - | - |
+|                                                                                                                     |
+| [`assertMultiLineEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+|                                                                                                                     |
+| strings                                                                                                             |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+| [`assertSequenceEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")  |
+|                                                                                                                     |
+| sequences                                                                                                           |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+| [`assertListEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")      |
+|                                                                                                                     |
+| lists                                                                                                               |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+| [`assertTupleEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")     |
+|                                                                                                                     |
+| tuples                                                                                                              |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+| [`assertSetEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")       |
+|                                                                                                                     |
+| sets or frozensets                                                                                                  |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+| [`assertDictEqual(a, b)`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")      |
+|                                                                                                                     |
+| dicts                                                                                                               |
+|                                                                                                                     |
+| 3.1                                                                                                                 |
+assertMultiLineEqual(*first*, *second*, *msg=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Test that the multiline string *first* is equal to the string *second*.When not equal
+a diff of the two strings highlighting the differenceswill be included in the error
+message. This method is used by defaultwhen comparing strings with [`assertEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.1.
+assertSequenceEqual(*first*, *second*, *msg=None*, *seq_type=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Tests that two sequences are equal.  If a *seq_type* is supplied, both*first* and
+*second* must be instances of *seq_type* or a failure willbe raised.  If the sequences
+are different an error message isconstructed that shows the difference between the
+two.
+
+This method is not called directly by [`assertEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), butit’s used to implement [`assertListEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") and[`assertTupleEqual()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.1.
+assertListEqual(*first*, *second*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7
+documentation")assertTupleEqual(*first*, *second*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Tests that two lists or tuples are equal.  If not, an error message isconstructed
+that shows only the differences between the two.  An erroris also raised if either
+of the parameters are of the wrong type.These methods are used by default when comparing
+lists or tuples with[`assertEqual()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.1.
+assertSetEqual(*first*, *second*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Tests that two sets are equal.  If not, an error message is constructedthat lists
+the differences between the sets.  This method is used bydefault when comparing sets
+or frozensets with [`assertEqual()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+Fails if either of *first* or *second* does not have a [`difference()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation")method.
+
+
+Added in version 3.1.
+assertDictEqual(*first*, *second*, *msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Test that two dictionaries are equal.  If not, an error message isconstructed that
+shows the differences in the dictionaries. Thismethod will be used by default to
+compare dictionaries incalls to [`assertEqual()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.1.
+
+Finally the `TestCase` provides the following methods and attributes:
+fail(*msg=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Signals a test failure unconditionally, with *msg* or `None` forthe error message.
+failureException[¶](../_static/opensearch.xml "About these documents")
+This class attribute gives the exception raised by the test method.  If atest framework
+needs to use a specialized exception, possibly to carryadditional information, it
+must subclass this exception in order to “playfair” with the framework.  The
+initial value of this attribute is[`AssertionError`](unittest.mock.html "doctest — Test interactive Python examples").
+longMessage[¶](../_static/pydoctheme_dark.css "previous chapter")
+This class attribute determines what happens when a custom failure messageis passed
+as the msg argument to an assertXYY call that fails.`True` is the default value. In this
+case, the custom message is appendedto the end of the standard failure message.When
+set to `False`, the custom message replaces the standard message.
+
+The class setting can be overridden in individual test methods by assigningan instance
+attribute, self.longMessage, to `True` or `False` beforecalling the assert methods.
+
+The class setting gets reset before each test call.
+
+
+Added in version 3.1.
+maxDiff[¶](../_static/py.svg "previous chapter")
+This attribute controls the maximum length of diffs output by assertmethods that
+report diffs on failure. It defaults to 80\*8 characters.Assert methods affected
+by this attribute are[`assertSequenceEqual()`](../_static/py.svg "previous chapter") (including all the sequence comparisonmethods that delegate to it), [`assertDictEqual()`](../_static/py.svg "previous chapter") and[`assertMultiLineEqual()`](../_static/py.svg "previous chapter").
+
+Setting `maxDiff` to `None` means that there is no maximum length ofdiffs.
+
+
+Added in version 3.2.
+
+Testing frameworks can use the following methods to collect information onthe test:
+countTestCases()[¶](../_static/py.svg "previous chapter")
+Return the number of tests represented by this test object.  For`TestCase` instances, this
+will always be `1`.
+defaultTestResult()[¶](../_static/py.svg "previous chapter")
+Return an instance of the test result class that should be used for thistest case
+class (if no other result instance is provided to the[`run()`](../_static/py.svg "previous chapter") method).
+
+For `TestCase` instances, this will always be an instance of[`TestResult`](https://www.python.org/ "previous chapter"); subclasses of `TestCase`
+should override thisas necessary.
+id()[¶](https://www.python.org/ "previous chapter")
+Return a string identifying the specific test case.  This is usually thefull name
+of the test method, including the module and class name.
+shortDescription()[¶](../contents.html "previous chapter")
+Returns a description of the test, or `None` if no descriptionhas been provided.  The
+default implementation of this methodreturns the first line of the test method’s
+docstring, if available,or `None`.
+
+
+Changed in version 3.1: In 3.1 this was changed to add the test name to the short
+descriptioneven in the presence of a docstring.  This caused compatibility issueswith
+unittest extensions and adding the test name was moved to the[`TextTestResult`](../contents.html "previous chapter") in Python 3.2.
+addCleanup(*function*, */*, *\*args*, *\*\*kwargs*)[¶](../contents.html "previous chapter")
+Add a function to be called after [`tearDown()`](../contents.html "previous chapter") to cleanup resourcesused during the test. Functions will be called in reverse order to theorder they are added
+(LIFO).  Theyare called with any arguments and keyword arguments passed into`addCleanup()` when
+they are added.
+
+If [`setUp()`](../contents.html "previous chapter") fails, meaning that [`tearDown()`](# "previous chapter") is not called,then any cleanup functions added will still be called.
+
+
+Added in version 3.1.
+enterContext(*cm*)[¶](#re-using-old-test-code "previous chapter")
+Enter the supplied [context manager](#distinguishing-test-iterations-using-subtests "previous chapter").  If successful, alsoadd its [`__exit__()`](#classes-and-functions "previous chapter") method as a cleanup function by[`addCleanup()`](#grouping-tests "previous chapter") and return the result of the[`__enter__()`](#class-and-module-fixtures "previous chapter") method.
+
+
+Added in version 3.11.
+doCleanups()[¶](unittest.mock.html "next chapter")
+This method is called unconditionally after [`tearDown()`](unittest.mock.html "next chapter"), orafter [`setUp()`](? "meta[property="og:title"]") if `setUp()`
+raises an exception.
+
+It is responsible for calling all the cleanup functions added by[`addCleanup()`](note "note"). If you need cleanup functions to be
+called*prior* to [`tearDown()`](../bugs.html ">Improve this page</a></li>
+<li>
+<a href=") then you can call `doCleanups()`yourself.
+
+`doCleanups()` pops methods off the stack of cleanupfunctions one at a time, so it can be called
+at any time.
+
+
+Added in version 3.1.
+*classmethod *addClassCleanup(*function*, */*, *\*args*, *\*\*kwargs*)[¶](../index.html "Link to this heading")
+Add a function to be called after [`tearDownClass()`](../index.html "Link to this heading") to cleanupresources used during the test class. Functions will be called in reverseorder to the order they are added
+(LIFO).They are called with any arguments and keyword arguments passed into`addClassCleanup()` when
+they are added.
+
+If [`setUpClass()`](../index.html "Link to this heading") fails, meaning that [`tearDownClass()`](../index.html "Link to this heading") is notcalled, then any cleanup functions added will still be called.
+
+
+Added in version 3.8.
+*classmethod *enterClassContext(*cm*)[¶](index.html "Link to this heading")
+Enter the supplied [context manager](development.html "Link to this heading").  If successful, alsoadd its [`__exit__()`](#module-unittest "Link to this heading") method as a cleanup function by[`addClassCleanup()`](#module-unittest "Link to this heading") and return the result of the[`__enter__()`](../_static/pygments.css?v=b86133f3 "unittest — Unit testing framework") method.
+
+
+Added in version 3.11.
+*classmethod *doClassCleanups()[¶](../_static/pygments.css?v=b86133f3 "viewport")
+This method is called unconditionally after [`tearDownClass()`](../_static/pygments.css?v=b86133f3 "viewport"), orafter [`setUpClass()`](../_static/pygments.css?v=b86133f3 "viewport") if `setUpClass()`
+raises an exception.
+
+It is responsible for calling all the cleanup functions added by[`addClassCleanup()`](../_static/pygments.css?v=b86133f3 "viewport"). If you need cleanup functions to be
+called*prior* to [`tearDownClass()`](../_static/classic.css?v=234b1a7c "highlight-") then you can call`doClassCleanups()`
+yourself.
+
+`doClassCleanups()` pops methods off the stack of cleanupfunctions one at a time, so it can be called
+at any time.
+
+
+Added in version 3.8.
+*class *unittest.IsolatedAsyncioTestCase(*methodName='runTest'*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+This class provides an API similar to [`TestCase`](../_static/classic.css?v=234b1a7c "highlight-") and also acceptscoroutines as test functions.
+
+
+Added in version 3.8.
+loop_factory[¶](../_static/classic.css?v=234b1a7c "highlight-")
+The *loop_factory* passed to [`asyncio.Runner`](../_static/classic.css?v=234b1a7c "highlight-"). Overridein subclasses with [`asyncio.EventLoop`](../_static/classic.css?v=234b1a7c "highlight-") to avoid using theasyncio policy system.
+
+
+Added in version 3.13.
+*async *asyncSetUp()[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Method called to prepare the test fixture. This is called after [`TestCase.setUp()`](../_static/classic.css?v=234b1a7c "highlight-").This is called immediately before calling the test method; other than[`AssertionError`](../_static/classic.css?v=234b1a7c "highlight-") or [`SkipTest`](../_static/classic.css?v=234b1a7c "highlight-"), any exception raised by this methodwill be considered an error rather than a test failure. The default implementationdoes nothing.
+*async *asyncTearDown()[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Method called immediately after the test method has been called and theresult recorded.
+This is called before [`tearDown()`](../_static/classic.css?v=234b1a7c "highlight-"). This is called even ifthe test method raised an exception, so the implementation in subclasses may needto be particularly careful about checking internal state.  Any exception, other than[`AssertionError`](../_static/pydoctheme.css?v=4365c8fe "highlight-") or [`SkipTest`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), raised by this method will beconsidered an additional error rather than a test failure (thus increasingthe total number of reported errors). This method will only be called ifthe [`asyncSetUp()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") succeeds, regardless of the outcome of the test method.The default implementation does nothing.
+addAsyncCleanup(*function*, */*, *\*args*, *\*\*kwargs*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+This method accepts a coroutine that can be used as a cleanup function.
+*async *enterAsyncContext(*cm*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+Enter the supplied [asynchronous context manager](../_static/pydoctheme.css?v=4365c8fe "highlight-").  If successful,also add its [`__aexit__()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") method as a cleanup function by[`addAsyncCleanup()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") and return the result of the[`__aenter__()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") method.
+
+
+Added in version 3.11.
+run(*result=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+Sets up a new event loop to run the test, collecting the result intothe [`TestResult`](../_static/pydoctheme.css?v=4365c8fe "highlight-") object passed as
+*result*.  If *result* isomitted or `None`, a temporary result object is created (by
+callingthe [`defaultTestResult()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") method) and used. The result object isreturned to
+`run()`’s caller. At the end of the test all the tasksin the event loop are cancelled.
+
+An example illustrating the order:
+
+Copy
+
+```from unittest import IsolatedAsyncioTestCaseevents = []class Test(IsolatedAsyncioTestCase): 
+   def setUp(self):        events.append("setUp")    async def asyncSetUp(self): 
+       self._async_connection = await AsyncConnection()        events.append("asyncSetUp") 
+   async def test_response(self):        events.append("test_response")        response 
+= await self._async_connection.get("https://example.com")       
+self.assertEqual(response.status_code, 200)        self.addAsyncCleanup(self.on_cleanup) 
+   def tearDown(self):        events.append("tearDown")    async def asyncTearDown(self): 
+       await self._async_connection.close()        events.append("asyncTearDown") 
+   async def on_cleanup(self):        events.append("cleanup")if __name__ == "__main__": 
+   unittest.main()```
+
+After running the test, `events` would contain `["setUp", "asyncSetUp", "test_response", "asyncTearDown", "tearDown", "cleanup"]`.
+*class *unittest.FunctionTestCase(*testFunc*, *setUp=None*, *tearDown=None*, *description=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+This class implements the portion of the [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") interface whichallows the test runner to drive the test, but does not provide the methodswhich test code can use to check and report errors.  This is used to createtest cases using legacy test code, allowing it to be integrated into
+a`unittest`-based test framework.
+
+### Grouping tests[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+*class *unittest.TestSuite(*tests=()*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+This class represents an aggregation of individual test cases and test suites.The 
+class presents the interface needed by the test runner to allow it to be runas any 
+other test case.  Running a `TestSuite` instance is the same asiterating over the suite, running 
+each test individually.
+
+If *tests* is given, it must be an iterable of individual test cases or othertest 
+suites that will be used to build the suite initially. Additional methodsare provided 
+to add test cases and suites to the collection later on.
+
+`TestSuite` objects behave much like [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") objects, exceptthey do not actually implement a test.  Instead, they are used to aggregatetests into groups of tests that should be run together. Some additionalmethods are available to add tests to `TestSuite` 
+instances:
+addTest(*test*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Add a [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") or `TestSuite` to the suite.
+addTests(*tests*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Add all the tests from an iterable of [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") and
+`TestSuite`instances to this test suite.
+
+This is equivalent to iterating over *tests*, calling [`addTest()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") foreach element.
+
+`TestSuite` shares the following methods with [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"):
+run(*result*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Run the tests associated with this suite, collecting the result into thetest result 
+object passed as *result*.  Note that unlike[`TestCase.run()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), `TestSuite.run()` 
+requires the result object tobe passed in.
+debug()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Run the tests associated with this suite without collecting theresult. This allows 
+exceptions raised by the test to be propagated to thecaller and can be used to support 
+running tests under a debugger.
+countTestCases()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Return the number of tests represented by this test object, including allindividual 
+tests and sub-suites.
+__iter__()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Tests grouped by a `TestSuite` are always accessed by iteration.Subclasses can lazily provide 
+tests by overriding `__iter__()`. Notethat this method may be called several times on a single 
+suite (forexample when counting tests or comparing for equality) so the testsreturned 
+by repeated iterations before [`TestSuite.run()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") must be thesame for each call iteration. After
+`TestSuite.run()`, callers shouldnot rely on the tests returned by this method unless 
+the caller uses asubclass that overrides `TestSuite._removeTestAtIndex()` to preservetest references.
+
+
+Changed in version 3.2: In earlier versions the `TestSuite` accessed tests directly ratherthan 
+through iteration, so overriding `__iter__()` wasn’t sufficientfor providing tests.
+
+
+Changed in version 3.4: In earlier versions the `TestSuite` held references to each[`TestCase`]( "Search within Python 3.14.7 documentation") after [`TestSuite.run()`]( "Search within Python 3.14.7 documentation"). Subclasses can restorethat behavior by overriding
+`TestSuite._removeTestAtIndex()`.
+
+In the typical usage of a `TestSuite` object, the [`run()`]( "Search within Python 3.14.7 documentation") methodis invoked by a `TestRunner` 
+rather than by the end-user test harness.
+
+### Loading and running tests[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+*class *unittest.TestLoader[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The `TestLoader` class is used to create test suites from classes andmodules.  Normally, there 
+is no need to create an instance of this class; the`unittest` module provides an instance 
+that can be shared as[`unittest.defaultTestLoader`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").  Using a subclass or instance, however,allows customization of some configurable properties.
+
+`TestLoader` objects have the following attributes:
+errors[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+A list of the non-fatal errors encountered while loading tests. Not resetby the loader 
+at any point. Fatal errors are signalled by the relevantmethod raising an exception 
+to the caller. Non-fatal errors are alsoindicated by a synthetic test that will raise 
+the original error whenrun.
+
+
+Added in version 3.5.
+
+`TestLoader` objects have the following methods:
+loadTestsFromTestCase(*testCaseClass*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a suite of all test cases contained in the [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")-derived`testCaseClass`.
+
+A test case instance is created for each method named by[`getTestCaseNames()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"). By default these are the method namesbeginning with
+`test`. If `getTestCaseNames()` returns nomethods, but the `runTest()` method is implemented, a single testcase 
+is created for that method instead.
+loadTestsFromModule(*module*, *\**, *pattern=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a suite of all test cases contained in the given module. Thismethod searches 
+*module* for classes derived from [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") andcreates an instance of the class for each test method defined for theclass.
+
+
+Note
+
+While using a hierarchy of [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")-derived classes can beconvenient in sharing fixtures and helper functions, defining testmethods on base classes that are not intended to be instantiateddirectly does not play well with this method.  Doing so, however, canbe useful when the fixtures are different and defined in subclasses.
+
+If a module provides a `load_tests` function it will be called toload the tests. This allows 
+modules to customize test loading.This is the [load_tests protocol](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").  The
+*pattern* argument is passed asthe third argument to `load_tests`.
+
+
+Changed in version 3.2: Support for `load_tests` added.
+
+
+Changed in version 3.5: Support for a keyword-only argument *pattern* has been added.
+
+
+Changed in version 3.12: The undocumented and unofficial *use_load_tests* parameter 
+has beenremoved.
+loadTestsFromName(*name*, *module=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a suite of all test cases given a string specifier.
+
+The specifier *name* is a “dotted name” that may resolve either to amodule, a 
+test case class, a test method within a test case class, a[`TestSuite`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") instance, or a callable object which returns a[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") or `TestSuite` 
+instance.  These checks areapplied in the order listed here; that is, a method on 
+a possible testcase class will be picked up as “a test method within a test case 
+class”,rather than “a callable object”.
+
+For example, if you have a module `SampleTests` containing a[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")-derived class `SampleTestCase` 
+with three testmethods (`test_one()`, `test_two()`, and `test_three()`), thespecifier `'SampleTests.SampleTestCase'` would cause this method 
+toreturn a suite which will run all three test methods. Using the specifier`'SampleTests.SampleTestCase.test_two'` would 
+cause it to return a testsuite which will run only the `test_two()` test method. The specifiercan 
+refer to modules and packages which have not been imported; they willbe imported 
+as a side-effect.
+
+The method optionally resolves *name* relative to the given *module*.
+
+
+Changed in version 3.5: If an [`ImportError`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") or [`AttributeError`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") occurs while
+traversing*name* then a synthetic test that raises that error when run will bereturned. 
+These errors are included in the errors accumulated byself.errors.
+loadTestsFromNames(*names*, *module=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Similar to [`loadTestsFromName()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), but takes a sequence of names ratherthan a single name.  The return value is a test suite which supports allthe tests defined for each name.
+getTestCaseNames(*testCaseClass*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a sorted sequence of method names found within *testCaseClass*;this should 
+be a subclass of [`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+discover(*start_dir*, *pattern='test\*.py'*, *top_level_dir=None*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Find all the test modules by recursing into subdirectories from thespecified start 
+directory, and return a TestSuite object containing them.Only test files that match 
+*pattern* will be loaded. (Using shell stylepattern matching.) Only module names 
+that are importable (i.e. are validPython identifiers) will be loaded.
+
+All test modules must be importable from the top level of the project. Ifthe start 
+directory is not the top level directory then *top_level_dir*must be specified separately.
+
+If importing a module fails, for example due to a syntax error, thenthis will be 
+recorded as a single error and discovery will continue.  Ifthe import failure is 
+due to [`SkipTest`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") being raised, it will berecorded as a skip instead of an error.
+
+If a package (a directory containing a file named `__init__.py`) isfound, the package will be 
+checked for a `load_tests` function. If thisexists then it will be called`package.load_tests(loader, tests, pattern)`. Test discovery 
+takes careto ensure that a package is only checked for tests once during aninvocation, 
+even if the load_tests function itself calls`loader.discover`.
+
+If `load_tests` exists then discovery does *not* recurse into thepackage, `load_tests` is responsible 
+for loading all tests in thepackage.
+
+The pattern is deliberately not stored as a loader attribute so thatpackages can 
+continue discovery themselves.
+
+*top_level_dir* is stored internally, and used as a default to anynested calls to 
+`discover()`. That is, if a package’s `load_tests`calls `loader.discover()`, it does not need to pass this argument.
+
+*start_dir* can be a dotted module name as well as a directory.
+
+
+Added in version 3.2.
+
+
+Changed in version 3.4: Modules that raise [`SkipTest`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") on import are recorded as skips,not errors.
+
+*start_dir* can be a [namespace packages](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+Paths are sorted before being imported so that execution order is thesame even if 
+the underlying file system’s ordering is not dependenton file name.
+
+
+Changed in version 3.5: Found packages are now checked for `load_tests` regardless ofwhether 
+their path matches *pattern*, because it is impossible fora package name to match 
+the default pattern.
+
+
+Changed in version 3.11: *start_dir* can not be a [namespace packages](../_static/opensearch.xml "Search within Python 3.14.7 documentation").It has been broken since Python 3.7, and Python 3.11 officially removes it.
+
+
+Changed in version 3.13: *top_level_dir* is only stored for the duration of *discover* 
+call.
+
+
+Changed in version 3.14: *start_dir* can once again be a [namespace package](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+The following attributes of a `TestLoader` can be configured either bysubclassing or assignment 
+on an instance:
+testMethodPrefix[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+String giving the prefix of method names which will be interpreted as testmethods. 
+ The default value is `'test'`.
+
+This affects [`getTestCaseNames()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") and all the
+`loadTestsFrom*`methods.
+sortTestMethodsUsing[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Function to be used to compare method names when sorting them in[`getTestCaseNames()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") and all the `loadTestsFrom*` 
+methods.
+suiteClass[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Callable object that constructs a test suite from a list of tests. Nomethods on the 
+resulting object are needed.  The default value is the[`TestSuite`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") class.
+
+This affects all the `loadTestsFrom*` methods.
+testNamePatterns[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+List of Unix shell-style wildcard test name patterns that test methodshave to match 
+to be included in test suites (see `-k` option).
+
+If this attribute is not `None` (the default), all test methods to beincluded in test 
+suites must match one of the patterns in this list.Note that matches are always performed 
+using [`fnmatch.fnmatchcase()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"),so unlike patterns passed to the `-k` 
+option, simple substring patternswill have to be converted using `*` wildcards.
+
+This affects all the `loadTestsFrom*` methods.
+
+
+Added in version 3.7.
+*class *unittest.TestResult[¶](../_static/pydoctheme_dark.css "previous chapter")
+This class is used to compile information about which tests have succeededand which 
+have failed.
+
+A `TestResult` object stores the results of a set of tests.  The[`TestCase`](../_static/py.svg "previous chapter") and [`TestSuite`](../_static/py.svg "previous chapter") classes ensure that results areproperly recorded; test authors do not need to worry about recording theoutcome of tests.
+
+Testing frameworks built on top of `unittest` may want access to the`TestResult` object generated by 
+running a set of tests for reportingpurposes; a `TestResult` instance is returned by the`TestRunner.run()` 
+method for this purpose.
+
+`TestResult` instances have the following attributes that will be ofinterest when inspecting 
+the results of running a set of tests:
+errors[¶](../_static/py.svg "previous chapter")
+A list containing 2-tuples of [`TestCase`](../_static/py.svg "previous chapter") instances and stringsholding formatted tracebacks. Each tuple represents a test which raised anunexpected exception.
+failures[¶](../_static/py.svg "previous chapter")
+A list containing 2-tuples of [`TestCase`](../_static/py.svg "previous chapter") instances and stringsholding formatted tracebacks. Each tuple represents a test where a failurewas explicitly signalled using the
+[assert\* methods](../_static/py.svg "previous chapter").
+skipped[¶](../_static/py.svg "previous chapter")
+A list containing 2-tuples of [`TestCase`](../_static/py.svg "previous chapter") instances and stringsholding the reason for skipping the test.
+
+
+Added in version 3.1.
+expectedFailures[¶](../_static/py.svg "previous chapter")
+A list containing 2-tuples of [`TestCase`](../_static/py.svg "previous chapter") instances and stringsholding formatted tracebacks.  Each tuple represents an expected failureor error of the test case.
+unexpectedSuccesses[¶](https://www.python.org/ "previous chapter")
+A list containing [`TestCase`](https://www.python.org/ "previous chapter") instances that were marked as expectedfailures, but succeeded.
+collectedDurations[¶](../contents.html "previous chapter")
+A list containing 2-tuples of test case names and floatsrepresenting the elapsed 
+time of each test which was run.
+
+
+Added in version 3.12.
+shouldStop[¶](../contents.html "previous chapter")
+Set to `True` when the execution of tests should stop by [`stop()`](../contents.html "previous chapter").
+testsRun[¶](../contents.html "previous chapter")
+The total number of tests run so far.
+buffer[¶](../contents.html "previous chapter")
+If set to true, `sys.stdout` and `sys.stderr` will be buffered in between[`startTest()`](../contents.html "previous chapter") and [`stopTest()`](../contents.html "previous chapter") being called. Collected output willonly be echoed onto the real `sys.stdout` 
+and `sys.stderr` if the testfails or errors. Any output is also attached to the failure / error 
+message.
+
+
+Added in version 3.2.
+failfast[¶](../contents.html "previous chapter")
+If set to true [`stop()`](#basic-example "previous chapter") will be called on the first failure or error,halting the test run.
+
+
+Added in version 3.2.
+tb_locals[¶](#re-using-old-test-code "previous chapter")
+If set to true then local variables will be shown in tracebacks.
+
+
+Added in version 3.5.
+wasSuccessful()[¶](#grouping-tests "previous chapter")
+Return `True` if all tests run so far have passed, otherwise returns`False`.
+
+
+Changed in version 3.4: Returns `False` if there were any [`unexpectedSuccesses`](#setupmodule-and-teardownmodule "previous chapter")from tests marked with the [`@expectedFailure`](doctest.html "previous chapter") decorator.
+stop()[¶](? "meta[property="og:title"]")
+This method can be called to signal that the set of tests being run shouldbe aborted 
+by setting the [`shouldStop`](? "note") attribute to `True`.`TestRunner` objects should respect this flag 
+and return withoutrunning any additional tests.
+
+For example, this feature is used by the [`TextTestRunner`](../bugs.html ">Improve this page</a></li>
+      <li>
+        <a href=") class tostop the test framework when the user signals an interrupt from thekeyboard.  Interactive tools which provide
+`TestRunner`implementations can use this in a similar manner.
+
+The following methods of the `TestResult` class are used to maintainthe internal data structures, 
+and may be extended in subclasses to supportadditional reporting requirements.  This 
+is particularly useful in buildingtools which support interactive reporting while 
+tests are being run.
+startTest(*test*)[¶](https://www.python.org/ "Link to this heading")
+Called when the test case *test* is about to be run.
+stopTest(*test*)[¶](../index.html "Link to this heading")
+Called after the test case *test* has been executed, regardless of theoutcome.
+startTestRun()[¶](../index.html "Link to this heading")
+Called once before any tests are executed.
+
+
+Added in version 3.1.
+stopTestRun()[¶](../index.html "Link to this heading")
+Called once after all tests are executed.
+
+
+Added in version 3.1.
+addError(*test*, *err*)[¶](development.html "Link to this heading")
+Called when the test case *test* raises an unexpected exception. *err* is atuple 
+of the form returned by [`sys.exc_info()`](#module-unittest "Link to this heading"): `(type, value,
+traceback)`.
+
+The default implementation appends a tuple `(test, formatted_err)` tothe instance’s [`errors`](../_static/pygments.css?v=b86133f3 "unittest — Unit testing framework") attribute, where
+*formatted_err* is aformatted traceback derived from *err*.
+addFailure(*test*, *err*)[¶](../_static/pygments.css?v=b86133f3 "viewport")
+Called when the test case *test* signals a failure. *err* is a tuple ofthe form returned 
+by [`sys.exc_info()`](../_static/pygments.css?v=b86133f3 "viewport"): `(type, value, traceback)`.
+
+The default implementation appends a tuple `(test, formatted_err)` tothe instance’s [`failures`](../_static/pygments.css?v=b86133f3 "viewport") attribute, where
+*formatted_err* is aformatted traceback derived from *err*.
+addSuccess(*test*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Called when the test case *test* succeeds.
+
+The default implementation does nothing.
+addSkip(*test*, *reason*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Called when the test case *test* is skipped.  *reason* is the reason thetest gave 
+for skipping.
+
+The default implementation appends a tuple `(test, reason)` to theinstance’s [`skipped`](../_static/classic.css?v=234b1a7c "highlight-") attribute.
+addExpectedFailure(*test*, *err*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Called when the test case *test* fails or errors, but was marked withthe [`@expectedFailure`](../_static/classic.css?v=234b1a7c "highlight-") decorator.
+
+The default implementation appends a tuple `(test, formatted_err)` tothe instance’s [`expectedFailures`](../_static/classic.css?v=234b1a7c "highlight-") attribute, where
+*formatted_err*is a formatted traceback derived from *err*.
+addUnexpectedSuccess(*test*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Called when the test case *test* was marked with the[`@expectedFailure`](../_static/classic.css?v=234b1a7c "highlight-") decorator, but succeeded.
+
+The default implementation appends the test to the instance’s[`unexpectedSuccesses`](../_static/classic.css?v=234b1a7c "highlight-") attribute.
+addSubTest(*test*, *subtest*, *outcome*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Called when a subtest finishes.  *test* is the test casecorresponding to the test 
+method.  *subtest* is a custom[`TestCase`](../_static/classic.css?v=234b1a7c "highlight-") instance describing the subtest.
+
+If *outcome* is [`None`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), the subtest succeeded.  Otherwise,it failed with an exception where
+*outcome* is a tuple of the formreturned by [`sys.exc_info()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"): `(type, value,
+traceback)`.
+
+The default implementation does nothing when the outcome is asuccess, and records 
+subtest failures as normal failures.
+
+
+Added in version 3.4.
+addDuration(*test*, *elapsed*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+Called when the test case finishes.  *elapsed* is the time represented inseconds, 
+and it includes the execution of cleanup functions.
+
+
+Added in version 3.12.
+*class *unittest.TextTestResult(*stream*, *descriptions*, *verbosity*, *\**, *durations=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+A concrete implementation of [`TestResult`](../_static/pydoctheme.css?v=4365c8fe "highlight-") used by the[`TextTestRunner`](../_static/pydoctheme.css?v=4365c8fe "highlight-"). Subclasses should accept `**kwargs` 
+to ensurecompatibility as the interface changes.
+
+
+Added in version 3.2.
+
+
+Changed in version 3.12: Added the *durations* keyword parameter.
+unittest.defaultTestLoader[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+Instance of the [`TestLoader`](../_static/pydoctheme.css?v=4365c8fe "highlight-") class intended to be shared.  If nocustomization of the `TestLoader` 
+is needed, this instance can be usedinstead of repeatedly creating new instances.
+*class *unittest.TextTestRunner(*stream=None*, *descriptions=True*, *verbosity=1*, 
+*failfast=False*, *buffer=False*, *resultclass=None*, *warnings=None*, *\**, *tb_locals=False*, 
+*durations=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A basic test runner implementation that outputs results to a stream. If *stream*is 
+`None`, the default, [`sys.stderr`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") is used as the output stream. This classhas a few configurable parameters, but is essentially very simple.  Graphicalapplications which run test suites should provide alternate implementations. Suchimplementations should accept `**kwargs` 
+as the interface to construct runnerschanges when features are added to unittest.
+
+By default this runner shows [`DeprecationWarning`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"),[`PendingDeprecationWarning`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), [`ResourceWarning`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") and[`ImportWarning`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") even if they are
+[ignored by default](../_static/pydoctheme.css?v=4365c8fe "stylesheet").  This behavior canbe overridden using Python’s `-Wd` 
+or `-Wa` options(see [Warning control](../_static/pydoctheme.css?v=4365c8fe "stylesheet")) and
+leaving*warnings* to `None`.
+
+
+Changed in version 3.2: Added the *warnings* parameter.
+
+
+Changed in version 3.2: The default stream is set to [`sys.stderr`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") at instantiation time ratherthan import time.
+
+
+Changed in version 3.5: Added the *tb_locals* parameter.
+
+
+Changed in version 3.12: Added the *durations* parameter.
+_makeResult()[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+This method returns the instance of `TestResult` used by [`run()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet").It is not intended to be called directly, but can be overridden insubclasses to provide a custom
+`TestResult`.
+
+`_makeResult()` instantiates the class or callable passed in the`TextTestRunner` constructor as the `resultclass` argument. 
+Itdefaults to [`TextTestResult`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") if no `resultclass` is 
+provided.The result class is instantiated with the following arguments:
+
+Copy
+
+```stream, descriptions, verbosity```
+run(*test*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+This method is the main public interface to the `TextTestRunner`. Thismethod takes a [`TestSuite`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") or [`TestCase`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") instance. A[`TestResult`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") is created by calling[`_makeResult()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") and the test(s) are run and theresults printed to stdout.
+unittest.main(*module='__main__'*, *defaultTest=None*, *argv=None*, *testRunner=None*,
+*testLoader=unittest.defaultTestLoader*, *exit=True*, *verbosity=1*, *failfast=None*,
+*catchbreak=None*, *buffer=None*, *warnings=None*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A command-line program that loads a set of tests from *module* and runs them;this
+is primarily for making test modules conveniently executable.The simplest use for
+this function is to include the following line at theend of a test script:
+
+Copy
+
+```if __name__ == '__main__':    unittest.main()```
+
+You can run tests with more detailed information by passing in the verbosityargument:
+
+Copy
+
+```if __name__ == '__main__':    unittest.main(verbosity=2)```
+
+The *defaultTest* argument is either the name of a single test or aniterable of test
+names to run if no test names are specified via *argv*.  Ifnot specified or `None` and
+no test names are provided via *argv*, alltests found in *module* are run.
+
+The *argv* argument can be a list of options passed to the program, with thefirst
+element being the program name.  If not specified or `None`,the values of [`sys.argv`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") are used.
+
+The *testRunner* argument can either be a test runner class or an alreadycreated
+instance of it. By default `main` calls [`sys.exit()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") withan exit code indicating success (0) or failure (1) of the tests run.An exit code of 5 indicates that no tests were run or skipped.
+
+The *testLoader* argument has to be a [`TestLoader`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") instance,and defaults to [`defaultTestLoader`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation").
+
+`main` supports being used from the interactive interpreter by passing in theargument
+`exit=False`. This displays the result on standard output withoutcalling [`sys.exit()`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation"):
+
+Copy
+
+```>>> from unittest import main>>> main(module='test_module', 
+exit=False)```
+
+The *failfast*, *catchbreak* and *buffer* parameters have the sameeffect as the same-name 
+[command-line options]( "Search within Python 3.14.7 documentation").
+
+The *warnings* argument specifies the [warning filter]( "Search within Python 3.14.7 documentation")that should be used while running the tests.  If it’s not specified, it willremain `None` 
+if a `-W` option is passed to **python**(see [Warning control](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")),otherwise it will be set to
+`'default'`.
+
+Calling `main` returns an object with the `result` attribute that containsthe result of the 
+tests run as a [`unittest.TestResult`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Changed in version 3.1: The *exit* parameter was added.
+
+
+Changed in version 3.2: The *verbosity*, *failfast*, *catchbreak*, *buffer*and *warnings* 
+parameters were added.
+
+
+Changed in version 3.4: The *defaultTest* parameter was changed to also accept an 
+iterable oftest names.
+
+#### load_tests Protocol[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+
+Added in version 3.2.
+
+Modules or packages can customize how tests are loaded from them during normaltest 
+runs or test discovery by implementing a function called `load_tests`.
+
+If a test module defines `load_tests` it will be called by[`TestLoader.loadTestsFromModule()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") with the following arguments:
+
+Copy
+
+```load_tests(loader, standard_tests, pattern)```
+
+where *pattern* is passed straight through from `loadTestsFromModule`.  Itdefaults to `None`.
+
+It should return a [`TestSuite`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+*loader* is the instance of [`TestLoader`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") doing the
+loading.*standard_tests* are the tests that would be loaded by default from themodule.
+It is common for test modules to only want to add or remove testsfrom the standard
+set of tests.The third argument is used when loading packages as part of test discovery.
+
+A typical `load_tests` function that loads tests from a specific set of[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") classes may look like:
+
+Copy
+
+```test_cases = (TestCase1, TestCase2, TestCase3)def load_tests(loader, tests, pattern): 
+   suite = TestSuite()    for test_class in test_cases:        tests =
+loader.loadTestsFromTestCase(test_class)        suite.addTests(tests)    return 
+suite```
+
+If discovery is started in a directory containing a package, either from thecommand 
+line or by calling [`TestLoader.discover()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), then the package`__init__.py` 
+will be checked for `load_tests`.  If that function doesnot exist, discovery will recurse into 
+the package as though it were justanother directory.  Otherwise, discovery of the 
+package’s tests will be left upto `load_tests` which is called with the following arguments:
+
+Copy
+
+```load_tests(loader, standard_tests, pattern)```
+
+This should return a [`TestSuite`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") representing all the testsfrom the package. (`standard_tests`
+will only contain testscollected from `__init__.py`.)
+
+Because the pattern is passed into `load_tests` the package is free tocontinue (and potentially
+modify) test discovery. A ‘do nothing’`load_tests` function for a test package would look
+like:
+
+Copy
+
+```def load_tests(loader, standard_tests, pattern):    # top level directory cached 
+on loader instance    this_dir = os.path.dirname(__file__)    package_tests =
+loader.discover(start_dir=this_dir, pattern=pattern)    standard_tests.addTests(package_tests) 
+   return standard_tests```
+
+
+Changed in version 3.5: Discovery no longer checks package names for matching *pattern* 
+due to theimpossibility of package names matching the default pattern.
+
+## Class and Module Fixtures[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+Class and module level fixtures are implemented in [`TestSuite`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"). Whenthe test suite encounters a test from a new class then[`tearDownClass()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") from the previous class (if there is one)is called, followed by [`setUpClass()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") from the new class.
+
+Similarly if a test is from a different module from the previous test then`tearDownModule` from 
+the previous module is run, followed by`setUpModule` from the new module.
+
+After all the tests have run the final `tearDownClass` and`tearDownModule` are run.
+
+Note that shared fixtures do not play well with [potential] features like testparallelization 
+and they break test isolation. They should be used with care.
+
+The default ordering of tests created by the unittest test loaders is to groupall 
+tests from the same modules and classes together. This will lead to`setUpClass` / `setUpModule` (etc) 
+being called exactly once per class andmodule. If you randomize the order, so that 
+tests from different modules andclasses are adjacent to each other, then these shared 
+fixture functions may becalled multiple times in a single test run.
+
+Shared fixtures are not intended to work with suites with non-standardordering. A 
+`BaseTestSuite` still exists for frameworks that don’t want tosupport shared fixtures.
+
+If there are any exceptions raised during one of the shared fixture functionsthe 
+test is reported as an error. Because there is no corresponding testinstance an `_ErrorHolder` 
+object (that has the same interface as a[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")) is created to represent the error. If you are just usingthe standard unittest test runner then this detail doesn’t matter, but if youare a framework author it may be relevant.
+
+### setUpClass and tearDownClass[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+These must be implemented as class methods:
+
+Copy
+
+```import unittestclass Test(unittest.TestCase):    @classmethod    def setUpClass(cls):
+cls._connection = createExpensiveConnectionObject()    @classmethod    def
+tearDownClass(cls):        cls._connection.destroy()```
+
+If you want the `setUpClass` and `tearDownClass` on base classes calledthen you must call up to them yourself.
+The implementations in[`TestCase`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") are empty.
+
+If an exception is raised during a `setUpClass` then the tests in the classare not run and
+the `tearDownClass` is not run. Skipped classes will nothave `setUpClass` or `tearDownClass` run. If the exception is
+a[`SkipTest`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") exception then the class will be reported as having been skippedinstead of as an error.
+
+### setUpModule and tearDownModule[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+These should be implemented as functions:
+
+Copy
+
+```def setUpModule():    createConnection()def tearDownModule():    closeConnection()```
+
+If an exception is raised in a `setUpModule` then none of the tests in themodule will be run 
+and the `tearDownModule` will not be run. If the exception is a[`SkipTest`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") exception then the module will be reported as having been skippedinstead of as an error.
+
+To add cleanup code that must be run even in the case of an exception, use`addModuleCleanup`:
+unittest.addModuleCleanup(*function*, */*, *\*args*, *\*\*kwargs*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Add a function to be called after [`tearDownModule()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") to cleanupresources used during the test class. Functions will be called in reverseorder to the order they are added
+(LIFO).They are called with any arguments and keyword arguments passed into`addModuleCleanup()` when 
+they are added.
+
+If [`setUpModule()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") fails, meaning that [`tearDownModule()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") is notcalled, then any cleanup functions added will still be called.
+
+
+Added in version 3.8.
+unittest.enterModuleContext(*cm*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Enter the supplied [context manager](../_static/opensearch.xml "Search within Python 3.14.7 documentation").  If successful, alsoadd its [`__exit__()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") method as a cleanup function by[`addModuleCleanup()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") and return the result of the[`__enter__()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") method.
+
+
+Added in version 3.11.
+unittest.doModuleCleanups()[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+This function is called unconditionally after [`tearDownModule()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), orafter [`setUpModule()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") if `setUpModule()` 
+raises an exception.
+
+It is responsible for calling all the cleanup functions added by[`addModuleCleanup()`](unittest.mock.html "doctest — Test interactive Python examples"). If you need cleanup functions to be
+called*prior* to [`tearDownModule()`](https://docs.python.org/3/library/unittest.html "previous chapter") then you can call`doModuleCleanups()` 
+yourself.
+
+`doModuleCleanups()` pops methods off the stack of cleanupfunctions one at a time, so it can be called 
+at any time.
+
+
+Added in version 3.8.
+
+## Signal Handling[¶](../_static/py.svg "previous chapter")
+
+
+Added in version 3.2.
+
+The [`-c/--catch`](../_static/py.svg "previous chapter") command-line option to unittest,along with the `catchbreak` 
+parameter to [`unittest.main()`](../_static/py.svg "previous chapter"), providemore friendly handling of control-C during a test run. With catch breakbehavior enabled control-C will allow the currently running test to complete,and the test run will then end and report all the results so far. A secondcontrol-c will raise a [`KeyboardInterrupt`](../_static/py.svg "previous chapter") in the usual way.
+
+The control-c handling signal handler attempts to remain compatible with code ortests 
+that install their own [`signal.SIGINT`](../_static/py.svg "previous chapter") handler. If the `unittest`handler 
+is called but *isn’t* the installed `signal.SIGINT` handler,i.e. it has been replaced by the 
+system under test and delegated to, then itcalls the default handler. This will normally 
+be the expected behavior by codethat replaces an installed handler and delegates 
+to it. For individual teststhat need `unittest` control-c handling disabled the [`removeHandler()`](../_static/py.svg "previous chapter")decorator can be used.
+
+There are a few utility functions for framework authors to enable control-chandling 
+functionality within test frameworks.
+unittest.installHandler()[¶](../_static/py.svg "previous chapter")
+Install the control-c handler. When a [`signal.SIGINT`](../_static/py.svg "previous chapter") is received(usually in response to the user pressing control-c) all registered resultshave [`stop()`](../_static/py.svg "previous chapter") called.
+unittest.registerResult(*result*)[¶](https://www.python.org/ "previous chapter")
+Register a [`TestResult`](https://www.python.org/ "previous chapter") object for control-c handling. Registering aresult stores a weak reference to it, so it doesn’t prevent the result frombeing garbage collected.
+
+Registering a [`TestResult`](https://www.python.org/ "previous chapter") object has no side-effects if control-chandling is not enabled, so test frameworks can unconditionally registerall results they create independently of whether or not handling is enabled.
+unittest.removeResult(*result*)[¶](../contents.html "previous chapter")
+Remove a registered result. Once a result has been removed then[`stop()`](../contents.html "previous chapter") will no longer be called on that result object inresponse to a control-c.
+unittest.removeHandler(*function=None*)[¶](../contents.html "previous chapter")
+When called without arguments this function removes the control-c handlerif it has 
+been installed. This function can also be used as a test decoratorto temporarily 
+remove the handler while the test is being executed:
+
+Copy
+
+```@unittest.removeHandlerdef test_signal_handling(self):    ...```
+
+
+### [Table of Contents](../contents.html "previous chapter")
+
+- [`unittest` — Unit testing framework](../contents.html "previous chapter")- [Basic example](../contents.html "previous chapter")
+- [Command-Line Interface](# "previous chapter")- [Command-line options](#basic-example "previous chapter")
+- [Test Discovery](#command-line-interface "previous chapter")
+- [Organizing test code](#command-line-options "previous chapter")
+- [Re-using old test code](#test-discovery "previous chapter")
+- [Skipping tests and expected failures](#test-discovery "previous chapter")
+- [Distinguishing test iterations using subtests](#re-using-old-test-code "previous chapter")
+- [Classes and functions](#skipping-tests-and-expected-failures "previous chapter")
+- [Test cases](#distinguishing-test-iterations-using-subtests "previous chapter")
+- [Grouping tests](#classes-and-functions "previous chapter")
+- [Loading and running tests](#classes-and-functions "previous chapter")- [load_tests Protocol](#test-cases "previous chapter")
+- [Class and Module Fixtures](#loading-and-running-tests "previous chapter")
+- [setUpClass and tearDownClass](#load-tests-protocol "previous chapter")
+- [setUpModule and tearDownModule](#class-and-module-fixtures "previous chapter")
+- [Signal Handling](#setupclass-and-teardownclass "previous chapter")
+
+
+#### Previous topic
+
+[`doctest` — Test interactive Python examples](#signal-handling "previous chapter")
+
+
+#### Next topic
+
+[`unittest.mock` — mock object library](unittest.mock.html "previous chapter")
+
+
+### This page
+
+- [Report a bug](note ">Improve this page</a></li>
+<li>
+<a href=")
+- [Improve this page](note ">Improve this page</a></li>
+<li>
+<a href=")
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/unittest.rst?plain=1 ">Improve this page</a></li>
+<li>
+<a href=")      
+
+
+«            
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../genindex.html "General Index") |
+-           [next](../py-modindex.html "Python Module Index") |
+-           [previous](unittest.mock.html "unittest.mock — mock object library") |
+-
+![Python logo](../_static/py.svg "doctest — Test interactive Python examples")
+- [Python](https://www.python.org/ "Link to this heading") »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html "Link to this heading") »    
+- [The Python Standard Library](../index.html "Link to this heading") »
+- [Development Tools](index.html "Link to this heading") »
+- [`unittest` — Unit testing framework](development.html "Link to this heading")
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+© [Copyright](../_static/pygments.css?v=b86133f3 "viewport") 2001 Python Software Foundation.      
+This page is licensed under the Python Software Foundation License Version 2.
+
+Examples, recipes, and other code in the documentation are additionally licensed
+under the Zero Clause BSD License.      
+See [History and License](../_static/pygments.css?v=b86133f3 "viewport") for more information.  
+
+The Python Software Foundation is a non-profit corporation.[Please donate.](../_static/pygments.css?v=b86133f3 "viewport")  
+
+Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](../_static/pygments.css?v=b86133f3 "viewport")?          
+Created using [Sphinx](../_static/pygments.css?v=b86133f3 "viewport") 8.2.3.     
+

@@ -1,0 +1,777 @@
+Climate | National Oceanic and Atmospheric Administration
+=============================================================
+
+[Skip to feedback](#fba-button)    
+
+[Skip to main content](#fba-button)          
+
+
+Main Menu                          
+-         [">Home              
+
+ 
+
+ 
+-         [Weather](#fba-button)              
+-         [Climate](#fba-button)              
+-         [Ocean & Coasts](#fba-button)              
+-         [Fisheries](#fba-button)              
+-         [Satellites](#fba-button)              
+-         [Research](#fba-button)              
+-         [Marine & Aviation](#fba-button)              
+-         [Charting](#fba-button)              
+-         [Sanctuaries](#fba-button)              
+-         [Education](#fba-button)              
+-         [News and features](#fba-button)              
+-         [Our data](#fba-button)              
+-         [Tools & resources](#fba-button)              
+-         [About our agency](#fba-button)              
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)       
+
+
+An official website of the United States government
+
+Here’s how you know
+Here’s how you know                          
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)            
+
+
+**Official websites use .gov**                  
+A **.gov** website belongs to an official government organization in the United
+States.              
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)            
+
+
+**Secure .gov websites use HTTPS**                  
+A **lock** (Lock
+=================
+
+A locked padlock) or **https://** means you’ve safely connected to the .gov website.
+Share sensitive information only on official, secure websites.              
+
+
+{{else}}          
+
+{{#if deg}}{{deg}}°{{/if}}        {{/if}}        
+
+
+{{#if nodata}}Not Available{{else}}{{city}}{{#if state}}, {{state}}{{/if}}{{/if}}
+
+
+Find your local weather        
+
+
+{{#if nodata}}Not Available{{else}}{{city}}{{#if state}}, {{state}}{{/if}}{{/if}}
+
+
+{{#if nodata}}              
+
+{{else}}              
+
+{{#if deg}}{{deg}}°{{/if}}              
+
+currently            {{/if}}                              {{#if nodata}}         
+[Why is data not available?](#fba-button)          {{else}}          
+
+{{maxt}}/{{mint}}°
+
+high/low          {{#if pop}}
+
+{{pop}}%
+
+chance of {{precip_type}}{{/if}}          {{#if wspd}}
+
+{{#if wdir}}{{wdir}}{{/if}} {{wspd}}
+
+mph winds{{/if}}                [See full local forecast](#fba-button)        {{/if}}          
+
+
+Change location:      
+
+Enter City, State or ZIP code                            
+
+
+-         [News](#fba-button)              
+-         [Data](#fba-button)              
+-         [Tools](#fba-button)              
+-         [About](#fba-button)              
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+ 
+
+                 
+
+
+[  ![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)](#fba-button)
+
+
+[  ![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)](#fba-button)
+[National Oceanic and Atmospheric Administration](#fba-button)              [U.S. Department of Commerce](#fba-button)             
+
+
+Enter Search Terms        
+
+ 
+
+                                       
+
+
+## Breadcrumb
+
+
+1.                       [Home](#fba-button)                  
+
+
+# Climate
+
+
+NOAA                                              
+
+
+-         Climate home              
+-         [Collaborations and partnerships](#fba-button)              
+-         [Funding opportunities](#fba-button)              
+-         [Tools and resources](#fba-button)              
+-         [News and stories](#fba-button)              
+
+
+##       
+
+
+NOAA experts provide data, tools and information to help people understand, prepare
+for and adapt to our changing climate.                            
+
+
+UPDATED: June 24, 2025.                  In compliance with Executive Order
+14303 (“Restoring Gold Standard Science”), the White House Office of Science
+and Technology Policy’s June 23, 2025 Memorandum (“Agency Guidance for Implementing
+Gold Standard Science in the Conduct & Management of Scientific Activities”),
+15 USC § 2904 (“National Climate Program”), 15 USC § 2934 (“National Global
+Change Research Plan”), and 33 USC § 893a (“NOAA Ocean and Atmospheric Science
+Education Programs”), you have been redirected to NOAA.gov. Future research products
+previously housed under Climate.gov will be available at NOAA.gov/climate and its
+affiliate websites.                                                      
+
+
+Quick links    
+
+
+[Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP & USGCRP (August 2026)](#fba-button)
+
+
+[NOAA FY22-26 Strategic Plan](#fba-button)              
+
+
+[Drought.gov](#fba-button)              
+
+
+[Heat.gov](#fba-button)              
+
+
+[Inflation Reduction Act](#fba-button)              
+
+
+[Bipartisan Infrastructure Law](#fba-button)                                     
+
+
+Quick links    
+
+
+[Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP & USGCRP (August 2026)](#fba-button)
+
+
+[NOAA FY22-26 Strategic Plan](#fba-button)              
+
+
+[Drought.gov](#fba-button)              
+
+
+[Heat.gov](#fba-button)              
+
+
+[Inflation Reduction Act](#fba-button)              
+
+
+[Bipartisan Infrastructure Law](#fba-button)                                     
+
+
+[        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+](#fba-button)                                                              
+
+
+[Explainer: How to foster resilience in your community](#fba-button)                               
+
+
+Whether it’s flooding or fire, heat or hurricanes, each community faces its own
+set of unique challenges and must tailor its actions to protect lives, livelihoods,
+lands and waters. 
+
+
+Latest features        
+
+
+##   
+
+NOAA DATA
+
+
+##   
+
+[Climate](#fba-button)
+
+[Satellites](#fba-button)
+[  
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+](#fba-button)  
+
+
+[NOAA environmental data heads to the cloud for fast, on-demand public access](#fba-button)
+
+
+##   
+
+YEAR-END GLOBAL TEMPERATURE & PRECIPITATION ANALYSIS
+
+
+##   
+
+[Satellites](#fba-button)
+
+[Climate](#fba-button)
+[  
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+](#fba-button)  
+
+
+[2025 finishes as 3rd-warmest year on record for globe](#fba-button)             
+
+
+##   
+
+MONTHLY TEMPERATURE & PRECIPITATION REPORT: GLOBAL
+
+
+##   
+
+[Climate](#fba-button)
+
+[Satellites](#fba-button)
+[  
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+](#fba-button)  
+
+
+[July 2025 was planet’s 3rd warmest on record ](#fba-button)                
+
+
+[
+
+
+July 2025 was planet’s 3rd warmest on record](#fba-button)                     
+
+
+[View more news and stories](#fba-button)
+
+
+$2.780 trillion      
+
+
+From 1980 to August 2024, the U.S. has experienced 396 weather and climate disasters
+where overall damages reached at least $1 billion. The total cost of these events
+exceeds $2.780 trillion.
+
+
+55      
+
+
+The number of different atmospheric gases that NOAA measures in both atmospheric
+distribution and trends
+
+
+A 36-day cyclone      
+
+
+The longest-lived tropical cyclone (hurricane) on record was Cyclone Freddy, which
+lasted 36 days and crossed the Indian Ocean from Australia to Africa from February
+4 – March 14, 2023.  
+
+
+19      
+
+
+The number of La Nina events across the tropical Pacific Ocean since 1950. La Ninas
+cool the waters of the central and eastern Tropical Pacific Ocean affecting the air
+above it, starting a domino-effect in the atmosphere impacting the climate worldwide.
+
+
+3+ million      
+
+
+The number of ocean temperature profiles generated by the Argo buoy fleet as of 2024.
+Argo buoys drift and dive throughout the ocean, recording temperature and salinity
+down to 2,000 meters (1.24 miles).
+
+
+100 billion metric tons      
+
+
+The amount of ice lost by the Antarctic Ice Sheet every year since 2003.
+
+
+March 31      
+
+
+Only three states - Florida, Louisiana and Hawaii - have an average last freeze by
+March 31
+
+
+[](https://www.noaa.gov/climate "Climate")                  
+
+
+Quick links    
+
+
+[Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP & USGCRP (August 2026)](/themes/custom/noaa_guswds/favicon.ico "stylesheet")
+
+
+[NOAA FY22-26 Strategic Plan](/themes/custom/noaa_guswds/favicon.ico "stylesheet")
+
+
+[Drought.gov](en "stylesheet")              
+
+
+[Heat.gov](/core/assets/vendor/jquery.ui/themes/base/controlgroup.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+[Inflation Reduction Act](/core/assets/vendor/jquery.ui/themes/base/resizable.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+[Bipartisan Infrastructure Law](/core/misc/components/progress.module.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+## Focus Areas //
+
+
+Previous Slider Item            
+
+[Satellites](/core/modules/system/css/components/tablesort.module.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")   
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](//siteimproveanalytics.com/js/siteanalyze_6294131.js "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](//siteimproveanalytics.com/js/siteanalyze_6294131.js "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+[Fisheries](/libraries/owlcarousel2/dist/assets/owl.carousel.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")   
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](//siteimproveanalytics.com/js/siteanalyze_6294131.js "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](/core/misc/drupalSettingsLoader.js?v=10.6.15 "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+[Ocean & Coasts](#fba-button "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")   
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](/core/misc/drupalSettingsLoader.js?v=10.6.15 "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](/core/misc/drupalSettingsLoader.js?v=10.6.15 "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+[Weather](#fba-button "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")   
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Education](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Sanctuaries](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Charting](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Marine & Aviation](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Research](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Satellites](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Fisheries](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Ocean & Coasts](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Weather](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Education](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Sanctuaries](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Charting](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Marine & Aviation](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Research](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Satellites](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Fisheries](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Ocean & Coasts](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+[Weather](#fba-button)        
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)
+
+
+Next Slider Item                                                              
+
+
+## Select Citation Format
+
+
+- Select citation style -  
+APA (American Psychological Association) 7th edition  
+Chicago Manual of Style 17th edition  
+MLA (Modern Language Association) 8th edition  
+Plain Text  
+- Select citation style -  
+
+
+Last updated June 24, 2025
+
+[Cite this page](#fba-button)
+
+[Have a comment on this page? Let us know.](#fba-button)                         
+
+
+[NOAA Home](#fba-button)
+
+
+Science. Service. Stewardship.                                    
+
+
+-         [News](#fba-button)              
+-         [Tools](#fba-button)              
+-         [About](#fba-button)              
+
+
+-         [Resources for Tribal & Indigenous Communities](#fba-button)              
+-         [Bipartisan Infrastructure Law (BIL)](#fba-button)              
+-         [Inflation Reduction Act (IRA)](#fba-button)              
+-         [Protecting Your Privacy](#fba-button)              
+-         [FOIA](#fba-button)              
+-         [Information Quality](#fba-button)              
+-         [Accessibility](#fba-button)              
+-         [Guidance](#fba-button)              
+-         [Budget & Performance](#fba-button)              
+-         [Disclaimer](#fba-button)              
+-         [EEO](#fba-button)              
+-         [No-Fear Act](#fba-button)              
+-         [USA.gov](#fba-button)              
+-         [Ready.gov](#fba-button)              
+-         [Employee Check-In](#fba-button)              
+-         [Staff Directory](#fba-button)              
+-         [Contact Us](#fba-button)              
+-         [Need Help?](#fba-button)              
+-         [COVID-19 hub for NOAA personnel offsite link](#fba-button)              
+-         [Vote.gov](#fba-button)              
+
+
+[Stay connected to NOAA](#fba-button)     
+
+[NOAA on Twitter](#fba-button)    [NOAA on Facebook](#fba-button)    [NOAA on
+Instagram](#fba-button)    [NOAA on YouTube](#fba-button)    
+
+How are we doing?  
+
+[Feedback opens in new window](#fba-button)-->                                   
+[  Back to top
+=====================
+
+](#fba-button)        
+
+Help improve this site
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](//siteimproveanalytics.com/js/siteanalyze_6294131.js "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg")     
+
+##     Customer Experience Feedback
+
+
+This survey is designed to measure your level of satisfaction with our website.
+It consists of seven questions and should take approximately two to five minutes
+to complete.   
+
+Please do not use this survey to provide comments on or responses to rules, notices,
+solicitations or other official agency actions. Any information you provide will
+be used for the sole purpose of improving NOAA's digital products and services. You
+may also send us an email at [webmaster@noaa.gov](/core/modules/system/css/components/nowrap.module.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg").  
+
+If you have comments concerning the accessibility of our website, please submit your
+feedback on our [accessibility page](/core/modules/system/css/components/reset-appearance.module.css?tkskld "https://touchpoints.app.cloud.gov/img/usa-icons/remove.svg").     
+
+A red asterisk (\*) indicates a required field.          
+
+
+###       Success
+
+
+Thank you. Your feedback has been received.      
+
+
+###       Error
+
+alert message    
+
+
+It was easy to complete what I needed to do.  \*  
+
+
+👍 Yes        
+
+👎 No                          
+
+It took a reasonable amount of time to do what I needed to do.
+\*  
+
+Select all that apply        
+
+
+Strongly Disagree        
+
+Disagree        
+
+Neutral        
+
+Agree        
+
+Strongly Agree        
+
+Other      
+
+Enter other text                                        
+
+I am satisfied with the information I received from  NOAA.   \*
+
+Select all that apply        
+
+
+Strongly Disagree        
+
+Disagree        
+
+Neutral        
+
+Agree        
+
+Strongly Agree                          
+
+
+What is your primary reason for visiting this site today?  \*    
+
+Select one  
+General Information  
+NOAA Tools or Services  
+Scientific Data  
+Research  
+Other  
+Select one                      
+
+
+Which category best describes you?  \*    
+
+Select one  
+General Public  
+News Media  
+Business/Industry  
+Policymaker  
+Military  
+Other Federal Government  
+NOAA Employee  
+Non-Profit Organization  
+Student (University)  
+Student (K-12)  
+Teacher (K-12)  
+Other  
+University Faculty/Staff  
+Select one                      
+
+
+Do you have suggestions about how we can improve our website?  \*            
+
+
+To help us address your feedback, please share the web page link that you are
+referring to.  
+
+If your feedback refers to a specific website page, enter the link here.   
+
+
+Is there anything else you'd like to tell us?                                
+
+Submit                                
+
+
+---
+
+
+This is an OMB-approved survey for the National Oceanic and Atmospheric
+Administration website, [www.noaa.gov](#fba-button)  
+
+[Protecting Your Privacy](#fba-button)                          
+
+
+![https://touchpoints.app.cloud.gov/img/correct8.svg](https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit)       
+
+
+An official form of the United States government.          Provided by
+[Touchpoints](#fba-button)            
+OMB Approval #0690-0030 (Renewal Pending)            ·            Expiration
+Date 07/31/2026        
+

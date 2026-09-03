@@ -1,0 +1,24 @@
+{
+  "case_id": "video-08",
+  "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  "checked_at": "2026-09-02T03:49:13.935211+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  "mime": "video/mp4",
+  "bytes": 1128375,
+  "sha256": "0cd83d944a6ca7822b4a8306cecc60a36e859b041f6702c6a1ad9ead78924451",
+  "title": "直接 MP4 视频",
+  "selector": "binary file",
+  "resources": [],
+  "text_chars": 0,
+  "excerpt": "",
+  "missing_facts": [],
+  "state": "captured"
+}

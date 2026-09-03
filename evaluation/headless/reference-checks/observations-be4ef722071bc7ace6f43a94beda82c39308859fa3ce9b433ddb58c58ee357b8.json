@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-045-cache",
+    "independent": true,
+    "checked_at": "2026-09-03T14:32:29.212796+00:00",
+    "content_text": "Cache\nBaseline\nWidely available\nThis feature is well established and works across many devices and browser versions. It’s been available across browsers since April 2018.\nLearn more\nSee full compatibility\nSecure context:\nThis feature is available only in\nsecure contexts\n(HTTPS), in some or all\nsupporting browsers\n.\nNote:\nThis feature is available in\nWeb Workers\n.\nThe\nCache\ninterface provides a persistent storage mechanism for\nRequest\n/\nResponse\nobject pairs that are cached in long lived memory. How long a\nCache\nobject lives is browser dependent, but a single origin's scripts can typically rely on the presence of a previously populated\nCache\nobject. Note that the\nCache\ninterface is exposed to windowed scopes as well as workers. You don't have to use it in conjunction with service workers, even though it is defined in the service worker spec.\nAn origin can have multiple, named\nCache\nobjects. You are responsible for implementing how your script (e.g., in a\nServiceWorker\n) handles\nCache\nupdates. Items in a\nCache\ndo not get updated unless explicitly requested; they don't expire unless deleted. Use\nCacheStorage.open()\nto open a specific named\nCache\nobject and then call any of the\nCache\nmethods to maintain the\nCache\n.\nYou are also responsible for periodically purging cache entries. Each browser has a hard limit on the amount of cache storage that a given origin can use.\nCache\nquota usage estimates are available via the\nStorageManager.estimate()\nmethod. The browser does its best to manage disk space, but it may delete the\nCache\nstorage for an origin. The browser will generally delete all of the data for an origin or none of the data for an origin. Make sure to version caches by name and use the caches only from the version of the script that they can safely operate on. See\nDeleting old caches\nfor more information.\nNote:\nThe key matching algorithm depends on the\nVARY header\nin the value. So matching a new key requires looking at both key and value for entries in the\nCache\nobject.\nNote:\nThe caching API doesn't honor HTTP caching headers.\nInstance methods\nCache.match()\nReturns a\nPromise\nthat resolves to the response associated with the first matching request in the\nCache\nobject.\nCache.matchAll()\nReturns a\nPromise\nthat resolves to an array of all matching responses in the\nCache\nobject.\nCache.add()\nTakes a URL, retrieves it and adds the resulting response object to the given cache. This is functionally equivalent to calling\nfetch()\n, then using\nput()\nto add the results to the cache.\nCache.addAll()\nTakes an array of URLs, retrieves them, and adds the resulting response objects to the given cache.\nCache.put()\nTakes both a request and its response and adds it to the given cache.\nCache.delete()\nFinds the\nCache\nentry whose key is the request, returning a\nPromise\nthat resolves to\ntrue\nif a matching\nCache\nentry is found and deleted. If no\nCache\nentry is found, the promise resolves to\nfalse\n.\nCache.keys()\nReturns a\nPromise\nthat resolves to an array of\nCache\nkeys.\nExamples\nThis code snippet is from the\nservice worker selective caching sample\n. (see\nselective caching live\n) The code uses\nCacheStorage.open()\nto open any\nCache\nobjects with a\nContent-Type\nheader that starts with\nfont/\n.\nThe code then uses\nCache.match()\nto see if there's already a matching font in the cache, and if so, returns it. If there isn't a matching font, the code fetches the font from the network and uses\nCache.put()\nto cache the fetched resource.\nThe code handles exceptions thrown from the\nfetch()\noperation. Note that an HTTP error response (e.g., 404) will not trigger an exception. It will return a normal response object that has the appropriate error code.\nThe code snippet also shows a best practice for versioning caches used by the service worker. Though there's only one cache in this example, the same approach can be used for multiple caches. It maps a shorthand identifier for a cache to a specific, versioned cache name. The code also deletes all caches that aren't named in\nCURRENT_CACHES\n.\nIn the code example,\ncaches\nis a property of the\nServiceWorkerGlobalScope\n. It holds the\nCacheStorage\nobject, by which it can access the\nCacheStorage\ninterface.\nNote:\nIn Chrome, visit\nchrome://inspect/#service-workers\nand click on the \"inspect\" link below the registered service worker to view logging statements for the various actions the\nservice-worker.js\nscript is performing.\njs\nconst CACHE_VERSION = 1;\nconst CURRENT_CACHES = {\nfont: `font-cache-v${CACHE_VERSION}`,\n};\nself.addEventListener(\"activate\", (event) => {\n// Delete all caches that aren't named in CURRENT_CACHES.\n// While there is only one cache in this example, the same logic\n// will handle the case where there are multiple versioned caches.\nconst expectedCacheNamesSet = new Set(Object.values(CURRENT_CACHES));\nevent.waitUntil(\ncaches.keys().then((cacheNames) =>\nPromise.all(\ncacheNames.map((cacheName) => {\nif (!expectedCacheNamesSet.has(cacheName)) {\n// If this cache name isn't present in the set of\n// \"expected\" cache names, then delete it.\nconsole.log(\"Deleting out of date cache:\", cacheName);\nreturn caches.delete(cacheName);\n}\nreturn undefined;\n}),\n),\n),\n);\n});\nself.addEventListener(\"fetch\", (event) => {\nconsole.log(\"Handling fetch event for\", event.request.url);\nevent.respondWith(\ncaches\n.open(CURRENT_CACHES.font)\n.then((cache) => cache.match(event.request))\n.then((response) => {\nif (response) {\n// If there is an entry in the cache for event.request,\n// then response will be defined and we can just return it.\n// Note that in this example, only font resources are cached.\nconsole.log(\" Found response in cache:\", response);\nreturn response;\n}\n// Otherwise, if there is no entry in the cache for event.request,\n// response will be undefined, and we need to fetch() the resource.\nconsole.log(\n\" No response for %s found in cache. About to fetch \" +\n\"from network…\",\nevent.request.url,\n);\n// We call .clone() on the request since we might use it\n// in a call to cache.put() later on.\n// Both fetch() and cache.put() \"consume\" the request,\n// so we need to make a copy.\n// (see https://developer.mozilla.org/en-US/docs/Web/API/Request/clone)\nreturn fetch(event.request.clone()).then((response) => {\nconsole.log(\n\"  Response for %s from network is: %O\",\nevent.request.url,\nresponse,\n);\nif (\nresponse.status < 400 &&\nresponse.headers.has(\"content-type\") &&\nresponse.headers.get(\"content-type\").match(/^font\\//i)\n) {\n// This avoids caching responses that we know are errors\n// (i.e. HTTP status code of 4xx or 5xx).\n// We also only want to cache responses that correspond\n// to fonts, i.e. have a Content-Type response header that\n// starts with \"font/\".\n// Note that for opaque filtered responses\n// https://fetch.spec.whatwg.org/#concept-filtered-response-opaque\n// we can't access to the response headers, so this check will\n// always fail and the font won't be cached.\n// All of the Google Web Fonts are served from a domain that\n// supports CORS, so that isn't an issue here.\n// It is something to keep in mind if you're attempting\n// to cache other resources from a cross-origin\n// domain that doesn't support CORS, though!\nconsole.log(\"  Caching the response to\", event.request.url);\n// We call .clone() on the response to save a copy of it\n// to the cache. By doing so, we get to keep the original\n// response object which we will return back to the controlled\n// page.\n// https://developer.mozilla.org/en-US/docs/Web/API/Request/clone\ncache.put(event.request, response.clone());\n} else {\nconsole.log(\"  Not caching the response to\", event.request.url);\n}\n// Return the original response object, which will be used to\n// fulfill the resource request.\nreturn response;\n});\n})\n.catch((error) => {\n// This catch() will handle exceptions that arise from the match()\n// or fetch() operations.\n// Note that a HTTP error response (e.g. 404) will NOT trigger\n// an exception.\n// It will return a normal response object that has the appropriate\n// error code set.\nconsole.error(\"  Error in fetch handler:\", error);\nthrow error;\n}),\n);\n});\nCookies and Cache objects\nThe\nFetch API\nrequires\nSet-Cookie\nheaders to be stripped before returning a\nResponse\nobject from\nfetch()\n. So a\nResponse\nstored in a\nCache\nwon't contain\nSet-Cookie\nheaders, and therefore won't cause any cookies to be stored.\nSpecifications\nSpecification\nService Workers Nightly\n# cache-interface\nBrowser compatibility\nSee also\nUsing Service Workers\nService workers basic code example\nUsing web workers\nHelp improve MDN\nLearn how to contribute\nThis page was last modified on\nMay 23, 2025\nby\nMDN contributors\n.\nView this page on GitHub\n•\nReport a problem with this content",
+    "scope_identity": {
+      "case_id": "live-045-cache",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Cache",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "Cache"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "Instance methods"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "Examples"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 591.1833749851212,
+      "timeout_ms": 120000
+    }
+  }
+]

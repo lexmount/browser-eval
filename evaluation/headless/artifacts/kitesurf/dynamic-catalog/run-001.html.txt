@@ -1,0 +1,596 @@
+<html lang="en"><head>
+	<script type="text/javascript" src="https://beacon-v2.helpscout.net"></script><script src="https://www.googletagmanager.com/gtm.js?id=GTM-NVFPDWB"></script><script src="https://app.termly.io/resource-blocker/04d89d8c-0d17-44fe-bead-65034ef2b40c"></script>
+	<!-- Google Tag Manager -->
+<script nonce="13AXbGliNxnD7C7LqSgKuxQGbcm1WyGX">(function (w, d, s, l, i) {
+		w[l] = w[l] || [];
+		w[l].push({
+			'gtm.start':
+				new Date().getTime(), event: 'gtm.js'
+		});
+		var f = d.getElementsByTagName(s)[0],
+			j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
+		j.async = true;
+		j.src =
+			'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+		f.parentNode.insertBefore(j, f);
+	})(window, document, 'script', 'dataLayer', 'GTM-NVFPDWB');</script>
+<!-- End Google Tag Manager -->
+	<title>Ajax | Web Scraper Test Sites</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<meta name="keywords" content="web scraping,Web Scraper,Chrome extension,Crawling,Cross platform scraper">
+	<meta name="description" content="Test Web Scraper's features and performance on mock e-commerce sites. Extract product data, prices, and categories in a controlled environment.">
+	<link rel="icon" sizes="128x128" href="/favicon.png" type="image/png">
+	<link rel="icon" href="/favicon.ico" sizes="16x16 32x32" type="image/x-icon">
+	<link rel="apple-touch-icon" href="/logo-icon.png" type="image/png">
+	<link rel="icon" href="/icon.svg" type="image/svg+xml">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;display=swap" rel="stylesheet">
+
+	<link rel="stylesheet" href="/css/app.css?id=721c606e7b41c98fed44e82a7a3f74a3">
+	<link rel="stylesheet" href="/css/ws-icons.font.css?id=ec07a6547e9f26dd0a05acf4cf8b8609">
+
+	<link rel="canonical" href="https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops">
+	<meta property="og:title" content="Ajax | Web Scraper Test Sites">
+	<meta property="og:description" content="Test Web Scraper's features and performance on mock e-commerce sites. Extract product data, prices, and categories in a controlled environment.">
+	<meta property="og:type" content="website">
+	<meta property="og:url" content="https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops">
+	<meta property="og:image" content="https://webscraper.io/webscraper-logo-header.png">
+
+	<script nonce="13AXbGliNxnD7C7LqSgKuxQGbcm1WyGX">
+		if (document.cookie.indexOf('announcement_dismissed=1') > -1) document.documentElement.classList.add('announcement-dismissed')
+	</script>
+	<script defer="" src="/js/app.js?id=9aefa6ccaac23dd7a6624602b2f9c6da"></script>
+
+	</head>
+<body class="ws-v2">
+<!-- Google Tag Manager (noscript) -->
+
+<!-- End Google Tag Manager (noscript) -->
+<script type="text/javascript" nonce="13AXbGliNxnD7C7LqSgKuxQGbcm1WyGX">
+		!function (e, t, n) {
+			function a() {
+				var e = t.getElementsByTagName("script")[0],
+					n = t.createElement("script");
+				n.type = "text/javascript", n.async = !0, n.src = "https://beacon-v2.helpscout.net", e.parentNode.insertBefore(n, e)
+			}
+
+			if (e.Beacon = n = function (t, n, a) {
+				e.Beacon.readyQueue.push({method: t, options: n, data: a})
+			}, n.readyQueue = [], "complete" === t.readyState) return a();
+			e.attachEvent ? e.attachEvent("onload", a) : e.addEventListener("load", a, !1)
+		}(window, document, window.Beacon || function () {
+		});
+	</script>
+	<script type="text/javascript" nonce="13AXbGliNxnD7C7LqSgKuxQGbcm1WyGX">
+		window.Beacon('init', '1c5f94f4-1403-4003-925a-ae1a295b7d38')
+	</script>
+
+	<header class="v2-header">
+
+	<div class="v2-announcement alert alert-dismissible fade show m-0" role="alert">
+		<div class="container text-center">
+			<a href="https://cloud.webscraper.io/register?utm_source=cloud-landing&amp;utm_medium=announcement-bar" class="v2-announcement__link">
+				<span>Web Scraper Cloud</span>
+				<span class="full-announcement d-none d-lg-inline">replaces your complex scraping stack.</span>
+				<span class="mobile-announcement d-inline d-lg-none">-</span>
+				<span class="v2-announcement-try">Try it free for 7 days</span>
+				<svg class="v2-button-icon-right" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M10 14.25L15 9L10 3.75M15 9L3 9" stroke="#00303D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+
+			</a>
+			<button type="button" class="v2-announcement__close d-none d-lg-inline" data-bs-dismiss="alert" aria-label="Close">
+				<svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M13.5 4.5L4.5 13.5M13.5 13.5L4.5 4.5" stroke="#00303D" stroke-width="1.4" stroke-linecap="round"></path>
+</svg>
+			</button>
+		</div>
+	</div>
+
+	<nav class="navbar navbar-expand-xl navbar-dark v2-navbar" aria-label="Primary">
+		<div class="container">
+			<a class="navbar-brand v2-navbar__brand" href="/">
+				<img src="/img/logo-v2.svg" alt="Web Scraper" width="116" height="38">
+			</a>
+
+			<div class="d-flex">
+				<a href="https://cloud.webscraper.io/" class="v2-btn v2-btn--white d-inline d-xl-none">
+					Cloud login
+				</a>
+				<button class="navbar-toggler v2-navbar__toggler" type="button" data-bs-toggle="collapse" data-bs-target="#v2-navbar-collapse" aria-controls="v2-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+					<svg class="closed-icon" width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3.75 0.75H13.75M0.75 6.75H16.75H3.75M3.75 12.75H13.75" stroke="#00D1E7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+					<svg class="open-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M12.75 0.750003L0.75 12.75M12.75 12.75L0.750001 0.75" stroke="#00D1E7" stroke-width="1.5" stroke-linecap="round"></path>
+</svg>
+				</button>
+			</div>
+
+			<div class="collapse navbar-collapse v2-navbar__collapse" id="v2-navbar-collapse">
+				<div class="mobile-menu-divider"></div>
+				<ul class="navbar-nav v2-navbar__nav">
+					<li class="nav-item">
+						<a class="nav-link v2-navbar__link" href="/">Web Scraper Cloud</a>
+					</li>
+					<li class=" nav-item">
+						<a class="nav-link v2-navbar__link" href="/web-scraper-extension">Extension</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link v2-navbar__link" id="pricing-nav-link" href="/pricing">Pricing</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link v2-navbar__link" href="/marketplace">Marketplace</a>
+					</li>
+					<li class="nav-item dropdown">
+						<button class="nav-link v2-navbar__link dropdown-toggle" id="v2-solutions-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+							Solutions
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+						</button>
+						<ul class="dropdown-menu v2-dropdown-menu v2-dropdown-menu--solutions" aria-labelledby="v2-solutions-dropdown">
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/ecommerce-web-scraping">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<circle cx="8" cy="21" r="1"></circle>
+	<circle cx="19" cy="21" r="1"></circle>
+	<path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+</svg>
+									E-commerce
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/competitor-price-monitoring">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path>
+	<path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+	<path d="M12 18V6"></path>
+</svg>
+									Competitor price monitoring
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/marketplace-data-scraping">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M15 21v-5a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v5"></path>
+	<path d="M17.774 10.31a1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.451 0 1.12 1.12 0 0 0-1.548 0 2.5 2.5 0 0 1-3.452 0 1.12 1.12 0 0 0-1.549 0 2.5 2.5 0 0 1-3.77-3.248l2.889-4.184A2 2 0 0 1 7 2h10a2 2 0 0 1 1.653.873l2.895 4.192a2.5 2.5 0 0 1-3.774 3.244"></path>
+	<path d="M4 10.95V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.05"></path>
+</svg>
+									Marketplace data scraping
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/map-monitoring">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+	<path d="m9 12 2 2 4-4"></path>
+</svg>
+									MAP
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/market-research-web-scraping">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M12 16v5"></path>
+	<path d="M16 14.639V21"></path>
+	<path d="M20 10.656V21"></path>
+	<path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15"></path>
+	<path d="M4 18.463V21"></path>
+	<path d="M8 14.656V21"></path>
+</svg>
+									Market research
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/lead-generation-web-scraping">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<circle cx="10" cy="8" r="5"></circle>
+	<path d="M2 21a8 8 0 0 1 10.434-7.62"></path>
+	<circle cx="18" cy="18" r="3"></circle>
+	<path d="m22 22-1.9-1.9"></path>
+</svg>
+									Lead generation
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/real-estate-data-extraction">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M10 12h4"></path>
+	<path d="M10 8h4"></path>
+	<path d="M14 21v-3a2 2 0 0 0-4 0v3"></path>
+	<path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"></path>
+	<path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"></path>
+</svg>
+									Real estate data extraction
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/web-data-for-ai-training">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+	<path d="M9 13a4.5 4.5 0 0 0 3-4"></path>
+	<path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"></path>
+	<path d="M3.477 10.896a4 4 0 0 1 .585-.396"></path>
+	<path d="M6 18a4 4 0 0 1-1.967-.516"></path>
+	<path d="M12 13h4"></path>
+	<path d="M12 18h6a2 2 0 0 1 2 2v1"></path>
+	<path d="M12 8h8"></path>
+	<path d="M16 8V5a2 2 0 0 1 2-2"></path>
+	<circle cx="16" cy="13" r=".5"></circle>
+	<circle cx="18" cy="3" r=".5"></circle>
+	<circle cx="20" cy="21" r=".5"></circle>
+	<circle cx="20" cy="8" r=".5"></circle>
+</svg>
+									Web data for AI
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/solutions/web-data-for-rag-ai-agents">
+									<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F4F9FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+	<path d="M12 8V4H8"></path>
+	<rect width="16" height="12" x="4" y="8" rx="2"></rect>
+	<path d="M2 14h2"></path>
+	<path d="M20 14h2"></path>
+	<path d="M15 13v2"></path>
+	<path d="M9 13v2"></path>
+</svg>
+									Web data for RAG AI agents
+								</a>
+							</li>
+						</ul>
+					</li>
+					<li class="nav-item dropdown">
+						<button class="nav-link v2-navbar__link dropdown-toggle" id="v2-learn-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+							Learn
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+						</button>
+						<ul class="dropdown-menu v2-dropdown-menu" aria-labelledby="v2-learn-dropdown">
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/documentation">
+									<svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M7.70025 0.5V2.9C7.70025 3.34183 8.05842 3.7 8.50025 3.7H10.9003M3.30025 3.7H4.90025M3.30025 6.1H8.10025M3.30025 8.5H8.10025M9.70025 1.7C9.3442 1.38143 8.97473 1.00359 8.74148 0.758186C8.58627 0.59489 8.37183 0.5 8.14654 0.5H2.10006C1.21641 0.5 0.500068 1.21634 0.500062 2.09999L0.5 11.7C0.499994 12.5836 1.21634 13.3 2.09999 13.3L9.30002 13.3C10.1837 13.3 10.9 12.5837 10.9 11.7L10.9002 3.21855C10.9002 3.014 10.8222 2.81736 10.6802 2.67009C10.4177 2.39776 9.9793 1.94968 9.70025 1.7Z" stroke="#F4F9FC" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+									Documentation
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/tutorials">
+									<svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M6.57034 2.72222H4.737M9.0835 6.42448L12.1834 7.95141C12.5048 8.14701 12.842 8.03174 12.8333 7.62376L12.8116 2.22736C12.7842 1.78445 12.5228 1.66359 12.1379 1.86828L9.07476 3.26038M2 9.16667H7.57033C8.39876 9.16667 9.07033 8.50339 9.07033 7.68519L9.0835 5.78503L9.07033 1.98148C9.07033 1.16328 8.39876 0.5 7.57033 0.5H2C1.17157 0.5 0.5 1.16328 0.5 1.98148V7.68519C0.5 8.50339 1.17157 9.16667 2 9.16667Z" stroke="#F4F9FC" stroke-opacity="0.7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+									Video Tutorials
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="/test-sites">
+									<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M0.9 4.1H12.9M2.1 13.3C1.21634 13.3 0.5 12.5837 0.5 11.7V2.1C0.5 1.21634 1.21634 0.5 2.1 0.5H11.7C12.5837 0.5 13.3 1.21634 13.3 2.1V11.7C13.3 12.5837 12.5837 13.3 11.7 13.3H2.1Z" stroke="#F4F9FC" stroke-opacity="0.7" stroke-linecap="round"></path>
+</svg>
+									Test Sites
+								</a>
+							</li>
+							<li>
+								<a class="dropdown-item v2-dropdown-item" href="https://forum.webscraper.io/" target="_blank" rel="noopener">
+									<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M1.83322 5.83333C1.83322 2.88781 4.22083 0.5 7.16611 0.5C10.1114 0.5 12.499 2.88781 12.499 5.83333C12.499 6.60002 12.3372 7.32891 12.046 7.98775L12.5 11.1662L9.77638 10.4852C9.00481 10.9192 8.11436 11.1667 7.16611 11.1667M0.500632 9.16667C0.500632 9.64584 0.601722 10.1014 0.783736 10.5132L0.5 12.4997L2.2021 12.0741C2.68429 12.3453 3.24077 12.5 3.83337 12.5C5.67399 12.5 7.16611 11.0076 7.16611 9.16667C7.16611 7.32572 5.67399 5.83333 3.83337 5.83333C1.99275 5.83333 0.500632 7.32572 0.500632 9.16667Z" stroke="#F4F9FC" stroke-opacity="0.7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+									Forum
+								</a>
+							</li>
+						</ul>
+					</li>
+				</ul>
+
+				<div class="v2-navbar__actions">
+					<a href="https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en" target="_blank" rel="noopener" class="v2-btn v2-btn--primary-700 d-none d-xl-inline-flex install-extension">
+						<i class="browser-icon ws-icon ws-icon-chrome-500" aria-hidden="true"></i>
+						Install extension
+					</a>
+					<a href="https://cloud.webscraper.io/" class="v2-btn v2-btn--white d-none d-xl-inline-flex">
+						Cloud login
+					</a>
+				</div>
+			</div>
+		</div>
+	</nav>
+</header>
+
+<div>
+	<main>
+			<div class="formenu-here container-fluid">
+
+	</div>
+	<div class="container-fluid blog-hero">
+		<div class="container">
+			<div class="row">
+				<div class="col-lg-12">
+					<h1>Test Sites</h1>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="container test-site">
+		<div class="row">
+			<div class="col-lg-3 sidebar">
+					<div class="navbar-light sidebar" role="navigation">
+	<div class="sidebar-nav navbar-collapse">
+		<ul class="nav flex-column" id="side-menu" itemscope="" itemtype="https://schema.org/SiteNavigationElement">
+
+			<li class="nav-item ">
+				<a itemprop="url" href="/test-sites/e-commerce/ajax" class="nav-link"><span itemprop="name">Home</span></a>
+			</li>
+
+						<li class="nav-item  active ">
+				<a href="/test-sites/e-commerce/ajax/computers" class="category-link nav-link " aria-label="Navigation category" itemprop="url">
+					<span itemprop="name">Computers</span>
+					<i class="ws-icon  ws-icon-right " aria-hidden="true"></i>
+				</a>
+
+									<ul class="nav nav-second-level" itemscope="" itemtype="https://schema.org/SiteNavigationElement">
+											<li class="nav-item">
+						<a href="/test-sites/e-commerce/ajax/computers/laptops" class="nav-link subcategory-link  active " aria-label="Navigation subcategory" itemprop="url">
+							<span itemprop="name">Laptops</span>
+						</a>
+					</li>
+										<li class="nav-item">
+						<a href="/test-sites/e-commerce/ajax/computers/tablets" class="nav-link subcategory-link " aria-label="Navigation subcategory" itemprop="url">
+							<span itemprop="name">Tablets</span>
+						</a>
+					</li>
+									</ul>
+							</li>
+						<li class="nav-item ">
+				<a href="/test-sites/e-commerce/ajax/phones" class="category-link nav-link " aria-label="Navigation category" itemprop="url">
+					<span itemprop="name">Phones</span>
+					<i class="ws-icon  ws-icon-right " aria-hidden="true"></i>
+				</a>
+
+								</li>
+					</ul>
+	</div>
+</div>
+
+			</div>
+			<div class="col-lg-9">
+					<h1 class="page-header">Computers / Laptops</h1>
+	<p class="item-count">117 items</p>
+<div class="row ecomerce-items ecomerce-items-ajax" data-type="ajax" data-items="[{&quot;id&quot;:60,&quot;title&quot;:&quot;Asus VivoBook X441NA-GA190&quot;,&quot;description&quot;:&quot;Asus VivoBook X441NA-GA190 Chocolate Black, 14\&quot;, Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd&quot;,&quot;price&quot;:295.99},{&quot;id&quot;:61,&quot;title&quot;:&quot;Prestigio SmartBook 133S Dark Grey&quot;,&quot;description&quot;:&quot;Prestigio SmartBook 133S Dark Grey, 13.3\&quot; FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam&quot;,&quot;price&quot;:299},{&quot;id&quot;:62,&quot;title&quot;:&quot;Prestigio SmartBook 133S Gold&quot;,&quot;description&quot;:&quot;Prestigio SmartBook 133S Gold, 13.3\&quot; FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam&quot;,&quot;price&quot;:299},{&quot;id&quot;:32,&quot;title&quot;:&quot;Aspire E1-510&quot;,&quot;description&quot;:&quot;15.6\&quot;, Pentium N3520 2.16GHz, 4GB, 500GB, Linux&quot;,&quot;price&quot;:306.99},{&quot;id&quot;:63,&quot;title&quot;:&quot;Lenovo V110-15IAP&quot;,&quot;description&quot;:&quot;Lenovo V110-15IAP, 15.6\&quot; HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:321.94},{&quot;id&quot;:64,&quot;title&quot;:&quot;Lenovo V110-15IAP&quot;,&quot;description&quot;:&quot;Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\&quot; HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd&quot;,&quot;price&quot;:356.49},{&quot;id&quot;:65,&quot;title&quot;:&quot;Hewlett Packard 250 G6 Dark Ash Silver&quot;,&quot;description&quot;:&quot;Hewlett Packard 250 G6 Dark Ash Silver, 15.6\&quot; HD, Celeron N3060 1.6GHz, 4GB, 128GB SSD, DOS&quot;,&quot;price&quot;:364.46},{&quot;id&quot;:66,&quot;title&quot;:&quot;Acer Aspire 3 A315-31 Black&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-31 Black, 15.6\&quot; HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:372.7},{&quot;id&quot;:67,&quot;title&quot;:&quot;Acer Aspire A315-31-C33J&quot;,&quot;description&quot;:&quot;Acer Aspire A315-31-C33J Black 15.6\&quot;, HD, Celeron N3350, 4GB DDR3L, 128GB, Windows 10 Home, ENG&quot;,&quot;price&quot;:379.94},{&quot;id&quot;:68,&quot;title&quot;:&quot;Acer Aspire ES1-572 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-572 Black, 15.6\&quot; HD, Core i3-6006U, 4GB, 128GB SSD, Linux&quot;,&quot;price&quot;:379.95},{&quot;id&quot;:69,&quot;title&quot;:&quot;Acer Aspire 3 A315-31 Black&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-31 Black, 15.6\&quot; HD, Pentium N4200 1.1GHz, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:391.48},{&quot;id&quot;:70,&quot;title&quot;:&quot;Acer Aspire 3 A315-21&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-21, 15.6\&quot;, AMD A4-9120. 4GB. 128GB SSD, Linux&quot;,&quot;price&quot;:393.88},{&quot;id&quot;:45,&quot;title&quot;:&quot;Asus VivoBook Max&quot;,&quot;description&quot;:&quot;Asus VivoBook Max X541NA-GQ041 Black Chocolate, 15.6\&quot; HD, Pentium N4200 1.1GHz, 4GB, 500GB, Windows 10 Home&quot;,&quot;price&quot;:399},{&quot;id&quot;:71,&quot;title&quot;:&quot;Asus VivoBook E502NA-GO022T Dark Blue&quot;,&quot;description&quot;:&quot;Asus VivoBook E502NA-GO022T Dark Blue, 15.6\&quot; HD, Pentium N4200 1.1GHz, 4GB, 128GB SSD, Windows 10 Home, En\/Ru kbd&quot;,&quot;price&quot;:399.99},{&quot;id&quot;:72,&quot;title&quot;:&quot;Lenovo ThinkPad E31-80&quot;,&quot;description&quot;:&quot;Lenovo ThinkPad E31-80, 13.3\&quot; HD, Celeron 3855U 1.6GHz, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:404.23},{&quot;id&quot;:73,&quot;title&quot;:&quot;Acer Aspire 3 A315-31 Black&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-31 Black, 15.6\&quot; HD, Pentium N4200 1.1GHz, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:408.98},{&quot;id&quot;:74,&quot;title&quot;:&quot;Lenovo V110-15ISK&quot;,&quot;description&quot;:&quot;Lenovo V110-15ISK, 15.6\&quot; HD, Core i3-6006U, 8GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:409.63},{&quot;id&quot;:75,&quot;title&quot;:&quot;Acer Aspire ES1-732 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-732 Black, 17.3\&quot; HD+, Celeron, N3350, 4GB, 1TB, Windows 10 Home&quot;,&quot;price&quot;:410.46},{&quot;id&quot;:76,&quot;title&quot;:&quot;Asus VivoBook 15 X540NA-GQ026T&quot;,&quot;description&quot;:&quot;Asus VivoBook 15 X540NA-GQ026T Chocolate Black, 15.6\&quot; HD, Pentium N4200, 4GB, 128GB SSD, Windows 10 Home, En\/Ru kbd&quot;,&quot;price&quot;:410.66},{&quot;id&quot;:31,&quot;title&quot;:&quot;Packard 255 G2&quot;,&quot;description&quot;:&quot;15.6\&quot;, AMD E2-3800 1.3GHz, 4GB, 500GB, Windows 8.1&quot;,&quot;price&quot;:416.99},{&quot;id&quot;:77,&quot;title&quot;:&quot;Asus EeeBook R416NA-FA014T&quot;,&quot;description&quot;:&quot;Asus EeeBook R416NA-FA014T, 14\&quot; FHD, Pentium N4200, 4GB, 128GB eMMC, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:433.3},{&quot;id&quot;:78,&quot;title&quot;:&quot;Acer Aspire 3 A315-51&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-51, 15.6\&quot; HD, Core i3-6006U, 4GB, 1TB, Windows 10 Home&quot;,&quot;price&quot;:436.29},{&quot;id&quot;:79,&quot;title&quot;:&quot;Acer Aspire ES1-572 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-572 Black, 15.6\&quot; HD, Core i3-6006U, 4GB, 500GB, Windows 10 Home&quot;,&quot;price&quot;:436.29},{&quot;id&quot;:80,&quot;title&quot;:&quot;Acer Extensa 15 (2540) Black&quot;,&quot;description&quot;:&quot;Acer Extensa 15 (2540) Black, 15.6\&quot; HD, Core i5-7200U, 4GB, 500GB, Linux&quot;,&quot;price&quot;:439.73},{&quot;id&quot;:81,&quot;title&quot;:&quot;Acer Aspire ES1-572 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-572 Black, 15.6\&quot; HD, Core i5-7200U, 4GB, 500GB, Linux&quot;,&quot;price&quot;:454.62},{&quot;id&quot;:82,&quot;title&quot;:&quot;Lenovo V110-15ISK&quot;,&quot;description&quot;:&quot;Lenovo V110-15ISK, 15.6\&quot; HD, Core i3-6006U, 4GB, 128GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:454.73},{&quot;id&quot;:83,&quot;title&quot;:&quot;Acer Aspire A315-51-33TG&quot;,&quot;description&quot;:&quot;Acer Aspire A315-51-33TG, Black 15.6\&quot; HD, Core i3-7100U, 4GB DDR4, 128GB SSD, Windows 10 Home, ENG&quot;,&quot;price&quot;:457.38},{&quot;id&quot;:84,&quot;title&quot;:&quot;Lenovo V110-15IKB&quot;,&quot;description&quot;:&quot;Lenovo V110-15IKB, 15.6\&quot; HD, Core i5-7200U, 4GB, 500GB, DOS&quot;,&quot;price&quot;:465.95},{&quot;id&quot;:85,&quot;title&quot;:&quot;Asus VivoBook 15 X540UA-DM260 Chocolate Black&quot;,&quot;description&quot;:&quot;Asus VivoBook 15 X540UA-DM260 Chocolate Black, 15.6\&quot; FHD, Core i3-6006U, 4GB, 256GB SSD, Endless OS, En kbd&quot;,&quot;price&quot;:468.56},{&quot;id&quot;:86,&quot;title&quot;:&quot;Acer Aspire ES1-572 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-572 Black, 15.6\&quot; HD, Core i3-6006U, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:469.1},{&quot;id&quot;:87,&quot;title&quot;:&quot;Lenovo V510 Black&quot;,&quot;description&quot;:&quot;Lenovo V510 Black, 14\&quot; HD, Core i3-6006U, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:484.23},{&quot;id&quot;:88,&quot;title&quot;:&quot;Acer Aspire ES1-572 Black&quot;,&quot;description&quot;:&quot;Acer Aspire ES1-572 Black, 15.6\&quot; HD, Core i5-7200U, 4GB, 128GB SSD, Linux&quot;,&quot;price&quot;:485.9},{&quot;id&quot;:89,&quot;title&quot;:&quot;Lenovo V510 Black&quot;,&quot;description&quot;:&quot;Lenovo V510 Black, 15.6\&quot; HD, Core i3-6006U, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:487.8},{&quot;id&quot;:90,&quot;title&quot;:&quot;Acer Swift 1 SF113-31 Silver&quot;,&quot;description&quot;:&quot;Acer Swift 1 SF113-31 Silver, 13.3\&quot; FHD, Pentium N4200, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:488.64},{&quot;id&quot;:46,&quot;title&quot;:&quot;Dell Vostro 15&quot;,&quot;description&quot;:&quot;Dell Vostro 15 (3568) Black, 15.6\&quot; FHD, Core i5-7200U, 4GB, 128GB SSD, Radeon R5 M420 2GB, Linux&quot;,&quot;price&quot;:488.78},{&quot;id&quot;:91,&quot;title&quot;:&quot;Acer Aspire 3 A315-51 Black&quot;,&quot;description&quot;:&quot;Acer Aspire 3 A315-51 Black, 15.6\&quot; FHD, Core i3-7100U, 4GB, 500GB + 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:494.71},{&quot;id&quot;:92,&quot;title&quot;:&quot;Dell Vostro 15 (3568) Red&quot;,&quot;description&quot;:&quot;Dell Vostro 15 (3568) Red, 15.6\&quot; HD, Core i5-7200U, 4GB, 1TB, Radeon R5 M420 2GB, Linux&quot;,&quot;price&quot;:497.17},{&quot;id&quot;:93,&quot;title&quot;:&quot;Lenovo V510 Black&quot;,&quot;description&quot;:&quot;Lenovo V510 Black, 15.6\&quot; FHD, Core i3-7100U, 4GB, 128GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:498.23},{&quot;id&quot;:42,&quot;title&quot;:&quot;HP 250 G3&quot;,&quot;description&quot;:&quot;15.6\&quot;, Core\u00a0i5-4210U, 4GB, 500GB, Windows 8.1&quot;,&quot;price&quot;:520.99},{&quot;id&quot;:47,&quot;title&quot;:&quot;Acer Spin 5&quot;,&quot;description&quot;:&quot;Acer Spin 5 SP513-51 Black, 13.3\&quot; FHD Touch, Core i3-7100U, 4GB, 128GB SSD, Windows 10 Home&quot;,&quot;price&quot;:564.98},{&quot;id&quot;:44,&quot;title&quot;:&quot;HP 350 G1&quot;,&quot;description&quot;:&quot;15.6\&quot;, Core i5-4200U, 4GB, 750GB, Radeon HD8670M 2GB, Windows&quot;,&quot;price&quot;:577.99},{&quot;id&quot;:36,&quot;title&quot;:&quot;Aspire E1-572G&quot;,&quot;description&quot;:&quot;15.6\&quot;, Core i5-4200U, 8GB, 1TB, Radeon R7 M265, Windows 8.1&quot;,&quot;price&quot;:581.99},{&quot;id&quot;:38,&quot;title&quot;:&quot;Pavilion&quot;,&quot;description&quot;:&quot;15.6\&quot;, Core i5-4200U, 6GB, 750GB, Windows 8.1&quot;,&quot;price&quot;:609.99},{&quot;id&quot;:48,&quot;title&quot;:&quot;Acer Aspire A515-51-5654&quot;,&quot;description&quot;:&quot;Acer Aspire A515-51-5654, Black, 15.6\&quot;, FHD, Core i5-8250U, 8GB DDR4, 256GB SSD, Windows 10 Home, ENG&quot;,&quot;price&quot;:679},{&quot;id&quot;:49,&quot;title&quot;:&quot;Dell Inspiron 15&quot;,&quot;description&quot;:&quot;Dell Inspiron 15 (5567) Fog Gray, 15.6\&quot; FHD, Core i5-7200U, 8GB, 1TB, Radeon R7 M445 4GB, Linux&quot;,&quot;price&quot;:679},{&quot;id&quot;:50,&quot;title&quot;:&quot;Asus VivoBook S14&quot;,&quot;description&quot;:&quot;Asus VivoBook S14 (S406UA-BV041T) Starry Grey, 14\&quot;, Core i5-8250U, 8GB, 256GB SSD, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:729},{&quot;id&quot;:34,&quot;title&quot;:&quot;ProBook&quot;,&quot;description&quot;:&quot;14\&quot;, Core i5 2.6GHz, 4GB, 500GB, Win7 Pro 64bit&quot;,&quot;price&quot;:739.99},{&quot;id&quot;:39,&quot;title&quot;:&quot;Inspiron 15&quot;,&quot;description&quot;:&quot;Moon Silver, 15.6\&quot;, Core i7-4510U, 8GB, 1TB, Radeon HD R7 M265 2GB,&quot;,&quot;price&quot;:745.99},{&quot;id&quot;:51,&quot;title&quot;:&quot;Asus ROG STRIX GL553VD-DM256&quot;,&quot;description&quot;:&quot;Asus ROG STRIX GL553VD-DM256, 15.6\&quot; FHD, Core i5-7300HQ, 8GB, 1TB, GeForce GTX 1050 2GB, No OS&quot;,&quot;price&quot;:799},{&quot;id&quot;:52,&quot;title&quot;:&quot;Acer Nitro 5 AN515-51&quot;,&quot;description&quot;:&quot;Acer Nitro 5 AN515-51, 15.6\&quot; FHD IPS, Core i5-7300HQ, 8GB, 1TB, GeForce GTX 1050 2GB, Windows 10 Home&quot;,&quot;price&quot;:809},{&quot;id&quot;:53,&quot;title&quot;:&quot;Asus ROG STRIX GL553VD-DM256&quot;,&quot;description&quot;:&quot;Asus ROG STRIX GL553VD-DM256, 15.6\&quot; FHD, Core i5-7300HQ, 8GB, 1TB, GeForce GTX 1050 2GB, No OS + Windows 10 Home&quot;,&quot;price&quot;:899},{&quot;id&quot;:54,&quot;title&quot;:&quot;Lenovo ThinkPad L570&quot;,&quot;description&quot;:&quot;Lenovo ThinkPad L570, 15.6\&quot; FHD, Core i7-7500U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:999},{&quot;id&quot;:37,&quot;title&quot;:&quot;ThinkPad Yoga&quot;,&quot;description&quot;:&quot;12.5\&quot; Touch, Core i3-4010U, 4GB, 500GB + 16GB SSD Cache,&quot;,&quot;price&quot;:1033.99},{&quot;id&quot;:94,&quot;title&quot;:&quot;Lenovo ThinkPad L460&quot;,&quot;description&quot;:&quot;Lenovo ThinkPad L460, 14\&quot; FHD IPS, Core i7-6600U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1096.02},{&quot;id&quot;:95,&quot;title&quot;:&quot;Dell Inspiron 15 (7567) Black&quot;,&quot;description&quot;:&quot;Dell Inspiron 15 (7567) Black, 15.6\&quot; FHD, Core i5-7300HQ, 8GB, 256GB SSD, GeForce GTX 1050 4GB, Windows 10 Home&quot;,&quot;price&quot;:1098.42},{&quot;id&quot;:96,&quot;title&quot;:&quot;MSI GL72M 7RDX&quot;,&quot;description&quot;:&quot;MSI GL72M 7RDX, 17.3\&quot; FHD, Core i5-7300HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 2GB, Windows 10 Home&quot;,&quot;price&quot;:1099},{&quot;id&quot;:97,&quot;title&quot;:&quot;MSI GL72M 7RDX&quot;,&quot;description&quot;:&quot;Asus ROG Strix GL553VD-DM535T, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 2GB, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:1099},{&quot;id&quot;:98,&quot;title&quot;:&quot;Asus ROG Strix GL553VD-DM535T&quot;,&quot;description&quot;:&quot;Apple MacBook Air 13.3\&quot;, Core i5 1.8GHz, 8GB, 128GB SSD, Intel HD 4000, RUS&quot;,&quot;price&quot;:1101.83},{&quot;id&quot;:99,&quot;title&quot;:&quot;Dell Latitude 5280&quot;,&quot;description&quot;:&quot;Dell Latitude 5280, 12.5\&quot; HD, Core i5-7300U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1102.66},{&quot;id&quot;:100,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i5-7300U, 8GB, 500GB, Linux + Windows 10 Home&quot;,&quot;price&quot;:1110.14},{&quot;id&quot;:101,&quot;title&quot;:&quot;Lenovo Legion Y520-15IKBM&quot;,&quot;description&quot;:&quot;Lenovo Legion Y520-15IKBM, Black, 15.6\&quot; FHD IPS, Core i5-7300HQ, 8 GB, 128GB SSD + 2 TB HDD, NVIDIA GeForce GTX 1060 6 GB, FreeDOS + Windows 10 Home&quot;,&quot;price&quot;:1112.91},{&quot;id&quot;:102,&quot;title&quot;:&quot;Toshiba Portege Z30-C-16J Grey&quot;,&quot;description&quot;:&quot;Toshiba Portege Z30-C-16J Grey, 13.3\&quot; FHD, Core i5-6200U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1114.55},{&quot;id&quot;:103,&quot;title&quot;:&quot;Acer Predator Helios 300 (PH317-51)&quot;,&quot;description&quot;:&quot;Acer Predator Helios 300 (PH317-51), 17.3\&quot; FHD IPS, Core i5-7300HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050Ti 4GB, Windows 10 Home&quot;,&quot;price&quot;:1123.87},{&quot;id&quot;:104,&quot;title&quot;:&quot;Acer Aspire 7 A715-71G&quot;,&quot;description&quot;:&quot;Acer Aspire 7 A715-71G, 15.6\&quot; FHD IPS, Core i7-7700HQ, 8GB, 128GB SSD + 1TB HDD, GTX 1050 Ti 4GB, Windows 10 Home&quot;,&quot;price&quot;:1123.87},{&quot;id&quot;:105,&quot;title&quot;:&quot;Dell Inspiron 17 2in1 (7779) Silver&quot;,&quot;description&quot;:&quot;Dell Inspiron 17 2in1 (7779) Silver, 17.3\&quot; FHD Touch, Core i5-7200U, 12GB, 1TB, GeForce GT940MX 2GB, Windows 10 Home&quot;,&quot;price&quot;:1124.2},{&quot;id&quot;:106,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i5-7300U, 8GB, 500GB, Windows 10 Pro&quot;,&quot;price&quot;:1133.82},{&quot;id&quot;:107,&quot;title&quot;:&quot;Lenovo Legion Y520&quot;,&quot;description&quot;:&quot;Lenovo Legion Y520, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 128 GB SSD + 1TB HDD, GTX 1050 4GB, Windows 10 Home&quot;,&quot;price&quot;:1133.91},{&quot;id&quot;:108,&quot;title&quot;:&quot;Asus AsusPro Advanced BU401LA-FA271G Dark Grey&quot;,&quot;description&quot;:&quot;Asus AsusPro Advanced BU401LA-FA271G Dark Grey, 14\&quot;, Core i5-4210U, 4GB, 128GB SSD, Win7 Pro 64bit, ENG&quot;,&quot;price&quot;:1139.54},{&quot;id&quot;:109,&quot;title&quot;:&quot;Acer Nitro 5 AN515-51&quot;,&quot;description&quot;:&quot;Acer Nitro 5 AN515-51, 15.6\&quot; FHD IPS, Core i7-7700HQ, 8GB, 256GB SSD +1TB, GeForce GTX 1050 Ti 4GB, Windows 10 Home + Windows 10 Home&quot;,&quot;price&quot;:1140.62},{&quot;id&quot;:110,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i5-7440HQ, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1143.4},{&quot;id&quot;:111,&quot;title&quot;:&quot;Dell Inspiron 15 (7567) Black&quot;,&quot;description&quot;:&quot;Dell Inspiron 15 (7567) Black, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB, GeForce GTX 1050 Ti 4GB, Linux + Windows 10 Home&quot;,&quot;price&quot;:1144.2},{&quot;id&quot;:112,&quot;title&quot;:&quot;Dell Latitude 5580&quot;,&quot;description&quot;:&quot;Dell Latitude 5580, 15.6\&quot; FHD, Core i5-7300U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1144.4},{&quot;id&quot;:55,&quot;title&quot;:&quot;Lenovo Legion Y520-15IKBM&quot;,&quot;description&quot;:&quot;Lenovo Legion Y520-15IKBM, 15.6\&quot; FHD IPS, Core i7-7700HQ, 8GB, 128GB SSD + 1TB, GeForce GTX 1060 Max-Q 6GB, DOS&quot;,&quot;price&quot;:1149},{&quot;id&quot;:113,&quot;title&quot;:&quot;MSI GP62M 7RDX Leopard&quot;,&quot;description&quot;:&quot;MSI GP62M 7RDX Leopard, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 2GB, Windows 10 Home&quot;,&quot;price&quot;:1149},{&quot;id&quot;:114,&quot;title&quot;:&quot;Lenovo Yoga 720 Grey&quot;,&quot;description&quot;:&quot;Lenovo Yoga 720 Grey, 15.6\&quot; FHD IPS, Core i5-7300HQ, 8GB, 256GB SSD, GeForce GTX 1050 2GB, Windows 10 Home&quot;,&quot;price&quot;:1149.73},{&quot;id&quot;:115,&quot;title&quot;:&quot;Toshiba Portege Z30-C-16L Grey&quot;,&quot;description&quot;:&quot;Toshiba Portege Z30-C-16L Grey, 13.3\&quot; FHD, Core i7-6500U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1154.04},{&quot;id&quot;:116,&quot;title&quot;:&quot;Acer TravelMate P645-S-511A Black&quot;,&quot;description&quot;:&quot;Acer TravelMate P645-S-511A Black, 14\&quot; FHD IPS, Core i5-5200U, 8GB, 256GB SSD, 3G, Windows 10 Pro&quot;,&quot;price&quot;:1170.1},{&quot;id&quot;:117,&quot;title&quot;:&quot;Dell Latitude 5580&quot;,&quot;description&quot;:&quot;Dell Latitude 5580, 15.6\&quot; FHD, Core i5-7300U, 16GB, 256GB SSD, Linux + Windows 10 Home&quot;,&quot;price&quot;:1178.19},{&quot;id&quot;:33,&quot;title&quot;:&quot;ThinkPad T540p&quot;,&quot;description&quot;:&quot;15.6\&quot;, Core i5-4200M, 4GB, 500GB, Win7 Pro 64bit&quot;,&quot;price&quot;:1178.99},{&quot;id&quot;:118,&quot;title&quot;:&quot;MSI GS63 7RD Stealth&quot;,&quot;description&quot;:&quot;MSI GS63 7RD Stealth, 15.6\&quot; FHD IPS, Core i7-7700HQ, 8GB, 256GB SSD, GeForce GTX 1050 2GB, DOS + Windows 10 Home&quot;,&quot;price&quot;:1179},{&quot;id&quot;:119,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i5-7300U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1187.88},{&quot;id&quot;:120,&quot;title&quot;:&quot;Acer Predator Helios 300 (PH317-51)&quot;,&quot;description&quot;:&quot;Acer Predator Helios 300 (PH317-51), 17.3\&quot; FHD IPS, Core i7-7700HQ. 8GB, 128GB SSD +1TB, GeForce GTX 1050Ti 4GB, Linux + Windows 10 Home&quot;,&quot;price&quot;:1187.98},{&quot;id&quot;:121,&quot;title&quot;:&quot;MSI GL62M 7REX&quot;,&quot;description&quot;:&quot;MSI GL62M 7REX, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 Ti 2GB, Windows 10 Home&quot;,&quot;price&quot;:1199},{&quot;id&quot;:122,&quot;title&quot;:&quot;MSI GL62M 7REX2&quot;,&quot;description&quot;:&quot;MSI GL62M 7REX2, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 Ti 2GB, Windows 10 Home&quot;,&quot;price&quot;:1199},{&quot;id&quot;:123,&quot;title&quot;:&quot;Lenovo Yoga 910 Grey&quot;,&quot;description&quot;:&quot;Lenovo Yoga 910 Grey, 13.9\&quot; FHD Touch, Core i5-7200U, 8GB, 256GB SSD, Windows 10 Home&quot;,&quot;price&quot;:1199.73},{&quot;id&quot;:124,&quot;title&quot;:&quot;Toshiba Portege X30-D-10J Black\/Blue&quot;,&quot;description&quot;:&quot;Toshiba Portege X30-D-10J Black\/Blue, 13.3\&quot; FHD IPS, Core i5-7200U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1203.41},{&quot;id&quot;:125,&quot;title&quot;:&quot;Lenovo IdeaPad Miix 510 Platinum Silver&quot;,&quot;description&quot;:&quot;Lenovo IdeaPad Miix 510 Platinum Silver, 12.2\&quot; IPS Touch, Core i5-7200U, 8GB, 256GB SSD, 4G, Windows 10 Pro&quot;,&quot;price&quot;:1212.16},{&quot;id&quot;:126,&quot;title&quot;:&quot;Acer Predator Helios 300 (PH317-51)&quot;,&quot;description&quot;:&quot;Acer Predator Helios 300 (PH317-51), 17.3\&quot; FHD IPS, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 Ti 4GB, Windows 10 Home&quot;,&quot;price&quot;:1221.58},{&quot;id&quot;:43,&quot;title&quot;:&quot;ThinkPad Yoga&quot;,&quot;description&quot;:&quot;12.5\&quot; Touch, Core i5 4200U, 8GB, 500GB + 16GB SSD Cache, Windows&quot;,&quot;price&quot;:1223.99},{&quot;id&quot;:127,&quot;title&quot;:&quot;Asus VivoBook Pro 15 N580VN-FI006T Gold Metal&quot;,&quot;description&quot;:&quot;Asus VivoBook Pro 15 N580VN-FI006T Gold Metal, 15.6\&quot; UHD, Core i7-7700HQ, 16GB, 1TB + 256GB SSD, GeForce MX150 2GB, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:1235.49},{&quot;id&quot;:128,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i7-7600U, 8GB, 256GB SSD, Linux&quot;,&quot;price&quot;:1238.37},{&quot;id&quot;:129,&quot;title&quot;:&quot;Asus ZenBook UX530UX-FY040T Blue&quot;,&quot;description&quot;:&quot;Asus ZenBook UX530UX-FY040T Blue, 15.6\&quot; FHD, Core i7-7500U, 8GB, 512GB SSD, GeForce GTX950M 2GB, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:1239.2},{&quot;id&quot;:41,&quot;title&quot;:&quot;ThinkPad X230&quot;,&quot;description&quot;:&quot;12.5\&quot;, Core i5 2.6GHz, 8GB, 180GB SSD, Win7 Pro 64bit&quot;,&quot;price&quot;:1244.99},{&quot;id&quot;:130,&quot;title&quot;:&quot;Asus ROG Strix GL753VE-GC096T&quot;,&quot;description&quot;:&quot;Asus ROG Strix GL753VE-GC096T, 17.3\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1050 Ti 4GB, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:1259},{&quot;id&quot;:131,&quot;title&quot;:&quot;Apple MacBook Air 13\&quot;&quot;,&quot;description&quot;:&quot;Apple MacBook Air 13\&quot;, i5 1.8GHz, 8GB, 256GB SSD, Intel HD 6000, ENG&quot;,&quot;price&quot;:1260.13},{&quot;id&quot;:132,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i7-7600U, 8GB, 1TB, GeForce GT930MX, Windows 10 Pro&quot;,&quot;price&quot;:1271.06},{&quot;id&quot;:133,&quot;title&quot;:&quot;Hewlett Packard Spectre 13-v106na Dark Ash Silver&quot;,&quot;description&quot;:&quot;Hewlett Packard Spectre 13-v106na Dark Ash Silver, 13.3\&quot; FHD IPS, Core i5-7200U, 8GB, 256GB SSD, Windows 10 Home&quot;,&quot;price&quot;:1273.11},{&quot;id&quot;:40,&quot;title&quot;:&quot;Dell XPS 13&quot;,&quot;description&quot;:&quot;13.3\&quot; Touch, Core i5-4210U, 8GB, 128GB SSD, Windows 8.1&quot;,&quot;price&quot;:1281.99},{&quot;id&quot;:134,&quot;title&quot;:&quot;Toshiba Portege Z30-C-16K Grey&quot;,&quot;description&quot;:&quot;Toshiba Portege Z30-C-16K Grey, 13.3\&quot; FHD, Core i5-6200U, 8GB, 256GB SSD, 4G, Windows 10 Pro&quot;,&quot;price&quot;:1294.74},{&quot;id&quot;:135,&quot;title&quot;:&quot;MSI GL62VR 7RFX&quot;,&quot;description&quot;:&quot;MSI GL62VR 7RFX, 15.6\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 256GB SSD, GeForce GTX 1060 3GB, Windows 10 Home&quot;,&quot;price&quot;:1299},{&quot;id&quot;:136,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i7-7600U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1310.39},{&quot;id&quot;:35,&quot;title&quot;:&quot;ThinkPad X240&quot;,&quot;description&quot;:&quot;12.5\&quot;, Core i5-4300U, 8GB, 240GB SSD, Win7 Pro 64bit&quot;,&quot;price&quot;:1311.99},{&quot;id&quot;:137,&quot;title&quot;:&quot;Hewlett Packard ProBook 640 G3&quot;,&quot;description&quot;:&quot;Hewlett Packard ProBook 640 G3, 14\&quot; FHD, Core i7-7600U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1326.83},{&quot;id&quot;:138,&quot;title&quot;:&quot;Apple MacBook Pro 13\&quot; Space Gray&quot;,&quot;description&quot;:&quot;Apple MacBook Pro 13\&quot; Space Gray, Core i5 2.3GHz, 8GB, 128GB SSD, Iris Plus 640, ENG&quot;,&quot;price&quot;:1333},{&quot;id&quot;:139,&quot;title&quot;:&quot;Dell Latitude 5580&quot;,&quot;description&quot;:&quot;Dell Latitude 5580, 15.6\&quot; FHD, Core i7-7600U, 8GB, 256GB SSD, GeForce GT930MX, Windows 10 Pro&quot;,&quot;price&quot;:1337.28},{&quot;id&quot;:140,&quot;title&quot;:&quot;Dell Latitude 5480&quot;,&quot;description&quot;:&quot;Dell Latitude 5480, 14\&quot; FHD, Core i7-7600U, 8GB, 256GB SSD, Linux + Windows 10 Home&quot;,&quot;price&quot;:1338.37},{&quot;id&quot;:141,&quot;title&quot;:&quot;Dell Latitude 5580&quot;,&quot;description&quot;:&quot;Dell Latitude 5580, 15.6\&quot; FHD, Core i7-7600U, 16GB, 256GB SSD, GeForce GT930MX, Linux&quot;,&quot;price&quot;:1341.22},{&quot;id&quot;:142,&quot;title&quot;:&quot;Apple MacBook Air 13\&quot;&quot;,&quot;description&quot;:&quot;Apple MacBook Air 13\&quot;, Intel Core i5 1.8GHz, 8GB, 256GB SSD, Intel HD 6000, RUS&quot;,&quot;price&quot;:1347.78},{&quot;id&quot;:143,&quot;title&quot;:&quot;Lenovo ThinkPad T470&quot;,&quot;description&quot;:&quot;Lenovo ThinkPad T470, 14\&quot; FHD IPS, Core i5-7200U, 8GB, 256GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1349.23},{&quot;id&quot;:144,&quot;title&quot;:&quot;Lenovo ThinkPad Yoga 370 Black&quot;,&quot;description&quot;:&quot;Lenovo ThinkPad Yoga 370 Black, 13.3\&quot; FHD IPS Touch, Core i5-7200U, 8GB, 256GB SSD, 4G, Windows 10 Pro&quot;,&quot;price&quot;:1362.24},{&quot;id&quot;:145,&quot;title&quot;:&quot;Toshiba Portege X20W-D-10V Black\/Blue&quot;,&quot;description&quot;:&quot;Toshiba Portege X20W-D-10V Black\/Blue, 12.5\&quot; FHD Touch, Core i7-7500U, 8GB, 512GB SSD, Windows 10 Pro&quot;,&quot;price&quot;:1366.32},{&quot;id&quot;:146,&quot;title&quot;:&quot;Asus ASUSPRO B9440UA-GV0279R Gray&quot;,&quot;description&quot;:&quot;Asus ASUSPRO B9440UA-GV0279R Gray, 14\&quot; FHD, Core i7-7500U, 16GB, 512GB SSD, Windows 10 Pro, Eng kbd&quot;,&quot;price&quot;:1381.13},{&quot;id&quot;:56,&quot;title&quot;:&quot;Lenovo Legion Y720&quot;,&quot;description&quot;:&quot;Lenovo Legion Y720, 15.6\&quot; FHD IPS, Core i7-7700HQ, 8GB, 128GB SSD + 2TB HDD, GeForce GTX 1060 6GB, DOS, RGB backlit keyboard&quot;,&quot;price&quot;:1399},{&quot;id&quot;:147,&quot;title&quot;:&quot;Asus ROG Strix GL702VM-GC146T&quot;,&quot;description&quot;:&quot;Asus ROG Strix GL702VM-GC146T, 17.3\&quot; FHD, Core i7-7700HQ, 8GB, 1TB + 128GB SSD, GeForce GTX 1060 3GB, Windows 10 Home, Eng kbd&quot;,&quot;price&quot;:1399},{&quot;id&quot;:57,&quot;title&quot;:&quot;Asus ROG Strix GL702ZC-GC154T&quot;,&quot;description&quot;:&quot;Asus ROG Strix GL702ZC-GC154T, 17.3\&quot; FHD, Ryzen 7 1700, 16GB, 256GB + 1TB HDD, Radeon RX 580 4GB, Windows 10 Home&quot;,&quot;price&quot;:1769},{&quot;id&quot;:58,&quot;title&quot;:&quot;Asus ROG Strix GL702ZC-GC209T&quot;,&quot;description&quot;:&quot;Asus ROG Strix GL702ZC-GC209T, 17.3\&quot; FHD IPS, Ryzen 7 1700, 16GB, 256GB SSD + 1TB HDD, Radeon RX 580 4GB, Windows 10 Home&quot;,&quot;price&quot;:1769},{&quot;id&quot;:59,&quot;title&quot;:&quot;Asus ROG Strix SCAR Edition GL503VM-ED115T&quot;,&quot;description&quot;:&quot;Asus ROG Strix SCAR Edition GL503VM-ED115T, 15.6\&quot; FHD 120Hz, Core i7-7700HQ, 16GB, 256GB SSD + 1TB SSHD, GeForce GTX 1060 6GB, Windows 10 Home&quot;,&quot;price&quot;:1799}]"><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$295.99</h4><h4><a href="/test-sites/e-commerce/ajax/product/60" class="title" itemprop="name" title="Asus VivoBook X441NA-GA190">Asus VivoBook X4</a></h4><p class="card-text description" itemprop="description">Asus VivoBook X441NA-GA190 Chocolate Black, 14", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">1</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$299</h4><h4><a href="/test-sites/e-commerce/ajax/product/61" class="title" itemprop="name" title="Prestigio SmartBook 133S Dark Grey">Prestigio SmartB</a></h4><p class="card-text description" itemprop="description">Prestigio SmartBook 133S Dark Grey, 13.3" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">9</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$299</h4><h4><a href="/test-sites/e-commerce/ajax/product/62" class="title" itemprop="name" title="Prestigio SmartBook 133S Gold">Prestigio SmartB</a></h4><p class="card-text description" itemprop="description">Prestigio SmartBook 133S Gold, 13.3" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">9</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$306.99</h4><h4><a href="/test-sites/e-commerce/ajax/product/32" class="title" itemprop="name" title="Aspire E1-510">Aspire E1-510</a></h4><p class="card-text description" itemprop="description">15.6", Pentium N3520 2.16GHz, 4GB, 500GB, Linux</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">2</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$321.94</h4><h4><a href="/test-sites/e-commerce/ajax/product/63" class="title" itemprop="name" title="Lenovo V110-15IAP">Lenovo V110-15IA</a></h4><p class="card-text description" itemprop="description">Lenovo V110-15IAP, 15.6" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">12</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div><div class="col-md-4 col-xl-4 col-lg-4"><div class="card thumbnail" itemscope="" itemtype="https://schema.org/Product"><div class="product-wrapper card-body"><img class="img-fluid card-img-top image img-responsive" alt="item" src="/images/test-sites/e-commerce/items/cart2.png" itemprop="image"><div class="caption"><h4 class="price float-end pull-right" itemprop="offers" itemscope="" itemtype="https://schema.org/Offer">$356.49</h4><h4><a href="/test-sites/e-commerce/ajax/product/64" class="title" itemprop="name" title="Lenovo V110-15IAP">Lenovo V110-15IA</a></h4><p class="card-text description" itemprop="description">Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd</p></div><div class="ratings" itemprop="aggregateRating" itemscope="" itemtype="https://schema.org/AggregateRating"><p class="review-count float-end pull-right"><span itemprop="reviewCount">12</span> reviews</p><p><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span><span class="ws-icon ws-icon-star"></span></p></div></div></div></div></div>
+	<div class="btn-group pagination justify-content-center" role="group">
+					<button type="button" class="btn btn-default page-link page btn-primary active" data-id="1">1</button>
+					<button type="button" class="btn btn-default page-link page" data-id="2">2</button>
+					<button type="button" class="btn btn-default page-link page" data-id="3">3</button>
+					<button type="button" class="btn btn-default page-link page" data-id="4">4</button>
+					<button type="button" class="btn btn-default page-link page" data-id="5">5</button>
+					<button type="button" class="btn btn-default page-link page" data-id="6">6</button>
+					<button type="button" class="btn btn-default page-link page" data-id="7">7</button>
+					<button type="button" class="btn btn-default page-link page" data-id="8">8</button>
+					<button type="button" class="btn btn-default page-link page" data-id="9">9</button>
+					<button type="button" class="btn btn-default page-link page" data-id="10">10</button>
+					<button type="button" class="btn btn-default page-link page" data-id="11">11</button>
+					<button type="button" class="btn btn-default page-link page" data-id="12">12</button>
+					<button type="button" class="btn btn-default page-link page" data-id="13">13</button>
+					<button type="button" class="btn btn-default page-link page" data-id="14">14</button>
+					<button type="button" class="btn btn-default page-link page" data-id="15">15</button>
+					<button type="button" class="btn btn-default page-link page" data-id="16">16</button>
+					<button type="button" class="btn btn-default page-link page" data-id="17">17</button>
+					<button type="button" class="btn btn-default page-link page" data-id="18">18</button>
+					<button type="button" class="btn btn-default page-link page" data-id="19">19</button>
+					<button type="button" class="btn btn-default page-link page" data-id="20">20</button>
+			</div>
+	<div class="pager">
+		<button type="button" class="btn btn-default previous" disabled="">&lt; Previous</button>
+		<button type="button" class="btn btn-default next">Next &gt;</button>
+	</div>
+
+			</div>
+		</div>
+	</div>
+	</main>
+</div>
+<footer class="v2-footer">
+	<div class="container">
+		
+		<a href="/" class="v2-footer__logo v2-footer__logo--top d-lg-none">
+			<img src="/img/logo-v2.svg" alt="Web Scraper" width="116" height="38">
+		</a>
+
+		<div class="row v2-footer__columns">
+			
+			<div class="col-lg-3 v2-footer__col">
+				<h2 class="v2-footer__heading">
+					<button class="v2-footer__toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v2-footer-products" aria-expanded="false" aria-controls="v2-footer-products">
+						Products
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+					</button>
+				</h2>
+				<div id="v2-footer-products" class="collapse d-lg-block v2-footer__panel">
+					<ul class="v2-footer__links">
+						<li>
+							<a href="/web-scraper-extension">
+								Web Scraper browser extension
+							</a>
+						</li>
+						<li>
+							<a href="/">Web Scraper Cloud</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			
+			<div class="col-lg-3 v2-footer__col">
+				<h2 class="v2-footer__heading">
+					<button class="v2-footer__toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v2-footer-company" aria-expanded="false" aria-controls="v2-footer-company">
+						Company
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+					</button>
+				</h2>
+				<div id="v2-footer-company" class="collapse d-lg-block v2-footer__panel">
+					<ul class="v2-footer__links">
+						<li>
+							<a href="/about-us">About us</a>
+						</li>
+						<li>
+							<a href="/contact">Contacts</a>
+						</li>
+						<li>
+							<a href="/privacy-policy">Website Privacy Policy</a>
+						</li>
+						<li>
+							<a href="/extension-privacy-policy">Browser Extension Privacy Policy</a>
+						</li>
+						<li>
+							<a href="https://webscraper.io/downloads/Web_Scraper_Media_Kit.zip">Media kit</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			
+			<div class="col-lg-3 v2-footer__col">
+				<h2 class="v2-footer__heading">
+					<button class="v2-footer__toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v2-footer-resources" aria-expanded="false" aria-controls="v2-footer-resources">
+						Resources
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+					</button>
+				</h2>
+				<div id="v2-footer-resources" class="collapse d-lg-block v2-footer__panel">
+					<ul class="v2-footer__links">
+						<li><a href="/blog">Blog</a>
+						</li>
+						<li>
+							<a href="/documentation">Documentation</a>
+						</li>
+						<li>
+							<a href="/tutorials">Video Tutorials</a>
+						</li>
+						<li>
+							<a href="/test-sites">Test Sites</a>
+						</li>
+						<li>
+							<a href="https://forum.webscraper.io/" target="_blank" rel="noopener">Forum</a>
+						</li>
+						<li>
+							<a href="https://status.webscraper.io/" target="_blank" rel="noopener">Status</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			
+			<div class="col-lg-3 v2-footer__col">
+				<h2 class="v2-footer__heading">
+					<button class="v2-footer__toggle collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#v2-footer-contact" aria-expanded="false" aria-controls="v2-footer-contact">
+						Contact us
+						<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M3 6L8.00081 10.58L13 6" stroke="#F4F9FC" stroke-opacity="0.7" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+					</button>
+				</h2>
+				<div id="v2-footer-contact" class="collapse d-lg-block v2-footer__panel">
+					<ul class="v2-footer__links">
+						<li>
+							<a href="mailto:info@webscraper.io">info@webscraper.io</a>
+						</li>
+						<li class="v2-footer__address">Ubelu 5-71,<br>Adazi, Latvia, LV-2164
+						</li>
+					</ul>
+					
+					<div class="v2-footer__social d-none d-lg-flex">
+		<a href="https://www.facebook.com/webscraperio/" target="_blank" rel="noopener" aria-label="Web Scraper on Facebook">
+			<i class="ws-icon ws-icon-facebook-f"></i>
+		</a>
+		<a href="https://lv.linkedin.com/company/web-scraper" target="_blank" rel="noopener" aria-label="Web Scraper on LinkedIn">
+			<i class="ws-icon ws-icon-linkedin"></i>
+		</a>
+		<a href="https://youtube.com/@WebScraper/videos" target="_blank" rel="noopener" aria-label="Web Scraper on Youtube">
+			<i class="ws-icon ws-icon-youtube"></i>
+		</a>
+		<a class="install-extension" href="https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en" target="_blank" rel="noopener" aria-label="Download the Web Scraper extension">
+			<i class="ws-icon ws-icon-chrome-dark browser-icon"></i>
+		</a></div>
+				</div>
+			</div>
+		</div>
+
+		
+		<div class="v2-footer__social d-flex d-lg-none">
+		<a href="https://www.facebook.com/webscraperio/" target="_blank" rel="noopener" aria-label="Web Scraper on Facebook">
+			<i class="ws-icon ws-icon-facebook-f"></i>
+		</a>
+		<a href="https://lv.linkedin.com/company/web-scraper" target="_blank" rel="noopener" aria-label="Web Scraper on LinkedIn">
+			<i class="ws-icon ws-icon-linkedin"></i>
+		</a>
+		<a href="https://youtube.com/@WebScraper/videos" target="_blank" rel="noopener" aria-label="Web Scraper on Youtube">
+			<i class="ws-icon ws-icon-youtube"></i>
+		</a>
+		<a class="install-extension" href="https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en" target="_blank" rel="noopener" aria-label="Download the Web Scraper extension">
+			<i class="ws-icon ws-icon-chrome-dark browser-icon"></i>
+		</a></div>
+
+		<div class="v2-footer__bottom">
+			<a href="/" class="v2-footer__logo d-none d-lg-inline-block">
+				<img src="/img/logo-v2.svg" alt="Web Scraper" width="116" height="38">
+			</a>
+			<p class="v2-footer__copyright">Copyright © 2026 Web Scraper | All rights reserved</p>
+		</div>
+	</div>
+</footer>
+<script type="text/javascript" nonce="13AXbGliNxnD7C7LqSgKuxQGbcm1WyGX">
+	(function () {
+		var userAgent = navigator.userAgent;
+		var browser;
+
+		if (userAgent.match(/firefox|fxios/i)) {
+			browser = {
+				url: "https://addons.mozilla.org/en-US/firefox/addon/web-scraper/",
+				name: "Firefox",
+				icon: "firefox",
+			};
+		} else if (userAgent.match(/edg/i)) {
+			browser = {
+				url: "https://microsoftedge.microsoft.com/addons/detail/web-scraper-free-web-sc/jfmdjnnfminejadhegajcjbpgjofnkaj",
+				name: "Edge",
+				icon: "edge",
+			};
+		} else {
+			browser = {
+				url: "https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en",
+				name: "Chrome",
+				icon: "chrome",
+			};
+		}
+
+		document.querySelectorAll(".install-extension").forEach(function (button) {
+			button.setAttribute("href", browser.url);
+
+			var icon = button.querySelector(".browser-icon");
+			if (icon) {
+				icon.className = icon.className.replace(/ws-icon-chrome-(500|dark)/g, "ws-icon-" + browser.icon + "-$1");
+			}
+		});
+
+		document.querySelectorAll(".browser-name").forEach(function (el) {
+			el.textContent = browser.name;
+		});
+	})();
+</script>
+
+
+</body></html>

@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "lm-pnpm-install",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:06.517980+00:00",
+    "content_text": "Version: 11 & 12\nOn this page\nInstallation\nPrerequisites\n\nIf you don't use the standalone script or\n@pnpm/exe\nto install pnpm, then you need to have Node.js (at least v22) to be installed on your system.\ninfo\nLooking for pnpm 12? It is released, but\nlatest\non npm is still pnpm 11, so it is installed differently. See\nInstalling pnpm 12\n.\nUsing a standalone script\n\nYou may install pnpm even if you don't have Node.js installed, using the following scripts.\nOn Windows\n\nwarning\nSometimes, Windows Defender may block our executable if you install pnpm this way.\nDue to this issue, we currently recommend installing pnpm using\nnpm\non Windows.\nUsing PowerShell:\nInvoke-WebRequest\nhttps:\n/\n/\nget\n.\npnpm\n.\nio/install\n.\nps1\n-\nUseBasicParsing\n|\nInvoke-Expression\nOn Windows, Microsoft Defender can significantly slow down installation of packages. You can add pnpm to Microsoft Defender's list\nof excluded folders in a PowerShell window with administrator rights by executing:\nAdd-MpPreference\n-\nExclusionPath $\n(\npnpm store path\n)\nOn POSIX systems\n\nNot supported on Intel macOS in pnpm 11\nOn pnpm 11, the standalone script does not run on Intel Macs (\ndarwin-x64\n). Use\nHomebrew\n, or install pnpm 12, which ships an Intel build. See\n#11423\nfor context.\npnpm 12 ships an Intel macOS build again, so this limitation doesn't apply to it.\ncurl\n-fsSL\nhttps://get.pnpm.io/install.sh\n|\nsh\n-\nIf you don't have curl installed, you would like to use wget:\nwget\n-qO- https://get.pnpm.io/install.sh\n|\nsh\n-\nLinux runtime requirements\nThe install script picks a glibc or musl build based on your system's libc, and a separate musl build is provided for Alpine and other musl-based distros. The glibc build requires glibc 2.27 or newer plus\nlibatomic.so.1\n— both are present on most full distros but may be missing from minimal container images. If you see\nerror while loading shared libraries: libatomic.so.1\n, install it with your distro's package manager:\nDebian/Ubuntu:\napt-get install -y libatomic1\nFedora/RHEL:\ndnf install -y libatomic\ntip\nYou may use the\npnpm runtime\ncommand then to install Node.js.\nIn a Docker container\n\n# bash\nwget\n-qO- https://get.pnpm.io/install.sh\n|\nENV\n=\n\"\n$HOME\n/.bashrc\"\nSHELL\n=\n\"\n$(\nwhich\nbash\n)\n\"\nbash\n-\n# sh\nwget\n-qO- https://get.pnpm.io/install.sh\n|\nENV\n=\n\"\n$HOME\n/.shrc\"\nSHELL\n=\n\"\n$(\nwhich\nsh\n)\n\"\nsh\n-\n# dash\nwget\n-qO- https://get.pnpm.io/install.sh\n|\nENV\n=\n\"\n$HOME\n/.dashrc\"\nSHELL\n=\n\"\n$(\nwhich\ndash\n)\n\"\ndash -\nInstalling a specific version\n\nPrior to running the install script, you may optionally set an env variable\nPNPM_VERSION\nto install a specific version of pnpm:\ncurl\n-fsSL\nhttps://get.pnpm.io/install.sh\n|\nenv\nPNPM_VERSION\n=\n<\nversion\n>\nsh\n-\nUsing other package managers\n\nUsing npm\n\nnpx get-pnpm\nUsing Homebrew\n\nIf you have the package manager installed, you can install pnpm using the following command:\nbrew install pnpm\nUsing winget\n\nIf you have winget installed, you can install pnpm using the following command:\nwinget install -e --id pnpm.pnpm\nUsing Scoop\n\nIf you have Scoop installed, you can install pnpm using the following command:\nscoop install nodejs-lts pnpm\nUsing Choco\n\nIf you have Chocolatey installed, you can install pnpm using the following command:\nchoco install pnpm\ntip\nDo you wanna use pnpm on CI servers? See:\nContinuous Integration\n.\nInstalling pnpm 12\n\npnpm 12, the Rust rewrite, is stable since v12.0.0 (August 26, 2026). Please\nreport any issues\nyou run into.\nApart from a short list of differences, pnpm 12 does not change the way you use pnpm 11, so the rest of this documentation applies to both versions — see\nWhat's different in pnpm 12\n. Only installation differs:\nlatest\non npm still points at the pnpm 11 line, so pnpm 12 is installed from the\nnext-12\ntag, and Homebrew, winget, Scoop and Chocolatey don't offer it yet.\nUsing pnpm\n\nIf you already have pnpm v11.10.0 or newer, this is the easiest way to switch:\npnpm self-update next-12\npnpm links the native binary directly, so nothing else is needed. Note that inside a project that pins pnpm through the\npackageManager\nfield,\nself-update\nonly updates that pin instead of installing pnpm globally.\nUsing npm\n\nIf you don't have pnpm installed yet:\nnpx get-pnpm next-12\nNode.js 22.13 or newer is needed to run that install script, but not to run pnpm afterwards — pnpm 12 is a native binary.\nUsing a standalone script\n\nSet\nPNPM_VERSION\nto\nnext-12\n, or to an exact version.\nOn POSIX systems:\ncurl\n-fsSL\nhttps://get.pnpm.io/install.sh\n|\nenv\nPNPM_VERSION\n=\nnext-12\nsh\n-\nOn Windows, using PowerShell:\n$env\n:PNPM_VERSION=\n\"next-12\"\n;\nInvoke-WebRequest\nhttps:\n/\n/\nget\n.\npnpm\n.\nio/install\n.\nps1\n-\nUseBasicParsing\n|\nInvoke-Expression\nThis installs pnpm without requiring Node.js, and unlike pnpm 11 it also works on Intel macOS.\nCompatibility\n\nHere is a list of past pnpm versions with respective Node.js version support.\nNode.js\npnpm 8\npnpm 9\npnpm 10\npnpm 11\npnpm 12\nNode.js 14\n❌\n❌\n❌\n❌\n❌\nNode.js 16\n✔️\n❌\n❌\n❌\n❌\nNode.js 18\n✔️\n✔️\n✔️\n❌\n✔️\nNode.js 20\n✔️\n✔️\n✔️\n❌\n✔️\nNode.js 22\n✔️\n✔️\n✔️\n✔️\n✔️\nNode.js 24\n✔️\n✔️\n✔️\n✔️\n✔️\nNode.js 26\n✔️\n✔️\n✔️\n✔️\n✔️\npnpm 12 only needs Node.js when it is installed from npm; the version installed by the standalone script runs without Node.js.\nTroubleshooting\n\nIf pnpm is broken and you cannot fix it by reinstalling, you might need to remove it manually from the PATH.\nLet's assume you have the following error when running\npnpm install\n:\nC:\\src>pnpm install\ninternal/modules/cjs/loader.js:883\nthrow err;\n^\nError: Cannot find module 'C:\\Users\\Bence\\AppData\\Roaming\\npm\\pnpm-global\\4\\node_modules\\pnpm\\bin\\pnpm.js'\n←[90m    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:880:15)←[39m\n←[90m    at Function.Module._load (internal/modules/cjs/loader.js:725:27)←[39m\n←[90m    at Function.executeUserEntryPoint [as runMain] (internal/modules/run_main.js:72:12)←[39m\n←[90m    at internal/main/run_main_module.js:17:47←[39m {\ncode: ←[32m'MODULE_NOT_FOUND'←[39m,\nrequireStack: []\n}\nFirst, try to find the location of pnpm by running:\nwhich pnpm\n. If you're on Windows, run\nwhere.exe pnpm.*\n.\nYou'll get the location of the pnpm command, for instance:\n$ which pnpm\n/c/Program Files/nodejs/pnpm\nNow that you know where the pnpm CLI is, open that directory and remove any pnpm-related files (\npnpm.cmd\n,\npnpx.cmd\n,\npnpm\n, etc).\nOnce done, install pnpm again and it should work as expected.\nUpdating pnpm\n\nTo update pnpm, run the\nself-update\ncommand:\npnpm self-update\nUninstalling pnpm\n\nIf you need to remove the pnpm CLI from your system and any files it has written to your disk, see\nUninstalling pnpm\n.\nPrerequisites\nUsing a standalone script\nOn Windows\nOn POSIX systems\nIn a Docker container\nInstalling a specific version\nUsing other package managers\nUsing npm\nUsing Homebrew\nUsing winget\nUsing Scoop\nUsing Choco\nInstalling pnpm 12\nUsing pnpm\nUsing npm\nUsing a standalone script\nCompatibility\nTroubleshooting\nUpdating pnpm\nUninstalling pnpm",
+    "scope_identity": {
+      "case_id": "lm-pnpm-install",
+      "url": "https://pnpm.io/installation",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "marker-1",
+            "alternatives": [
+              "pnpm"
+            ]
+          },
+          {
+            "id": "marker-2",
+            "alternatives": [
+              "Node.js"
+            ]
+          },
+          {
+            "id": "marker-3",
+            "alternatives": [
+              "Prerequisites"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA",
+          "Page not found"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 586.8229580810294,
+      "timeout_ms": 120000
+    }
+  }
+]

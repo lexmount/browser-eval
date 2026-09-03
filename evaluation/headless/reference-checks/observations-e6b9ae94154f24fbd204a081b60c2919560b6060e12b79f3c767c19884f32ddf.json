@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-058-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:35:12.598852+00:00",
+    "content_text": "Superset\nA modern, enterprise-ready business intelligence web application.\nDocumentation\nUser Guide\n— For analysts and business users. Explore data, build charts, create dashboards, and connect databases.\nAdministrator Guide\n— Install, configure, and operate Superset. Covers security, scaling, and database drivers.\nDeveloper Guide\n— Contribute to Superset or build on its REST API and extension framework.\nWhy Superset?\n|\nSupported Databases\n|\nRelease Notes\n|\nGet Involved\n|\nResources\n|\nOrganizations Using Superset\nWhy Superset?\nSuperset is a modern data exploration and data visualization platform. Superset can replace or augment proprietary business intelligence tools for many teams. Superset integrates well with a variety of data sources.\nSuperset provides:\nA\nno-code interface\nfor building charts quickly\nA powerful, web-based\nSQL Editor\nfor advanced querying\nA\nlightweight semantic layer\nfor quickly defining custom dimensions and metrics\nOut of the box support for\nnearly any SQL\ndatabase or data engine\nA wide array of\nbeautiful visualizations\nto showcase your data, ranging from simple bar charts to geospatial visualizations\nLightweight, configurable\ncaching layer\nto help ease database load\nHighly extensible\nsecurity roles and authentication\noptions\nAn\nAPI\nfor programmatic customization\nA\ncloud-native architecture\ndesigned from the ground up for scale\nScreenshots & Gifs\nVideo Overview\nsuperset-video-1080p.webm\nLarge Gallery of Visualizations\nCraft Beautiful, Dynamic Dashboards\nNo-Code Chart Builder\nPowerful SQL Editor\nSupported Databases\nSuperset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena,\nand more\n) that has a Python DB-API driver and a SQLAlchemy dialect.\nHere are some of the major database solutions that are supported:\nA more comprehensive list of supported databases\nalong with the configuration instructions can be found\nhere\n.\nWant to add support for your datastore or data engine? Read more\nhere\nabout the technical requirements.\nInstallation and Configuration\nTry out Superset's\nquickstart\nguide or learn about\nthe options for production deployments\n.\nGet Involved\nAsk and answer questions on\nStackOverflow\nusing the\napache-superset\ntag\nJoin our community's Slack\nand please read our\nSlack Community Guidelines\nJoin our dev@superset.apache.org Mailing list\n. To join, simply send an email to\ndev-subscribe@superset.apache.org\nFollow us on social media:\nX\n|\nLinkedIn\n|\nBluesky\n|\nReddit\nIf you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the\nSuperset Database Familiarity Rolodex\nJoin Superset's Town Hall and\nOperational Model\nrecurring meetings. Meeting info is available on the\nSuperset Community Calendar\nContributor Guide\nInterested in contributing? Check out our\nDeveloper Guide\nto find resources around contributing along with a detailed guide on\nhow to set up a development environment.\nResources\nSuperset \"In the Wild\"\n- see who's using Superset, and\nadd your organization\nto the list!\nFeature Flags\n- the status of Superset's Feature Flags.\nStandard Roles\n- How RBAC permissions map to roles.\nSuperset Wiki\n- Tons of additional community resources: best practices, community content and other information.\nSuperset SIPs\n- The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.\nUnderstanding the Superset Points of View\nThe Case for Dataset-Centric Visualization\nUnderstanding the Superset Semantic Layer\nGetting Started with Superset\nSuperset in 2 Minutes using Docker Compose\nInstalling Database Drivers\nBuilding New Database Connectors\nCreate Your First Dashboard\nComprehensive Tutorial for Contributing Code to Apache Superset\nResources to master Superset by Preset\nDeploying Superset\nOfficial Docker image\nHelm Chart\nRecordings of Past\nSuperset Community Events\nMixed Time Series Charts\nHow the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform\nLive Demo: Visualizing MongoDB and Pinot Data using Trino\nIntroduction to the Superset API\nBuilding a Database Connector for Superset\nVisualizations\nCreating Viz Plugins\nManaging and Deploying Custom Viz Plugins\nWhy Apache Superset is Betting on Apache ECharts\nSuperset API",
+    "scope_identity": {
+      "case_id": "live-058-navigation-menu",
+      "url": "https://github.com/apache/superset",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "A modern, enterprise-ready business intelligence web application."
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "If you want to help troubleshoot GitHub Issues involving the"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "Why Apache Superset is Betting on Apache ECharts"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1548.964750021696,
+      "timeout_ms": 120000
+    }
+  }
+]

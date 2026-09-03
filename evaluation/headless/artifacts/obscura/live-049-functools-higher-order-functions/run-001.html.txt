@@ -1,0 +1,3526 @@
+<!DOCTYPE html>
+<html lang="en" data-content_root="../"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="functools — Higher-order functions and operations on callable objects">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://docs.python.org/3/library/functools.html">
+<meta property="og:site_name" content="Python documentation">
+<meta property="og:description" content="Source code: Lib/functools.py The functools module is for higher-order functions: functions that act on or return other functions. In general, any callable object can be treated as a function for t...">
+<meta property="og:image:width" content="1146">
+<meta property="og:image:height" content="600">
+<meta property="og:image" content="https://docs.python.org/3.14/_images/social_previews/summary_library_functools_d90ef356.png">
+<meta property="og:image:alt" content="Source code: Lib/functools.py The functools module is for higher-order functions: functions that act on or return other functions. In general, any callable object can be treated as a function for t...">
+<meta name="description" content="Source code: Lib/functools.py The functools module is for higher-order functions: functions that act on or return other functions. In general, any callable object can be treated as a function for t...">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#3776ab">
+
+    <title>functools — Higher-order functions and operations on callable objects — Python 3.14.7 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3"><style data-obscura-external-stylesheets="">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f8f8f8; }
+.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #9C6500 } /* Comment.Preproc */
+.highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #E40000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #008400 } /* Generic.Inserted */
+.highlight .go { color: #717171 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #687822 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+.highlight .no { color: #800 } /* Name.Constant */
+.highlight .nd { color: #A2F } /* Name.Decorator */
+.highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #00F } /* Name.Function */
+.highlight .nl { color: #767600 } /* Name.Label */
+.highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666 } /* Literal.Number.Float */
+.highlight .mh { color: #666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #00F } /* Name.Function.Magic */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
+.highlight .il { color: #666 } /* Literal.Number.Integer.Long */</style>
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=234b1a7c"><style data-obscura-external-stylesheets="">/*
+ * Sphinx stylesheet -- basic theme.
+ */
+
+/* -- main layout ----------------------------------------------------------- */
+
+div.clearer {
+    clear: both;
+}
+
+div.section::after {
+    display: block;
+    content: '';
+    clear: left;
+}
+
+/* -- relbar ---------------------------------------------------------------- */
+
+div.related {
+    width: 100%;
+    font-size: 90%;
+}
+
+div.related h3 {
+    display: none;
+}
+
+div.related ul {
+    margin: 0;
+    padding: 0 0 0 10px;
+    list-style: none;
+}
+
+div.related li {
+    display: inline;
+}
+
+div.related li.right {
+    float: right;
+    margin-right: 5px;
+}
+
+/* -- sidebar --------------------------------------------------------------- */
+
+div.sphinxsidebarwrapper {
+    padding: 10px 5px 0 10px;
+}
+
+div.sphinxsidebar {
+    float: left;
+    width: 230px;
+    margin-left: -100%;
+    font-size: 90%;
+    word-wrap: break-word;
+    overflow-wrap : break-word;
+}
+
+div.sphinxsidebar ul {
+    list-style: none;
+}
+
+div.sphinxsidebar ul ul,
+div.sphinxsidebar ul.want-points {
+    margin-left: 20px;
+    list-style: square;
+}
+
+div.sphinxsidebar ul ul {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+div.sphinxsidebar form {
+    margin-top: 10px;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #98dbcc;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+div.sphinxsidebar #searchbox form.search {
+    overflow: hidden;
+}
+
+div.sphinxsidebar #searchbox input[type="text"] {
+    float: left;
+    width: 80%;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+div.sphinxsidebar #searchbox input[type="submit"] {
+    float: left;
+    width: 20%;
+    border-left: none;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+
+img {
+    border: 0;
+    max-width: 100%;
+}
+
+/* -- search page ----------------------------------------------------------- */
+
+ul.search {
+    margin-top: 10px;
+}
+
+ul.search li {
+    padding: 5px 0;
+}
+
+ul.search li a {
+    font-weight: bold;
+}
+
+ul.search li p.context {
+    color: #888;
+    margin: 2px 0 0 30px;
+    text-align: left;
+}
+
+ul.keywordmatches li.goodmatch a {
+    font-weight: bold;
+}
+
+/* -- index page ------------------------------------------------------------ */
+
+table.contentstable {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.contentstable p.biglink {
+    line-height: 150%;
+}
+
+a.biglink {
+    font-size: 1.3em;
+}
+
+span.linkdescr {
+    font-style: italic;
+    padding-top: 5px;
+    font-size: 90%;
+}
+
+/* -- general index --------------------------------------------------------- */
+
+table.indextable {
+    width: 100%;
+}
+
+table.indextable td {
+    text-align: left;
+    vertical-align: top;
+}
+
+table.indextable ul {
+    margin-top: 0;
+    margin-bottom: 0;
+    list-style-type: none;
+}
+
+table.indextable > tbody > tr > td > ul {
+    padding-left: 0em;
+}
+
+table.indextable tr.pcap {
+    height: 10px;
+}
+
+table.indextable tr.cap {
+    margin-top: 10px;
+    background-color: #f2f2f2;
+}
+
+img.toggler {
+    margin-right: 3px;
+    margin-top: 3px;
+    cursor: pointer;
+}
+
+div.modindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+div.genindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+/* -- domain module index --------------------------------------------------- */
+
+table.modindextable td {
+    padding: 2px;
+    border-collapse: collapse;
+}
+
+/* -- general body styles --------------------------------------------------- */
+
+div.body {
+    min-width: 360px;
+    max-width: 800px;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+a.headerlink {
+    visibility: hidden;
+}
+
+a:visited {
+    color: #551A8B;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink,
+caption:hover > a.headerlink,
+p.caption:hover > a.headerlink,
+div.code-block-caption:hover > a.headerlink {
+    visibility: visible;
+}
+
+div.body p.caption {
+    text-align: inherit;
+}
+
+div.body td {
+    text-align: left;
+}
+
+.first {
+    margin-top: 0 !important;
+}
+
+p.rubric {
+    margin-top: 30px;
+    font-weight: bold;
+}
+
+img.align-left, figure.align-left, .figure.align-left, object.align-left {
+    clear: left;
+    float: left;
+    margin-right: 1em;
+}
+
+img.align-right, figure.align-right, .figure.align-right, object.align-right {
+    clear: right;
+    float: right;
+    margin-left: 1em;
+}
+
+img.align-center, figure.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img.align-default, figure.align-default, .figure.align-default {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+    text-align: left;
+}
+
+.align-center {
+    text-align: center;
+}
+
+.align-default {
+    text-align: center;
+}
+
+.align-right {
+    text-align: right;
+}
+
+/* -- sidebars -------------------------------------------------------------- */
+
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    border: 1px solid #ddb;
+    padding: 7px;
+    background-color: #ffe;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+}
+
+p.sidebar-title {
+    font-weight: bold;
+}
+
+nav.contents,
+aside.topic,
+div.admonition, div.topic, blockquote {
+    clear: left;
+}
+
+/* -- topics ---------------------------------------------------------------- */
+
+nav.contents,
+aside.topic,
+div.topic {
+    border: 1px solid #ccc;
+    padding: 7px;
+    margin: 10px 0 10px 0;
+}
+
+p.topic-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* -- admonitions ----------------------------------------------------------- */
+
+div.admonition {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 7px;
+}
+
+div.admonition dt {
+    font-weight: bold;
+}
+
+p.admonition-title {
+    margin: 0px 10px 5px 0px;
+    font-weight: bold;
+}
+
+div.body p.centered {
+    text-align: center;
+    margin-top: 25px;
+}
+
+/* -- content of sidebars/topics/admonitions -------------------------------- */
+
+div.sidebar > :last-child,
+aside.sidebar > :last-child,
+nav.contents > :last-child,
+aside.topic > :last-child,
+div.topic > :last-child,
+div.admonition > :last-child {
+    margin-bottom: 0;
+}
+
+div.sidebar::after,
+aside.sidebar::after,
+nav.contents::after,
+aside.topic::after,
+div.topic::after,
+div.admonition::after,
+blockquote::after {
+    display: block;
+    content: '';
+    clear: both;
+}
+
+/* -- tables ---------------------------------------------------------------- */
+
+table.docutils {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 0;
+    border-collapse: collapse;
+}
+
+table.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.align-default {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table caption span.caption-number {
+    font-style: italic;
+}
+
+table caption span.caption-text {
+}
+
+table.docutils td, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid #aaa;
+}
+
+th {
+    text-align: left;
+    padding-right: 5px;
+}
+
+table.citation {
+    border-left: solid 1px gray;
+    margin-left: 1px;
+}
+
+table.citation td {
+    border-bottom: none;
+}
+
+th > :first-child,
+td > :first-child {
+    margin-top: 0px;
+}
+
+th > :last-child,
+td > :last-child {
+    margin-bottom: 0px;
+}
+
+/* -- figures --------------------------------------------------------------- */
+
+div.figure, figure {
+    margin: 0.5em;
+    padding: 0.5em;
+}
+
+div.figure p.caption, figcaption {
+    padding: 0.3em;
+}
+
+div.figure p.caption span.caption-number,
+figcaption span.caption-number {
+    font-style: italic;
+}
+
+div.figure p.caption span.caption-text,
+figcaption span.caption-text {
+}
+
+/* -- field list styles ----------------------------------------------------- */
+
+table.field-list td, table.field-list th {
+    border: 0 !important;
+}
+
+.field-list ul {
+    margin: 0;
+    padding-left: 1em;
+}
+
+.field-list p {
+    margin: 0;
+}
+
+.field-name {
+    -moz-hyphens: manual;
+    -ms-hyphens: manual;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+}
+
+/* -- hlist styles ---------------------------------------------------------- */
+
+table.hlist {
+    margin: 1em 0;
+}
+
+table.hlist td {
+    vertical-align: top;
+}
+
+/* -- object description styles --------------------------------------------- */
+
+.sig {
+	font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+}
+
+.sig-name, code.descname {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+.sig-name {
+	font-size: 1.1em;
+}
+
+code.descname {
+    font-size: 1.2em;
+}
+
+.sig-prename, code.descclassname {
+    background-color: transparent;
+}
+
+.optional {
+    font-size: 1.3em;
+}
+
+.sig-paren {
+    font-size: larger;
+}
+
+.sig-param.n {
+	font-style: italic;
+}
+
+/* C++ specific styling */
+
+.sig-inline.c-texpr,
+.sig-inline.cpp-texpr {
+	font-family: unset;
+}
+
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+	color: #0033B3;
+}
+
+.sig.c   .m,
+.sig.cpp .m {
+	color: #1750EB;
+}
+
+.sig.c   .s, .sig.c   .sc,
+.sig.cpp .s, .sig.cpp .sc {
+	color: #067D17;
+}
+
+
+/* -- other body styles ----------------------------------------------------- */
+
+ol.arabic {
+    list-style: decimal;
+}
+
+ol.loweralpha {
+    list-style: lower-alpha;
+}
+
+ol.upperalpha {
+    list-style: upper-alpha;
+}
+
+ol.lowerroman {
+    list-style: lower-roman;
+}
+
+ol.upperroman {
+    list-style: upper-roman;
+}
+
+:not(li) > ol > li:first-child > :first-child,
+:not(li) > ul > li:first-child > :first-child {
+    margin-top: 0px;
+}
+
+:not(li) > ol > li:last-child > :last-child,
+:not(li) > ul > li:last-child > :last-child {
+    margin-bottom: 0px;
+}
+
+ol.simple ol p,
+ol.simple ul p,
+ul.simple ol p,
+ul.simple ul p {
+    margin-top: 0;
+}
+
+ol.simple > li:not(:first-child) > p,
+ul.simple > li:not(:first-child) > p {
+    margin-top: 0;
+}
+
+ol.simple p,
+ul.simple p {
+    margin-bottom: 0;
+}
+
+aside.footnote > span,
+div.citation > span {
+    float: left;
+}
+aside.footnote > span:last-of-type,
+div.citation > span:last-of-type {
+  padding-right: 0.5em;
+}
+aside.footnote > p {
+  margin-left: 2em;
+}
+div.citation > p {
+  margin-left: 4em;
+}
+aside.footnote > p:last-of-type,
+div.citation > p:last-of-type {
+    margin-bottom: 0em;
+}
+aside.footnote > p:last-of-type:after,
+div.citation > p:last-of-type:after {
+    content: "";
+    clear: both;
+}
+
+dl.field-list {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+}
+
+dl.field-list > dt {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+dl.field-list > dd {
+    padding-left: 0.5em;
+    margin-top: 0em;
+    margin-left: 0em;
+    margin-bottom: 0em;
+}
+
+dl {
+    margin-bottom: 15px;
+}
+
+dd > :first-child {
+    margin-top: 0px;
+}
+
+dd ul, dd table {
+    margin-bottom: 10px;
+}
+
+dd {
+    margin-top: 3px;
+    margin-bottom: 10px;
+    margin-left: 30px;
+}
+
+.sig dd {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+.sig dl {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+dl > dd:last-child,
+dl > dd:last-child > :last-child {
+    margin-bottom: 0;
+}
+
+dt:target, span.highlighted {
+    background-color: #fbe54e;
+}
+
+rect.highlighted {
+    fill: #fbe54e;
+}
+
+dl.glossary dt {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.versionmodified {
+    font-style: italic;
+}
+
+.system-message {
+    background-color: #fda;
+    padding: 5px;
+    border: 3px solid red;
+}
+
+.footnote:target  {
+    background-color: #ffa;
+}
+
+.line-block {
+    display: block;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.line-block .line-block {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 1.5em;
+}
+
+.guilabel, .menuselection {
+    font-family: sans-serif;
+}
+
+.accelerator {
+    text-decoration: underline;
+}
+
+.classifier {
+    font-style: oblique;
+}
+
+.classifier:before {
+    font-style: normal;
+    margin: 0 0.5em;
+    content: ":";
+    display: inline-block;
+}
+
+abbr, acronym {
+    border-bottom: dotted 1px;
+    cursor: help;
+}
+
+/* -- code displays --------------------------------------------------------- */
+
+pre {
+    overflow: auto;
+    overflow-y: hidden;  /* fixes display issues on Chrome browsers */
+}
+
+pre, div[class*="highlight-"] {
+    clear: both;
+}
+
+span.pre {
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
+    white-space: nowrap;
+}
+
+div[class*="highlight-"] {
+    margin: 1em 0;
+}
+
+td.linenos pre {
+    border: 0;
+    background-color: transparent;
+    color: #aaa;
+}
+
+table.highlighttable {
+    display: block;
+}
+
+table.highlighttable tbody {
+    display: block;
+}
+
+table.highlighttable tr {
+    display: flex;
+}
+
+table.highlighttable td {
+    margin: 0;
+    padding: 0;
+}
+
+table.highlighttable td.linenos {
+    padding-right: 0.5em;
+}
+
+table.highlighttable td.code {
+    flex: 1;
+    overflow: hidden;
+}
+
+.highlight .hll {
+    display: block;
+}
+
+div.highlight pre,
+table.highlighttable pre {
+    margin: 0;
+}
+
+div.code-block-caption + div {
+    margin-top: 0;
+}
+
+div.code-block-caption {
+    margin-top: 1em;
+    padding: 2px 5px;
+    font-size: small;
+}
+
+div.code-block-caption code {
+    background-color: transparent;
+}
+
+table.highlighttable td.linenos,
+span.linenos,
+div.highlight span.gp {  /* gp: Generic.Prompt */
+  user-select: none;
+  -webkit-user-select: text; /* Safari fallback only */
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+}
+
+div.code-block-caption span.caption-number {
+    padding: 0.1em 0.3em;
+    font-style: italic;
+}
+
+div.code-block-caption span.caption-text {
+}
+
+div.literal-block-wrapper {
+    margin: 1em 0;
+}
+
+code.xref, a code {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+    background-color: transparent;
+}
+
+.viewcode-link {
+    float: right;
+}
+
+.viewcode-back {
+    float: right;
+    font-family: sans-serif;
+}
+
+div.viewcode-block:target {
+    margin: -1px -10px;
+    padding: 0 10px;
+}
+
+/* -- math display ---------------------------------------------------------- */
+
+img.math {
+    vertical-align: middle;
+}
+
+div.body div.math p {
+    text-align: center;
+}
+
+span.eqno {
+    float: right;
+}
+
+span.eqno a.headerlink {
+    position: absolute;
+    z-index: 1;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+/* -- printout stylesheet --------------------------------------------------- */
+
+@media print {
+    div.document,
+    div.documentwrapper,
+    div.bodywrapper {
+        margin: 0 !important;
+        width: 100%;
+    }
+
+    div.sphinxsidebar,
+    div.related,
+    div.footer,
+    #top-link {
+        display: none;
+    }
+}
+/*
+ * Sphinx stylesheet -- classic theme.
+ */
+
+
+
+/* -- page layout ----------------------------------------------------------- */
+
+html {
+    /* CSS hack for macOS's scrollbar (see #1125) */
+    background-color: #FFFFFF;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    font-size: 100%;
+    background-color: white;
+    color: #000;
+    margin: 0;
+    padding: 0;
+}
+
+div.document {
+    display: flex;
+    background-color: white;
+}
+
+div.documentwrapper {
+    float: left;
+    width: 100%;
+}
+
+div.bodywrapper {
+    margin: 0 0 0 230px;
+}
+
+div.body {
+    background-color: white;
+    color: #222222;
+    padding: 0 20px 30px 20px;
+}
+
+div.footer {
+    color: #555555;
+    width: 100%;
+    padding: 9px 0 9px 0;
+    text-align: center;
+    font-size: 75%;
+}
+
+div.footer a {
+    color: #555555;
+    text-decoration: underline;
+}
+
+div.related {
+    background-color: white;
+    line-height: 30px;
+    color: #666666;
+}
+
+div.related a {
+    color: #444444;
+}
+
+div.sphinxsidebar {
+}
+
+div.sphinxsidebar h3 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.4em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+
+div.sphinxsidebar h3 a {
+    color: #444444;
+}
+
+div.sphinxsidebar h4 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.3em;
+    font-weight: normal;
+    margin: 5px 0 0 0;
+    padding: 0;
+}
+
+div.sphinxsidebar p {
+    color: #444444;
+}
+
+div.sphinxsidebar p.topless {
+    margin: 5px 10px 10px 10px;
+}
+
+div.sphinxsidebar ul {
+    margin: 10px;
+    padding: 0;
+    color: #444444;
+}
+
+div.sphinxsidebar a {
+    color: #444444;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #444444;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+
+
+    
+    
+
+/* for collapsible sidebar */
+#sidebarbutton {
+    height: 100%;
+    background-color: #cccccc;
+    margin-left: 0;
+    color: #FFFFFF;
+    border-left: 1px solid white;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding-top: 1px;
+    float: right;
+    display: table; /* for vertically centering the <span> */
+}
+
+#sidebarbutton:hover {
+    background-color: white;
+}
+
+#sidebarbutton span {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+div.sphinxsidebarwrapper {
+    float: left;
+    margin-right: 0;
+}
+
+
+/* -- hyperlink styles ------------------------------------------------------ */
+
+a {
+    color: #0090c0;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #00608f;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+
+
+/* -- body styles ----------------------------------------------------------- */
+
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    background-color: white;
+    font-weight: normal;
+    color: #1a1a1a;
+    border-bottom: 1px solid #ccc;
+    margin: 20px -20px 10px -20px;
+    padding: 3px 0 3px 10px;
+}
+
+div.body h1 { margin-top: 0; font-size: 200%; }
+div.body h2 { font-size: 160%; }
+div.body h3 { font-size: 140%; }
+div.body h4 { font-size: 120%; }
+div.body h5 { font-size: 110%; }
+div.body h6 { font-size: 100%; }
+
+a.headerlink {
+    color: #aaaaaa;
+    font-size: 0.8em;
+    padding: 0 4px 0 4px;
+    text-decoration: none;
+}
+
+a.headerlink:hover {
+    background-color: #aaaaaa;
+    color: white;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: justify;
+    line-height: 130%;
+}
+
+div.admonition p.admonition-title + p {
+    display: inline;
+}
+
+div.admonition p {
+    margin-bottom: 5px;
+}
+
+div.admonition pre {
+    margin-bottom: 5px;
+}
+
+div.admonition ul, div.admonition ol {
+    margin-bottom: 5px;
+}
+
+div.note {
+    background-color: #eee;
+    border: 1px solid #ccc;
+}
+
+div.seealso {
+    background-color: #ffc;
+    border: 1px solid #ff6;
+}
+
+nav.contents,
+aside.topic,
+div.topic {
+    background-color: #eee;
+}
+
+div.warning {
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
+}
+
+p.admonition-title {
+    display: inline;
+}
+
+p.admonition-title:after {
+    content: ":";
+}
+
+pre {
+    padding: 5px;
+    background-color: #eeffcc;
+    color: #333333;
+    line-height: 120%;
+    border: 1px solid #ac9;
+    border-left: none;
+    border-right: none;
+}
+
+code {
+    background-color: #ecf0f3;
+    padding: 0 1px 0 1px;
+    font-size: 0.95em;
+}
+
+th, dl.field-list > dt {
+    background-color: #ede;
+}
+
+.warning code {
+    background: #efc2c2;
+}
+
+.note code {
+    background: #d6d6d6;
+}
+
+.viewcode-back {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+}
+
+div.viewcode-block:target {
+    background-color: #f4debf;
+    border-top: 1px solid #ac9;
+    border-bottom: 1px solid #ac9;
+}
+
+div.code-block-caption {
+    color: #efefef;
+    background-color: #1c4e63;
+}</style>
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=4365c8fe"><style data-obscura-external-stylesheets="">/* Common colours */
+:root {
+    --good-color: rgb(41 100 51);
+    --good-border: rgb(79 196 100);
+    --middle-color: rgb(133 72 38);
+    --middle-border: rgb(244, 227, 76);
+    --bad-color: rgb(159 49 51);
+    --bad-border: rgb(244, 76, 78);
+}
+
+/* unset some styles from the classic stylesheet */
+div.document,
+div.body,
+div.related,
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6,
+div.sphinxsidebar a,
+div.sphinxsidebar p,
+div.sphinxsidebar ul,
+div.sphinxsidebar h3,
+div.sphinxsidebar h3 a,
+div.sphinxsidebar h4,
+.menu a,
+.menu p,
+.menu ul,
+.menu h3,
+.menu h3 a,
+.menu h4,
+table.docutils td,
+table.indextable tr.cap,
+pre {
+    background-color: inherit;
+    color: inherit;
+}
+
+/* Add underlines to links */
+a[href] {
+    text-decoration: underline 1px;
+}
+
+/* Increase the underline offset for code to avoid obscuring underscores */
+a[href]:has(> code) {
+    text-underline-offset: 0.25em;
+}
+
+/* No underline for navigation */
+a.headerlink,
+div.genindex-jumpbox a,
+div.modindex-jumpbox a,
+div#search-results a,
+div.sphinxsidebar a,
+div.toctree-wrapper a,
+div[role=navigation] a,
+table.contentstable a,
+table.indextable a {
+    text-decoration: none;
+}
+
+/* Except when hovered */
+div.genindex-jumpbox a:hover,
+div.modindex-jumpbox a:hover,
+div#search-results a:hover,
+div.sphinxsidebar a:hover,
+div.toctree-wrapper a:hover,
+div[role=navigation] a:hover,
+table.contentstable a:hover,
+table.indextable a:hover {
+    text-decoration: underline;
+    text-underline-offset: auto;
+}
+
+body {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.mobile-nav,
+.menu-wrapper {
+    display: none;
+}
+
+div.related {
+    margin-top: 0.5em;
+    margin-bottom: 1.2em;
+    padding: 0.5em 0;
+    border-width: 1px;
+    border-color: #ccc;
+}
+
+.mobile-nav + div.related {
+    border-bottom-style: solid;
+}
+
+.document + div.related {
+    border-top-style: solid;
+}
+
+div.related a:hover {
+    color: #0095c4;
+}
+
+.related .switchers {
+    display: inline-flex;
+}
+
+.switchers > div {
+    margin-right: 5px;
+}
+
+div.related ul::after {
+    content: '';
+    clear: both;
+    display: block;
+}
+
+.inline-search,
+form.inline-search input {
+    display: inline;
+}
+
+form.inline-search input[type='submit'] {
+    /* In some languages, more than 40px is required */
+    width: auto;
+    min-width: 40px;
+}
+
+div.document {
+    display: flex;
+    /* Don't let long code literals extend beyond the right side of the screen */
+    overflow-wrap: break-word;
+}
+
+/* Don't let long code literals extend beyond the right side of the screen */
+span.pre {
+    white-space: unset;
+}
+
+div.sphinxsidebar {
+    display: flex;
+    width: min(25vw, 350px);
+    float: none;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    color: #444;
+    background-color: #eee;
+    border-radius: 5px;
+    line-height: 130%;
+    font-size: smaller;
+}
+
+div.sphinxsidebar h3,
+div.sphinxsidebar h4 {
+    margin-top: 1.5em;
+}
+
+div.bodywrapper {
+    margin-left: min(25vw, 350px);
+}
+
+div.sphinxsidebarwrapper {
+    box-sizing: border-box;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    float: none;
+    flex-grow: 1;
+}
+
+div.sphinxsidebarwrapper > h3:first-child {
+    margin-top: 0.2em;
+}
+
+div.sphinxsidebarwrapper > ul > li > ul > li {
+    margin-bottom: 0.4em;
+}
+
+div.sphinxsidebar a:hover {
+    color: #0095c4;
+}
+
+form.inline-search input,
+div.sphinxsidebar input,
+div.related input {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    border: 1px solid #999999;
+    font-size: smaller;
+    border-radius: 3px;
+}
+
+div.sphinxsidebar input[type='text'] {
+    max-width: 150px;
+}
+
+#sidebarbutton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 12px;
+    min-width: 12px;
+    border-radius: 0 5px 5px 0;
+    border-left: none;
+}
+
+#sidebarbutton:hover {
+    background-color: #AAAAAA;
+}
+
+div.body {
+    padding: 0 0 0 1.2em;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: left;
+    line-height: 1.6;
+}
+div.body h1, div.body h2, div.body h3, div.body h4, div.body h5, div.body h6 {
+    margin: 0;
+    border: 0;
+    padding: 0.3em 0;
+}
+div.body dl.field-list > dt {
+    line-height: 1.6;
+}
+
+div.body hr {
+    border: 0;
+    background-color: #ccc;
+    height: 1px;
+}
+
+div.body pre {
+    border-radius: 3px;
+    border: 1px solid #ac9;
+}
+
+div.body {
+    .good pre {
+        border-left: 3px solid var(--good-border);
+    }
+    .bad pre {
+        border-left: 3px solid var(--bad-border);
+    }
+    .maybe pre {
+        border-left: 3px solid var(--middle-border);
+    }
+}
+
+div.code-block-caption {
+    background-color: #eee;
+    border: 1px solid #ac9;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    padding: 0.3em 0.6em;
+    font-size: 90%;
+    color: #333;
+
+    & + div pre {
+        border-top-left-radius: 0 !important;
+        border-top-right-radius: 0 !important;
+    }
+
+    & + div .copybutton {
+        border-top-right-radius: 0 !important;
+    }
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #eee;
+    --admonition-border: #ccc;
+    --admonition-color: black;
+    --attention-background: #bbddff5c;
+    --attention-border: #0000ff36;
+    --caution-background: #ffc;
+    --caution-border: #dd6;
+    --danger-background: #ffe4e4;
+    --danger-border: red;
+    --error-background: #ffe4e4;
+    --error-border: red;
+    --hint-background: #dfd;
+    --hint-border: green;
+    --seealso-background: #ffc;
+    --seealso-border: #dd6;
+    --tip-background: #dfd;
+    --tip-border: green;
+    --warning-background: #ffe4e4;
+    --warning-border: red;
+}
+
+div.body div.admonition {
+    background-color: var(--admonition-background);
+    border: 1px solid var(--admonition-border);
+    border-radius: 3px;
+    color: var(--admonition-color);
+}
+
+div.body div.admonition.attention {
+    background-color: var(--attention-background);
+    border-color: var(--attention-border);
+}
+
+div.body div.admonition.caution {
+    background-color: var(--caution-background);
+    border-color: var(--caution-border);
+}
+
+div.body div.admonition.danger {
+    background-color: var(--danger-background);
+    border-color: var(--danger-border);
+}
+
+div.body div.admonition.error {
+    background-color: var(--error-background);
+    border-color: var(--error-border);
+}
+
+div.body div.admonition.hint {
+    background-color: var(--hint-background);
+    border-color: var(--hint-border);
+}
+
+div.body div.admonition.seealso {
+    background-color: var(--seealso-background);
+    border-color: var(--seealso-border);
+}
+
+div.body div.admonition.tip {
+    background-color: var(--tip-background);
+    border-color: var(--tip-border);
+}
+
+div.body div.admonition.warning {
+    background-color: var(--warning-background);
+    border-color: var(--warning-border);
+}
+
+div.body div.impl-detail {
+    border-radius: 3px;
+}
+
+div.body div.impl-detail > p {
+    margin: 0;
+}
+
+div.body a {
+    color: #0072aa;
+}
+
+div.body a:visited {
+    color: #6363bb;
+}
+
+div.body a:hover {
+    color: #00b0e4;
+}
+
+tt, code, pre {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 96.5%;
+}
+
+div.body pre {
+    line-height: 120%;
+}
+
+div.body tt,
+div.body code {
+    border-radius: 3px;
+}
+
+div.body tt.descname,
+div.body code.descname {
+    font-size: 120%;
+}
+
+div.body tt.xref,
+div.body a tt,
+div.body code.xref,
+div.body a code {
+    font-weight: normal;
+}
+
+table.docutils {
+    border: 1px solid #ddd;
+    min-width: 20%;
+    border-radius: 3px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+table.docutils td,
+table.docutils th {
+    border: 1px solid #ddd !important;
+    border-radius: 3px;
+    padding: 0.3em 0.5em;
+}
+
+table p,
+table li {
+    text-align: left !important;
+}
+
+table.docutils th {
+    background-color: #eee;
+}
+
+table.footnote,
+table.footnote td {
+    border: 0 !important;
+}
+
+div.footer {
+    line-height: 150%;
+    text-align: right;
+    width: auto;
+    margin-right: 10px;
+}
+
+div.footer a {
+    text-underline-offset: auto;
+}
+
+div.footer a:hover {
+    color: #0095c4;
+}
+
+/* C API return value annotations */
+:root {
+    --refcount: var(--good-color);
+    --refcount-return-borrowed-ref: var(--middle-color);
+}
+
+.refcount {
+    color: var(--refcount);
+}
+
+.refcount.return_borrowed_ref {
+    color: var(--refcount-return-borrowed-ref)
+}
+
+.stableabi {
+    color: #229;
+}
+
+/* C API thread safety annotations */
+:root {
+    --threadsafety-incompatible: var(--bad-color);
+    --threadsafety-compatible: var(--middle-color);
+    --threadsafety-distinct: var(--middle-color);
+    --threadsafety-shared: var(--good-color);
+    --threadsafety-atomic: var(--good-color);
+}
+
+.threadsafety.threadsafety-incompatible {
+    color: var(--threadsafety-incompatible);
+}
+
+.threadsafety.threadsafety-compatible {
+    color: var(--threadsafety-compatible);
+}
+
+.threadsafety.threadsafety-distinct {
+    color: var(--threadsafety-distinct);
+}
+
+.threadsafety.threadsafety-shared {
+    color: var(--threadsafety-shared);
+}
+
+.threadsafety.threadsafety-atomic {
+    color: var(--threadsafety-atomic);
+}
+
+
+dl > dt span ~ em,
+.sig {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+}
+
+.toctree-wrapper ul {
+    padding-left: 20px;
+}
+
+.theme-selector {
+    margin-left: .5em;
+}
+
+div.genindex-jumpbox,
+div.genindex-jumpbox > p {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+div.genindex-jumpbox a {
+    margin: 0 5px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.copybutton {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 80%;
+    padding-left: .5em;
+    padding-right: .5em;
+    height: 100%;
+    max-height: min(100%, 2.4em);
+    border-radius: 0 3px 0 0;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid #ac9; /* follows div.body pre */
+    display: none;
+}
+
+.copybutton:hover {
+    background-color: #eee;
+}
+
+.copybutton:active {
+    background-color: #ddd;
+}
+
+.highlight:active .copybutton {
+    display: block;
+}
+
+.highlight:hover .copybutton {
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    /* Body layout */
+    div.body {
+        min-width: 100%;
+        padding: 0;
+        font-size: 0.875rem;
+    }
+    div.bodywrapper {
+        margin: 0;
+    }
+    /* Typography */
+    div.body h1 {
+        font-size: 1.625rem;
+    }
+    div.body h2 {
+        font-size: 1.25rem;
+    }
+    div.body h3, div.body h4, div.body h5 {
+        font-size: 1rem;
+    }
+    /* Override default styles to make more readable */
+    div.body ul {
+        padding-inline-start: 1rem;
+    }
+    div.body blockquote {
+        margin-inline-start: 1rem;
+        margin-inline-end: 0;
+    }
+    /* Remove sidebar and top related bar */
+    div.related, div.sphinxsidebar {
+        display: none;
+    }
+    /* Anchorlinks are not hidden by fixed-positioned navbar when scrolled to */
+    html {
+        scroll-padding-top: 40px;
+    }
+    body {
+        margin-top: 40px;
+    }
+
+    /* Top navigation bar */
+    .mobile-nav {
+        display: block;
+        height: 40px;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        box-shadow: rgba(0, 0, 0, 0.25) 0 0 2px 0;
+        z-index: 1;
+    }
+    .mobile-nav * {
+        box-sizing: border-box;
+    }
+    .nav-content {
+        position: absolute;
+        z-index: 1;
+        height: 40px;
+        width: 100%;
+        display: flex;
+        background-color: white;
+    }
+    .nav-items-wrapper {
+        display: flex;
+        flex: auto;
+        padding: .25rem;
+        align-items: stretch;
+    }
+    .nav-logo {
+        margin-right: 1rem;
+        flex-shrink: 0;
+        align-self: center;
+    }
+    .nav-content img {
+        display: block;
+        width: 20px;
+    }
+    .version_switcher_placeholder {
+        margin-right: 1rem;
+    }
+    .version_switcher_placeholder > select {
+        height: 100%;
+    }
+    .nav-content .search {
+        display: flex;
+        flex: auto;
+        border: 1px solid #a9a9a9;
+        align-items: stretch;
+    }
+    .nav-content .search input[type=search] {
+        border: 0;
+        padding-left: 24px;
+        width: 100%;
+        flex: 1;
+    }
+    .nav-content .search input[type=submit] {
+        height: 100%;
+        box-shadow: none;
+        border: 0;
+        border-left: 1px solid #a9a9a9;
+        cursor: pointer;
+        margin-right: 0;
+    }
+    .nav-content .search svg {
+        position: absolute;
+        align-self: center;
+        padding-left: 4px;
+    }
+    .toggler__input {
+        display: none;
+    }
+    .toggler__label {
+        width: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        flex-shrink: 0;
+    }
+    .toggler__label:hover, .toggler__label:focus {
+        background-color: rgba(127 127 127 / 50%);
+    }
+    .toggler__label > span {
+        position: relative;
+        flex: none;
+        height: 2px;
+        width: 100%;
+        background: currentColor;
+        transition: all 400ms ease;
+    }
+    .toggler__label > span::before,
+    .toggler__label > span::after {
+        content: '';
+        height: 2px;
+        width: 100%;
+        background: inherit;
+        position: absolute;
+        left: 0;
+        top: -8px;
+    }
+    .toggler__label > span::after {
+        top: 8px;
+    }
+    .toggler__input:checked ~ nav > .toggler__label span {
+        transform: rotate(135deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before {
+        transform: rotate(90deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before,
+    .toggler__input:checked ~ nav > .toggler__label span::after {
+        top: 0;
+    }
+    .toggler__input:checked:hover ~ nav > .toggler__label span {
+        transform: rotate(315deg);
+    }
+    .toggler__input:checked ~ .menu-wrapper {
+        visibility: visible;
+        left: 0;
+    }
+
+    /* Sliding side menu */
+    .menu-wrapper {
+        display: block;
+        position: fixed;
+        top: 0;
+        transition: left 400ms ease;
+        left: -310px;
+        width: 300px;
+        height: 100%;
+        background-color: #eee;
+        color: #444444;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+    }
+    .menu-wrapper.open {
+        visibility: visible;
+        left: 0;
+    }
+    .menu {
+        padding: 40px 10px 30px 20px;
+    }
+    .menu-wrapper h3,
+    .menu-wrapper h4 {
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+    .menu-wrapper h4 {
+        font-size: 1.3em;
+    }
+    .menu-wrapper h3 {
+        font-size: 1.4em;
+    }
+    .menu-wrapper h3 + p,
+    .menu-wrapper h4 + p {
+        margin-top: 0.5rem;
+    }
+    .menu a {
+        font-size: smaller;
+        text-decoration: none;
+    }
+    .menu ul {
+        list-style: none;
+        line-height: 1.4;
+        overflow-wrap: break-word;
+        padding-left: 0;
+    }
+    .menu ul ul {
+        margin-left: 20px;
+        list-style: square;
+    }
+    .menu ul li {
+        margin-bottom: 0.5rem;
+    }
+    .language_switcher_placeholder {
+        margin-top: 2rem;
+    }
+    .language_switcher_placeholder select {
+        width: 100%;
+    }
+    .document {
+        position: relative;
+        z-index: 0;
+    }
+    /*Responsive tables*/
+    .responsive-table__container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .menu .theme-selector-label {
+        margin-top: .5em;
+        display: flex;
+        width: 100%;
+    }
+
+    .menu .theme-selector {
+        flex: auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    div.footer {
+        margin-top: -2em;
+    }
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(175, 0, 255);
+
+    --versionadded-border: var(--good-border);
+    --versionchanged-border: var(--middle-border);
+    --deprecated-border: var(--bad-border);
+    --soft-deprecated-border: rgb(175, 0, 255);
+}
+
+div.versionadded,
+div.versionchanged,
+div.deprecated,
+div.deprecated-removed {
+    border-left: 3px solid;
+    padding: 0 1rem;
+}
+
+div.versionadded {
+    border-left-color: var(--versionadded-border);
+}
+
+div.versionchanged {
+    border-left-color: var(--versionchanged-border);
+}
+
+div.deprecated,
+div.deprecated-removed,
+div.versionremoved {
+    border-left-color: var(--deprecated-border);
+}
+
+div.soft-deprecated {
+    border-left-color: var(--soft-deprecated-border);
+}
+
+div.versionadded .versionmodified {
+    color: var(--versionadded);
+}
+
+div.versionchanged .versionmodified {
+    color: var(--versionchanged);
+}
+
+div.deprecated .versionmodified,
+div.deprecated-removed .versionmodified,
+div.versionremoved .versionmodified {
+    color: var(--deprecated);
+}
+
+div.soft-deprecated .versionmodified {
+    color: var(--soft-deprecated);
+}
+
+/* Hide header when printing */
+@media print {
+    div.mobile-nav {
+        display: none;
+    }
+}
+</style>
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=0fc419ee"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #49483e }
+.highlight { background: #272822; color: #F8F8F2 }
+.highlight .c { color: #959077 } /* Comment */
+.highlight .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.highlight .esc { color: #F8F8F2 } /* Escape */
+.highlight .g { color: #F8F8F2 } /* Generic */
+.highlight .k { color: #66D9EF } /* Keyword */
+.highlight .l { color: #AE81FF } /* Literal */
+.highlight .n { color: #F8F8F2 } /* Name */
+.highlight .o { color: #FF4689 } /* Operator */
+.highlight .x { color: #F8F8F2 } /* Other */
+.highlight .p { color: #F8F8F2 } /* Punctuation */
+.highlight .ch { color: #959077 } /* Comment.Hashbang */
+.highlight .cm { color: #959077 } /* Comment.Multiline */
+.highlight .cp { color: #959077 } /* Comment.Preproc */
+.highlight .cpf { color: #959077 } /* Comment.PreprocFile */
+.highlight .c1 { color: #959077 } /* Comment.Single */
+.highlight .cs { color: #959077 } /* Comment.Special */
+.highlight .gd { color: #FF4689 } /* Generic.Deleted */
+.highlight .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.highlight .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #FF4689 } /* Generic.Error */
+.highlight .gh { color: #F8F8F2 } /* Generic.Heading */
+.highlight .gi { color: #A6E22E } /* Generic.Inserted */
+.highlight .go { color: #66D9EF } /* Generic.Output */
+.highlight .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #959077 } /* Generic.Subheading */
+.highlight .gt { color: #66D9EF } /* Generic.Traceback */
+.highlight .kc { color: #66D9EF } /* Keyword.Constant */
+.highlight .kd { color: #66D9EF } /* Keyword.Declaration */
+.highlight .kn { color: #FF4689 } /* Keyword.Namespace */
+.highlight .kp { color: #66D9EF } /* Keyword.Pseudo */
+.highlight .kr { color: #66D9EF } /* Keyword.Reserved */
+.highlight .kt { color: #66D9EF } /* Keyword.Type */
+.highlight .ld { color: #E6DB74 } /* Literal.Date */
+.highlight .m { color: #AE81FF } /* Literal.Number */
+.highlight .s { color: #E6DB74 } /* Literal.String */
+.highlight .na { color: #A6E22E } /* Name.Attribute */
+.highlight .nb { color: #A6E22E } /* Name.Builtin */
+.highlight .nc { color: #A6E22E } /* Name.Class */
+.highlight .no { color: #66D9EF } /* Name.Constant */
+.highlight .nd { color: #A6E22E } /* Name.Decorator */
+.highlight .ni { color: #F8F8F2 } /* Name.Entity */
+.highlight .ne { color: #A6E22E } /* Name.Exception */
+.highlight .nf { color: #A6E22E } /* Name.Function */
+.highlight .nl { color: #F8F8F2 } /* Name.Label */
+.highlight .nn { color: #F8F8F2 } /* Name.Namespace */
+.highlight .nx { color: #A6E22E } /* Name.Other */
+.highlight .py { color: #F8F8F2 } /* Name.Property */
+.highlight .nt { color: #FF4689 } /* Name.Tag */
+.highlight .nv { color: #F8F8F2 } /* Name.Variable */
+.highlight .ow { color: #FF4689 } /* Operator.Word */
+.highlight .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.highlight .w { color: #F8F8F2 } /* Text.Whitespace */
+.highlight .mb { color: #AE81FF } /* Literal.Number.Bin */
+.highlight .mf { color: #AE81FF } /* Literal.Number.Float */
+.highlight .mh { color: #AE81FF } /* Literal.Number.Hex */
+.highlight .mi { color: #AE81FF } /* Literal.Number.Integer */
+.highlight .mo { color: #AE81FF } /* Literal.Number.Oct */
+.highlight .sa { color: #E6DB74 } /* Literal.String.Affix */
+.highlight .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.highlight .sc { color: #E6DB74 } /* Literal.String.Char */
+.highlight .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.highlight .sd { color: #E6DB74 } /* Literal.String.Doc */
+.highlight .s2 { color: #E6DB74 } /* Literal.String.Double */
+.highlight .se { color: #AE81FF } /* Literal.String.Escape */
+.highlight .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.highlight .si { color: #E6DB74 } /* Literal.String.Interpol */
+.highlight .sx { color: #E6DB74 } /* Literal.String.Other */
+.highlight .sr { color: #E6DB74 } /* Literal.String.Regex */
+.highlight .s1 { color: #E6DB74 } /* Literal.String.Single */
+.highlight .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.highlight .bp { color: #A6E22E } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #A6E22E } /* Name.Function.Magic */
+.highlight .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.highlight .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.highlight .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.highlight .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.highlight .il { color: #AE81FF } /* Literal.Number.Integer.Long */</style>
+    
+    <script src="../_static/documentation_options.js?v=2f7d2144"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml" title="Search within Python 3.14.7 documentation" href="../_static/opensearch.xml">
+    <link rel="author" title="About these documents" href="../about.html">
+    <link rel="index" title="Index" href="../genindex.html">
+    <link rel="search" title="Search" href="../search.html">
+    <link rel="copyright" title="Copyright" href="../copyright.html">
+    <link rel="next" title="operator — Standard operators as functions" href="operator.html">
+    <link rel="prev" title="itertools — Functions creating iterators for efficient looping" href="itertools.html">
+    
+      
+      <script defer="" file-types="bz2,epub,zip" data-domain="docs.python.org" src="https://analytics.python.org/js/script.file-downloads.outbound-links.js"></script>
+      
+      <link rel="canonical" href="https://docs.python.org/3/library/functools.html">
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">/* Common colours */
+:root {
+    --good-color: rgb(79 196 100);
+    --good-border: var(--good-color);
+    --middle-color: rgb(244, 227, 76);
+    --middle-border: var(--middle-color);
+    --bad-color: rgb(244, 76, 78);
+    --bad-border: var(--bad-color);
+}
+
+
+/* Browser elements */
+:root {
+    scrollbar-color: #616161 transparent;
+    color-scheme: dark;
+}
+
+html,
+body {
+    background-color: #222;
+    color: rgba(255, 255, 255, 0.87);
+}
+
+div.related {
+    color: rgba(255, 255, 255, 0.7); /* classic overwrite */
+    border-color: #424242;
+}
+
+/* SIDEBAR */
+div.sphinxsidebar, .menu-wrapper {
+    background-color: #333;
+    color: inherit;
+}
+
+#sidebarbutton {
+    /* important to overwrite style attribute */
+    background-color: #555 !important;
+    color: inherit !important;
+}
+
+div.sidebar, aside.sidebar {
+    background-color: #424242;
+    border-color: #616161;
+}
+
+/* ANCHORS AND HIGHLIGHTS */
+div.body a {
+    color: #7af;
+}
+
+div.body a:visited {
+    color: #09e;
+}
+
+a.headerlink:hover {
+    background-color: #424242;
+}
+
+div.related a {
+    color: currentColor;
+}
+
+div.footer,
+div.footer a {
+    color: currentColor; /* classic overwrites */
+}
+
+dt:target,
+span.highlighted {
+    background-color: #616161;
+}
+
+.footnote:target {
+    background-color: #2c3e50;
+}
+
+/* Below for most things in text */
+
+dl.field-list > dt {
+    background-color: #434;
+}
+
+table.docutils td,
+table.docutils th {
+    border-color: #616161 !important;
+}
+
+table.docutils th {
+    background-color: #424242;
+}
+
+.stableabi {
+    color: #bbf;
+}
+
+div.body pre {
+    border-color: #616161;
+}
+
+div.code-block-caption {
+    background-color: #333;
+    border-color: #616161;
+    color: white;
+}
+
+code {
+    background-color: #424242;
+}
+
+div.body div.seealso {
+    background-color: rgba(255, 255, 0, 0.1);
+}
+
+div.warning {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.warning code {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #ffffff1a;
+    --admonition-border: currentColor;
+    --admonition-color: #ffffffde;
+    --attention-background: #ffffff1a;
+    --attention-border: currentColor;
+    --caution-background: #ffff001a;
+    --caution-border: #dd6;
+    --danger-background: #f003;
+    --danger-border: #f66;
+    --error-background: #f003;
+    --error-border: #f66;
+    --hint-background: #0044117a;
+    --hint-border: green;
+    --seealso-background: #ffff001a;
+    --seealso-border: #dd6;
+    --tip-background: #0044117a;
+    --tip-border: green;
+    --warning-background: #ff000033;
+    --warning-border: #ff6666;
+}
+
+aside.topic,
+div.topic,
+div.note,
+nav.contents {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: currentColor;
+}
+
+.note code {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav {
+    box-shadow: rgba(255, 255, 255, 0.25) 0 0 2px 0;
+}
+
+.nav-content {
+    background-color: black;
+}
+
+img.invert-in-dark-mode {
+    filter: invert(1) hue-rotate(.5turn);
+}
+
+/* -- object description styles --------------------------------------------- */
+
+/* C++ specific styling */
+
+/* Override Sphinx's basic.css to fix colour contrast */
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+    color: #5283ff;
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(206, 100, 255);
+    --soft-deprecated-border: rgb(206, 100, 255);
+}
+
+.copybutton {
+    color: #ac9; /* follows div.body pre */
+    background-color: #222222; /* follows body */
+}
+
+.copybutton:hover {
+    background-color: #434343;
+}
+
+.copybutton:active {
+    background-color: #656565;
+}
+</style>
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg">
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+            <script type="text/javascript" src="../_static/rtd_switcher.js"></script>
+            <meta name="readthedocs-addons-api-version" content="1">
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation" aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu">
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo">
+            </a>
+            <span class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg :xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q">
+                <input type="submit" value="Go">
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation" tabindex="-1">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> — Higher-order functions and operations on callable objects</a><ul>
+<li><a class="reference internal" href="#partial-objects"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code> Objects</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="itertools.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">itertools</span></code> — Functions creating iterators for efficient looping</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="operator.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">operator</span></code> — Standard operators as functions</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/functools.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=functools+%E2%80%94+Higher-order+functions+and+operations+on+callable+objects&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Ffunctools.html&amp;pagesource=library%2Ffunctools.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/functools.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="operator.html" title="operator — Standard operators as functions" accesskey="N">next</a> |</li>
+        <li class="right">
+          <a href="itertools.html" title="itertools — Functions creating iterators for efficient looping" accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="functional.html" accesskey="U">Functional Programming Modules</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> — Higher-order functions and operations on callable objects</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-functools">
+<span id="functools-higher-order-functions-and-operations-on-callable-objects"></span><h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> — Higher-order functions and operations on callable objects<a class="headerlink" href="#module-functools" title="Link to this heading">¶</a></h1>
+<p><strong>Source code:</strong> <a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/functools.py">Lib/functools.py</a></p>
+<hr class="docutils">
+<p>The <code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> module is for higher-order functions: functions that act on
+or return other functions. In general, any callable object can be treated as a
+function for the purposes of this module.</p>
+<p>The <code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> module defines the following functions:</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.cache">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_function</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.cache" title="Link to this definition">¶</a></dt>
+<dd><p>Simple lightweight unbounded function cache.  Sometimes called
+<a class="reference external" href="https://en.wikipedia.org/wiki/Memoization">“memoize”</a>.</p>
+<p>Returns the same as <code class="docutils literal notranslate"><span class="pre">lru_cache(maxsize=None)</span></code>, creating a thin
+wrapper around a dictionary lookup for the function arguments.  Because it
+never needs to evict old values, this is smaller and faster than
+<a class="reference internal" href="#functools.lru_cache" title="functools.lru_cache"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@lru_cache</span></code></a> with a size limit.</p>
+<p>For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nd">@cache</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">factorial</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">n</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="mi">1</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>   <span class="c1"># no previously cached result, makes 11 recursive calls</span>
+<span class="mi">3628800</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>    <span class="c1"># no new calls, just returns the cached result</span>
+<span class="mi">120</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">factorial</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>   <span class="c1"># two new recursive calls, factorial(10) is cached</span>
+<span class="mi">479001600</span>
+</pre></div>
+</div>
+<p>The cache is threadsafe so that the wrapped function can be used in
+multiple threads.  This means that the underlying data structure will
+remain coherent during concurrent updates.</p>
+<p>It is possible for the wrapped function to be called more than once if
+another thread makes an additional call before the initial call has been
+completed and cached.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.9.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.cached_property">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">cached_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.cached_property" title="Link to this definition">¶</a></dt>
+<dd><p>Transform a method of a class into a property whose value is computed once
+and then cached as a normal attribute for the life of the instance. Similar
+to <a class="reference internal" href="functions.html#property" title="property"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@property</span></code></a>, with the addition of caching. Useful for expensive
+computed properties of instances that are otherwise effectively immutable.</p>
+<p>Example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">DataSet</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence_of_numbers</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sequence_of_numbers</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stdev</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">statistics</span><span class="o">.</span><span class="n">stdev</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The mechanics of <a class="reference internal" href="#functools.cached_property" title="functools.cached_property"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@cached_property</span></code></a> are somewhat different from
+<a class="reference internal" href="functions.html#property" title="property"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@property</span></code></a>.  A regular property blocks attribute writes unless a
+setter is defined. In contrast, a <em>cached_property</em> allows writes.</p>
+<p>The <em>cached_property</em> decorator only runs on lookups and only when an
+attribute of the same name doesn’t exist.  When it does run, the
+<em>cached_property</em> writes to the attribute with the same name. Subsequent
+attribute reads and writes take precedence over the <em>cached_property</em>
+method and it works like a normal attribute.</p>
+<p>The cached value can be cleared by deleting the attribute.  This
+allows the <em>cached_property</em> method to run again.</p>
+<p>The <em>cached_property</em> does not prevent a possible race condition in
+multi-threaded usage. The getter function could run more than once on the
+same instance, with the latest run setting the cached value. If the cached
+property is idempotent or otherwise not harmful to run more than once on an
+instance, this is fine. If synchronization is needed, implement the necessary
+locking inside the decorated getter function or around the cached property
+access.</p>
+<p>Note, this decorator interferes with the operation of <span class="target" id="index-0"></span><a class="pep reference external" href="https://peps.python.org/pep-0412/"><strong>PEP 412</strong></a>
+key-sharing dictionaries.  This means that instance dictionaries
+can take more space than usual.</p>
+<p>Also, this decorator requires that the <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> attribute on each instance
+be a mutable mapping. This means it will not work with some types, such as
+metaclasses (since the <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> attributes on type instances are
+read-only proxies for the class namespace), and those that specify
+<code class="docutils literal notranslate"><span class="pre">__slots__</span></code> without including <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> as one of the defined slots
+(as such classes don’t provide a <code class="docutils literal notranslate"><span class="pre">__dict__</span></code> attribute at all).</p>
+<p>If a mutable mapping is not available or if space-efficient key sharing is
+desired, an effect similar to <a class="reference internal" href="#functools.cached_property" title="functools.cached_property"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@cached_property</span></code></a> can also be achieved by
+stacking <a class="reference internal" href="functions.html#property" title="property"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@property</span></code></a> on top of <a class="reference internal" href="#functools.lru_cache" title="functools.lru_cache"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@lru_cache</span></code></a>. See
+<a class="reference internal" href="../faq/programming.html#faq-cache-method-calls"><span class="std std-ref">How do I cache method calls?</span></a> for more details on how this differs from <code class="xref py py-deco docutils literal notranslate"><span class="pre">@cached_property</span></code>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.8.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.12: </span>Prior to Python 3.12, <code class="xref py py-deco docutils literal notranslate"><span class="pre">@cached_property</span></code> included an undocumented lock to
+ensure that in multi-threaded usage the getter function was guaranteed to
+run only once per instance. However, the lock was per-property, not
+per-instance, which could result in unacceptably high lock contention. In
+Python 3.12+ this locking is removed.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.cmp_to_key">
+<span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">cmp_to_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.cmp_to_key" title="Link to this definition">¶</a></dt>
+<dd><p>Transform an old-style comparison function to a <a class="reference internal" href="../glossary.html#term-key-function"><span class="xref std std-term">key function</span></a>.  Used
+with tools that accept key functions (such as <a class="reference internal" href="functions.html#sorted" title="sorted"><code class="xref py py-func docutils literal notranslate"><span class="pre">sorted()</span></code></a>, <a class="reference internal" href="functions.html#min" title="min"><code class="xref py py-func docutils literal notranslate"><span class="pre">min()</span></code></a>,
+<a class="reference internal" href="functions.html#max" title="max"><code class="xref py py-func docutils literal notranslate"><span class="pre">max()</span></code></a>, <a class="reference internal" href="heapq.html#heapq.nlargest" title="heapq.nlargest"><code class="xref py py-func docutils literal notranslate"><span class="pre">heapq.nlargest()</span></code></a>, <a class="reference internal" href="heapq.html#heapq.nsmallest" title="heapq.nsmallest"><code class="xref py py-func docutils literal notranslate"><span class="pre">heapq.nsmallest()</span></code></a>,
+<a class="reference internal" href="itertools.html#itertools.groupby" title="itertools.groupby"><code class="xref py py-func docutils literal notranslate"><span class="pre">itertools.groupby()</span></code></a>).  This function is primarily used as a transition
+tool for programs being converted from Python 2 which supported the use of
+comparison functions.</p>
+<p>A comparison function is any callable that accepts two arguments, compares them,
+and returns a negative number for less-than, zero for equality, or a positive
+number for greater-than.  A key function is a callable that accepts one
+argument and returns another value to be used as the sort key.</p>
+<p>Example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nb">sorted</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">cmp_to_key</span><span class="p">(</span><span class="n">locale</span><span class="o">.</span><span class="n">strcoll</span><span class="p">))</span>  <span class="c1"># locale-aware sort order</span>
+</pre></div>
+</div>
+<p>For sorting examples and a brief sorting tutorial, see <a class="reference internal" href="../howto/sorting.html#sortinghowto"><span class="std std-ref">Sorting Techniques</span></a>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.2.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.lru_cache">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">lru_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_function</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.lru_cache" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">lru_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maxsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Decorator to wrap a function with a memoizing callable that saves up to the
+<em>maxsize</em> most recent calls.  It can save time when an expensive or I/O bound
+function is periodically called with the same arguments.</p>
+<p>The cache is threadsafe so that the wrapped function can be used in
+multiple threads.  This means that the underlying data structure will
+remain coherent during concurrent updates.</p>
+<p>It is possible for the wrapped function to be called more than once if
+another thread makes an additional call before the initial call has been
+completed and cached.</p>
+<p>Since a dictionary is used to cache results, the positional and keyword
+arguments to the function must be <a class="reference internal" href="../glossary.html#term-hashable"><span class="xref std std-term">hashable</span></a>.</p>
+<p>Distinct argument patterns may be considered to be distinct calls with
+separate cache entries.  For example, <code class="docutils literal notranslate"><span class="pre">f(a=1,</span> <span class="pre">b=2)</span></code> and <code class="docutils literal notranslate"><span class="pre">f(b=2,</span> <span class="pre">a=1)</span></code>
+differ in their keyword argument order and may have two separate cache
+entries.</p>
+<p>If <em>user_function</em> is specified, it must be a callable. This allows the
+<em>lru_cache</em> decorator to be applied directly to a user function, leaving
+the <em>maxsize</em> at its default value of 128:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nd">@lru_cache</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">count_vowels</span><span class="p">(</span><span class="n">sentence</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sentence</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">vowel</span><span class="p">)</span> <span class="k">for</span> <span class="n">vowel</span> <span class="ow">in</span> <span class="s1">'AEIOUaeiou'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If <em>maxsize</em> is set to <code class="docutils literal notranslate"><span class="pre">None</span></code>, the LRU feature is disabled and the cache can
+grow without bound.</p>
+<p>If <em>typed</em> is set to true, function arguments of different types will be
+cached separately.  If <em>typed</em> is false, the implementation will usually
+regard them as equivalent calls and only cache a single result. (Some
+types such as <em>str</em> and <em>int</em> may be cached separately even when <em>typed</em>
+is false.)</p>
+<p>Note, type specificity applies only to the function’s immediate arguments
+rather than their contents.  The scalar arguments, <code class="docutils literal notranslate"><span class="pre">Decimal(42)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Fraction(42)</span></code> are treated as distinct calls with distinct results.
+In contrast, the tuple arguments <code class="docutils literal notranslate"><span class="pre">('answer',</span> <span class="pre">Decimal(42))</span></code> and
+<code class="docutils literal notranslate"><span class="pre">('answer',</span> <span class="pre">Fraction(42))</span></code> are treated as equivalent.</p>
+<p>The wrapped function is instrumented with a <code class="xref py py-func docutils literal notranslate"><span class="pre">cache_parameters()</span></code>
+function that returns a new <a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> showing the values for <em>maxsize</em>
+and <em>typed</em>.  This is for information purposes only.  Mutating the values
+has no effect.</p>
+<p id="functools.lru_cache.cache_info">To help measure the effectiveness of the cache and tune the <em>maxsize</em>
+parameter, the wrapped function is instrumented with a <code class="xref py py-func docutils literal notranslate"><span class="pre">cache_info()</span></code>
+function that returns a <a class="reference internal" href="../glossary.html#term-named-tuple"><span class="xref std std-term">named tuple</span></a> showing <em>hits</em>, <em>misses</em>,
+<em>maxsize</em> and <em>currsize</em>.</p>
+<p id="functools.lru_cache.cache_clear">The decorator also provides a <code class="xref py py-func docutils literal notranslate"><span class="pre">cache_clear()</span></code> function for clearing or
+invalidating the cache.</p>
+<p>The original underlying function is accessible through the
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">__wrapped__</span></code> attribute.  This is useful for introspection, for
+bypassing the cache, or for rewrapping the function with a different cache.</p>
+<p>The cache keeps references to the arguments and return values until they age
+out of the cache or until the cache is cleared.</p>
+<p>If a method is cached, the <code class="docutils literal notranslate"><span class="pre">self</span></code> instance argument is included in the
+cache.  See <a class="reference internal" href="../faq/programming.html#faq-cache-method-calls"><span class="std std-ref">How do I cache method calls?</span></a></p>
+<p>An <a class="reference external" href="https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_Recently_Used_(LRU)">LRU (least recently used) cache</a>
+works best when the most recent calls are the best predictors of upcoming
+calls (for example, the most popular articles on a news server tend to
+change each day).  The cache’s size limit assures that the cache does not
+grow without bound on long-running processes such as web servers.</p>
+<p>In general, the LRU cache should only be used when you want to reuse
+previously computed values.  Accordingly, it doesn’t make sense to cache
+functions with side-effects, functions that need to create
+distinct mutable objects on each call (such as generators and async functions),
+or impure functions such as time() or random().</p>
+<p>Example of an LRU cache for static web content:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_pep</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+    <span class="s1">'Retrieve text of a Python Enhancement Proposal'</span>
+    <span class="n">resource</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'https://peps.python.org/pep-</span><span class="si">{</span><span class="n">num</span><span class="si">:</span><span class="s1">04d</span><span class="si">}</span><span class="s1">'</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">'Not Found'</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">290</span><span class="p">,</span> <span class="mi">308</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">218</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">279</span><span class="p">,</span> <span class="mi">289</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">9991</span><span class="p">:</span>
+<span class="o">...</span>     <span class="n">pep</span> <span class="o">=</span> <span class="n">get_pep</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="o">...</span>     <span class="nb">print</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pep</span><span class="p">))</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">get_pep</span><span class="o">.</span><span class="n">cache_info</span><span class="p">()</span>
+<span class="n">CacheInfo</span><span class="p">(</span><span class="n">hits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">misses</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">maxsize</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">currsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Example of efficiently computing
+<a class="reference external" href="https://en.wikipedia.org/wiki/Fibonacci_number">Fibonacci numbers</a>
+using a cache to implement a
+<a class="reference external" href="https://en.wikipedia.org/wiki/Dynamic_programming">dynamic programming</a>
+technique:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fib</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">n</span>
+    <span class="k">return</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">fib</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="p">[</span><span class="n">fib</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">)]</span>
+<span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">89</span><span class="p">,</span> <span class="mi">144</span><span class="p">,</span> <span class="mi">233</span><span class="p">,</span> <span class="mi">377</span><span class="p">,</span> <span class="mi">610</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">fib</span><span class="o">.</span><span class="n">cache_info</span><span class="p">()</span>
+<span class="n">CacheInfo</span><span class="p">(</span><span class="n">hits</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span> <span class="n">misses</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">currsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.2.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.3: </span>Added the <em>typed</em> option.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span>Added the <em>user_function</em> option.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.9: </span>Added the function <code class="xref py py-func docutils literal notranslate"><span class="pre">cache_parameters()</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.total_ordering">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">total_ordering</span></span><a class="headerlink" href="#functools.total_ordering" title="Link to this definition">¶</a></dt>
+<dd><p>Given a class defining one or more rich comparison ordering methods, this
+class decorator supplies the rest.  This simplifies the effort involved
+in specifying all of the possible rich comparison operations:</p>
+<p>The class must define one of <a class="reference internal" href="../reference/datamodel.html#object.__lt__" title="object.__lt__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__lt__()</span></code></a>, <a class="reference internal" href="../reference/datamodel.html#object.__le__" title="object.__le__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__le__()</span></code></a>,
+<a class="reference internal" href="../reference/datamodel.html#object.__gt__" title="object.__gt__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__gt__()</span></code></a>, or <a class="reference internal" href="../reference/datamodel.html#object.__ge__" title="object.__ge__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__ge__()</span></code></a>.
+In addition, the class should supply an <a class="reference internal" href="../reference/datamodel.html#object.__eq__" title="object.__eq__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__eq__()</span></code></a> method.</p>
+<p>For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="nd">@total_ordering</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Student</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_valid_operand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">"lastname"</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">"firstname"</span><span class="p">))</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_operand</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">lastname</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">firstname</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="o">==</span>
+                <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">lastname</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">firstname</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_operand</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+        <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">lastname</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">firstname</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="o">&lt;</span>
+                <span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">lastname</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">other</span><span class="o">.</span><span class="n">firstname</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While this decorator makes it easy to create well behaved totally
+ordered types, it <em>does</em> come at the cost of slower execution and
+more complex stack traces for the derived comparison methods. If
+performance benchmarking indicates this is a bottleneck for a given
+application, implementing all six rich comparison methods instead is
+likely to provide an easy speed boost.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This decorator makes no attempt to override methods that have been
+declared in the class <em>or its superclasses</em>. Meaning that if a
+superclass defines a comparison operator, <em>total_ordering</em> will not
+implement it again, even if the original method is abstract.</p>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.2.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Returning <code class="docutils literal notranslate"><span class="pre">NotImplemented</span></code> from the underlying comparison function for
+unrecognised types is now supported.</p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="functools.Placeholder">
+<span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">Placeholder</span></span><a class="headerlink" href="#functools.Placeholder" title="Link to this definition">¶</a></dt>
+<dd><p>A singleton object used as a sentinel to reserve a place
+for positional arguments when calling <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code></a>
+and <a class="reference internal" href="#functools.partialmethod" title="functools.partialmethod"><code class="xref py py-func docutils literal notranslate"><span class="pre">partialmethod()</span></code></a>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.14.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.partial">
+<span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">partial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.partial" title="Link to this definition">¶</a></dt>
+<dd><p>Return a new <a class="reference internal" href="#partial-objects"><span class="std std-ref">partial object</span></a> which when called
+will behave like <em>func</em> called with the positional arguments <em>args</em>
+and keyword arguments <em>keywords</em>. If more arguments are supplied to the
+call, they are appended to <em>args</em>. If additional keyword arguments are
+supplied, they extend and override <em>keywords</em>.
+Roughly equivalent to:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">keywords</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">newfunc</span><span class="p">(</span><span class="o">*</span><span class="n">more_args</span><span class="p">,</span> <span class="o">**</span><span class="n">more_keywords</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="n">more_args</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">keywords</span> <span class="o">|</span> <span class="n">more_keywords</span><span class="p">))</span>
+    <span class="n">newfunc</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+    <span class="n">newfunc</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+    <span class="n">newfunc</span><span class="o">.</span><span class="n">keywords</span> <span class="o">=</span> <span class="n">keywords</span>
+    <span class="k">return</span> <span class="n">newfunc</span>
+</pre></div>
+</div>
+<p>The <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code> function is used for partial function application which “freezes”
+some portion of a function’s arguments and/or keywords resulting in a new object
+with a simplified signature.  For example, <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code> can be used to create
+a callable that behaves like the <a class="reference internal" href="functions.html#int" title="int"><code class="xref py py-func docutils literal notranslate"><span class="pre">int()</span></code></a> function where the <em>base</em> argument
+defaults to <code class="docutils literal notranslate"><span class="pre">2</span></code>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">basetwo</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">basetwo</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s1">'Convert base 2 string to an int.'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">basetwo</span><span class="p">(</span><span class="s1">'10010'</span><span class="p">)</span>
+<span class="go">18</span>
+</pre></div>
+</div>
+<p>If <a class="reference internal" href="#functools.Placeholder" title="functools.Placeholder"><code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code></a> sentinels are present in <em>args</em>, they will be filled first
+when <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code> is called. This makes it possible to pre-fill any positional
+argument with a call to <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code>; without <code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code>,
+only the chosen number of leading positional arguments can be pre-filled.</p>
+<p>If any <code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code> sentinels are present, all must be filled at call time:</p>
+<div class="highlight-pycon notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">say_to_world</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="n">Placeholder</span><span class="p">,</span> <span class="n">Placeholder</span><span class="p">,</span> <span class="s2">"world!"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">say_to_world</span><span class="p">(</span><span class="s1">'Hello'</span><span class="p">,</span> <span class="s1">'dear'</span><span class="p">)</span>
+<span class="go">Hello dear world!</span>
+</pre></div>
+</div>
+<p>Calling <code class="docutils literal notranslate"><span class="pre">say_to_world('Hello')</span></code> raises a <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>, because
+only one positional argument is provided, but there are two placeholders
+that must be filled in.</p>
+<p>If <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code> is applied to an existing
+<a class="reference internal" href="#partial-objects"><span class="std std-ref">partial object</span></a>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code> sentinels of the
+input object are filled in with new positional arguments.
+A placeholder can be retained by inserting a new
+<code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code> sentinel to the place held by a previous <code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span><span class="p">,</span> <span class="n">Placeholder</span> <span class="k">as</span> <span class="n">_</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">replace</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="s1">''</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">message</span> <span class="o">=</span> <span class="s1">'Hello, dear dear world!'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s1">' dear'</span><span class="p">)</span>
+<span class="go">'Hello, world!'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove_dear</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">remove</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="s1">' dear'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove_dear</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="go">'Hello, world!'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove_first_dear</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">remove_dear</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">remove_first_dear</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<span class="go">'Hello, dear world!'</span>
+</pre></div>
+</div>
+<p><code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code> cannot be passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code> as a keyword argument.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.14: </span>Added support for <a class="reference internal" href="#functools.Placeholder" title="functools.Placeholder"><code class="xref py py-data docutils literal notranslate"><span class="pre">Placeholder</span></code></a> in positional arguments.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="functools.partialmethod">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">partialmethod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">keywords</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.partialmethod" title="Link to this definition">¶</a></dt>
+<dd><p>Return a new <code class="xref py py-class docutils literal notranslate"><span class="pre">partialmethod</span></code> descriptor which behaves
+like <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> except that it is designed to be used as a method
+definition rather than being directly callable.</p>
+<p><em>func</em> must be a <a class="reference internal" href="../glossary.html#term-descriptor"><span class="xref std std-term">descriptor</span></a> or a callable (objects which are both,
+like normal functions, are handled as descriptors).</p>
+<p>When <em>func</em> is a descriptor (such as a normal Python function,
+<a class="reference internal" href="functions.html#classmethod" title="classmethod"><code class="xref py py-func docutils literal notranslate"><span class="pre">classmethod()</span></code></a>, <a class="reference internal" href="functions.html#staticmethod" title="staticmethod"><code class="xref py py-func docutils literal notranslate"><span class="pre">staticmethod()</span></code></a>, <a class="reference internal" href="abc.html#abc.abstractmethod" title="abc.abstractmethod"><code class="xref py py-func docutils literal notranslate"><span class="pre">abstractmethod()</span></code></a> or
+another instance of <code class="xref py py-class docutils literal notranslate"><span class="pre">partialmethod</span></code>), calls to <code class="docutils literal notranslate"><span class="pre">__get__</span></code> are
+delegated to the underlying descriptor, and an appropriate
+<a class="reference internal" href="#partial-objects"><span class="std std-ref">partial object</span></a> returned as the result.</p>
+<p>When <em>func</em> is a non-descriptor callable, an appropriate bound method is
+created dynamically. This behaves like a normal Python function when
+used as a method: the <em>self</em> argument will be inserted as the first
+positional argument, even before the <em>args</em> and <em>keywords</em> supplied to
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">partialmethod</span></code> constructor.</p>
+<p>Example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">Cell</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">_alive</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">... </span>    <span class="nd">@property</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">alive</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alive</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="bp">self</span><span class="o">.</span><span class="n">_alive</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">set_alive</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">set_state</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">set_dead</span> <span class="o">=</span> <span class="n">partialmethod</span><span class="p">(</span><span class="n">set_state</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">Cell</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">alive</span>
+<span class="go">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">set_alive</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">alive</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.4.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.reduce">
+<span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">/</span></span></em><span class="optional">[</span>, <em class="sig-param"><span class="n"><span class="pre">initial</span></span></em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#functools.reduce" title="Link to this definition">¶</a></dt>
+<dd><p>Apply <em>function</em> of two arguments cumulatively to the items of <em>iterable</em>, from
+left to right, so as to reduce the iterable to a single value.  For example,
+<code class="docutils literal notranslate"><span class="pre">reduce(lambda</span> <span class="pre">x,</span> <span class="pre">y:</span> <span class="pre">x+y,</span> <span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">3,</span> <span class="pre">4,</span> <span class="pre">5])</span></code> calculates <code class="docutils literal notranslate"><span class="pre">((((1+2)+3)+4)+5)</span></code>.
+The left argument, <em>x</em>, is the accumulated value and the right argument, <em>y</em>, is
+the update value from the <em>iterable</em>.  If the optional <em>initial</em> is present,
+it is placed before the items of the iterable in the calculation, and serves as
+a default when the iterable is empty.  If <em>initial</em> is not given and
+<em>iterable</em> contains only one item, the first item is returned.</p>
+<p>Roughly equivalent to:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="n">initial_missing</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">reduce</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">initial_missing</span><span class="p">):</span>
+    <span class="n">it</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">initial</span> <span class="ow">is</span> <span class="n">initial_missing</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">initial</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">element</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="itertools.html#itertools.accumulate" title="itertools.accumulate"><code class="xref py py-func docutils literal notranslate"><span class="pre">itertools.accumulate()</span></code></a> for an iterator that yields all intermediate
+values.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.14: </span><em>initial</em> is now supported as a keyword argument.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.singledispatch">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">singledispatch</span></span><a class="headerlink" href="#functools.singledispatch" title="Link to this definition">¶</a></dt>
+<dd><p>Transform a function into a <a class="reference internal" href="../glossary.html#term-single-dispatch"><span class="xref std std-term">single-dispatch</span></a> <a class="reference internal" href="../glossary.html#term-generic-function"><span class="xref std std-term">generic function</span></a>.</p>
+<p>To define a generic function, decorate it with the <code class="docutils literal notranslate"><span class="pre">@singledispatch</span></code>
+decorator. When defining a function using <code class="docutils literal notranslate"><span class="pre">@singledispatch</span></code>, note that the
+dispatch happens on the type of the first argument:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">singledispatch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@singledispatch</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">fun</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Let me just say,"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">" "</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+</pre></div>
+</div>
+<p id="functools.singledispatch.register">To add overloaded implementations to the function, use the <code class="xref py py-func docutils literal notranslate"><span class="pre">register()</span></code>
+attribute of the generic function, which can be used as a decorator.  For
+functions annotated with types, the decorator will infer the type of the
+first argument automatically:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Strength in numbers, eh?"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">" "</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Enumerate this:"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="typing.html#typing.Union" title="typing.Union"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Union</span></code></a> can also be used:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Strength in numbers, eh?"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">" "</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Enumerate this:"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>For code which doesn’t use type annotations, the appropriate type
+argument can be passed explicitly to the decorator itself:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="nb">complex</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Better than complicated."</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">" "</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>For code that dispatches on a collections type (e.g., <code class="docutils literal notranslate"><span class="pre">list</span></code>), but wants
+to typehint the items of the collection (e.g., <code class="docutils literal notranslate"><span class="pre">list[int]</span></code>), the
+dispatch type should be passed explicitly to the decorator itself with the
+typehint going into the function definition:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Enumerate this:"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>At runtime the function will dispatch on an instance of a list regardless
+of the type contained within the list i.e. <code class="docutils literal notranslate"><span class="pre">[1,2,3]</span></code> will be
+dispatched the same as <code class="docutils literal notranslate"><span class="pre">["foo",</span> <span class="pre">"bar",</span> <span class="pre">"baz"]</span></code>. The annotation
+provided in this example is for static type checkers only and has no
+runtime impact.</p>
+</div>
+<p>To enable registering <a class="reference internal" href="../glossary.html#term-lambda"><span class="xref std std-term">lambdas</span></a> and pre-existing functions,
+the <a class="reference internal" href="#functools.singledispatch.register" title="functools.singledispatch.register"><code class="xref py py-func docutils literal notranslate"><span class="pre">register()</span></code></a> attribute can also be used in a functional form:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">nothing</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Nothing."</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">nothing</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="#functools.singledispatch.register" title="functools.singledispatch.register"><code class="xref py py-func docutils literal notranslate"><span class="pre">register()</span></code></a> attribute returns the undecorated function. This
+enables decorator stacking, <a class="reference internal" href="pickle.html#module-pickle" title="pickle: Convert Python objects to streams of bytes and back."><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickling</span></code></a>, and the creation
+of unit tests for each variant independently:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="gp">... </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Decimal</span><span class="p">)</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">fun_num</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Half of your number:"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">" "</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">arg</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun_num</span> <span class="ow">is</span> <span class="n">fun</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<p>When called, the generic function dispatches on the type of the first
+argument:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">(</span><span class="s2">"Hello, world."</span><span class="p">)</span>
+<span class="go">Hello, world.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">(</span><span class="s2">"test."</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">Let me just say, test.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">(</span><span class="mi">42</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">Strength in numbers, eh? 42</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">([</span><span class="s1">'spam'</span><span class="p">,</span> <span class="s1">'spam'</span><span class="p">,</span> <span class="s1">'eggs'</span><span class="p">,</span> <span class="s1">'spam'</span><span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">Enumerate this:</span>
+<span class="go">0 spam</span>
+<span class="go">1 spam</span>
+<span class="go">2 eggs</span>
+<span class="go">3 spam</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+<span class="go">Nothing.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">(</span><span class="mf">1.23</span><span class="p">)</span>
+<span class="go">0.615</span>
+</pre></div>
+</div>
+<p>Where there is no registered implementation for a specific type, its
+method resolution order is used to find a more generic implementation.
+The original function decorated with <code class="docutils literal notranslate"><span class="pre">@singledispatch</span></code> is registered
+for the base <a class="reference internal" href="functions.html#object" title="object"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a> type, which means it is used if no better
+implementation is found.</p>
+<p>If an implementation is registered to an <a class="reference internal" href="../glossary.html#term-abstract-base-class"><span class="xref std std-term">abstract base class</span></a>,
+virtual subclasses of the base class will be dispatched to that
+implementation:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@fun</span><span class="o">.</span><span class="n">register</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="n">arg</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s2">"Keys &amp; Values"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">arg</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="s2">"=&gt;"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="s2">"b"</span><span class="p">})</span>
+<span class="go">a =&gt; b</span>
+</pre></div>
+</div>
+<p>To check which implementation the generic function will choose for
+a given type, use the <code class="docutils literal notranslate"><span class="pre">dispatch()</span></code> attribute:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="go">&lt;function fun_num at 0x1035a2840&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>    <span class="c1"># note: default implementation</span>
+<span class="go">&lt;function fun at 0x103fe0000&gt;</span>
+</pre></div>
+</div>
+<p>To access all registered implementations, use the read-only <code class="docutils literal notranslate"><span class="pre">registry</span></code>
+attribute:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<span class="go">dict_keys([&lt;class 'NoneType'&gt;, &lt;class 'int'&gt;, &lt;class 'object'&gt;,</span>
+<span class="go">          &lt;class 'decimal.Decimal'&gt;, &lt;class 'list'&gt;,</span>
+<span class="go">          &lt;class 'float'&gt;])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+<span class="go">&lt;function fun_num at 0x1035a2840&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fun</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="nb">object</span><span class="p">]</span>
+<span class="go">&lt;function fun at 0x103fe0000&gt;</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.4.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.7: </span>The <a class="reference internal" href="#functools.singledispatch.register" title="functools.singledispatch.register"><code class="xref py py-func docutils literal notranslate"><span class="pre">register()</span></code></a> attribute now supports using type annotations.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>The <a class="reference internal" href="#functools.singledispatch.register" title="functools.singledispatch.register"><code class="xref py py-func docutils literal notranslate"><span class="pre">register()</span></code></a> attribute now supports
+<a class="reference internal" href="typing.html#typing.Union" title="typing.Union"><code class="xref py py-class docutils literal notranslate"><span class="pre">typing.Union</span></code></a> as a type annotation.</p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="functools.singledispatchmethod">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">singledispatchmethod</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.singledispatchmethod" title="Link to this definition">¶</a></dt>
+<dd><p>Transform a method into a <a class="reference internal" href="../glossary.html#term-single-dispatch"><span class="xref std std-term">single-dispatch</span></a> <a class="reference internal" href="../glossary.html#term-generic-function"><span class="xref std std-term">generic function</span></a>.</p>
+<p>To define a generic method, decorate it with the <code class="docutils literal notranslate"><span class="pre">@singledispatchmethod</span></code>
+decorator. When defining a method using <code class="docutils literal notranslate"><span class="pre">@singledispatchmethod</span></code>, note
+that the dispatch happens on the type of the first non-<em>self</em> or non-<em>cls</em>
+argument:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Negator</span><span class="p">:</span>
+    <span class="nd">@singledispatchmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">neg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Cannot negate a"</span><span class="p">)</span>
+
+    <span class="nd">@neg</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">arg</span>
+
+    <span class="nd">@neg</span><span class="o">.</span><span class="n">register</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">arg</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">@singledispatchmethod</span></code> supports nesting with other decorators such as
+<a class="reference internal" href="functions.html#classmethod" title="classmethod"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@classmethod</span></code></a>. Note that to allow for
+<code class="docutils literal notranslate"><span class="pre">dispatcher.register</span></code>, <code class="docutils literal notranslate"><span class="pre">singledispatchmethod</span></code> must be the <em>outer most</em>
+decorator. Here is the <code class="docutils literal notranslate"><span class="pre">Negator</span></code> class with the <code class="docutils literal notranslate"><span class="pre">neg</span></code> methods bound to
+the class, rather than an instance of the class:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Negator</span><span class="p">:</span>
+    <span class="nd">@singledispatchmethod</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">neg</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">arg</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Cannot negate a"</span><span class="p">)</span>
+
+    <span class="nd">@neg</span><span class="o">.</span><span class="n">register</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">arg</span>
+
+    <span class="nd">@neg</span><span class="o">.</span><span class="n">register</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">arg</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">arg</span>
+</pre></div>
+</div>
+<p>The same pattern can be used for other similar decorators:
+<a class="reference internal" href="functions.html#staticmethod" title="staticmethod"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@staticmethod</span></code></a>, <a class="reference internal" href="abc.html#abc.abstractmethod" title="abc.abstractmethod"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@~abc.abstractmethod</span></code></a>, and others.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.8.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.update_wrapper">
+<span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">update_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrapper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrapped</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assigned</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WRAPPER_ASSIGNMENTS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WRAPPER_UPDATES</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.update_wrapper" title="Link to this definition">¶</a></dt>
+<dd><p>Update a <em>wrapper</em> function to look like the <em>wrapped</em> function. The optional
+arguments are tuples to specify which attributes of the original function are
+assigned directly to the matching attributes on the wrapper function and which
+attributes of the wrapper function are updated with the corresponding attributes
+from the original function. The default values for these arguments are the
+module level constants <code class="docutils literal notranslate"><span class="pre">WRAPPER_ASSIGNMENTS</span></code> (which assigns to the wrapper
+function’s <a class="reference internal" href="../reference/datamodel.html#function.__module__" title="function.__module__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__module__</span></code></a>, <a class="reference internal" href="../reference/datamodel.html#function.__name__" title="function.__name__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__name__</span></code></a>,
+<a class="reference internal" href="../reference/datamodel.html#function.__qualname__" title="function.__qualname__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__qualname__</span></code></a>, <a class="reference internal" href="../reference/datamodel.html#function.__annotations__" title="function.__annotations__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__annotations__</span></code></a>,
+<a class="reference internal" href="../reference/datamodel.html#function.__type_params__" title="function.__type_params__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__type_params__</span></code></a>, and <a class="reference internal" href="../reference/datamodel.html#function.__doc__" title="function.__doc__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__doc__</span></code></a>, the
+documentation string) and <code class="docutils literal notranslate"><span class="pre">WRAPPER_UPDATES</span></code> (which updates the wrapper
+function’s <a class="reference internal" href="../reference/datamodel.html#function.__dict__" title="function.__dict__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__dict__</span></code></a>, i.e. the instance dictionary).</p>
+<p>To allow access to the original function for introspection and other purposes
+(e.g. bypassing a caching decorator such as <a class="reference internal" href="#functools.lru_cache" title="functools.lru_cache"><code class="xref py py-deco docutils literal notranslate"><span class="pre">@lru_cache</span></code></a>), this function
+automatically adds a <code class="docutils literal notranslate"><span class="pre">__wrapped__</span></code> attribute to the wrapper that refers to
+the function being wrapped.</p>
+<p>The main intended use for this function is in <a class="reference internal" href="../glossary.html#term-decorator"><span class="xref std std-term">decorator</span></a> functions which
+wrap the decorated function and return the wrapper. If the wrapper function is
+not updated, the metadata of the returned function will reflect the wrapper
+definition rather than the original function definition, which is typically less
+than helpful.</p>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">update_wrapper()</span></code> may be used with callables other than functions. Any
+attributes named in <em>assigned</em> or <em>updated</em> that are missing from the object
+being wrapped are ignored (i.e. this function will not attempt to set them
+on the wrapper function). <a class="reference internal" href="exceptions.html#AttributeError" title="AttributeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code></a> is still raised if the
+wrapper function itself is missing any attributes named in <em>updated</em>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.2: </span>The <code class="docutils literal notranslate"><span class="pre">__wrapped__</span></code> attribute is now automatically added.
+The <a class="reference internal" href="../reference/datamodel.html#function.__annotations__" title="function.__annotations__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__annotations__</span></code></a> attribute is now copied by default.
+Missing attributes no longer trigger an <a class="reference internal" href="exceptions.html#AttributeError" title="AttributeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>The <code class="docutils literal notranslate"><span class="pre">__wrapped__</span></code> attribute now always refers to the wrapped
+function, even if that function defined a <code class="docutils literal notranslate"><span class="pre">__wrapped__</span></code> attribute.
+(see <a class="reference external" href="https://bugs.python.org/issue?@action=redirect&amp;bpo=17482">bpo-17482</a>)</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.12: </span>The <a class="reference internal" href="../reference/datamodel.html#function.__type_params__" title="function.__type_params__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__type_params__</span></code></a> attribute is now copied by default.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="functools.wraps">
+<span class="sig-prename descclassname"><span class="pre">@</span></span><span class="sig-prename descclassname"><span class="pre">functools.</span></span><span class="sig-name descname"><span class="pre">wraps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wrapped</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">assigned</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WRAPPER_ASSIGNMENTS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">WRAPPER_UPDATES</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#functools.wraps" title="Link to this definition">¶</a></dt>
+<dd><p>This is a convenience function for invoking <a class="reference internal" href="#functools.update_wrapper" title="functools.update_wrapper"><code class="xref py py-func docutils literal notranslate"><span class="pre">update_wrapper()</span></code></a> as a
+function decorator when defining a wrapper function.  It is equivalent to
+<code class="docutils literal notranslate"><span class="pre">partial(update_wrapper,</span> <span class="pre">wrapped=wrapped,</span> <span class="pre">assigned=assigned,</span> <span class="pre">updated=updated)</span></code>.
+For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">my_decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="nb">print</span><span class="p">(</span><span class="s1">'Calling decorated function'</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">wrapper</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nd">@my_decorator</span>
+<span class="gp">... </span><span class="k">def</span><span class="w"> </span><span class="nf">example</span><span class="p">():</span>
+<span class="gp">... </span><span class="w">    </span><span class="sd">"""Docstring"""</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="s1">'Called example function'</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span><span class="p">()</span>
+<span class="go">Calling decorated function</span>
+<span class="go">Called example function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span><span class="o">.</span><span class="vm">__name__</span>
+<span class="go">'example'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">example</span><span class="o">.</span><span class="vm">__doc__</span>
+<span class="go">'Docstring'</span>
+</pre></div>
+</div>
+<p>Without the use of this decorator factory, the name of the example function
+would have been <code class="docutils literal notranslate"><span class="pre">'wrapper'</span></code>, and the docstring of the original <code class="xref py py-func docutils literal notranslate"><span class="pre">example()</span></code>
+would have been lost.</p>
+</dd></dl>
+
+<section id="partial-objects">
+<span id="id1"></span><h2><a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> Objects<a class="headerlink" href="#partial-objects" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> objects are callable objects created by <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-func docutils literal notranslate"><span class="pre">partial()</span></code></a>. They
+have three read-only attributes:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functools.partial.func">
+<span class="sig-prename descclassname"><span class="pre">partial.</span></span><span class="sig-name descname"><span class="pre">func</span></span><a class="headerlink" href="#functools.partial.func" title="Link to this definition">¶</a></dt>
+<dd><p>A callable object or function.  Calls to the <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> object will be
+forwarded to <a class="reference internal" href="#functools.partial.func" title="functools.partial.func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">func</span></code></a> with new arguments and keywords.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functools.partial.args">
+<span class="sig-prename descclassname"><span class="pre">partial.</span></span><span class="sig-name descname"><span class="pre">args</span></span><a class="headerlink" href="#functools.partial.args" title="Link to this definition">¶</a></dt>
+<dd><p>The leftmost positional arguments that will be prepended to the positional
+arguments provided to a <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> object call.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="functools.partial.keywords">
+<span class="sig-prename descclassname"><span class="pre">partial.</span></span><span class="sig-name descname"><span class="pre">keywords</span></span><a class="headerlink" href="#functools.partial.keywords" title="Link to this definition">¶</a></dt>
+<dd><p>The keyword arguments that will be supplied when the <a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> object is
+called.</p>
+</dd></dl>
+
+<p><a class="reference internal" href="#functools.partial" title="functools.partial"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code></a> objects are like <a class="reference internal" href="../reference/datamodel.html#user-defined-funcs"><span class="std std-ref">function objects</span></a> in that they are
+callable, weak referenceable, and can have attributes.  There are some important
+differences.  For instance, the <a class="reference internal" href="stdtypes.html#definition.__name__" title="definition.__name__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__name__</span></code></a> and <a class="reference internal" href="stdtypes.html#definition.__doc__" title="definition.__doc__"><code class="xref py py-attr docutils literal notranslate"><span class="pre">__doc__</span></code></a> attributes
+are not created automatically.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> — Higher-order functions and operations on callable objects</a><ul>
+<li><a class="reference internal" href="#partial-objects"><code class="xref py py-class docutils literal notranslate"><span class="pre">partial</span></code> Objects</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="itertools.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">itertools</span></code> — Functions creating iterators for efficient looping</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="operator.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">operator</span></code> — Standard operators as functions</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/functools.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=functools+%E2%80%94+Higher-order+functions+and+operations+on+callable+objects&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Ffunctools.html&amp;pagesource=library%2Ffunctools.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/functools.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="operator.html" title="operator — Standard operators as functions">next</a> |</li>
+        <li class="right">
+          <a href="itertools.html" title="itertools — Functions creating iterators for efficient looping">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="functional.html">Functional Programming Modules</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">functools</span></code> — Higher-order functions and operations on callable objects</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    © <a href="../copyright.html">Copyright</a> 2001 Python Software Foundation.
+    <br>
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br>
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br>
+    
+      See <a href="/license.html">History and License</a> for more information.<br>
+    
+    
+    <br>
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br>
+    <br>
+      Last updated on Sep 03, 2026 (10:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br>
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+
+    <script type="text/javascript" src="../_static/switchers.js"></script>
+  
+</body></html>

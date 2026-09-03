@@ -1,0 +1,113 @@
+PostgreSQL: Documentation: 18: Part I. Tutorial
+===================================================
+
+
+[              ![0 0 30 30](0 0 30 30 "Segoe UI")            ](/favicon.ico "Segoe UI")
+
+
+- [Home](/favicon.ico "Segoe UI")
+- [About](/favicon.ico "Segoe UI")
+- [Download](/favicon.ico "Segoe UI")
+- [Documentation](/favicon.ico "Segoe UI")
+- [Community](/favicon.ico "Segoe UI")
+- [Developers](/favicon.ico "Segoe UI")
+- [Support](/favicon.ico "Segoe UI")
+- [Donate](/favicon.ico "Segoe UI")
+- [Your account](/favicon.ico "Segoe UI")
+
+
+**                       
+**                        
+
+
+August 13, 2026: [PostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!](/favicon.ico "Segoe UI")
+
+
+[Documentation](/favicon.ico "Segoe UI") → [PostgreSQL 18](/favicon.ico "Segoe UI")                   
+
+
+Supported Versions:                                          
+[Current](/favicon.ico "Segoe UI")                          ([18](/favicon.ico "Segoe UI"))                                                                       /                                                   [17](/favicon.ico "Segoe UI")                                                                       /                                                   [16](/favicon.ico "Segoe UI")                                                                       /                                                   [15](/media/css/fontawesome.css?e5c079de "Part I. Tutorial")                                                                       /                                                   [14](/media/css/fontawesome.css?e5c079de "Part I. Tutorial")                                                                 
+
+
+Development Versions:                                        
+[19](/media/css/fontawesome.css?e5c079de "\2014\00A0")                                           /                       [devel](/media/css/fontawesome.css?e5c079de "\2014\00A0")                                       
+
+
+Unsupported versions:                                        
+[13](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [12](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [11](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [10](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.6](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.5](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.4](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.3](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.2](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.1](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [9.0](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [8.4](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [8.3](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [8.2](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [8.1](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [8.0](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [7.4](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [7.3](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [7.2](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                           /                       [7.1](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")                                       
+
+
+**                       
+
+
+|   |
+||-----------------------------------------------------------|
+| - |
+|   |
+|   | [Prev](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")  | [Up](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") | PostgreSQL 18.6 Documentation | [Home](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |  [Next](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |
+| - |
+|   |
+
+---
+
+
+# Part I. Tutorial
+
+
+Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction
+to PostgreSQL, relational database concepts, and the SQL language. We assume some
+general knowledge about how to use computers and no particular Unix or programming
+experience is required. This tutorial is intended to provide hands-on experience
+with important aspects of the PostgreSQL system. It makes no attempt to be a comprehensive
+treatment of the topics it covers.
+
+After you have successfully completed this tutorial you will want to read the [Part II](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") section to gain a better understanding of the SQL language, or [Part IV](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") for information about developing applications with
+PostgreSQL. Those who provision and manage their own PostgreSQL installation should
+also read [Part III](/media/css/bootstrap-4.4.1.min.css "\2014\00A0").
+
+
+**Table of Contents**
+[1. Getting Started](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[1.1. Installation](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[1.2. Architectural Fundamentals](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[1.3. Creating a Database](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[1.4. Accessing a Database](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2. The SQL Language](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.1. Introduction](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.2. Concepts](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")      
+[2.3. Creating a New Table](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.4. Populating a Table With Rows](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.5. Querying a Table](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.6. Joins Between Tables](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.7. Aggregate Functions](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[2.8. Updates](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")       
+[2.9. Deletions](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")           
+[3. Advanced Features](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[3.1. Introduction](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")
+[3.2. Views](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")         
+[3.3. Foreign Keys](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")          
+[3.4. Transactions](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")           
+[3.5. Window Functions](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")        
+[3.6. Inheritance](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")          
+[3.7. Conclusion](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")             
+
+
+---
+
+|  |
+||-----------------------------------------------------------|---------------------------------------------------------|-----------------------------------------------------------||
+|  | 5. Bug Reporting Guidelines                             | [Home](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |  Chapter 1. Getting Started                            |  |
+
+
+## Submit correction
+
+If you see anything in the documentation that is not correct, does
+not match              your experience with the particular feature or requires further
+clarification,              please use              [this form](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")              to report a documentation issue.              
+
+
+[Policies](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |        [Code of Conduct](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |        [About PostgreSQL](/media/css/bootstrap-4.4.1.min.css "\2014\00A0") |        [Contact](/media/css/bootstrap-4.4.1.min.css "\2014\00A0")  
+
+Copyright © 1996-2026 The PostgreSQL Global Development Group
+

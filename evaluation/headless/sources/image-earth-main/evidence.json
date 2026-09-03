@@ -1,0 +1,517 @@
+{
+  "case_id": "image-earth-main",
+  "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+  "checked_at": "2026-09-02T07:47:24.011225+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://commons.wikimedia.org/wiki/File:The_Earth_seen_from_Apollo_17.jpg",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 348915,
+  "sha256": "a44433aa86b1fbba00761fd9f6f9ce7efd210adddc8032cd8e42912ac432db8e",
+  "response_headers": {
+    "Content-Security-Policy": "script-src 'unsafe-eval' blob: 'self' meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org 'unsafe-inline' auth.wikimedia.org; default-src 'self' data: blob: https://upload.wikimedia.org https://thumb.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org https://maps.wikimedia.org en.wikipedia.org en.wikibooks.org en.wikinews.org en.wikiquote.org en.wikisource.org en.wikiversity.org en.wikivoyage.org en.wiktionary.org www.mediawiki.org foundation.wikimedia.org incubator.wikimedia.org species.wikimedia.org wikimania.wikimedia.org www.wikidata.org www.wikifunctions.org auth.wikimedia.org; style-src 'self' data: blob: https://upload.wikimedia.org https://thumb.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org https://maps.wikimedia.org 'unsafe-inline'; object-src 'none'; report-uri /w/api.php?action=cspreport&format=json; report-to csp-report-to-endpoint",
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "title": "File:The Earth seen from Apollo 17.jpg - Wikimedia Commons",
+  "selector": "#mw-content-text .mw-parser-output",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://commons.wikimedia.org/static/images/icons/commonswiki.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://commons.wikimedia.org/static/images/mobile/copyright/commonswiki-wordmark.svg",
+      "alt": "Wikimedia Commons"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Cscr-former.svg/20px-Cscr-former.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "This formerly was a Featured picture on Wikimedia Commons. Click here for more information."
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Potd-logo.svg/20px-Potd-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "This image was selected for display on the Main Page as the picture of the day. Click here for more information."
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Valued_image_seal.svg/20px-Valued_image_seal.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "This is a Valued image. Click here for more information."
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Valued_image_set_seal.svg/20px-Valued_image_set_seal.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "This is a valued image set. Click here for more information."
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546",
+      "alt": "File:The Earth seen from Apollo 17.jpg"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Applets-screenshooter.svg/40px-Applets-screenshooter.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q202014"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/ba/Wikidata-Reasonator_small_logo.svg/20px-Wikidata-Reasonator_small_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "reasonator:Q202014"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/70/The_Blue_Marble%2C_AS17-148-22727.jpg/250px-The_Blue_Marble%2C_AS17-148-22727.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "image of artwork listed in title parameter on this page"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q108886"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b1/Schmitt_Covered_with_Lunar_Dirt_-_GPN-2000-001124.jpg/120px-Schmitt_Covered_with_Lunar_Dirt_-_GPN-2000-001124.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Harrison Schmitt"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q108886"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q158486"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fa/Wikiquote-logo.svg/20px-Wikiquote-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "q:en:Eugene Cernan"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Cernan_s71-51308.jpg/120px-Cernan_s71-51308.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Eugene Cernan"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q158486"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q313543"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c2/Ronald_Evans.jpg/120px-Ronald_Evans.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Ronald Evans"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "wikidata:Q313543"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/AS17-148-22727.med.png/120px-AS17-148-22727.med.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Scan of original 70 mm film, AS17-148-22727"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b7/Apollo_17_Blue_Marble_original_orientation_%28AS17-148-22727%29.jpg/120px-Apollo_17_Blue_Marble_original_orientation_%28AS17-148-22727%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Raw photograph, AS17-148-22727, original orientation"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/AS17-148-22727_%2821081863984%29.jpg/120px-AS17-148-22727_%2821081863984%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Raw photograph, AS17-148-22727, north up"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/The_Blue_Marble_%28remastered%29.jpg/120px-The_Blue_Marble_%28remastered%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Rescanned and color-calibrated with mission color chart. 3,000×3,000 (5.6 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/The_Earth_seen_from_Apollo_17_with_white_background.jpg/120px-The_Earth_seen_from_Apollo_17_with_white_background.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "With white background 2,790×2,776 (4.4 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/The_Earth_seen_from_Apollo_17_with_transparent_background.png/120px-The_Earth_seen_from_Apollo_17_with_transparent_background.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "With transparent background 2,790×2,776 (14.64 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/The_Blue_Marble_4463x4163.jpg/120px-The_Blue_Marble_4463x4163.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Larger photoshopped JPEG version; possibly more useful for articles 4,463×4,163 (5.9 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/The_Blue_Marble.jpg/120px-The_Blue_Marble.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Color corrected 2,320×2,407 (2.33 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/The_Earth_seen_from_Apollo_17_%28AS17-148-22727%29.jpg/120px-The_Earth_seen_from_Apollo_17_%28AS17-148-22727%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Image redone with colors 2,400x2,400 (3.33 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/be/Apollo17WorldReversed.jpg/120px-Apollo17WorldReversed.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Reversed (allegedly original) orientation 3,000×3,002 (9.33 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/La_Terre_vue_de_l%27Apollo_17.jpg/120px-La_Terre_vue_de_l%27Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "'\"The Blue Marble\" is a famous photograph of the Earth' 2,400x2,400 (2.98 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Terra.png/120px-Terra.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "earth 600x600 (1.72 MB)"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/Gps-atmospheric-efects.png/120px-Gps-atmospheric-efects.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "GPS atmospheric effects for the Earth"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Universal_gravitational_mass.PNG/120px-Universal_gravitational_mass.PNG?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Universal gravitational mass for the Earth"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/SolarSystem_OrdersOfMagnitude_Sun-Jupiter-Earth-Moon.jpg/120px-SolarSystem_OrdersOfMagnitude_Sun-Jupiter-Earth-Moon.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Order of magnitude for the Sun, Jupiter, Earth, and Moon"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Moon%2C_Earth_size_comparison.jpg/120px-Moon%2C_Earth_size_comparison.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Earth size comparison for the Moon"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Venus%2C_Earth_size_comparison.jpg/120px-Venus%2C_Earth_size_comparison.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Earth size comparison for the planet Venus"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Earth-Moon_system_to_scale.png/120px-Earth-Moon_system_to_scale.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Earth and Moon to scale with annotations"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3f/Earth-moon-to-scale.svg/120px-Earth-moon-to-scale.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Earth-Moon system to scale"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Origin_of_life_stages.svg/120px-Origin_of_life_stages.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Origin of life stages"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/Openstreetmap_logo.svg/20px-Openstreetmap_logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Kartographer map based on OpenStreetMap."
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/OOjs_UI_icon_help.svg/20px-OOjs_UI_icon_help.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "info"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Orthographic_view_of_Orion_spacecraft%2C_bottom-front_with_solar_panels_%2823128839505%29.png/120px-Orthographic_view_of_Orion_spacecraft%2C_bottom-front_with_solar_panels_%2823128839505%29.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Orthographic_view_of_Orion_spacecraft%2C_bottom-front_with_solar_panels_%2823128839505%29.png/120px-Orthographic_view_of_Orion_spacecraft%2C_bottom-front_with_solar_panels_%2823128839505%29.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Potd-logo.svg/40px-Potd-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Picture of the day"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9e/Cscr-former.svg/40px-Cscr-former.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Former Featured picture"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Valued_image_seal.svg/40px-Valued_image_seal.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Valued image"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Commons-logo.svg/40px-Commons-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Wikimedia Commons"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/80/Wikipedia-logo-v2.svg/40px-Wikipedia-logo-v2.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Wikipedia"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e7/Cscr-featured.svg/20px-Cscr-featured.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Valued_image_set_seal.svg/120px-Valued_image_set_seal.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Potd-logo.svg/120px-Potd-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Picture of the day"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Potd-logo.svg/120px-Potd-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cd/Potd-logo.svg/120px-Potd-logo.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/62/PD-icon.svg/120px-PD-icon.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Public domain"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/NASA_logo_%282023_colors%29.svg/120px-NASA_logo_%282023_colors%29.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Dialog-warning.svg/60px-Dialog-warning.svg.png?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546",
+      "alt": "Thumbnail for version as of 20:35, 25 September 2020"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20200925203543%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 18:29, 25 September 2020"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20200925182919%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 07:45, 18 December 2012"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20121218074549%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 14:11, 17 December 2012"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20121217141142%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 07:42, 17 October 2010"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20101017074210%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 06:16, 17 October 2010"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20101017061556%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 02:25, 31 July 2005"
+    },
+    {
+      "tag": "img",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/archive/9/97/20050731022556%21The_Earth_seen_from_Apollo_17.jpg/120px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail",
+      "alt": "Thumbnail for version as of 22:41, 29 December 2004"
+    },
+    {
+      "tag": "img",
+      "url": "https://commons.wikimedia.org/wiki/Special:CentralAutoLogin/start?useformat=desktop&type=1x1&usesul3=1",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://commons.wikimedia.org/static/images/footer/wikimedia.svg",
+      "alt": "Wikimedia Foundation"
+    },
+    {
+      "tag": "img",
+      "url": "https://commons.wikimedia.org/w/resources/assets/mediawiki_compact.svg",
+      "alt": "Powered by MediaWiki"
+    }
+  ],
+  "text_chars": 14259,
+  "excerpt": "Summary\nTaken with a Hasselblad 500EL camera with shutter speed 1/250 seconds and 80mm Zeiss Planar lens at stop setting\nf\n/2.8 on 70mm Ektachrome film of type SO-368\nThe Blue Marble\nAuthor\nNASA/Apollo 17 crew; taken by either\nHarrison Schmitt\nor\nRon Evans\nPhotographer\nHarrison Schmitt\n(1935–)\nDescription\nAmerican geologist, politician, astronaut, scientist and university teacher\nDate of birth\n3 July 1935\nLocation of birth\nSanta Rita\nWork location\nWashington, D.C.\n;\nNew Mexico\nAuthority file\n:\nQ108886\nVIAF\n:\n31002920\nISNI\n:\n0000000028663130\nLCCN\n:\nn85805597\nNAID\n:\n10569053\nUS Congress\n:\nS000132\nWorldCat\nEugene Cernan\n(1934–2017)\nAlternative names\nBirth name: Eugene Andrew Cernan; Gene Cernan; Eugene A. Cernan\nDescription\nAmerican naval officer, astronaut, fighter pilot, autobiographer, bus",
+  "missing_facts": [],
+  "state": "captured",
+  "resource_checks": [
+    {
+      "id": "image-1",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546",
+      "status": 403,
+      "final_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20200925203546",
+      "mime": "text/plain",
+      "prefix_bytes": 126
+    },
+    {
+      "id": "image-2",
+      "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/The_Earth_seen_from_Apollo_17_with_white_background.jpg/120px-The_Earth_seen_from_Apollo_17_with_white_background.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "status": 403,
+      "final_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7e/The_Earth_seen_from_Apollo_17_with_white_background.jpg/120px-The_Earth_seen_from_Apollo_17_with_white_background.jpg?utm_source=commons.wikimedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "mime": "text/plain",
+      "prefix_bytes": 126
+    }
+  ],
+  "task_kind": "resource",
+  "track": "image",
+  "requires_browser": false,
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "旧规则额外要求相关推荐中的白底变体，且该缩略图未加载；仅核对文件页主图。"
+}

@@ -1,0 +1,15 @@
+{
+  "case_id": "dynamic-delayed",
+  "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+  "source": "Independent HTTP response + separately observed browser DOM; no candidate output",
+  "checked_at": "2026-09-03T04:28:05.890Z",
+  "initial_checked_at": "2026-09-03T04:29:49.549781+00:00",
+  "selector": ".quote",
+  "expected_entries": 10,
+  "observed_entries": 10,
+  "completion": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+  "initial_status": 200,
+  "initial_sha256": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+  "rendered_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+  "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+}

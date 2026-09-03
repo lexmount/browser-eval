@@ -1,0 +1,614 @@
+GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation
+library for Python, providing labeled data structures similar to R data.frame objects,
+statistical functions, and much more · GitHub
+==============================================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.githubassets.com "route-pattern")
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/code-2d56bdb0166c0238.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/react-core-a7c1cb31a2a07e7c.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/aq-0dbf7d12b4d37e14.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/xv-92a56478ba361268.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/on-965308f70a2d682c.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/5h1-73d9d70370b86dc7.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/7cv-ee517aa478d5e709.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+- [Government](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/ "route-pattern")
+
+[View all solutions](/opensearch.xml "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.githubassets.com "route-pattern")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark_tritanopia_high_contrast-73236c840c0c7d90.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/ja9-36f036c13c2e3a4c.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/r1-b075aab3204f32f9.js "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern").
+
+
+[        pandas-dev](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern")     
+/    **      [pandas](https://github.githubassets.com/assets/qod-ec54fa7b5f53a827.js "route-pattern")    **
+Public                  
+
+
+-               
+
+
+###         Uh oh!
+
+
+	There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/bsb-068a5d32224f5601.js "route-pattern").
+
+
+-             [        Notifications](https://github.githubassets.com/assets/zy-6616fb758137ff12.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    20.3k](/opensearch.xml "GitHub")  
+-         
+
+[                  Star          49.6k](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Issues          2.5k    ](#start-of-content "_R_5knd_")
+-   [                              Pull requests          183    ](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+-   [                              Actions              ](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+-   [                              Projects              ](/ "_R_5knd_")
+-   [                              Security and quality          0    ](/login?return_to=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas "_R_5knd_")
+-   [                              Insights              ](https://github.com/features/copilot "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Issues      ](https://github.com/mcp "Octicon")  
+-             [                                                      Pull requests      ](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Actions      ](https://github.com/features/actions "Octicon")  
+-             [                                                      Projects      ](https://github.com/features/actions "NavGroup-module__group__W8SqJ")  
+-             [                                                      Security and quality      ](https://github.com/features/actions "Octicon")  
+-             [                                                      Insights      ](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+
+
+main
+
+[Branches](https://github.com/features/copilot "_R_5knd_")[Tags](https://github.com/features/copilot "_R_5knd_")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[38,799 Commits](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+
+38,799 Commits
+## Folders and files
+
+| Name                                                                                                                                                                                                                                                                                               | Name |   |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                                                                                                                                                   |
+| -                                                                                                                                                                                                                                                                                                  | -    | - | - |
+|                                                                                                                                                                                                                                                                                                    |
+| [.github](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                                                           |      |
+| [.github](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                                                           |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [LICENSES](https://github.com/features/code-review "Octicon")                                                                                                                                                                                                                                      |      |
+| [LICENSES](https://github.com/features/code-review "Octicon")                                                                                                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [asv_bench](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                                                   |      |
+| [asv_bench](https://github.com/features/code-quality "Octicon")                                                                                                                                                                                                                                    |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [ci](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                                                                                                                                                |      |
+| [ci](https://github.com/security/advanced-security "_R_dknd_")                                                                                                                                                                                                                                     |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [doc](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                                                                                                                                       |      |
+| [doc](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [pandas](https://github.githubassets.com "route-pattern")                                                                                                                                                                                                                                          |      |
+| [pandas](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern")                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [scripts](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern")                                                                                                                                                                              |      |
+| [scripts](https://github.githubassets.com/assets/dark_tritanopia-39c10993d5603fac.css "route-pattern")                                                                                                                                                                                             |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [subprojects](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")                                                                                                                                                                                                  |      |
+| [subprojects](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [web](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                                   |      |
+| [web](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                                   |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [.gitattributes](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                        |      |
+| [.gitattributes](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [.gitignore](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                            |      |
+| [.gitignore](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                                                            |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [.pre-commit-config.yaml](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")                                                                                                                                                                                     |      |
+| [.pre-commit-config.yaml](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern")                                                                                                                                                                                          |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [AGENTS.md](https://github.githubassets.com/assets/6n-71c0ae3e489775ef.js "route-pattern")                                                                                                                                                                                                         |      |
+| [AGENTS.md](https://github.githubassets.com/assets/react-core.317e10d2d7e90593.module.css "route-pattern")                                                                                                                                                                                         |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [AUTHORS.md](https://github.githubassets.com/assets/t7l-0a8b07066f584f39.js "route-pattern")                                                                                                                                                                                                       |      |
+| [AUTHORS.md](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [CITATION.cff](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")                                                                                                                                                                                                      |      |
+| [CITATION.cff](https://github.githubassets.com/assets/20x-bcd86191b33f8bc4.js "route-pattern")                                                                                                                                                                                                     |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [LICENSE](https://github.githubassets.com/assets/pvt-a6c8440b1a148ab9.js "route-pattern")                                                                                                                                                                                                          |      |
+| [LICENSE](https://github.githubassets.com/assets/ql0.9e511664b9541231.module.css "route-pattern")                                                                                                                                                                                                  |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [README.md](https://github.githubassets.com/assets/notifications-subscriptions-menu.957bba726ae10233.module.css "route-pattern")                                                                                                                                                                   |      |
+| [README.md](https://github.githubassets.com/ "GitHub")                                                                                                                                                                                                                                             |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [codecov.yml](/opensearch.xml "GitHub")                                                                                                                                                                                                                                                            |      |
+| [codecov.yml](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [environment.yml](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                                                                                               |      |
+| [environment.yml](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [generate_pxi.py](/manifest.json "_R_5knd_")                                                                                                                                                                                                                                                       |      |
+| [generate_pxi.py](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                                                                                                                                                       |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [generate_version.py](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")                                                                                                                                                                                                    |      |
+| [generate_version.py](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")                                                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [meson.build](/ "_R_5knd_")                                                                                                                                                                                                                                                                        |      |
+| [meson.build](/ "_R_5knd_")                                                                                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [pixi.lock](/login?return_to=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas "_R_5knd_")                                                                                                                                                                                                            |      |
+| [pixi.lock](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [pixi.toml](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                                                                        |      |
+| [pixi.toml](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [pyproject.toml](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                                                                   |      |
+| [pyproject.toml](https://github.com/features/ai/github-app "Octicon")                                                                                                                                                                                                                              |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [pyright_reportGeneralTypeIssues.json](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                       |      |
+| [pyright_reportGeneralTypeIssues.json](https://github.com/features/ai/github-app "Octicon")                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| [requirements-dev.txt](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                                                          |      |
+| [requirements-dev.txt](https://github.com/features/actions "Octicon")                                                                                                                                                                                                                              |      |
+|                                                                                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                                                               |
+| View all files                                                                                                                                                                                                                                                                                     |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+- [Code of conduct](https://github.com/features/actions "Octicon")
+- [Contributing](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [BSD-3-Clause license](https://github.com/features/issues "Octicon")
+- [Security](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+More items
+
+
+![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Octicon")
+---
+
+
+# pandas: A Powerful Python Data Analysis Toolkit
+
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Testing                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "NavGroup-module__group__W8SqJ")](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                                                                     |
+| [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "_R_dknd_")](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                                                                                          |
+| Package                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Octicon")](https://github.com/security/advanced-security "Octicon")                                                                                                                                                                                 |
+| [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Octicon")](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                                                                                   |
+| [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Octicon")](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                                                                                   |
+| [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |
+| Meta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |
+| [![anonymous](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com "route-pattern")                                                                                                                                                                                                                                                                                                                                                                                             |
+| [![anonymous](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com "route-pattern")                                                                                                                                                                                                                                                                                                                                                                                             |
+| [![anonymous](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://avatars.githubusercontent.com "route-pattern")                                                                                                                                                                                                                                                                                                                                                                                       |
+| [![anonymous](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern")                                                                                                                                                                                                                                                                                                                                              |
+
+
+## What is it?
+
+**pandas** is a Python package that provides fast, flexible, and expressive datastructures
+designed to make working with "relational" or "labeled" data botheasy and intuitive.
+It aims to be the fundamental high-level building block fordoing practical, **real-world**
+data analysis in Python. Additionally, it hasthe broader goal of becoming **the most
+powerful and flexible open-source dataanalysis/manipulation tool available in any
+language**. It is already well onits way towards this goal.
+
+
+## Table of Contents
+
+- [Main Features](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")
+- [Where to get it](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")
+- [Dependencies](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")
+- [Installation from sources](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")
+- [License](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/github-552513ad07a183a1.css "route-pattern")
+- [Background](https://github.githubassets.com/assets/github-552513ad07a183a1.css "route-pattern")
+- [Getting Help](https://github.githubassets.com/assets/github-552513ad07a183a1.css "route-pattern")
+- [Discussion and Development](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+- [Contributing to pandas](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+
+
+## Main Features
+
+Here are just a few of the things that pandas does well:
+
+- Easy handling of [**missing data**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") (represented as`NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
+- Size mutability: columns can be [**inserted anddeleted**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") from DataFrame and higher dimensionalobjects
+- Automatic and explicit [**data alignment**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern"): objects canbe explicitly aligned to a set of labels, or the user can simplyignore the labels and let `Series`, `DataFrame`, etc. automaticallyalign the data for you in computations
+- Powerful, flexible [**group by**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") functionality to performsplit-apply-combine operations on data sets, for both aggregatingand transforming data
+- Make it [**easy to convert**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") ragged,differently-indexed data in other Python and NumPy data structuresinto DataFrame objects
+- Intelligent label-based [**slicing**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern"), [**fancyindexing**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern"), and [**subsetting**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") oflarge data sets
+- Intuitive [**merging**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") and [**joining**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") datasets
+- Flexible [**reshaping**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") and [**pivoting**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") ofdata sets
+- [**Hierarchical**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") labeling of axes (possible to have multiplelabels per tick)
+- Robust I/O tools for loading data from [**flat files**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")(CSV and delimited), [**Excel files**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern"), [**databases**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern"),and saving/loading data from the ultrafast [**HDF5 format**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [**Time series**](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")-specific functionality: date rangegeneration and frequency conversion, moving window statistics,date shifting and lagging
+
+
+## Where to get it
+
+The source code is currently hosted on GitHub at:[https://github.com/pandas-dev/pandas](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Binary installers for the latest released version are available at the [PythonPackage Index (PyPI)](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") and on [Conda](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern").
+
+```# condaconda install -c conda-forge pandas```
+
+                              
+
+```# or PyPIpip install pandas```
+
+
+The list of changes to pandas between each release can be found[here](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern"). For fulldetails, see the commit logs at [https://github.com/pandas-dev/pandas](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern").
+
+
+## Dependencies
+
+- [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://github.githubassets.com/assets/ur-024971cb63acad59.js "route-pattern")
+- [python-dateutil - Provides powerful extensions to the standard datetime module](https://github.githubassets.com/assets/6n-71c0ae3e489775ef.js "route-pattern")
+- [tzdata - Provides an IANA time zone database](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern") (Only required on Windows/Emscripten)
+
+See the [full installation instructions](https://github.githubassets.com/assets/wo-8dee386ae7fdbf5e.js "route-pattern") for minimum supported versions of required, recommended and optional dependencies.
+
+
+## Installation from sources
+
+To install pandas from source you need [Cython](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern") in addition to the normaldependencies above. Cython can be installed from PyPI:
+
+```pip install cython```
+
+                              
+In the `pandas` directory (same one where you found this file aftercloning the git repo), 
+execute:
+
+```pip install .```
+
+
+or for installing in [development mode](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern"):
+
+```python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true```
+
+                              
+See the full instructions for [installing from source](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern").
+
+
+## License
+
+[BSD 3](https://github.githubassets.com/assets/ql0.9e511664b9541231.module.css "route-pattern")
+
+
+## Documentation
+
+The official documentation is hosted on [PyData.org](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern").
+
+
+## Background
+
+Work on `pandas` started at [AQR](https://github.githubassets.com/ "GitHub") (a quantitative hedge fund) in 2008 andhas been under active development since then.
+
+
+## Getting Help
+
+For usage questions, the best place to go to is [Stack Overflow](/opensearch.xml "GitHub").Further, general questions and discussions can also take place on the [pydata mailing list](/opensearch.xml "GitHub").
+
+
+## Discussion and Development
+
+Most development discussions take place on GitHub in this repo, via the [GitHub issue tracker](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more").
+
+Further, the [pandas-dev mailing list](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") can also be used for specialized discussions or design issues, and a [Slack channel](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") is available for quick development related questions.
+
+There are also frequent [community meetings](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") for project maintainers open to the community as well as monthly [new contributor meetings](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") to help support new contributors.
+
+Additional information on the communication channels can be found on the [contributor community](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pandas-dev/pandas: Flexible and powerful data analysis / manipulation library for Python, providing labeled data structures similar to R data.frame objects, statistical functions, and much more") page.
+
+
+## Contributing to pandas
+
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=pandas-dev "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+
+
+All contributions, bug reports, bug fixes, documentation improvements, enhancements, 
+and ideas are welcome.
+
+A detailed overview on how to contribute can be found in the **[contributing guide](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg
+"_R_5knd_")**.
+
+You can also triage issues which may include reproducing bug reports, or asking for 
+vital information such as version numbers or reproduction instructions. If you would 
+like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_").
+
+Or maybe through using pandas you have an idea of your own or are looking for something 
+in the documentation and thinking ‘this can be improved’... you can do something 
+about it!
+
+Feel free to ask questions on the [mailing list](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_") or on [Slack](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_").
+
+As contributors and maintainers to this project, you are expected to abide by pandas' 
+code of conduct. More information can be found at: [Contributor Code of Conduct](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+
+---
+
+[Go to Top](/manifest.json "_R_5knd_")
+
+
+## About
+
+Flexible and powerful data analysis / manipulation library for Python, providing 
+labeled data structures similar to R data.frame objects, statistical functions, and 
+much more
+
+[pandas.pydata.org](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")
+### Topics
+
+[alignment](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")[data-analysis](https://github.githubassets.com/assets/1lf-a0f2419c1e6629c4.js "_R_5knd_")[data-science](https://github.githubassets.com/assets/3d8-52820d324301d734.js "_R_5knd_")[flexible](https://github.githubassets.com/assets/tua-417d02f5e5f3ce67.js "_R_5knd_")[pandas](https://github.githubassets.com/assets/tua-417d02f5e5f3ce67.js "_R_5knd_")[python](https://github.githubassets.com/assets/lazy-react-partial-marketing-header-338f470e257199f5.js "_R_5knd_")
+### Resources
+
+[Readme](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+
+[BSD-3-Clause license](/ "_R_5knd_")
+### Code of conduct
+
+[Code of conduct](/ "_R_5knd_")
+### Contributing
+
+[Contributing](/login?return_to=https%3A%2F%2Fgithub.com%2Fpandas-dev%2Fpandas "_R_5knd_")
+### Security policy
+
+[Security policy](https://github.com/features/copilot "_R_5knd_")
+
+Cite this repository
+
+[Activity](https://github.com/features/copilot "_R_5knd_")
+
+[Custom properties](https://github.com/features/copilot "_R_5knd_")
+### Stars
+
+**49.6k** stars
+### Watchers
+
+**1.1k** watching
+### Forks
+
+[**20.3k** forks](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+[Report repository](https://github.com/features/ai/github-app "Octicon")
+
+
+## Releases
+
+
+## Sponsor this project
+
+
+## Packages
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+                         
+## Footer
+    
+
+    
+
+      [            ](https://github.com/features/actions "NavGroup-module__group__W8SqJ")       
+       © 2026 GitHub, Inc.              
+### Footer navigation
+      
+          -             [Terms](https://github.com/features/codespaces "Octicon")          
+          -             [Privacy](https://github.com/features/codespaces "Octicon")          
+            -               [Security](https://github.com/features/codespaces "Octicon")            
+            -               [Status](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")            
+          -             [Community](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+          -             [Docs](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+          -             [Contact](https://github.com/features/codespaces "Octicon")          
+          -             Manage cookies      
+  -                   Do not share my personal information            
+      
+          
+
+                              You can’t perform that action at this time.      
+
+  
+
+        
+
+    
+
+  
+
+ 

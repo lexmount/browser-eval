@@ -1,0 +1,223 @@
+curl - Documentation Overview
+==============================
+
+remains closed, so screen readers continue to   \* announce it as collapsed. The
+tradeoff applies only during committed,   \* direct use of a mouse or another hover-capable
+pointer. Moving the pointer   \* away removes the preview; clicking opens, aligns
+the visual and   \* semantic states, and keeps the submenu visible. Keyboard and
+touch continue   \* to use native disclosure behavior. Suppress previews while any
+disclosure   \* is explicitly open.   \*/  .sitenav-list:not(:has(.sitenav-disclosure[open]))
+.sitenav-disclosure:not([open]):hover::details-content {    content-visibility:
+visible;  }}/\* Final site-navigation breakpoint: the widest section menu needs this
+room. \*/@media screen and (max-width: 1000px) {  .sitenav {    display: grid;   
+grid-template-columns: minmax(44px, 1fr) auto;    align-items: center;    min-height:
+47px;    padding: 1.5px .4em;    font-size: 22px;  }  .sitenav-home {    position:
+static;    grid-column: 1;    grid-row: 1;    justify-self: start;    transform:
+none;  }  .sitenav-state {    position: fixed;    top: 0;    right: 0;    display:
+block;    width: 1px;    height: 1px;    margin: 0;    padding: 0;    overflow: hidden;
+clip: rect(0 0 0 0);    clip-path: inset(50%);    border: 0;    white-space: nowrap;
+}  .sitenav-toggle {    grid-column: 2;    grid-row: 1;    display: flex;    align-items:
+center;    justify-content: center;    min-width: 44px;    min-height: 44px;    padding:
+.35em .55em;    border: 1px solid rgba(255,255,255,.55);    border-radius: 3px;  
+color: #ffffff;    cursor: pointer;    font: inherit;    gap: .45em;  }  .sitenav-toggle:hover,
+.sitenav-state:checked + .sitenav-toggle {    background-color: #0c486d;  }
+.sitenav-state:focus-visible + .sitenav-toggle {    outline: 3px solid #ffd75e;
+outline-offset: 2px;  }  /\* Extend the menu toggle behind the menu for outside-click
+dismissal. \*/  .sitenav-state:checked + .sitenav-toggle::after {    position: fixed;
+inset: 47px 0 0;    z-index: 1;    content: "";    cursor: default;  }  .sitenav-toggle-icon,
+.sitenav-toggle-icon::before,  .sitenav-toggle-icon::after {    display: block;
+width: 1em;    height: 2px;    background-color: currentColor;    transition:
+transform 150ms ease, opacity 150ms ease;  }  .sitenav-toggle-icon {    position:
+relative;  }  .sitenav-toggle-icon::before,  .sitenav-toggle-icon::after {    position:
+absolute;    left: 0;    content: "";  }  .sitenav-toggle-icon::before {    transform:
+translateY(-.32em);  }  .sitenav-toggle-icon::after {    transform: translateY(.32em);
+}  .sitenav-state:checked + .sitenav-toggle .sitenav-toggle-icon {    background-color:
+transparent;  }  .sitenav-state:checked + .sitenav-toggle .sitenav-toggle-icon::before
+{    transform: rotate(45deg);  }  .sitenav-state:checked + .sitenav-toggle
+.sitenav-toggle-icon::after {    transform: rotate(-45deg);  }  .sitenav-list {
+position: absolute;    top: 100%;    left: 0;    display: none;    width: 100%;
+max-height: calc(100vh - 47px);    max-height: calc(100dvh - 47px);    padding:
+.25em .4em .4em;    overflow-x: hidden;    overflow-y: auto;    background-color:
+#093754;    box-shadow: 0 8px 16px rgba(0,0,0,.2);    overscroll-behavior-y: contain;
+}  .sitenav-state:checked ~ .sitenav-list {    display: block;    z-index: 2;  }
+.sitenav-item {    border-top: 1px solid rgba(255,255,255,.22);  }  .sitenav-disclosure
+{    height: auto;  }  .sitenav-summary,  .sitenav-link,  .sitenav > .sitenav-list
+> .sitenav-item > .menuitem,  .sitenav > .sitenav-list > .sitenav-item > .itemselect
+{    width: 100%;    min-height: 44px;    padding: .45em .55em;  }  .sitenav-submenu,
+.sitenav-list > .sitenav-item:nth-last-child(-n+2) > .sitenav-disclosure > .sitenav-submenu
+{    position: static;    width: 100%;    min-width: 0;    max-width: none;    max-height:
+none;    padding: .2em 0 .4em .6em;    overflow: visible;    box-shadow: inset 3px
+0 0 #c7d3db;    font-size: 90%;  }  .sitenav-submenu a {    min-height: 44px;    
+padding: .55em .7em;  }  .sitenav-submenu-nested {    padding-left: .65em;  }}/\*
+Filtering menus on the autobuild page \*/.filtermenu {  /\* Hidden by default, made
+visible in Javascript when applicable \*/  /\* Set to "inline" when enabling to put
+the select box to the right of the text \*/  display: none;}/\* Input elements in
+the filtering menus \*/.inputbox {  width: 6em;  background: #ffffff;}th.narrow {
+width: 15%;}table.download {  margin-left: 1em;  font-size: 120%;}td.download {
+padding-right: 10px;}/\* ------------------------------------------------------------------------
+\*//\* drop-down menu magic \*//\* Dropdown Button \*/.dropbtn {  background-color:
+#093754;  color: white;  padding-right: 1em;  /\*font-size: 16px; \*/  border: none;
+cursor: pointer;}/\* The container
+
+- needed to position the dropdown content \*/.dropdown {  position: relative;  display:
+inline-block;}/\* Dropdown Content (Hidden by Default) \*/.dropdown-content {  display:
+none;  position: absolute;  background-color: #f9f9f9;  min-width: 10em;  box-shadow:
+0px 8px 16px 0px rgba(0,0,0,0.2);  z-index: 100;}/\* Links inside the dropdown \*/.dropdown-content
+a {  color: #093754;  padding: 4px;  text-decoration: none;  display: block;  font-size:
+80%;  text-align: left;}/\* Change color of dropdown links on hover \*/.dropdown-content
+a:hover {background-color: #f1f1f1}/\* Show the dropdown menu on hover \*/.dropdown:hover
+.dropdown-content {  display: block;}/\* Change the background color of the dropdown
+button when the dropdown content is shown \*/.dropdown:hover .dropbtn {  color: #c0c0c0;}/\*
+Search background removal \*/.gsc-control-cse {  background-color: inherit !important;
+border: 0 !important;}/\* Download edit page copy button \*/.copybutton {  font-size:
+large;}/\* Commercial support box \*/.commbox {  border: 3px dotted green; padding:
+5px 5px 5px 5px;}/\* Search box \*/a.sitesearch:hover {  background-color: #ffffff;}/\*
+Large notify header \*/.badge {  text-align: center;  font-size: 140%;  padding:
+8px;  background: #ffe0e0;}p.level0 {  text-align: justify;  text-justify: inter-word;}p.level1
+{  text-align: justify;  text-justify: inter-word;}/\* DARK MODE PROPERTIES \*//\*
+These will override all settings above \*/@media (prefers-color-scheme: dark) {  
+body {    background-color: #212121;    /\* Try to keep it a bit light but not too
+grey,       so it does not impact people with accessibility needs \*/    color: #fbfbfb;
+}  .badge {    background: #40403c  }  img[alt="curl logo"] {    filter: brightness(1.75);
+}  a {    color: #0096fa;  }  img:hover {    background-color: #2c2c2c;  }  h1 {
+border-color: white;  }  .dropdown-content {    background-color: #4c4c4c;  }
+.dropdown-content a {    color: #fafafa;  }  .dropdown-content a:hover {    background-color:
+#606060;  }  .sitenav-submenu {    background-color: #4c4c4c;    color: #fafafa;
+}  .sitenav-submenu a {    color: #fafafa;  }  .sitenav-submenu a:hover {    background-color:
+#606060;    color: #ffffff;  }  .sitenav-submenu a:focus-visible {    outline-color:
+#ffd75e;  }  .sitenav-overview,  .sitenav-submenu-divider {    border-color: #858585;
+}  .relatedbox {    background-color: #313131;    color: white;  }  tr.tabletop
+{    background-color: #252525;    color: white;  }  td.desc {    background-color:
+#6A6A79;    color: white;  }  td.ostitle, .older2 {    color: white;    background-color:
+#212121;    border-bottom: 1px #999 solid;  }  .download2, div.quote {    background-color:
+#2c2c2c;  }  td.oslogo {    background-color: white;  }  tr.odd {    background-color:
+#313131;  }  div.oslinks {    background: #2c2c2c;  }  .dash {    filter: invert(0.86)
+hue-rotate(100deg);  }  .dash:hover {    /\* becomes a dark color with the filter
+above applied \*/    background-color: #f8f8f8;  }  /\* Search fix hacks \*/
+.gsc-webResult.gsc-result, .gsc-results .gsc-imageResult {    background-color:
+#212121 !important;  }  .gsc-webResult.gsc-result {    border: 0 !important;  }  
+.gsc-results {    background-color: #252525 !important;  }  .gsc-above-wrapper-area
+{    border: 0 !important;  }  .gsc-results .gsc-cursor-box .gsc-cursor-page {   
+color: white !important;    background-color: #252525 !important;  }  div.sourceCode
+{    background-color: unset !important;  }  code, pre {    color: #aaaaff;    background-color:
+#111111 !important;  }}@media (prefers-reduced-motion: reduce) {  .sitenav-toggle-icon,
+.sitenav-toggle-icon::before,  .sitenav-toggle-icon::after {    transition: none;
+}}@media (forced-colors: active) {  .sitenav-toggle {    border-color: ButtonText;
+}  .sitenav-state:focus-visible + .sitenav-toggle,  .sitenav-summary:focus-visible,
+.sitenav-link:focus-visible,  .sitenav > .sitenav-list > .sitenav-item > .menuitem:focus-visible,
+.sitenav > .sitenav-list > .sitenav-item > .itemselect:focus-visible,  .sitenav-home:focus-visible,
+.sitenav-submenu a:focus-visible {    outline-color: Highlight;  }  .sitenav-submenu
+{    border: 1px solid CanvasText;    box-shadow: none;  }}
+
+[  ![](/logo/curl-white-symbol.svg)](/)
+Menu
+- [Docs Overview](/docs/)
+-       Project      - [Project overview](/docs/projdocs.html)
+- [Bug Report](/docs/bugs.html)
+- [Code of conduct](/docs/code-of-conduct.html)
+- [Dependencies](/docs/libs.html)
+- [Donate](/donation.html)
+- [FAQ](/docs/faq.html)
+- [Features](/docs/features.html)
+- [Governance](/docs/governance.html)
+- [History](/docs/history.html)
+- [Install](/docs/install.html)
+- [Known Bugs](/docs/knownbugs.html)
+- [Known Risks](/docs/knownrisks.html)
+- [Logo](/logo/)
+- [TODO](/docs/todo.html)
+- [website Info](/about.html)
+
+-       Protocols    
+- [Protocols overview](/docs/protdocs.html)
+- [CA Extract](/docs/caextract.html)
+- [HTTP cookies](/docs/http-cookies.html)
+- [HTTP/3](/docs/http3.html)
+- [MQTT](/docs/mqtt.html)
+- [SSL certs](/docs/sslcerts.html)
+- [SSL libs compared](/docs/ssl-compared.html)
+- [URL syntax](/docs/url-syntax.html)
+- [WebSocket](/docs/websocket.html)
+
+-       Releases    
+- [Releases overview](/docs/reldocs.html)
+- [Changelog](/ch/)
+- [Release Table](/docs/releases.html)
+- [Version Numbering](/docs/versions.html)
+- [Verify](/docs/verify.html)
+
+-       Security    
+- [Security overview](/docs/secdocs.html)
+- [Security Audits](/docs/audits.html)
+- [curl CVEs](/docs/security.html)
+- [Security advisory details](/dev/advisory.html)
+- [Vulnerability table](/docs/vulnerabilities.html)
+- [Vulnerability Disclosure Policy](/dev/vuln-disclosure.html)
+
+-       Tool    
+- [Tool overview](/docs/tooldocs.html)
+- [Comparison Table](/docs/comparison-table.html)
+- [curl man page](/docs/manpage.html)
+- [HTTP Scripting](/docs/httpscripting.html)
+- [mk-ca-bundle](/docs/mk-ca-bundle.html)
+- [Tutorial](/docs/tutorial.html)
+- [When options were added](/docs/optionswhen.html)
+
+-       Who and Why    
+- [Who and Why overview](/docs/whodocs.html)
+- [Companies](/docs/companies.html)
+- [Copyright](/docs/copyright.html)
+- [Sponsors](/sponsors.html)
+- [Thanks](/docs/thanks.html)
+- [The name](/docs/thename.html)
+
+
+[curl](/) / **Documentation Overview**
+#  Documentation Overview
+
+The main documentation is sub divided into several categories. Each categoryholds
+a number of documentation pages.
+
+##  The book: Everything curl
+
+This is a detailed and totally free book,  available [online](https://everything.curl.dev/) (and as a PDF as  a link from there) that explains everything there is to know about curl,  libcurl and the associated project.
+
+Learn how to use curl. How to use libcurl. How to build them from source or  perhaps
+how the curl project accepts contributions. There is something for  everyone in this,
+from the casual first-time users to the experienced  libcurl hackers.
+
+##  Presentations on Video
+
+We have a large selection of [video presentations](videos/)  gathered about various areas in curl and related technologies.
+
+##  [curl tool documentation](tooldocs.html)
+
+[Comparison Table](comparison-table.html),  [curl man page](manpage.html),  [HTTP Scripting](httpscripting.html),  [mk-ca-bundle](mk-ca-bundle.html),  [Tutorial](tutorial.html)
+
+##  [The project](projdocs.html)
+
+[Bug Report](bugs.html),[Code of conduct](code-of-conduct.html),[Dependencies](libs.html),[Donate](/donation.html),[FAQ](faq.html),[Features](features.html),[History](history.html),[Install](install.html),[Known Bugs](knownbugs.html),[Logo](/logo/),[Surveys](survey/),[TODO](todo.html),[website Info](/about.html)
+
+##  [Releases](reldocs.html)
+
+[Changelog](/ch/),[Release Table](releases.html),[Verify](verify.html).[Version numbering](versions.html).
+
+##  Security
+
+[Security Audits](audits.html),[curl CVEs](security.html),[Security advisory details](/dev/advisory.html),[Vulnerability table](vulnerabilities.html),[Vulnerability Disclosure Policy](/dev/vuln-disclosure.html)
+
+##  [Protocols](protdocs.html)
+
+[CA Extract](/docs/caextract.html),  [HTTP Cookies](http-cookies.html),  [HTTP/3](http3.html),  [SSL Certs](sslcerts.html),  [SSL libs compared](ssl-compared.html),  [URL syntax](url-syntax.html)
+
+##  [Who and Why](whodocs.html)
+
+[Companies](companies.html),  [Copyright](copyright.html),  [Sponsors](/sponsors.html),  [Thanks](thanks.html),  [The Name](thename.html)
+
+##  [libcurl](/libcurl/)
+
+The libcurl sub section of the site is huge!
+
+##  [Development](/dev/)
+
+Plenty of documentation and details if you want to work on curl or libcurl  themselves.

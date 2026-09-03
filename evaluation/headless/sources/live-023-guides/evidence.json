@@ -1,0 +1,45 @@
+{
+  "case_id": "live-023-guides",
+  "url": "https://spring.io/guides",
+  "checked_at": "2026-09-02T03:37:56.030026+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://spring.io/guides/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://spring.io/guides/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 400856,
+  "sha256": "aee50d058004cab821017ae1af8aff40cb0f0e156fa07add7192f47141b64d7b",
+  "title": "Spring | Guides",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/guides.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/guides-dark.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/extra/microservices-4.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/extra/footer.svg",
+      "alt": ""
+    }
+  ],
+  "text_chars": 708,
+  "excerpt": "Guides\nWhatever you're building, these guides are designed to get you productive as\nquickly as possible – using the latest Spring project releases and techniques\nas recommended by the Spring team.\nCategory\nIO\nREST APIs\nData Access\nSecurity\nMessaging\nOps\nWeb\nBatch Processing\nMicroservices\nCaching\nTesting\nDocumentation\nStreaming\nCloud Platform\nGraphQL\nMisc\nEstimated Time\n30m\n1h\n3h\nNo result found.\nGet ahead\nVMware offers training and certification to turbo-charge your progress.\nLearn more\nGet support\nTanzu Spring offers support and binaries for OpenJDK™, Spring, and Apache Tomcat® in one simple subscription.\nLearn more\nUpcoming events\nCheck out all the upcoming events in the Spring community.\nView all",
+  "missing_facts": [],
+  "state": "captured"
+}

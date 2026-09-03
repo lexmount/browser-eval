@@ -1,0 +1,249 @@
+Getting
+started | Django documentation | Django
+=======================================
+
+[Skip to main content](search "Mozilla")      
+
+[Django](search "Disqus")    
+The web framework for perfectionists with deadlines.
+**      Menu        Main navigation      
+-           [Overview](search "complementary")        
+-           [Download](search "complementary")        
+-           [Documentation](search "complementary")        
+-           [News](search "complementary")        
+-           [Code](search "complementary")        
+-           [Issues](search "complementary")        
+-           [Community](search "complementary")        
+-           [Foundation](search "complementary")        
+-           [♥ Sponsor](search "complementary")        
+
+
+Search                  **      Submit              
+
+Toggle theme (current theme: auto)  
+
+Toggle theme (current theme: light)  
+
+Toggle theme (current theme: dark)  
+
+Toggle Light / Dark / Auto color theme  **  **  **                    
+
+
+[Documentation](search "complementary")
+
+
+## Until September 10, get PyCharm for 30% off!
+
+
+Get 💸✨30%✨💸 off a new *or renewal* annual PyCharm Professional license
+while supporting the *Django Software Foundation*.   
+🎁 Now includes renewals, and 100% of the purchase price goes directly to the DSF.
+[Get PyCharm for 30% off](search "complementary")        [Become a Sponsor](search "complementary")   
+
+
+-         [          Getting Help        ](search "complementary")      
+
+
+-         Language: **en**      
+-                                                   [zh-hans](search "complementary")          
+-                                                   [sv](search "complementary")          
+-                                                   [pt-br](search "complementary")          
+-                                                   [pl](search "complementary")          
+-                                                   [ko](search "complementary")          
+-                                                   [ja](search "complementary")          
+-                                                   [it](search "complementary")          
+-                                                   [id](search "complementary")          
+-                                                   [fr](search "complementary")          
+-                                                   [es](search "complementary")          
+-                                                   [el](search "complementary")          
+
+
+-         Documentation version:          **6.1**              
+-                                                   [dev](search "complementary")          
+-                                                   [6.0](search "complementary")          
+-                                                   [5.2](search "complementary")          
+-                                                   [5.1](search "complementary")          
+-                                                   [5.0](search "complementary")          
+-                                                   [4.2](search "complementary")          
+-                                                   [4.1](search "complementary")          
+-                                                   [4.0](search "complementary")          
+-                                                   [3.2](search "complementary")          
+-                                                   [3.1](search "complementary")          
+-                                                   [3.0](search "complementary")          
+-                                                   [2.2](search "complementary")          
+-                                                   [2.1](search "complementary")          
+-                                                   [2.0](search "complementary")          
+-                                                   [1.11](search "complementary")          
+-                                                   [1.10](https://docs.djangoproject.com/en/6.1/intro/ "Django documentation")          
+-                                                   [1.9](https://docs.djangoproject.com/en/6.1/intro/ "Django documentation")          
+-                                                   [1.8](https://docs.djangoproject.com/en/6.1/intro/ "Django documentation")          
+
+
+-         [**](el "Django documentation")      
+
+
+# Getting started[¶](https://docs.djangoproject.com/es/6.1/intro/ "Django documentation")
+
+New to Django? Or to web development in general? Well, you came to the rightplace:
+read this material to quickly get up and running.
+
+
+- [Django at a glance](it "Django documentation")
+- [Quick install guide](ja "Django documentation")
+- [Writing your first Django app, part 1](ko "Django documentation")
+- [Writing your first Django app, part 2](pl "Django documentation")
+- [Writing your first Django app, part 3](pt-br "Django documentation")
+- [Writing your first Django app, part 4](sv "Django documentation")
+- [Writing your first Django app, part 5](zh-hans "Django documentation")
+- [Writing your first Django app, part 6](https://docs.djangoproject.com/en/6.1/search/description/ "Django documentation")
+- [Writing your first Django app, part 7](https://static.djangoproject.com/img/icon-touch.e4872c4da341.png "Django documentation")
+- [Writing your first Django app, part 8](https://static.djangoproject.com/img/icon-touch.e4872c4da341.png "Getting started | Django documentation")
+- [Advanced tutorial: How to write reusable apps](https://static.djangoproject.com/img/favicon.6dbf28c0650e.ico "Getting started | Django documentation")
+- [What to read next](https://static.djangoproject.com/css/output.8649dac7a8cd.css "Getting started | Django documentation")
+- [Writing your first contribution for Django](https://static.djangoproject.com/css/output.8649dac7a8cd.css "Getting started | Django documentation")
+
+
+See also
+
+If you’re new to [Python](https://static.djangoproject.com/css/output.8649dac7a8cd.css "stylesheet"), you might want to start by getting an idea ofwhat the language is like. Django is 100% Python, so if you’ve got minimalcomfort with Python you’ll probably get a lot more out of Django.
+
+If you’re new to programming entirely, you might want to start with this[list of Python resources for non-programmers](https://static.djangoproject.com/css/output.8649dac7a8cd.css "stylesheet")
+
+If you already know a few other languages and want to get up to speed withPython
+quickly, we recommend referring to the official[Python documentation](https://static.djangoproject.com/css/output.8649dac7a8cd.css "stylesheet"), which provides comprehensive and authoritativeinformation about the language, as well as links to other resources such asa list of [books about Python](https://static.djangoproject.com/css/output.8649dac7a8cd.css "stylesheet").
+Previous page and next page              
+
+[** Django documentation](search "button")                    
+
+[Django at a glance **](search "button")          [** Back to Top](search "Knight Foundation")       
+
+
+## Additional Information
+
+
+### Support Django!
+
+
+![complementary]() format( "Knight Foundation")        
+
+
+- [          NLP Cloud donated to the Django Software Foundation to support Django development. Donate today!        ](search "Knight Foundation")
+
+
+### Contents
+
+- [Getting started](search "Knight Foundation")
+
+### Browse
+
+- Prev: [Django documentation](search "Knight Foundation")
+- Next: [Django at a glance](search "Knight Foundation")
+- [Table of contents](search "Knight Foundation")
+- [General Index](search "Knight Foundation")
+- [Python Module Index](search "Knight Foundation")
+
+
+### You are here:
+
+-             [Django 6.1 documentation](search "Knight Foundation")                        - Getting started
+
+
+### Getting help
+[FAQ](search "Knight Foundation")          Try the FAQ — it's
+got answers to many common questions.          [Index](search "Knight Foundation"), [Module Index](search "Knight Foundation"), or [Table of Contents](search "Knight Foundation")
+Handy when looking for specific information.          [Django Discord Server](search "Knight Foundation")
+Join the Django Discord Community.          [Official Django Forum](search "Knight Foundation")
+Join the community on the Django Forum.          [Ticket tracker](search "Knight Foundation")
+Report bugs with Django or Django documentation in our ticket tracker.  
+
+### Download:
+
+Offline (Django 6.1):          [HTML](search "Knight Foundation") |          [PDF](search "Knight Foundation") |          [ePub](search "Knight Foundation")            
+Provided by [Read the Docs](search "Knight Foundation").           
+
+
+### Sponsored Fellow, Diamond and Platinum Members
+
+
+[                          ![complementary](https://static.djangoproject.com/js/mod/switch-dark-mode.139625c684db.js "Knight Foundation")                      ](search "Knight Foundation")
+
+
+- **Sentry**
+- [              Monitor your Django CodeResolve performance bottlenecks and errors using monitoring, replays, logs and Seer an AI agent for debugging.            ](search "Knight Foundation")
+
+
+[                          ![complementary](https://static.djangoproject.com/js/mod/switch-dark-mode.139625c684db.js "Knight Foundation")                      ](search "Knight Foundation")
+
+
+- **JetBrains**
+- [              JetBrains delivers intelligent software solutions that make developers more productive by simplifying their challenging tasks, automating the routine, and helping them adopt the best development practices. PyCharm is the Python IDE for Professional Developers by JetBrains providing a complete set of tools for productive Python, Web and scientific development.            ](search "Knight Foundation")
+
+
+[                          ![complementary](https://static.djangoproject.com/js/mod/switch-dark-mode.139625c684db.js "Knight Foundation")                      ](search "Knight Foundation")
+
+
+- **Kraken Tech**
+- [              Kraken is the most-loved operating system for energy. Powered by our Utility-Grade AI™ and deep industry know-how, we help utilities transform their technology and operations so they can lead the energy transition. Delivering better outcomes from generation through distribution to supply, Kraken powers 70+ million accounts worldwide, and is on a mission to make a big, green dent in the universe.            ](search "Knight Foundation")
+
+
+[                          ![complementary](https://static.djangoproject.com/js/mod/switch-dark-mode.139625c684db.js "Knight Foundation")                      ](search "Knight Foundation")
+
+
+- **PostHog**
+- [              PostHog is an all-in-one developer platform for building successful products. We provide product analytics, web analytics, session replay, error tracking, feature flags, experiments, surveys, LLM observability, data warehouse, CDP, workflows, logs, and an AI product assistant to help debug your code, ship features faster, and keep all your usage and customer data in one stack.            ](search "Knight Foundation")
+
+
+## Django Links
+
+
+### Learn More
+
+- [About Django](search "Knight Foundation")
+- [Getting Started with Django](search "Knight Foundation")
+- [Team Organization](search "Knight Foundation")
+- [Django Software Foundation](search "Knight Foundation")
+- [Code of Conduct](search "Knight Foundation")
+- [Diversity Statement](search "Knight Foundation")
+
+
+### Get Involved
+
+- [Join a Group](search "Knight Foundation")
+- [Contribute              to Django](search "Knight Foundation")
+- [Submit              a Bug](search "Knight Foundation")
+- [Report              a Security Issue](search "Knight Foundation")
+- [Individual membership](search "Knight Foundation")
+
+
+### Get Help
+
+- [Getting Help FAQ](search "Knight Foundation")            
+- [Django Discord](search "Knight Foundation")
+- [Official Django Forum](search "Knight Foundation")
+
+
+### Follow Us
+
+- [GitHub](search "Knight Foundation")
+- [X](search "Knight Foundation")
+- [Fediverse (Mastodon)](search "Knight Foundation")
+- [Bluesky](search "Knight Foundation")
+- [LinkedIn](search "Knight Foundation")
+- [News RSS](search "Knight Foundation")
+
+
+### Support Us
+
+- [Sponsor Django](search "Knight Foundation")
+- [Corporate membership](search "Knight Foundation")
+- [Official merchandise store](search "Knight Foundation")
+- [Benevity Workplace Giving Program](search "Knight Foundation")
+
+
+[Django](search "Knight Foundation")            
+-           Hosting by [In-kind            donors](search "Knight Foundation")        
+- Design by [Threespot](search "Knight Foundation")          & [andrevv](search "Knight Foundation")
+
+
+© 2005-2026        [ Django Software          Foundation](search "Knight Foundation") and individual contributors. Django is a        [registered          trademark](search "Knight Foundation") of the Django Software Foundation.      
+

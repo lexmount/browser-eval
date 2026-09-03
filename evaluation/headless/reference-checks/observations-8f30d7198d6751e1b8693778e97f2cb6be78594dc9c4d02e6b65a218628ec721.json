@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-068-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:38:58.333303+00:00",
+    "content_text": "React Router is a multi-strategy router for React. You can use it maximally as a React framework or minimally as a library with your own architecture.\nGetting Started - Framework\nGetting Started - Library\nUpgrade from v7\nChangelog\nPackages\nreact-router\ncreate-react-router\n@react-router/dev\n@react-router/node\n@react-router/serve\n@react-router/express\n@react-router/architect\n@react-router/cloudflare\n@react-router/fs-routes\nPrevious Versions\nv7\nv6\nv5",
+    "scope_identity": {
+      "case_id": "live-068-navigation-menu",
+      "url": "https://github.com/remix-run/react-router",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "React Router is a multi-strategy router for React. You can"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "Getting Started - Framework"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "Getting Started - Library"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 270,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1658.5342090111226,
+      "timeout_ms": 120000
+    }
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-003-the-rust-programming-language",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:07.295884+00:00",
+    "content_text": "Fearless Concurrency\nHandling concurrent programming safely and efficiently is another of Rust’s\nmajor goals.\nConcurrent programming\n, in which different parts of a program\nexecute independently, and\nparallel programming\n, in which different parts of\na program execute at the same time, are becoming increasingly important as more\ncomputers take advantage of their multiple processors. Historically,\nprogramming in these contexts has been difficult and error-prone. Rust hopes to\nchange that.\nInitially, the Rust team thought that ensuring memory safety and preventing\nconcurrency problems were two separate challenges to be solved with different\nmethods. Over time, the team discovered that the ownership and type systems are\na powerful set of tools to help manage memory safety\nand\nconcurrency\nproblems! By leveraging ownership and type checking, many concurrency errors\nare compile-time errors in Rust rather than runtime errors. Therefore, rather\nthan making you spend lots of time trying to reproduce the exact circumstances\nunder which a runtime concurrency bug occurs, incorrect code will refuse to\ncompile and present an error explaining the problem. As a result, you can fix\nyour code while you’re working on it rather than potentially after it has been\nshipped to production. We’ve nicknamed this aspect of Rust\nfearless\nconcurrency\n. Fearless concurrency allows you to write code that is free of\nsubtle bugs and is easy to refactor without introducing new bugs.\nNote: For simplicity’s sake, we’ll refer to many of the problems as\nconcurrent\nrather than being more precise by saying\nconcurrent and/or\nparallel\n. For this chapter, please mentally substitute\nconcurrent and/or\nparallel\nwhenever we use\nconcurrent\n. In the next chapter, where the\ndistinction matters more, we’ll be more specific.\nMany languages are dogmatic about the solutions they offer for handling\nconcurrent problems. For example, Erlang has elegant functionality for\nmessage-passing concurrency but has only obscure ways to share state between\nthreads. Supporting only a subset of possible solutions is a reasonable\nstrategy for higher-level languages because a higher-level language promises\nbenefits from giving up some control to gain abstractions. However, lower-level\nlanguages are expected to provide the solution with the best performance in any\ngiven situation and have fewer abstractions over the hardware. Therefore, Rust\noffers a variety of tools for modeling problems in whatever way is appropriate\nfor your situation and requirements.\nHere are the topics we’ll cover in this chapter:\nHow to create threads to run multiple pieces of code at the same time\nMessage-passing\nconcurrency, where channels send messages between threads\nShared-state\nconcurrency, where multiple threads have access to some piece\nof data\nThe\nSync\nand\nSend\ntraits, which extend Rust’s concurrency guarantees to\nuser-defined types as well as types provided by the standard library",
+    "scope_identity": {
+      "case_id": "live-003-the-rust-programming-language",
+      "url": "https://doc.rust-lang.org/book/ch16-00-concurrency.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "Handling concurrent programming safely and efficiently is another of Rust’s"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "rather than being more precise by saying"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "user-defined types as well as types provided by the standard"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 573.9577090134844,
+      "timeout_ms": 120000
+    }
+  }
+]

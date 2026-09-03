@@ -1,0 +1,928 @@
+hashlib — Secure hashes and message digests — Python 3.14.7 documentation
+=========================================================================================
+
+\*/}#sidebarbutton:hover {    background-color: white;}#sidebarbutton span
+{    display: table-cell;    vertical-align: middle;}div.sphinxsidebarwrapper {  
+float: left;    margin-right: 0;}/\* -- hyperlink styles
+------------------------------------------------------ \*/a {    color: #0090c0;
+text-decoration: none;}a:visited {    color: #00608f;    text-decoration: none;}a:hover
+{    text-decoration: underline;}/\* -- body styles
+----------------------------------------------------------- \*/div.body h1,div.body
+h2,div.body h3,div.body h4,div.body h5,div.body h6 {    font-family: -apple-system,
+BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell,
+Ubuntu, roboto, noto, arial, sans-serif;    background-color: white;    font-weight:
+normal;    color: #1a1a1a;    border-bottom: 1px solid #ccc;    margin: 20px -20px
+10px -20px;    padding: 3px 0 3px 10px;}div.body h1 { margin-top: 0; font-size: 200%;
+}div.body h2 { font-size: 160%; }div.body h3 { font-size: 140%; }div.body h4 { font-size:
+120%; }div.body h5 { font-size: 110%; }div.body h6 { font-size: 100%; }a.headerlink
+{    color: #aaaaaa;    font-size: 0.8em;    padding: 0 4px 0 4px;    text-decoration:
+none;}a.headerlink:hover {    background-color: #aaaaaa;    color: white;}div.body
+p, div.body dd, div.body li, div.body blockquote {    text-align: justify;    line-height:
+130%;}div.admonition p.admonition-title + p {    display: inline;}div.admonition
+p {    margin-bottom: 5px;}div.admonition pre {    margin-bottom: 5px;}div.admonition
+ul, div.admonition ol {    margin-bottom: 5px;}div.note {    background-color: #eee;
+border: 1px solid #ccc;}div.seealso {    background-color: #ffc;    border: 1px
+solid #ff6;}nav.contents,aside.topic,div.topic {    background-color: #eee;}div.warning
+{    background-color: #ffe4e4;    border: 1px solid #f66;}p.admonition-title {  
+display: inline;}p.admonition-title:after {    content: ":";}pre {    padding:
+5px;    background-color: #eeffcc;    color: #333333;    line-height: 120%;    border:
+1px solid #ac9;    border-left: none;    border-right: none;}code {    background-color:
+#ecf0f3;    padding: 0 1px 0 1px;    font-size: 0.95em;}th, dl.field-list > dt {
+background-color: #ede;}.warning code {    background: #efc2c2;}.note code {  
+background: #d6d6d6;}.viewcode-back {    font-family: -apple-system, BlinkMacSystemFont,
+avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto,
+noto, arial, sans-serif;}div.viewcode-block:target {    background-color: #f4debf;
+border-top: 1px solid #ac9;    border-bottom: 1px solid #ac9;}div.code-block-caption
+{    color: #efefef;    background-color: #1c4e63;}  
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+Theme            Auto  
+Light  
+Dark  
+
+
+### [Table of Contents](../contents.html)
+
+- [`hashlib` — Secure hashes and message digests](#)- [Hash algorithms](#hash-algorithms)
+- [Usage](#usage)
+- [Constructors](#constructors)
+- [Attributes](#attributes)
+- [Hash Objects](#hash-objects)
+- [SHAKE variable length digests](#shake-variable-length-digests)
+- [File hashing](#file-hashing)
+- [Key derivation](#key-derivation)
+- [BLAKE2](#blake2)- [Creating hash objects](#creating-hash-objects)
+- [Constants](#constants)
+- [Examples](#examples)- [Simple hashing](#simple-hashing)
+- [Using different digest sizes](#using-different-digest-sizes)
+- [Keyed hashing](#keyed-hashing)
+- [Randomized hashing](#randomized-hashing)
+- [Personalization](#personalization)
+- [Tree mode](#tree-mode)
+- [Credits](#credits)
+
+
+#### Previous topic
+
+[Cryptographic Services](crypto.html "previous chapter")
+
+
+#### Next topic
+
+[`hmac` — Keyed-Hashing for Message Authentication](hmac.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=hashlib+%E2%80%94+Secure+hashes+and+message+digests&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fhashlib.html&pagesource=library%2Fhashlib.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/hashlib.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](hmac.html "hmac — Keyed-Hashing for Message Authentication") |
+-           [previous](crypto.html "Cryptographic Services") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [Cryptographic Services](crypto.html) »
+- [`hashlib` — Secure hashes and message digests]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+# `hashlib` — Secure hashes and message digests[¶](../_static/pygments.css?v=b86133f3 "viewport")
+
+**Source code:** [Lib/hashlib.py](../_static/pygments.css?v=b86133f3 "viewport")
+
+---
+
+This module implements a common interface to many different hash algorithms.Included
+are the FIPS secure hash algorithms SHA224, SHA256, SHA384, SHA512,(defined in [the FIPS 180-4 standard](../_static/pygments.css?v=b86133f3 "viewport")), the SHA-3 series (defined in [the FIPS202 standard](../_static/pygments.css?v=b86133f3 "viewport")) as well as the legacy algorithms SHA1 ([formerly part of FIPS](../_static/pygments.css?v=b86133f3 "viewport"))and the MD5 algorithm (defined in internet
+[**RFC 1321**](../_static/pygments.css?v=b86133f3 "viewport")).
+
+
+Note
+
+If you want the adler32 or crc32 hash functions, they are available inthe [`zlib`](../_static/classic.css?v=234b1a7c "highlight-") module.
+
+## Hash algorithms[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+There is one constructor method named for each type of *hash*.  All returna hash
+object with the same simple interface. For example: use [`sha256()`](../_static/classic.css?v=234b1a7c "highlight-")to create a SHA-256 hash object. You can now feed this object
+with[bytes-like objects](../_static/classic.css?v=234b1a7c "highlight-") (normally [`bytes`](../_static/classic.css?v=234b1a7c "highlight-")) usingthe [`update`](../_static/classic.css?v=234b1a7c "highlight-") method.  At any point you can ask it for
+the*digest* of the concatenation of the data fed to it so far using the[`digest()`](../_static/classic.css?v=234b1a7c "highlight-") or [`hexdigest()`](../_static/classic.css?v=234b1a7c "highlight-") methods.
+
+To allow multithreading, the Python [GIL](../_static/classic.css?v=234b1a7c "highlight-") is released while computing ahash supplied more than 2047 bytes of data at once in its constructor or[`.update`](../_static/classic.css?v=234b1a7c "highlight-") method.
+
+Constructors for hash algorithms that are always present in this module are[`sha1()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha224()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha256()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha384()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha512()`](../_static/classic.css?v=234b1a7c "highlight-"),[`sha3_224()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha3_256()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha3_384()`](../_static/classic.css?v=234b1a7c "highlight-"), [`sha3_512()`](../_static/classic.css?v=234b1a7c "highlight-"),[`shake_128()`](../_static/classic.css?v=234b1a7c "highlight-"), [`shake_256()`](../_static/classic.css?v=234b1a7c "highlight-"), [`blake2b()`](../_static/classic.css?v=234b1a7c "highlight-"), and [`blake2s()`](../_static/classic.css?v=234b1a7c "highlight-").[`md5()`](../_static/classic.css?v=234b1a7c "highlight-") is normally available as well, though it may be missing or blockedif you are using a rare “FIPS compliant” build of Python.These correspond to [`algorithms_guaranteed`](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+
+Additional algorithms may also be available if your Python distribution’s`hashlib` was
+linked against a build of OpenSSL that provides others.Others *are not guaranteed
+available* on all installations and will only beaccessible by name via [`new()`](../_static/pydoctheme.css?v=4365c8fe "highlight-").  See [`algorithms_available`](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+
+
+Warning
+
+Some algorithms have known hash collision weaknesses (including MD5 andSHA1). Refer
+to [Attacks on cryptographic hash algorithms](../_static/pydoctheme.css?v=4365c8fe "highlight-") and the[hashlib-seealso](../_static/pydoctheme.css?v=4365c8fe "highlight-") section at the end of this document.
+
+
+Added in version 3.6: SHA3 (Keccak) and SHAKE constructors [`sha3_224()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`sha3_256()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"),[`sha3_384()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`sha3_512()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`shake_128()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`shake_256()`](../_static/pydoctheme.css?v=4365c8fe "highlight-")were added.[`blake2b()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") and [`blake2s()`](../_static/pydoctheme.css?v=4365c8fe "highlight-") were added.
+
+
+Changed in version 3.9: All hashlib constructors take a keyword-only argument *usedforsecurity*with
+default value `True`. A false value allows the use of insecure andblocked hashing algorithms
+in restricted environments. `False` indicatesthat the hashing algorithm is not used in
+a security context, e.g. as anon-cryptographic one-way compression function.
+
+
+Changed in version 3.9: Hashlib now uses SHA3 and SHAKE from OpenSSL if it provides
+it.
+
+
+Changed in version 3.12: For any of the MD5, SHA1, SHA2, or SHA3 algorithms that
+the linkedOpenSSL does not provide we fall back to a verified implementation fromthe
+[HACL\* project](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+
+## Usage[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+
+To obtain the digest of the byte string `b"Nobody inspects the spammish
+repetition"`:
+
+Copy
+
+```>>> import hashlib>>> m = hashlib.sha256()>>> m.update(b"Nobody 
+inspects")>>> m.update(b" the spammish repetition")>>>
+m.digest()b'\\x03\\x1e\\xdd}Ae\\x15\\x93\\xc5\\xfe\\\\\\x00o\\xa5u+7\\xfd\\xdf\\xf7\\xbcN\\x84:\\xa6\\xaf\\x0c\\x95\\x0fK\\x94\\x06'>>> 
+m.hexdigest()'031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406'```
+
+More condensed:
+
+Copy
+
+```>>> hashlib.sha256(b"Nobody inspects the spammish
+repetition").hexdigest()'031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406'```
+
+## Constructors[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+hashlib.new(*name*, [*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Is a generic constructor that takes the string *name* of the desiredalgorithm as
+its first parameter.  It also exists to allow access to theabove listed hashes as
+well as any other algorithms that your OpenSSLlibrary may offer.
+
+Using [`new()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") with an algorithm name:
+
+Copy
+
+```>>> h = hashlib.new('sha256')>>> h.update(b"Nobody inspects 
+the spammish repetition")>>>
+h.hexdigest()'031edd7d41651593c5fe5c006fa5752b37fddff7bc4e843aa6af0c950f4b9406'```
+hashlib.md5([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha1([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha224([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha256([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha384([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha512([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha3_224([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha3_256([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha3_384([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")hashlib.sha3_512([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Named constructors such as these are faster than passing an algorithm name to[`new()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+## Attributes[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+Hashlib provides the following constant module attributes:
+hashlib.algorithms_guaranteed[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A set containing the names of the hash algorithms guaranteed to be supportedby this 
+module on all platforms.  Note that ‘md5’ is in this list despitesome upstream 
+vendors offering an odd “FIPS compliant” Python build thatexcludes it.
+
+
+Added in version 3.2.
+hashlib.algorithms_available[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+A set containing the names of the hash algorithms that are available in therunning 
+Python interpreter.  These names will be recognized when passed to[`new()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet").  [`algorithms_guaranteed`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") will always be a subset.  Thesame algorithm may appear multiple times in this set under different names(thanks to OpenSSL).
+
+
+Added in version 3.2.
+
+## Hash Objects[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+The following values are provided as constant attributes of the hash objectsreturned 
+by the constructors:
+hash.digest_size[¶](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")
+The size of the resulting hash in bytes.
+hash.block_size[¶](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")
+The internal block size of the hash algorithm in bytes.
+
+A hash object has the following attributes:
+hash.name[¶]( "Search within Python 3.14.7 documentation")
+The canonical name of this hash, always lowercase and always suitable as aparameter 
+to [`new()`]( "Search within Python 3.14.7 documentation") to create another hash of this type.
+
+
+Changed in version 3.4: The name attribute has been present in CPython since its 
+inception, butuntil Python 3.4 was not formally specified, so may not exist on someplatforms.
+
+A hash object has the following methods:
+hash.update(*data*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Update the hash object with the [bytes-like object](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").Repeated calls are equivalent to a single call with theconcatenation of all the arguments: `m.update(a); m.update(b)` 
+isequivalent to `m.update(a+b)`.
+hash.digest()[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return the digest of the data passed to the [`update()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method so far.This is a bytes object of size [`digest_size`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") which may contain bytes inthe whole range from 0 to 255.
+hash.hexdigest()[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Like [`digest()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") except the digest is returned as a string object ofdouble length, containing only hexadecimal digits.  This may be used toexchange the value safely in email or other non-binary environments.
+hash.copy()[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a copy (“clone”) of the hash object.  This can be used to efficientlycompute 
+the digests of data sharing a common initial substring.
+
+## SHAKE variable length digests[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+hashlib.shake_128([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7
+documentation")hashlib.shake_256([*data*, ]*\**, *usedforsecurity=True*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The [`shake_128()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") and [`shake_256()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") algorithms provide variablelength digests with length_in_bits//2 up to 128 or 256 bits of security.As such, their digest methods require a length. Maximum length is not limitedby the SHAKE algorithm.
+shake.digest(*length*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return the digest of the data passed to the [`update()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method so far.This is a bytes object of size
+*length* which may contain bytes inthe whole range from 0 to 255.
+shake.hexdigest(*length*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Like [`digest()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") except the digest is returned as a string object ofdouble length, containing only hexadecimal digits.  This may be used toexchange the value in email or other non-binary environments.
+
+Example use:
+
+Copy
+
+```>>> h = hashlib.shake_256(b'Nobody inspects the spammish repetition')>>>
+h.hexdigest(20)'44709d6fcb83d92a76dcb0b668c98e1b1d3dafe7'```
+
+## File hashing[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+The hashlib module provides a helper function for efficient hashing ofa file or file-like
+object.
+hashlib.file_digest(*fileobj*, *digest*, */*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a digest object that has been updated with contents of file object.
+
+*fileobj* must be a file-like object opened for reading in binary mode.It accepts
+file objects from  builtin [`open()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), [`BytesIO`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")instances, SocketIO objects from [`socket.socket.makefile()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), andsimilar.
+*fileobj* must be opened in blocking mode, otherwise a[`BlockingIOError`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") may be raised.
+
+The function may bypass Python’s I/O and use the file descriptorfrom [`fileno()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") directly.
+*fileobj* must be assumed to bein an unknown state after this function returns or
+raises. It is up tothe caller to close *fileobj*.
+
+*digest* must either be a hash algorithm name as a *str*, a hashconstructor, or a
+callable that returns a hash object.
+
+Example:
+
+Copy
+
+```>>> import io, hashlib, hmac>>> with open("library/hashlib.rst", 
+"rb") as f:...     digest = hashlib.file_digest(f, "sha256")...>>> digest.hexdigest()'...'```
+
+Copy
+
+```>>> buf = io.BytesIO(b"somedata")>>> mac1 = hmac.HMAC(b"key",
+digestmod=hashlib.sha512)>>> digest = hashlib.file_digest(buf, lambda: mac1)```
+
+Copy
+
+```>>> digest is mac1True>>> mac2 = hmac.HMAC(b"key", b"somedata", 
+digestmod=hashlib.sha512)>>> mac1.digest() == mac2.digest()True```
+
+
+Added in version 3.11.
+
+
+Changed in version 3.14: Now raises a [`BlockingIOError`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") if the file is opened in non-blockingmode. Previously, spurious null bytes were added to the digest.
+
+## Key derivation[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+Key derivation and key stretching algorithms are designed for secure passwordhashing. 
+Naive algorithms such as `sha1(password)` are not resistant againstbrute-force attacks. A good 
+password hashing function must be tunable, slow, andinclude a [salt](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+hashlib.pbkdf2_hmac(*hash_name*, *password*, *salt*, *iterations*, *dklen=None*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+The function provides PKCS#5 password-based key derivation function 2. Ituses HMAC 
+as pseudorandom function.
+
+The string *hash_name* is the desired name of the hash digest algorithm forHMAC, 
+e.g. ‘sha1’ or ‘sha256’. *password* and *salt* are interpreted asbuffers 
+of bytes. Applications and libraries should limit *password* toa sensible length 
+(e.g. 1024). *salt* should be about 16 or more bytes froma proper source, e.g. [`os.urandom()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+The number of *iterations* should be chosen based on the hash algorithm andcomputing 
+power. As of 2022, hundreds of thousands of iterations of SHA-256are suggested. For 
+rationale as to why and how to choose what is best foryour application, read *Appendix 
+A.2.2* of [NIST-SP-800-132](../_static/opensearch.xml "Search within Python 3.14.7 documentation"). The answerson the [stackexchange pbkdf2 iterations question](../_static/opensearch.xml "Search within Python 3.14.7 documentation") explain in detail.
+
+*dklen* is the length of the derived key in bytes. If *dklen* is `None` then thedigest 
+size of the hash algorithm *hash_name* is used, e.g. 64 for SHA-512.
+
+Copy
+
+```>>> from hashlib import pbkdf2_hmac>>> our_app_iters = 500_000
+# Application specific, read above.>>> dk = pbkdf2_hmac('sha256', b'password',
+b'bad salt' \* 2, our_app_iters)>>>
+dk.hex()'15530bba69924174860db778f2c6f8104d3aaf9d26241840c8c4a641c8d000a9'```
+
+Function only available when Python is compiled with OpenSSL.
+
+
+Added in version 3.4.
+
+
+Changed in version 3.12: Function now only available when Python is built with OpenSSL.
+The slowpure Python implementation has been removed.
+hashlib.scrypt(*password*, *\**, *salt*, *n*, *r*, *p*, *maxmem=0*, *dklen=64*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+The function provides scrypt password-based key derivation function asdefined in
+[**RFC 7914**](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+*password* and *salt* must be [bytes-like objects](../_static/opensearch.xml "Search within Python 3.14.7 documentation").  Applications and libraries should limit
+*password*to a sensible length (e.g. 1024).  *salt* should be about 16 or morebytes
+from a proper source, e.g. [`os.urandom()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation").
+
+*n* is the CPU/Memory cost factor, *r* the block size, *p* parallelizationfactor
+and *maxmem* limits memory (OpenSSL 1.1.0 defaults to 32 MiB).*dklen* is the length
+of the derived key in bytes.
+
+
+Added in version 3.6.
+
+## BLAKE2[¶](https://docs.python.org/3/library/hashlib.html "previous chapter")
+
+[BLAKE2](https://docs.python.org/3/library/hashlib.html "previous chapter") is a cryptographic hash function defined in
+[**RFC 7693**](../_static/pydoctheme_dark.css "previous chapter") that comes in twoflavors:
+
+- **BLAKE2b**, optimized for 64-bit platforms and produces digests of any sizebetween 1 and 64 bytes,
+- **BLAKE2s**, optimized for 8- to 32-bit platforms and produces digests of anysize between 1 and 32 bytes.
+
+BLAKE2 supports **keyed mode** (a faster and simpler replacement for [HMAC](../_static/py.svg "previous
+chapter")),**salted hashing**, **personalization**, and **tree hashing**.
+
+Hash objects from this module follow the API of standard library’s`hashlib` objects.
+
+### Creating hash objects[¶](../_static/py.svg "previous chapter")
+
+New hash objects are created by calling constructor functions:
+hashlib.blake2b(*data=b''*, *\**, *digest_size=64*, *key=b''*, *salt=b''*, *person=b''*,
+*fanout=1*, *depth=1*, *leaf_size=0*, *node_offset=0*, *node_depth=0*, *inner_size=0*,
+*last_node=False*, *usedforsecurity=True*)[¶](https://www.python.org/ "previous
+chapter")hashlib.blake2s(*data=b''*, *\**, *digest_size=32*, *key=b''*, *salt=b''*,
+*person=b''*, *fanout=1*, *depth=1*, *leaf_size=0*, *node_offset=0*, *node_depth=0*,
+*inner_size=0*, *last_node=False*, *usedforsecurity=True*)[¶](../contents.html "previous chapter")
+These functions return the corresponding hash objects for calculatingBLAKE2b or BLAKE2s.
+They optionally take these general parameters:
+
+- *data*: initial chunk of data to hash, which must be[bytes-like object](../contents.html "previous chapter").  It can be passed only as positional argument.
+- *digest_size*: size of output digest in bytes.
+- *key*: key for keyed hashing (up to 64 bytes for BLAKE2b, up to 32 bytes forBLAKE2s).
+- *salt*: salt for randomized hashing (up to 16 bytes for BLAKE2b, up to 8bytes for BLAKE2s).
+- *person*: personalization string (up to 16 bytes for BLAKE2b, up to 8 bytesfor BLAKE2s).
+
+The following table shows limits for general parameters (in bytes):
+
+|             |
+|-------------|
+|             |
+| digest_size |
+|             |
+| len(key)    |
+|             |
+| len(salt)   |
+|             |
+| len(person) |
+| -           | - | - | - | - |
+|             |
+| BLAKE2b     |
+|             |
+| 64          |
+|             |
+| 64          |
+|             |
+| 16          |
+|             |
+| 16          |
+| BLAKE2s     |
+|             |
+| 32          |
+|             |
+| 32          |
+|             |
+| 8           |
+|             |
+| 8           |
+
+
+Note
+
+BLAKE2 specification defines constant lengths for salt and personalizationparameters,
+however, for convenience, this implementation accepts bytestrings of any size up
+to the specified length. If the length of theparameter is less than specified, it
+is padded with zeros, thus, forexample, `b'salt'` and `b'salt\x00'` is the same value. (This is notthe
+case for *key*.)
+
+These sizes are available as module [constants](#personalization "previous chapter") described below.
+
+Constructor functions also accept the following tree hashing parameters:
+
+- *fanout*: fanout (0 to 255, 0 if unlimited, 1 in sequential mode).
+- *depth*: maximal depth of tree (1 to 255, 255 if unlimited, 1 insequential mode).
+- *leaf_size*: maximal byte length of leaf (0 to `2**32-1`, 0 if unlimited or insequential mode).
+- *node_offset*: node offset (0 to `2**64-1` for BLAKE2b, 0 to `2**48-1` forBLAKE2s, 0 for the first, leftmost, leaf, or in sequential mode).
+- *node_depth*: node depth (0 to 255, 0 for leaves, or in sequential mode).
+- *inner_size*: inner digest size (0 to 64 for BLAKE2b, 0 to 32 forBLAKE2s, 0 in sequential mode).
+- *last_node*: boolean indicating whether the processed node is the lastone (`False` for sequential mode).
+![Python logo](../_static/py.svg ">Improve this page</a></li>
+<li>
+<a href=")
+See section 2.10 in [BLAKE2 specification](https://docs.python.org/3/improve-page.html?pagetitle=hashlib+%E2%80%94+Secure+hashes+and+message+digests&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fhashlib.html&pagesource=library%2Fhashlib.rst ">Improve this page</a></li>
+<li>
+<a href=") for comprehensive review of treehashing.
+
+### Constants[¶](https://github.com/python/cpython/blob/main/Doc/library/hashlib.rst?plain=1 "General Index")
+blake2b.SALT_SIZE[¶](../genindex.html "General Index")blake2s.SALT_SIZE[¶](hmac.html "hmac — Keyed-Hashing for Message Authentication")
+Salt length (maximum length accepted by constructors).
+blake2b.PERSON_SIZE[¶](https://www.python.org/ "Link to this heading")blake2s.PERSON_SIZE[¶](../index.html "Link to this heading")
+Personalization string length (maximum length accepted by constructors).
+blake2b.MAX_KEY_SIZE[¶](../index.html "Link to this heading")blake2s.MAX_KEY_SIZE[¶](../index.html "Link to this heading")
+Maximum key size.
+blake2b.MAX_DIGEST_SIZE[¶](../index.html "Link to this heading")blake2s.MAX_DIGEST_SIZE[¶](index.html "Link to this heading")
+Maximum digest size that the hash function can output.
+
+### Examples[¶](#module-hashlib "Link to this heading")
+
+#### Simple hashing[¶](#module-hashlib "Link to this heading")
+
+To calculate hash of some data, you should first construct a hash object bycalling
+the appropriate constructor function ([`blake2b()`](#module-hashlib "Link to this heading") or[`blake2s()`](#module-hashlib "Link to this heading")), then update it with the data by calling [`update()`](../_static/pygments.css?v=b86133f3 "hashlib — Secure hashes and message digests") on theobject, and, finally, get the digest out of the object by calling[`digest()`](../_static/pygments.css?v=b86133f3 "viewport") (or [`hexdigest()`](../_static/pygments.css?v=b86133f3 "viewport") for hex-encoded string).
+
+Copy
+
+```>>> from hashlib import blake2b>>> h = blake2b()>>> 
+h.update(b'Hello world')>>>
+h.hexdigest()'6ff843ba685842aa82031d3f53c48b66326df7639a63d128974c5c14f31a0f33343a8c65551134ed1ae0f2b0dd2bb495dc81039e3eeb0aa1bb0388bbeac29183'```
+
+As a shortcut, you can pass the first chunk of data to update directly to theconstructor 
+as the positional argument:
+
+Copy
+
+```>>> from hashlib import blake2b>>> blake2b(b'Hello
+world').hexdigest()'6ff843ba685842aa82031d3f53c48b66326df7639a63d128974c5c14f31a0f33343a8c65551134ed1ae0f2b0dd2bb495dc81039e3eeb0aa1bb0388bbeac29183'```
+
+You can call [`hash.update()`](../_static/classic.css?v=234b1a7c "highlight-") as many times as you need to iterativelyupdate the hash:
+
+Copy
+
+```>>> from hashlib import blake2b>>> items = [b'Hello', b' ', 
+b'world']>>> h = blake2b()>>> for item in items:...    
+h.update(item)...>>>
+h.hexdigest()'6ff843ba685842aa82031d3f53c48b66326df7639a63d128974c5c14f31a0f33343a8c65551134ed1ae0f2b0dd2bb495dc81039e3eeb0aa1bb0388bbeac29183'```
+
+#### Using different digest sizes[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+BLAKE2 has configurable size of digests up to 64 bytes for BLAKE2b and up to 32bytes 
+for BLAKE2s. For example, to replace SHA-1 with BLAKE2b without changingthe size 
+of output, we can tell BLAKE2b to produce 20-byte digests:
+
+Copy
+
+```>>> from hashlib import blake2b>>> h = blake2b(digest_size=20)>>>
+h.update(b'Replacing SHA1 with the more secure function')>>>
+h.hexdigest()'d24f26cf8de66472d58d4e1b1774b4c9158b1f4c'>>> h.digest_size20>>>
+len(h.digest())20```
+
+Hash objects with different digest sizes have completely different outputs(shorter
+hashes are *not* prefixes of longer hashes); BLAKE2b and BLAKE2sproduce different
+outputs even if the output length is the same:
+
+Copy
+
+```>>> from hashlib import blake2b, blake2s>>>
+blake2b(digest_size=10).hexdigest()'6fa1d8fcfd719046d762'>>>
+blake2b(digest_size=11).hexdigest()'eb6ec15daf9546254f0809'>>>
+blake2s(digest_size=10).hexdigest()'1bf21a98c78a1c376ae9'>>>
+blake2s(digest_size=11).hexdigest()'567004bf96e4a25773ebf4'```
+
+#### Keyed hashing[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+
+Keyed hashing can be used for authentication as a faster and simplerreplacement for 
+[Hash-based message authentication code](../_static/pydoctheme.css?v=4365c8fe "highlight-") (HMAC).BLAKE2 can be securely used in prefix-MAC mode thanks to theindifferentiability property inherited from BLAKE.
+
+This example shows how to get a (hex-encoded) 128-bit authentication code formessage 
+`b'message data'` with key `b'pseudorandom key'`:
+
+Copy
+
+```>>> from hashlib import blake2b>>> h = blake2b(key=b'pseudorandom
+key', digest_size=16)>>> h.update(b'message data')>>>
+h.hexdigest()'3d363ff7401e02026f4a4687d4863ced'```
+
+As a practical example, a web application can symmetrically sign cookies sentto users
+and later verify them to make sure they weren’t tampered with:
+
+Copy
+
+```>>> from hashlib import blake2b>>> from hmac import
+compare_digest>>>>>> SECRET_KEY = b'pseudorandomly generated server 
+secret key'>>> AUTH_SIZE = 16>>>>>> def sign(cookie):... 
+    h = blake2b(digest_size=AUTH_SIZE, key=SECRET_KEY)...     h.update(cookie)... 
+    return h.hexdigest().encode('utf-8')>>>>>> def verify(cookie, 
+sig):...     good_sig = sign(cookie)...     return compare_digest(good_sig,
+sig)>>>>>> cookie = b'user-alice'>>> sig = sign(cookie)>>> 
+print("{0},{1}".format(cookie.decode('utf-8'),
+sig))user-alice,b'43b3c982cf697e0c5ab22172d1ca7421'>>> verify(cookie, sig)True>>> 
+verify(b'user-bob', sig)False>>> verify(cookie, b'0102030405060708090a0b0c0d0e0f00')False```
+
+Even though there’s a native keyed hashing mode, BLAKE2 can, of course, be usedin 
+HMAC construction with [`hmac`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") module:
+
+Copy
+
+```>>> import hmac, hashlib>>> m = hmac.new(b'secret key',
+digestmod=hashlib.blake2s)>>> m.update(b'message')>>>
+m.hexdigest()'e3c8102868d28b5ff85fc35dda07329970d1a01e273c37481326fe0c861c8142'```
+
+#### Randomized hashing[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+By setting *salt* parameter users can introduce randomization to the hashfunction.
+Randomized hashing is useful for protecting against collision attackson the hash
+function used in digital signatures.
+
+>
+> Randomized hashing is designed for situations where one party, the message
+> preparer, generates all or part of a message to be signed by a second
+> party, the message signer. If the message preparer is able to find
+> cryptographic hash function collisions (i.e., two messages producing the
+> same hash value), then they might prepare meaningful versions of the message
+> that would produce the same hash value and digital signature, but with
+> different results (e.g., transferring $1,000,000 to an account, rather than
+> $10). Cryptographic hash functions have been designed with collision
+> resistance as a major goal, but the current concentration on attacking
+> cryptographic hash functions may result in a given cryptographic hash
+> function providing less collision resistance than expected. Randomized
+> hashing offers the signer additional protection by reducing the likelihood
+> that a preparer can generate two or more messages that ultimately yield the
+> same hash value during the digital signature generation process — even if
+> it is practical to find collisions for the hash function. However, the use
+> of randomized hashing may reduce the amount of security provided by a
+> digital signature when all portions of the message are prepared
+> by the signer.
+>
+> ([NIST SP-800-106 “Randomized Hashing for Digital Signatures”](../_static/pydoctheme.css?v=4365c8fe "stylesheet"))
+>
+
+In BLAKE2 the salt is processed as a one-time input to the hash function duringinitialization,
+rather than as an input to each compression function.
+
+
+Warning
+
+*Salted hashing* (or just hashing) with BLAKE2 or any other general-purposecryptographic
+hash function, such as SHA-256, is not suitable for hashingpasswords.  See [BLAKE2 FAQ](../_static/pydoctheme.css?v=4365c8fe "stylesheet") for moreinformation.
+
+Copy
+
+```>>> import os>>> from hashlib import blake2b>>> msg 
+= b'some message'>>> # Calculate the first hash with a random salt.>>> 
+salt1 = os.urandom(blake2b.SALT_SIZE)>>> h1 = blake2b(salt=salt1)>>> 
+h1.update(msg)>>> # Calculate the second hash with a different random salt.>>> 
+salt2 = os.urandom(blake2b.SALT_SIZE)>>> h2 = blake2b(salt=salt2)>>> 
+h2.update(msg)>>> # The digests are different.>>> h1.digest() != 
+h2.digest()True```
+
+#### Personalization[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+Sometimes it is useful to force hash function to produce different digests forthe 
+same input for different purposes. Quoting the authors of the Skein hashfunction:
+
+> 
+> We recommend that all application designers seriously consider doing this;
+> we have seen many protocols where a hash that is computed in one part of
+> the protocol can be used in an entirely different part because two hash
+> computations were done on similar or related data, and the attacker can
+> force the application to make the hash inputs the same. Personalizing each
+> hash function used in the protocol summarily stops this type of attack.
+> 
+> ([The Skein Hash Function Family](../_static/pydoctheme.css?v=4365c8fe "stylesheet"),
+> p. 21)
+> 
+
+BLAKE2 can be personalized by passing bytes to the *person* argument:
+
+Copy
+
+```>>> from hashlib import blake2b>>> FILES_HASH_PERSON = b'MyApp
+Files Hash'>>> BLOCK_HASH_PERSON = b'MyApp Block Hash'>>> h =
+blake2b(digest_size=32, person=FILES_HASH_PERSON)>>> h.update(b'the same
+content')>>>
+h.hexdigest()'20d9cd024d4fb086aae819a1432dd2466de12947831b75c5a30cf2676095d3b4'>>>
+h = blake2b(digest_size=32, person=BLOCK_HASH_PERSON)>>> h.update(b'the
+same content')>>>
+h.hexdigest()'cf68fb5761b9c44e7878bfb2c4c9aea52264a80b75005e65619778de59f383a3'```
+
+Personalization together with the keyed mode can also be used to derive differentkeys
+from a single one.
+
+Copy
+
+```>>> from hashlib import blake2s>>> from base64 import b64decode, 
+b64encode>>> orig_key =
+b64decode(b'Rm5EPJai72qcK3RGBpW3vPNfZy5OZothY+kHY6h21KM=')>>> enc_key = 
+blake2s(key=orig_key, person=b'kEncrypt').digest()>>> mac_key = blake2s(key=orig_key, 
+person=b'kMAC').digest()>>>
+print(b64encode(enc_key).decode('utf-8'))rbPb15S/Z9t+agffno5wuhB77VbRi6F9Iv2qIxU7WHw=>>> 
+print(b64encode(mac_key).decode('utf-8'))G9GtHFE1YluXY1zWPlYk1e/nWfu0WSEb0KRcjhDeP/o=```
+
+#### Tree mode[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+Here’s an example of hashing a minimal tree with two leaf nodes:
+
+Copy
+
+```  10 /  \\00  01```
+
+This example uses 64-byte internal digests, and returns the 32-byte finaldigest:
+
+Copy
+
+```>>> from hashlib import blake2b>>>>>> FANOUT = 2>>> 
+DEPTH = 2>>> LEAF_SIZE = 4096>>> INNER_SIZE = 64>>>>>> 
+buf = bytearray(6000)>>>>>> # Left leaf... h00 = blake2b(buf[0:LEAF_SIZE], 
+fanout=FANOUT, depth=DEPTH,...               leaf_size=LEAF_SIZE, inner_size=INNER_SIZE,... 
+              node_offset=0, node_depth=0, last_node=False)>>> # Right leaf... 
+h01 = blake2b(buf[LEAF_SIZE:], fanout=FANOUT, depth=DEPTH,...               leaf_size=LEAF_SIZE, 
+inner_size=INNER_SIZE,...               node_offset=1, node_depth=0, last_node=True)>>> 
+# Root node... h10 = blake2b(digest_size=32, fanout=FANOUT, depth=DEPTH,...      
+         leaf_size=LEAF_SIZE, inner_size=INNER_SIZE,...               node_offset=0, 
+node_depth=1, last_node=True)>>> h10.update(h00.digest())>>>
+h10.update(h01.digest())>>>
+h10.hexdigest()'3ad2a9b37c6070e374c7a8c508fe20ca86b6ed54e286e93a0318e95e881db5aa'```
+
+### Credits[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+[BLAKE2](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") was designed by
+*Jean-Philippe Aumasson*, *Samuel Neves*, *ZookoWilcox-O’Hearn*, and *Christian 
+Winnerlein* based on [SHA-3](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") finalist [BLAKE](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")created by
+*Jean-Philippe Aumasson*, *Luca Henzen*, *Willi Meier*, and*Raphael C.-W. Phan*.
+
+It uses core algorithm from [ChaCha](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") cipher designed by
+*Daniel J.  Bernstein*.
+
+The stdlib implementation is based on [pyblake2](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") module. It was written
+by*Dmitry Chestnykh* based on C implementation written by *Samuel Neves*. Thedocumentation 
+was copied from [pyblake2](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") and written by
+*Dmitry Chestnykh*.
+
+The C code was partly rewritten for Python by *Christian Heimes*.
+
+The following public domain dedication applies for both C hash functionimplementation, 
+extension code, and this documentation:
+
+> 
+> To the extent possible under law, the author(s) have dedicated all copyright
+> and related and neighboring rights to this software to the public domain
+> worldwide. This software is distributed without any warranty.
+> 
+> You should have received a copy of the CC0 Public Domain Dedication along
+> with this software. If not, see
+> [https://creativecommons.org/publicdomain/zero/1.0/](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+> 
+
+The following people have helped with development or contributed their changesto 
+the project and the public domain according to the Creative Commons PublicDomain 
+Dedication 1.0 Universal:
+
+- *Alexandr Sokolovskiy*
+
+
+See also
+Module [`hmac`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+A module to generate message authentication codes using hashes.
+Module [`base64`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Another way to encode binary hashes for non-binary environments.
+[https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.180-4.pdf](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The FIPS 180-4 publication on Secure Hash Algorithms.
+[https://csrc.nist.gov/pubs/fips/202/final](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The FIPS 202 publication on the SHA-3 Standard.
+[https://www.blake2.net/](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Official BLAKE2 website.
+[https://en.wikipedia.org/wiki/Cryptographic_hash_function](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Wikipedia article with information on which algorithms have known issuesand what 
+that means regarding their use.
+[https://www.ietf.org/rfc/rfc8018.txt](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+PKCS #5: Password-Based Cryptography Specification Version 2.1
+[https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-132.pdf](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+NIST Recommendation for Password-Based Key Derivation.
+            
+
+                              
+
+        
+
+  
+
+    
+### [Table of Contents](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+- [`hashlib` — Secure hashes and message digests](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")- [Hash algorithms](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Usage](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Constructors](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Attributes](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Hash Objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [SHAKE variable length digests](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [File hashing](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Key derivation](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [BLAKE2](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")- [Creating hash objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Constants](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Examples](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")- [Simple hashing](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Using different digest sizes](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Keyed hashing](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Randomized hashing](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Personalization](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Tree mode](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+- [Credits](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+#### Previous topic
+    
+[Cryptographic Services](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+#### Next topic
+    
+[`hmac` — Keyed-Hashing for Message Authentication](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+### This page
+    
+      - [Report a bug](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+      - [Improve this page](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+      -         [Show source        ](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")      
+          
+          
+
+«            
+
+          
+
+      
+### Navigation
+      
+        -           [index](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+        -           [modules](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+        -           [next](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+        -           [previous](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+          - 
+![Python logo](../_static/documentation_options.js?v=2f7d2144 "Search within Python 3.14.7 documentation")
+          - [Python](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") »
+          -             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+            
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+          
+          -                         
+    -       [3.14.7 Documentation](../_static/opensearch.xml "Search within Python 3.14.7 documentation") »    
+          - [The Python Standard Library](../_static/opensearch.xml "Search within Python 3.14.7 documentation") »
+          - [Cryptographic Services](../_static/opensearch.xml "Search within Python 3.14.7 documentation") »
+        - [`hashlib` — Secure hashes and message digests](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+                -                         
+
+                                                             |                
+            -     Theme            Auto  
+        Light  
+        Dark  
+     |
+                  
+          
+
+    © [Copyright](../_static/opensearch.xml "Search within Python 3.14.7 documentation") 2001 Python Software Foundation.      
+    This page is licensed under the Python Software Foundation License Version 2. 
+     
+    Examples, recipes, and other code in the documentation are additionally licensed 
+under the Zero Clause BSD License.      
+          See [History and License](../_static/opensearch.xml "Search within Python 3.14.7 documentation") for more information.  
+              
+    The Python Software Foundation is a non-profit corporation.[Please donate.](../_static/opensearch.xml "Search within Python 3.14.7 documentation")  
+      
+      Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](../_static/opensearch.xml "Search within Python 3.14.7 documentation")?          
+    Created using [Sphinx](../_static/opensearch.xml "Search within Python 3.14.7 documentation") 8.2.3.     
+   

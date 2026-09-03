@@ -1,0 +1,73 @@
+{
+  "case_id": "live-063-navigation-menu",
+  "url": "https://github.com/astral-sh/ruff",
+  "checked_at": "2026-09-03T14:15:51.388652+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/astral-sh/ruff"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/astral-sh/ruff",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 490825,
+  "sha256": "23bb31eb887693a3cac2e49de90c3c89085185367d40d3a7f5ff5b41dbb62152",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'self'; child-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com github.githubassets.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net productionresultssa1.blob.core.windows.net productionresultssa2.blob.core.windows.net productionresultssa3.blob.core.windows.net productionresultssa4.blob.core.windows.net productionresultssa5.blob.core.windows.net productionresultssa6.blob.core.windows.net productionresultssa7.blob.core.windows.net productionresultssa8.blob.core.windows.net productionresultssa9.blob.core.windows.net productionresultssa10.blob.core.windows.net productionresultssa11.blob.core.windows.net productionresultssa12.blob.core.windows.net productionresultssa13.blob.core.windows.net productionresultssa14.blob.core.windows.net productionresultssa15.blob.core.windows.net productionresultssa16.blob.core.windows.net productionresultssa17.blob.core.windows.net productionresultssa18.blob.core.windows.net productionresultssa19.blob.core.windows.net github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com wss://alive-staging.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com wss://production-copilot-host.webpubsub.azure.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com release-assets.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com repository-images.githubusercontent.com marketplace-screenshots.githubusercontent.com copilotprodattachments.blob.core.windows.net/github-production-copilot-attachments/ github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com explore-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com secured-user-images.githubusercontent.com private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "GitHub - astral-sh/ruff: An extremely fast Python linter and code formatter, written in Rust. · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/d6c7524504b7d886a9d34c11f44b9d31b2de1a579325b42e932744c4575a063b/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f7261772e67697468756275736572636f6e74656e742e636f6d2f61737472616c2d73682f727566662f6d61696e2f6173736574732f62616467652f76322e6a736f6e",
+      "alt": "Ruff"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/b9d02234cca42f4ea0328a7cbe12bada275d01e281db24abaa1b4c1078af32ba/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f727566662e737667",
+      "alt": "image"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fbb965ca4b28db655c35548ea77cde134fdefd677d5b885748e5b61638c66c9f/68747470733a2f2f696d672e736869656c64732e696f2f707970692f6c2f727566662e737667",
+      "alt": "image"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/cdc4bb3e0a031526c6b132c55c89e77776153eec5afbc2aef1fc17684967ea01/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f727566662e737667",
+      "alt": "image"
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/astral-sh/ruff/workflows/CI/badge.svg",
+      "alt": "Actions status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/ce606cede6777d8b8e7d6515c1ab0df43eeac0e4ba5975dd43fd66b589e88db1/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446973636f72642d2532333538363546322e7376673f6c6f676f3d646973636f7264266c6f676f436f6c6f723d7768697465",
+      "alt": "Discord"
+    },
+    {
+      "tag": "img",
+      "url": "https://user-images.githubusercontent.com/1309177/232603516-4fb4892d-585c-4b20-b810-3db9161831e4.svg",
+      "alt": "Shows a bar chart with benchmark results."
+    },
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/astral-sh/ruff/main/assets/svg/Astral.svg",
+      "alt": "Made by Astral"
+    }
+  ],
+  "extracted_sha256": "19a4062b5f49da7a2dc1067a621e6dc7a792d198ca84e696bfa388de7b77a259",
+  "reference_sha256": "19a4062b5f49da7a2dc1067a621e6dc7a792d198ca84e696bfa388de7b77a259",
+  "text_chars": 12430,
+  "excerpt": "Ruff\nDocs\n|\nPlayground\nAn extremely fast Python linter and code formatter, written in Rust.\nLinting the CPython codebase from scratch.\n⚡️ 10-100x faster than existing linters (like Flake8) and formatters (like Black)\n🐍 Installable via\npip\n🛠️\npyproject.toml\nsupport\n🤝 Python 3.14 compatibility\n⚖️ Drop-in parity with\nFlake8\n,\nisort\n, and\nBlack\n📦 Built-in caching, to avoid re-analyzing unchanged files\n🔧 Fix support, for automatic error correction (e.g., automatically remove unused imports)\n📏 Over\n900 built-in rules\n, with native re-implementations\nof popular Flake8 plugins, like flake8-bugbear\n⌨️ First-party\neditor integrations\nfor\nVS Code\nand\nmore\n🌎 Monorepo-friendly, with\nhierarchical and cascading configuration\nRuff aims to be orders of magnitude faster than alternative tools while integrat",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

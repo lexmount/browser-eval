@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-005-python-asyncio-documentation",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:07.869675+00:00",
+    "content_text": "asyncio\n— Asynchronous I/O\n¶\nasyncio is a library to write\nconcurrent\ncode using\nthe\nasync/await\nsyntax.\nasyncio is used as a foundation for multiple Python asynchronous\nframeworks that provide high-performance network and web-servers,\ndatabase connection libraries, distributed task queues, etc.\nasyncio is often a perfect fit for IO-bound and high-level\nstructured\nnetwork code.\nSee also\nA Conceptual Overview of asyncio\nExplanation of the fundamentals of asyncio.\nasyncio provides a set of\nhigh-level\nAPIs to:\nrun Python coroutines\nconcurrently and\nhave full control over their execution;\nperform\nnetwork IO and IPC\n;\ncontrol\nsubprocesses\n;\ndistribute tasks via\nqueues\n;\nsynchronize\nconcurrent code;\nFor\nintrospection\n, asyncio provides APIs and tools for:\ninspecting the\nasync call graph\nof tasks and futures;\ninspecting tasks in another running Python process with\ncommand-line tools\n;\nAdditionally, there are\nlow-level\nAPIs for\nlibrary and framework developers\nto:\ncreate and manage\nevent loops\n, which\nprovide asynchronous APIs for\nnetworking\n,\nrunning\nsubprocesses\n,\nhandling\nOS signals\n, etc;\nimplement efficient protocols using\ntransports\n;\nbridge\ncallback-based libraries and code\nwith async/await syntax.\nAvailability\n: not WASI.\nThis module does not work or is not available on WebAssembly. See\nWebAssembly platforms\nfor more information.\nasyncio REPL\nYou can experiment with an\nasyncio\nconcurrent context in the\nREPL\n:\n$ python -m asyncio\nasyncio REPL ...\nUse \"await\" directly instead of \"asyncio.run()\".\nType \"help\", \"copyright\", \"credits\" or \"license\" for more information.\n>>>\nimport\nasyncio\n>>>\nawait\nasyncio\n.\nsleep\n(\n10\n,\nresult\n=\n'hello'\n)\n'hello'\nThis REPL provides limited compatibility with\nPYTHON_BASIC_REPL\n.\nIt is recommended that the default REPL is used\nfor full functionality and the latest features.\nRaises an\nauditing event\ncpython.run_stdin\nwith no arguments.\nChanged in version 3.12.5:\n(also 3.11.10, 3.10.15, 3.9.20, and 3.8.20)\nEmits audit events.\nChanged in version 3.13:\nUses PyREPL if possible, in which case\nPYTHONSTARTUP\nis\nalso executed. Emits audit events.\nReference\nHigh-level APIs\nRunners\nCoroutines and tasks\nStreams\nSynchronization Primitives\nSubprocesses\nQueues\nExceptions\nIntrospection APIs\nCall graph introspection\nCommand-line introspection tools\nLow-level APIs\nEvent loop\nFutures\nTransports and Protocols\nPolicies\nPlatform Support\nExtending\nGuides and Tutorials\nHigh-level API Index\nLow-level API Index\nDeveloping with asyncio\nasyncio and free-threaded Python\nNote\nThe source code for asyncio can be found in\nLib/asyncio/\n.",
+    "scope_identity": {
+      "case_id": "live-005-python-asyncio-documentation",
+      "url": "https://docs.python.org/3/library/asyncio.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "[role=main]",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "asyncio — Asynchronous I/O"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "async/await syntax"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "High-level APIs"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 561.4138330565766,
+      "timeout_ms": 120000
+    }
+  }
+]

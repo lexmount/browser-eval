@@ -269,7 +269,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  for track,label in TRACKS.items():
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测',f'{len(cases)} 个案例 · {len(names)} 种方法 · 六类任务分别评测，不混成一个总分。')
- from .report_explainer import TITLE,render_explainer
+ from .report_explainer import article_title,render_explainer
+ TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
@@ -397,6 +398,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   body+=section('参考与实际输出',f'<div class="compare"><div><h3>{reference_heading}</h3><p>{link(reference_download,"下载契约" if reference_kind=="contract" else "下载参考")}</p><pre data-kind="{reference_kind}">{esc(ref)}</pre></div><div><h3>本次完整输出</h3><p>{link("../"+r["artifact_path"],"下载原始输出")}</p>'+('<p class="source-note">不可显示的控制字节以 \\xNN 展示；下载文件保留原始输出。</p>' if readable_output(output)!=output else '')+f'<pre data-kind="output">{esc(readable_output(output))}</pre></div></div>')
   checks_html=stable_checks(m) if 'stable_task_pass' in m else (table(['核对点','目标','判定','实际命中'],checks) if checks else '<p>本例按任务结构或原文件输出判定。</p>')+''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
   body+=section('逐项判定',checks_html+f'<details><summary>接口返回的附加字段</summary><pre data-kind="metadata">{esc(json.dumps(r.get("provider_metadata",{}),ensure_ascii=False,indent=2))}</pre></details>')
+  if r.get('provider_metadata',{}).get('rendered_html_path'):
+   body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
+  if r.get('provider_metadata',{}).get('raw_stdout_path'):
+   body+=section('非文本响应证据','<p>'+link('../'+r['provider_metadata']['raw_stdout_path'],'下载浏览器原始输出字节')+'。HTML 文本适配器未将该二进制响应转换为正文。</p>')
   write(out,'attempts/'+r['attempt_id']+'.html',c['name']+' · '+r['provider'],body)
  controls=filter_controls([('provider','方法',[(n,n) for n in names]),('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
  write(out,'analysis/index.html','结果分析',hero('结果分析','按方法、任务结果、失败环节和失败类别筛选；完整输出见案例详情。')+section('执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',r['provider']))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
@@ -404,6 +409,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  return out/'index.html'
 
 def write_support(out,records,manifests):
+ headless=bool(records) and all(r.get('provider_type')=='headless_html' for r in records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
@@ -414,9 +420,14 @@ def write_support(out,records,manifests):
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。相邻独立链接的标签按独立词段核对，不猜测粘连纯文本的分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考，但执行批次并非同时发生。时间和运行环境见环境页；实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
+ if headless:
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种浏览器每次使用新进程或新上下文，取 HTML 后由 pyhtml2md 1.7.0 转换；45 秒端到端预算，方法之间最多五路并行。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','运行参数')])
- write(out,'reproduce/index.html','复现',hero('数据与复现','使用冻结的任务、评分结果与原始输出生成报告。')+section('数据下载','<p>'+downloads+'</p>')+section('重建报告','<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>python3 scripts/build_report.py</pre><p>输出目录：reports/webfetch/。重新实测使用 scripts/run_benchmark.py，正文配置为 configs/providers.example.json，资源配置为 configs/providers.resources.json。凭据仅从本地环境加载，不包含在报告中。</p>'))
+ reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>python3 scripts/build_report.py</pre><p>输出目录：reports/webfetch/。重新实测使用 scripts/run_benchmark.py，正文配置为 configs/providers.example.json，资源配置为 configs/providers.resources.json。凭据仅从本地环境加载，不包含在报告中。</p>'
+ if headless:
+  reproduce='<p>在评测仓库中执行；读取 evaluation/headless/ 的冻结证据，不重新调用浏览器。</p><pre>python3 scripts/build_report.py</pre><p>唯一输出目录为 reports/webfetch/。重新测量使用 scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。过期的精确参考不能直接用于新一轮调用。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
+ write(out,'reproduce/index.html','复现',hero('数据与复现','使用冻结的任务、评分结果与原始输出生成报告。')+section('数据下载','<p>'+downloads+'</p>')+section('重建报告',reproduce))
  rows=[]
  for i,m in enumerate(manifests):
   for k,v in [('执行组',i+1),('开始（UTC）',m['started_at']),('完成（UTC）',m.get('completed_at')),('纳入调用数',m.get('attempt_count')),('Python',m['environment']['python']),('平台',m['environment']['platform']),('并发范围',m['parameters'].get('concurrency_scope')),('超时秒',m['parameters']['timeout'])]:rows.append(('',cell(k)+cell(esc(v))))

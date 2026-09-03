@@ -1,0 +1,765 @@
+http — HTTP modules — Python 3.14.7 documentation
+=================================================================
+
+\*/}#sidebarbutton:hover {    background-color: white;}#sidebarbutton span
+{    display: table-cell;    vertical-align: middle;}div.sphinxsidebarwrapper {  
+float: left;    margin-right: 0;}/\* -- hyperlink styles
+------------------------------------------------------ \*/a {    color: #0090c0;
+text-decoration: none;}a:visited {    color: #00608f;    text-decoration: none;}a:hover
+{    text-decoration: underline;}/\* -- body styles
+----------------------------------------------------------- \*/div.body h1,div.body
+h2,div.body h3,div.body h4,div.body h5,div.body h6 {    font-family: -apple-system,
+BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell,
+Ubuntu, roboto, noto, arial, sans-serif;    background-color: white;    font-weight:
+normal;    color: #1a1a1a;    border-bottom: 1px solid #ccc;    margin: 20px -20px
+10px -20px;    padding: 3px 0 3px 10px;}div.body h1 { margin-top: 0; font-size: 200%;
+}div.body h2 { font-size: 160%; }div.body h3 { font-size: 140%; }div.body h4 { font-size:
+120%; }div.body h5 { font-size: 110%; }div.body h6 { font-size: 100%; }a.headerlink
+{    color: #aaaaaa;    font-size: 0.8em;    padding: 0 4px 0 4px;    text-decoration:
+none;}a.headerlink:hover {    background-color: #aaaaaa;    color: white;}div.body
+p, div.body dd, div.body li, div.body blockquote {    text-align: justify;    line-height:
+130%;}div.admonition p.admonition-title + p {    display: inline;}div.admonition
+p {    margin-bottom: 5px;}div.admonition pre {    margin-bottom: 5px;}div.admonition
+ul, div.admonition ol {    margin-bottom: 5px;}div.note {    background-color: #eee;
+border: 1px solid #ccc;}div.seealso {    background-color: #ffc;    border: 1px
+solid #ff6;}nav.contents,aside.topic,div.topic {    background-color: #eee;}div.warning
+{    background-color: #ffe4e4;    border: 1px solid #f66;}p.admonition-title {  
+display: inline;}p.admonition-title:after {    content: ":";}pre {    padding:
+5px;    background-color: #eeffcc;    color: #333333;    line-height: 120%;    border:
+1px solid #ac9;    border-left: none;    border-right: none;}code {    background-color:
+#ecf0f3;    padding: 0 1px 0 1px;    font-size: 0.95em;}th, dl.field-list > dt {
+background-color: #ede;}.warning code {    background: #efc2c2;}.note code {  
+background: #d6d6d6;}.viewcode-back {    font-family: -apple-system, BlinkMacSystemFont,
+avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto,
+noto, arial, sans-serif;}div.viewcode-block:target {    background-color: #f4debf;
+border-top: 1px solid #ac9;    border-bottom: 1px solid #ac9;}div.code-block-caption
+{    color: #efefef;    background-color: #1c4e63;}  
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+Theme            Auto  
+Light  
+Dark  
+
+
+### [Table of Contents](../contents.html)
+
+- [`http` — HTTP modules](#)- [HTTP status codes](#http-status-codes)
+- [HTTP status category](#http-status-category)
+- [HTTP methods](#http-methods)
+
+
+#### Previous topic
+
+[`urllib.robotparser` —  Parser for robots.txt](urllib.robotparser.html "previous chapter")
+
+
+#### Next topic
+
+[`http.client` — HTTP protocol client](http.client.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=http+%E2%80%94+HTTP+modules&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fhttp.html&pagesource=library%2Fhttp.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/http.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](http.client.html "http.client — HTTP protocol client") |
+-           [previous](urllib.robotparser.html "urllib.robotparser — Parser for robots.txt") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [Internet Protocols and Support](internet.html) »
+- [`http` — HTTP modules]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+# `http` — HTTP modules[¶](#module-http "Link to this heading")
+
+**Source code:** [Lib/http/__init__.py](https://github.com/python/cpython/tree/3.14/Lib/http/__init__.py)
+
+---
+
+`http` is a package that collects several modules for working with theHyperText Transfer
+Protocol:
+
+- [`http.client`](http.client.html#module-http.client "http.client: HTTP and HTTPS protocol client (requires sockets).") is a low-level HTTP protocol client; for high-level URLopening use [`urllib.request`](../_static/pygments.css?v=b86133f3 "http — HTTP modules")
+- [`http.server`](../_static/pygments.css?v=b86133f3 "viewport") contains basic HTTP server classes based on [`socketserver`](../_static/pygments.css?v=b86133f3 "viewport")
+- [`http.cookies`](../_static/pygments.css?v=b86133f3 "viewport") has utilities for implementing state management with cookies
+- [`http.cookiejar`](../_static/pygments.css?v=b86133f3 "viewport") provides persistence of cookies
+
+The `http` module also defines the following enums that help you work with http related
+code:
+*class *http.HTTPStatus[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+
+Added in version 3.5.
+
+A subclass of [`enum.IntEnum`](../_static/classic.css?v=234b1a7c "highlight-") that defines a set of HTTP status codes,reason phrases and long descriptions written in English.
+
+Usage:
+
+Copy
+
+```>>> from http import HTTPStatus>>> HTTPStatus.OKHTTPStatus.OK>>> 
+HTTPStatus.OK == 200True>>> HTTPStatus.OK.value200>>>
+HTTPStatus.OK.phrase'OK'>>> HTTPStatus.OK.description'Request fulfilled, 
+document follows'>>> list(HTTPStatus)[HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, 
+...]```
+
+## HTTP status codes[¶](../_static/classic.css?v=234b1a7c "highlight-")
+
+Supported,[IANA-registered status codes](../_static/classic.css?v=234b1a7c "highlight-")available in [`http.HTTPStatus`](../_static/classic.css?v=234b1a7c "highlight-") are:
+
+|                                                                                                                                                                         |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                                                         |
+| Enum Name                                                                                                                                                               |
+|                                                                                                                                                                         |
+| Details                                                                                                                                                                 |
+| -                                                                                                                                                                       | - | - |
+|                                                                                                                                                                         |
+| `100`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `CONTINUE`                                                                                                                                                              |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/classic.css?v=234b1a7c "highlight-"), Section 15.2.1                                                                           |
+| `101`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `SWITCHING_PROTOCOLS`                                                                                                                                                   |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/classic.css?v=234b1a7c "highlight-"), Section 15.2.2                                                                           |
+| `102`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PROCESSING`                                                                                                                                                            |
+|                                                                                                                                                                         |
+| WebDAV [**RFC 2518**](../_static/classic.css?v=234b1a7c "highlight-"), Section 10.1                                                                                     |
+| `103`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `EARLY_HINTS`                                                                                                                                                           |
+|                                                                                                                                                                         |
+| An HTTP Status Code for Indicating Hints [**RFC 8297**](../_static/classic.css?v=234b1a7c "highlight-")                                                                 |
+| `200`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `OK`                                                                                                                                                                    |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.1                                                                        |
+| `201`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `CREATED`                                                                                                                                                               |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.2                                                                        |
+| `202`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `ACCEPTED`                                                                                                                                                              |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.3                                                                        |
+| `203`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NON_AUTHORITATIVE_INFORMATION`                                                                                                                                         |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.4                                                                        |
+| `204`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NO_CONTENT`                                                                                                                                                            |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.5                                                                        |
+| `205`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `RESET_CONTENT`                                                                                                                                                         |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.6                                                                        |
+| `206`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PARTIAL_CONTENT`                                                                                                                                                       |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.3.7                                                                        |
+| `207`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `MULTI_STATUS`                                                                                                                                                          |
+|                                                                                                                                                                         |
+| WebDAV [**RFC 4918**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 11.1                                                                                  |
+| `208`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `ALREADY_REPORTED`                                                                                                                                                      |
+|                                                                                                                                                                         |
+| WebDAV Binding Extensions [**RFC 5842**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 7.1 (Experimental)                                                 |
+| `226`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `IM_USED`                                                                                                                                                               |
+|                                                                                                                                                                         |
+| Delta Encoding in HTTP [**RFC 3229**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 10.4.1                                                                |
+| `300`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `MULTIPLE_CHOICES`                                                                                                                                                      |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.4.1                                                                        |
+| `301`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `MOVED_PERMANENTLY`                                                                                                                                                     |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.4.2                                                                        |
+| `302`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `FOUND`                                                                                                                                                                 |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "highlight-"), Section 15.4.3                                                                        |
+| `303`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `SEE_OTHER`                                                                                                                                                             |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.4.4                                                                        |
+| `304`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NOT_MODIFIED`                                                                                                                                                          |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.4.5                                                                        |
+| `305`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `USE_PROXY`                                                                                                                                                             |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.4.6                                                                        |
+| `307`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `TEMPORARY_REDIRECT`                                                                                                                                                    |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.4.8                                                                        |
+| `308`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PERMANENT_REDIRECT`                                                                                                                                                    |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.4.9                                                                        |
+| `400`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `BAD_REQUEST`                                                                                                                                                           |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.1                                                                        |
+| `401`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `UNAUTHORIZED`                                                                                                                                                          |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.2                                                                        |
+| `402`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PAYMENT_REQUIRED`                                                                                                                                                      |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.3                                                                        |
+| `403`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `FORBIDDEN`                                                                                                                                                             |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.4                                                                        |
+| `404`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NOT_FOUND`                                                                                                                                                             |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.5                                                                        |
+| `405`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `METHOD_NOT_ALLOWED`                                                                                                                                                    |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.6                                                                        |
+| `406`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NOT_ACCEPTABLE`                                                                                                                                                        |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.7                                                                        |
+| `407`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PROXY_AUTHENTICATION_REQUIRED`                                                                                                                                         |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.8                                                                        |
+| `408`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `REQUEST_TIMEOUT`                                                                                                                                                       |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.9                                                                        |
+| `409`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `CONFLICT`                                                                                                                                                              |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.10                                                                       |
+| `410`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `GONE`                                                                                                                                                                  |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.11                                                                       |
+| `411`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `LENGTH_REQUIRED`                                                                                                                                                       |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.12                                                                       |
+| `412`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PRECONDITION_FAILED`                                                                                                                                                   |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.13                                                                       |
+| `413`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `CONTENT_TOO_LARGE`                                                                                                                                                     |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.14                                                                       |
+| `414`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `URI_TOO_LONG`                                                                                                                                                          |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.15                                                                       |
+| `415`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `UNSUPPORTED_MEDIA_TYPE`                                                                                                                                                |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.16                                                                       |
+| `416`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `RANGE_NOT_SATISFIABLE`                                                                                                                                                 |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.17                                                                       |
+| `417`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `EXPECTATION_FAILED`                                                                                                                                                    |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.18                                                                       |
+| `418`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `IM_A_TEAPOT`                                                                                                                                                           |
+|                                                                                                                                                                         |
+| HTCPCP/1.0 [**RFC 2324**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 2.3.2                                                                             |
+| `421`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `MISDIRECTED_REQUEST`                                                                                                                                                   |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.20                                                                       |
+| `422`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `UNPROCESSABLE_CONTENT`                                                                                                                                                 |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.21                                                                       |
+| `423`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `LOCKED`                                                                                                                                                                |
+|                                                                                                                                                                         |
+| WebDAV [**RFC 4918**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 11.3                                                                                  |
+| `424`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `FAILED_DEPENDENCY`                                                                                                                                                     |
+|                                                                                                                                                                         |
+| WebDAV [**RFC 4918**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 11.4                                                                                  |
+| `425`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `TOO_EARLY`                                                                                                                                                             |
+|                                                                                                                                                                         |
+| Using Early Data in HTTP [**RFC 8470**](../_static/pydoctheme.css?v=4365c8fe "stylesheet")                                                                              |
+| `426`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `UPGRADE_REQUIRED`                                                                                                                                                      |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), Section 15.5.22                                                                       |
+| `428`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `PRECONDITION_REQUIRED`                                                                                                                                                 |
+|                                                                                                                                                                         |
+| Additional HTTP Status Codes [**RFC 6585**](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")                                           |
+| `429`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `TOO_MANY_REQUESTS`                                                                                                                                                     |
+|                                                                                                                                                                         |
+| Additional HTTP Status Codes [**RFC 6585**](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")                                           |
+| `431`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `REQUEST_HEADER_FIELDS_TOO_LARGE`                                                                                                                                       |
+|                                                                                                                                                                         |
+| Additional HTTP Status Codes [**RFC 6585**]( "Search within Python 3.14.7 documentation")                                                                               |
+| `451`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `UNAVAILABLE_FOR_LEGAL_REASONS`                                                                                                                                         |
+|                                                                                                                                                                         |
+| An HTTP Status Code to Report Legal Obstacles [**RFC 7725**]( "Search within Python 3.14.7 documentation")                                                              |
+| `500`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `INTERNAL_SERVER_ERROR`                                                                                                                                                 |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**]( "Search within Python 3.14.7 documentation"), Section 15.6.1                                                                             |
+| `501`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NOT_IMPLEMENTED`                                                                                                                                                       |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15.6.2                                      |
+| `502`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `BAD_GATEWAY`                                                                                                                                                           |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15.6.3                                      |
+| `503`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `SERVICE_UNAVAILABLE`                                                                                                                                                   |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15.6.4                                      |
+| `504`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `GATEWAY_TIMEOUT`                                                                                                                                                       |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15.6.5                                      |
+| `505`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `HTTP_VERSION_NOT_SUPPORTED`                                                                                                                                            |
+|                                                                                                                                                                         |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15.6.6                                      |
+| `506`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `VARIANT_ALSO_NEGOTIATES`                                                                                                                                               |
+|                                                                                                                                                                         |
+| Transparent Content Negotiation in HTTP [**RFC 2295**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 8.1 (Experimental) |
+| `507`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `INSUFFICIENT_STORAGE`                                                                                                                                                  |
+|                                                                                                                                                                         |
+| WebDAV [**RFC 4918**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 11.5                                                |
+| `508`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `LOOP_DETECTED`                                                                                                                                                         |
+|                                                                                                                                                                         |
+| WebDAV Binding Extensions [**RFC 5842**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 7.2 (Experimental)               |
+| `510`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NOT_EXTENDED`                                                                                                                                                          |
+|                                                                                                                                                                         |
+| An HTTP Extension Framework [**RFC 2774**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 7 (Experimental)               |
+| `511`                                                                                                                                                                   |
+|                                                                                                                                                                         |
+| `NETWORK_AUTHENTICATION_REQUIRED`                                                                                                                                       |
+|                                                                                                                                                                         |
+| Additional HTTP Status Codes [**RFC 6585**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 6                             |
+
+In order to preserve backwards compatibility, enum values are also presentin the 
+[`http.client`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") module in the form of constants. The enum name isequal to the constant name (i.e. `http.HTTPStatus.OK` 
+is also available as`http.client.OK`).
+
+
+Changed in version 3.7: Added `421 MISDIRECTED_REQUEST` status code.
+
+
+Added in version 3.8: Added `451 UNAVAILABLE_FOR_LEGAL_REASONS` status code.
+
+
+Added in version 3.9: Added `103 EARLY_HINTS`, `418 IM_A_TEAPOT` and `425 TOO_EARLY` status codes.
+
+
+Changed in version 3.13: Implemented RFC9110 naming for status constants. Old constant 
+names are preserved forbackwards compatibility: `413 REQUEST_ENTITY_TOO_LARGE`, `414 REQUEST_URI_TOO_LONG`,`416 REQUESTED_RANGE_NOT_SATISFIABLE` and `422 UNPROCESSABLE_ENTITY`.
+
+## HTTP status category[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+
+Added in version 3.12.
+
+The enum values have several properties to indicate the HTTP status category:
+
+|                                                                                                                                |
+|--------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                |
+| Indicates that                                                                                                                 |
+|                                                                                                                                |
+| Details                                                                                                                        |
+| -                                                                                                                              | - | - |
+|                                                                                                                                |
+| `is_informational`                                                                                                             |
+|                                                                                                                                |
+| `100 <= status <= 199`                                                                                                   |
+|                                                                                                                                |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15 |
+| `is_success`                                                                                                                   |
+|                                                                                                                                |
+| `200 <= status <= 299`                                                                                                   |
+|                                                                                                                                |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15 |
+| `is_redirection`                                                                                                               |
+|                                                                                                                                |
+| `300 <= status <= 399`                                                                                                   |
+|                                                                                                                                |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15 |
+| `is_client_error`                                                                                                              |
+|                                                                                                                                |
+| `400 <= status <= 499`                                                                                                   |
+|                                                                                                                                |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15 |
+| `is_server_error`                                                                                                              |
+|                                                                                                                                |
+| `500 <= status <= 599`                                                                                                   |
+|                                                                                                                                |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 15 |
+
+> 
+> Usage:
+> 
+> Copy
+> 
+> ```>>> from http import HTTPStatus
+> >>> HTTPStatus.OK.is_success
+> True
+> >>> HTTPStatus.OK.is_client_error
+> False
+> ```
+> 
+*class *http.HTTPMethod[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+
+Added in version 3.11.
+
+A subclass of [`enum.StrEnum`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") that defines a set of HTTP methods and descriptions written in English.
+
+Usage:
+
+Copy
+
+```>>> from http import HTTPMethod>>>>>>
+HTTPMethod.GET<HTTPMethod.GET>>>> HTTPMethod.GET == 'GET'True>>>
+HTTPMethod.GET.value'GET'>>> HTTPMethod.GET.description'Retrieve the target.'>>>
+list(HTTPMethod)[<HTTPMethod.CONNECT>, <HTTPMethod.DELETE>, <HTTPMethod.GET>,
+<HTTPMethod.HEAD>, <HTTPMethod.OPTIONS>, <HTTPMethod.PATCH>,
+<HTTPMethod.POST>, <HTTPMethod.PUT>, <HTTPMethod.TRACE>]```
+
+## HTTP methods[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+Supported,[IANA-registered methods](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")available in [`http.HTTPMethod`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") are:
+
+|                                                                                                                                   |
+|-----------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                   |
+| Enum Name                                                                                                                         |
+|                                                                                                                                   |
+| Details                                                                                                                           |
+| -                                                                                                                                 | - | - |
+|                                                                                                                                   |
+| `GET`                                                                                                                             |
+|                                                                                                                                   |
+| `GET`                                                                                                                             |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 9.3.1 |
+| `HEAD`                                                                                                                            |
+|                                                                                                                                   |
+| `HEAD`                                                                                                                            |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 9.3.2 |
+| `POST`                                                                                                                            |
+|                                                                                                                                   |
+| `POST`                                                                                                                            |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 9.3.3 |
+| `PUT`                                                                                                                             |
+|                                                                                                                                   |
+| `PUT`                                                                                                                             |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), Section 9.3.4 |
+| `DELETE`                                                                                                                          |
+|                                                                                                                                   |
+| `DELETE`                                                                                                                          |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), Section 9.3.5               |
+| `CONNECT`                                                                                                                         |
+|                                                                                                                                   |
+| `CONNECT`                                                                                                                         |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), Section 9.3.6               |
+| `OPTIONS`                                                                                                                         |
+|                                                                                                                                   |
+| `OPTIONS`                                                                                                                         |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), Section 9.3.7               |
+| `TRACE`                                                                                                                           |
+|                                                                                                                                   |
+| `TRACE`                                                                                                                           |
+|                                                                                                                                   |
+| HTTP Semantics [**RFC 9110**](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), Section 9.3.8               |
+| `PATCH`                                                                                                                           |
+|                                                                                                                                   |
+| `PATCH`                                                                                                                           |
+|                                                                                                                                   |
+| HTTP/1.1 [**RFC 5789**](../_static/opensearch.xml "Search within Python 3.14.7 documentation")                                    |
+
+
+### [Table of Contents](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+- [`http` — HTTP modules](../_static/opensearch.xml "Search within Python 3.14.7 documentation")- [HTTP status codes](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+- [HTTP status category](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+- [HTTP methods](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+
+#### Previous topic
+
+[`urllib.robotparser` —  Parser for robots.txt](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+
+#### Next topic
+
+[`http.client` — HTTP protocol client](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+
+### This page
+
+- [Report a bug](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+- [Improve this page](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+-         [Show source        ](../_static/opensearch.xml "Search within Python 3.14.7 documentation")      
+
+
+«            
+
+
+### Navigation
+
+-           [index](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+-           [modules](../_static/opensearch.xml "Search within Python 3.14.7 documentation") |
+-           [next](../_static/opensearch.xml "Search within Python 3.14.7 documentation") |
+-           [previous](../_static/opensearch.xml "Search within Python 3.14.7 documentation") |
+-
+![Python logo](https://analytics.python.org/js/script.file-downloads.outbound-links.js "About these documents")
+- [Python](../about.html "Index") »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../_static/py.svg "previous chapter") »    
+- [The Python Standard Library](../_static/py.svg "previous chapter") »
+- [Internet Protocols and Support](../_static/py.svg "previous chapter") »
+- [`http` — HTTP modules](../_static/py.svg "previous chapter")
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+© [Copyright](../_static/py.svg "previous chapter") 2001 Python Software Foundation.      
+This page is licensed under the Python Software Foundation License Version 2.
+
+Examples, recipes, and other code in the documentation are additionally licensed
+under the Zero Clause BSD License.      
+See [History and License](../_static/py.svg "previous chapter") for more information.  
+
+The Python Software Foundation is a non-profit corporation.[Please donate.](../_static/py.svg "previous chapter")  
+
+Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](../_static/py.svg "previous chapter")?          
+Created using [Sphinx](../_static/py.svg "previous chapter") 8.2.3.        

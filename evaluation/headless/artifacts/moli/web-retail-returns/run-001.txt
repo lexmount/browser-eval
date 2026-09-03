@@ -1,0 +1,621 @@
+Returns & Exchanges | Anthropologie
+=======================================================================
+
+
+The items in your bag won't last long. Don't miss out!           
+\`;                // Insert immediately above the heading               
+heading.before(cartAlert);            } else if (!hasItems && existing) {       
+existing.remove();            }        } finally {            setTimeout(function
+() { isUpdating = false; }, 0);        }    }    function debouncedUpdate() {    
+if (isUpdating) return;        clearTimeout(debounceTimer);        debounceTimer
+= setTimeout(updateAlert, 200);    }    function watchItemsList() {        if (itemsObserver)
+{ itemsObserver.disconnect(); itemsObserver = null; }        var itemsList =
+document.querySelector(".c-pwa-cart-transactional__items");        if (!itemsList)
+return;        itemsObserver = new MutationObserver(function () {            if (isUpdating)
+return;            debouncedUpdate();        });        itemsObserver.observe(itemsList,
+{ childList: true });    }    function init() {        if (!onCartPage() || !correctLocale())
+return;        updateAlert();        watchItemsList();    }    function teardown()
+{        if (itemsObserver) { itemsObserver.disconnect(); itemsObserver = null; }
+clearTimeout(debounceTimer);    }    // Hydration-done detection: look for
+Vue's runtime markers on the mount    // root. These only attach once Vue has hydrated
+the app.    function isHydrated() {        var root =
+document.querySelector('.c-pwa-cart__transactional-cart');        if (!root) return
+false;        return !!(root.__vnode || root.__vueParentComponent || root.__vue_app__)
+&& !!window.urbn?.vendor            &&
+!!document.querySelector('div.s-pwa-cart-transactional-heading');    }    function
+whenHydrated(callback) {        if (isHydrated()) { callback(); return; }        
+var checks = 0;        var maxChecks = 100; // ~10s at 100ms        var iv = setInterval(function
+() {            checks++;            if (isHydrated()) { clearInterval(iv); callback();
+}            else if (checks >= maxChecks) { clearInterval(iv); }        }, 100);
+}    // SPA navigations    document.addEventListener('urbn-spa-ready', function
+() {        teardown();        if (onCartPage()) init();    });    // Initial load
+— whenHydrated handles waiting, no readiness event needed    if (onCartPage())
+whenHydrated(init);})();
+
+
+[                                                          
+![terrain-home](//images.ctfassets.net/5de70he6op10/51fSGDFv5MZidksyLhZx8c/8f2c1c73291cb6955df4988bddffaa3d/040926_Terrain_Summer1-PDPGraphicBanner-Desktop-Mobile__1_.jpg?w=1280&q=80&fm=jpg&fl=progressive)           
+](/anthrohome/terrain-home "false")            \`;function isTerrainPDP()
+{  const path = document.location?.pathname || "";  return /\\/shop\\/terrain-/.test(path);}function
+fireTerrainBannerRP() {  try {    const img = new Image();    img.src =
+"/__ssobj/rp.gif?rp=terrain_banner_pageview&t=" + Date.now();    console.log("[TerrainBanner]
+RP beacon fired: terrain_banner_pageview");  } catch (e) {    console.warn("[TerrainBanner]
+RP beacon failed", e);  }}function injectTerrainBanner() {  console.log("[TerrainBanner]
+injectTerrainBanner called");  if (document.getElementById("pdp-terrain-banner-SS"))
+{    console.log("[TerrainBanner] Already injected, skipping");    return true;  
+}  const targets = [    "#app > div.js-pwa-breakpoints > div.o-pwa-main.o-pwa-view
+> main > div:nth-child(1)",    ".o-pwa-main.o-pwa-view > main > div:first-child",
+"main > div:first-child",  ];  let target = null;  let matchedSelector = null;
+for (const sel of targets) {    const el = document.querySelector(sel);    if (el)
+{      target = el;      matchedSelector = sel;      break;    }  }  if (!target)
+{    console.warn("[TerrainBanner] No target element found from any selector");  
+return false;  }  console.log("[TerrainBanner] Target found via selector:", matchedSelector);
+target.insertAdjacentHTML("beforebegin", terrainBannerHTML);  console.log("[TerrainBanner]
+Banner injected");  fireTerrainBannerRP();  return true;}let terrainObserver = null;let
+terrainObserverTimeout = null;function watchForTarget() {  console.log("[TerrainBanner]
+watchForTarget called, path:", document.location?.pathname);  if (injectTerrainBanner())
+return;  if (terrainObserver) terrainObserver.disconnect();  if (terrainObserverTimeout)
+clearTimeout(terrainObserverTimeout);  terrainObserver = new MutationObserver(()
+=> {    if (injectTerrainBanner()) {      terrainObserver.disconnect();      terrainObserver
+= null;      if (terrainObserverTimeout) clearTimeout(terrainObserverTimeout);   
+}  });  terrainObserver.observe(document.body, { childList: true, subtree: true
+});  terrainObserverTimeout = setTimeout(() => {    if (terrainObserver) {     
+terrainObserver.disconnect();      terrainObserver = null;      console.log("[TerrainBanner]
+Observer timed out after 15s");    }  }, 15000);}document.addEventListener('urbn-spa-ready',
+() => {  console.log("[TerrainBanner] urbn-spa-ready fired, path:", document.location?.pathname);
+const existing = document.getElementById("pdp-terrain-banner-SS");  if (existing)
+{    console.log("[TerrainBanner] Removing stale injected banner");    existing.remove();
+}  if (!isTerrainPDP()) {    console.log("[TerrainBanner] Not a terrain PDP, skipping");
+return;  }  watchForTarget();});
+
+
+[                                                                
+
+![Text reading 'Try on your dream dress.' with a 'book a free appointment' button on a light sage green background.](//images.ctfassets.net/5de70he6op10/6EwmVoJYcpCyPRj6IewVRw/8264231acf4533a91d44fbe2216c4134/JULY26_PDP_Banner_Appt_SS.jpg?w=1004&q=80&fm=jpg&fl=progressive)                   
+opens in a new window                ](https://appointments-weddings.anthropologie.com/?category=33#/services "false")               
+\`;function isWeddingPDP() {  const path
+= document.location?.pathname || "";  if (!path.startsWith("/shop/")) return false;
+const keywords = ["bhldn", "wedding", "engage", "bachelorette", "bridal", "bride"];
+const breadcrumbEls = document.querySelectorAll(".o-pwa-breadcrumbs__list-item a,
+.o-pwa-breadcrumbs__link");  const breadcrumbTexts = Array.from(breadcrumbEls).map(el
+=> (el.textContent || "").trim().toLowerCase());  const breadcrumbHrefs =
+Array.from(breadcrumbEls).map(el => (el.getAttribute("href") || "").toLowerCase());
+const hasMatch = breadcrumbTexts.some(text => keywords.some(kw => text.includes(kw)))
+|| breadcrumbHrefs.some(href => keywords.some(kw => href.includes(kw)));  const
+hasWeddingOrBhldn = window.urbn?.vendor?.page_breadcrumb?.some(item => {    const
+lower = item.toLowerCase();    return keywords.some(kw => lower.includes(kw));  });
+const curation = window.urbn?.vendor?.curation_name?.toLowerCase() || "";  const
+hasCuration = keywords.some(kw => curation.includes(kw));  return hasMatch || hasWeddingOrBhldn
+|| hasCuration;}function fireAppointmentBannerRP() {  try {    const img = new Image();
+img.src = "/__ssobj/rp.gif?rp=appointment_banner_pageview&t=" + Date.now();  }
+catch (e) {}}function injectAppointmentBanner() {  if
+(document.getElementById("pdp-weddings-book-an-appointment-banner-SS")) return true;
+const targets = [    "#app > div.js-pwa-breakpoints > div.o-pwa-main.o-pwa-view
+> main > div:nth-child(1)",    ".o-pwa-main.o-pwa-view > main > div:first-child",
+"main > div:first-child",  ];  let target = null;  for (const sel of targets)
+{    const el = document.querySelector(sel);    if (el) {      target = el;      
+break;    }  }  if (!target) return false;  target.insertAdjacentHTML("beforebegin",
+appointmentBannerHTML);  fireAppointmentBannerRP();  return true;}let appointmentObserver
+= null;let appointmentObserverTimeout = null;function watchForAppointmentTarget()
+{  if (injectAppointmentBanner()) return;  if (appointmentObserver)
+appointmentObserver.disconnect();  if (appointmentObserverTimeout)
+clearTimeout(appointmentObserverTimeout);  appointmentObserver = new MutationObserver(()
+=> {    if (injectAppointmentBanner()) {      appointmentObserver.disconnect();  
+appointmentObserver = null;      if (appointmentObserverTimeout)
+clearTimeout(appointmentObserverTimeout);    }  });  appointmentObserver.observe(document.body,
+{ childList: true, subtree: true });  appointmentObserverTimeout = setTimeout(()
+=> {    if (appointmentObserver) {      appointmentObserver.disconnect();      appointmentObserver
+= null;    }  }, 15000);}document.addEventListener('urbn-spa-ready', () => {  const
+existing = document.getElementById("pdp-weddings-book-an-appointment-banner-SS");
+if (existing) existing.remove();  if (window.__appointmentEligibilityInterval) {
+clearInterval(window.__appointmentEligibilityInterval);   
+window.__appointmentEligibilityInterval = null;  }  let attempts = 0;  const maxAttempts
+= 20;  window.__appointmentEligibilityInterval = setInterval(() => {    attempts++;
+if (isWeddingPDP()) {      clearInterval(window.__appointmentEligibilityInterval);
+window.__appointmentEligibilityInterval = null;      watchForAppointmentTarget();
+return;    }    if (attempts >= maxAttempts) {     
+clearInterval(window.__appointmentEligibilityInterval);     
+window.__appointmentEligibilityInterval = null;    }  }, 300);}); 0) {          
+window.monetateQ = window.monetateQ || [];          window.monetateQ.push(["setPageType",
+"cart"]);          window.monetateQ.push(["addCartRows", addRowsArray]);         
+window.monetateQ.push(["addProducts", addProductsArray]);         
+window.monetateQ.push(["trackData"]);        }      } catch (e) {        console.error("Monetate
+Cart Tracking Error:", e);      }    }, 500);  }  // ---- Runner: fires both modules
+where relevant ----  function runAll() {    stamp();    if (document.querySelector(CART_ITEM_SEL))
+{      window.trackMonetateCart();    }  }  // ---- Initial settle ----  var tries
+= 0;  (function settle() {    var stamped = stamp();    if (document.querySelector(CART_ITEM_SEL))
+window.trackMonetateCart();    if (stamped || ++tries > 40) { watch(); return; }
+setTimeout(settle, 150);  })();  // ---- SPA navigation + DOM watcher ----  function
+watch() {    var pending = null;    function queue() {      if (pending) return;
+pending = setTimeout(function () { pending = null; runAll(); }, 120);    }  
+if (window.MutationObserver && document.body) {      new
+MutationObserver(queue).observe(document.body, { childList: true, subtree: true
+});    }    ['pushState', 'replaceState'].forEach(function (m) {      var orig =
+history[m];      if (typeof orig !== 'function') return;      history[m] = function
+() {        var r = orig.apply(this, arguments);        setTimeout(runAll, 400);
+return r;      };    });    window.addEventListener('popstate', function ()
+{ setTimeout(runAll, 400); });  }  window.__urbnStampTiles = stamp;})();} 6 || !o
+|| typeof o !== 'object') return;      for (var k in o) { if
+(!Object.prototype.hasOwnProperty.call(o, k)) continue;        if (k === 'merchandiseClass'
+&& typeof o[k] === 'string') { mc = o[k]; return; }        if (o[k] && typeof o[k]
+=== 'object') find(o[k], d + 1);      }    })(entry, 0);    var sid = 'uo-us', cur
+= 'USD', lang = 'en-US';    for (var sk in state) {      var s = state[sk];      
+if (s && s.siteGroupDefaults) {        var g = s.siteGroupDefaults;        if (g.defaultSiteId)
+sid = g.defaultSiteId;        if (g.currencies && g.currencies[sid]) cur = g.currencies[sid];
+if (g.languages && g.languages[sid]) lang = g.languages[sid];      }    }
+var opts = {      urbn: { cache: true },      headers: { 'X-Urbn-Site-Id': sid,
+'X-Urbn-Currency': cur, 'X-Urbn-Language': lang },      params: { 'merchandise-class':
+mc, offset: 0, limit: 1, sort: 'submissionTime:desc' }    };    return svc.a15Client
+.get('/review/v0/' + sid + '/products/' + entry.productId + '/reviews', opts)
+.then(function (res) {        var d = (res && res.data) ? res.data : res;   
+var fs = d && d.product && d.product.reviewStatistics          &&
+d.product.reviewStatistics.secondaryRatingsAverages          &&
+d.product.reviewStatistics.secondaryRatingsAverages.fitSlide;        return qsLabelFromAvg(fs
+&& fs.averageRating);      });  }  function qsRender(slug) {    var label = qsCache[slug];
+if (!label || label === 'PENDING') return;    var modal =
+document.querySelector('.c-pwa-quickshop');    if (!modal || qsModalSlug(modal)
+!== slug) return;    var existing = document.getElementById(QSCFG.ID);    if (existing)
+{      if (existing.dataset.productSlug === slug) return;     
+existing.parentNode.removeChild(existing);    }    var anchor =
+modal.querySelector('fieldset.c-pwa-sku-selection__size');    if (!anchor || !anchor.parentNode)
+{ qsLog('size fieldset not found'); return; }    var line = document.createElement('div');
+line.id = QSCFG.ID;    line.dataset.productSlug = slug;    line.style.cssText
+= QSCFG.STYLE;    line.appendChild(document.createTextNode('Customers Say: '));  
+var strong = document.createElement('strong');    strong.textContent = label;  
+strong.style.setProperty('font-weight', '350', 'important');    line.appendChild(strong);
+anchor.parentNode.insertBefore(line, anchor.nextSibling);    qsLog('INJECTED =>',
+label);  }  function qsTick() {    var modal = document.querySelector('.c-pwa-quickshop');
+if (!modal) return;    if (qsIsCartEditModal(modal)) { qsLog('skip cart-edit quickshop');
+return; }    var state = qsState();    if (!state) { qsLog('catalog not ready');
+return; }    var slug = qsModalSlug(modal);    if (!slug) { qsLog('no modal slug');
+return; }    var entry = state.catalog.products[slug];    if (!entry || !entry.productId)
+{ qsLog('modal product not in catalog yet', slug); return; }    if (qsCache[slug]
+=== undefined) {      qsCache[slug] = 'PENDING';      qsA15Label(state, entry).then(function
+(label) {        qsCache[slug] = label || qsPinaLabel(entry);        qsLog('resolved
+via', label ? 'a15 (accurate)' : 'pinia fallback', '->', qsCache[slug]);        qsRender(slug);
+}).catch(function (e) {        qsCache[slug] = qsPinaLabel(entry);        qsLog('a15
+failed (' + (e && e.message) + '); pinia fallback ->', qsCache[slug]);        qsRender(slug);
+});    }    qsRender(slug);  }  // Safely initialize the script once the DOM
+is ready to prevent timing errors  function init() {    setInterval(qsTick, 300);
+qsTick();  }  if (document.readyState === 'loading') {   
+document.addEventListener('DOMContentLoaded', init);  } else {    init();  }})();}.
+A bare /shop or /shop/ is a        // browse page, not a product.        return
+/\\/shop\\/[^\\/?#]+/i.test(location.pathname);    }    // 2b. Bottoms PDP detector
+— reads breadcrumb link hrefs    const BOTTOMS_HREF_REGEX = /\\/bottoms/i;    const
+BOTTOMS_TEXT_REGEX =
+/(jean|pant|trouser|jogger|legging|short|skirt|denim|chino|cargo|jupe|hose|pantalon|falda)/i;
+function isBottomsPDP() {        const breadcrumbs =
+document.querySelector('.o-pwa-breadcrumbs');        if (!breadcrumbs) return false;
+const links = breadcrumbs.querySelectorAll('.o-pwa-breadcrumbs__link');   
+for (let i = 0; i = 768 ? "13px" : "11px";            customSpan.style.lineHeight
+= window.innerWidth >= 768 ? "18px" : "16px";        }    }    // 4. Burst-polling
+helper — runs every 100ms for ~4s, then hands off to    // a slower background
+poll. Can be re-armed (see below) any time we know    // navigation just happened,
+so we don't depend on any single mutation or    // app-dispatched event landing at
+exactly the right moment.    // Skips entirely on non-PDP paths so /clothes, /shop
+browse, home, etc.    // don't run an interval forever.    let burstInterval = null;
+let idleInterval = null;    function armBurstPolling() {        if (idleInterval)
+{ clearInterval(idleInterval); idleInterval = null; }        if (burstInterval) {
+clearInterval(burstInterval); burstInterval = null; }        if (!isPDPPath()) return;
+let ticks = 0;        burstInterval = setInterval(function() {            
+renderFitText();            ticks++;            if (ticks > 40) { // ~4s         
+clearInterval(burstInterval);                burstInterval = null;        
+// Only keep an idle poll alive if we're still on a PDP URL.             
+if (isPDPPath()) {                    idleInterval = setInterval(function() {
+if (!isPDPPath()) {                            clearInterval(idleInterval);
+idleInterval = null;                            return;
+}                        renderFitText();                 
+}, 250);                }            }        }, 100);    }    // 5. Reactive
+triggers    // a) React to any DOM mutation (Vue reconciling the fieldset/breadcrumbs,
+//    default fit selection being applied, etc.). Cheap early-out on    //    
+non-PDP paths so browse pages don't churn.    const observer = new MutationObserver(function()
+{        if (!isPDPPath()) return;        renderFitText();    });   
+observer.observe(document.documentElement, {        childList: true,        subtree:
+true,        attributes: true,        attributeFilter: ['checked', 'aria-checked',
+'class']    });    // b) React to the app's own SPA-navigation-complete signal, if
+it fires    document.addEventListener('urbn-spa-ready', armBurstPolling);    // c)
+React to the user actually changing the fit selection    document.addEventListener('change',
+function(e) {        if (e.target && e.target.matches &&
+e.target.matches('.c-pwa-sku-selection__fits-outer input[type="radio"]')) {     
+renderFitText();        }    }, true);    // d) Cover the plain full-load
+case too    document.addEventListener('DOMContentLoaded', armBurstPolling);   
+window.addEventListener('load', armBurstPolling);    // e) Detect SPA route changes
+directly, independent of any app event.    //    Vue Router navigations go through
+pushState/replaceState (and    //    popstate for back/forward) — wrapping these
+catches every    //    client-side navigation regardless of whether urbn-spa-ready
+fires.    let lastHref = location.href;    function onLocationChange() {        if
+(location.href !== lastHref) {            lastHref = location.href;            //
+Reset the log-dedup key so the first message on a new URL            // always prints,
+even if it's the same tag as the previous page.            __ssFitLastLogKey = '';
+armBurstPolling();        }    }    (function(history) {        const
+push = history.pushState;        const replace = history.replaceState;        history.pushState
+= function() {            const ret = push.apply(history, arguments);            
+onLocationChange();            return ret;        };        history.replaceState
+= function() {            const ret = replace.apply(history, arguments);         
+onLocationChange();            return ret;        };    })(window.history);   
+window.addEventListener('popstate', onLocationChange);    // Belt-and-suspenders:
+cheap periodic check for URL drift the above    // might miss (e.g. router implementations
+that mutate location in    // less common ways).    setInterval(onLocationChange,
+500);    // Run once immediately in case the DOM is already there on hard load.  
+// armBurstPolling() will no-op if we're not on a /shop/ URL.    renderFitText();
+armBurstPolling();})();}    
+
+[Skip to main content](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+
+[
+![/fr-fr/](//images.ctfassets.net/5de70he6op10/53ZOE4rRqrxcvv0hg2eSLV/a849085e5f600c618132be2475017746/anthro-logo.svg ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+
+[
+![/fr-fr/](//images.ctfassets.net/5de70he6op10/53ZOE4rRqrxcvv0hg2eSLV/a849085e5f600c618132be2475017746/anthro-logo.svg ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")](/en-gb/help/personal-styling ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+
+Sign In
+/ Sign Up
+
+
+-
+
+[New!](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Top-Rated](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Dresses](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Dresses](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Dresses](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Clothing](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Shoes](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Accessories](/shop/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Weddings]( ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Home & Furniture](undefined ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Beauty](href ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Maeve](href ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Gifts & Seasonal](href ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+-
+
+[Sale](href ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+
+Close
+=========
+
+
+[Clear](https://static.anthropologie.com/static/v3/favicon.ico)
+Suggestions, trending searches, and preview results will populate after the search
+button.
+Magnifying glass
+====================
+
+
+Your browser does not have JS enabled, you are still
+able to browse the website but you won't be able to access advanced features such
+as editing or logging in.                        
+
+
+Browse Help Topics
+
+[Customer Service](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+
+-
+
+United States                                                                        -
+
+[Ordering & Payment](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Shipping Information](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Returns & Exchanges](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Frequently Asked Questions](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Curated by Anthropologie](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+Outside the US                                                                   
+
+-
+
+[Ordering & Payment](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Shipping Information](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Returns & Exchanges](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png "Returns & Exchanges | Anthropologie")
+-
+
+[Frequently Asked Questions](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png)
+-
+
+[Contact Us](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29.png)
+-
+
+[Stay Connected](https://static.anthropologie.com/static/v3/apple-touch/appleicon_29x29_x2.png)
+-
+
+[Current Promotions](https://static.anthropologie.com/static/v3/apple-touch/appleicon_50x50.png)
+-
+
+[Size Guides](https://static.anthropologie.com/static/v3/apple-touch/appleicon_57x57_x2.png)
+-
+
+[Legal](https://static.anthropologie.com/static/v3/apple-touch/appleicon_72x72_x2.png)
+
+
+# Returns & Exchanges
+
+![terrain-home](//images.ctfassets.net/5de70he6op10/fptbOolrKARgfJkNMpf1c/9cd0e254c0ac4339e6a260035f1852f1/040926_Terrain_Summer1-PDPGraphicBanner-Desktop-_1_.jpg?w=2190&q=80&fm=webp)
+
+
+## Returning & Exchanging Online Orders
+
+Return or exchange online orders by mail or at a store! [Start your online return or exchange here](/anthrohome/terrain-home). To locate your order number, simply review your [order history](/anthrohome/terrain-home). A $5.95 fee will be deducted from your refund for most mailed returns. If you prefer to return your item(s) at a store, you can [find the nearest store location here](/anthrohome/terrain-home).
+
+![terrain-home](//images.ctfassets.net/5de70he6op10/fptbOolrKARgfJkNMpf1c/9cd0e254c0ac4339e6a260035f1852f1/040926_Terrain_Summer1-PDPGraphicBanner-Desktop-_1_.jpg?w=2190&q=80&fm=webp)
+
+
+## Returning In-Store Purchases
+
+In-store purchases must be returned to a store location. [Locate a store](/anthrohome/terrain-home) near you to confirm business hours. Please note: Merchandise purchased at our stores cannot be returned via mail or to our warehouse.
+
+![terrain-home](//images.ctfassets.net/5de70he6op10/fptbOolrKARgfJkNMpf1c/9cd0e254c0ac4339e6a260035f1852f1/040926_Terrain_Summer1-PDPGraphicBanner-Desktop-_1_.jpg?w=2190&q=80&fm=webp)
+
+
+## Returning Furniture
+
+Unlimited Furniture Delivery items in a saleable condition may be returned or exchanged
+within 30 days from the date of delivery. For item care and maintenance, [visit our Furniture Guide](/anthrohome/terrain-home) or [contact our furniture specialists](/anthrohome/terrain-home) to begin your return.
+
+
+Returning an international order? [Visit Returns & Exchanges Outside the US for more information](/anthrohome/terrain-home "false").
+
+
+Please note that all product-related issues, such as missing or damaged items/packages,
+must be reported within 30 days.
+
+
+###
+
+Our Return Policy                                                               
+
+
+- Returns or exchanges must be accompanied by an original sales receipt or AnthroPerks lookup.
+- We'll gladly accept unworn, unwashed, and unaltered merchandise for return or exchange within one year of purchase or delivery date of shipped items. All tags must be attached, and items must be returned in original packaging. Defective items may still be accepted.
+- For merchandise returned *within* 30 days of the delivery or in-store purchase date, a refund will be issued to the original form of payment at the original selling price. If returned *after* 30 days, a merchandise credit will be issued at the original selling price. After one year, we will no longer accept returns or exchanges. For online orders, the window for returns and exchanges will be determined by the delivery date of the shipped items.
+- A one-time price adjustment will be granted on full-price purchases only if an original sales receipt is presented within 14 days of purchase.
+- All items can be returned to stores with the exception of Curated by Anthropologie merchandise, Unlimited Furniture Delivery items, and wedding gowns and bridal sets *unless they were originally purchased at a store location*. Please see below for more information on these exception policies.
+- Items purchased online or in-store cannot be returned to the Anthropologie Home Outlet or Anthropologie pop-up locations.
+
+
+### Final Sale
+
+- All sale items ending in $.95 that are purchased at an additional sale-on-sale discount and marked "Final Sale," cannot be returned or exchanged.
+- Purchases of packaged food, menstrual cups, personal devices from our sexual wellness assortment, live plants, and made-to-order wedding gowns and bridal sets cannot be returned or exchanged.
+- All items sold at Anthropologie Home Outlets are sold as-is and are final sale.
+
+
+###
+
+Returning or Exchanging Online Orders                                           
+
+
+### Returns
+To return or exchange merchandise purchased on anthropologie.com, our iOS app, or
+by phone,  follow the easy steps below!  
+
+Please note, merchandise purchased in our stores can only be returned to a store.
+Return labels are only available for orders shipping to the continental US and no
+additional postage is required. However, a $5.95 shipping charge will be deducted
+from your refund unless you are processing an exchange. Shipping fees are non-refundable.  
+
+Anthropologie is not responsible for non-Anthropologie items shipped back to us in
+error.  
+
+
+#### 1. Locate Your Order
+If you have an Anthropologie account, sign in, select [Order History](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left"), then locate and select the order you wish to return or exchange. Guest orders and orders received as gifts may be found by checking your [Order Status](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left").  
+[Begin Online Return or Exchange](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")  
+
+
+#### 2. Start a Return or Exchange & Print Your Return Label
+Once you've located your order, select Start a Return or Exchange and follow the
+instructions to print your label. Upon completion, you will receive an email with
+tracking information, as well as a copy of your label in case it is misplaced.  
+
+
+#### 3. Affix Return Label
+Affix the return label to your package, and be sure to remove (or cover) the original
+shipping label. For a faster refund, your return label and return slip should correspond
+with the items in your package. Please process and mail multiple returns individually.  
+[Schedule a Complimentary UPS Pickup](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")  
+
+If you prefer to use your own carrier, please use a trackable and insured shipping
+method. Anthropologie is not responsible for shipping fees or lost returns. Don't
+forget to obtain a tracking number and a receipt from the carrier for your records.  
+
+
+#### Return for a damaged, missing, or wrong item(s)
+We apologize for any issues with your order. Please submit a claim here within 30
+days of the shipping date to start your return.   
+
+
+### Exchanges
+We offer the exchange options listed below.  
+
+
+#### Exchange for the Same Item in a Different Size or Color
+Did you order the wrong size or color? We’ll provide a FREE return label and waive
+shipping for your new order. Select "Begin Online Return or Exchange" below.  
+
+
+#### Exchange for a Different Item
+If you’d like to exchange your order for a different item(s), please visit your
+[Order History](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") and select “Start a Return or Exchange”.  
+Once you have finished the return process for the selected item(s), feel free to
+continue shopping and place a new order for any newly selected styles!  
+
+
+#### Exchange for a damaged, missing, or wrong item(s)
+We apologize for any issues with your order. Please [submit a claim here](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") within 30 days of the shipping date to initiate a free replacement.  
+
+
+#### [Begin Online Return or Exchange](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left")
+
+
+### Refund Process
+Most returns will process in approximately 1-2 weeks, depending on your method of
+return. Additional delays may occur. You will receive an email notification when
+your return has been processed (be sure to check your spam folder).  
+
+A refund will then be credited back to your original method of payment and will post
+approximately 1-3 business days after the processing date. It may take up to two
+billing cycles for the credit to appear on your monthly credit card statement. Gift
+Card purchases will be refunded in the form of a merchandise credit.
+
+
+###
+
+Returning In-Store Purchases                                                    
+
+
+Returns are complimentary at all US and Canada stores. [Visit our Store Locator](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") to find the store(s) nearest you.  
+
+All items can be returned to stores with the exception of Curated by Anthropologie
+merchandise, Unlimited Furniture Delivery items, and wedding gowns and bridal sets
+*unless they were originally purchased at a store location*. Please see below for
+more information on these exception policies.   
+
+
+### Refund Process
+Most returns will be credited back to your original method of payment within approximately
+1-3 business days. It may take up to two billing cycles for the credit to appear
+on your monthly bank statement. Gift card purchases will be refunded in the form
+of merchandise credit.  
+
+
+### Exchanges
+Exchanges can be made in our stores  within one year of purchase or delivery date
+of shipped items.
+
+
+###
+
+Returning Furniture & Select Decor                                          
+
+
+### Furniture & Select Décor
+
+- Unlimited Furniture Delivery items in saleable condition may be returned or exchanged within 30 days of the delivery date.
+- Unlimited Furniture Delivery items must be shipped back via our delivery service and cannot be returned to a store.
+- Select upholstery is subject to a 25% restocking fee, as well as applicable taxes. The fee will be deducted from the refund once the return is processed. For details about the restocking fee for a specific item, please visit the product page.
+- For fabric care and item maintenance, [visit our Furniture Guide](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") for answers!
+
+
+### After Your Delivery: Questions & Concerns
+We hope everything goes perfectly, but in the event that it doesn't, please contact
+our Furniture Specialists to report any damages or issues. For White Glove Delivery,
+the delivery team should contact our Furniture Specialists before leaving. For support
+after unpacking doorstep or oversized UPS items, [contact our Furniture Specialists](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") immediately to report any damages or concerns.  
+
+Please refer to the [Returns & Exchanges](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") section for our complete return policy.  
+
+
+### How to Return Furniture
+If your item(s) arrived via delivery service, please [contact our furniture specialists](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") to schedule a complimentary return pickup. Your method of payment will be refunded once your items are processed at our warehouse. The initial Unlimited Furniture Delivery fee is non-refundable.  
+
+If your oversized item(s) arrived via UPS, please [contact our furniture specialists](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") to get a return label. A $5.95 shipping charge will be deducted from your refund.  
+
+
+### Exchanges
+[Contact our furniture specialists](/help/bhldn-styling-appointments ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") for assistance to complete your furniture exchange. Exchange orders may be subject to an additional flat-rate shipping fee.
+
+
+###
+
+Returning Wedding Gowns and Bridal Sets                                         
+
+
+- We'll gladly accept unworn, unwashed, and unaltered eligible merchandise for return or exchange. Merchandise must be free of stains, pet hair, floor debris, and pin marks.
+- All original tags must be attached and items must be returned in original packaging.
+- They may not be returned to stores *unless originally purchased* at a store location.
+- Made-to-order gowns are final sale and cannot be cancelled, returned or exchanged.
+- Wedding gowns are subject to a $25 restocking fee, as well as applicable taxes. The fee will be deducted from the refund once the return is processed. For details about the restocking fee for a specific item, please visit the product page.
+
+
+To start your return or exchange, either sign into your Anthropologie account, select
+[Order History](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left"), then locate and select the order you wish to return or exchange. Guest orders and orders received as gifts may be found by checking your [Order Status](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left").
+
+
+###
+
+Returning Gifts or Registry Purchases                                           
+
+
+You can return online orders by mail or at a store, as long as they are accompanied
+by an original sales receipt or are eligible for AnthroPerks lookup. Use the [Start A Return Or Exchange](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") link located in the footer on our website. Enter the order number and the billing zip code that was used to place the order.  
+
+The order number can be found on the shipping label on the outside of the packaging.
+If you're unable to locate this number, please [contact us](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") with the gift giver's name and/or email address and we'll be happy to help.  
+
+Make sure to select the e-merchandise credit option and enter the email address you
+wish for it to be sent to once the return has been received.  
+
+In-store purchases may be returned to any store location for merchandise credit.
+[Locate a store near you](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") near you to confirm business hours. Please note that merchandise purchased in our stores cannot be returned via mail.
+
+
+###
+
+Returning Curated By Anthropologie Purchases                                    
+
+
+Merchandise sold and shipped by our selling partners must be returned to the selling
+partner. Seller return policies may vary and can be found on the product page under
+Shipping & Returns and in your [Order History](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") after an order is placed.  
+
+Merchandise cannot be returned or exchanged in store or mailed back to Anthropologie.  
+
+A prepaid return label will be included with most purchases. If you need help making
+your return, please visit your Order History and reach out to the seller via the
+messaging center.  
+
+Visit [Curated by Anthropologie FAQs](/shop/mto/ ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left") for more information.
+
+
+###
+
+Returning DoorDash Purchases                                                    
+
+
+Doordash purchases can be exchanged for the same product in a new size or color of
+equal value at any Anthropologie store location within 30 days of purchase. Items
+purchased on DoorDash are not eligible for refund and return.   
+
+For any assistance with an order placed with DoorDash, please reach out to DoorDash
+customer service directly. You can contact DoorDash customer service via their app
+or by calling [+1-855-431-0459](undefined ".c-pwa-text-component__title, .c-pwa-text-component__pre-title, h2.c-pwa-text-component__title--left").  
+
+

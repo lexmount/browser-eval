@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-002-http-http-modules",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:07.104821+00:00",
+    "content_text": "http\n— HTTP modules\n¶\nSource code:\nLib/http/__init__.py\nhttp\nis a package that collects several modules for working with the\nHyperText Transfer Protocol:\nhttp.client\nis a low-level HTTP protocol client; for high-level URL\nopening use\nurllib.request\nhttp.server\ncontains basic HTTP server classes based on\nsocketserver\nhttp.cookies\nhas utilities for implementing state management with cookies\nhttp.cookiejar\nprovides persistence of cookies\nThe\nhttp\nmodule also defines the following enums that help you work with http related code:\nclass\nhttp.\nHTTPStatus\n¶\nAdded in version 3.5.\nA subclass of\nenum.IntEnum\nthat defines a set of HTTP status codes,\nreason phrases and long descriptions written in English.\nUsage:\n>>>\nfrom\nhttp\nimport\nHTTPStatus\n>>>\nHTTPStatus\n.\nOK\nHTTPStatus.OK\n>>>\nHTTPStatus\n.\nOK\n==\n200\nTrue\n>>>\nHTTPStatus\n.\nOK\n.\nvalue\n200\n>>>\nHTTPStatus\n.\nOK\n.\nphrase\n'OK'\n>>>\nHTTPStatus\n.\nOK\n.\ndescription\n'Request fulfilled, document follows'\n>>>\nlist\n(\nHTTPStatus\n)\n[HTTPStatus.CONTINUE, HTTPStatus.SWITCHING_PROTOCOLS, ...]\nHTTP status codes\n¶\nSupported,\nIANA-registered status codes\navailable in\nhttp.HTTPStatus\nare:\nCode\nEnum Name\nDetails\n100\nCONTINUE\nHTTP Semantics\nRFC 9110\n, Section 15.2.1\n101\nSWITCHING_PROTOCOLS\nHTTP Semantics\nRFC 9110\n, Section 15.2.2\n102\nPROCESSING\nWebDAV\nRFC 2518\n, Section 10.1\n103\nEARLY_HINTS\nAn HTTP Status Code for Indicating Hints\nRFC 8297\n200\nOK\nHTTP Semantics\nRFC 9110\n, Section 15.3.1\n201\nCREATED\nHTTP Semantics\nRFC 9110\n, Section 15.3.2\n202\nACCEPTED\nHTTP Semantics\nRFC 9110\n, Section 15.3.3\n203\nNON_AUTHORITATIVE_INFORMATION\nHTTP Semantics\nRFC 9110\n, Section 15.3.4\n204\nNO_CONTENT\nHTTP Semantics\nRFC 9110\n, Section 15.3.5\n205\nRESET_CONTENT\nHTTP Semantics\nRFC 9110\n, Section 15.3.6\n206\nPARTIAL_CONTENT\nHTTP Semantics\nRFC 9110\n, Section 15.3.7\n207\nMULTI_STATUS\nWebDAV\nRFC 4918\n, Section 11.1\n208\nALREADY_REPORTED\nWebDAV Binding Extensions\nRFC 5842\n, Section 7.1 (Experimental)\n226\nIM_USED\nDelta Encoding in HTTP\nRFC 3229\n, Section 10.4.1\n300\nMULTIPLE_CHOICES\nHTTP Semantics\nRFC 9110\n, Section 15.4.1\n301\nMOVED_PERMANENTLY\nHTTP Semantics\nRFC 9110\n, Section 15.4.2\n302\nFOUND\nHTTP Semantics\nRFC 9110\n, Section 15.4.3\n303\nSEE_OTHER\nHTTP Semantics\nRFC 9110\n, Section 15.4.4\n304\nNOT_MODIFIED\nHTTP Semantics\nRFC 9110\n, Section 15.4.5\n305\nUSE_PROXY\nHTTP Semantics\nRFC 9110\n, Section 15.4.6\n307\nTEMPORARY_REDIRECT\nHTTP Semantics\nRFC 9110\n, Section 15.4.8\n308\nPERMANENT_REDIRECT\nHTTP Semantics\nRFC 9110\n, Section 15.4.9\n400\nBAD_REQUEST\nHTTP Semantics\nRFC 9110\n, Section 15.5.1\n401\nUNAUTHORIZED\nHTTP Semantics\nRFC 9110\n, Section 15.5.2\n402\nPAYMENT_REQUIRED\nHTTP Semantics\nRFC 9110\n, Section 15.5.3\n403\nFORBIDDEN\nHTTP Semantics\nRFC 9110\n, Section 15.5.4\n404\nNOT_FOUND\nHTTP Semantics\nRFC 9110\n, Section 15.5.5\n405\nMETHOD_NOT_ALLOWED\nHTTP Semantics\nRFC 9110\n, Section 15.5.6\n406\nNOT_ACCEPTABLE\nHTTP Semantics\nRFC 9110\n, Section 15.5.7\n407\nPROXY_AUTHENTICATION_REQUIRED\nHTTP Semantics\nRFC 9110\n, Section 15.5.8\n408\nREQUEST_TIMEOUT\nHTTP Semantics\nRFC 9110\n, Section 15.5.9\n409\nCONFLICT\nHTTP Semantics\nRFC 9110\n, Section 15.5.10\n410\nGONE\nHTTP Semantics\nRFC 9110\n, Section 15.5.11\n411\nLENGTH_REQUIRED\nHTTP Semantics\nRFC 9110\n, Section 15.5.12\n412\nPRECONDITION_FAILED\nHTTP Semantics\nRFC 9110\n, Section 15.5.13\n413\nCONTENT_TOO_LARGE\nHTTP Semantics\nRFC 9110\n, Section 15.5.14\n414\nURI_TOO_LONG\nHTTP Semantics\nRFC 9110\n, Section 15.5.15\n415\nUNSUPPORTED_MEDIA_TYPE\nHTTP Semantics\nRFC 9110\n, Section 15.5.16\n416\nRANGE_NOT_SATISFIABLE\nHTTP Semantics\nRFC 9110\n, Section 15.5.17\n417\nEXPECTATION_FAILED\nHTTP Semantics\nRFC 9110\n, Section 15.5.18\n418\nIM_A_TEAPOT\nHTCPCP/1.0\nRFC 2324\n, Section 2.3.2\n421\nMISDIRECTED_REQUEST\nHTTP Semantics\nRFC 9110\n, Section 15.5.20\n422\nUNPROCESSABLE_CONTENT\nHTTP Semantics\nRFC 9110\n, Section 15.5.21\n423\nLOCKED\nWebDAV\nRFC 4918\n, Section 11.3\n424\nFAILED_DEPENDENCY\nWebDAV\nRFC 4918\n, Section 11.4\n425\nTOO_EARLY\nUsing Early Data in HTTP\nRFC 8470\n426\nUPGRADE_REQUIRED\nHTTP Semantics\nRFC 9110\n, Section 15.5.22\n428\nPRECONDITION_REQUIRED\nAdditional HTTP Status Codes\nRFC 6585\n429\nTOO_MANY_REQUESTS\nAdditional HTTP Status Codes\nRFC 6585\n431\nREQUEST_HEADER_FIELDS_TOO_LARGE\nAdditional HTTP Status Codes\nRFC 6585\n451\nUNAVAILABLE_FOR_LEGAL_REASONS\nAn HTTP Status Code to Report Legal Obstacles\nRFC 7725\n500\nINTERNAL_SERVER_ERROR\nHTTP Semantics\nRFC 9110\n, Section 15.6.1\n501\nNOT_IMPLEMENTED\nHTTP Semantics\nRFC 9110\n, Section 15.6.2\n502\nBAD_GATEWAY\nHTTP Semantics\nRFC 9110\n, Section 15.6.3\n503\nSERVICE_UNAVAILABLE\nHTTP Semantics\nRFC 9110\n, Section 15.6.4\n504\nGATEWAY_TIMEOUT\nHTTP Semantics\nRFC 9110\n, Section 15.6.5\n505\nHTTP_VERSION_NOT_SUPPORTED\nHTTP Semantics\nRFC 9110\n, Section 15.6.6\n506\nVARIANT_ALSO_NEGOTIATES\nTransparent Content Negotiation in HTTP\nRFC 2295\n, Section 8.1 (Experimental)\n507\nINSUFFICIENT_STORAGE\nWebDAV\nRFC 4918\n, Section 11.5\n508\nLOOP_DETECTED\nWebDAV Binding Extensions\nRFC 5842\n, Section 7.2 (Experimental)\n510\nNOT_EXTENDED\nAn HTTP Extension Framework\nRFC 2774\n, Section 7 (Experimental)\n511\nNETWORK_AUTHENTICATION_REQUIRED\nAdditional HTTP Status Codes\nRFC 6585\n, Section 6\nIn order to preserve backwards compatibility, enum values are also present\nin the\nhttp.client\nmodule in the form of constants. The enum name is\nequal to the constant name (i.e.\nhttp.HTTPStatus.OK\nis also available as\nhttp.client.OK\n).\nChanged in version 3.7:\nAdded\n421\nMISDIRECTED_REQUEST\nstatus code.\nAdded in version 3.8:\nAdded\n451\nUNAVAILABLE_FOR_LEGAL_REASONS\nstatus code.\nAdded in version 3.9:\nAdded\n103\nEARLY_HINTS\n,\n418\nIM_A_TEAPOT\nand\n425\nTOO_EARLY\nstatus codes.\nChanged in version 3.13:\nImplemented RFC9110 naming for status constants. Old constant names are preserved for\nbackwards compatibility:\n413\nREQUEST_ENTITY_TOO_LARGE\n,\n414\nREQUEST_URI_TOO_LONG\n,\n416\nREQUESTED_RANGE_NOT_SATISFIABLE\nand\n422\nUNPROCESSABLE_ENTITY\n.\nHTTP status category\n¶\nAdded in version 3.12.\nThe enum values have several properties to indicate the HTTP status category:\nProperty\nIndicates that\nDetails\nis_informational\n100\n<=\nstatus\n<=\n199\nHTTP Semantics\nRFC 9110\n, Section 15\nis_success\n200\n<=\nstatus\n<=\n299\nHTTP Semantics\nRFC 9110\n, Section 15\nis_redirection\n300\n<=\nstatus\n<=\n399\nHTTP Semantics\nRFC 9110\n, Section 15\nis_client_error\n400\n<=\nstatus\n<=\n499\nHTTP Semantics\nRFC 9110\n, Section 15\nis_server_error\n500\n<=\nstatus\n<=\n599\nHTTP Semantics\nRFC 9110\n, Section 15\nUsage:\n>>>\nfrom\nhttp\nimport\nHTTPStatus\n>>>\nHTTPStatus\n.\nOK\n.\nis_success\nTrue\n>>>\nHTTPStatus\n.\nOK\n.\nis_client_error\nFalse\nclass\nhttp.\nHTTPMethod\n¶\nAdded in version 3.11.\nA subclass of\nenum.StrEnum\nthat defines a set of HTTP methods and descriptions written in English.\nUsage:\n>>>\nfrom\nhttp\nimport\nHTTPMethod\n>>>\n>>>\nHTTPMethod\n.\nGET\n<HTTPMethod.GET>\n>>>\nHTTPMethod\n.\nGET\n==\n'GET'\nTrue\n>>>\nHTTPMethod\n.\nGET\n.\nvalue\n'GET'\n>>>\nHTTPMethod\n.\nGET\n.\ndescription\n'Retrieve the target.'\n>>>\nlist\n(\nHTTPMethod\n)\n[<HTTPMethod.CONNECT>,\n<HTTPMethod.DELETE>,\n<HTTPMethod.GET>,\n<HTTPMethod.HEAD>,\n<HTTPMethod.OPTIONS>,\n<HTTPMethod.PATCH>,\n<HTTPMethod.POST>,\n<HTTPMethod.PUT>,\n<HTTPMethod.TRACE>]\nHTTP methods\n¶\nSupported,\nIANA-registered methods\navailable in\nhttp.HTTPMethod\nare:\nMethod\nEnum Name\nDetails\nGET\nGET\nHTTP Semantics\nRFC 9110\n, Section 9.3.1\nHEAD\nHEAD\nHTTP Semantics\nRFC 9110\n, Section 9.3.2\nPOST\nPOST\nHTTP Semantics\nRFC 9110\n, Section 9.3.3\nPUT\nPUT\nHTTP Semantics\nRFC 9110\n, Section 9.3.4\nDELETE\nDELETE\nHTTP Semantics\nRFC 9110\n, Section 9.3.5\nCONNECT\nCONNECT\nHTTP Semantics\nRFC 9110\n, Section 9.3.6\nOPTIONS\nOPTIONS\nHTTP Semantics\nRFC 9110\n, Section 9.3.7\nTRACE\nTRACE\nHTTP Semantics\nRFC 9110\n, Section 9.3.8\nPATCH\nPATCH\nHTTP/1.1\nRFC 5789",
+    "scope_identity": {
+      "case_id": "live-002-http-http-modules",
+      "url": "https://docs.python.org/3/library/http.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "[role=main]",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "http — HTTP modules"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "HTTP status codes"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "HTTP status category"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 763.9852920547128,
+      "timeout_ms": 120000
+    }
+  }
+]

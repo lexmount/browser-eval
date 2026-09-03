@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-038-mystery",
+    "independent": true,
+    "checked_at": "2026-09-03T14:30:46.711543+00:00",
+    "content_text": "Mystery\n32\nresults - showing\n1\nto\n20\n.\nWarning!\nThis is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.\nSharp Objects\n£47.82\nIn stock\nAdd to basket\nIn a Dark, Dark ...\n£19.63\nIn stock\nAdd to basket\nThe Past Never Ends\n£56.50\nIn stock\nAdd to basket\nA Murder in Time\n£16.64\nIn stock\nAdd to basket\nThe Murder of Roger ...\n£44.10\nIn stock\nAdd to basket\nThe Last Mile (Amos ...\n£54.21\nIn stock\nAdd to basket\nThat Darkness (Gardiner and ...\n£13.92\nIn stock\nAdd to basket\nTastes Like Fear (DI ...\n£10.69\nIn stock\nAdd to basket\nA Time of Torment ...\n£48.35\nIn stock\nAdd to basket\nA Study in Scarlet ...\n£16.73\nIn stock\nAdd to basket\nPoisonous (Max Revere Novels ...\n£26.80\nIn stock\nAdd to basket\nMurder at the 42nd ...\n£54.36\nIn stock\nAdd to basket\nMost Wanted\n£35.28\nIn stock\nAdd to basket\nHide Away (Eve Duncan ...\n£11.84\nIn stock\nAdd to basket\nBoar Island (Anna Pigeon ...\n£59.48\nIn stock\nAdd to basket\nThe Widow\n£27.26\nIn stock\nAdd to basket\nPlaying with Fire\n£13.71\nIn stock\nAdd to basket\nWhat Happened on Beale ...\n£25.37\nIn stock\nAdd to basket\nThe Bachelor Girl's Guide ...\n£52.30\nIn stock\nAdd to basket\nDelivering the Truth (Quaker ...\n£20.89\nIn stock\nAdd to basket\nPage 1 of 2\nnext",
+    "scope_identity": {
+      "case_id": "live-038-mystery",
+      "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": ".col-sm-8.col-md-9",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "Mystery"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "Sharp Objects"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "In a Dark, Dark ..."
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1156.3155419426039,
+      "timeout_ms": 120000
+    }
+  }
+]

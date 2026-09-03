@@ -1,0 +1,1 @@
+<html><head><meta name="viewport" content="width=device-width"></head><body><video controls="" autoplay="" name="media"><source src="https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.webm" type="video/webm"></video></body></html>

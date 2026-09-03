@@ -1,0 +1,52 @@
+{
+  "case_id": "live-023-guides",
+  "url": "https://spring.io/guides",
+  "checked_at": "2026-09-03T14:15:44.587524+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://spring.io/guides/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://spring.io/guides/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 400856,
+  "sha256": "6146331ed626f0a96db88199e0e4aaa4aa112bf439a7f0393e3fb43f1aa924a2",
+  "response_headers": {
+    "X-Frame-Options": "DENY",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "Spring | Guides",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/guides.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/guides-dark.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/extra/microservices-4.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://spring.io/img/extra/footer.svg",
+      "alt": ""
+    }
+  ],
+  "extracted_sha256": "2b0de18d184efca36e7e91c364889dc80438f773ac67f5a5d004c583c50bacee",
+  "reference_sha256": "2b0de18d184efca36e7e91c364889dc80438f773ac67f5a5d004c583c50bacee",
+  "text_chars": 708,
+  "excerpt": "Guides\nWhatever you're building, these guides are designed to get you productive as\nquickly as possible – using the latest Spring project releases and techniques\nas recommended by the Spring team.\nCategory\nIO\nMessaging\nREST APIs\nData Access\nSecurity\nOps\nWeb\nBatch Processing\nMicroservices\nCaching\nDocumentation\nTesting\nStreaming\nCloud Platform\nGraphQL\nMisc\nEstimated Time\n30m\n1h\n3h\nNo result found.\nGet ahead\nVMware offers training and certification to turbo-charge your progress.\nLearn more\nGet support\nTanzu Spring offers support and binaries for OpenJDK™, Spring, and Apache Tomcat® in one simple subscription.\nLearn more\nUpcoming events\nCheck out all the upcoming events in the Spring community.\nView all",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

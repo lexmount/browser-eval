@@ -1,0 +1,199 @@
+History API - Web APIs | MDN
+==========================================================
+
+
+-         [Skip to main content](#content)      
+-         [Skip to search](#search)      
+
+
+[                  MDN
+============================
+
+](/en-US/)            
+
+
+HTML                       
+
+
+[ /en-US/docs/Web/HTML">HTML: Markup language            
+
+
+HTML reference           
+
+-                                   [ /en-US/docs/Web/HTML/Reference/Elements">Elements                                -                                    /en-US/docs/Web/HTML/Reference/Global_attributes">Global attributes                                -                                    /en-US/docs/Web/HTML/Reference/Attributes">Attributes                                -                                    /en-US/docs/Web/HTML/Reference">See all…                                                                                                                        HTML guides                                                            -                                    /en-US/docs/Web/HTML/Guides/Responsive_images">Responsive images                                -                                    /en-US/docs/Web/HTML/Guides/Cheatsheet">HTML cheatsheet                                -                                    /en-US/docs/Web/HTML/Guides/Date_and_time_formats">Date & time formats                                -                                    /en-US/docs/Web/HTML/Guides">See all…                                                                                                                        Markup languages                                                            -                                    /en-US/docs/Web/SVG">SVG                                -                                    /en-US/docs/Web/MathML">MathML                                -                                    /en-US/docs/Web/XML">XML                                                                                                                                                              
+
+CSS                                        
+
+[ /en-US/docs/Web/CSS">CSS: Styling language                                            
+
+CSS reference                                                            -                                   [ /en-US/docs/Web/CSS/Reference/Properties">Properties                                -                                    /en-US/docs/Web/CSS/Reference/Selectors">Selectors                                -                                    /en-US/docs/Web/CSS/Reference/At-rules">At-rules                                -                                    /en-US/docs/Web/CSS/Reference/Values">Values                                -                                    /en-US/docs/Web/CSS/Reference">See all…                                                                                                                        CSS guides                                                            -                                    /en-US/docs/Web/CSS/Guides/Box_model/Introduction">Box model                                -                                    /en-US/docs/Web/CSS/Guides/Animations/Using">Animations                                -                                    /en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts">Flexbox                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Applying_color">Colors                                -                                    /en-US/docs/Web/CSS/Guides">See all…                                                                                                                        Layout cookbook                                                            -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts">Column layouts                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element">Centering an element                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Card">Card component                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook">See all…                                                                                                                                                              
+
+JavaScriptJS                                        
+
+[ /en-US/docs/Web/JavaScript">JavaScript: Scripting language                                            
+
+JS reference                                                            -                                   [ /en-US/docs/Web/JavaScript/Reference/Global_Objects">Standard built-in objects                                -                                    /en-US/docs/Web/JavaScript/Reference/Operators">Expressions & operators                                -                                    /en-US/docs/Web/JavaScript/Reference/Statements">Statements & declarations                                -                                    /en-US/docs/Web/JavaScript/Reference/Functions">Functions                                -                                    /en-US/docs/Web/JavaScript/Reference">See all…                                                                                                                        JS guides                                                            -                                    /en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling">Control flow & error handing                                -                                    /en-US/docs/Web/JavaScript/Guide/Loops_and_iteration">Loops and iteration                                -                                    /en-US/docs/Web/JavaScript/Guide/Working_with_objects">Working with objects                                -                                    /en-US/docs/Web/JavaScript/Guide/Using_classes">Using classes                                -                                    /en-US/docs/Web/JavaScript/Guide">See all…                                                                                                                                                              
+
+Web APIs                                        
+
+[ /en-US/docs/Web/API">Web APIs: Programming interfaces                                            
+
+Web API reference                                                            -                                   [ /en-US/docs/Web/API/File_System_API">File system API                                -                                    /en-US/docs/Web/API/Fetch_API">Fetch API                                -                                    /en-US/docs/Web/API/Geolocation_API">Geolocation API                                -                                    /en-US/docs/Web/API/HTML_DOM_API">HTML DOM API                                -                                    /en-US/docs/Web/API/Push_API">Push API                                -                                    /en-US/docs/Web/API/Service_Worker_API">Service worker API                                -                                    /en-US/docs/Web/API">See all…                                                                                                                        Web API guides                                                            -                                    /en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API">Using the Web animation API                                -                                    /en-US/docs/Web/API/Fetch_API/Using_Fetch">Using the Fetch API                                -                                    /en-US/docs/Web/API/History_API/Working_with_the_History_API">Working with the History API                                -                                    /en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API">Using the Web speech API                                -                                    /en-US/docs/Web/API/Web_Workers_API/Using_web_workers">Using web workers                                                                                                                                                              
+
+All                                        
+
+[ /en-US/docs/Web">All web technology                                            
+
+Technologies                                                            -                                   [ /en-US/docs/Web/Accessibility">Accessibility                                -                                    /en-US/docs/Web/HTTP">HTTP                                -                                    /en-US/docs/Web/URI">URI                                -                                    /en-US/docs/Mozilla/Add-ons/WebExtensions">Web extensions                                -                                    /en-US/docs/WebAssembly">WebAssembly                                -                                    /en-US/docs/Web/WebDriver">WebDriver                                -                                    /en-US/docs/Web">See all…                                                                                                                        Topics                                                            -                                    /en-US/docs/Web/Media">Media                                -                                    /en-US/docs/Web/Performance">Performance                                -                                    /en-US/docs/Web/Privacy">Privacy                                -                                    /en-US/docs/Web/Security">Security                                -                                    /en-US/docs/Web/Progressive_web_apps">Progressive web apps                                                                                                                                                              
+
+Learn                                        
+
+[ /en-US/docs/Learn_web_development">Learn web development                                            
+
+Frontend developer course                                                            -                                   [ /en-US/docs/Learn_web_development/Getting_started">Getting started modules                                -                                    /en-US/docs/Learn_web_development/Core">Core modules                                -                                    /en-US/curriculum/">MDN Curriculum                                -                                   [ https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar">Check out the video course from Scrimba, our partner                                                                                                                        Learn HTML                                                            -                                    /en-US/docs/Learn_web_development/Core/Structuring_content">Structuring content with HTML module                                                                                                                        Learn CSS                                                            -                                    /en-US/docs/Learn_web_development/Core/Styling_basics">CSS styling basics module                                -                                    /en-US/docs/Learn_web_development/Core/CSS_layout">CSS layout module                                                                                                                        Learn JavaScript                                                            -                                    /en-US/docs/Learn_web_development/Core/Scripting">Dynamic scripting with JavaScript module                                                                                                                                                              
+
+Tools                                        
+
+Discover our tools                      
+
+
+-                                   [ /en-US/play">Playground                                -                                   [ /en-US/observatory">HTTP Observatory                                                                                      -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator">Border-image generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator">Border-radius generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator">Box-shadow generator                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_format_converter">Color format converter                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_mixer">Color mixer                                -                                    /en-US/docs/Web/CSS/Guides/Shapes/Shape_generator">Shape generator                                                                                                                                
+
+About                                        
+
+Get to know MDN better                      
+
+
+-                                   [ /en-US/about">About MDN                                -                                   [ /en-US/advertising">Advertise with us                                                                                      -                                   [ /en-US/community">Community                                -                                   [ https://github.com/mdn">MDN on GitHub                                                                                                                                
+
+[ /en-US/blog/">Blog                              
+
+
+1.               [Web](/en-US/docs/Web)                          
+2.               [Web APIs](/en-US/docs/Web/API)                          
+3.               [History API](/en-US/docs/Web/API/History_API)                          
+
+
+# History API
+
+
+Baseline                                      Widely available                                                                            
+
+
+This feature is well established and works across many devices and browser versions. It’s been available across browsers since July 2015.
+-             [              Learn more            ](/en-US/docs/Glossary/Baseline/Compatibility)          
+-             [              See full compatibility            ](#browser_compatibility)          
+
+
+The **History API** provides access to the browser's session history (not to be confused
+with [WebExtensions history](/en-US/docs/Mozilla/Add-ons/WebExtensions/API/history)) through the [`history`](/en-US/docs/Web/API/Window/history "history") global object. It exposes useful methods and properties that let you navigate back and forth through the user's history, and manipulate the contents of the history stack.
+
+
+**Note:**This API is only available on the main thread ([`Window`](/en-US/docs/Web/API/Window)). It cannot be accessed in [`Worker`](/en-US/docs/Web/API/Worker) or [`Worklet`](/en-US/docs/Web/API/Worklet) contexts.
+
+## In this article
+
+-               [Concepts and usage](#concepts_and_usage)            
+-               [Interfaces](#interfaces)            
+-               [Examples](#examples)            
+-               [Specifications](#specifications)            
+-               [Browser compatibility](#browser_compatibility)            
+-               [See also](#see_also)            
+
+
+## [Concepts and usage](#concepts_and_usage)
+
+Moving backward and forward through the user's history is done using the [`back()`](/en-US/docs/Web/API/History/back "back()"), [`forward()`](/en-US/docs/Web/API/History/forward "forward()"), and [`go()`](/en-US/docs/Web/API/History/go "go()") methods.
+
+### [Moving forward and backward](#moving_forward_and_backward)
+
+To move backward through history:
+
+This acts exactly as if the user clicked on the **Back** button in their browser
+toolbar.
+
+Similarly, you can move forward (as if the user clicked the **Forward** button),
+like this:
+
+### [Moving to a specific point in history](#moving_to_a_specific_point_in_history)
+
+You can use the [`go()`](/en-US/docs/Web/API/History/go "go()") method to load a specific page from session history, identified by its relative position to the current page. (The current page's relative position is
+`0`.)
+
+To move back one page (the equivalent of calling [`back()`](/en-US/docs/Web/API/History/back "back()")):
+
+To move forward a page, just like calling [`forward()`](/en-US/docs/Web/API/History/forward "forward()"):
+
+Similarly, you can move forward 2 pages by passing `2`, and so forth.
+
+Another use for the `go()` method is to refresh the current page by either passing `0`,
+or by invoking it without an argument:
+
+You can determine the number of pages in the history stack by looking at the value
+of the `length` property:
+
+## [Interfaces](#interfaces)
+[`History`](/en-US/docs/Web/API/History)
+Allows manipulation of the browser *session history* (that is, the pages visited
+in the tab or frame that the current page is loaded in).
+[`PopStateEvent`](/en-US/docs/Web/API/PopStateEvent)
+The interface of the [`popstate`](/en-US/docs/Web/API/Window/popstate_event "popstate") event.
+
+## [Examples](#examples)
+
+The following example assigns a listener for the [`popstate`](/en-US/docs/Web/API/Window/popstate_event "popstate") event. It then illustrates some of the methods of the history object to add, replace, and move within the browser history for the current tab.
+
+## [Specifications](#specifications)
+
+|   |
+||-----------------------------------------------------------------------------------------------------------------------|
+| - |
+|   |
+|   | [HTML<br># the-history-interface](https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-history-interface) |  |
+
+## [Browser compatibility](#browser_compatibility)
+
+## [See also](#see_also)
+
+- [`history`](/en-US/docs/Web/API/Window/history "history") global object
+- [`popstate`](/en-US/docs/Web/API/Window/popstate_event "popstate") event
+
+
+##             Help improve MDN                              [Learn how to contribute](/en-US/docs/MDN/Community/Getting_started)
+This page was last modified on Jul 26, 2024 by [MDN contributors](/en-US/docs/Web/API/History_API/contributors.txt).  
+
+[View this page on GitHub](https://github.com/mdn/content/blob/main/files/en-us/web/api/history_api/index.md?plain=1 "Folder: en-us/web/api/history_api (Opens in a new tab)") • [Report a problem with this content](https://github.com/mdn/content/issues/new?template=page-report.yml&mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FHistory_API&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fapi%2Fhistory_api%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FHistory_API%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fapi%2Fhistory_api%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2Fe9e2ec643ac69c132f31427a0b586ab2cf83ed58%0A*+Document+last+modified%3A+2024-07-26T02%3A56%3A30.000Z%0A%0A%3C%2Fdetails%3E "This will take you to GitHub to file a new issue.")   
+
+
+1. *[History API](/en-US/docs/Web/API/History_API)*
+2.
+Guides
+1. [Working with the History API](/en-US/docs/Web/API/History_API/Working_with_the_History_API)
+
+-
+Interfaces
+1. [`History`](/en-US/docs/Web/API/History)
+2. [`PopStateEvent`](/en-US/docs/Web/API/PopStateEvent)
+
+-
+Properties
+1. [`Window.history`](/en-US/docs/Web/API/Window/history)
+
+-
+Events
+1. [`Window: popstate`](/en-US/docs/Web/API/Window/popstate_event)
+
+
+[MDN
+================
+
+](/)            
+Your blueprint for a better internet.            
+
+-                   [ github">                                              -                    bluesky">                                              -                    x">                                              -                    mastodon">                                              -                    rss">                                                                                MDN                                                                              -                           [ /en-US/about">                            About                                                                                                -                            /en-US/blog/">                            Blog                                                                                                -                            https://www.mozilla.org/en-US/careers/listings/">                            Mozilla careers                                                                                                -                            /en-US/advertising">                            Advertise with us                                                                                                -                            /en-US/plus">                            MDN Plus                                                                                                -                            https://support.mozilla.org/products/mdn-plus">                            Product help                                                                                                                                                                  Contribute                                                                              -                           [ /en-US/community">                            MDN Community                                                                                                -                            /en-US/docs/MDN/Community">                            Community resources                                                                                                -                            /en-US/docs/MDN/Writing_guidelines">                            Writing guidelines                                                                                                -                            /discord">                            MDN Discord                                                                                                -                            https://github.com/mdn">                            MDN on GitHub                                                                                                                                                                  Developers                                                                              -                           [ /en-US/docs/Web">                            Web technologies                                                                                                -                            /en-US/docs/Learn_web_development">                            Learn web development                                                                                                -                            /en-US/docs/MDN/Guides">                            Guides                                                                                                -                            /en-US/docs/MDN/Tutorials">                            Tutorials                                                                                                -                            /en-US/docs/Glossary">                            Glossary                                                                                                -                            https://hacks.mozilla.org/">                            Hacks blog                                                                                                                                                    
+
+[Mozilla
+==================
+
+](/static/client/styles-reference-layout.632d2f3884f10ca3.css "History API - Web APIs | MDN")                                      -                   [ https://www.mozilla.org/privacy/websites/">Website Privacy Notice                                              -                    https://www.mozilla.org/en-US/privacy/websites/data-preferences/">Telemetry Settings                                              -                    https://www.mozilla.org/about/legal/terms/mozilla">Legal                                              -                    https://www.mozilla.org/about/governance/policies/participation/">Community Participation Guidelines                                                              Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license](https://developer.mozilla.org/en-US/docs/Web/API/History_API "History API - Web APIs | MDN").          
+

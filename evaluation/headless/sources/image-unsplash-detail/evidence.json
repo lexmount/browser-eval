@@ -1,0 +1,27 @@
+{
+  "case_id": "image-unsplash-detail",
+  "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+  "checked_at": "2026-09-02T08:02:52.685161+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 403,
+      "url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY"
+    }
+  ],
+  "status": 403,
+  "final_url": "https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY",
+  "mime": "",
+  "bytes": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "response_headers": {},
+  "title": "Unsplash · 绿叶摄影详情",
+  "selector": "binary file",
+  "resources": [],
+  "text_chars": 0,
+  "excerpt": "",
+  "missing_facts": [],
+  "state": "needs_review",
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "分类流会更新，旧规则绑定两张历史作品；改为单张作品详情。"
+}

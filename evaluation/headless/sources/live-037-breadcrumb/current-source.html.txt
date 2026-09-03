@@ -1,0 +1,2734 @@
+
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr" prefix="og: https://ogp.me/ns#" class="no-js">
+  <head>
+    <link rel="preconnect" href="https://www.google-analytics.com">
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Nunito+Sans:ital,wght@0,200;0,300;0,400;0,600;0,700;0,800;0,900;1,200;1,300;1,400;1,600;1,700;1,800;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&display=swap">
+    <meta charset="utf-8" />
+<meta name="description" content="NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate." />
+<meta name="keywords" content="Climate" />
+<link rel="canonical" href="https://www.noaa.gov/climate" />
+<link rel="shortlink" href="https://www.noaa.gov/node/1" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://www.noaa.gov/climate" />
+<meta property="og:title" content="Climate" />
+<meta property="og:description" content="NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate." />
+<meta property="og:image" content="https://www.noaa.gov/sites/default/files/styles/landscape_width_1275/public/2021-02/climate1.jpg" />
+<meta property="og:image:secure_url" content="https://www.noaa.gov/sites/default/files/styles/landscape_width_1275/public/2021-02/climate1.jpg" />
+<meta property="og:image:alt" content="iceberg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Climate" />
+<meta name="twitter:description" content="NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate." />
+<meta name="twitter:image:alt" content="iceberg" />
+<meta name="twitter:image" content="https://www.noaa.gov/sites/default/files/styles/landscape_width_1275/public/2021-02/climate1.jpg" />
+<meta name="google-site-verification" content="googled9a3b799ed287b66.html" />
+<meta name="Generator" content="Drupal 10 (https://www.drupal.org)" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="x-ua-compatible" content="ie=edge" />
+<link rel="icon" href="/themes/custom/noaa_guswds/favicon.ico" type="image/vnd.microsoft.icon" />
+<link rel="alternate" hreflang="en" href="https://www.noaa.gov/climate" />
+
+    <title>Climate | National Oceanic and Atmospheric Administration</title>
+    <link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/core.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/controlgroup.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/checkboxradio.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/resizable.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/button.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/dialog.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/misc/components/progress.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/misc/components/ajax-progress.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/fieldgroup.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/container-inline.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/details.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/item-list.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/js.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/nowrap.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/position-container.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/reset-appearance.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/resize.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/system-status-counter.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/system-status-report-counters.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/system-status-report-general-info.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/system/css/components/tablesort.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/ckeditor5/css/ckeditor5.dialog.fix.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/modules/views/css/views.module.css?tkskld" />
+<link rel="stylesheet" media="all" href="/core/assets/vendor/jquery.ui/themes/base/theme.css?tkskld" />
+<link rel="stylesheet" media="all" href="/modules/contrib/citation_select/css/citation_select.css?tkskld" />
+<link rel="stylesheet" media="all" href="/modules/contrib/ckeditor5_plugin_pack/modules/ckeditor5_plugin_pack_indent_block/css/indent-block.css?tkskld" />
+<link rel="stylesheet" media="all" href="/modules/custom/noaa_core/css/touchpoints.css?tkskld" />
+<link rel="stylesheet" media="all" href="/modules/custom/noaa_media_library/css/freezeframe.css?tkskld" />
+<link rel="stylesheet" media="all" href="/modules/contrib/paragraphs/css/paragraphs.unpublished.css?tkskld" />
+<link rel="stylesheet" media="all" href="/themes/custom/noaa_guswds/dist/css/back-to-top.css?tkskld" />
+<link rel="stylesheet" media="all" href="/libraries/tooltipster/dist/css/tooltipster.bundle.min.css?tkskld" />
+<link rel="stylesheet" media="all" href="//fonts.googleapis.com/css?family=Source+Sans+Pro:300,300i,400,400i,600,600i,700,700i&amp;display=swap" />
+<link rel="stylesheet" media="all" href="/libraries/owlcarousel2/dist/assets/owl.carousel.css?tkskld" />
+<link rel="stylesheet" media="all" href="/libraries/owlcarousel2/dist/assets/owl.theme.default.css?tkskld" />
+<link rel="stylesheet" media="all" href="/themes/custom/noaa_guswds/dist/css/styles.css?tkskld" />
+
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","pathPrefix":"","currentPath":"node\/1","currentPathIsAdmin":false,"isFront":false,"currentLanguage":"en"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxPageState":{"libraries":"eJyFUdFuwzAI_KEsftr3WMSmDq1jPIyX5e9Hk3VL-zLJQuY4EHcEUlDi4htmDOrCc-4vLMsQXkmZ6sQg0YMqhHkIN4ykLO--5p6o-Arh5qlELOqnzOHmzskQWNBF6RXyGAkypxGu8HXgVBSlWOX60VG2cV8hMaeMXiG5ZOE1P9qfwGUoDOD3kSYA33Sm9lYh4anw-zthtU-Zgi-s3hZLGE3Iqazcw1zZtmwHmnpbY3PTXbKyvfqEp8wT5APKUCKV5O9buAuH3jwI2mAQ7mbujz07dzFLrYMmAdlcoot5CxuKnYTNoH9IM0J8kFYEnVHcOfErxYQ6VBBIAnVuj3v8IWMvuxdtxji0rSkuprLh8Em4NrfHceHYM34DYm7kkg","theme":"noaa_guswds","theme_token":null},"ajaxTrustedUrl":{"form_action_p_pvdeGsVG5zNF_XLGPTvYSKCf43t8qZYSwcfZl2uzM":true,"\/climate?ajax_form=1":true},"gtag":{"tagId":"G-FVJXY24VSZ","consentMode":false,"otherIds":[],"events":[],"additionalConfigInfo":[]},"gtm":{"tagId":null,"settings":{"data_layer":"dataLayer","include_classes":false,"allowlist_classes":"","blocklist_classes":"","include_environment":false,"environment_id":"","environment_token":""},"tagIds":["GTM-MNK3D2L"]},"gesso":{"backToTopThreshold":"200","backToTopSmoothScroll":1,"imagePath":"\/themes\/custom\/noaa_guswds\/dist\/images"},"ajax":{"edit-citation-style":{"callback":"::getBibliography","wrapper":"formatted-bibliography","method":"html","event":"change","url":"\/climate?ajax_form=1","httpMethod":"POST","dialogType":"ajax","submit":{"_triggering_element_name":"citation_style"}}},"user":{"uid":0,"permissionsHash":"92b71190dd4fc5bfecd31b8325a01bd08879cd9e56750df8efce62c3e0133d2f"}}</script>
+<script src="/core/misc/drupalSettingsLoader.js?v=10.6.15"></script>
+<script src="/modules/contrib/google_tag/js/gtag.js?tkskld"></script>
+<script src="/modules/contrib/google_tag/js/gtm.js?tkskld"></script>
+<script src="/modules/custom/noaa_media_library/js/freezeframe.min.js?tkskld"></script>
+
+  </head>
+  <body  class="path-node not-front node-page node-page--node-type-landing-page node-page--node-type-secondary-focus-area" id="top--W5OdJ01A794">
+    
+<div  class="c-skiplinks">
+  <a href="#main" class="c-skiplinks__link u-visually-hidden u-focusable">Skip to main content</a>
+</div>
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MNK3D2L"
+                  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    
+<div  class="l-site-container">
+  
+  
+
+<div  class="l-navigation">
+        <nav role="navigation" aria-label="Main">
+  <label class="visually-hidden" for="menu--main">Main Menu</label>
+      
+                    <ul  class="menu menu--main" id="menu--main">
+      
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/" class="menu__link" data-ga="Left-Nav:Home" data-drupal-link-system-path="&lt;front&gt;">Home</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/weather" class="menu__link" data-ga="Left-Nav:Weather" data-drupal-link-system-path="node/2">Weather</a>
+              </li>
+    
+            
+                                                          
+      
+                          
+      <li  class="menu__item is-active-trail">
+        <a href="/climate" class="menu__link is-active-trail is-active" data-ga="Left-Nav:Climate" data-drupal-link-system-path="node/1" aria-current="page">Climate</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/ocean-coasts" class="menu__link" data-ga="Left-Nav:Ocean &amp; Coasts" data-drupal-link-system-path="node/3">Ocean &amp; Coasts</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/fisheries" class="menu__link" data-ga="Left-Nav:Fisheries" data-drupal-link-system-path="node/4">Fisheries</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/satellites" class="menu__link" data-ga="Left-Nav:Satellites" data-drupal-link-system-path="node/5">Satellites</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/research" class="menu__link" data-ga="Left-Nav:Research" data-drupal-link-system-path="node/6">Research</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/marine-aviation" class="menu__link" data-ga="Left-Nav:Marine &amp; Aviation" data-drupal-link-system-path="node/7">Marine &amp; Aviation</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/charting" class="menu__link" data-ga="Left-Nav:Charting" data-drupal-link-system-path="node/8">Charting</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/sanctuaries" class="menu__link" data-ga="Left-Nav:Sanctuaries" data-drupal-link-system-path="node/9">Sanctuaries</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/education" class="menu__link" data-ga="Left-Nav:Education" data-drupal-link-system-path="node/10">Education</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/news-features" class="menu__link" data-ga="Left-Nav:News and features" data-drupal-link-system-path="node/6632">News and features</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/data" class="menu__link" data-ga="Left-Nav:Our data" data-drupal-link-system-path="node/16062">Our data</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/tools-and-resources" class="menu__link" data-ga="Left-Nav:Tools &amp; resources" data-drupal-link-system-path="node/37">Tools &amp; resources</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/about-our-agency" class="menu__link" data-ga="Left-Nav:About our agency" data-drupal-link-system-path="node/6503">About our agency</a>
+              </li>
+      </ul>
+    
+
+
+  </nav>
+
+    </div>
+
+
+  <div id="not-navigation">
+
+    
+      
+<section  class="usa-banner" aria-label="Official government website">
+  <div class="usa-accordion">  <header class="usa-banner__header">
+    <div class="usa-banner__inner">
+      <div class="grid-col-auto">
+        <img class="usa-banner__header-flag" src="/themes/custom/noaa_guswds/dist/images/us_flag_small.png" alt="U.S. flag" />
+      </div>
+      <div class="grid-col-fill tablet:grid-col-auto">
+        <p class="usa-banner__header-text"><span aria-hidden="true">An </span>official website of the United States government</p>
+              <p class="usa-banner__header-action" aria-hidden="true">Here’s how you know</p></div>
+        <button class="usa-accordion__button usa-banner__button" aria-expanded="false" aria-controls="gov-banner">
+          <span class="usa-banner__button-text">Here’s how you know</span>
+        </button>
+          </div>
+  </header>
+      <div class="usa-banner__content usa-accordion__content" id="gov-banner">
+      <div class="grid-row grid-gap-lg">
+                  <div class="usa-banner__guidance tablet:grid-col-6">
+            <img class="usa-banner__icon usa-media-block__img" src="/themes/custom/noaa_guswds/dist/images/icon-dot-gov.svg" alt="Dot gov">
+            <div class="usa-media-block__body">
+              <p>
+                <strong>Official websites use .gov</strong>
+                <br> A <strong>.gov</strong> website belongs to an official government organization in the United States.
+              </p>
+            </div>
+          </div>
+                  <div class="usa-banner__guidance tablet:grid-col-6">
+            <img class="usa-banner__icon usa-media-block__img" src="/themes/custom/noaa_guswds/dist/images/icon-https.svg" alt="HTTPS">
+            <div class="usa-media-block__body">
+              <p>
+                <strong>Secure .gov websites use HTTPS</strong>
+                <br> A <strong>lock</strong> (<span class="icon-lock"><svg xmlns="http://www.w3.org/2000/svg" width="52" height="64" viewBox="0 0 52 64" class="usa-banner__lock-image" role="img" aria-labelledby="banner-lock-title banner-lock-description"><title id="banner-lock-title">Lock</title><desc id="banner-lock-description">A locked padlock</desc><path fill="#000000" fill-rule="evenodd" d="M26 0c10.493 0 19 8.507 19 19v9h3a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4h3v-9C7 8.507 15.507 0 26 0zm0 8c-5.979 0-10.843 4.77-10.996 10.712L15 19v9h22v-9c0-6.075-4.925-11-11-11z"/></svg></span>) or <strong>https://</strong> means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites.
+              </p>
+            </div>
+          </div>
+              </div>
+    </div>
+  </div>
+  </section>
+
+    
+    <header class="l-header header-weather" role="banner">
+              
+
+
+
+
+
+
+  <div  id="block-noaaweatherwidget" class="c-block c-block--provider-noaa-weather c-block--id-noaa-weather-widget-block">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      <form class="weather-widget-form no-weather hide-formatting noaa-weather-widget-form" action="#" method="post" accept-charset="UTF-8">
+  <div class="upper">
+    <script class="noaa_weather_upper" type="text/x-handlebars-template" >
+      
+        {{#if nodata}}
+          <div class="current-temp"></div>
+        {{else}}
+          <div class="current-temp" {{#if icon}}style="background-image: url(&quot;/themes/custom/noaa_guswds/images/icons/weather/{{icon}}&quot;)" {{/if}}>{{#if deg}}{{deg}}°{{/if}}</div>
+        {{/if}}
+
+        <div class="inner">
+          <div class="city icon-location-after">{{#if nodata}}Not Available{{else}}{{city}}{{#if state}}, {{state}}{{/if}}{{/if}}</div>
+        </div>
+      
+    </script>
+    <div class="weather-toggle icon-location-after">
+      <span class="underline" data-ga="Weather:Find">Find your local weather</span>
+    </div>
+  </div>
+  <div class="lower">
+    <div class="close-button" tabindex="0"></div>
+    <script class="noaa_weather_lower" type="text/x-handlebars-template" >
+      
+        <div class="city">{{#if nodata}}Not Available{{else}}{{city}}{{#if state}}, {{state}}{{/if}}{{/if}}</div>
+        <div class="forecast-wrapper{{#if pop}} has-precip{{/if}}">
+          <div class="upper">
+          <div class="inner">
+            {{#if nodata}}
+              <div class="current-temp"></div>
+            {{else}}
+              <div class="current-temp" {{#if icon}}style="background-image: url(&quot;/themes/custom/noaa_guswds/images/icons/weather/{{icon}}&quot;)" {{/if}}>{{#if deg}}{{deg}}°{{/if}}</div>
+              <div class="label">currently</div>
+            {{/if}}
+          </div>
+          </div>
+          {{#if nodata}}
+            <a class="not-available" href="/no-data">Why is data not available?</a>
+          {{else}}
+          <div class="forecast-temp forecast-item"><div class="data">{{maxt}}/{{mint}}° </div><div class="label">high/low</div></div>
+          {{#if pop}}<div class="forecast-precip forecast-item"><div class="data">{{pop}}% </div><div class="label">chance of {{precip_type}}</div></div>{{/if}}
+          {{#if wspd}}<div class="wind forecast-item"><div class="data">{{#if wdir}}{{wdir}}{{/if}} {{wspd}} </div><div class="label">mph winds</div></div>{{/if}}
+        </div>
+        <a href="http://forecast.weather.gov/MapClick.php?lat={{lat}}&amp;lon={{lng}}" class="forecast-link{{#if pop}} has-precip{{/if}}" name="edit-forecast" data-ga="Weather:See full forecast">See full local forecast</a>
+        {{/if}}
+      
+    </script>
+    <div class="form-wrapper">
+      <div class="change">Change location:</div>
+      <div class="form-item form-type-textfield form-item-zip">
+        <label class="visually-hidden" for="edit-zip" id="zip-label">Enter City, State or ZIP code</label>
+        <input placeholder="Enter City, State or ZIP code" class="zip-input form-text" data-ga="Weather:Text field" type="text" id="edit-zip" name="edit-zip" aria-labelledby="zip-label" value="" size="0" maxlength="128">
+        <input type="submit" name="edit-submit" value="GO" class="form-submit" data-ga="Weather:Submit button">
+      </div>
+    </div>
+  </div>
+</form>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+            <nav role="navigation" aria-label="Main">
+  
+                    <ul  class="menu menu--header---upper-right" id="menu--header---upper-right">
+      
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/news-features" class="menu__link" data-ga="Header:News" data-drupal-link-system-path="node/6632">News</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/data" class="menu__link" data-ga="Header:Data" data-drupal-link-system-path="node/16062">Data</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/tools-and-resources" class="menu__link" data-ga="Header:Tools" data-drupal-link-system-path="node/37">Tools</a>
+              </li>
+    
+            
+                                                          
+      
+                          
+      <li  class="menu__item is-collapsed">
+        <a href="/about-our-agency" class="menu__link is-collapsed" data-ga="Header:About" data-drupal-link-system-path="node/6503">About</a>
+              </li>
+      </ul>
+    
+
+</nav>
+
+  
+  
+  
+  
+
+
+        </header>
+
+    <div class="header-background">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-image c-field--type-image c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">    <img loading="eager" srcset="/sites/default/files/styles/background_landing_page_focus_area_height_402/public/2021-02/climate1.jpg.webp?h=e5bc07ba&amp;itok=-mI6WB4v 963w, /sites/default/files/styles/background_landing_page_focus_area/public/2021-02/climate1.jpg.webp?h=e5bc07ba&amp;itok=Jc_RVzZD 1437w, /sites/default/files/styles/background_landing_page_focus_area_height_1200/public/2021-02/climate1.jpg.webp?h=e5bc07ba&amp;itok=Z9mHyAIi 2874w" sizes="100vw" width="1437" height="600" src="/sites/default/files/styles/background_landing_page_focus_area_height_600px_orig_format/public/2021-02/climate1.jpg?h=e5bc07ba&amp;itok=gec_QdzQ" alt="iceberg" title="iceberg" />
+
+
+</div></div></div>
+
+      <header class="l-header site-header clearfix" role="banner">
+      <div class="l-constrain ">
+          
+
+
+
+
+
+
+  <div  id="block-headermobilemenubutton" class="c-block c-block--provider-block-content c-block--id-block-contentab538d29-3fb7-4aa0-8b54-4fc0a65d47b3">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-body c-field--type-text-with-summary c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div class="mobile-menu-button open">&nbsp;</div>
+<div class="mobile-menu-button close hidden">&nbsp;</div></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+  <div  id="block-headermobilelogo" class="c-block c-block--provider-block-content c-block--id-block-content452acf8e-dcc2-45b4-acbf-d31f435aa4bb">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-body c-field--type-text-with-summary c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a class="site-logo" href="/" title="Home" rel="home" aria-label="Home">
+  <img loading="lazy" class="site-logo__image" src="/themes/custom/noaa_guswds/images/noaa_logo_mobile.svg" alt="NOAA mobile logo">
+</a></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+  <div  id="block-noaa-guswds-branding" class="block block--provider-system block--id-system-branding-block c-block">
+
+  
+  
+    
+
+  
+            
+<a  class="c-site-logo" href="/" title="National Oceanic and Atmospheric Administration home">
+  <img class="c-site-logo__image" src="/themes/custom/noaa_guswds/images/noaa_digital_logo.svg" alt="NOAA logo" />
+</a>
+    
+          <a class="c-site-name__text" href="/" title="National Oceanic and Atmospheric Administration home">National Oceanic and Atmospheric Administration</a>
+
+    
+          <a href="https://www.commerce.gov" class="c-site-slogan">U.S. Department of Commerce</a>
+      
+  
+  
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+  <div  id="block-noaasearch" class="c-block c-block--provider-block-content c-block--id-block-contentcd947d68-817d-4be4-b70e-505f42c235e0">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-body c-field--type-text-with-summary c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div class="search-form-wrapper">
+<form accept-charset="UTF-8" action="https://search.usa.gov/search" class="search_form" method="get">
+    <input name="utf8" type="hidden" value="&#x2713;" />
+    <input class="affiliate" name="affiliate" type="hidden" value="noaa.gov" />
+    <label for="query" class="visually-hidden">Enter Search Terms</label>
+    <input autocomplete="off" class="usagov-search-autocomplete ui-autocomplete-input ui-corner-all" name="query" type="text" placeholder="Search NOAA sites" aria-label="Enter Search Terms" data-ga="Search:Click" />
+    <input name="commit" type="submit" value="" aria-label="Search" data-ga="Search:Submit" />
+</form>
+<div class="mobile-search-button open">&nbsp;</div>
+<div class="mobile-search-button close hidden">&nbsp;</div>
+</div>
+</div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+              
+
+
+<nav  aria-labelledby="breadcrumb-label--1vcwr8BgxnI" class="c-breadcrumb" role="navigation">
+  <div class="l-constrain">
+    <h2
+       id="breadcrumb-label--1vcwr8BgxnI" class="c-breadcrumb__title  u-visually-hidden">Breadcrumb</h2>
+    <ol class="c-breadcrumb__list">
+              <li class="c-breadcrumb__item">
+                      <a class="c-breadcrumb__link" href="/">Home</a>
+                  </li>
+          </ol>
+  </div>
+</nav>
+
+  
+  
+  
+  
+
+
+
+
+
+
+
+  <div  id="block-background-image-content" class="c-block c-block--provider-ctools c-block--id-entity-viewnode">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+<article  class="node node--type-landing-page node--promoted node--display-mode-background-image-content c-article">
+  
+  
+      
+  
+
+
+
+
+<div  class="c-field c-field--name-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><h1>Climate</h1></div></div></div>
+
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><article>
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-credit c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">NOAA</div></div></div>
+
+  </article>
+</div></div></div>
+
+  </article>
+
+  
+      </div>
+  
+  
+  </div>
+
+          </div>
+  </header>
+  </div>
+
+
+
+    
+
+    
+
+      
+
+<div  class="l-landing-page-menus">
+      <div  class="l-constrain">
+          
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+            <nav role="navigation" aria-label="Main">
+    
+                          <ul  class="menu menu--landing-page-menus" id="menu--landing-page-menus">
+        
+            
+                                                                                      
+      
+      
+      <li  class="menu__item is-active-trail is-expanded">
+        <span class="menu__link is-active-trail is-expanded" tabindex="0">Climate home</span>
+              </li>
+    
+            
+                                          
+      
+      
+      <li  class="menu__item">
+        <a href="/climate/collaborations-and-partnerships" class="menu__link" tabindex="0" data-drupal-link-system-path="node/14936">Collaborations and partnerships</a>
+              </li>
+    
+            
+                                          
+      
+      
+      <li  class="menu__item">
+        <a href="/climate/climate-funding-opportunities" class="menu__link" tabindex="0" data-drupal-link-system-path="node/14938">Funding opportunities</a>
+              </li>
+    
+            
+                                          
+      
+      
+      <li  class="menu__item">
+        <a href="/climate/tools-and-resources" class="menu__link" tabindex="0" data-drupal-link-system-path="node/14937">Tools and resources</a>
+              </li>
+    
+            
+                                          
+      
+      
+      <li  class="menu__item">
+        <a href="/climate/related-news-and-stories" class="menu__link" tabindex="0" data-drupal-link-system-path="node/14939">News and stories</a>
+              </li>
+        </ul>
+  
+
+</nav>
+
+  
+  
+  
+  
+
+          </div>
+  </div>
+
+
+      
+
+<div  class="l-highlighted">
+      <div  class="l-constrain">
+          <div data-drupal-messages-fallback class="hidden"></div>
+
+          </div>
+  </div>
+
+
+    
+
+    <main id="main" class="c-main" role="main" tabindex="-1">
+        
+    
+
+<div  class="l-content">
+      <div  class="l-constrain">
+          
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+            
+
+
+
+<article  class="node node--type-landing-page node--promoted node--non-sticky-sidebar node--display-mode-full updates-text-color-body c-article">
+  
+  
+      <div>
+        
+    
+          
+
+      <h2 class="node-subtitle field">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-subtitle c-field--type-string-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate.</div></div></div>
+
+    </h2>
+      
+    
+    
+          
+
+
+<div  class="c-field c-field--name-field-updates c-field--type-entity-reference-revisions c-field--label-hidden">
+  <div class="c-field__content"><div class="c-field__items"><div  class="c-field__item">  
+
+
+  
+
+
+<section class="l-section paragraph paragraph--type-update-notes paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+          <div id="paragraph-id-40283">
+        <span class="update-date"><span class="update-label">UPDATED: </span>June 24, 2025.</span>
+                  <span class="update-notes">In compliance with Executive Order 14303 (“Restoring Gold Standard Science”), the White House Office of Science and Technology Policy’s June 23, 2025 Memorandum (“Agency Guidance for Implementing Gold Standard Science in the Conduct &amp; Management of Scientific Activities”), 15 USC § 2904 (“National Climate Program”), 15 USC § 2934 (“National Global Change Research Plan”), and 33 USC § 893a (“NOAA Ocean and Atmospheric Science Education Programs”), you have been redirected to NOAA.gov. Future research products previously housed under Climate.gov will be available at NOAA.gov/climate and its affiliate websites.</span>
+                
+      </div>
+      </div>
+
+  </section>
+
+</div></div></div></div>
+
+    
+    
+    
+        </div>
+    <div class="noaa-content-sidebar-wrapper">
+      
+
+<div  class="l-right-sidebar-top-node">
+              <div class="sticky-wrapper"></div>
+          <div class="non-sticky-wrapper">
+
+
+
+
+
+
+  <div  class="block-noaanodesidebarcontent c-block c-block--provider-noaa-core c-block--id-noaa-core-field-sidebar-content">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+<div  class="c-field c-field--name-field-sidebar-content c-field--type-entity-reference-revisions c-field--label-hidden">
+  <div class="c-field__content"><div class="c-field__items"><div  class="c-field__item">
+            
+  
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-link-list-advanced paragraph--display-mode-default paragraph--width-body-indent-none    collapsed" data-observe-resizes >
+  
+        <div id="" class="l-section__title">Quick links</div>
+  
+  <div class="l-section__content">
+        <div id="paragraph-id-35445">
+      <div class="always-visible-items">
+              <div class="link-list-item"><a href="/sites/default/files/2026-08/NCA5-Proposed-Amendment-August-2026.pdf">Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP &amp; USGCRP (August 2026)</a>
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/budget-finance-performance/noaa-fy22-26-strategic-plan">NOAA FY22-26 Strategic Plan</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.drought.gov">Drought.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.heat.gov">Heat.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/inflation-reduction-act">Inflation Reduction Act</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/infrastructure-law">Bipartisan Infrastructure Law</a></div></div></div>
+
+</div>
+            </div>
+            
+    </div>
+    </div>
+
+  </section>
+
+
+
+</div></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+</div>
+          </div>
+    
+      <div class="l-right-sidebar-top-content-sibling">
+        <div class="non-sticky-wrapper">
+
+
+
+
+
+
+  <div  class="block-noaanodesidebarcontent c-block c-block--provider-noaa-core c-block--id-noaa-core-field-sidebar-content">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+<div  class="c-field c-field--name-field-sidebar-content c-field--type-entity-reference-revisions c-field--label-hidden">
+  <div class="c-field__content"><div class="c-field__items"><div  class="c-field__item">
+            
+  
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-link-list-advanced paragraph--display-mode-default paragraph--width-body-indent-none    collapsed" data-observe-resizes >
+  
+        <div id="" class="l-section__title">Quick links</div>
+  
+  <div class="l-section__content">
+        <div id="paragraph-id-35445-1">
+      <div class="always-visible-items">
+              <div class="link-list-item"><a href="/sites/default/files/2026-08/NCA5-Proposed-Amendment-August-2026.pdf">Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP &amp; USGCRP (August 2026)</a>
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/budget-finance-performance/noaa-fy22-26-strategic-plan">NOAA FY22-26 Strategic Plan</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.drought.gov">Drought.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.heat.gov">Heat.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/inflation-reduction-act">Inflation Reduction Act</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/infrastructure-law">Bipartisan Infrastructure Law</a></div></div></div>
+
+</div>
+            </div>
+            
+    </div>
+    </div>
+
+  </section>
+
+
+
+</div></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+</div>
+      </div>
+
+      <div class="non-sidebar-content">
+                
+
+
+<div  class="c-field c-field--name-field-body c-field--type-entity-reference-revisions c-field--label-hidden">
+  <div class="c-field__content"><div class="c-field__items"><div  class="c-field__item">
+
+
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-grid paragraph--display-mode-default paragraph--width-full-indent-none paragraph--grid-type--featured-link top-border top-border-color-gray-1 top-border-width-100 bottom-border bottom-border-color-gray-3 bottom-border-width-100 top-margin-20px top-padding-20px use-h-tag-styling" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-35448">
+              
+<div  class="l-grid   l-grid--1-col">
+                
+  
+
+
+
+
+<section class="l-section paragraph paragraph-float-enabled paragraph--type-featured-link paragraph--display-mode-default paragraph--width-body-indent-none" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-35447">
+              <div class="layout layout--twocol-section layout--twocol-section--50-50 float-side-left">
+          <div class="layout__region layout__region--first">
+                          <div class="image-crop-width-landscape-650">
+                                  <a href="/explainers/how-to-foster-community-resilience"><article>
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-image c-field--type-image c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">    <img srcset="/sites/default/files/styles/landscape_width_325px_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=cltW3Du7 325w, /sites/default/files/styles/landscape_width_428px_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=iDi8MHF5 428w, /sites/default/files/styles/landscape_width_650px_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=W8PvXQDV 650w, /sites/default/files/styles/landscape_width_856px_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=y8kJRWUV 856w, /sites/default/files/styles/landscape_width_1275px_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=k2lrqweb 1275w, /sites/default/files/styles/landscape_width_actual_webp/public/2022-12/Climate-Change-Collage-draft_0.jpg.webp?h=80bd7558&amp;itok=VMHuwBty 2517w" sizes="(max-width: 420px) 100vw, (max-width: 1275px) 50vw, 637.5px" width="650" height="365" src="/sites/default/files/styles/landscape_width_650/public/2022-12/Climate-Change-Collage-draft_0.jpg?h=80bd7558&amp;itok=nEMEm4n7" alt="collage student photo contest" title="collage student photo contest (Image credit: NOAA)" loading="lazy" />
+
+
+</div></div></div>
+
+  </article>
+</a>
+                              </div>
+                      </div>
+          <div class="layout__region layout__region--second">
+                          <div class="title">
+                                  <a href="/explainers/how-to-foster-community-resilience" class="">Explainer: How to foster resilience in your community</a>
+                              </div>
+                                            <div class="description">
+                  <p>Whether it’s flooding or fire, heat or hurricanes, each community faces its own set of unique challenges and must tailor its actions to protect lives, livelihoods, lands and waters.&nbsp;</p>
+
+                </div>
+                                    </div>
+        </div>
+            
+    </div>
+    </div>
+
+  </section>
+
+
+  
+  </div>
+  
+
+    </div>
+    </div>
+
+  </section>
+</div><div  class="c-field__item">
+
+
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-grid paragraph--display-mode-default paragraph--width-full-indent-none paragraph--grid-type--labeled-and-overridable-node-ref top-border top-border-color-gray-1 top-border-width-100 top-margin-60px top-padding-10px bottom-padding-20px bottom-margin-10px" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-35453">
+                <DIV class="grid-title">Latest features</DIV>
+        
+<div  class="l-grid   l-grid--3-col">
+            
+
+
+
+
+<section class="l-section paragraph paragraph--type-labeled-and-overridable-node-ref paragraph--display-mode-default has-field-focus-area-text-override" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+          
+
+
+
+
+<h2  class="c-field c-field--name-field-focus-area-text-override c-field--type-string c-field--label-hidden">
+  <div  class="c-field__item">NOAA DATA</div></h2>
+
+
+
+
+
+<div  class="c-field c-field--name-field-referenced-node c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">
+
+
+
+<article  class="node node--type-story node--promoted node--display-mode-focus-area-landscape-image-content-link c-article">
+  
+  
+      
+
+
+
+
+<h2  class="c-field c-field--name-field-node-focus-area c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__items"><div  class="c-field__item"><a href="/climate">Climate</a>
+</div><div  class="c-field__item"><a href="/satellites">Satellites</a>
+</div></div></h2>
+
+
+<a href="/stories/noaa-environmental-data-heads-to-cloud-for-fast-on-demand-public-access-ext">
+  
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><article>
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-image c-field--type-image c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">    <img srcset="/sites/default/files/styles/landscape_width_428px_webp/public/2026-05/NCEI-Data-to-the-Cloud-Teaser-Banner_1200x480.png.webp?h=6638b0a5&amp;itok=7POmLf0I 428w, /sites/default/files/styles/landscape_width_650px_webp/public/2026-05/NCEI-Data-to-the-Cloud-Teaser-Banner_1200x480.png.webp?h=6638b0a5&amp;itok=n8QK1zqT 650w, /sites/default/files/styles/landscape_width_856px_webp/public/2026-05/NCEI-Data-to-the-Cloud-Teaser-Banner_1200x480.png.webp?h=6638b0a5&amp;itok=O4rEiAql 856w, /sites/default/files/styles/landscape_width_1275px_webp/public/2026-05/NCEI-Data-to-the-Cloud-Teaser-Banner_1200x480.png.webp?h=6638b0a5&amp;itok=Kit05XRi 1275w" sizes="(max-width: 759px) 100vw, 637.5px" width="650" height="365" src="/sites/default/files/styles/landscape_width_650/public/2026-05/NCEI-Data-to-the-Cloud-Teaser-Banner_1200x480.png?h=6638b0a5&amp;itok=l4qz_vI3" alt="An illustration of a cloud in outline placed against a background of a photograph of clouds, sun and rays of sunshine." title="An illustration of a cloud in outline placed against a background of a photograph of clouds, sun and rays of sunshine. (Image credit: NOAA NCEI)" loading="lazy" />
+
+
+</div></div></div>
+
+  </article>
+</div></div></div>
+</a>
+
+  
+
+
+
+
+<div  class="c-field c-field--name-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div><a href="/stories/noaa-environmental-data-heads-to-cloud-for-fast-on-demand-public-access-ext" hreflang="en">NOAA environmental data heads to the cloud for fast, on-demand public access</a></div></div></div></div>
+
+  </article>
+</div></div></div>
+
+          </div>
+
+  </section>
+
+      
+
+
+
+
+<section class="l-section paragraph paragraph--type-labeled-and-overridable-node-ref paragraph--display-mode-default has-field-focus-area-text-override" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+          
+
+
+
+
+<h2  class="c-field c-field--name-field-focus-area-text-override c-field--type-string c-field--label-hidden">
+  <div  class="c-field__item">YEAR-END GLOBAL TEMPERATURE &amp; PRECIPITATION ANALYSIS</div></h2>
+
+
+
+
+
+<div  class="c-field c-field--name-field-referenced-node c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">
+
+
+
+<article  class="node node--type-news node--promoted node--display-mode-focus-area-landscape-image-content-link c-article">
+  
+  
+      
+
+
+
+
+<h2  class="c-field c-field--name-field-node-focus-area c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__items"><div  class="c-field__item"><a href="/satellites">Satellites</a>
+</div><div  class="c-field__item"><a href="/climate">Climate</a>
+</div></div></h2>
+
+
+<a href="/news/2025-finishes-as-3rd-warmest-year-on-record-for-globe-ext">
+  
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><article>
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-image c-field--type-image c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">    <img srcset="/sites/default/files/styles/landscape_width_428px_webp/public/2021-02/PHOTO-iStock-61824204-Global%20Warming_Large%20Sun-80116-1440x950-homepage_1.jpg.webp?h=933b1787&amp;itok=qIGXAn7x 428w, /sites/default/files/styles/landscape_width_650px_webp/public/2021-02/PHOTO-iStock-61824204-Global%20Warming_Large%20Sun-80116-1440x950-homepage_1.jpg.webp?h=933b1787&amp;itok=yyKfl2K3 650w, /sites/default/files/styles/landscape_width_856px_webp/public/2021-02/PHOTO-iStock-61824204-Global%20Warming_Large%20Sun-80116-1440x950-homepage_1.jpg.webp?h=933b1787&amp;itok=S7tif7Uk 856w, /sites/default/files/styles/landscape_width_1275px_webp/public/2021-02/PHOTO-iStock-61824204-Global%20Warming_Large%20Sun-80116-1440x950-homepage_1.jpg.webp?h=933b1787&amp;itok=DcaEz8At 1275w" sizes="(max-width: 759px) 100vw, 637.5px" width="650" height="365" src="/sites/default/files/styles/landscape_width_650/public/2021-02/PHOTO-iStock-61824204-Global%20Warming_Large%20Sun-80116-1440x950-homepage_1.jpg?h=933b1787&amp;itok=xV5hPj_s" alt="Sunrise over Earth." title="Sunrise over Earth. (Image credit: Earth at sunrise.)" loading="lazy" />
+
+
+</div></div></div>
+
+  </article>
+</div></div></div>
+</a>
+
+  
+
+
+
+
+<div  class="c-field c-field--name-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div><a href="/news/2025-finishes-as-3rd-warmest-year-on-record-for-globe-ext" hreflang="en">2025 finishes as 3rd-warmest year on record for globe</a></div></div></div></div>
+
+  </article>
+</div></div></div>
+
+          </div>
+
+  </section>
+
+      
+
+
+
+
+<section class="l-section paragraph paragraph--type-labeled-and-overridable-node-ref paragraph--display-mode-default has-field-focus-area-text-override has-node-link-text-override" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+          
+
+
+
+
+<h2  class="c-field c-field--name-field-focus-area-text-override c-field--type-string c-field--label-hidden">
+  <div  class="c-field__item">MONTHLY TEMPERATURE &amp; PRECIPITATION REPORT: GLOBAL</div></h2>
+
+
+
+
+
+<div  class="c-field c-field--name-field-referenced-node c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">
+
+
+
+<article  class="node node--type-news node--promoted node--display-mode-focus-area-landscape-image-content-link c-article">
+  
+  
+      
+
+
+
+
+<h2  class="c-field c-field--name-field-node-focus-area c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__items"><div  class="c-field__item"><a href="/climate">Climate</a>
+</div><div  class="c-field__item"><a href="/satellites">Satellites</a>
+</div></div></h2>
+
+
+<a href="/news/july-2025-was-planets-3rd-warmest-on-record-ext">
+  
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><article>
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-field-media-image c-field--type-image c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">    <img srcset="/sites/default/files/styles/landscape_width_428px_webp/public/2025-08/GettyImages-2222303569.jpg.webp?h=1bb2a4ad&amp;itok=DzFrvhFR 428w, /sites/default/files/styles/landscape_width_650px_webp/public/2025-08/GettyImages-2222303569.jpg.webp?h=1bb2a4ad&amp;itok=b8ipQzLj 650w, /sites/default/files/styles/landscape_width_856px_webp/public/2025-08/GettyImages-2222303569.jpg.webp?h=1bb2a4ad&amp;itok=X_3QVV1s 856w, /sites/default/files/styles/landscape_width_1275px_webp/public/2025-08/GettyImages-2222303569.jpg.webp?h=1bb2a4ad&amp;itok=BBsebG1y 1275w" sizes="(max-width: 759px) 100vw, 637.5px" width="650" height="365" src="/sites/default/files/styles/landscape_width_650/public/2025-08/GettyImages-2222303569.jpg?h=1bb2a4ad&amp;itok=cAVX6ihk" alt="A man in a red shirt splashes water on his face from a sculpted fountain in Rome, Italy." title="A man in a red shirt splashes water on his face from a sculpted fountain in Rome, Italy. (Image credit: Antonio Masiello/Getty Images)" loading="lazy" />
+
+
+</div></div></div>
+
+  </article>
+</div></div></div>
+</a>
+
+  
+
+
+
+
+<div  class="c-field c-field--name-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div><a href="/news/july-2025-was-planets-3rd-warmest-on-record-ext" hreflang="en">July 2025 was planet’s 3rd warmest on record </a></div></div></div></div>
+
+  </article>
+</div></div></div>
+
+              <div class="field field--name-field-node-link-text-override field--type-string field--label-hidden">
+          <div class="field__item"><a href="/news/july-2025-was-planets-3rd-warmest-on-record-ext">
+
+
+
+
+<div  class="c-field c-field--name-field-node-link-text-override c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">July 2025 was planet’s 3rd warmest on record</div></div></div>
+</a></div>
+        </div>
+          </div>
+
+  </section>
+
+  
+  </div>
+  
+
+    </div>
+    </div>
+
+  </section>
+</div><div  class="c-field__item">
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-rich-text paragraph--display-mode-default paragraph--width-full-indent-none  bottom-border bottom-border-color-gray-1 bottom-border-width-100 top-margin-0px top-padding-0px bottom-padding-20px bottom-margin-50px" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-35454">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p class="text-align-center"><a class="button" href="/climate/related-news-and-stories">View more news and stories</a></p>
+</div></div></div>
+
+    </div>
+    </div>
+
+  </section>
+</div><div  class="c-field__item">
+
+
+
+<section class="l-section paragraph paragraph--type-quick-facts paragraph--display-mode-default paragraph--type-quick-facts--display-mode-default paragraph--width-full-indent-none top-border top-border-color-gray-1 top-border-width-100 bottom-border bottom-border-color-gray-1 bottom-border-width-100 top-padding-40px bottom-padding-60px bottom-margin-60px" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div class="facts-wrapper">
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-9012">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">$2.780 trillion</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>From 1980 to August 2024, the U.S. has experienced 396 weather and climate disasters where overall damages reached at least $1 billion. The total cost of these events exceeds $2.780 trillion.</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-4985">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">55</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>The number of different atmospheric gases that NOAA measures in both atmospheric distribution and trends</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-4988">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">A 36-day cyclone</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>The longest-lived tropical cyclone (hurricane) on record was Cyclone Freddy, which lasted 36 days and crossed the Indian Ocean from Australia to Africa from February 4 – March 14, 2023.&nbsp;&nbsp;</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-9013">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">19</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>The number of La Nina events across the tropical Pacific Ocean since 1950. La Ninas cool the waters of the central and eastern Tropical Pacific Ocean affecting the air above it, starting a domino-effect in the atmosphere impacting the climate worldwide.</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-9014">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">3+ million</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>The number of ocean temperature profiles generated by the Argo buoy fleet as of 2024. Argo buoys drift and dive throughout the ocean, recording temperature and salinity down to 2,000 meters (1.24 miles).</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-35435">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">100 billion metric tons</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>The amount of ice lost by the Antarctic Ice Sheet every year since 2003.</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+              
+
+
+
+
+<section class="l-section paragraph paragraph--type-quick-fact-item paragraph--display-mode-default" data-observe-resizes >
+  
+    
+  <div class="l-section__content">
+        <div id="paragraph-id-40311">
+      <div class="big-fact">
+
+
+
+
+<div  class="c-field c-field--name-field-title c-field--type-string c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">March 31</div></div></div>
+</div>
+      <div class="fact-description">
+
+
+
+
+<div  class="c-field c-field--name-field-body-formatted-long c-field--type-text-long c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><p>Only three states - Florida, Louisiana and Hawaii - have an average last freeze by March 31</p>
+</div></div></div>
+</div>
+    </div>
+    </div>
+
+  </section>
+
+          </div>
+    <div class="buttons">
+      <div class="next-fact">
+                  <a class="arrows-cw slick-arrow" tabindex="0" aria-label="Show me another fact"></a>
+              </div>
+    </div>
+    
+    </div>
+
+  </section>
+</div></div></div></div>
+
+
+                  
+
+<div  class="l-right-sidebar-bottom-node">
+        
+
+
+
+
+
+
+  <div  class="block-noaanodesidebarcontent c-block c-block--provider-noaa-core c-block--id-noaa-core-field-sidebar-content">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+<div  class="c-field c-field--name-field-sidebar-content c-field--type-entity-reference-revisions c-field--label-hidden">
+  <div class="c-field__content"><div class="c-field__items"><div  class="c-field__item">
+            
+  
+
+
+
+
+
+<section class="l-section paragraph paragraph--type-link-list-advanced paragraph--display-mode-default paragraph--width-body-indent-none    collapsed" data-observe-resizes >
+  
+        <div id="" class="l-section__title">Quick links</div>
+  
+  <div class="l-section__content">
+        <div id="paragraph-id-35445-0">
+      <div class="always-visible-items">
+              <div class="link-list-item"><a href="/sites/default/files/2026-08/NCA5-Proposed-Amendment-August-2026.pdf">Proposed Amendment to the Fifth National Climate Assessment (NCA5) - White House OSTP &amp; USGCRP (August 2026)</a>
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/budget-finance-performance/noaa-fy22-26-strategic-plan">NOAA FY22-26 Strategic Plan</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.drought.gov">Drought.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="https://www.heat.gov">Heat.gov</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/inflation-reduction-act">Inflation Reduction Act</a></div></div></div>
+
+</div>
+              <div class="link-list-item">
+
+
+
+
+<div  class="c-field c-field--name-field-link c-field--type-link c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><a href="/infrastructure-law">Bipartisan Infrastructure Law</a></div></div></div>
+
+</div>
+            </div>
+            
+    </div>
+    </div>
+
+  </section>
+
+
+
+</div></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+    </div>
+        
+        
+      </div>
+    </div>
+  </article>
+
+
+  
+  
+  
+  
+
+
+
+
+
+
+
+  <div  class="views-element-container c-block c-block--provider-views c-block--id-views-blockfocus-area-carousel-carousel" id="block-views-block-focus-area-carousel-carousel">
+
+  
+  
+      <h2 tabindex="0"  class="c-block__title">Focus Areas //</h2>
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+<div  class="c-view c-view--focus-area-carousel c-view--display-carousel view js-view-dom-id-d671520b0f6b278c9f6c69693944d04cb671113f856537298bd1c671b21eb624">
+  
+  
+  
+
+      <div class="c-view__header"><button class="prev-button">
+  <span class='visually-hidden'>Previous Slider Item</span>
+</button></div>
+  
+  
+  
+
+      <div class="c-view__content">
+
+  
+
+      <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/education" hreflang="en">Education</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-06/NOAA-kids-day-2019-van-de-graaff-hero-image.png?h=98f9285c&amp;itok=Cqt8g_Vq" width="325" height="325" alt="Young children gather around a Van de Graaff machine, a metal structure with a large metal sphere on top, with a metal spherical wand attached. The children watch the machine with faces of awe as they see electricity passing between the machine and the wand." title="Young children gather around a Van de Graaff machine, a metal structure with a large metal sphere on top, with a metal spherical wand attached. The children watch the machine with faces of awe as they see electricity passing between the machine and the wand." />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/education_icon_0.png?h=6a9e038a&amp;itok=21oh-GDA" width="160" height="160" alt="Education focus area icon" title="Education focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/sanctuaries" hreflang="en">Sanctuaries</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/Focus_Area_sanctuaries.jpg?h=da5e7dba&amp;itok=KcFN33VE" width="325" height="325" alt="sea turtle" title="sea turtle" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/sanctuaries_icon.png?h=2db8f1e9&amp;itok=ilZml8UX" width="160" height="160" alt="Sanctuaries focus area icon" title="Sanctuaries focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/charting" hreflang="en">Charting</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-05/PHOTO-Charting%20Focus%20Area%20Hero.jpg?h=92068178&amp;itok=KtCRWXSs" width="325" height="325" alt="This graphic shows an electronic navigation chart imposed over a picture of a boat on the water" title="This graphic shows an electronic navigation chart imposed over a picture of a boat on the water" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/charting_icon.png?h=2db8f1e9&amp;itok=L6B_nda7" width="160" height="160" alt="Charting focus area icon" title="Charting focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/marine-aviation" hreflang="en">Marine &amp; Aviation</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/Focus_Area_marine2.jpg?h=da5e7dba&amp;itok=bgW9j_9b" width="325" height="325" alt="research airplane" title="research airplane" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/marine_icon.png?h=2db8f1e9&amp;itok=G205Ezix" width="160" height="160" alt="Marine and Aviation focus area icon" title="Marine and Aviation focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/research" hreflang="en">Research</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/Focus_Area_research1.jpg?h=e36f4272&amp;itok=XrSCX5eU" width="325" height="325" alt="Ocean research platform" title="Ocean research platform" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/research_icon.png?h=2db8f1e9&amp;itok=TRLi5Kio" width="160" height="160" alt="Research focus area icon" title="Research focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/satellites" hreflang="en">Satellites</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/Focus_Area_satellite.jpg?h=da5e7dba&amp;itok=u2NHXSV1" width="325" height="325" alt="Satellite" title="Satellite" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/satellites_icon.png?h=2db8f1e9&amp;itok=hDJ_T3pt" width="160" height="160" alt="Satellites focus area icon" title="Satellites focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/fisheries" hreflang="en">Fisheries</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/fisheries1.jpg?h=5d59f4db&amp;itok=BWugE7l7" width="325" height="325" alt="School of fish" title="School of fish" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/fisheries_icon.png?h=2db8f1e9&amp;itok=pMe3kY5O" width="160" height="160" alt="Fisheries focus area icon" title="Fisheries focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/ocean-coasts" hreflang="en">Ocean &amp; Coasts</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/Focus_Area_oceanscoasts1.jpg?h=d0346040&amp;itok=B1jXhqv0" width="325" height="325" alt="Rocky coast" title="Rocky coast" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/oceans_icon.png?h=2db8f1e9&amp;itok=TSys4Jjx" width="160" height="160" alt="Ocean and Coasts focus area icon" title="Ocean and Coasts focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+        <div  class="c-view__row"><article class="image-link image-link-icon" role="article"  data-observe-resizes>
+  <header>
+    <a href="/weather" hreflang="en">Weather</a>
+  </header>
+      <div class="image">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-image c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_325/public/2021-02/weather1_0.jpg?h=0c2939d8&amp;itok=NiwGvqjS" width="325" height="325" alt="lightning in clouds" title="lightning in clouds" />
+
+
+</div></div></div>
+
+    </div>
+        <div class="image-icon">
+      
+
+
+
+
+<div  class="c-field c-field--name-field-icon c-field--type-entity-reference c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item">  <img loading="lazy" src="/sites/default/files/styles/square_width_160/public/2021-02/weather_icon.png?h=2db8f1e9&amp;itok=JJyToQOc" width="160" height="160" alt="Weather focus area icon" title="Weather focus area icon" />
+
+
+</div></div></div>
+
+    </div>
+  </article>
+</div>
+  </div>
+  
+  
+  
+  
+
+      <div class="c-view__footer"><button class="next-button">
+  <span class='visually-hidden'>Next Slider Item</span>
+</button></div>
+  
+  
+</div>
+
+
+  
+      </div>
+  
+  
+  </div>
+
+          </div>
+  </div>
+
+  
+    </main>
+
+          <footer class="l-footer content-footer" role="contentinfo">
+                
+
+<div  class="l-footer-content">
+      <div  class="l-constrain">
+          
+
+
+
+
+
+
+  <div  id="block-noaa-guswds-citationselectblock" class="c-block c-block--provider-citation-select c-block--id-citation-select-block">
+
+  
+  
+      <h2 tabindex="0"  class="c-block__title">Select Citation Format</h2>
+    
+
+      <div  class="c-block__content">
+  
+      <form class="citation-select-select-citation" data-drupal-selector="citation-select-select-citation" action="/climate" method="post" id="citation-select-select-citation--QHeggS_O3fs" accept-charset="UTF-8">
+  
+<div class="citation-container js-form-wrapper" data-drupal-selector="edit-container-citation" id="edit-container-citation">
+<div class="left-col c-form-item--select js-form-wrapper" data-drupal-selector="edit-citation-info" id="edit-citation-info">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<select  aria-label="Select style of citation" data-ga="Citation:Select" data-drupal-selector="edit-citation-style" id="edit-citation-style" name="citation_style" class="c-form-item__select c-form-item--select"><option value="" selected="selected">- Select citation style -</option><option value="american_psychological_association_7th_edition">APA (American Psychological Association) 7th edition</option><option value="chicago_manual_of_style_17th_edition">Chicago Manual of Style 17th edition</option><option value="modern_language_association_8th_edition">MLA (Modern Language Association) 8th edition</option><option value="plain_text">Plain Text</option></select>
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<input  data-drupal-selector="edit-nid" type="hidden" name="nid" value="1" class="c-form-item__hidden">
+
+<div id="formatted-bibliography"></div></div>
+
+<div class="right-col form-actions js-form-wrapper" data-drupal-selector="edit-actions" id="edit-actions">
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<input  onclick="return false;" class="clipboard-button c-button js-form-submit c-form-item__submit" data-clipboard-target="#formatted-bibliography .csl-entry" data-ga="Citation:Copy" data-drupal-selector="edit-submit" type="submit" id="edit-submit" name="op" value="Copy Citation">
+
+</div>
+</div>
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<input  autocomplete="off" data-drupal-selector="form-r0bl6ap-mqin6cmdbs6akezgps7bzyzrnbjlsbg-p6g" type="hidden" name="form_build_id" value="form-R0bl6Ap_MqiN6cMdbs6akEzGpS7bZyZRNBjlsbg_P6g" class="c-form-item__hidden">
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<input  data-drupal-selector="edit-citation-select-select-citation" type="hidden" name="form_id" value="citation_select_select_citation" class="c-form-item__hidden">
+
+
+</form>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+  <div  id="block-noaacontentfooter" class="c-block c-block--provider-noaa-core c-block--id-noaa-core-content-footer">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      <div class="last-updated">Last updated June 24, 2025</div><div class="cite-this-page"><a href="#" data-ga="Citation:Open">Cite this page</a></div><div class="problem-with-page"><a href="/noaa_landing_page/comment_modal?email=webmaster%40noaa.gov&amp;url=https%3A%2F%2Fwww.noaa.gov%2Fclimate" class="use-ajax" data-dialog-type="modal">Have a comment on this page? Let us know.</a></div>
+  
+      </div>
+  
+  
+  </div>
+
+          </div>
+  </div>
+
+          </footer>
+    
+    <footer class="l-footer section-footer" role="contentinfo">
+                  
+
+
+
+
+
+
+  <div  class="views-element-container c-block c-block--provider-views c-block--id-views-blocksection-footer-block-focus-area" id="block-views-block-section-footer-block-focus-area">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+<div  class="c-view c-view--section-footer c-view--display-block_focus_area view js-view-dom-id-ee3579ea5421323e1c4d4d023c7b6a2c45c9d16139bc35a3cf8ec31ad964e374">
+  
+  
+  
+
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+</div>
+
+
+  
+      </div>
+  
+  
+  </div>
+
+    
+
+        </footer>
+
+    <footer class="l-footer site-footer" role="contentinfo">
+                  
+
+
+
+
+
+
+  <div  id="block-sitefooterleft" class="c-block c-block--provider-block-content c-block--id-block-content828c87f2-5ff4-4437-9e89-42cee7e7ed11">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-body c-field--type-text-with-summary c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div class="logo-wrapper"><a href="/" class="footer-logo"><span>NOAA Home</span></a></div>
+<div class="text">
+  <div class="slogan">Science. Service. Stewardship.</div>
+</div></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+            <div id="footer-menus">  
+                    <ul  class="menu menu--footer" id="menu--footer">
+      
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/news-features" class="menu__link" data-ga="Footer:News" data-drupal-link-system-path="node/6632">News</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/tools-and-resources" class="menu__link" data-ga="Footer:Tools" data-drupal-link-system-path="node/37">Tools</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/about-our-agency" class="menu__link" data-ga="Footer:About" data-drupal-link-system-path="node/6503">About</a>
+              </li>
+      </ul>
+    
+
+
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+
+  
+  
+    
+
+  
+            
+
+                    <ul  class="menu menu--footer-2" id="menu--footer-2">
+      
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/legislative-and-intergovernmental-affairs/noaa-tribal-resources" class="menu__link" data-ga="Footer:Resources for Tribal &amp; Indigenous Communities" data-drupal-link-system-path="node/8077">Resources for Tribal &amp; Indigenous Communities</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/infrastructure-law" class="menu__link" data-ga="Footer:Bipartisan Infrastructure Law (BIL)" data-drupal-link-system-path="node/8677">Bipartisan Infrastructure Law (BIL)</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/inflation-reduction-act" class="menu__link" data-ga="Footer:Inflation Reduction Act (IRA)" data-drupal-link-system-path="node/12796">Inflation Reduction Act (IRA)</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/protecting-your-privacy" class="menu__link" data-ga="Footer:Protecting Your Privacy" data-drupal-link-system-path="node/5778">Protecting Your Privacy</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/information-technology/foia" class="menu__link" data-ga="Footer:FOIA" data-drupal-link-system-path="node/7741">FOIA</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/organization/information-technology/policy-oversight/information-quality" class="menu__link" data-ga="Footer:Information Quality" data-drupal-link-system-path="node/6008">Information Quality</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/accessibility" class="menu__link" data-ga="Footer:Accessibility" data-drupal-link-system-path="node/5980">Accessibility</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/guidance" class="menu__link" data-ga="Footer:Guidance" data-drupal-link-system-path="node/6236">Guidance</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/budget-finance-performance" class="menu__link" data-ga="Footer:Budget &amp; Performance" data-drupal-link-system-path="node/95">Budget &amp; Performance</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/disclaimer" class="menu__link" data-ga="Footer:Disclaimer" data-drupal-link-system-path="node/5780">Disclaimer</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/civil-rights" class="menu__link" data-ga="Footer:EEO" data-drupal-link-system-path="node/6521">EEO</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/organization/inclusion-and-civil-rights/no-fear-act" class="menu__link" data-ga="Footer:No-Fear Act" data-drupal-link-system-path="node/6345">No-Fear Act</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="https://www.usa.gov" class="menu__link" data-ga="Footer:USA.gov">USA.gov</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="https://www.ready.gov" class="menu__link" data-ga="Footer:Ready.gov">Ready.gov</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/organization/information-technology/emergency-information-for-noaa-employees" class="menu__link" data-ga="Footer:Employee Check-In" data-drupal-link-system-path="node/6292">Employee Check-In</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="https://nsd.rdc.noaa.gov" class="menu__link" data-ga="Footer:Staff Directory">Staff Directory</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/contact-us" class="menu__link" data-ga="Footer:Contact Us" data-drupal-link-system-path="node/5782">Contact Us</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="/need-help" class="menu__link" data-ga="Footer:Need Help?" data-drupal-link-system-path="node/5781">Need Help?</a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="https://sites.google.com/noaa.gov/ohcs/current-event" class="menu__link ext-link-after" data-ga="Footer:COVID-19 hub for NOAA personnel" target="_blank">COVID-19 hub for NOAA personnel<span class="visually-hidden"> offsite link</span></a>
+              </li>
+    
+            
+                                    
+      
+                          
+      <li  class="menu__item">
+        <a href="https://vote.gov/" class="menu__link" data-ga="Footer:Vote.gov">Vote.gov</a>
+              </li>
+      </ul>
+    
+
+</div> 
+  
+  
+  
+  
+
+
+
+
+
+
+
+  <div  id="block-sitefooterright" class="c-block c-block--provider-block-content c-block--id-block-contentabc656b2-ce1f-4723-974b-e86d8614192a">
+
+  
+  
+    
+
+      <div  class="c-block__content">
+  
+      
+
+
+
+
+<div  class="c-field c-field--name-body c-field--type-text-with-summary c-field--label-hidden">
+  <div class="c-field__content"><div  class="c-field__item"><div id="site-footer-right-top">
+  <div id="stay-connected">
+    <a href="/stay-connected">Stay connected to NOAA</a>
+  </div> <!-- stay-connected -->
+
+  <div id="social-icons">
+    <a class="twitter icon-twitter" href="https://twitter.com/NOAA" target="_blank"><span>NOAA on Twitter</span></a>
+    <a class="fb icon-facebook" href="https://www.facebook.com/NOAA" target="_blank"><span>NOAA on Facebook</span></a>
+    <a class="ig icon-instagramm" href="https://www.instagram.com/noaa" v><span>NOAA on Instagram</span></a>
+    <a class="youtube icon-youtube-play" href="https://www.youtube.com/noaa" target="_blank"><span>NOAA on YouTube</span></a>
+  </div>
+</div>
+<!--
+<div class="site-footer-right-bottom">
+  <div class="how-we-doing">How are we doing?</div>
+  <div class="feedback"><a target="_blank" title="opens in new window" href="https://docs.google.com/forms/d/e/1FAIpQLScM7iupnUIPRBcjKSe7l7elk1roiNtv1hmiPxOKo1afqX1OMg/viewform?usp=sf_link?Location=ocea">Feedback<span class="visually-hidden"> opens in new window</span></a></div>
+</div>--></div></div></div>
+
+  
+      </div>
+  
+  
+  </div>
+
+  
+
+        </footer>
+
+  </div>
+
+</div>
+
+  </div>
+
+    
+          
+
+
+<a href="#top--W5OdJ01A794"  class="c-back-to-top" title="Back to top" aria-hidden="true" tabindex="-1">
+  
+<svg  class="c-icon  c-icon--back-to-top" role="img"><title>Back to top</title><use href="/themes/custom/noaa_guswds/dist/images/sprite.artifact.svg#angle"></use></svg></a>
+        <script src="/core/assets/vendor/jquery/jquery.min.js?v=3.7.1"></script>
+<script src="/core/assets/vendor/once/once.min.js?v=1.0.1"></script>
+<script src="/core/misc/drupal.js?v=10.6.15"></script>
+<script src="/core/misc/drupal.init.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/version-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/data-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/disable-selection-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/jquery-patch-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/scroll-parent-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/unique-id-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/focusable-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/keycode-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/plugin-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widget-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/labels-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/controlgroup-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/form-reset-mixin-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/mouse-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/checkboxradio-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/draggable-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/resizable-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/button-min.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/jquery.ui/ui/widgets/dialog-min.js?v=10.6.15"></script>
+<script src="/libraries/slick/slick/slick.min.js?tkskld"></script>
+<script src="/core/assets/vendor/tabbable/index.umd.min.js?v=6.3.0"></script>
+<script src="/core/assets/vendor/tua-body-scroll-lock/tua-bsl.umd.min.js?v=10.6.15"></script>
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.10/dist/clipboard.min.js?tkskld"></script>
+<script src="/modules/contrib/citation_select/js/clipboard-attach.js?tkskld"></script>
+<script src="/core/misc/progress.js?v=10.6.15"></script>
+<script src="/core/assets/vendor/loadjs/loadjs.min.js?v=4.3.0"></script>
+<script src="/core/misc/debounce.js?v=10.6.15"></script>
+<script src="/core/misc/announce.js?v=10.6.15"></script>
+<script src="/core/misc/message.js?v=10.6.15"></script>
+<script src="/core/misc/ajax.js?v=10.6.15"></script>
+<script src="/core/misc/displace.js?v=10.6.15"></script>
+<script src="/core/misc/jquery.tabbable.shim.js?v=10.6.15"></script>
+<script src="/core/misc/position.js?v=10.6.15"></script>
+<script src="/core/misc/dialog/dialog-deprecation.js?v=10.6.15"></script>
+<script src="/core/misc/dialog/dialog.js?v=10.6.15"></script>
+<script src="/core/misc/dialog/dialog.position.js?v=10.6.15"></script>
+<script src="/core/misc/dialog/dialog.jquery-ui.js?v=10.6.15"></script>
+<script src="/core/modules/ckeditor5/js/ckeditor5.dialog.fix.js?v=10.6.15"></script>
+<script src="/core/misc/dialog/dialog.ajax.js?v=10.6.15"></script>
+<script src="/core/misc/jquery.form.js?v=4.3.0"></script>
+<script src="/modules/contrib/google_tag/js/gtag.ajax.js?tkskld"></script>
+<script src="/modules/custom/noaa_core/js/cite-this-page.js?tkskld"></script>
+<script src="/modules/custom/noaa_core/js/anchor-in-details.js?tkskld"></script>
+<script src="/modules/custom/noaa_core/js/dropdown.js?tkskld"></script>
+<script src="//dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=DOC&amp;subagency=NOAA" id="_fed_an_ua_tag"></script>
+<script src="https://touchpoints.app.cloud.gov/touchpoints/1f162941.js" async></script>
+<script src="/modules/custom/noaa_core/js/touchpoints-tracking.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/dist/js/common.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/back-to-top.js?tkskld"></script>
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
+<script src="/themes/custom/noaa_guswds/dist/js/universal.es6.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/dist/js/html.es6.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/dist/js/uswds-init.es6.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/dist/js/uswds.es6.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/click-scroll.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/content-rotator.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/elp.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/facets.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/link-list.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/menu.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/no-image-download.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/oembed-fixes.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/quick-facts.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/search.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/site-improve.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/sticky-top.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/tooltipster.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/usa-banner.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/libraries/resize-observer.js?tkskld"></script>
+<script src="/libraries/cycle2/jquery.cycle2.min.js?tkskld"></script>
+<script src="/libraries/superclick/src/js/superclick.js?tkskld"></script>
+<script src="/libraries/tooltipster/dist/js/tooltipster.bundle.min.js?tkskld"></script>
+<script src="/libraries/owlcarousel2/dist/owl.carousel.js?tkskld"></script>
+<script src="/themes/custom/noaa_guswds/js/noaa/carousel.js?tkskld"></script>
+<script src="/modules/custom/noaa_landing_page/js/focus_area_slider.js?tkskld"></script>
+<script src="/modules/custom/noaa_media_library/js/freezeframe-initialize.js?tkskld"></script>
+<script src="/modules/custom/noaa_weather/js/handlebars-v4.0.4.js?tkskld"></script>
+<script src="/modules/custom/noaa_weather/js/jquery.autocomplete.min.js?tkskld"></script>
+<script src="/modules/custom/noaa_weather/js/noaa_weather.js?tkskld"></script>
+
+  </body>
+</html>

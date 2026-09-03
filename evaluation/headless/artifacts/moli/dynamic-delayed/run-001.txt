@@ -1,0 +1,22 @@
+		Quotes to Scrape
+==================
+
+
+#                     [Quotes to Scrape](/)                                      
+
+
+[Login](/login)                                
+[" + t + "]()";            }).join(" ");            document.getElementById("quotesPlaceholder").innerHTML += "
+
+" + d['text'] + "by " + d['author']['name'] + "
+
+Tags: " + tags + "";        }    }, delayInMilliseconds);
+
+
+-             [Next →](/js-delayed/page/2/)        
+
+
+Quotes by: [GoodReads.com](https://www.goodreads.com/quotes)            
+
+Made with ❤ by [Zyte](https://www.zyte.com)            
+

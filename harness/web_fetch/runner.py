@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import base64
 import json
 import platform
 import socket
@@ -157,6 +158,19 @@ def run_evaluation(
                     artifact = contained_path(output_dir, artifact_rel)
                     artifact.parent.mkdir(parents=True, exist_ok=True)
                     artifact.write_text(result.content, encoding="utf-8", errors="replace")
+                    rendered_html = result.metadata.pop('_rendered_html', None)
+                    if rendered_html is not None:
+                        html_rel = artifact_rel.with_suffix('.html.txt')
+                        contained_path(output_dir, html_rel).write_text(rendered_html, encoding='utf-8')
+                        result.metadata['rendered_html_path'] = html_rel.as_posix()
+                    raw_stdout = result.metadata.pop('_raw_stdout_b64', None)
+                    if raw_stdout is not None:
+                        binary_rel = artifact_rel.with_suffix('.bin')
+                        binary = base64.b64decode(raw_stdout, validate=True)
+                        if hashlib.sha256(binary).hexdigest() != result.metadata['raw_stdout_sha256']:
+                            raise ValueError('Raw stdout hash mismatch')
+                        contained_path(output_dir, binary_rel).write_bytes(binary)
+                        result.metadata['raw_stdout_path'] = binary_rel.as_posix()
                     measured = score_attempt(
                         case, artifact.read_bytes(), ok=result.ok, metadata=result.metadata,
                         list_reference=load_list_reference(case, dataset_path.parent),

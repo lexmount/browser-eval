@@ -164,7 +164,9 @@ def normalize_for_match(value: str) -> str:
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
-    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])', '', normalized)
+    # Start only at a whitespace-run boundary: a long run not followed by CJK
+    # must not be rescanned from every suffix (quadratic backtracking).
+    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])', '', normalized)
     # Menu breadcrumbs commonly lose spaces when inline links are extracted.
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:

@@ -1,0 +1,15 @@
+{
+  "case_id": "dynamic-reviews-graphql",
+  "url": "https://web-scraping.dev/reviews",
+  "source": "Independent HTTP response + separately observed browser DOM; no candidate output",
+  "checked_at": "2026-09-03T06:43:29.705Z",
+  "initial_checked_at": "2026-09-03T06:46:05.377890+00:00",
+  "selector": ".review",
+  "expected_entries": 20,
+  "observed_entries": 20,
+  "completion": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More",
+  "initial_status": 200,
+  "initial_sha256": "77a5e13ddd2d8d9d65ba531340293d16870224866f7d52bbf7377f113b514665",
+  "rendered_sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
+  "reference_sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535"
+}

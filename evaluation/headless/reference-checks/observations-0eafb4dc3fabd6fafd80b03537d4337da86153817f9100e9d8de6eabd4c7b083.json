@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-012-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:09.622756+00:00",
+    "content_text": "Django\nDjango is a high-level Python web framework that encourages rapid development\nand clean, pragmatic design. Thanks for checking it out.\nAll documentation is in the \"\ndocs\n\" directory and online at\nhttps://docs.djangoproject.com/en/stable/\n. If you're just getting started,\nhere's how we recommend you read the docs:\nFirst, read\ndocs/intro/install.txt\nfor instructions on installing Django.\nNext, work through the tutorials in order (\ndocs/intro/tutorial01.txt\n,\ndocs/intro/tutorial02.txt\n, etc.).\nIf you want to set up an actual deployment server, read\ndocs/howto/deployment/index.txt\nfor instructions.\nYou'll probably want to read through the topical guides (in\ndocs/topics\n)\nnext; from there you can jump to the HOWTOs (in\ndocs/howto\n) for specific\nproblems, and check out the reference (\ndocs/ref\n) for gory details.\nSee\ndocs/README\nfor instructions on building an HTML version of the docs.\nDocs are updated rigorously. If you find any problems in the docs, or think\nthey should be clarified in any way, please take 30 seconds to\nfill out a ticket\n. You can log in\nwith your GitHub account, or with a DjangoProject account if you have one. Once\nyou log in, a New Ticket button is available next to View Tickets.\nTo get more help:\nJoin the\nDjango Discord community\n.\nJoin the community on the\nDjango Forum\n.\nTo contribute to Django:\nCheck out\nhttps://docs.djangoproject.com/en/dev/internals/contributing/\nfor\ninformation about getting involved.\nTo run Django's test suite:\nFollow the instructions in the \"Unit tests\" section of\ndocs/internals/contributing/writing-code/unit-tests.txt\n, published online at\nhttps://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests\nSupporting the Development of Django\nDjango's development depends on your contributions.\nIf you depend on Django, remember to support the Django Software Foundation:\nhttps://www.djangoproject.com/fundraising/",
+    "scope_identity": {
+      "case_id": "live-012-navigation-menu",
+      "url": "https://github.com/django/django",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "Django is a high-level Python web framework that encourages rapid"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "for instructions on building an HTML version of the docs."
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "If you depend on Django, remember to support the Django"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1705.1198750268668,
+      "timeout_ms": 120000
+    }
+  }
+]

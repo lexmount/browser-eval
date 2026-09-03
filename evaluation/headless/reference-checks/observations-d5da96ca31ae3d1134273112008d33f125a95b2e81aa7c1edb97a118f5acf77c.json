@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-024-cascading-style-sheets-level-2-r",
+    "independent": true,
+    "checked_at": "2026-09-03T14:26:11.070475+00:00",
+    "content_text": "next\ncontents\nproperties\nindex\nCascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification\nW3C Recommendation 07 June 2011, edited in place 12 April 2016 to point to new work, edited in place 07 December 2021 to correct markup.\nThis version:\nhttp://www.w3.org/TR/2011/REC-CSS2-20110607\nLatest version:\nhttp://www.w3.org/TR/CSS2\nPrevious versions:\nhttp://www.w3.org/TR/2011/PR-CSS2-20110412\nhttp://www.w3.org/TR/2008/REC-CSS2-20080411/\nLatest editor's draft:\nhttp://dev.w3.org/csswg/css2/\nEditors:\nBert Bos\n<\nbert @w3.org\n>\nTantek Çelik\n<\ntantek @cs.stanford.edu\n>\nIan Hickson\n<\nian @hixie.ch\n>\nHåkon\nWium\nLie\n<\nhowcome @opera.com\n>\nPlease refer to the\nerrata\nfor this document.\nThis document is also available in these non-normative formats:\nplain text\n,\ngzip'ed tar file\n,\nzip file\n,\ngzip'ed PostScript\n,\nPDF\n.\nSee also\ntranslations\n.\nCopyright\n© 2011\nW3C\n®\n(\nMIT\n,\nERCIM\n,\nKeio\n), All Rights Reserved. W3C\nliability\n,\ntrademark\nand\ndocument use\nrules apply.\nAbstract\nThis specification defines Cascading Style Sheets, level 2\nrevision 1 (CSS 2.1). CSS 2.1 is a style sheet language\nthat allows\nauthors and users to attach style (e.g., fonts and spacing) to\nstructured documents (e.g., HTML documents and XML\napplications). By separating the presentation style of documents from\nthe content of documents, CSS 2.1 simplifies Web authoring and\nsite maintenance.\nCSS 2.1 builds on CSS2\n[CSS2]\nwhich builds on CSS1\n[CSS1]\n.\nIt supports media-specific style sheets so that authors may tailor the\npresentation of their documents to visual browsers, aural devices,\nprinters, braille devices, handheld devices, etc. It also supports\ncontent positioning, table layout, features for internationalization\nand some properties related to user interface.\nCSS 2.1 corrects a few errors in CSS2 (the most important\nbeing a new definition of the height/width of absolutely positioned\nelements, more influence for HTML's \"style\" attribute and a new\ncalculation of the 'clip' property), and adds a few highly requested\nfeatures which have already been widely implemented.\nBut most of all CSS 2.1\nrepresents a \"snapshot\" of CSS usage: it consists of all CSS features\nthat are implemented interoperably at the date of publication of the Recommendation.\nCSS 2.1 is derived from and is intended to replace CSS2. Some\nparts of CSS2 are unchanged in CSS 2.1, some parts have been\naltered, and some parts removed. The removed portions may be used in a\nfuture CSS3 specification. Future specs should refer to CSS 2.1\n(unless they need features from CSS2 which have been dropped in\nCSS 2.1, and then they should only reference CSS2 for those\nfeatures, or preferably reference such feature(s) in the respective\nCSS3 Module that includes those feature(s)).\nStatus of this document\nThis section describes the status of this document at the time\nof its publication. Other documents may supersede this document. A\nlist of current W3C publications and the latest revision of this\ntechnical report can be found in the\nW3C technical reports index at\nhttp://www.w3.org/TR/.\nThis document has been reviewed by W3C Members, by software\ndevelopers, and by other W3C groups and interested parties, and is\nendorsed by the Director as a W3C Recommendation. It is a stable\ndocument and may be used as reference material or cited from another\ndocument. W3C's role in making the Recommendation is to draw attention\nto the specification and to promote its widespread deployment. This\nenhances the functionality and interoperability of the Web.\nThe (\narchived\n)\npublic mailing list\nwww-style@w3.org\n(see\ninstructions\n) is preferred\nfor discussion of this specification. When sending e-mail, please put\nthe text “CSS21” in the subject, preferably like\nthis: “[CSS21]\n…summary of\ncomment…\n”\nThis document was produced by the\nCSS Working Group\n(part\nof the\nStyle Activity\n).\nThis document was produced by a group operating under\nthe\n5 February 2004 W3C\nPatent Policy\n. W3C maintains a\npublic list of any\npatent disclosures\nmade in connection with the deliverables of the\ngroup; that page also includes instructions for disclosing a patent.\nAn individual who has actual knowledge of a patent which the\nindividual believes\ncontains\nEssential\nClaim(s)\nmust disclose the information in accordance\nwith\nsection 6 of\nthe W3C Patent Policy\n.\nThe Working Group has created a\ntest\nsuite\nand\nan\nimplementation\nreport.\nAll changes since the previous Working Draft, the previous\nCandidate Recommendation and the previous Recommendation are listed\nin\nappendix C.\n(hide)\nNote:\nSeveral sections of this specification have been updated by other specifications. Please, see\n\"Cascading Style Sheets (CSS) — The Official Definition\"\nin the latest\nCSS Snapshot\nfor a list of specifications and the sections they replace.\nThe CSS Working Group is also developing\nCSS level 2 revision 2 (CSS 2.2).\nnext\ncontents\nproperties\nindex",
+    "scope_identity": {
+      "case_id": "live-024-cascading-style-sheets-level-2-r",
+      "url": "https://www.w3.org/TR/CSS2/",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "W3C Recommendation 07 June 2011, edited in place 12 April 2016 to point to new work, edited in place 07 December 2021 to correct markup."
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "Abstract"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 589.9304159684107,
+      "timeout_ms": 120000
+    }
+  }
+]

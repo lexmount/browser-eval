@@ -1,0 +1,1363 @@
+logging — Logging facility for Python — Python 3.14.7 documentation
+===================================================================================
+
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+Theme            Auto  
+Light  
+Dark  
+
+
+### [Table of Contents](../contents.html)
+
+- [`logging` — Logging facility for Python](#)- [Logger Objects](#logger-objects)
+- [Logging Levels](#logging-levels)
+- [Handler Objects](#handler-objects)
+- [Formatter Objects](#formatter-objects)
+- [Filter Objects](#filter-objects)
+- [LogRecord Objects](#logrecord-objects)
+- [LogRecord attributes](#logrecord-attributes)
+- [LoggerAdapter Objects](#loggeradapter-objects)
+- [Thread Safety](#thread-safety)
+- [Module-Level Functions](#module-level-functions)
+- [Module-Level Attributes](#module-level-attributes)
+- [Integration with the warnings module](#integration-with-the-warnings-module)
+
+
+#### Previous topic
+
+[`time` — Time access and conversions](time.html "previous chapter")
+
+
+#### Next topic
+
+[`logging.config` — Logging configuration](logging.config.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=logging+%E2%80%94+Logging+facility+for+Python&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Flogging.html&pagesource=library%2Flogging.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/logging.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](logging.config.html "logging.config — Logging configuration") |
+-           [previous](time.html "time — Time access and conversions") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [Generic Operating System Services](allos.html) »
+- [`logging` — Logging facility for Python]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+# `logging` — Logging facility for Python[¶](#module-logging "Link to this heading")
+
+**Source code:** [Lib/logging/__init__.py](https://github.com/python/cpython/tree/3.14/Lib/logging/__init__.py)
+
+Important
+
+This page contains the API reference information. For tutorialinformation and discussion
+of more advanced topics, see
+
+- [Basic Tutorial](../howto/logging.html#logging-basic-tutorial)
+- [Advanced Tutorial](../howto/logging.html#logging-advanced-tutorial)
+- [Logging Cookbook](../howto/logging-cookbook.html#logging-cookbook)
+
+---
+
+This module defines functions and classes which implement a flexible eventlogging
+system for applications and libraries.
+
+The key benefit of having the logging API provided by a standard library moduleis
+that all Python modules can participate in logging, so your application logcan include
+your own messages integrated with messages from third-partymodules.
+
+Here’s a simple example of idiomatic usage:
+
+Copy
+
+```# myapp.pyimport loggingimport myliblogger = logging.getLogger(__name__)def main(): 
+   logging.basicConfig(filename='myapp.log', level=logging.INFO)    logger.info('Started') 
+   mylib.do_something()    logger.info('Finished')if __name__ == '__main__':    main()```
+
+Copy
+
+```# mylib.pyimport logginglogger = logging.getLogger(__name__)def do_something():
+logger.info('Doing something')```
+
+If you run *myapp.py*, you should see this in *myapp.log*:
+
+```INFO:__main__:StartedINFO:mylib:Doing somethingINFO:__main__:Finished```
+
+The key feature of this idiomatic usage is that the majority of code is simplycreating 
+a module level logger with `getLogger(__name__)`, and using thatlogger to do any needed logging. This 
+is concise, while allowing downstreamcode fine-grained control if needed. Logged 
+messages to the module-level loggerget forwarded to handlers of loggers in higher-level 
+modules, all the way up tothe highest-level logger known as the root logger; this 
+approach is known ashierarchical logging.
+
+For logging to be useful, it needs to be configured: setting the levels anddestinations 
+for each logger, potentially changing how specific modules log,often based on command-line 
+arguments or application configuration. In mostcases, like the one above, only the 
+root logger needs to be so configured, sinceall the lower level loggers at module 
+level eventually forward their messages toits handlers.  [`basicConfig()`](#logging.basicConfig "logging.basicConfig") provides a quick way to configurethe root logger that handles many use cases.
+
+The module provides a lot of functionality and flexibility.  If you areunfamiliar 
+with logging, the best way to get to grips with it is to view thetutorials (**see 
+the links above and on the right**).
+
+The basic classes defined by the module, together with their attributes andmethods, 
+are listed in the sections below.
+
+- Loggers expose the interface that application code directly uses.
+- Handlers send the log records (created by loggers) to the appropriatedestination.
+- Filters provide a finer grained facility for determining which log recordsto output.
+- Formatters specify the layout of log records in the final output.
+
+## Logger Objects[¶](#logger-objects "Link to this heading")
+
+Loggers have the following attributes and methods.  Note that Loggers should*NEVER* 
+be instantiated directly, but always through the module-level function`logging.getLogger(name)`.  Multiple 
+calls to [`getLogger()`](#logging.getLogger "logging.getLogger") with the samename will always return a reference to the same Logger object.
+
+The `name` is potentially a period-separated hierarchical value, like`foo.bar.baz` (though it could 
+also be just plain `foo`, for example).Loggers that are further down in the hierarchical 
+list are children of loggershigher up in the list.  For example, given a logger with 
+a name of `foo`,loggers with names of `foo.bar`, `foo.bar.baz`, and `foo.bam` are alldescendants of `foo`.  In addition, 
+all loggers are descendants of the rootlogger. The logger name hierarchy is analogous 
+to the Python package hierarchy,and identical to it if you organise your loggers 
+on a per-module basis usingthe recommended construction `logging.getLogger(__name__)`.  That’s becausein a 
+module, `__name__` is the module’s name in the Python package namespace.
+*class *logging.Logger[¶](#logging.Logger "Link to this definition")name[¶](#logging.Logger.name "Link to this definition")
+This is the logger’s name, and is the value that was passed to [`getLogger()`](#logging.getLogger "logging.getLogger")to obtain the logger.
+
+
+Note
+
+This attribute should be treated as read-only.
+level[¶](#logging.Logger.level "Link to this definition")
+The threshold of this logger, as set by the [`setLevel()`](#logging.Logger.setLevel "logging.Logger.setLevel") method.
+
+
+Note
+
+Do not set this attribute directly - always use [`setLevel()`](#logging.Logger.setLevel "logging.Logger.setLevel"),which has checks for the level passed to it.
+parent[¶](#logging.Logger.parent "Link to this definition")
+The parent logger of this logger. It may change based on later instantiationof loggers 
+which are higher up in the namespace hierarchy.
+
+
+Note
+
+This value should be treated as read-only.
+propagate[¶](#logging.Logger.propagate "Link to this definition")
+If this attribute evaluates to true, events logged to this logger will bepassed to 
+the handlers of higher level (ancestor) loggers, in addition toany handlers attached 
+to this logger. Messages are passed directly to theancestor loggers’ handlers - 
+neither the level nor filters of the ancestorloggers in question are considered.
+
+If this evaluates to false, logging messages are not passed to the handlersof ancestor 
+loggers.
+
+Spelling it out with an example: If the propagate attribute of the logger named`A.B.C` 
+evaluates to true, any event logged to `A.B.C` via a method call such as`logging.getLogger('A.B.C').error(...)` will [subject 
+to passing that logger’slevel and filter settings] be passed in turn to any handlers 
+attached to loggersnamed `A.B`, `A` and the root logger, after first being passed to 
+any handlersattached to `A.B.C`. If any logger in the chain `A.B.C`, `A.B`, `A` has its`propagate` attribute 
+set to false, then that is the last logger whose handlersare offered the event to 
+handle, and propagation stops at that point.
+
+The constructor sets this attribute to `True`.
+
+
+Note
+
+If you attach a handler to a logger *and* one or more of itsancestors, it may emit 
+the same record multiple times. In general, youshould not need to attach a handler 
+to more than one logger - if you justattach it to the appropriate logger which is 
+highest in the loggerhierarchy, then it will see all events logged by all descendant 
+loggers,provided that their propagate setting is left set to `True`. A commonscenario 
+is to attach handlers only to the root logger, and to letpropagation take care of 
+the rest.
+handlers[¶](#logging.Logger.handlers "Link to this definition")
+The list of handlers directly attached to this logger instance.
+
+
+Note
+
+This attribute should be treated as read-only; it is normally changed viathe [`addHandler()`](#logging.Logger.addHandler "logging.Logger.addHandler") and [`removeHandler()`](#logging.Logger.removeHandler "logging.Logger.removeHandler") methods, which use locks to ensurethread-safe operation.
+disabled[¶](#logging.Logger.disabled "Link to this definition")
+This attribute disables handling of any events. It is set to `False` in theinitializer, 
+and only changed by logging configuration code.
+
+
+Note
+
+This attribute should be treated as read-only.
+setLevel(*level*)[¶](#logging.Logger.setLevel "Link to this definition")
+Sets the threshold for this logger to *level*. Logging messages which are lesssevere 
+than *level* will be ignored; logging messages which have severity *level*or higher 
+will be emitted by whichever handler or handlers service this logger,unless a handler’s 
+level has been set to a higher severity level than *level*.
+
+When a logger is created, the level is set to [`NOTSET`](#logging.NOTSET "logging.NOTSET") (which causesall messages to be processed when the logger is the root logger, or delegationto the parent when the logger is a non-root logger). Note that the root loggeris created with level [`WARNING`](#logging.WARNING "logging.WARNING").
+
+The term ‘delegation to the parent’ means that if a logger has a level ofNOTSET, 
+its chain of ancestor loggers is traversed until either an ancestor witha level other 
+than NOTSET is found, or the root is reached.
+
+If an ancestor is found with a level other than NOTSET, then that ancestor’slevel 
+is treated as the effective level of the logger where the ancestor searchbegan, and 
+is used to determine how a logging event is handled.
+
+If the root is reached, and it has a level of NOTSET, then all messages will beprocessed. 
+Otherwise, the root’s level will be used as the effective level.
+
+See [Logging Levels](#levels) for a list of levels.
+
+
+Changed in version 3.2: The *level* parameter now accepts a string representation 
+of thelevel such as ‘INFO’ as an alternative to the integer constantssuch as 
+[`INFO`](#logging.INFO "logging.INFO"). Note, however, that levels are internally storedas integers, and methods such as e.g. [`getEffectiveLevel()`](#logging.Logger.getEffectiveLevel "logging.Logger.getEffectiveLevel") and[`isEnabledFor()`](#logging.Logger.isEnabledFor "logging.Logger.isEnabledFor") will return/expect to be passed integers.
+isEnabledFor(*level*)[¶](#logging.Logger.isEnabledFor "Link to this definition")
+Indicates if a message of severity *level* would be processed by this logger.This 
+method checks first the module-level level set by`logging.disable(level)` and then the logger’s effective 
+level as determinedby [`getEffectiveLevel()`](#logging.Logger.getEffectiveLevel "logging.Logger.getEffectiveLevel").
+getEffectiveLevel()[¶](#logging.Logger.getEffectiveLevel "Link to this definition")
+Indicates the effective level for this logger. If a value other than[`NOTSET`](#logging.NOTSET "logging.NOTSET") has been set using [`setLevel()`](#logging.Logger.setLevel "logging.Logger.setLevel"), it is returned. Otherwise,the hierarchy is traversed towards the root until a value other than`NOTSET` 
+is found, and that value is returned. The value returned isan integer, typically 
+one of [`logging.DEBUG`](#logging.DEBUG "logging.DEBUG"), [`logging.INFO`](#logging.INFO "logging.INFO")etc.
+getChild(*suffix*)[¶](#logging.Logger.getChild "Link to this definition")
+Returns a logger which is a descendant to this logger, as determined by the suffix.Thus, 
+`logging.getLogger('abc').getChild('def.ghi')` would return the samelogger as would be returned by `logging.getLogger('abc.def.ghi')`. This is aconvenience method, 
+useful when the parent logger is named using e.g. `__name__`rather than a literal string.
+
+
+Added in version 3.2.
+getChildren()[¶](#logging.Logger.getChildren "Link to this definition")
+Returns a set of loggers which are immediate children of this logger. So forexample 
+`logging.getLogger().getChildren()` might return a set containingloggers named `foo` and `bar`, but a logger named `foo.bar` wouldn’t 
+beincluded in the set. Likewise, `logging.getLogger('foo').getChildren()` mightreturn a set including a logger named `foo.bar`, 
+but it wouldn’t include onenamed `foo.bar.baz`.
+
+
+Added in version 3.12.
+debug(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.debug "Link to this definition")
+Logs a message with level [`DEBUG`](#logging.DEBUG "logging.DEBUG") on this logger. The *msg* 
+is themessage format string, and the *args* are the arguments which are merged into*msg* 
+using the string formatting operator. (Note that this means that you canuse keywords 
+in the format string, together with a single dictionary argument.)No % formatting 
+operation is performed on *msg* when no *args* are supplied.
+
+There are four keyword arguments in *kwargs* which are inspected:*exc_info*, *stack_info*, 
+*stacklevel* and *extra*.
+
+If *exc_info* does not evaluate as false, it causes exception information to beadded 
+to the logging message. If an exception tuple (in the format returned by[`sys.exc_info()`](sys.html#sys.exc_info "sys.exc_info")) or an exception instance is provided, it is used;otherwise, `sys.exc_info()` 
+is called to get the exception information.
+
+The second optional keyword argument is *stack_info*, which defaults to`False`. If true, 
+stack information is added to the loggingmessage, including the actual logging call. 
+Note that this is not the samestack information as that displayed through specifying 
+*exc_info*: Theformer is stack frames from the bottom of the stack up to the logging 
+callin the current thread, whereas the latter is information about stack frameswhich 
+have been unwound, following an exception, while searching forexception handlers.
+
+You can specify *stack_info* independently of *exc_info*, e.g. to just showhow you 
+got to a certain point in your code, even when no exceptions wereraised. The stack 
+frames are printed following a header line which says:
+
+```Stack (most recent call last):```
+
+This mimics the `Traceback (most recent call last):` which is used whendisplaying exception frames.
+
+The third optional keyword argument is *stacklevel*, which defaults to `1`.If greater
+than 1, the corresponding number of stack frames are skippedwhen computing the line
+number and function name set in the [`LogRecord`](#logging.LogRecord "logging.LogRecord")created for the logging event. This can be used in logging helpers so thatthe function name, filename and line number recorded are not the informationfor the helper function/method, but rather its caller. The name of thisparameter mirrors the equivalent one in the [`warnings`](warnings.html#module-warnings "warnings: Issue warning messages and control their disposition.") module.
+
+The fourth keyword argument is *extra* which can be used to pass adictionary which
+is used to populate the [`__dict__`](../reference/datamodel.html#object.__dict__ "object.__dict__") of the[`LogRecord`](#logging.LogRecord "logging.LogRecord")created for the logging event with user-defined attributes. These customattributes can then be used as you like. For example, they could beincorporated into logged messages. For example:
+
+Copy
+
+```FORMAT = '%(asctime)s %(clientip)-15s %(user)-8s %(message)s'logging.basicConfig(format=FORMAT)d 
+= {'clientip': '192.168.0.1', 'user': 'fbloggs'}logger =
+logging.getLogger('tcpserver')logger.warning('Protocol problem: %s', 'connection 
+reset', extra=d)```
+
+would print something like
+
+```2006-02-08 22:20:02,165 192.168.0.1 fbloggs  Protocol problem: connection reset```
+
+The keys in the dictionary passed in *extra* should not clash with the keys usedby
+the logging system. (See the section on [LogRecord attributes](#logrecord-attributes) for moreinformation on which keys are used by the logging system.)
+
+If you choose to use these attributes in logged messages, you need to exercisesome
+care. In the above example, for instance, the [`Formatter`](#logging.Formatter "logging.Formatter") has beenset up with a format string which expects ‘clientip’ and ‘user’ in the attributedictionary of the [`LogRecord`](#logging.LogRecord "logging.LogRecord"). If these are missing, the message willnot be logged because a string formatting exception will occur. So in this case,you always need to pass the
+*extra* dictionary with these keys.
+
+While this might be annoying, this feature is intended for use in specializedcircumstances,
+such as multi-threaded servers where the same code executes inmany contexts, and
+interesting conditions which arise are dependent on thiscontext (such as remote client
+IP address and authenticated user name, in theabove example). In such circumstances,
+it is likely that specialized[`Formatter`](#logging.Formatter "logging.Formatter")s would be used with particular [`Handler`](#logging.Handler "logging.Handler")s.
+
+If no handler is attached to this logger (or any of its ancestors,taking into account
+the relevant [`Logger.propagate`](#logging.Logger.propagate "logging.Logger.propagate") attributes),the message will be sent to the handler set on [`lastResort`](#logging.lastResort "logging.lastResort").
+
+
+Changed in version 3.2: The *stack_info* parameter was added.
+
+
+Changed in version 3.5: The *exc_info* parameter can now accept exception instances.
+
+
+Changed in version 3.8: The *stacklevel* parameter was added.
+info(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.info "Link to this definition")
+Logs a message with level [`INFO`](#logging.INFO "logging.INFO") on this logger. The arguments areinterpreted as for [`debug()`](#logging.debug "logging.debug").
+warning(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.warning "Link to this definition")
+Logs a message with level [`WARNING`](#logging.WARNING "logging.WARNING") on this logger. The arguments areinterpreted as for [`debug()`](#logging.debug "logging.debug").
+
+
+Note
+
+There is an obsolete method `warn` which is functionallyidentical to `warning`. As `warn` is deprecated,
+please do not useit - use `warning` instead.
+error(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.error "Link to this definition")
+Logs a message with level [`ERROR`](#logging.ERROR "logging.ERROR") on this logger. The arguments areinterpreted as for [`debug()`](#logging.debug "logging.debug").
+critical(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.critical "Link to this definition")
+Logs a message with level [`CRITICAL`](#logging.CRITICAL "logging.CRITICAL") on this logger. The arguments areinterpreted as for [`debug()`](#logging.debug "logging.debug").
+log(*level*, *msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.log "Link to this definition")
+Logs a message with integer level *level* on this logger. The other arguments areinterpreted
+as for [`debug()`](#logging.debug "logging.debug").
+exception(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.exception "Link to this definition")
+Logs a message with level [`ERROR`](#logging.ERROR "logging.ERROR") on this logger. The arguments areinterpreted as for [`debug()`](#logging.debug "logging.debug"). Exception info is added to the loggingmessage. This method should only be called from an exception handler.
+addFilter(*filter*)[¶](#logging.Logger.addFilter "Link to this definition")
+Adds the specified filter *filter* to this logger.
+removeFilter(*filter*)[¶](#logging.Logger.removeFilter "Link to this definition")
+Removes the specified filter *filter* from this logger.
+filter(*record*)[¶](#logging.Logger.filter "Link to this definition")
+Apply this logger’s filters to the record and return `True` if therecord is to be processed.
+The filters are consulted in turn, until one ofthem returns a false value. If none
+of them return a false value, the recordwill be processed (passed to handlers). If
+one returns a false value, nofurther processing of the record occurs.
+addHandler(*hdlr*)[¶](#logging.Logger.addHandler "Link to this definition")
+Adds the specified handler *hdlr* to this logger.
+removeHandler(*hdlr*)[¶](#logging.Logger.removeHandler "Link to this definition")
+Removes the specified handler *hdlr* from this logger.
+findCaller(*stack_info=False*, *stacklevel=1*)[¶](#logging.Logger.findCaller "Link to this definition")
+Finds the caller’s source filename and line number. Returns the filename, linenumber,
+function name and stack information as a 4-element tuple. The stackinformation is
+returned as `None` unless *stack_info* is `True`.
+
+The *stacklevel* parameter is passed from code calling the [`debug()`](#logging.debug "logging.debug")and other APIs. If greater than 1, the excess is used to skip stack framesbefore determining the values to be returned. This will generally be usefulwhen calling logging APIs from helper/wrapper code, so that the informationin the event log refers not to the helper/wrapper code, but to the code thatcalls it.
+handle(*record*)[¶](#logging.Logger.handle "Link to this definition")
+Handles a record by passing it to all handlers associated with this logger andits
+ancestors (until a false value of *propagate* is found). This method is usedfor unpickled
+records received from a socket, as well as those created locally.Logger-level filtering
+is applied using [`filter()`](#logging.Logger.filter "logging.Logger.filter").
+makeRecord(*name*, *level*, *fn*, *lno*, *msg*, *args*, *exc_info*, *func=None*,
+*extra=None*, *sinfo=None*)[¶](#logging.Logger.makeRecord "Link to this definition")
+This is a factory method which can be overridden in subclasses to createspecialized
+[`LogRecord`](#logging.LogRecord "logging.LogRecord") instances.
+hasHandlers()[¶](#logging.Logger.hasHandlers "Link to this definition")
+Checks to see if this logger has any handlers configured. This is done bylooking
+for handlers in this logger and its parents in the logger hierarchy.Returns `True` if
+a handler was found, else `False`. The method stops searchingup the hierarchy whenever
+a logger with the ‘propagate’ attribute set tofalse is found - that will be the
+last logger which is checked for theexistence of handlers.
+
+
+Added in version 3.2.
+
+
+Changed in version 3.7: Loggers can now be pickled and unpickled.
+
+## Logging Levels[¶](#logging-levels "Link to this heading")
+
+The numeric values of logging levels are given in the following table. These areprimarily
+of interest if you want to define your own levels, and need them tohave specific
+values relative to the predefined levels. If you define a levelwith the same numeric
+value, it overwrites the predefined value; the predefinedname is lost.
+
+
+|                                                                                                                                                                                                                      |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                                                                                                      |
+| Numeric value                                                                                                                                                                                                        |
+|                                                                                                                                                                                                                      |
+| What it means / When to use it                                                                                                                                                                                       |
+| -                                                                                                                                                                                                                    | - | - |
+| logging.NOTSET[¶](#logging.NOTSET "Link to this definition")                                                                                                                                                        |   |
+| 0                                                                                                                                                                                                                    |
+|                                                                                                                                                                                                                      |
+| When set on a logger, indicates thatancestor loggers are to be consultedto determine the effective level.If that still resolves to`NOTSET`, then all eventsare logged. When set on a handler,all events are handled. |
+| logging.DEBUG[¶](#logging.DEBUG "Link to this definition")                                                                                                                                                          |   |
+| 10                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                      |
+| Detailed information, typically onlyof interest to a developer trying todiagnose a problem.                                                                                                                          |
+| logging.INFO[¶](../_static/pygments.css?v=b86133f3 "viewport")                                                                                                                                                      |   |
+| 20                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                      |
+| Confirmation that things are workingas expected.                                                                                                                                                                     |
+| logging.WARNING[¶](../_static/pygments.css?v=b86133f3 "viewport")                                                                                                                                                   |   |
+| 30                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                      |
+| An indication that somethingunexpected happened, or that aproblem might occur in the nearfuture (e.g. ‘disk space low’). Thesoftware is still working asexpected.                                                |
+| logging.ERROR[¶](../_static/pygments.css?v=b86133f3 "viewport")                                                                                                                                                     |   |
+| 40                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                      |
+| Due to a more serious problem, thesoftware has not been able toperform some function.                                                                                                                                |
+| logging.CRITICAL[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")                                                                                                            |   |
+| 50                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                      |
+| A serious error, indicating that theprogram itself may be unable tocontinue running.                                                                                                                                 |
+
+## Handler Objects[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+
+Handlers have the following attributes and methods. Note that [`Handler`](../_static/opensearch.xml "About these documents")is never instantiated directly; this class acts as a base for more usefulsubclasses. However, the `__init__()`
+method in subclasses needs to call[`Handler.__init__()`](time.html "time — Time access and conversions").
+*class *logging.Handler[¶](../_static/py.svg "previous chapter")__init__(*level=NOTSET*)[¶](https://www.python.org/ "previous chapter")
+Initializes the `Handler` instance by setting its level, setting the listof filters to the
+empty list and creating a lock (using [`createLock()`](https://www.python.org/ "previous chapter")) forserializing access to an I/O mechanism.
+createLock()[¶](../contents.html "previous chapter")
+Initializes a thread lock which can be used to serialize access to underlyingI/O
+functionality which may not be threadsafe.
+acquire()[¶](../contents.html "previous chapter")
+Acquires the thread lock created with [`createLock()`](../contents.html "previous chapter").
+release()[¶](../contents.html "previous chapter")
+Releases the thread lock acquired with [`acquire()`](../contents.html "previous chapter").
+setLevel(*level*)[¶](../contents.html "previous chapter")
+Sets the threshold for this handler to *level*. Logging messages which areless severe
+than *level* will be ignored. When a handler is created, thelevel is set to [`NOTSET`](../contents.html "previous chapter") (which causes all messages to beprocessed).
+
+See [Logging Levels](../contents.html "previous chapter") for a list of levels.
+
+
+Changed in version 3.2: The *level* parameter now accepts a string representation
+of thelevel such as ‘INFO’ as an alternative to the integer constantssuch as
+[`INFO`](../contents.html "previous chapter").
+setFormatter(*fmt*)[¶](#handler-objects "previous chapter")
+Sets the formatter for this handler to *fmt*.The *fmt* argument must be a [`Formatter`](#filter-objects "previous chapter") instance or
+`None`.
+addFilter(*filter*)[¶](#integration-with-the-warnings-module "previous chapter")
+Adds the specified filter *filter* to this handler.
+removeFilter(*filter*)[¶](? "next chapter")
+Removes the specified filter *filter* from this handler.
+filter(*record*)[¶](note "note")
+Apply this handler’s filters to the record and return `True` if therecord is to be
+processed. The filters are consulted in turn, until one ofthem returns a false value.
+If none of them return a false value, the recordwill be emitted. If one returns a
+false value, the handler will not emit therecord.
+flush()[¶](https://github.com/python/cpython/blob/main/Doc/library/logging.rst?plain=1 "General Index")
+Ensure all logging output has been flushed. This version does nothing and isintended
+to be implemented by subclasses.
+close()[¶](../py-modindex.html "General Index")
+Tidy up any resources used by the handler. This version does no outputbut removes
+the handler from an internal map of handlers, which is usedfor handler lookup by
+name.
+
+Subclasses should ensure that this gets called from overridden `close()`methods.
+handle(*record*)[¶](../index.html "Link to this heading")
+Conditionally emits the specified logging record, depending on filters which mayhave
+been added to the handler. Wraps the actual emission of the record withacquisition/release
+of the I/O thread lock.
+handleError(*record*)[¶](../index.html "Link to this heading")
+This method should be called from handlers when an exception is encounteredduring
+an [`emit()`](../index.html "Link to this heading") call. If the module-level attribute[`raiseExceptions`](../index.html "Link to this heading") is
+`False`, exceptions get silently ignored. This iswhat is mostly wanted for a logging
+system - most users will not care abouterrors in the logging system, they are more
+interested in applicationerrors. You could, however, replace this with a custom handler
+if you wish.The specified record is the one which was being processed when the exceptionoccurred.
+(The default value of `raiseExceptions` is `True`, as that ismore useful during development).
+format(*record*)[¶](#module-logging "Link to this heading")
+Do formatting for a record - if a formatter is set, use it. Otherwise, use thedefault
+formatter for the module.
+emit(*record*)[¶](#module-logging "Link to this heading")
+Do whatever it takes to actually log the specified logging record. This versionis
+intended to be implemented by subclasses and so raises a[`NotImplementedError`](#module-logging "Link to this heading").
+
+
+Warning
+
+This method is called after a handler-level lock is acquired, whichis released after
+this method returns. When you override this method, notethat you should be careful
+when calling anything that invokes other parts ofthe logging API which might do locking,
+because that might result in adeadlock. Specifically:
+
+- Logging configuration APIs acquire the module-level lock, and thenindividual handler-level locks as those handlers are configured.
+- Many logging APIs lock the module-level lock. If such an API is calledfrom this method, it could cause a deadlock if a configuration call ismade on another thread, because that thread will try to acquire themodule-level lock *before* the handler-level lock, whereas this threadtries to acquire the module-level lock *after* the handler-level lock(because in this method, the handler-level lock has already been acquired).
+
+For a list of handlers included as standard, see [`logging.handlers`](#logging.basicConfig "Copy to clipboard").
+
+## Formatter Objects[¶](#logging.basicConfig "Copy to clipboard")
+*class *logging.Formatter(*fmt=None*, *datefmt=None*, *style='%'*, *validate=True*,
+*\**, *defaults=None*)[¶](#logging.basicConfig "Copy to clipboard")
+Responsible for converting a [`LogRecord`](#logging.basicConfig "Copy to clipboard") to an output stringto be interpreted by a human or external system.
+Parameters:
+- **fmt** ([*str*](#logging.basicConfig "logging.basicConfig")) – A format string in the given *style* forthe logged output as a whole.The possible mapping keys are drawn from the [`LogRecord`](#logging.basicConfig "logging.basicConfig") object’s[LogRecord attributes](#logging.basicConfig "logging.basicConfig").If not specified, `'%(message)s'` is used,which is just the logged message.
+- **datefmt** ([*str*](#logging.basicConfig "logging.basicConfig")) – A format string for the date/time portion of the logged output.If not specified, the default described in [`formatTime()`](#logging.basicConfig "logging.basicConfig") is used.
+- **style** ([*str*](#logging.basicConfig "logging.basicConfig")) – Can be one of `'%'`, `'{'` or `'$'` and determineshow the format string will be merged with its data: using one of[printf-style String Formatting](#logging.basicConfig "logging.basicConfig") (`%`), [`str.format()`](#logger-objects "Link to this heading") (`{`)or [`string.Template`](#logger-objects "Link to this heading") (`$`). This only applies to*fmt* (e.g. `'%(message)s'` versus `'{message}'`),not to the actual log messages passed to the logging methods.However, there are [other ways](#logger-objects "Link to this heading")to use `{`- and `$`-formatting for log messages.
+- **validate** ([*bool*](#logging.getLogger "logging.getLogger")) – If `True` (the default), incorrect or mismatched*fmt* and *style* will raise a [`ValueError`](#logging.Logger "Link to this definition"); for example,`logging.Formatter('%(asctime)s - %(message)s', style='{')`.
+- **defaults** ([*dict*](#logging.Logger "Link to this definition")*[*[*str*](#logging.Logger "Link to this definition")*, **Any**]*) – A dictionary with default values to use in custom fields.For example,`logging.Formatter('%(ip)s %(message)s', defaults={"ip": None})`
+
+
+Changed in version 3.2: Added the *style* parameter.
+
+
+Changed in version 3.8: Added the *validate* parameter.
+
+
+Changed in version 3.10: Added the *defaults* parameter.
+format(*record*)[¶](#logging.Logger "Link to this definition")
+The record’s attribute dictionary is used as the operand to a stringformatting
+operation. Returns the resulting string. Before formatting thedictionary, a couple
+of preparatory steps are carried out. The *message*attribute of the record is computed
+using *msg* % *args*. If theformatting string contains `'(asctime)'`, [`formatTime()`](#logging.getLogger "logging.getLogger") is calledto format the event time. If there is exception information, it isformatted using [`formatException()`](#logging.Logger.level "Link to this definition") and appended to the message. Notethat the formatted exception information is cached in
+attribute*exc_text*. This is useful because the exception information can bepickled
+and sent across the wire, but you should be careful if you havemore than one `Formatter` subclass
+which customizes the formattingof exception information. In this case, you will have
+to clear the cachedvalue (by setting the *exc_text* attribute to `None`) after a formatterhas
+done its formatting, so that the next formatter to handle the eventdoesn’t use
+the cached value, but recalculates it afresh.
+
+If stack information is available, it’s appended after the exceptioninformation,
+using [`formatStack()`](#logging.Logger.parent "Link to this definition") to transform it if necessary.
+formatTime(*record*, *datefmt=None*)[¶](#logging.Logger.handlers "docutils literal notranslate")
+This method should be called from [`format()`](#logging.Logger.handlers "docutils literal notranslate") by a formatter whichwants to make use of a formatted time. This method can be overridden informatters to provide for any specific requirement, but the basic behavioris as follows: if
+*datefmt* (a string) is specified, it is used with[`time.strftime()`](#logging.Logger.handlers "docutils literal notranslate") to format the creation time of therecord. Otherwise, the format ‘%Y-%m-%d %H:%M:%S,uuu’ is used, where theuuu part is a millisecond value and the other letters are as per the`time.strftime()`
+documentation.  An example time in this format is`2003-01-23 00:29:50,411`.  The resulting string is returned.
+
+This function uses a user-configurable function to convert the creationtime to a
+tuple. By default, [`time.localtime()`](#logging.Logger.handlers "docutils literal notranslate") is used; to changethis for a particular formatter instance, set the `converter`
+attributeto a function with the same signature as `time.localtime()` or[`time.gmtime()`](#logging.Logger.handlers "docutils literal notranslate"). To change it for all formatters, for example if youwant all logging times to be shown in GMT, set the
+`converter`attribute in the `Formatter` class.
+
+
+Changed in version 3.3: Previously, the default format was hard-coded as in this
+example:`2010-09-06 22:38:15,292` where the part before the comma ishandled by a strptime format string
+(`'%Y-%m-%d %H:%M:%S'`), and thepart after the comma is a millisecond value. Because strptime does nothave
+a format placeholder for milliseconds, the millisecond value isappended using another
+format string, `'%s,%03d'` — and both of theseformat strings have been hardcoded into this
+method. With the change,these strings are defined as class-level attributes which
+can beoverridden at the instance level when desired. The names of theattributes are
+`default_time_format` (for the strptime format string)and `default_msec_format` (for appending the millisecond value).
+
+
+Changed in version 3.9: The `default_msec_format` can be `None`.
+formatException(*exc_info*)[¶](#logging.Logger.setLevel "Link to this definition")
+Formats the specified exception information (a standard exception tuple asreturned
+by [`sys.exc_info()`](#logging.NOTSET "Link to this definition")) as a string. This default implementationjust uses [`traceback.print_exception()`](#logging.NOTSET "logging.NOTSET"). The resulting string isreturned.
+formatStack(*stack_info*)[¶](#logging.WARNING "logging.WARNING")
+Formats the specified stack information (a string as returned by[`traceback.print_stack()`](#levels "logging.INFO"), but with the last newline removed) as astring. This default implementation just returns the input value.
+*class *logging.BufferingFormatter(*linefmt=None*)[¶](#logging.INFO "logging.INFO")
+A base formatter class suitable for subclassing when you want to format anumber of
+records. You can pass a [`Formatter`](#logging.Logger.getEffectiveLevel "logging.Logger.getEffectiveLevel") instance which you wantto use to format each line (that corresponds to a single record). If notspecified, the default formatter (which just outputs the event message) isused as the line formatter.
+formatHeader(*records*)[¶](#logging.Logger.isEnabledFor "Link to this definition")
+Return a header for a list of *records*. The base implementation justreturns the
+empty string. You will need to override this method if youwant specific behaviour,
+e.g. to show the count of records, a title or aseparator line.
+formatFooter(*records*)[¶](#logging.Logger.getEffectiveLevel "Link to this definition")
+Return a footer for a list of *records*. The base implementation justreturns the
+empty string. You will need to override this method if youwant specific behaviour,
+e.g. to show the count of records or a separatorline.
+format(*records*)[¶](#logging.Logger.setLevel "logging.Logger.setLevel")
+Return formatted text for a list of *records*. The base implementationjust returns
+the empty string if there are no records; otherwise, itreturns the concatenation
+of the header, each record formatted with theline formatter, and the footer.
+
+## Filter Objects[¶](#logging.DEBUG "logging.DEBUG")
+
+`Filters` can be used by `Handlers` and `Loggers` for more sophisticatedfiltering than is provided by levels.
+The base filter class only allows eventswhich are below a certain point in the logger
+hierarchy. For example, a filterinitialized with ‘A.B’ will allow events logged
+by loggers ‘A.B’, ‘A.B.C’,‘A.B.C.D’, ‘A.B.D’ etc. but not ‘A.BB’,
+‘B.A.B’ etc. If initialized with theempty string, all events are passed.
+*class *logging.Filter(*name=''*)[¶](#logging.Logger.getChildren "Link to this definition")
+Returns an instance of the `Filter` class. If *name* is specified, itnames a logger which,
+together with its children, will have its events allowedthrough the filter. If *name*
+is the empty string, allows every event.
+filter(*record*)[¶](#logging.Logger.debug "Link to this definition")
+Is the specified record to be logged? Returns false for no, true foryes. Filters
+can either modify log records in-place or return a completelydifferent record instance
+which will replace the originallog record in any future processing of the event.
+
+Note that filters attached to handlers are consulted before an event isemitted by
+the handler, whereas filters attached to loggers are consultedwhenever an event is
+logged (using [`debug()`](#logging.Logger.debug "Link to this definition"), [`info()`](#logging.Logger.debug "Link to this definition"),etc.), before sending an event to handlers. This means that events which havebeen generated by descendant loggers will not be filtered by a logger’s filtersetting, unless the filter has also been applied to those descendant loggers.
+
+You don’t actually need to subclass `Filter`: you can pass any instancewhich has a `filter`
+method with the same semantics.
+
+
+Changed in version 3.2: You don’t need to create specialized `Filter` classes, or use
+otherclasses with a `filter` method: you can use a function (or othercallable) as a filter.
+The filtering logic will check to see if the filterobject has a `filter` attribute: if
+it does, it’s assumed to be a`Filter` and its [`filter()`](sys.html#sys.exc_info "sys.exc_info") method is called. Otherwise, it’sassumed to be a callable and called with the record as the singleparameter. The returned value should conform to that returned
+by`filter()`.
+
+
+Changed in version 3.12: You can now return a [`LogRecord`](#logging.LogRecord "logging.LogRecord") instance from filters to replacethe log record rather than modifying it in place. This allows filters attached toa [`Handler`](#logging.LogRecord "logging.LogRecord") to modify the log record before it is emitted, withouthaving side effects on other handlers.
+
+Although filters are used primarily to filter records based on moresophisticated
+criteria than levels, they get to see every record which isprocessed by the handler
+or logger they’re attached to: this can be useful ifyou want to do things like
+counting how many records were processed by aparticular logger or handler, or adding,
+changing or removing attributes inthe [`LogRecord`](#logging.LogRecord "logging.LogRecord") being processed. Obviously changing the LogRecord needsto be done with some care, but it does allow the injection of contextualinformation into logs (see
+[Using Filters to impart contextual information](#logging.LogRecord "logging.LogRecord")).
+
+## LogRecord Objects[¶](#logging.LogRecord "logging.LogRecord")
+
+[`LogRecord`](#logging.LogRecord "logging.LogRecord") instances are created automatically by the [`Logger`](warnings.html#module-warnings "warnings: Issue warning messages and control their disposition.")every time something is logged, and can be created manually via[`makeLogRecord()`](warnings.html#module-warnings "warnings: Issue warning messages and control their disposition.") (for example, from a pickled event received over thewire).
+*class *logging.LogRecord(*name*, *level*, *pathname*, *lineno*, *msg*, *args*, *exc_info*,
+*func=None*, *sinfo=None*)[¶](#logrecord-attributes "logging.Formatter")
+Contains all the information pertinent to the event being logged.
+
+The primary information is passed in *msg* and *args*,which are combined using `msg % args`
+to createthe `message` attribute of the record.
+Parameters:
+- **name** ([*str*](#logrecord-attributes "logging.Formatter")) – The name of the logger used to log the eventrepresented by this `LogRecord`.Note that the logger name in the `LogRecord`will always have this value,even though it may be emitted by a handlerattached to a different (ancestor) logger.
+- **level** ([*int*](#logrecord-attributes "logging.Formatter")) – The [numeric level](#logrecord-attributes "logging.Formatter") of the logging event(such as `10` for `DEBUG`, `20` for `INFO`, etc).Note that this is converted to *two* attributes of the LogRecord:`levelno` for the numeric valueand `levelname` for the corresponding level name.
+- **pathname** ([*str*](#logging.Formatter "logging.Formatter")) – The full string path of the source filewhere the logging call was made.
+- **lineno** ([*int*](#logging.Formatter "logging.Formatter")) – The line number in the source filewhere the logging call was made.
+- **msg** ([*Any*](#logging.Formatter "logging.Formatter")) – The event description message,which can be a %-format string with placeholders for variable data,or an arbitrary object (see [Using arbitrary objects as messages](#logging.Formatter "logging.Formatter")).
+- **args** ([*tuple*](#logging.Handler "logging.Handler")* | *[*dict*](#logging.Logger.propagate "logging.Logger.propagate")*[*[*str*](#logging.Logger.propagate "logging.Logger.propagate")*, *[*Any*](#logging.Logger.propagate "logging.Logger.propagate")*]*) – Variable data to merge into the *msg* argumentto obtain the event description.
+- **exc_info** ([*tuple*](#logging.lastResort "logging.lastResort")*[*[*type*](#logging.Logger.info "Link to this definition")*[*[*BaseException*](#logging.Logger.info "Link to this definition")*]**, **BaseException**, *[*types.TracebackType*](#logging.Logger.info "Link to this definition")*] **| **None*) – An exception tuple with the current exception information,as returned by [`sys.exc_info()`](#logging.Logger.info "Link to this definition"),or `None` if no exception information is available.
+- **func** ([*str*](#logging.Logger.info "Link to this definition")* | **None*) – The name of the function or methodfrom which the logging call was invoked.
+- **sinfo** ([*str*](#logging.Logger.info "Link to this definition")* | **None*) – A text string representing stack informationfrom the base of the stack in the current thread,up to the logging call.
+getMessage()[¶](#logging.Logger.warning "Link to this definition")
+Returns the message for this `LogRecord` instance after merging anyuser-supplied arguments
+with the message. If the user-supplied messageargument to the logging call is not
+a string, [`str()`](#logging.Logger.warning "Link to this definition") is called on it toconvert it to a string. This allows use of user-defined classes asmessages, whose `__str__`
+method can return the actual format string tobe used.
+
+
+Changed in version 3.2: The creation of a `LogRecord` has been made more configurable byproviding
+a factory which is used to create the record. The factory can beset using [`getLogRecordFactory()`](#logging.Logger.error "docutils literal notranslate") and [`setLogRecordFactory()`](#logging.Logger.error "Link to this definition")(see this for the factory’s signature).
+
+This functionality can be used to inject your own values into a`LogRecord` at creation time.
+You can use the following pattern:
+
+Copy
+
+```old_factory = logging.getLogRecordFactory()def record_factory(\*args, \*\*kwargs): 
+   record = old_factory(\*args, \*\*kwargs)    record.custom_attribute = 0xdecafbad 
+   return recordlogging.setLogRecordFactory(record_factory)```
+
+With this pattern, multiple factories could be chained, and as longas they don’t 
+overwrite each other’s attributes or unintentionallyoverwrite the standard attributes 
+listed above, there should be nosurprises.
+
+## LogRecord attributes[¶](#logging.CRITICAL "logging.CRITICAL")
+
+The LogRecord has a number of attributes, most of which are derived from theparameters 
+to the constructor. (Note that the names do not always correspondexactly between 
+the LogRecord constructor parameters and the LogRecordattributes.) These attributes 
+can be used to merge data from the record intothe format string. The following table 
+lists (in alphabetical order) theattribute names, their meanings and the corresponding 
+placeholder in a %-styleformat string.
+
+If you are using {}-formatting ([`str.format()`](#logging.Logger.log "Link to this definition")), you can use`{attrname}` 
+as the placeholder in the format string. If you are using$-formatting ([`string.Template`](#logging.Logger.log "Link to this definition")), use the form
+`${attrname}`. Inboth cases, of course, replace `attrname` with the actual attribute nameyou 
+want to use.
+
+In the case of {}-formatting, you can specify formatting flags by placing themafter 
+the attribute name, separated from it with a colon. For example: aplaceholder of 
+`{msecs:03.0f}` would format a millisecond value of `4` as`004`. Refer to the [`str.format()`](#logging.Logger.exception "Link to this definition") documentation for full details onthe options available to you.
+
+
+|                                                                                                                                                                                                                                                                                           |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                                                                                                                                                                           |
+| Format                                                                                                                                                                                                                                                                                    |
+|                                                                                                                                                                                                                                                                                           |
+| Description                                                                                                                                                                                                                                                                               |
+| -                                                                                                                                                                                                                                                                                         | - | - |
+|                                                                                                                                                                                                                                                                                           |
+| args                                                                                                                                                                                                                                                                                      |
+|                                                                                                                                                                                                                                                                                           |
+| You shouldn’t need toformat this yourself.                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| The tuple of arguments merged into `msg` toproduce `message`, or a dict whose valuesare used for the merge (when there is only oneargument, and it is a dictionary).                                                                                                                      |
+| asctime                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                           |
+| `%(asctime)s`                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                           |
+| Human-readable time when the[`LogRecord`](#logging.Logger.addFilter "Link to this definition") was created.  By defaultthis is of the form ‘2003-07-08 16:49:45,896’(the numbers after the comma are millisecondportion of the time).                                                 |
+| created                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                           |
+| `%(created)f`                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                           |
+| Time when the [`LogRecord`](#logging.Logger.filter "Link to this definition") was created(as returned by [`time.time_ns()`](#logging.Logger.filter "Link to this definition") / 1e9).                                                                                                     |
+| exc_info                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| You shouldn’t need toformat this yourself.                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Exception tuple (à la `sys.exc_info`) or,if no exception has occurred, `None`.                                                                                                                                                                                                           |
+| exc_text                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| You shouldn’t need toformat this yourself.                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Exception information formatted as a string.This is set when [`Formatter.format()`](#logging.Logger.addHandler "Link to this definition") isinvoked, or `None` if no exception hasoccurred.                                                                                               |
+| filename                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| `%(filename)s`                                                                                                                                                                                                                                                                            |
+|                                                                                                                                                                                                                                                                                           |
+| Filename portion of `pathname`.                                                                                                                                                                                                                                                           |
+| funcName                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| `%(funcName)s`                                                                                                                                                                                                                                                                            |
+|                                                                                                                                                                                                                                                                                           |
+| Name of function containing the logging call.                                                                                                                                                                                                                                             |
+| levelname                                                                                                                                                                                                                                                                                 |
+|                                                                                                                                                                                                                                                                                           |
+| `%(levelname)s`                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                           |
+| Text logging level for the message(`'DEBUG'`, `'INFO'`, `'WARNING'`,`'ERROR'`, `'CRITICAL'`).                                                                                                                                                                                             |
+| levelno                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                           |
+| `%(levelno)s`                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                           |
+| Numeric logging level for the message([`DEBUG`](#logging.debug "logging.debug"), [`INFO`](#logging.debug "logging.debug"),[`WARNING`](#logging.debug "logging.debug"), [`ERROR`](#logging.Logger.handle "logging.debug"),[`CRITICAL`](#logging.Logger.handle "Link to this definition")). |
+| lineno                                                                                                                                                                                                                                                                                    |
+|                                                                                                                                                                                                                                                                                           |
+| `%(lineno)d`                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Source line number where the logging call wasissued (if available).                                                                                                                                                                                                                       |
+| message                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                           |
+| `%(message)s`                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                           |
+| The logged message, computed as `msg %                                                                                                                                                                                                                                                    |
+| args`. This is set when[`Formatter.format()`](#logging.Logger.filter "logging.Logger.filter") is invoked.                                                                                                                                                                                 |
+| module                                                                                                                                                                                                                                                                                    |
+|                                                                                                                                                                                                                                                                                           |
+| `%(module)s`                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Module (name portion of `filename`).                                                                                                                                                                                                                                                      |
+| msecs                                                                                                                                                                                                                                                                                     |
+|                                                                                                                                                                                                                                                                                           |
+| `%(msecs)d`                                                                                                                                                                                                                                                                               |
+|                                                                                                                                                                                                                                                                                           |
+| Millisecond portion of the time when the[`LogRecord`](#logging.Logger.makeRecord "Link to this definition") was created.                                                                                                                                                                  |
+| msg                                                                                                                                                                                                                                                                                       |
+|                                                                                                                                                                                                                                                                                           |
+| You shouldn’t need toformat this yourself.                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| The format string passed in the originallogging call. Merged with `args` toproduce `message`, or an arbitrary object(see [Using arbitrary objects as messages](#logging.Logger.makeRecord "Link to this definition")).                                                                    |
+| name                                                                                                                                                                                                                                                                                      |
+|                                                                                                                                                                                                                                                                                           |
+| `%(name)s`                                                                                                                                                                                                                                                                                |
+|                                                                                                                                                                                                                                                                                           |
+| Name of the logger used to log the call.                                                                                                                                                                                                                                                  |
+| pathname                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| `%(pathname)s`                                                                                                                                                                                                                                                                            |
+|                                                                                                                                                                                                                                                                                           |
+| Full pathname of the source file where thelogging call was issued (if available).                                                                                                                                                                                                         |
+| process                                                                                                                                                                                                                                                                                   |
+|                                                                                                                                                                                                                                                                                           |
+| `%(process)d`                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                           |
+| Process ID (if available).                                                                                                                                                                                                                                                                |
+| processName                                                                                                                                                                                                                                                                               |
+|                                                                                                                                                                                                                                                                                           |
+| `%(processName)s`                                                                                                                                                                                                                                                                         |
+|                                                                                                                                                                                                                                                                                           |
+| Process name (if available).                                                                                                                                                                                                                                                              |
+| relativeCreated                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                           |
+| `%(relativeCreated)d`                                                                                                                                                                                                                                                                     |
+|                                                                                                                                                                                                                                                                                           |
+| Time in milliseconds when the LogRecord wascreated, relative to the time the loggingmodule was loaded.                                                                                                                                                                                    |
+| stack_info                                                                                                                                                                                                                                                                                |
+|                                                                                                                                                                                                                                                                                           |
+| You shouldn’t need toformat this yourself.                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Stack frame information (where available)from the bottom of the stack in the currentthread, up to and including the stack frameof the logging call which resulted in thecreation of this record.                                                                                          |
+| thread                                                                                                                                                                                                                                                                                    |
+|                                                                                                                                                                                                                                                                                           |
+| `%(thread)d`                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                           |
+| Thread ID (if available).                                                                                                                                                                                                                                                                 |
+| threadName                                                                                                                                                                                                                                                                                |
+|                                                                                                                                                                                                                                                                                           |
+| `%(threadName)s`                                                                                                                                                                                                                                                                          |
+|                                                                                                                                                                                                                                                                                           |
+| Thread name (if available).                                                                                                                                                                                                                                                               |
+| taskName                                                                                                                                                                                                                                                                                  |
+|                                                                                                                                                                                                                                                                                           |
+| `%(taskName)s`                                                                                                                                                                                                                                                                            |
+|                                                                                                                                                                                                                                                                                           |
+| [`asyncio.Task`](#logging.NOTSET "Link to this definition") name (if available).                                                                                                                                                                                                          |
+
+
+Changed in version 3.1: *processName* was added.
+
+
+Changed in version 3.12: *taskName* was added.
+
+## LoggerAdapter Objects[¶](#logging.NOTSET "Link to this definition")
+
+[`LoggerAdapter`](#logging.NOTSET "Link to this definition") instances are used to conveniently pass contextualinformation into logging calls. For a usage example, see the section
+on[adding contextual information to your logging output](#logging.DEBUG "Link to this definition").
+*class *logging.LoggerAdapter(*logger*, *extra=None*, *merge_extra=False*)[¶](../_static/pygments.css?v=b86133f3 "viewport")
+Returns an instance of `LoggerAdapter` initialized with anunderlying [`Logger`](../_static/pygments.css?v=b86133f3 "viewport") instance, an optional dict-like object
+(*extra*),and an optional boolean (*merge_extra*) indicating whether or notthe *extra* 
+argument of individual log calls should be merged withthe `LoggerAdapter` extra.The default behavior 
+is to ignore the *extra* argument of individual logcalls and only use the one of 
+the `LoggerAdapter` instance
+process(*msg*, *kwargs*)[¶](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation")
+Modifies the message and/or keyword arguments passed to a logging call inorder to 
+insert contextual information. This implementation takes the objectpassed as *extra* 
+to the constructor and adds it to *kwargs* using key‘extra’. The return value 
+is a (*msg*, *kwargs*) tuple which has the(possibly modified) versions of the arguments 
+passed in.
+manager[¶](../about.html "Index")
+Delegates to the underlying `manager` on *logger*.
+_log[¶](https://docs.python.org/3/library/logging.html "previous chapter")
+Delegates to the underlying `_log()` method on *logger*.
+
+In addition to the above, `LoggerAdapter` supports the followingmethods of [`Logger`](../_static/py.svg "previous chapter"): [`debug()`](https://www.python.org/ "previous chapter"), [`info()`](https://www.python.org/ "previous chapter"),[`warning()`](https://www.python.org/ "previous chapter"), [`error()`](https://www.python.org/ "previous chapter"), [`exception()`](https://www.python.org/ "previous chapter"),[`critical()`](../contents.html "previous chapter"), [`log()`](../contents.html "previous chapter"), [`isEnabledFor()`](../contents.html "previous chapter"),[`getEffectiveLevel()`](../contents.html "previous chapter"), [`setLevel()`](../contents.html "previous chapter") and[`hasHandlers()`](../contents.html "previous chapter"). These methods have the same signatures as theircounterparts in
+`Logger`, so you can use the two types of instancesinterchangeably.
+
+
+Changed in version 3.2: The [`isEnabledFor()`](../contents.html "previous chapter"), [`getEffectiveLevel()`](../contents.html "previous chapter"),[`setLevel()`](../contents.html "previous chapter") and [`hasHandlers()`](../contents.html "previous chapter") methods were addedto
+`LoggerAdapter`.  These methods delegate to the underlying logger.
+
+
+Changed in version 3.6: Attribute `manager` and method `_log()` were added, whichdelegate to the 
+underlying logger and allow adapters to be nested.
+
+
+Changed in version 3.10: The *extra* argument is now optional.
+
+
+Changed in version 3.13: The *merge_extra* parameter was added.
+
+## Thread Safety[¶](#filter-objects "previous chapter")
+
+The logging module is intended to be thread-safe without any special workneeding 
+to be done by its clients. It achieves this through using threadinglocks; there is 
+one lock to serialize access to the module’s shared data, andeach handler also 
+creates a lock to serialize access to its underlying I/O.
+
+If you are implementing asynchronous signal handlers using the [`signal`](#module-level-functions "previous chapter")module, you may not be able to use logging from within such handlers. This isbecause lock implementations in the [`threading`](time.html "previous chapter") module are not alwaysre-entrant, and so cannot be invoked from such signal handlers.
+
+## Module-Level Functions[¶](? "meta[property="og:title"]")
+
+In addition to the classes described above, there are a number of module-levelfunctions.
+logging.getLogger(*name=None*)[¶](note ">Improve this page</a></li>
+      <li>
+        <a href=")
+Return a logger with the specified name or, if name is `None`, return theroot logger 
+of the hierarchy. If specified, the name is typically adot-separated hierarchical 
+name like *‘a’*, *‘a.b’* or *‘a.b.c.d’*. Choiceof these names is entirely 
+up to the developer who is using logging, thoughit is recommended that `__name__` be used 
+unless you have a specificreason for not doing that, as mentioned in [Logger Objects](../genindex.html "General Index").
+
+All calls to this function with a given name return the same logger instance.This 
+means that logger instances never need to be passed between different partsof an 
+application.
+logging.getLoggerClass()[¶](time.html "time — Time access and conversions")
+Return either the standard [`Logger`](https://www.python.org/ "Link to this heading") class, or the last class passed to[`setLoggerClass()`](../index.html "Link to this heading"). This function may be called from within a new classdefinition, to ensure that installing a customized `Logger` 
+class willnot undo customizations already applied by other code. For example:
+
+Copy
+
+```class MyLogger(logging.getLoggerClass()):    # ... override behaviour here```
+logging.getLogRecordFactory()[¶](../index.html "Link to this heading")
+Return a callable which is used to create a [`LogRecord`](../index.html "Link to this heading").
+
+
+Added in version 3.2: This function has been provided, along with [`setLogRecordFactory()`](allos.html "Link to this heading"),to allow developers more control over how the [`LogRecord`](#module-logging "Link to this heading")representing a logging event is constructed.
+
+See [`setLogRecordFactory()`](#module-logging "Link to this heading") for more information about the how thefactory is called.
+logging.debug(*msg*, *\*args*, *\*\*kwargs*)[¶](#module-logging "Link to this heading")
+This is a convenience function that calls [`Logger.debug()`](https://github.com/python/cpython/tree/3.14/Lib/logging/__init__.py "simple"), on the rootlogger. The handling of the arguments is in every way identicalto what is described in that method.
+
+The only difference is that if the root logger has no handlers, then[`basicConfig()`](../howto/logging.html#logging-basic-tutorial "Copy to clipboard") is called, prior to calling `debug`
+on the root logger.
+
+For very short scripts or quick demonstrations of `logging` facilities,`debug` and the other
+module-level functions may be convenient. However,most programs will want to carefully
+and explicitly control the loggingconfiguration, and should therefore prefer creating
+a module-level logger andcalling [`Logger.debug()`](#logging.basicConfig "Copy to clipboard") (or other level-specific methods) on it, asdescribed at the beginning of this documentation.
+logging.info(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.basicConfig "Copy to clipboard")
+Logs a message with level [`INFO`](#logging.basicConfig "Copy to clipboard") on the root logger. The arguments and behaviorare otherwise the same as for [`debug()`](#logging.basicConfig "Copy to clipboard").
+logging.warning(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.basicConfig "logging.basicConfig")
+Logs a message with level [`WARNING`](#logging.basicConfig "logging.basicConfig") on the root logger. The arguments and behaviorare otherwise the same as for [`debug()`](#logging.basicConfig "logging.basicConfig").
+
+
+Note
+
+There is an obsolete function `warn` which is functionallyidentical to `warning`. As `warn` is deprecated,
+please do not useit - use `warning` instead.
+logging.error(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.basicConfig "logging.basicConfig")
+Logs a message with level [`ERROR`](#logging.basicConfig "logging.basicConfig") on the root logger. The arguments and behaviorare otherwise the same as for [`debug()`](#logger-objects "Link to this heading").
+logging.critical(*msg*, *\*args*, *\*\*kwargs*)[¶](#logger-objects "Link to this heading")
+Logs a message with level [`CRITICAL`](#logging.getLogger "logging.getLogger") on the root logger. The arguments and behaviorare otherwise the same as for [`debug()`](#logging.getLogger "logging.getLogger").
+logging.exception(*msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger "Link to this definition")
+Logs a message with level [`ERROR`](#logging.Logger "Link to this definition") on the root logger. The arguments and behaviorare otherwise the same as for [`debug()`](#logging.Logger "Link to this definition"). Exception info is added to the loggingmessage. This function should only be called from an exception handler.
+logging.log(*level*, *msg*, *\*args*, *\*\*kwargs*)[¶](#logging.Logger.name "Link to this definition")
+Logs a message with level *level* on the root logger. The arguments and behaviorare
+otherwise the same as for [`debug()`](#logging.getLogger "logging.getLogger").
+logging.disable(*level=CRITICAL*)[¶](#logging.Logger.setLevel "logging.Logger.setLevel")
+Provides an overriding level *level* for all loggers which takes precedence overthe
+logger’s own level. When the need arises to temporarily throttle loggingoutput
+down across the whole application, this function can be useful. Itseffect is to disable
+all logging calls of severity *level* and below, so thatif you call it with a value
+of INFO, then all INFO and DEBUG events would bediscarded, whereas those of severity
+WARNING and above would be processedaccording to the logger’s effective level.
+If`logging.disable(logging.NOTSET)` is called, it effectively removes thisoverriding level, so that logging output
+again depends on the effectivelevels of individual loggers.
+
+Note that if you have defined any custom logging level higher than`CRITICAL` (this is not
+recommended), you won’t be able to rely on thedefault value for the *level* parameter,
+but will have to explicitly supply asuitable value.
+
+
+Changed in version 3.7: The *level* parameter was defaulted to level `CRITICAL`. See[bpo-28524](#logging.Logger.handlers "docutils literal notranslate") for more information about this change.
+logging.addLevelName(*level*, *levelName*)[¶](#logging.Logger.handlers "docutils literal notranslate")
+Associates level *level* with text *levelName* in an internal dictionary, which isused
+to map numeric levels to a textual representation, for example when a[`Formatter`](#logging.Logger.handlers "docutils literal notranslate") formats a message. This function can also be used to defineyour own levels. The only constraints are that all levels used must beregistered using this function, levels should be positive integers and theyshould increase in increasing order of severity.
+
+
+Note
+
+If you are thinking of defining your own levels, please see thesection on [Custom
+Levels](#logging.Logger.handlers "docutils literal notranslate").
+logging.getLevelNamesMapping()[¶](#logging.Logger.handlers "docutils literal notranslate")
+Returns a mapping from level names to their corresponding logging levels. For example,
+thestring “CRITICAL” maps to [`CRITICAL`](#logging.Logger.handlers "Link to this definition"). The returned mapping is copied from an internalmapping on each call to this function.
+
+
+Added in version 3.11.
+logging.getLevelName(*level*)[¶](#logging.Logger.addHandler "reference internal")
+Returns the textual or numeric representation of logging level *level*.
+
+If *level* is one of the predefined levels [`CRITICAL`](#logging.Logger.removeHandler "logging.Logger.removeHandler"), [`ERROR`](#logging.Logger.disabled "logging.Logger.removeHandler"),[`WARNING`](#logging.Logger.disabled "Link to this definition"), [`INFO`](#logging.Logger.disabled "Link to this definition") or [`DEBUG`](#logging.Logger.setLevel "py method") then you get thecorresponding string. If you have associated levels with names using[`addLevelName()`](#logging.Logger.setLevel "Link to this definition") then the name you have associated with
+*level* isreturned. If a numeric value corresponding to one of the defined levels
+ispassed in, the corresponding string representation is returned.
+
+The *level* parameter also accepts a string representation of the level suchas ‘INFO’.
+In such cases, this functions returns the corresponding numericvalue of the level.
+
+If no matching numeric or string value is passed in, the string‘Level %s’ % level
+is returned.
+
+
+Note
+
+Levels are internally integers (as they need to be compared in thelogging logic).
+This function is used to convert between an integer leveland the level name displayed
+in the formatted log output by means of the`%(levelname)s` format specifier (see [LogRecord attributes](#logging.WARNING "logging.WARNING")), andvice versa.
+
+
+Changed in version 3.4: In Python versions earlier than 3.4, this function could
+also be passed atext level, and would return the corresponding numeric value of the
+level.This undocumented behaviour was considered a mistake, and was removed inPython
+3.4, but reinstated in 3.4.2 due to retain backward compatibility.
+logging.getHandlerByName(*name*)[¶](#levels "logging.INFO")
+Returns a handler with the specified *name*, or `None` if there is no handlerwith that
+name.
+
+
+Added in version 3.12.
+logging.getHandlerNames()[¶](#logging.Logger.isEnabledFor "logging.Logger.getEffectiveLevel")
+Returns an immutable set of all known handler names.
+
+
+Added in version 3.12.
+logging.makeLogRecord(*attrdict*)[¶](#logging.Logger.isEnabledFor "Link to this definition")
+Creates and returns a new [`LogRecord`](#logging.Logger.getEffectiveLevel "Link to this definition") instance whose attributes aredefined by
+*attrdict*. This function is useful for taking a pickled`LogRecord` attribute dictionary,
+sent over a socket, and reconstitutingit as a `LogRecord` instance at the receiving end.
+logging.basicConfig(*\*\*kwargs*)[¶](#logging.NOTSET "logging.NOTSET")
+Does basic configuration for the logging system by creating a[`StreamHandler`](#logging.Logger.setLevel "logging.Logger.setLevel") with a default [`Formatter`](#logging.DEBUG "logging.DEBUG") and adding it to theroot logger. The functions [`debug()`](#logging.DEBUG "logging.DEBUG"), [`info()`](#logging.INFO "logging.INFO"), [`warning()`](#logging.Logger.getChild "Link to this definition"),[`error()`](#logging.Logger.getChild "Link to this definition") and [`critical()`](#logging.Logger.getChild "Link to this definition") will call `basicConfig()`
+automaticallyif no handlers are defined for the root logger.
+
+This function does nothing if the root logger already has handlersconfigured, unless
+the keyword argument *force* is set to `True`.
+
+
+Note
+
+This function should be called from the main threadbefore other threads are started.
+In versions of Python prior to2.7.1 and 3.2, if this function is called from multiple
+threads,it is possible (in rare circumstances) that a handler will be addedto the
+root logger more than once, leading to unexpected resultssuch as messages being duplicated
+in the log.
+
+The following keyword arguments are supported.
+
+
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | - |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| *filename*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Specifies that a [`FileHandler`](#logging.Logger.debug "Link to this definition") becreated, using the specified filename,rather than a [`StreamHandler`](#logging.Logger.debug "Link to this definition").                                                                                                                                                                                                                                                                                                                          |
+| *filemode*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If *filename* is specified, open the filein this [mode](#logging.Logger.debug "Link to this definition"). Defaultsto `'a'`.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| *format*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Use the specified format string for thehandler. Defaults to attributes`levelname`, `name` and `message`separated by colons.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| *datefmt*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Use the specified date/time format, asaccepted by [`time.strftime()`](#logging.DEBUG "Link to this definition").                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| *style*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If *format* is specified, use this stylefor the format string. One of `'%'`,`'{'` or `'$'` for [printf-style](sys.html#sys.exc_info "sys.exc_info"),[`str.format()`](sys.html#sys.exc_info "sys.exc_info") or[`string.Template`](sys.html#sys.exc_info "sys.exc_info") respectively.Defaults to `'%'`.                                                                                                                                                                                                                               |
+| *level*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Set the root logger level to the specified[level](#logging.LogRecord "logging.LogRecord").                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| *stream*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Use the specified stream to initialize the[`StreamHandler`](#logging.LogRecord "logging.LogRecord"). Note that thisargument is incompatible with *filename* -if both are present, a `ValueError` israised.                                                                                                                                                                                                                                                                                                                           |
+| *handlers*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If specified, this should be an iterable ofalready created handlers to add to the rootlogger. Any handlers which don’t alreadyhave a formatter set will be assigned thedefault formatter created in this function.Note that this argument is incompatiblewith *filename* or *stream* - if bothare present, a `ValueError` is raised.                                                                                                                                                                                               |
+| *force*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If this keyword argument is specified astrue, any existing handlers attached to theroot logger are removed and closed, beforecarrying out the configuration as specifiedby the other arguments.                                                                                                                                                                                                                                                                                                                                      |
+| *encoding*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If this keyword argument is specified alongwith *filename*, its value is used when the[`FileHandler`](#logging.LogRecord "logging.LogRecord") is created, and thusused when opening the output file.                                                                                                                                                                                                                                                                                                                                 |
+| *errors*                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| If this keyword argument is specified alongwith *filename*, its value is used when the[`FileHandler`](warnings.html#module-warnings "warnings: Issue warning messages and control their disposition.") is created, and thusused when opening the output file. If notspecified, the value ‘backslashreplace’ isused. Note that if `None` is specified,it will be passed as such to [`open()`](../reference/datamodel.html#object.__dict__ "object.__dict__"),which means that it will be treated thesame as passing ‘errors’. |
+
+
+Changed in version 3.2: The *style* argument was added.
+
+
+Changed in version 3.3: The *handlers* argument was added. Additional checks were
+added tocatch situations where incompatible arguments are specified (e.g.*handlers*
+together with *stream* or *filename*, or *stream*together with *filename*).
+
+
+Changed in version 3.8: The *force* argument was added.
+
+
+Changed in version 3.9: The *encoding* and *errors* arguments were added.
+logging.shutdown()[¶](#logrecord-attributes "logging.Formatter")
+Informs the logging system to perform an orderly shutdown by flushing andclosing
+all handlers. This should be called at application exit and nofurther use of the
+logging system should be made after this call.
+
+When the logging module is imported, it registers this function as an exithandler
+(see [`atexit`](#logrecord-attributes "logging.Formatter")), so normally there’s no need to do thatmanually.
+logging.setLoggerClass(*klass*)[¶](#logrecord-attributes "logging.Formatter")
+Tells the logging system to use the class *klass* when instantiating a logger.The
+class should define `__init__()` such that only a name argument isrequired, and the `__init__()` should
+call `Logger.__init__()`. Thisfunction is typically called before any loggers are instantiated by
+applicationswhich need to use custom logger behavior. After this call, as at any
+othertime, do not instantiate loggers directly using the subclass: continue to usethe
+[`logging.getLogger()`](#logging.Formatter "logging.Formatter") API to get your loggers.
+logging.setLogRecordFactory(*factory*)[¶](#logging.Formatter "logging.Formatter")
+Set a callable which is used to create a [`LogRecord`](#logging.Handler "logging.Handler").
+Parameters:
+**factory** – The factory callable to be used to instantiate a log record.
+
+
+Added in version 3.2: This function has been provided, along with [`getLogRecordFactory()`](#logging.lastResort "logging.lastResort"), toallow developers more control over how the [`LogRecord`](#logging.Logger.info "Link to this definition") representinga logging event is constructed.
+
+The factory has the following signature:
+
+`factory(name, level, fn, lno, msg, args, exc_info, func=None, sinfo=None, **kwargs)`
+
+>
+>
+> name:
+> The logger name.
+>
+>
+> level:
+> The logging level (numeric).
+>
+>
+> fn:
+> The full pathname of the file where the logging call was made.
+>
+>
+> lno:
+> The line number in the file where the logging call was made.
+>
+>
+> msg:
+> The logging message.
+>
+>
+> args:
+> The arguments for the logging message.
+>
+>
+> exc_info:
+> An exception tuple, or `None`.
+>
+>
+> func:
+> The name of the function or method which invoked the logging
+> call.
+>
+>
+> sinfo:
+> A stack traceback such as is provided by
+> [`traceback.print_stack()`](#logging.Logger.warning "Link to this definition"), showing the call hierarchy.
+>
+>
+> kwargs:
+> Additional keyword arguments.
+>
+>
+>
+
+## Module-Level Attributes[¶](#logging.debug "logging.debug")
+logging.lastResort[¶](#logging.Logger.error "Link to this definition")
+A “handler of last resort” is available through this attribute. Thisis a [`StreamHandler`](#logging.Logger.error "Link to this definition") writing to `sys.stderr`
+with a level of`WARNING`, and is used to handle logging events in the absence of anylogging
+configuration. The end result is to just print the message to`sys.stderr`. This replaces the
+earlier error message saying that“no handlers could be found for logger XYZ”.
+If you need the earlierbehaviour for some reason, `lastResort` can be set to `None`.
+
+
+Added in version 3.2.
+logging.raiseExceptions[¶](#logging.Logger.critical "Link to this definition")
+Used to see if exceptions during handling should be propagated.
+
+Default: `True`.
+
+If `raiseExceptions` is `False`,exceptions get silently ignored. This is what is mostly wantedfor a logging
+system - most users will not care about errors inthe logging system, they are more
+interested in application errors.
+
+## Integration with the warnings module[¶](#logging.debug "logging.debug")
+
+The [`captureWarnings()`](#logging.debug "logging.debug") function can be used to integrate `logging`with
+the [`warnings`](#logging.Logger.log "Link to this definition") module.
+logging.captureWarnings(*capture*)[¶](#logging.debug "logging.debug")
+This function is used to turn the capture of warnings by logging on andoff.
+
+If *capture* is `True`, warnings issued by the [`warnings`](#logging.Logger.exception "Link to this definition") module willbe redirected to the logging system. Specifically, a warning will beformatted using [`warnings.formatwarning()`](#logging.Logger.exception "Link to this definition") and the resulting stringlogged to a logger named `'py.warnings'`
+with a severity of [`WARNING`](#logging.debug "logging.debug").
+
+If *capture* is `False`, the redirection of warnings to the logging systemwill stop, and
+warnings will be redirected to their original destinations(i.e. those in effect before
+`captureWarnings(True)` was called).
+
+
+See also
+Module [`logging.config`](#logging.Logger.addFilter "Link to this definition")
+Configuration API for the logging module.
+Module [`logging.handlers`](#logging.Logger.removeFilter "Link to this definition")
+Useful handlers included with the logging module.
+[**PEP 282**](#logging.Logger.filter "Link to this definition") - A Logging System
+The proposal which described this feature for inclusion in the Python standardlibrary.
+[Original Python logging package](#logging.Logger.filter "Link to this definition")
+This is the original source for the `logging` package.  The version of thepackage available
+from this site is suitable for use with Python 1.5.2, 2.1.xand 2.2.x, which do not
+include the `logging` package in the standardlibrary.
+
+
+### [Table of Contents](#logging.Logger.addHandler "Link to this definition")
+
+- [`logging` — Logging facility for Python](#logging.Logger.addHandler "Link to this definition")- [Logger Objects](#logging.Logger.removeHandler "Link to this definition")
+- [Logging Levels](#logging.Logger.removeHandler "Link to this definition")
+- [Handler Objects](#logging.Logger.removeHandler "Link to this definition")
+- [Formatter Objects](#logging.Logger.removeHandler "Link to this definition")
+- [Filter Objects](#logging.Logger.removeHandler "Link to this definition")
+- [LogRecord Objects](#logging.Logger.removeHandler "Link to this definition")
+- [LogRecord attributes](#logging.Logger.findCaller "Link to this definition")
+- [LoggerAdapter Objects](#logging.Logger.findCaller "Link to this definition")
+- [Thread Safety](#logging.Logger.findCaller "Link to this definition")
+- [Module-Level Functions](#logging.Logger.findCaller "Link to this definition")
+- [Module-Level Attributes](#logging.Logger.findCaller "Link to this definition")
+- [Integration with the warnings module](#logging.Logger.findCaller "Link to this definition")
+
+
+#### Previous topic
+
+[`time` — Time access and conversions](#logging.Logger.findCaller "Link to this definition")
+
+
+#### Next topic
+
+[`logging.config` — Logging configuration](#logging.debug "logging.debug")
+
+
+### This page
+
+- [Report a bug](#logging.Logger.handle "Link to this definition")
+- [Improve this page](#logging.Logger.handle "Link to this definition")
+-         [Show source        ](#logging.Logger.filter "logging.Logger.filter")      
+
+
+«            
+
+
+### Navigation
+
+-           [index](#logging.Logger.makeRecord "Link to this definition")
+-           [modules](#logging.Logger.makeRecord "Link to this definition") |
+-           [next](#logging.Logger.makeRecord "Link to this definition") |
+-           [previous](#logging.Logger.makeRecord "Link to this definition") |
+-
+![reference internal](../_static/py.svg "Link to this definition")
+- [Python](#logging.Logger.makeRecord "Link to this definition") »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](#logging-levels "Link to this heading") »    
+- [The Python Standard Library](#logging-levels "Link to this heading") »
+- [Generic Operating System Services](#logging-levels "Link to this heading") »
+- [`logging` — Logging facility for Python](#logging-levels "Link to this heading")
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+© [Copyright](#logging.NOTSET "Link to this definition") 2001 Python Software Foundation.      
+This page is licensed under the Python Software Foundation License Version 2.
+
+Examples, recipes, and other code in the documentation are additionally licensed
+under the Zero Clause BSD License.      
+See [History and License](#logging.NOTSET "Link to this definition") for more information.  
+
+The Python Software Foundation is a non-profit corporation.[Please donate.](#logging.DEBUG "Link to this definition")  
+
+Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](#logging.DEBUG "Link to this definition")?          
+Created using [Sphinx](#logging.DEBUG "Link to this definition") 8.2.3.      
+

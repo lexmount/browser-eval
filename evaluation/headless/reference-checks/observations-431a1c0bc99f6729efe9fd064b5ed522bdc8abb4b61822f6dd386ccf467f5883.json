@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "lm-python-tutorial",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:05.708129+00:00",
+    "content_text": "The Python Tutorial\n¶\nTip\nThis tutorial is designed for\nprogrammers\nthat are new to the Python language,\nnot\nbeginners\nwho are new to programming.\nPython is an easy to learn, powerful programming language. It has efficient\nhigh-level data structures and a simple but effective approach to\nobject-oriented programming. Python’s elegant syntax and dynamic typing,\ntogether with its interpreted nature, make it an ideal language for scripting\nand rapid application development in many areas on most platforms.\nThe Python interpreter and the extensive standard library are freely available\nin source or binary form for all major platforms from the Python website,\nhttps://www.python.org/\n, and may be freely distributed. The same site also\ncontains distributions of and pointers to many free third party Python modules,\nprograms and tools, and additional documentation.\nThe Python interpreter is easily extended with new functions and data types\nimplemented in C or C++ (or other languages callable from C). Python is also\nsuitable as an extension language for customizable applications.\nThis tutorial introduces the reader informally to the basic concepts and\nfeatures of the Python language and system. Be aware that it expects you to\nhave a basic understanding of programming in general. It helps to have a Python\ninterpreter handy for hands-on experience, but all examples are self-contained,\nso the tutorial can be read off-line as well.\nFor a description of standard objects and modules, see\nThe Python Standard Library\n.\nThe Python Language Reference\ngives a more formal definition of the language.  To write\nextensions in C or C++, read\nExtending and Embedding the Python Interpreter\nand\nPython/C API reference manual\n. There are also several books covering Python in depth.\nThis tutorial does not attempt to be comprehensive and cover every single\nfeature, or even every commonly used feature. Instead, it introduces many of\nPython’s most noteworthy features, and will give you a good idea of the\nlanguage’s flavor and style. After reading it, you will be able to read and\nwrite Python modules and programs, and you will be ready to learn more about the\nvarious Python library modules described in\nThe Python Standard Library\n.\nThe\nGlossary\nis also worth going through.\n1. Whetting Your Appetite\n2. Using the Python Interpreter\n2.1. Invoking the Interpreter\n2.1.1. Argument Passing\n2.1.2. Interactive Mode\n2.2. The Interpreter and Its Environment\n2.2.1. Source Code Encoding\n3. An Informal Introduction to Python\n3.1. Using Python as a Calculator\n3.1.1. Numbers\n3.1.2. Text\n3.1.3. Lists\n3.2. First Steps Towards Programming\n4. More Control Flow Tools\n4.1.\nif\nStatements\n4.2.\nfor\nStatements\n4.3. The\nrange()\nFunction\n4.4.\nbreak\nand\ncontinue\nStatements\n4.5.\nelse\nClauses on Loops\n4.6.\npass\nStatements\n4.7.\nmatch\nStatements\n4.8. Defining Functions\n4.9. More on Defining Functions\n4.9.1. Default Argument Values\n4.9.2. Keyword Arguments\n4.9.3. Special parameters\n4.9.3.1. Positional-or-Keyword Arguments\n4.9.3.2. Positional-Only Parameters\n4.9.3.3. Keyword-Only Arguments\n4.9.3.4. Function Examples\n4.9.3.5. Recap\n4.9.4. Arbitrary Argument Lists\n4.9.5. Unpacking Argument Lists\n4.9.6. Lambda Expressions\n4.9.7. Documentation Strings\n4.9.8. Function Annotations\n4.10. Intermezzo: Coding Style\n5. Data Structures\n5.1. More on Lists\n5.1.1. Using Lists as Stacks\n5.1.2. Using Lists as Queues\n5.1.3. List Comprehensions\n5.1.4. Nested List Comprehensions\n5.2. The\ndel\nstatement\n5.3. Tuples and Sequences\n5.4. Sets\n5.5. Dictionaries\n5.6. Looping Techniques\n5.7. More on Conditions\n5.8. Comparing Sequences and Other Types\n6. Modules\n6.1. More on Modules\n6.1.1. Executing modules as scripts\n6.1.2. The Module Search Path\n6.1.3. “Compiled” Python files\n6.2. Standard Modules\n6.3. The\ndir()\nFunction\n6.4. Packages\n6.4.1. Importing * From a Package\n6.4.2. Intra-package References\n7. Input and Output\n7.1. Fancier Output Formatting\n7.1.1. Formatted String Literals\n7.1.2. The String format() Method\n7.1.3. Manual String Formatting\n7.1.4. Old string formatting\n7.2. Reading and Writing Files\n7.2.1. Methods of File Objects\n7.2.2. Saving structured data with\njson\n8. Errors and Exceptions\n8.1. Syntax Errors\n8.2. Exceptions\n8.3. Handling Exceptions\n8.4. Raising Exceptions\n8.5. Exception Chaining\n8.6. User-defined Exceptions\n8.7. Defining Clean-up Actions\n8.8. Predefined Clean-up Actions\n8.9. Raising and Handling Multiple Unrelated Exceptions\n8.10. Enriching Exceptions with Notes\n9. Classes\n9.1. A Word About Names and Objects\n9.2. Python Scopes and Namespaces\n9.2.1. Scopes and Namespaces Example\n9.3. A First Look at Classes\n9.3.1. Class Definition Syntax\n9.3.2. Class Objects\n9.3.3. Instance Objects\n9.3.4. Method Objects\n9.3.5. Class and Instance Variables\n9.4. Random Remarks\n9.5. Inheritance\n9.5.1. Multiple Inheritance\n9.6. Private Variables\n9.7. Odds and Ends\n9.8. Iterators\n9.9. Generators\n9.10. Generator Expressions\n10. Brief tour of the standard library\n10.1. Operating system interface\n10.2. File wildcards\n10.3. Command-line arguments\n10.4. Error output redirection and program termination\n10.5. String pattern matching\n10.6. Mathematics\n10.7. Internet access\n10.8. Dates and times\n10.9. Data compression\n10.10. Performance measurement\n10.11. Quality control\n10.12. Batteries included\n11. Brief tour of the standard library — part II\n11.1. Output formatting\n11.2. Templating\n11.3. Working with binary data record layouts\n11.4. Multi-threading\n11.5. Logging\n11.6. Weak references\n11.7. Tools for working with lists\n11.8. Decimal floating-point arithmetic\n12. Virtual Environments and Packages\n12.1. Introduction\n12.2. Creating Virtual Environments\n12.3. Managing Packages with pip\n13. What Now?\n14. Interactive Input Editing and History Substitution\n14.1. Tab Completion and History Editing\n14.2. Alternatives to the Interactive Interpreter\n15. Floating-Point Arithmetic:  Issues and Limitations\n15.1. Representation Error\n16. Appendix\n16.1. Interactive Mode\n16.1.1. Error Handling\n16.1.2. Executable Python Scripts\n16.1.3. The Interactive Startup File\n16.1.4. The Customization Modules",
+    "scope_identity": {
+      "case_id": "lm-python-tutorial",
+      "url": "https://docs.python.org/3/tutorial/index.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "[role=main]",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "marker-1",
+            "alternatives": [
+              "Python Tutorial"
+            ]
+          },
+          {
+            "id": "marker-2",
+            "alternatives": [
+              "Python interpreter"
+            ]
+          },
+          {
+            "id": "marker-3",
+            "alternatives": [
+              "Whetting Your Appetite"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA",
+          "Page not found"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 545.1856249710545,
+      "timeout_ms": 120000
+    }
+  }
+]

@@ -1,0 +1,1248 @@
+		NASA Science
+==============
+
+');mask-image:url('data:image/svg+xml;utf8,');mask-mode:alpha;-webkit-mask-position:center;mask-position:center;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain}}:root
+:where(.wp-block-image.is-style-rounded img,.wp-block-image .is-style-rounded
+img){border-radius:9999px}.wp-block-image
+figure{margin:0}.wp-lightbox-container{display:flex;flex-direction:column;position:relative}.wp-lightbox-container
+img{cursor:zoom-in}.wp-lightbox-container img:hover+button{opacity:1}.wp-lightbox-container
+button{align-items:center;backdrop-filter:blur(16px)
+saturate(180%);background-color:#5a5a5a40;border:none;border-radius:4px;cursor:zoom-in;display:flex;height:20px;justify-content:center;opacity:0;padding:0;position:absolute;right:16px;text-align:center;top:16px;width:20px;z-index:100}@media
+not (prefers-reduced-motion){.wp-lightbox-container button{transition:opacity .2s
+ease}}.wp-lightbox-container button:focus-visible{outline:3px auto #5a5a5a40;outline:3px
+auto -webkit-focus-ring-color;outline-offset:3px}.wp-lightbox-container
+button:hover{cursor:pointer;opacity:1}.wp-lightbox-container
+button:focus{opacity:1}.wp-lightbox-container button:focus,.wp-lightbox-container
+button:hover,.wp-lightbox-container
+button:not(:hover):not(:active):not(.has-background){background-color:#5a5a5a40;border:none}.wp-lightbox-overlay{box-sizing:border-box;cursor:zoom-out;height:100vh;left:0;overflow:hidden;position:fixed;top:0;visibility:hidden;width:100%;z-index:100000}.wp-lightbox-overlay
+.wp-lightbox-close-button{align-items:center;cursor:pointer;display:flex;font-family:inherit;gap:8px;justify-content:center;line-height:1;min-height:40px;min-width:40px;padding:0
+4px;position:absolute;right:calc(env(safe-area-inset-right) +
+16px);top:calc(env(safe-area-inset-top) + 16px);z-index:5000000}.wp-lightbox-overlay
+.wp-lightbox-close-button:focus,.wp-lightbox-overlay
+.wp-lightbox-close-button:hover,.wp-lightbox-overlay
+.wp-lightbox-close-button:not(:hover):not(:active):not(.has-background){background:none;border:none}.wp-lightbox-overlay
+.wp-lightbox-close-button:has(.wp-lightbox-close-text:not([hidden])) .wp-lightbox-close-icon
+svg{height:1em;width:1em}.wp-lightbox-overlay .wp-lightbox-close-icon
+svg{display:block}.wp-lightbox-overlay .wp-lightbox-navigation-button-next,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev{align-items:center;bottom:16px;cursor:pointer;display:flex;font-family:inherit;gap:4px;justify-content:center;line-height:1;min-height:40px;min-width:40px;padding:0
+8px;position:absolute;z-index:2000002}.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next[hidden],.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev[hidden]{display:none}@media
+(min-width:960px){.wp-lightbox-overlay .wp-lightbox-navigation-button-next,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev{bottom:50%;transform:translateY(-50%)}}.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next:focus,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next:hover,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next:not(:hover):not(:active):not(.has-background),.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev:focus,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev:hover,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev:not(:hover):not(:active):not(.has-background){background:none;border:none;padding:0
+8px}.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next:has(.wp-lightbox-navigation-text:not([hidden]))
+.wp-lightbox-navigation-icon svg,.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev:has(.wp-lightbox-navigation-text:not([hidden]))
+.wp-lightbox-navigation-icon svg{display:block;height:1.5em;width:1.5em}.wp-lightbox-overlay
+.wp-lightbox-navigation-button-prev{left:calc(env(safe-area-inset-left) + 16px)}.wp-lightbox-overlay
+.wp-lightbox-navigation-button-next{right:calc(env(safe-area-inset-right) +
+16px)}.wp-lightbox-overlay .wp-lightbox-navigation-icon
+svg{vertical-align:middle}.wp-lightbox-overlay
+.lightbox-image-container{height:var(--wp--lightbox-container-height);left:50%;overflow:hidden;position:absolute;top:50%;transform:translate(-50%,-50%);transform-origin:top
+left;width:var(--wp--lightbox-container-width);z-index:2000001}.wp-lightbox-overlay
+.wp-block-image{align-items:center;box-sizing:border-box;display:flex;height:100%;justify-content:center;margin:0;position:relative;transform-origin:0
+0;width:100%;z-index:3000000}.wp-lightbox-overlay .wp-block-image
+img{height:var(--wp--lightbox-image-height);min-height:var(--wp--lightbox-image-height);min-width:var(--wp--lightbox-image-width);width:var(--wp--lightbox-image-width)}.wp-lightbox-overlay
+.wp-block-image figcaption{display:none}.wp-lightbox-overlay
+button{background:none;border:none}.wp-lightbox-overlay
+.scrim{background-color:#fff;height:100%;opacity:.9;position:absolute;width:100%;z-index:2000000}.wp-lightbox-overlay.active{visibility:visible}@media
+not (prefers-reduced-motion){.wp-lightbox-overlay.active{animation:turn-on-visibility
+.25s both}.wp-lightbox-overlay.active img{animation:turn-on-visibility .35s
+both}.wp-lightbox-overlay.show-closing-animation:not(.active){animation:turn-off-visibility
+.35s both}.wp-lightbox-overlay.show-closing-animation:not(.active) img{animation:turn-off-visibility
+.25s
+both}.wp-lightbox-overlay.zoom.active{animation:none;opacity:1;visibility:visible}.wp-lightbox-overlay.zoom.active
+.lightbox-image-container{animation:lightbox-zoom-in .4s}.wp-lightbox-overlay.zoom.active
+.lightbox-image-container img{animation:none}.wp-lightbox-overlay.zoom.active
+.scrim{animation:turn-on-visibility .4s
+forwards}.wp-lightbox-overlay.zoom.show-closing-animation:not(.active){animation:none}.wp-lightbox-overlay.zoom.show-closing-animation:not(.active)
+.lightbox-image-container{animation:lightbox-zoom-out
+.4s}.wp-lightbox-overlay.zoom.show-closing-animation:not(.active) .lightbox-image-container
+img{animation:none}.wp-lightbox-overlay.zoom.show-closing-animation:not(.active)
+.scrim{animation:turn-off-visibility .4s forwards}}@keyframes
+show-content-image{0%{visibility:hidden}99%{visibility:hidden}to{visibility:visible}}@keyframes
+turn-on-visibility{0%{opacity:0}to{opacity:1}}@keyframes
+turn-off-visibility{0%{opacity:1;visibility:visible}99%{opacity:0;visibility:visible}to{opacity:0;visibility:hidden}}@keyframes
+lightbox-zoom-in{0%{transform:translate(calc((-100vw + var(--wp--lightbox-scrollbar-width))/2
++ var(--wp--lightbox-initial-left-position)),calc(-50vh + var(--wp--lightbox-initial-top-position)))
+scale(var(--wp--lightbox-scale))}to{transform:translate(-50%,-50%) scale(1)}}@keyframes
+lightbox-zoom-out{0%{transform:translate(-50%,-50%)
+scale(1);visibility:visible}99%{visibility:visible}to{transform:translate(calc((-100vw
++ var(--wp--lightbox-scrollbar-width))/2 + var(--wp--lightbox-initial-left-position)),calc(-50vh
++ var(--wp--lightbox-initial-top-position)))
+scale(var(--wp--lightbox-scale));visibility:hidden}}/\*#
+sourceURL=https://science.nasa.gov/wp-includes/blocks/image/style.min.css \*/
+
+
+			[				![og:image:secure_url](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science")			](//cdn.parsely.com "NASA Science")
+
+
+				- 											Explore
+
+			Search
+
+			[				![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science » Feed")			](//cdn.parsely.com "NASA Science » Feed")
+
+
+					- 											News & Events																													[
+### News & Events
+															](//cdn.parsely.com "NASA Science » Feed")															- 									[										Recently Published									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Video Series on NASA+									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Podcasts & Audio									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Blogs									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Newsletters									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Social Media									](//cdn.parsely.com "NASA Science » Feed")
+															- 									[										Media Resources									](//cdn.parsely.com "NASA Science » Feed")
+
+
+					- 											Multimedia
+							[
+### Multimedia
+															](https://science.nasa.gov/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fscience.nasa.gov%2F&format=xml "oEmbed (XML)")															- 									[										NASA+									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-72x72.png "stylesheet")
+															- 									[										Images									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-114x114.png "stylesheet")
+															- 									[										NASA Live									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-120x120.png "stylesheet")
+															- 									[										NASA Apps									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-144x144.png "stylesheet")
+															- 									[										Podcasts									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-152x152.png "stylesheet")
+															- 									[										Image of the Day									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-180x180.png "stylesheet")
+															- 									[										e-Books									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-16x16.png "stylesheet")
+															- 									[										3D Resources									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-32x32.png "stylesheet")
+															- 									[										Interactives									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-57x57.png "stylesheet")
+															- 									[										STEM Multimedia									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-96x96.png "stylesheet")
+															- 									[										NASA Brand & Usage Guidelines									](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-128x128.png "stylesheet")
+
+
+					- 						[							NASA+						](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-196x196.png "stylesheet")
+
+
+				Search
+
+
+## Suggested Searches
+
+							- 					[												Climate Change											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+								- 					[												Artemis											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+								- 					[												Expedition 64											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+								- 					[												Mars perseverance											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+								- 					[												SpaceX Crew-2											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+								- 					[												International Space Station											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+							- 				[					View All Topics A-Z									](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+		- [Home](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Missions](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Humans in Space](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Earth](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [The Solar System](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [The Universe](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Aeronautics](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Technology](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Learning Resources](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [About NASA](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Español](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+---
+			- 				[					News & Events									](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+			- 				[					Multimedia									](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+			- 				[					NASA+				](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+### Highlights
+
+[
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+5 min read
+
+
+### NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches
+
+article4 days ago](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+1 min read
+
+
+### NASA, SpaceX Adjust Crew-13 Launch Date
+
+article5 days ago](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+3 min read
+
+
+### President Trump Signs Executive Order to Create US Space Academy  
+
+article6 days ago](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+											Back
+---
+
+
+[
+### Missions
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Search All NASA Missions](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [A to Z List of Missions](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Upcoming Launches and Landings](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Spaceships and Rockets](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Communicating with Missions](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Artemis](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [James Webb Space Telescope](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Hubble Space Telescope](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+- [International Space Station](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+- [OSIRIS-REx](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+
+[
+### Humans in Space
+](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+- [Why Go to Space](https://science.nasa.gov/wp-content/themes/nasa-child/build/style.css?ver=78da5645b79c20a885fa "stylesheet")
+- [Astronauts](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Commercial Space](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Destinations](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Spaceships and Rockets](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Living in Space](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+[
+### Earth
+](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Explore Earth Science](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Climate Change](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth, Our Planet](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth Science in Action](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth Multimedia](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth Data](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth Science Researchers](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+[
+### The Solar System
+](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Sun](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Mercury](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Venus](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Earth](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Moon](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Mars](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Jupiter](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Saturn](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Uranus](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Neptune](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Pluto & Dwarf Planets](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Asteroids, Comets & Meteors](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Kuiper Belt](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Oort Cloud](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Skywatching](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+[
+### The Universe
+](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Exoplanets](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Search for Life in the Universe](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Stars](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Galaxies](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Black Holes](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [The Big Bang](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+- [Dark Matter](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "RSD")
+- [Dark Energy](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "RSD")
+
+[
+### Science
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/inc/css/image-downloads.css?m=1785427695g "RSD")
+- [Earth Science](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Planetary Science](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Astrophysics & Space Science](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [The Sun & Heliophysics](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Biological & Physical Sciences](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Lunar Science](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Citizen Science](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Astromaterials](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Aeronautics Research](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+- [Human Space Travel Research](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/inter/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2)
+
+[
+### Aeronautics
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)
+- [Science in the Air](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)
+- [NASA Aircraft](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)
+- [Flight Innovation](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)
+- [Supersonic Flight](https://gmpg.org/xfn/11 "description")
+- [Air Traffic Solutions](https://gmpg.org/xfn/11 "description")
+- [Green Aviation Tech](https://gmpg.org/xfn/11 "description")
+- [Drones & You](https://gmpg.org/xfn/11 "description")
+
+[
+### Technology
+](https://gmpg.org/xfn/11 "description")
+- [Technology Transfer & Spinoffs](https://science.nasa.gov/ "NASA Science")
+- [Space Travel Technology](//cdn.parsely.com "NASA Science")
+- [Technology Living in Space](//cdn.parsely.com "NASA Science")
+- [Manufacturing and Materials](//cdn.parsely.com "NASA Science")
+- [Robotics](//cdn.parsely.com "NASA Science » Feed")
+- [Science Instruments](//cdn.parsely.com "NASA Science » Feed")
+- [Computing](//cdn.parsely.com "NASA Science » Feed")
+
+[
+### Learning Resources
+](//cdn.parsely.com "NASA Science » Feed")
+- [For Kids and Students](//cdn.parsely.com "NASA Science » Feed")
+- [For Educators](//cdn.parsely.com "NASA Science » Feed")
+- [For Colleges and Universities](//cdn.parsely.com "NASA Science » Feed")
+- [For Professionals](//cdn.parsely.com "NASA Science » Feed")
+- [Science for Everyone](//cdn.parsely.com "NASA Science » Feed")
+- [Requests for Exhibits, Artifacts, or Speakers](//cdn.parsely.com "NASA Science » Feed")
+- [STEM Engagement at NASA](//cdn.parsely.com "NASA Science » Feed")
+
+[
+### About NASA
+](https://science.nasa.gov/feed/ "NASA Science » Feed")
+- [NASA's Impacts](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-60x60.png "stylesheet")
+- [Centers and Facilities](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-114x114.png "stylesheet")
+- [Directorates](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-144x144.png "stylesheet")
+- [Organizations](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-16x16.png "stylesheet")
+- [People of NASA](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-76x76.png "stylesheet")
+- [Careers](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-128x128.png "stylesheet")
+- [Internships](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-228x228.png "stylesheet")
+- [Our History](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Doing Business with NASA](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Get Involved](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Contact](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+[
+### NASA en Español
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Ciencia](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Aeronáutica](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Ciencias Terrestres](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Sistema Solar](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Universo](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+[
+### News & Events
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Recently Published](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Video Series on NASA+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Podcasts & Audio](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Blogs](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Newsletters](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Social Media](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Media Resources](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+[
+### Multimedia
+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NASA+](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Images](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NASA Live](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NASA Apps](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Podcasts](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Image of the Day](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [e-Books](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [3D Resources](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Interactives](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [STEM Multimedia](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NASA Brand & Usage Guidelines](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches
+
+
+											article						4 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+1 min read
+
+
+### NASA, SpaceX Adjust Crew-13 Launch Date
+
+
+											article						5 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+2 min read
+
+
+### NASA’s Swift Restarts Science Observations
+
+
+											article						6 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### Human-Related Microbes May Survive Moon’s South Pole, NASA Finds
+
+
+											article						2 weeks ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+3 min read
+
+
+### NASA’s LRO Images Falcon 9 Crater on Moon, Learns New Details
+
+
+											article						2 weeks ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+3 min read
+
+
+### NASA Will Attempt to Observe Rocket Part’s Lunar Impact
+
+
+											article						4 weeks ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+6 min read
+
+
+### Peatland Fires Darken Skies in Indonesia
+
+
+											article						10 hours ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+2 min read
+
+
+### Amendment 72: New Opportunity: A.17 Hydrosphere
+
+
+											article						23 hours ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+2 min read
+
+
+### Amendment 71: New Opportunity: A.16 Cryosphere
+
+
+											article						2 days ago			](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole
+
+
+											article						20 hours ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA Rocket Takes First Multi-Point Look Inside Radio-Disrupting Clouds
+
+
+											article						23 hours ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+3 min read
+
+
+### What’s Up: September 2026 Skywatching Tips from NASA
+
+
+											article						2 days ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+3 min read
+
+
+### NASA’s Hubble Spies Superbubble Scene
+
+
+											article						47 minutes ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+1 min read
+
+
+### 9 Things to Know About NASA’s Nancy Grace Roman Space Telescope
+
+
+											article						7 days ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA’s Pandora Mission Begins Study of Exoplanets, Host Stars
+
+
+											article						1 week ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+3 min read
+
+
+### NASA’s Hubble Spies Superbubble Scene
+
+
+											article						47 minutes ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole
+
+
+											article						20 hours ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+2 min read
+
+
+### Amendment 72: New Opportunity: A.17 Hydrosphere
+
+
+											article						23 hours ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "RSD")
+
+
+3 min read
+
+
+### NASA Johnson Pilots Chase Moon’s Shadow for Eclipse Science 
+
+
+											article						1 week ago			](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "RSD")[
+
+
+![,](https://science.nasa.gov/wp-content/themes/nasa/js/share-social.js?ver=1.0.2 "RSD")
+
+
+4 min read
+
+
+### NASA Selects University Teams to Help Advance Aviation Research
+
+
+											article						2 weeks ago			](https://science.nasa.gov/xmlrpc.php?rsd "RSD")[
+
+
+![,](https://science.nasa.gov/wp-content/plugins/gravityforms/js/gravityforms.min.js?ver=2.10.1
+"RSD")
+
+
+3 min read
+
+
+### NASA Student Aviation Challenge Focuses on Nation’s Infrastructure
+
+
+											article						2 weeks ago			](https://science.nasa.gov/xmlrpc.php?rsd "RSD")
+
+
+### Highlights
+[
+
+
+![,](https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=NASA&pua=G-3MLXXCVWWY&subagency==GSFC&yt=true&dclink=true&sp=search,s,q&sdor=false&exts=tif,tiff&pga4=G-82GWVTTXCZ)
+
+
+2 min read
+
+
+### Ribbon-Cutting Event for NASA Deep Space Network’s Deep Space Station 23
+
+
+											article						4 days ago			](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/db-mono/aFTU7PB1QTsUX8KYthqQBA.woff2)[
+
+
+![og:image:secure_url](https://www.youtube.com/iframe_api "description")
+
+
+1 min read
+
+
+### NASA Deep Space Network’s New Goldstone Antenna Goes Online
+
+
+											article						4 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)[
+
+
+![og:image:secure_url](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1
+"description")
+
+
+2 min read
+
+
+### Panorama Showcasing the 34-Meter Antennas of the DSN’s Goldstone Complex
+
+
+											article						4 days ago			](https://gmpg.org/xfn/11 "description")
+
+
+### Highlights
+[
+
+
+![og:image:alt](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA
+Science")
+
+
+4 min read
+
+
+### NASA Revamps Challenge Linking Community College Studies to Aerospace Careers
+
+
+											article						19 hours ago			](//cdn.parsely.com "NASA Science")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science »
+Feed")
+
+
+1 min read
+
+
+### Career Spotlight
+
+
+											article						2 days ago			](//cdn.parsely.com "NASA Science » Feed")[
+
+
+![},](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science »
+Feed")
+
+
+5 min read
+
+
+### Building Foresight for Earth Science, featuring Lindsey Jacobson
+
+
+											article						1 week ago			](//cdn.parsely.com "NASA Science » Feed")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science »
+Feed")
+
+
+5 min read
+
+
+### NASA Awards First Prize in Phase 2 of Agency’s LunaRecycle Challenge 
+
+
+											article						6 days ago			](//cdn.parsely.com "NASA Science » Feed")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches
+
+
+											article						4 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/apple-touch-icon-72x72.png "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+5 min read
+
+
+### President Honors NASA’s Artemis II Crew with Highest US Space Award
+
+
+											article						6 days ago			](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-96x96.png "stylesheet")
+
+
+### Highlights
+[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+11 min read
+
+
+### La NASA anuncia la cobertura de la misión lunar Artemis II
+
+
+											article						5 months ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+15 min read
+
+
+### Agenda diaria de la misión a la Luna de Artemis II de la NASA
+
+
+											article						6 months ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")[
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+6 min read
+
+
+### La NASA refuerza Artemis: añade una misión y perfecciona su arquitectura general
+
+
+											article						6 months ago			](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+
+Explore This Section
+
+
+- [Science Missions](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- Science Topics- [Earth Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Planetary Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Astrophysics and Space Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [The Sun and Heliophysics](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Biological and Physical Sciences](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Lunar Discovery and Exploration](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Astrobiology](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Science-enabling Technology](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Artificial Intelligence for Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- For Everyone
+- [Overview](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Learn](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Engage](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Citizen Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Open Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Skywatching](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Multimedia](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Blogs](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- For Researchers
+- [Overview](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Solicitations and Announcements](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [ROSES FAQ](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [MOSAICS](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [ROSES Blog](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NAC Science Committee](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [NASA Postdoc Program](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Points of Contact](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Citizen Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [PI Resources](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Open Science](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Science Data](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Help & Support](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Suborbital Program](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Funding for Events ](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- About NASA Science
+- [About Us](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Science Leadership](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [People](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Science Strategy](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Chief Science Data Officer](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Toolkits](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [UAP](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Archived Sites](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Communications](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Contact Us](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- More
+- [Español](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Kids](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+- [Workforce Initiatives](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+#                         NASA Science                                           
+
+NASA Science seeks to discover the secrets of the universe,
+search for life elsewhere, and protect and improve life on Earth and in space.   
+
+
+Explore                            
+[							Ice Island Survives Run-In
+With Joe Island                								](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")		                   
+
+
+Observe                                
+[							NASA’s Nancy
+Grace Roman Space Telescope Launches                								](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")		                       
+
+
+Focus                                
+[							Pasterze Hangs
+on as Austria’s Largest Glacier                								](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")		                       
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+## Latest News
+
+
+							[							More Science News                								](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000
+"stylesheet")
+
+[
+
+Article
+
+4 Min Read
+Rare, Widespread Snow in the Atacama Desert
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")](https://science.nasa.gov/wp-content/themes/nasa-child/build/style.css?ver=78da5645b79c20a885fa "stylesheet")
+
+[
+
+Article
+
+7 Min Read
+A Changing World for Emperor Penguins
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+[
+
+Article
+
+5 Min Read
+NASA’s Pandora Mission Begins Study of Exoplanets, Host Stars
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+Article
+
+4 Min Read
+Galactic Gems Glisten in New Gallery From NASA’s Chandra
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+[
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+7 Min Read
+Integrating Model-Based Systems Engineering and Fault Management to Enable Autonomous
+Space Missions
+
+Article](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")[
+
+![,](https://science.nasa.gov/wp-content/plugins/gravityforms/js/jquery.json.min.js?ver=2.10.1 "RSD")
+
+3 Min Read
+Lala Batters Hawaii
+
+Article](https://science.nasa.gov/xmlrpc.php?rsd "RSD")[
+
+![,](https://dap.digitalgov.gov/web-vitals/dist/web-vitals.attribution.iife.js)
+
+5 Min Read
+Hubble Solves Merger Mystery From Milky Way’s Early Years
+
+Article](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/fonts-split/db-mono/aFTU7PB1QTsUX8KYthqQBA.woff2)[
+
+![og:image:secure_url](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "description")
+
+6 Min Read
+Chasing Fire Clouds in Utah
+
+Article](https://gmpg.org/xfn/11 "description")
+
+
+# 							Adopt a Pixel
+
+						Claim your pixel on one of the first images from **NASA’s Nancy Grace
+Roman Space Telescope!** When Roman captures its first images, each pixel will represent
+a piece of the cosmos never seen before at this resolution. Claim your pixel and
+be part of this historic moment!
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA Science »
+Feed")
+
+Unable to render the provided source
+
+
+## 2026 NASA Science Calendar
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### Image of the Month
+
+August – Pyramid Lake in Bloom.
+
+[Download Now](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### Download the Cover
+
+Learn about those of the NASA corps who make “space sailing” their career profession.
+
+[Download Now](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### All Images
+
+See all images for 2026
+
+[Download Now](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+Unable to render the provided source
+
+
+Featured Video
+### What’s Up: August 2026 Skywatching Tips from NASA
+
+A solar eclipse, one of the year’s best meteor showers, Venus at its brightest
+in the evening sky, and a partial lunar eclipse to close out the month.  
+On August 12, a total solar eclipse crosses northern Russia, Greenland, Iceland,
+northern Spain, and a small corner of Portugal. In parts of the United States, from
+Alaska to North Carolina, the eclipse will be partial. Use certified eclipse glasses
+or a safe solar viewer whenever any part of the Sun is visible.  
+Later that night, the Perseid meteor shower peaks under the dark skies of the New
+Moon.
+								[							Learn More                								](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+
+LANDSAT
+## A Spaceship Called Earth
+
+With NASA’s “Your Name in Landsat” online interactive, users can type in their
+name, then view and export the graphic of that name spelled out in Earth features
+found in Landsat images.
+									[						See Your Name in Landsat											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+Mark your calendars
+## Most Notable 2026 Astronomical Events
+
+This year will be busy for avid skywatchers, with some incredible opportunities to
+view meteor showers, planets, and the Moon in the night sky.
+									[						See the Top Sky Watching Events											](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+NASA/JPL-Caltech
+
+
+## Featured Missions
+
+Our mission milestones showcase the breadth and depth of NASA science.
+
+
+									[							All Science Missions                								](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g
+"stylesheet")
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### IMAP
+
+Launched September 24, 2025, IMAP will help researchers better understand the boundary
+of the heliosphere, a huge bubble created by the Sun surrounding and protecting
+our solar system.
+
+[More about IMAP](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### Pandora
+
+Pandora is a small satellite designed to characterize exoplanet atmospheres and their
+host stars. It is slated to observe at least 20 different planets during its one
+year of science operations.
+
+[More about Pandora](https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788444000 "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### Dragonfly
+
+Dragonfly, the first-of-its-kind rotorcraft to explore another world, will fly to
+various locations on Saturn’s moon Titan and investigate the moon’s habitability.
+
+[More about Dragonfly](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0
+"stylesheet")
+
+
+## Dive Deeper
+
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### SMD Community Public Meetings
+
+View upcoming and past community public meetings.
+
+[Public Meetings](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### NASA Science Strategy
+
+Our science strategy articulates a forward-thinking vision and presents a comprehensive,
+cohesive and long-term roadmap for all NASA activities.
+
+[Science Strategy](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### People of NASA Science
+
+Meet the individuals who are instrumental in enabling the realization of NASA Science’s
+extraordinary mission.
+
+[People of Science](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0 "stylesheet")
+
+![,](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "stylesheet")
+
+
+### NASA Science Careers
+
+Discover career opportunities at NASA Science, where innovation, growth and collaboration
+shape the future of scientific exploration.
+
+[Science Careers](//science.nasa.gov/wp-content/uploads/pum/pum-site-styles-1.css?generated=1753194533&ver=1.22.0
+"RSD")
+
+
+Keep Exploring
+## More about NASA Science
+
+
+					[
+
+
+								Science Missions
+
+![,](https://science.nasa.gov/wp-content/plugins/gravityforms/js/gravityforms.min.js?ver=2.10.1
+"RSD")												](https://science.nasa.gov/xmlrpc.php?rsd "RSD")					[
+
+
+								Latest NASA Science News
+
+![,](https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=NASA&pua=G-3MLXXCVWWY&subagency==GSFC&yt=true&dclink=true&sp=search,s,q&sdor=false&exts=tif,tiff&pga4=G-82GWVTTXCZ)												](https://science.nasa.gov/xmlrpc.php?rsd "RSD")					[
+
+
+								Science for Everyone
+
+![og:image:secure_url](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1
+"description")												](https://science.nasa.gov/wp-content/plugins/nasa-blocks/assets/slick/slick.css?m=1766432781g)					[
+
+
+								For Researchers
+
+![og:image:secure_url](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA
+Science")												](https://gmpg.org/xfn/11 "description")
+
+
+![twitter:label1](https://science.nasa.gov/wp-includes/js/jquery/jquery.min.js?ver=3.7.1 "NASA
+Science")
+
+
+### National Aeronautics and Space Administration
+
+NASA explores the unknown in air and space, innovates for the benefit of humanity,
+and inspires the world through discovery.
+
+							- [About NASA's Mission](//cdn.parsely.com "NASA Science » Feed")
+
+						[							Join Us													](//cdn.parsely.com "NASA Science » Feed")
+
+
+								- [Home](//cdn.parsely.com "NASA Science » Feed")
+								- [News & Events](//cdn.parsely.com "NASA Science » Feed")
+								- [Multimedia](//cdn.parsely.com "NASA Science » Feed")
+								- [NASA+](//cdn.parsely.com "NASA Science » Feed")
+								- [Missions](//cdn.parsely.com "NASA Science » Feed")
+								- [Humans in Space](//cdn.parsely.com "NASA Science » Feed")
+																- [Earth](//cdn.parsely.com "NASA Science » Feed")
+								- [The Solar System](//cdn.parsely.com "NASA Science » Feed")
+								- [The Universe](//cdn.parsely.com "NASA Science » Feed")
+								- [Science](//cdn.parsely.com "NASA Science » Feed")
+								- [Aeronautics](//cdn.parsely.com "NASA Science » Feed")
+								- [Technology](//cdn.parsely.com "NASA Science » Feed")
+								- [Learning Resources](//cdn.parsely.com "NASA Science » Feed")
+								- [About NASA](//cdn.parsely.com "NASA Science » Feed")
+								- [NASA en Español](//cdn.parsely.com "NASA Science » Feed")
+
+
+### Follow NASA
+
+								-
+								-
+								-
+								-
+
+
+- [More NASA Social Accounts](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-96x96.png "stylesheet")
+- [NASA Newsletters](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-128x128.png "stylesheet")
+
+
+						- [Sitemap](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-196x196.png "stylesheet")
+						- [For Media](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-228x228.png "stylesheet")
+						- [Privacy Policy](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/favicon-228x228.png "stylesheet")
+						- [FOIA](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/site.webmanifest "stylesheet")
+						- [No FEAR Act](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/safari-pinned-tab.svg "stylesheet")
+						- [Office of the IG](https://science.nasa.gov/wp-content/plugins/nasa-hds-core-setup/assets/favicons/safari-pinned-tab.svg "stylesheet")
+						- [Budget & Annual Reports](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+						- [Agency Financial Reports](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+						- [Contact NASA](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+						- [Accessibility](https://science.nasa.gov/wp-content/plugins/nasa-blocks/build/blocks/video/style-index.css?m=1787836320g "stylesheet")
+
+
+																							-
+
+										Page Last Updated:
+
+									Sep 01, 2026
+																-
+
+										Page Editor:
+
+										Julie Stoltz
+																						-
+
+									Responsible NASA Official for Science:
+
+									Diana Logreira
+
+
+Δ												                      
+
+Did you find what you were looking for?(Required)
+
+
+										Yes
+
+										No
+
+										Partly
+
+What were you looking for?(Required)
+
+What were you hoping to accomplish by visiting our website?(Required)
+
+
+×
+Notifications
+

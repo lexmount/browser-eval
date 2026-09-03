@@ -1,0 +1,40 @@
+{
+  "case_id": "live-075-python-logging-documentation",
+  "url": "https://docs.python.org/3/library/logging.html",
+  "checked_at": "2026-09-02T03:38:08.708704+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/logging.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/logging.html",
+  "mime": "text/html",
+  "bytes": 191302,
+  "sha256": "282ec31e6fdeeb7bc1c2ace00b1140daeb43420aae3813289b166d242c6480f2",
+  "title": "logging — Logging facility for Python — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "text_chars": 55776,
+  "excerpt": "logging\n— Logging facility for Python\n¶\nSource code:\nLib/logging/__init__.py\nThis module defines functions and classes which implement a flexible event\nlogging system for applications and libraries.\nThe key benefit of having the logging API provided by a standard library module\nis that all Python modules can participate in logging, so your application log\ncan include your own messages integrated with messages from third-party\nmodules.\nHere’s a simple example of idiomatic usage:\n# myapp.py\nimport\nlogging\nimport\nmylib\nlogger\n=\nlogging\n.\ngetLogger\n(\n__name__\n)\ndef\nmain\n():\nlogging\n.\nbasicConfig\n(\nfilename\n=\n'myapp.log'\n,\nlevel\n=\nlogging\n.\nINFO\n)\nlogger\n.\ninfo\n(\n'Started'\n)\nmylib\n.\ndo_something\n()\nlogger\n.\ninfo\n(\n'Finished'\n)\nif\n__name__\n==\n'__main__'\n:\nmain\n()\n# mylib.py\nimport\nlogging\nlogger",
+  "missing_facts": [],
+  "state": "captured"
+}

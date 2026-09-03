@@ -1,0 +1,520 @@
+GitHub - denoland/deno: A modern runtime for JavaScript and TypeScript. · GitHub
+===================================================================================
+
+/" data-turbo-transient="true">                    
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/react-core-a7c1cb31a2a07e7c.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/9y-6b7bf91c8c76c342.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/aq-0dbf7d12b4d37e14.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/xv-92a56478ba361268.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/20x-bcd86191b33f8bc4.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/gbu-e8bb2569b1ae4dcf.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/7cv-ee517aa478d5e709.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/ql0.9e511664b9541231.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/18-2763d0b31646e61c.js "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+{{ message }}               
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/j0-e9bfed51669329e8.js "route-pattern").
+
+
+[        denoland](https://github.githubassets.com/assets/primer-react-c320bd4873ebac94.js "route-pattern")     
+/    **      [deno](https://github.githubassets.com/assets/t7l-0a8b07066f584f39.js "route-pattern")    **
+Public                  
+
+
+-             [        Notifications](https://github.githubassets.com/assets/xv-92a56478ba361268.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    6.4k](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")  
+-         
+
+[                  Star          108k](https://github.githubassets.com/assets/e84-f35c9201cd42c537.js "route-pattern")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/4b.04650e8ebd1e08f2.module.css "route-pattern")
+-   [                              Issues          1.2k    ](https://github.githubassets.com/ "GitHub")
+-   [                              Pull requests          338    ](/opensearch.xml "GitHub")
+-   [                              Discussions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - denoland/deno: A modern runtime for JavaScript and TypeScript.")
+-   [                              Actions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Wiki              ](#start-of-content "_R_5knd_")
+-   [                              Security and quality          40    ](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+-   [                              Insights              ](https://github.githubassets.com/assets/lazy-react-partial-marketing-header.cf9cd9a7a233f77b.module.css "_R_5knd_")
+
+
+Additional navigation options  
+
+
+-             [                                                      Code      ](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")  
+-             [                                                      Issues      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Pull requests      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Discussions      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Actions      ](https://github.com/features/ai/github-app "Octicon")  
+-             [                                                      Wiki      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Security and quality      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Insights      ](https://github.com/mcp "Octicon")  
+
+
+main
+
+[Branches](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js
+"route-pattern")[Tags](https://github.githubassets.com/assets/6n-71c0ae3e489775ef.js "route-pattern")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[17,344 Commits](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")
+
+17,344 Commits
+## Folders and files
+
+| Name                                                                                                                                                                    | Name |   |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                        |
+| -                                                                                                                                                                       | -    | - | - |
+|                                                                                                                                                                         |
+| [.cargo](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - denoland/deno: A modern runtime for JavaScript and TypeScript.")              |      |
+| [.cargo](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                             |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.claude/skills](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                     |      |
+| [.claude/skills](https://github.githubassets.com/assets/u2l.2bf415a96c254d27.module.css "_R_5knd_")                                                                     |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.devcontainer](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                         |      |
+| [.devcontainer](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")                                                                               |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.github](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                               |      |
+| [.github](/ "_R_5knd_")                                                                                                                                                 |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [cli](/ "_R_5knd_")                                                                                                                                                     |      |
+| [cli](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")                                                                                           |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [doc](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")                                                                                           |      |
+| [doc](https://github.com/features/copilot "_R_5knd_")                                                                                                                   |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [ext](https://github.com/features/copilot "_R_5knd_")                                                                                                                   |      |
+| [ext](https://github.com/features/copilot "_R_5knd_")                                                                                                                   |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [libs](https://github.com/features/copilot "_R_5knd_")                                                                                                                  |      |
+| [libs](https://github.com/features/ai/github-app "Octicon")                                                                                                             |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [runtime](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                         |      |
+| [runtime](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                         |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [tests](https://github.com/mcp "Octicon")                                                                                                                               |      |
+| [tests](https://github.com/mcp "Octicon")                                                                                                                               |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [tools](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                              |      |
+| [tools](https://github.com/features/actions "Octicon")                                                                                                                  |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.dprint.json](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                     |      |
+| [.dprint.json](https://github.com/features/codespaces "Octicon")                                                                                                        |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.editorconfig](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                      |      |
+| [.editorconfig](https://github.com/features/issues "Octicon")                                                                                                           |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.gitattributes](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                         |      |
+| [.gitattributes](https://github.com/features/code-review "Octicon")                                                                                                     |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.gitignore](https://github.com/features/code-review "Octicon")                                                                                                         |      |
+| [.gitignore](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                       |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.gitmodules](https://github.com/security/advanced-security "Octicon")                                                                                                  |      |
+| [.gitmodules](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                            |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [.rustfmt.toml](https://github.com/security/advanced-security/code-security "Octicon")                                                                                  |      |
+| [.rustfmt.toml](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [CLAUDE.md](https://github.com/security/advanced-security/secret-protection "Octicon")                                                                                  |      |
+| [CLAUDE.md](https://github.githubassets.com "route-pattern")                                                                                                            |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [Cargo.lock](https://github.githubassets.com/assets/light_colorblind_high_contrast-f661b49995ba0bd8.css "route-pattern")                                                |      |
+| [Cargo.lock](https://github.githubassets.com/assets/dark_colorblind_high_contrast-e61d4f4ca17852c2.css "route-pattern")                                                 |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [Cargo.toml](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")                                                                        |      |
+| [Cargo.toml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                 |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [LICENSE.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                 |      |
+| [LICENSE.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                 |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [README.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                  |      |
+| [README.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                  |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [Releases.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                |      |
+| [Releases.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [flake.lock](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")                                                                             |      |
+| [flake.lock](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")                                                                |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [flake.nix](https://github.githubassets.com/assets/z1-43f07743b557bfbe.js "route-pattern")                                                                              |      |
+| [flake.nix](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")                                                                              |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [import_map.json](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")                                                                       |      |
+| [import_map.json](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")                                                                       |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [rust-toolchain.toml](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern")                                                                    |      |
+| [rust-toolchain.toml](https://github.githubassets.com/assets/j9-4483dc33313243df.js "route-pattern")                                                                    |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| [x](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components-83736918ee9cf92c.js "route-pattern")                                          |      |
+| [x](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")                                  |      |
+|                                                                                                                                                                    |      |
+|                                                                                                                                                                    |
+| View all files                                                                                                                                                          |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.githubassets.com/ "GitHub")
+- [Code of conduct](https://github.githubassets.com/ "GitHub")
+- [Contributing](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - denoland/deno: A modern runtime for JavaScript and TypeScript.")
+- [MIT license](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+
+More items
+
+
+# Deno
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/ "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/ "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/ "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/ "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/ "_R_5knd_")
+
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=denoland "_R_5knd_")](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")
+
+
+[Deno](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_")([/ˈdiːnoʊ/](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_"),
+pronounced`dee-no`) is a JavaScript, TypeScript, and WebAssembly runtime with securedefaults
+and a great developer experience. It's built on [V8](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_"),[Rust](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_"), and [Tokio](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_").
+
+Learn more about the Deno runtime[in the documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno "_R_5knd_").
+
+
+## Installation
+
+Install the Deno runtime on your system using one of the commands below. Notethat
+there are a number of ways to install Deno - a comprehensive list ofinstallation
+options can be found[here](https://github.com/features/copilot "_R_5knd_").
+
+Shell (Mac, Linux):
+
+```curl -fsSL https://deno.land/install.sh | sh```
+
+                              
+PowerShell (Windows):
+
+```irm https://deno.land/install.ps1 | iex```
+
+
+[Homebrew](https://github.com/features/copilot "Octicon") (Mac):
+
+```brew install deno```
+
+                              
+[Chocolatey](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") (Windows):
+
+```choco install deno```
+
+
+[WinGet](https://github.com/mcp "Octicon") (Windows):
+
+```winget install --id=DenoLand.Deno```
+
+                              
+[Scoop](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")(Windows):
+
+```scoop install main/deno```
+
+
+### Build and install from source
+
+Complete instructions for building Deno from source can be found[here](https://github.com/features/actions "_R_9knd_").
+
+
+## Your first Deno program
+
+Deno can be used for many different applications, but is most commonly used tobuild
+web servers. Create a file called `server.ts` and include the followingTypeScript code:
+
+```Deno.serve((_req: Request) => {  return new Response("Hello, world!");});```
+
+     {  return new Response("Hello, world!");});">                     
+     
+Run your server with the following command:
+
+```deno run --allow-net server.ts```
+
+
+This should start a local web server on[http://localhost:8000](https://github.com/features/code-review "Octicon").
+
+Learn more about writing and running Deno programs[in the docs](https://github.com/features/code-review "Octicon").
+
+
+## Additional resources
+
+- **[Deno Docs](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")**: official guides and reference docs forthe Deno runtime, [Deno Deploy](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0"), and beyond.
+- **[Deno Standard Library](https://github.com/features/code-review "Octicon")**: officially supported commonutilities for Deno programs.
+- **[JSR](https://github.com/features/code-quality "Octicon")**: The open-source package registry for modernJavaScript and TypeScript
+- **[Developer Blog](https://github.com/features/code-quality "Octicon")**: Product updates, tutorials, andmore from the Deno team.
+
+
+## Contributing
+
+We appreciate your help! To contribute, please read our[contributing instructions](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0").
+
+
+## About
+
+A modern runtime for JavaScript and TypeScript.
+
+[deno.com](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")
+### Topics
+
+[deno](https://github.com/security/advanced-security "_R_dknd_")[javascript](https://github.com/security/advanced-security "_R_dknd_")[rust](https://github.com/security/advanced-security "_R_dknd_")[typescript](https://github.com/security/advanced-security "_R_dknd_")
+### Resources
+
+[Readme](https://github.com/security/advanced-security "Octicon")
+
+[MIT license](https://github.com/security/advanced-security/code-security "Octicon")
+### Code of conduct
+
+[Code of conduct](https://github.com/security/advanced-security/secret-protection "Octicon")
+### Contributing
+
+[Contributing](https://github.githubassets.com/assets/light-99f877e9ddfc0e51.css "route-pattern")
+### Security policy
+
+[Security policy](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern")
+
+[Activity](https://github.githubassets.com/assets/dark_tritanopia_high_contrast-73236c840c0c7d90.css "route-pattern")
+
+[Custom properties](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+### Stars
+
+**108.4k** stars
+### Watchers
+
+**1.4k** watching
+### Forks
+
+[**6.4k** forks](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[Report repository](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+
+## Releases
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+
+## Footer
+
+
+[            ](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")       
+© 2026 GitHub, Inc.              
+### Footer navigation
+
+-             [Terms](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-             [Privacy](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js "route-pattern")          
+-               [Security](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")            
+-               [Status](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")            
+-             [Community](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")          
+-             [Docs](https://github.githubassets.com/assets/kw-866fd9513ae95106.js "route-pattern")          
+-             [Contact](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")          
+-             Manage cookies      
+-                   Do not share my personal information            
+
+
+You can’t perform that action at this time.      
+
+

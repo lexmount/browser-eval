@@ -1,0 +1,500 @@
+GitHub - docker/compose: Define and run multi-container applications with Docker
+· GitHub
+=========
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdocker%2Fcompose)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/aria-live-76b18916d0c8ec4d.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/wo-8dee386ae7fdbf5e.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/du-f505f75f51311ee8.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/cj-006d3ff509d05587.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fdocker%2Fcompose "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/code-2d56bdb0166c0238.css "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/fetch-utilities-dbd53fc595a25c22.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/ps6-ccbe0db236f6e22f.js "route-pattern").
+
+
+[        docker](https://github.githubassets.com/assets/3np-d3e31cfdd09628e3.js "route-pattern")     
+/    **      [compose](https://github.githubassets.com/assets/0l5-db943e5e450eb617.js "route-pattern")    **
+Public                  
+
+
+-             [        Notifications](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    5.8k](https://github.githubassets.com/ "GitHub")  
+-         
+
+[                  Star          38.1k](/opensearch.xml "GitHub")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Issues          62    ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Pull requests          43    ](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")
+-   [                              Actions              ](https://github.githubassets.com/assets/fz-30a6af7c53dfa4f1.js "_R_5knd_")
+-   [                              Security and quality          1    ](https://github.githubassets.com/assets/lazy-react-partial-marketing-header.cf9cd9a7a233f77b.module.css "_R_5knd_")
+-   [                              Insights              ](/ "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](https://github.com/features/ai/github-app "Octicon")  
+-             [                                                      Issues      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Pull requests      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Actions      ](https://github.com/mcp "Octicon")  
+-             [                                                      Security and quality      ](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Insights      ](https://github.com/features/actions "Octicon")  
+
+
+main
+
+[Branches](https://github.githubassets.com/assets/9y-6b7bf91c8c76c342.js "route-pattern")[Tags](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[6,028 Commits](https://github.githubassets.com/ "GitHub")
+
+6,028 Commits
+## Folders and files
+
+| Name                                                                                                                                                                 | Name |   |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                     |
+| -                                                                                                                                                                    | -    | - | - |
+|                                                                                                                                                                      |
+| [.github](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                         |      |
+| [.github](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")                                                                                           |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [cmd](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                                     |      |
+| [cmd](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                                     |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [desktop-module](https://github.githubassets.com/assets/1lf-a0f2419c1e6629c4.js "_R_5knd_")                                                                          |      |
+| [desktop-module](https://github.githubassets.com/assets/primer-react-brand-css.206bbd4fd232654e.module.css "_R_5knd_")                                               |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [docs](/ "_R_5knd_")                                                                                                                                                 |      |
+| [docs](/ "_R_5knd_")                                                                                                                                                 |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [internal](/login?return_to=https%3A%2F%2Fgithub.com%2Fdocker%2Fcompose "_R_5knd_")                                                                                  |      |
+| [internal](https://github.com/features/copilot "_R_5knd_")                                                                                                           |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [pkg](https://github.com/features/copilot "_R_5knd_")                                                                                                                |      |
+| [pkg](https://github.com/features/copilot "_R_5knd_")                                                                                                                |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [.dockerignore](https://github.com/features/copilot "_R_5knd_")                                                                                                      |      |
+| [.dockerignore](https://github.com/features/copilot "Octicon")                                                                                                       |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [.gitattributes](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")               |      |
+| [.gitattributes](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")               |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [.gitignore](https://github.com/mcp "Octicon")                                                                                                                       |      |
+| [.gitignore](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                      |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [.go-version](https://github.com/features/actions "Octicon")                                                                                                         |      |
+| [.go-version](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                   |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [.golangci.yml](https://github.com/features/codespaces "Octicon")                                                                                                    |      |
+| [.golangci.yml](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                   |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [AGENTS.md](https://github.com/features/issues "Octicon")                                                                                                            |      |
+| [AGENTS.md](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                           |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [BUILDING.md](https://github.com/features/code-review "Octicon")                                                                                                     |      |
+| [BUILDING.md](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                    |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [CLAUDE.md](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                     |      |
+| [CLAUDE.md](https://github.com/security/advanced-security "Octicon")                                                                                                 |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [CONTRIBUTING.md](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                     |      |
+| [CONTRIBUTING.md](https://github.com/security/advanced-security/code-security "Octicon")                                                                             |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [Dockerfile](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |      |
+| [Dockerfile](https://github.com/security/advanced-security/code-security "Octicon")                                                                                  |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [LICENSE](https://avatars.githubusercontent.com "route-pattern")                                                                                                     |      |
+| [LICENSE](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern")                                                              |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [Makefile](https://github.githubassets.com/assets/dark_colorblind_high_contrast-e61d4f4ca17852c2.css "route-pattern")                                                |      |
+| [Makefile](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")                                                            |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [NOTICE](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                  |      |
+| [NOTICE](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                  |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [README.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                               |      |
+| [README.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                               |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [codecov.yml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                             |      |
+| [codecov.yml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                             |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [docker-bake.hcl](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                         |      |
+| [docker-bake.hcl](https://github.githubassets.com/assets/selector-observer-e88088f989b27670.js "route-pattern")                                                      |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [go.mod](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")                                                                 |      |
+| [go.mod](https://github.githubassets.com/assets/4t-9933bcccf9a9524f.js "route-pattern")                                                                              |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [go.sum](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")                                                                              |      |
+| [go.sum](https://github.githubassets.com/assets/j6-1e8b001d24ed9cac.js "route-pattern")                                                                              |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| [logo.png](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")                                                                           |      |
+| [logo.png](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")                                                                            |      |
+|                                                                                                                                                                 |      |
+|                                                                                                                                                                 |
+| View all files                                                                                                                                                       |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.githubassets.com/assets/e84-f35c9201cd42c537.js "route-pattern")
+- [Contributing](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern")
+- [Apache-2.0 license](https://github.githubassets.com/assets/ql0.9e511664b9541231.module.css "route-pattern")
+- [Security](https://github.githubassets.com/ "route-pattern")
+
+More items
+
+
+# Table of Contents
+
+- [Docker Compose](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Where to get Docker Compose](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")- [Windows and macOS](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Linux](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Quick Start](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Contributing](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Legacy](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+
+
+# Docker Compose
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](/manifest.json "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](#start-of-content "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](https://github.githubassets.com/assets/keyboard-shortcuts-dialog.b3ce4cc113f3c5ee.module.css "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=docker "_R_5knd_")](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+
+
+Docker Compose is a tool for running multi-container applications on Dockerdefined
+using the [Compose file format](https://github.githubassets.com/assets/tua-417d02f5e5f3ce67.js "_R_5knd_").A Compose file is used to define how one or more containers that make upyour application are configured.Once you have a Compose file, you can create and start your application with asingle command: `docker compose
+up`.
+
+>
+> **Note**: About Docker Swarm
+> Docker Swarm used to rely on the legacy compose file format but did not adopt the
+compose specification
+> so is missing some of the recent enhancements in the compose syntax. After
+> [acquisition by Mirantis](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_") swarm isn't maintained by Docker Inc, and
+> as such some Docker Compose features aren't accessible to swarm users.
+>
+
+
+# Where to get Docker Compose
+
+
+### Windows and macOS
+
+Docker Compose is included in[Docker Desktop](/ "_R_5knd_")for Windows and macOS.
+
+
+### Linux
+
+You can download Docker Compose binaries from the[release page](/login?return_to=https%3A%2F%2Fgithub.com%2Fdocker%2Fcompose "_R_5knd_") on this repository.
+
+Rename the relevant binary for your OS to `docker-compose` and copy it to `$HOME/.docker/cli-plugins`
+
+Or copy it into one of these folders to install it system-wide:
+
+- `/usr/local/lib/docker/cli-plugins` OR `/usr/local/libexec/docker/cli-plugins`
+- `/usr/lib/docker/cli-plugins` OR `/usr/libexec/docker/cli-plugins`
+
+(might require making the downloaded file executable with `chmod +x`)
+
+
+## Quick Start
+
+Using Docker Compose is a three-step process:
+
+1. Define your app's environment with a `Dockerfile` so it can bereproduced anywhere.
+2. Define the services that make up your app in `compose.yaml` sothey can be run together in an isolated environment.
+3. Lastly, run `docker compose up` and Compose will start and run your entireapp.
+
+
+A Compose file looks like this:
+
+```services:  web:    build: .    ports:      - "5000:5000"    volumes:      - .:/code 
+ redis:    image: redis```
+
+                              
+
+
+## Contributing
+
+Want to help develop Docker Compose? Check out our[contributing documentation](https://github.com/features/copilot "_R_5knd_").
+
+If you find an issue, please report it on the[issue tracker](https://github.com/features/copilot "Octicon").
+
+
+## Legacy
+
+The Python version of Compose is available under the `v1` [branch](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0").
+
+
+## About
+
+Define and run multi-container applications with Docker
+
+[docs.docker.com/compose/](https://github.com/mcp "Octicon")
+### Topics
+
+[docker](https://github.com/mcp "Octicon")[docker-compose](https://github.com/mcp "Octicon")[go](https://github.com/mcp "Octicon")[golang](https://github.com/mcp "Octicon")[orchestration](https://github.com/mcp "Octicon")
+### Resources
+
+[Readme](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+[Apache-2.0 license](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+### Contributing
+
+[Contributing](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+### Security policy
+
+[Security policy](https://github.com/features/actions "_R_9knd_")
+
+[Activity](https://github.com/features/codespaces "Octicon")
+
+[Custom properties](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+### Stars
+
+**38.1k** stars
+### Watchers
+
+**717** watching
+### Forks
+
+[**5.8k** forks](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+[Report repository](https://github.com/features/code-review "Octicon")
+
+
+## Releases
+
+
+## Packages
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+                         
+## Footer
+    
+
+    
+
+      [            ](https://github.com/security/advanced-security "Octicon")       
+       © 2026 GitHub, Inc.              
+### Footer navigation
+      
+          -             [Terms](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")          
+          -             [Privacy](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")          
+            -               [Security](https://github.com/security/advanced-security "_R_dknd_")            
+            -               [Status](https://github.com/security/advanced-security/code-security "Octicon")            
+          -             [Community](https://github.com/security/advanced-security/code-security "Octicon")          
+          -             [Docs](https://github.com/security/advanced-security/code-security "Octicon")          
+          -             [Contact](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+          -             Manage cookies      
+  -                   Do not share my personal information            
+      
+          
+
+                              You can’t perform that action at this time.      
+
+  
+
+        
+
+    
+
+  
+
+ 

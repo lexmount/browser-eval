@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "lm-rust-learn",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:06.682243+00:00",
+    "content_text": "Learn Rust\nGet started with Rust\nAffectionately nicknamed “the book,”\nThe Rust Programming Language\nwill give you an overview of the language from first principles. You’ll build a few projects along the way, and by the end, you’ll have a solid grasp of the language.\nRead the Book!\nIf reading multiple hundreds of pages about a language isn’t your style, then Rust By Example has you covered. While the book talks about code with a lot of words, RBE shows off a bunch of code, and keeps the talking to a minimum. It also includes exercises!\nCheck out Rust by Example!\nAlternatively, Rustlings guides you through downloading and setting up the Rust toolchain, and teaches you the basics of reading and writing Rust syntax, on the command line. It's an alternative to Rust by Example that works with your own environment.\nDo the Rustlings course!\nDocumentation\nRead the core documentation\nAll of this documentation is also available locally using the\nrustup doc\ncommand, which will open up these resources for you in your browser without requiring a network connection!\nThe standard library\nComprehensive guide to the Rust standard library APIs.\nEdition Guide\nGuide to the Rust editions.\nCargo Book\nA book on Rust’s package manager and build system.\nrustdoc Book\nLearn how to make awesome documentation for your crate.\nrustc Book\nFamiliarize yourself with the knobs available in the Rust compiler.\nCompiler Error Index\nIn-depth explanations of the errors you may see from the Rust compiler.\nBuild your skills in an application domain\nCommand Line Book\nLearn how to build effective command line applications in Rust.\nEmbedded Book\nBecome proficient with Rust for Microcontrollers and other embedded systems.\nMaster Rust\nCurious about the darkest corners of the language? Here’s where you can get into the nitty-gritty:\nThe Reference is not a formal spec, but is more detailed and comprehensive than the book.\nRead the reference\nThe Rustonomicon is your guidebook to the dark arts of unsafe Rust. It’s also sometimes called “the ’nomicon.”\nRead the ’nomicon\nThe Unstable Book has documentation for unstable features that you can only use with nightly Rust.\nRead the unstable book",
+    "scope_identity": {
+      "case_id": "lm-rust-learn",
+      "url": "https://www.rust-lang.org/learn",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "marker-1",
+            "alternatives": [
+              "Rust"
+            ]
+          },
+          {
+            "id": "marker-2",
+            "alternatives": [
+              "The Rust Programming Language"
+            ]
+          },
+          {
+            "id": "marker-3",
+            "alternatives": [
+              "Get started with Rust"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA",
+          "Page not found"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1341.1574590718374,
+      "timeout_ms": 120000
+    }
+  }
+]

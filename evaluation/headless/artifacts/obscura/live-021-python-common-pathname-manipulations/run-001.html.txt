@@ -1,0 +1,3397 @@
+<!DOCTYPE html>
+<html lang="en" data-content_root="../"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="os.path — Common pathname manipulations">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://docs.python.org/3/library/os.path.html">
+<meta property="og:site_name" content="Python documentation">
+<meta property="og:description" content="Source code: Lib/genericpath.py, Lib/posixpath.py(for POSIX) and Lib/ntpath.py(for Windows). This module implements some useful functions on pathnames. To read or write files see open(), and for ac...">
+<meta property="og:image:width" content="1146">
+<meta property="og:image:height" content="600">
+<meta property="og:image" content="https://docs.python.org/3.14/_images/social_previews/summary_library_os.path_89a6753e.png">
+<meta property="og:image:alt" content="Source code: Lib/genericpath.py, Lib/posixpath.py(for POSIX) and Lib/ntpath.py(for Windows). This module implements some useful functions on pathnames. To read or write files see open(), and for ac...">
+<meta name="description" content="Source code: Lib/genericpath.py, Lib/posixpath.py(for POSIX) and Lib/ntpath.py(for Windows). This module implements some useful functions on pathnames. To read or write files see open(), and for ac...">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#3776ab">
+
+    <title>os.path — Common pathname manipulations — Python 3.14.7 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3"><style data-obscura-external-stylesheets="">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f8f8f8; }
+.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #9C6500 } /* Comment.Preproc */
+.highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #E40000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #008400 } /* Generic.Inserted */
+.highlight .go { color: #717171 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #687822 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+.highlight .no { color: #800 } /* Name.Constant */
+.highlight .nd { color: #A2F } /* Name.Decorator */
+.highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #00F } /* Name.Function */
+.highlight .nl { color: #767600 } /* Name.Label */
+.highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666 } /* Literal.Number.Float */
+.highlight .mh { color: #666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #00F } /* Name.Function.Magic */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
+.highlight .il { color: #666 } /* Literal.Number.Integer.Long */</style>
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=234b1a7c"><style data-obscura-external-stylesheets="">/*
+ * Sphinx stylesheet -- basic theme.
+ */
+
+/* -- main layout ----------------------------------------------------------- */
+
+div.clearer {
+    clear: both;
+}
+
+div.section::after {
+    display: block;
+    content: '';
+    clear: left;
+}
+
+/* -- relbar ---------------------------------------------------------------- */
+
+div.related {
+    width: 100%;
+    font-size: 90%;
+}
+
+div.related h3 {
+    display: none;
+}
+
+div.related ul {
+    margin: 0;
+    padding: 0 0 0 10px;
+    list-style: none;
+}
+
+div.related li {
+    display: inline;
+}
+
+div.related li.right {
+    float: right;
+    margin-right: 5px;
+}
+
+/* -- sidebar --------------------------------------------------------------- */
+
+div.sphinxsidebarwrapper {
+    padding: 10px 5px 0 10px;
+}
+
+div.sphinxsidebar {
+    float: left;
+    width: 230px;
+    margin-left: -100%;
+    font-size: 90%;
+    word-wrap: break-word;
+    overflow-wrap : break-word;
+}
+
+div.sphinxsidebar ul {
+    list-style: none;
+}
+
+div.sphinxsidebar ul ul,
+div.sphinxsidebar ul.want-points {
+    margin-left: 20px;
+    list-style: square;
+}
+
+div.sphinxsidebar ul ul {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+div.sphinxsidebar form {
+    margin-top: 10px;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #98dbcc;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+div.sphinxsidebar #searchbox form.search {
+    overflow: hidden;
+}
+
+div.sphinxsidebar #searchbox input[type="text"] {
+    float: left;
+    width: 80%;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+div.sphinxsidebar #searchbox input[type="submit"] {
+    float: left;
+    width: 20%;
+    border-left: none;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+
+img {
+    border: 0;
+    max-width: 100%;
+}
+
+/* -- search page ----------------------------------------------------------- */
+
+ul.search {
+    margin-top: 10px;
+}
+
+ul.search li {
+    padding: 5px 0;
+}
+
+ul.search li a {
+    font-weight: bold;
+}
+
+ul.search li p.context {
+    color: #888;
+    margin: 2px 0 0 30px;
+    text-align: left;
+}
+
+ul.keywordmatches li.goodmatch a {
+    font-weight: bold;
+}
+
+/* -- index page ------------------------------------------------------------ */
+
+table.contentstable {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.contentstable p.biglink {
+    line-height: 150%;
+}
+
+a.biglink {
+    font-size: 1.3em;
+}
+
+span.linkdescr {
+    font-style: italic;
+    padding-top: 5px;
+    font-size: 90%;
+}
+
+/* -- general index --------------------------------------------------------- */
+
+table.indextable {
+    width: 100%;
+}
+
+table.indextable td {
+    text-align: left;
+    vertical-align: top;
+}
+
+table.indextable ul {
+    margin-top: 0;
+    margin-bottom: 0;
+    list-style-type: none;
+}
+
+table.indextable > tbody > tr > td > ul {
+    padding-left: 0em;
+}
+
+table.indextable tr.pcap {
+    height: 10px;
+}
+
+table.indextable tr.cap {
+    margin-top: 10px;
+    background-color: #f2f2f2;
+}
+
+img.toggler {
+    margin-right: 3px;
+    margin-top: 3px;
+    cursor: pointer;
+}
+
+div.modindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+div.genindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+/* -- domain module index --------------------------------------------------- */
+
+table.modindextable td {
+    padding: 2px;
+    border-collapse: collapse;
+}
+
+/* -- general body styles --------------------------------------------------- */
+
+div.body {
+    min-width: 360px;
+    max-width: 800px;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+a.headerlink {
+    visibility: hidden;
+}
+
+a:visited {
+    color: #551A8B;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink,
+caption:hover > a.headerlink,
+p.caption:hover > a.headerlink,
+div.code-block-caption:hover > a.headerlink {
+    visibility: visible;
+}
+
+div.body p.caption {
+    text-align: inherit;
+}
+
+div.body td {
+    text-align: left;
+}
+
+.first {
+    margin-top: 0 !important;
+}
+
+p.rubric {
+    margin-top: 30px;
+    font-weight: bold;
+}
+
+img.align-left, figure.align-left, .figure.align-left, object.align-left {
+    clear: left;
+    float: left;
+    margin-right: 1em;
+}
+
+img.align-right, figure.align-right, .figure.align-right, object.align-right {
+    clear: right;
+    float: right;
+    margin-left: 1em;
+}
+
+img.align-center, figure.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img.align-default, figure.align-default, .figure.align-default {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+    text-align: left;
+}
+
+.align-center {
+    text-align: center;
+}
+
+.align-default {
+    text-align: center;
+}
+
+.align-right {
+    text-align: right;
+}
+
+/* -- sidebars -------------------------------------------------------------- */
+
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    border: 1px solid #ddb;
+    padding: 7px;
+    background-color: #ffe;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+}
+
+p.sidebar-title {
+    font-weight: bold;
+}
+
+nav.contents,
+aside.topic,
+div.admonition, div.topic, blockquote {
+    clear: left;
+}
+
+/* -- topics ---------------------------------------------------------------- */
+
+nav.contents,
+aside.topic,
+div.topic {
+    border: 1px solid #ccc;
+    padding: 7px;
+    margin: 10px 0 10px 0;
+}
+
+p.topic-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* -- admonitions ----------------------------------------------------------- */
+
+div.admonition {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 7px;
+}
+
+div.admonition dt {
+    font-weight: bold;
+}
+
+p.admonition-title {
+    margin: 0px 10px 5px 0px;
+    font-weight: bold;
+}
+
+div.body p.centered {
+    text-align: center;
+    margin-top: 25px;
+}
+
+/* -- content of sidebars/topics/admonitions -------------------------------- */
+
+div.sidebar > :last-child,
+aside.sidebar > :last-child,
+nav.contents > :last-child,
+aside.topic > :last-child,
+div.topic > :last-child,
+div.admonition > :last-child {
+    margin-bottom: 0;
+}
+
+div.sidebar::after,
+aside.sidebar::after,
+nav.contents::after,
+aside.topic::after,
+div.topic::after,
+div.admonition::after,
+blockquote::after {
+    display: block;
+    content: '';
+    clear: both;
+}
+
+/* -- tables ---------------------------------------------------------------- */
+
+table.docutils {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 0;
+    border-collapse: collapse;
+}
+
+table.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.align-default {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table caption span.caption-number {
+    font-style: italic;
+}
+
+table caption span.caption-text {
+}
+
+table.docutils td, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid #aaa;
+}
+
+th {
+    text-align: left;
+    padding-right: 5px;
+}
+
+table.citation {
+    border-left: solid 1px gray;
+    margin-left: 1px;
+}
+
+table.citation td {
+    border-bottom: none;
+}
+
+th > :first-child,
+td > :first-child {
+    margin-top: 0px;
+}
+
+th > :last-child,
+td > :last-child {
+    margin-bottom: 0px;
+}
+
+/* -- figures --------------------------------------------------------------- */
+
+div.figure, figure {
+    margin: 0.5em;
+    padding: 0.5em;
+}
+
+div.figure p.caption, figcaption {
+    padding: 0.3em;
+}
+
+div.figure p.caption span.caption-number,
+figcaption span.caption-number {
+    font-style: italic;
+}
+
+div.figure p.caption span.caption-text,
+figcaption span.caption-text {
+}
+
+/* -- field list styles ----------------------------------------------------- */
+
+table.field-list td, table.field-list th {
+    border: 0 !important;
+}
+
+.field-list ul {
+    margin: 0;
+    padding-left: 1em;
+}
+
+.field-list p {
+    margin: 0;
+}
+
+.field-name {
+    -moz-hyphens: manual;
+    -ms-hyphens: manual;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+}
+
+/* -- hlist styles ---------------------------------------------------------- */
+
+table.hlist {
+    margin: 1em 0;
+}
+
+table.hlist td {
+    vertical-align: top;
+}
+
+/* -- object description styles --------------------------------------------- */
+
+.sig {
+	font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+}
+
+.sig-name, code.descname {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+.sig-name {
+	font-size: 1.1em;
+}
+
+code.descname {
+    font-size: 1.2em;
+}
+
+.sig-prename, code.descclassname {
+    background-color: transparent;
+}
+
+.optional {
+    font-size: 1.3em;
+}
+
+.sig-paren {
+    font-size: larger;
+}
+
+.sig-param.n {
+	font-style: italic;
+}
+
+/* C++ specific styling */
+
+.sig-inline.c-texpr,
+.sig-inline.cpp-texpr {
+	font-family: unset;
+}
+
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+	color: #0033B3;
+}
+
+.sig.c   .m,
+.sig.cpp .m {
+	color: #1750EB;
+}
+
+.sig.c   .s, .sig.c   .sc,
+.sig.cpp .s, .sig.cpp .sc {
+	color: #067D17;
+}
+
+
+/* -- other body styles ----------------------------------------------------- */
+
+ol.arabic {
+    list-style: decimal;
+}
+
+ol.loweralpha {
+    list-style: lower-alpha;
+}
+
+ol.upperalpha {
+    list-style: upper-alpha;
+}
+
+ol.lowerroman {
+    list-style: lower-roman;
+}
+
+ol.upperroman {
+    list-style: upper-roman;
+}
+
+:not(li) > ol > li:first-child > :first-child,
+:not(li) > ul > li:first-child > :first-child {
+    margin-top: 0px;
+}
+
+:not(li) > ol > li:last-child > :last-child,
+:not(li) > ul > li:last-child > :last-child {
+    margin-bottom: 0px;
+}
+
+ol.simple ol p,
+ol.simple ul p,
+ul.simple ol p,
+ul.simple ul p {
+    margin-top: 0;
+}
+
+ol.simple > li:not(:first-child) > p,
+ul.simple > li:not(:first-child) > p {
+    margin-top: 0;
+}
+
+ol.simple p,
+ul.simple p {
+    margin-bottom: 0;
+}
+
+aside.footnote > span,
+div.citation > span {
+    float: left;
+}
+aside.footnote > span:last-of-type,
+div.citation > span:last-of-type {
+  padding-right: 0.5em;
+}
+aside.footnote > p {
+  margin-left: 2em;
+}
+div.citation > p {
+  margin-left: 4em;
+}
+aside.footnote > p:last-of-type,
+div.citation > p:last-of-type {
+    margin-bottom: 0em;
+}
+aside.footnote > p:last-of-type:after,
+div.citation > p:last-of-type:after {
+    content: "";
+    clear: both;
+}
+
+dl.field-list {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+}
+
+dl.field-list > dt {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+dl.field-list > dd {
+    padding-left: 0.5em;
+    margin-top: 0em;
+    margin-left: 0em;
+    margin-bottom: 0em;
+}
+
+dl {
+    margin-bottom: 15px;
+}
+
+dd > :first-child {
+    margin-top: 0px;
+}
+
+dd ul, dd table {
+    margin-bottom: 10px;
+}
+
+dd {
+    margin-top: 3px;
+    margin-bottom: 10px;
+    margin-left: 30px;
+}
+
+.sig dd {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+.sig dl {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+dl > dd:last-child,
+dl > dd:last-child > :last-child {
+    margin-bottom: 0;
+}
+
+dt:target, span.highlighted {
+    background-color: #fbe54e;
+}
+
+rect.highlighted {
+    fill: #fbe54e;
+}
+
+dl.glossary dt {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.versionmodified {
+    font-style: italic;
+}
+
+.system-message {
+    background-color: #fda;
+    padding: 5px;
+    border: 3px solid red;
+}
+
+.footnote:target  {
+    background-color: #ffa;
+}
+
+.line-block {
+    display: block;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.line-block .line-block {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 1.5em;
+}
+
+.guilabel, .menuselection {
+    font-family: sans-serif;
+}
+
+.accelerator {
+    text-decoration: underline;
+}
+
+.classifier {
+    font-style: oblique;
+}
+
+.classifier:before {
+    font-style: normal;
+    margin: 0 0.5em;
+    content: ":";
+    display: inline-block;
+}
+
+abbr, acronym {
+    border-bottom: dotted 1px;
+    cursor: help;
+}
+
+/* -- code displays --------------------------------------------------------- */
+
+pre {
+    overflow: auto;
+    overflow-y: hidden;  /* fixes display issues on Chrome browsers */
+}
+
+pre, div[class*="highlight-"] {
+    clear: both;
+}
+
+span.pre {
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
+    white-space: nowrap;
+}
+
+div[class*="highlight-"] {
+    margin: 1em 0;
+}
+
+td.linenos pre {
+    border: 0;
+    background-color: transparent;
+    color: #aaa;
+}
+
+table.highlighttable {
+    display: block;
+}
+
+table.highlighttable tbody {
+    display: block;
+}
+
+table.highlighttable tr {
+    display: flex;
+}
+
+table.highlighttable td {
+    margin: 0;
+    padding: 0;
+}
+
+table.highlighttable td.linenos {
+    padding-right: 0.5em;
+}
+
+table.highlighttable td.code {
+    flex: 1;
+    overflow: hidden;
+}
+
+.highlight .hll {
+    display: block;
+}
+
+div.highlight pre,
+table.highlighttable pre {
+    margin: 0;
+}
+
+div.code-block-caption + div {
+    margin-top: 0;
+}
+
+div.code-block-caption {
+    margin-top: 1em;
+    padding: 2px 5px;
+    font-size: small;
+}
+
+div.code-block-caption code {
+    background-color: transparent;
+}
+
+table.highlighttable td.linenos,
+span.linenos,
+div.highlight span.gp {  /* gp: Generic.Prompt */
+  user-select: none;
+  -webkit-user-select: text; /* Safari fallback only */
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+}
+
+div.code-block-caption span.caption-number {
+    padding: 0.1em 0.3em;
+    font-style: italic;
+}
+
+div.code-block-caption span.caption-text {
+}
+
+div.literal-block-wrapper {
+    margin: 1em 0;
+}
+
+code.xref, a code {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+    background-color: transparent;
+}
+
+.viewcode-link {
+    float: right;
+}
+
+.viewcode-back {
+    float: right;
+    font-family: sans-serif;
+}
+
+div.viewcode-block:target {
+    margin: -1px -10px;
+    padding: 0 10px;
+}
+
+/* -- math display ---------------------------------------------------------- */
+
+img.math {
+    vertical-align: middle;
+}
+
+div.body div.math p {
+    text-align: center;
+}
+
+span.eqno {
+    float: right;
+}
+
+span.eqno a.headerlink {
+    position: absolute;
+    z-index: 1;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+/* -- printout stylesheet --------------------------------------------------- */
+
+@media print {
+    div.document,
+    div.documentwrapper,
+    div.bodywrapper {
+        margin: 0 !important;
+        width: 100%;
+    }
+
+    div.sphinxsidebar,
+    div.related,
+    div.footer,
+    #top-link {
+        display: none;
+    }
+}
+/*
+ * Sphinx stylesheet -- classic theme.
+ */
+
+
+
+/* -- page layout ----------------------------------------------------------- */
+
+html {
+    /* CSS hack for macOS's scrollbar (see #1125) */
+    background-color: #FFFFFF;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    font-size: 100%;
+    background-color: white;
+    color: #000;
+    margin: 0;
+    padding: 0;
+}
+
+div.document {
+    display: flex;
+    background-color: white;
+}
+
+div.documentwrapper {
+    float: left;
+    width: 100%;
+}
+
+div.bodywrapper {
+    margin: 0 0 0 230px;
+}
+
+div.body {
+    background-color: white;
+    color: #222222;
+    padding: 0 20px 30px 20px;
+}
+
+div.footer {
+    color: #555555;
+    width: 100%;
+    padding: 9px 0 9px 0;
+    text-align: center;
+    font-size: 75%;
+}
+
+div.footer a {
+    color: #555555;
+    text-decoration: underline;
+}
+
+div.related {
+    background-color: white;
+    line-height: 30px;
+    color: #666666;
+}
+
+div.related a {
+    color: #444444;
+}
+
+div.sphinxsidebar {
+}
+
+div.sphinxsidebar h3 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.4em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+
+div.sphinxsidebar h3 a {
+    color: #444444;
+}
+
+div.sphinxsidebar h4 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.3em;
+    font-weight: normal;
+    margin: 5px 0 0 0;
+    padding: 0;
+}
+
+div.sphinxsidebar p {
+    color: #444444;
+}
+
+div.sphinxsidebar p.topless {
+    margin: 5px 10px 10px 10px;
+}
+
+div.sphinxsidebar ul {
+    margin: 10px;
+    padding: 0;
+    color: #444444;
+}
+
+div.sphinxsidebar a {
+    color: #444444;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #444444;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+
+
+    
+    
+
+/* for collapsible sidebar */
+#sidebarbutton {
+    height: 100%;
+    background-color: #cccccc;
+    margin-left: 0;
+    color: #FFFFFF;
+    border-left: 1px solid white;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding-top: 1px;
+    float: right;
+    display: table; /* for vertically centering the <span> */
+}
+
+#sidebarbutton:hover {
+    background-color: white;
+}
+
+#sidebarbutton span {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+div.sphinxsidebarwrapper {
+    float: left;
+    margin-right: 0;
+}
+
+
+/* -- hyperlink styles ------------------------------------------------------ */
+
+a {
+    color: #0090c0;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #00608f;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+
+
+/* -- body styles ----------------------------------------------------------- */
+
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    background-color: white;
+    font-weight: normal;
+    color: #1a1a1a;
+    border-bottom: 1px solid #ccc;
+    margin: 20px -20px 10px -20px;
+    padding: 3px 0 3px 10px;
+}
+
+div.body h1 { margin-top: 0; font-size: 200%; }
+div.body h2 { font-size: 160%; }
+div.body h3 { font-size: 140%; }
+div.body h4 { font-size: 120%; }
+div.body h5 { font-size: 110%; }
+div.body h6 { font-size: 100%; }
+
+a.headerlink {
+    color: #aaaaaa;
+    font-size: 0.8em;
+    padding: 0 4px 0 4px;
+    text-decoration: none;
+}
+
+a.headerlink:hover {
+    background-color: #aaaaaa;
+    color: white;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: justify;
+    line-height: 130%;
+}
+
+div.admonition p.admonition-title + p {
+    display: inline;
+}
+
+div.admonition p {
+    margin-bottom: 5px;
+}
+
+div.admonition pre {
+    margin-bottom: 5px;
+}
+
+div.admonition ul, div.admonition ol {
+    margin-bottom: 5px;
+}
+
+div.note {
+    background-color: #eee;
+    border: 1px solid #ccc;
+}
+
+div.seealso {
+    background-color: #ffc;
+    border: 1px solid #ff6;
+}
+
+nav.contents,
+aside.topic,
+div.topic {
+    background-color: #eee;
+}
+
+div.warning {
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
+}
+
+p.admonition-title {
+    display: inline;
+}
+
+p.admonition-title:after {
+    content: ":";
+}
+
+pre {
+    padding: 5px;
+    background-color: #eeffcc;
+    color: #333333;
+    line-height: 120%;
+    border: 1px solid #ac9;
+    border-left: none;
+    border-right: none;
+}
+
+code {
+    background-color: #ecf0f3;
+    padding: 0 1px 0 1px;
+    font-size: 0.95em;
+}
+
+th, dl.field-list > dt {
+    background-color: #ede;
+}
+
+.warning code {
+    background: #efc2c2;
+}
+
+.note code {
+    background: #d6d6d6;
+}
+
+.viewcode-back {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+}
+
+div.viewcode-block:target {
+    background-color: #f4debf;
+    border-top: 1px solid #ac9;
+    border-bottom: 1px solid #ac9;
+}
+
+div.code-block-caption {
+    color: #efefef;
+    background-color: #1c4e63;
+}</style>
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=4365c8fe"><style data-obscura-external-stylesheets="">/* Common colours */
+:root {
+    --good-color: rgb(41 100 51);
+    --good-border: rgb(79 196 100);
+    --middle-color: rgb(133 72 38);
+    --middle-border: rgb(244, 227, 76);
+    --bad-color: rgb(159 49 51);
+    --bad-border: rgb(244, 76, 78);
+}
+
+/* unset some styles from the classic stylesheet */
+div.document,
+div.body,
+div.related,
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6,
+div.sphinxsidebar a,
+div.sphinxsidebar p,
+div.sphinxsidebar ul,
+div.sphinxsidebar h3,
+div.sphinxsidebar h3 a,
+div.sphinxsidebar h4,
+.menu a,
+.menu p,
+.menu ul,
+.menu h3,
+.menu h3 a,
+.menu h4,
+table.docutils td,
+table.indextable tr.cap,
+pre {
+    background-color: inherit;
+    color: inherit;
+}
+
+/* Add underlines to links */
+a[href] {
+    text-decoration: underline 1px;
+}
+
+/* Increase the underline offset for code to avoid obscuring underscores */
+a[href]:has(> code) {
+    text-underline-offset: 0.25em;
+}
+
+/* No underline for navigation */
+a.headerlink,
+div.genindex-jumpbox a,
+div.modindex-jumpbox a,
+div#search-results a,
+div.sphinxsidebar a,
+div.toctree-wrapper a,
+div[role=navigation] a,
+table.contentstable a,
+table.indextable a {
+    text-decoration: none;
+}
+
+/* Except when hovered */
+div.genindex-jumpbox a:hover,
+div.modindex-jumpbox a:hover,
+div#search-results a:hover,
+div.sphinxsidebar a:hover,
+div.toctree-wrapper a:hover,
+div[role=navigation] a:hover,
+table.contentstable a:hover,
+table.indextable a:hover {
+    text-decoration: underline;
+    text-underline-offset: auto;
+}
+
+body {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.mobile-nav,
+.menu-wrapper {
+    display: none;
+}
+
+div.related {
+    margin-top: 0.5em;
+    margin-bottom: 1.2em;
+    padding: 0.5em 0;
+    border-width: 1px;
+    border-color: #ccc;
+}
+
+.mobile-nav + div.related {
+    border-bottom-style: solid;
+}
+
+.document + div.related {
+    border-top-style: solid;
+}
+
+div.related a:hover {
+    color: #0095c4;
+}
+
+.related .switchers {
+    display: inline-flex;
+}
+
+.switchers > div {
+    margin-right: 5px;
+}
+
+div.related ul::after {
+    content: '';
+    clear: both;
+    display: block;
+}
+
+.inline-search,
+form.inline-search input {
+    display: inline;
+}
+
+form.inline-search input[type='submit'] {
+    /* In some languages, more than 40px is required */
+    width: auto;
+    min-width: 40px;
+}
+
+div.document {
+    display: flex;
+    /* Don't let long code literals extend beyond the right side of the screen */
+    overflow-wrap: break-word;
+}
+
+/* Don't let long code literals extend beyond the right side of the screen */
+span.pre {
+    white-space: unset;
+}
+
+div.sphinxsidebar {
+    display: flex;
+    width: min(25vw, 350px);
+    float: none;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    color: #444;
+    background-color: #eee;
+    border-radius: 5px;
+    line-height: 130%;
+    font-size: smaller;
+}
+
+div.sphinxsidebar h3,
+div.sphinxsidebar h4 {
+    margin-top: 1.5em;
+}
+
+div.bodywrapper {
+    margin-left: min(25vw, 350px);
+}
+
+div.sphinxsidebarwrapper {
+    box-sizing: border-box;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    float: none;
+    flex-grow: 1;
+}
+
+div.sphinxsidebarwrapper > h3:first-child {
+    margin-top: 0.2em;
+}
+
+div.sphinxsidebarwrapper > ul > li > ul > li {
+    margin-bottom: 0.4em;
+}
+
+div.sphinxsidebar a:hover {
+    color: #0095c4;
+}
+
+form.inline-search input,
+div.sphinxsidebar input,
+div.related input {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    border: 1px solid #999999;
+    font-size: smaller;
+    border-radius: 3px;
+}
+
+div.sphinxsidebar input[type='text'] {
+    max-width: 150px;
+}
+
+#sidebarbutton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 12px;
+    min-width: 12px;
+    border-radius: 0 5px 5px 0;
+    border-left: none;
+}
+
+#sidebarbutton:hover {
+    background-color: #AAAAAA;
+}
+
+div.body {
+    padding: 0 0 0 1.2em;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: left;
+    line-height: 1.6;
+}
+div.body h1, div.body h2, div.body h3, div.body h4, div.body h5, div.body h6 {
+    margin: 0;
+    border: 0;
+    padding: 0.3em 0;
+}
+div.body dl.field-list > dt {
+    line-height: 1.6;
+}
+
+div.body hr {
+    border: 0;
+    background-color: #ccc;
+    height: 1px;
+}
+
+div.body pre {
+    border-radius: 3px;
+    border: 1px solid #ac9;
+}
+
+div.body {
+    .good pre {
+        border-left: 3px solid var(--good-border);
+    }
+    .bad pre {
+        border-left: 3px solid var(--bad-border);
+    }
+    .maybe pre {
+        border-left: 3px solid var(--middle-border);
+    }
+}
+
+div.code-block-caption {
+    background-color: #eee;
+    border: 1px solid #ac9;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    padding: 0.3em 0.6em;
+    font-size: 90%;
+    color: #333;
+
+    & + div pre {
+        border-top-left-radius: 0 !important;
+        border-top-right-radius: 0 !important;
+    }
+
+    & + div .copybutton {
+        border-top-right-radius: 0 !important;
+    }
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #eee;
+    --admonition-border: #ccc;
+    --admonition-color: black;
+    --attention-background: #bbddff5c;
+    --attention-border: #0000ff36;
+    --caution-background: #ffc;
+    --caution-border: #dd6;
+    --danger-background: #ffe4e4;
+    --danger-border: red;
+    --error-background: #ffe4e4;
+    --error-border: red;
+    --hint-background: #dfd;
+    --hint-border: green;
+    --seealso-background: #ffc;
+    --seealso-border: #dd6;
+    --tip-background: #dfd;
+    --tip-border: green;
+    --warning-background: #ffe4e4;
+    --warning-border: red;
+}
+
+div.body div.admonition {
+    background-color: var(--admonition-background);
+    border: 1px solid var(--admonition-border);
+    border-radius: 3px;
+    color: var(--admonition-color);
+}
+
+div.body div.admonition.attention {
+    background-color: var(--attention-background);
+    border-color: var(--attention-border);
+}
+
+div.body div.admonition.caution {
+    background-color: var(--caution-background);
+    border-color: var(--caution-border);
+}
+
+div.body div.admonition.danger {
+    background-color: var(--danger-background);
+    border-color: var(--danger-border);
+}
+
+div.body div.admonition.error {
+    background-color: var(--error-background);
+    border-color: var(--error-border);
+}
+
+div.body div.admonition.hint {
+    background-color: var(--hint-background);
+    border-color: var(--hint-border);
+}
+
+div.body div.admonition.seealso {
+    background-color: var(--seealso-background);
+    border-color: var(--seealso-border);
+}
+
+div.body div.admonition.tip {
+    background-color: var(--tip-background);
+    border-color: var(--tip-border);
+}
+
+div.body div.admonition.warning {
+    background-color: var(--warning-background);
+    border-color: var(--warning-border);
+}
+
+div.body div.impl-detail {
+    border-radius: 3px;
+}
+
+div.body div.impl-detail > p {
+    margin: 0;
+}
+
+div.body a {
+    color: #0072aa;
+}
+
+div.body a:visited {
+    color: #6363bb;
+}
+
+div.body a:hover {
+    color: #00b0e4;
+}
+
+tt, code, pre {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 96.5%;
+}
+
+div.body pre {
+    line-height: 120%;
+}
+
+div.body tt,
+div.body code {
+    border-radius: 3px;
+}
+
+div.body tt.descname,
+div.body code.descname {
+    font-size: 120%;
+}
+
+div.body tt.xref,
+div.body a tt,
+div.body code.xref,
+div.body a code {
+    font-weight: normal;
+}
+
+table.docutils {
+    border: 1px solid #ddd;
+    min-width: 20%;
+    border-radius: 3px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+table.docutils td,
+table.docutils th {
+    border: 1px solid #ddd !important;
+    border-radius: 3px;
+    padding: 0.3em 0.5em;
+}
+
+table p,
+table li {
+    text-align: left !important;
+}
+
+table.docutils th {
+    background-color: #eee;
+}
+
+table.footnote,
+table.footnote td {
+    border: 0 !important;
+}
+
+div.footer {
+    line-height: 150%;
+    text-align: right;
+    width: auto;
+    margin-right: 10px;
+}
+
+div.footer a {
+    text-underline-offset: auto;
+}
+
+div.footer a:hover {
+    color: #0095c4;
+}
+
+/* C API return value annotations */
+:root {
+    --refcount: var(--good-color);
+    --refcount-return-borrowed-ref: var(--middle-color);
+}
+
+.refcount {
+    color: var(--refcount);
+}
+
+.refcount.return_borrowed_ref {
+    color: var(--refcount-return-borrowed-ref)
+}
+
+.stableabi {
+    color: #229;
+}
+
+/* C API thread safety annotations */
+:root {
+    --threadsafety-incompatible: var(--bad-color);
+    --threadsafety-compatible: var(--middle-color);
+    --threadsafety-distinct: var(--middle-color);
+    --threadsafety-shared: var(--good-color);
+    --threadsafety-atomic: var(--good-color);
+}
+
+.threadsafety.threadsafety-incompatible {
+    color: var(--threadsafety-incompatible);
+}
+
+.threadsafety.threadsafety-compatible {
+    color: var(--threadsafety-compatible);
+}
+
+.threadsafety.threadsafety-distinct {
+    color: var(--threadsafety-distinct);
+}
+
+.threadsafety.threadsafety-shared {
+    color: var(--threadsafety-shared);
+}
+
+.threadsafety.threadsafety-atomic {
+    color: var(--threadsafety-atomic);
+}
+
+
+dl > dt span ~ em,
+.sig {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+}
+
+.toctree-wrapper ul {
+    padding-left: 20px;
+}
+
+.theme-selector {
+    margin-left: .5em;
+}
+
+div.genindex-jumpbox,
+div.genindex-jumpbox > p {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+div.genindex-jumpbox a {
+    margin: 0 5px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.copybutton {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 80%;
+    padding-left: .5em;
+    padding-right: .5em;
+    height: 100%;
+    max-height: min(100%, 2.4em);
+    border-radius: 0 3px 0 0;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid #ac9; /* follows div.body pre */
+    display: none;
+}
+
+.copybutton:hover {
+    background-color: #eee;
+}
+
+.copybutton:active {
+    background-color: #ddd;
+}
+
+.highlight:active .copybutton {
+    display: block;
+}
+
+.highlight:hover .copybutton {
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    /* Body layout */
+    div.body {
+        min-width: 100%;
+        padding: 0;
+        font-size: 0.875rem;
+    }
+    div.bodywrapper {
+        margin: 0;
+    }
+    /* Typography */
+    div.body h1 {
+        font-size: 1.625rem;
+    }
+    div.body h2 {
+        font-size: 1.25rem;
+    }
+    div.body h3, div.body h4, div.body h5 {
+        font-size: 1rem;
+    }
+    /* Override default styles to make more readable */
+    div.body ul {
+        padding-inline-start: 1rem;
+    }
+    div.body blockquote {
+        margin-inline-start: 1rem;
+        margin-inline-end: 0;
+    }
+    /* Remove sidebar and top related bar */
+    div.related, div.sphinxsidebar {
+        display: none;
+    }
+    /* Anchorlinks are not hidden by fixed-positioned navbar when scrolled to */
+    html {
+        scroll-padding-top: 40px;
+    }
+    body {
+        margin-top: 40px;
+    }
+
+    /* Top navigation bar */
+    .mobile-nav {
+        display: block;
+        height: 40px;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        box-shadow: rgba(0, 0, 0, 0.25) 0 0 2px 0;
+        z-index: 1;
+    }
+    .mobile-nav * {
+        box-sizing: border-box;
+    }
+    .nav-content {
+        position: absolute;
+        z-index: 1;
+        height: 40px;
+        width: 100%;
+        display: flex;
+        background-color: white;
+    }
+    .nav-items-wrapper {
+        display: flex;
+        flex: auto;
+        padding: .25rem;
+        align-items: stretch;
+    }
+    .nav-logo {
+        margin-right: 1rem;
+        flex-shrink: 0;
+        align-self: center;
+    }
+    .nav-content img {
+        display: block;
+        width: 20px;
+    }
+    .version_switcher_placeholder {
+        margin-right: 1rem;
+    }
+    .version_switcher_placeholder > select {
+        height: 100%;
+    }
+    .nav-content .search {
+        display: flex;
+        flex: auto;
+        border: 1px solid #a9a9a9;
+        align-items: stretch;
+    }
+    .nav-content .search input[type=search] {
+        border: 0;
+        padding-left: 24px;
+        width: 100%;
+        flex: 1;
+    }
+    .nav-content .search input[type=submit] {
+        height: 100%;
+        box-shadow: none;
+        border: 0;
+        border-left: 1px solid #a9a9a9;
+        cursor: pointer;
+        margin-right: 0;
+    }
+    .nav-content .search svg {
+        position: absolute;
+        align-self: center;
+        padding-left: 4px;
+    }
+    .toggler__input {
+        display: none;
+    }
+    .toggler__label {
+        width: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        flex-shrink: 0;
+    }
+    .toggler__label:hover, .toggler__label:focus {
+        background-color: rgba(127 127 127 / 50%);
+    }
+    .toggler__label > span {
+        position: relative;
+        flex: none;
+        height: 2px;
+        width: 100%;
+        background: currentColor;
+        transition: all 400ms ease;
+    }
+    .toggler__label > span::before,
+    .toggler__label > span::after {
+        content: '';
+        height: 2px;
+        width: 100%;
+        background: inherit;
+        position: absolute;
+        left: 0;
+        top: -8px;
+    }
+    .toggler__label > span::after {
+        top: 8px;
+    }
+    .toggler__input:checked ~ nav > .toggler__label span {
+        transform: rotate(135deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before {
+        transform: rotate(90deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before,
+    .toggler__input:checked ~ nav > .toggler__label span::after {
+        top: 0;
+    }
+    .toggler__input:checked:hover ~ nav > .toggler__label span {
+        transform: rotate(315deg);
+    }
+    .toggler__input:checked ~ .menu-wrapper {
+        visibility: visible;
+        left: 0;
+    }
+
+    /* Sliding side menu */
+    .menu-wrapper {
+        display: block;
+        position: fixed;
+        top: 0;
+        transition: left 400ms ease;
+        left: -310px;
+        width: 300px;
+        height: 100%;
+        background-color: #eee;
+        color: #444444;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+    }
+    .menu-wrapper.open {
+        visibility: visible;
+        left: 0;
+    }
+    .menu {
+        padding: 40px 10px 30px 20px;
+    }
+    .menu-wrapper h3,
+    .menu-wrapper h4 {
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+    .menu-wrapper h4 {
+        font-size: 1.3em;
+    }
+    .menu-wrapper h3 {
+        font-size: 1.4em;
+    }
+    .menu-wrapper h3 + p,
+    .menu-wrapper h4 + p {
+        margin-top: 0.5rem;
+    }
+    .menu a {
+        font-size: smaller;
+        text-decoration: none;
+    }
+    .menu ul {
+        list-style: none;
+        line-height: 1.4;
+        overflow-wrap: break-word;
+        padding-left: 0;
+    }
+    .menu ul ul {
+        margin-left: 20px;
+        list-style: square;
+    }
+    .menu ul li {
+        margin-bottom: 0.5rem;
+    }
+    .language_switcher_placeholder {
+        margin-top: 2rem;
+    }
+    .language_switcher_placeholder select {
+        width: 100%;
+    }
+    .document {
+        position: relative;
+        z-index: 0;
+    }
+    /*Responsive tables*/
+    .responsive-table__container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .menu .theme-selector-label {
+        margin-top: .5em;
+        display: flex;
+        width: 100%;
+    }
+
+    .menu .theme-selector {
+        flex: auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    div.footer {
+        margin-top: -2em;
+    }
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(175, 0, 255);
+
+    --versionadded-border: var(--good-border);
+    --versionchanged-border: var(--middle-border);
+    --deprecated-border: var(--bad-border);
+    --soft-deprecated-border: rgb(175, 0, 255);
+}
+
+div.versionadded,
+div.versionchanged,
+div.deprecated,
+div.deprecated-removed {
+    border-left: 3px solid;
+    padding: 0 1rem;
+}
+
+div.versionadded {
+    border-left-color: var(--versionadded-border);
+}
+
+div.versionchanged {
+    border-left-color: var(--versionchanged-border);
+}
+
+div.deprecated,
+div.deprecated-removed,
+div.versionremoved {
+    border-left-color: var(--deprecated-border);
+}
+
+div.soft-deprecated {
+    border-left-color: var(--soft-deprecated-border);
+}
+
+div.versionadded .versionmodified {
+    color: var(--versionadded);
+}
+
+div.versionchanged .versionmodified {
+    color: var(--versionchanged);
+}
+
+div.deprecated .versionmodified,
+div.deprecated-removed .versionmodified,
+div.versionremoved .versionmodified {
+    color: var(--deprecated);
+}
+
+div.soft-deprecated .versionmodified {
+    color: var(--soft-deprecated);
+}
+
+/* Hide header when printing */
+@media print {
+    div.mobile-nav {
+        display: none;
+    }
+}
+</style>
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=0fc419ee"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #49483e }
+.highlight { background: #272822; color: #F8F8F2 }
+.highlight .c { color: #959077 } /* Comment */
+.highlight .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.highlight .esc { color: #F8F8F2 } /* Escape */
+.highlight .g { color: #F8F8F2 } /* Generic */
+.highlight .k { color: #66D9EF } /* Keyword */
+.highlight .l { color: #AE81FF } /* Literal */
+.highlight .n { color: #F8F8F2 } /* Name */
+.highlight .o { color: #FF4689 } /* Operator */
+.highlight .x { color: #F8F8F2 } /* Other */
+.highlight .p { color: #F8F8F2 } /* Punctuation */
+.highlight .ch { color: #959077 } /* Comment.Hashbang */
+.highlight .cm { color: #959077 } /* Comment.Multiline */
+.highlight .cp { color: #959077 } /* Comment.Preproc */
+.highlight .cpf { color: #959077 } /* Comment.PreprocFile */
+.highlight .c1 { color: #959077 } /* Comment.Single */
+.highlight .cs { color: #959077 } /* Comment.Special */
+.highlight .gd { color: #FF4689 } /* Generic.Deleted */
+.highlight .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.highlight .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #FF4689 } /* Generic.Error */
+.highlight .gh { color: #F8F8F2 } /* Generic.Heading */
+.highlight .gi { color: #A6E22E } /* Generic.Inserted */
+.highlight .go { color: #66D9EF } /* Generic.Output */
+.highlight .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #959077 } /* Generic.Subheading */
+.highlight .gt { color: #66D9EF } /* Generic.Traceback */
+.highlight .kc { color: #66D9EF } /* Keyword.Constant */
+.highlight .kd { color: #66D9EF } /* Keyword.Declaration */
+.highlight .kn { color: #FF4689 } /* Keyword.Namespace */
+.highlight .kp { color: #66D9EF } /* Keyword.Pseudo */
+.highlight .kr { color: #66D9EF } /* Keyword.Reserved */
+.highlight .kt { color: #66D9EF } /* Keyword.Type */
+.highlight .ld { color: #E6DB74 } /* Literal.Date */
+.highlight .m { color: #AE81FF } /* Literal.Number */
+.highlight .s { color: #E6DB74 } /* Literal.String */
+.highlight .na { color: #A6E22E } /* Name.Attribute */
+.highlight .nb { color: #A6E22E } /* Name.Builtin */
+.highlight .nc { color: #A6E22E } /* Name.Class */
+.highlight .no { color: #66D9EF } /* Name.Constant */
+.highlight .nd { color: #A6E22E } /* Name.Decorator */
+.highlight .ni { color: #F8F8F2 } /* Name.Entity */
+.highlight .ne { color: #A6E22E } /* Name.Exception */
+.highlight .nf { color: #A6E22E } /* Name.Function */
+.highlight .nl { color: #F8F8F2 } /* Name.Label */
+.highlight .nn { color: #F8F8F2 } /* Name.Namespace */
+.highlight .nx { color: #A6E22E } /* Name.Other */
+.highlight .py { color: #F8F8F2 } /* Name.Property */
+.highlight .nt { color: #FF4689 } /* Name.Tag */
+.highlight .nv { color: #F8F8F2 } /* Name.Variable */
+.highlight .ow { color: #FF4689 } /* Operator.Word */
+.highlight .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.highlight .w { color: #F8F8F2 } /* Text.Whitespace */
+.highlight .mb { color: #AE81FF } /* Literal.Number.Bin */
+.highlight .mf { color: #AE81FF } /* Literal.Number.Float */
+.highlight .mh { color: #AE81FF } /* Literal.Number.Hex */
+.highlight .mi { color: #AE81FF } /* Literal.Number.Integer */
+.highlight .mo { color: #AE81FF } /* Literal.Number.Oct */
+.highlight .sa { color: #E6DB74 } /* Literal.String.Affix */
+.highlight .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.highlight .sc { color: #E6DB74 } /* Literal.String.Char */
+.highlight .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.highlight .sd { color: #E6DB74 } /* Literal.String.Doc */
+.highlight .s2 { color: #E6DB74 } /* Literal.String.Double */
+.highlight .se { color: #AE81FF } /* Literal.String.Escape */
+.highlight .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.highlight .si { color: #E6DB74 } /* Literal.String.Interpol */
+.highlight .sx { color: #E6DB74 } /* Literal.String.Other */
+.highlight .sr { color: #E6DB74 } /* Literal.String.Regex */
+.highlight .s1 { color: #E6DB74 } /* Literal.String.Single */
+.highlight .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.highlight .bp { color: #A6E22E } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #A6E22E } /* Name.Function.Magic */
+.highlight .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.highlight .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.highlight .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.highlight .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.highlight .il { color: #AE81FF } /* Literal.Number.Integer.Long */</style>
+    
+    <script src="../_static/documentation_options.js?v=2f7d2144"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml" title="Search within Python 3.14.7 documentation" href="../_static/opensearch.xml">
+    <link rel="author" title="About these documents" href="../about.html">
+    <link rel="index" title="Index" href="../genindex.html">
+    <link rel="search" title="Search" href="../search.html">
+    <link rel="copyright" title="Copyright" href="../copyright.html">
+    <link rel="next" title="stat — Interpreting stat() results" href="stat.html">
+    <link rel="prev" title="pathlib — Object-oriented filesystem paths" href="pathlib.html">
+    
+      
+      <script defer="" file-types="bz2,epub,zip" data-domain="docs.python.org" src="https://analytics.python.org/js/script.file-downloads.outbound-links.js"></script>
+      
+      <link rel="canonical" href="https://docs.python.org/3/library/os.path.html">
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">/* Common colours */
+:root {
+    --good-color: rgb(79 196 100);
+    --good-border: var(--good-color);
+    --middle-color: rgb(244, 227, 76);
+    --middle-border: var(--middle-color);
+    --bad-color: rgb(244, 76, 78);
+    --bad-border: var(--bad-color);
+}
+
+
+/* Browser elements */
+:root {
+    scrollbar-color: #616161 transparent;
+    color-scheme: dark;
+}
+
+html,
+body {
+    background-color: #222;
+    color: rgba(255, 255, 255, 0.87);
+}
+
+div.related {
+    color: rgba(255, 255, 255, 0.7); /* classic overwrite */
+    border-color: #424242;
+}
+
+/* SIDEBAR */
+div.sphinxsidebar, .menu-wrapper {
+    background-color: #333;
+    color: inherit;
+}
+
+#sidebarbutton {
+    /* important to overwrite style attribute */
+    background-color: #555 !important;
+    color: inherit !important;
+}
+
+div.sidebar, aside.sidebar {
+    background-color: #424242;
+    border-color: #616161;
+}
+
+/* ANCHORS AND HIGHLIGHTS */
+div.body a {
+    color: #7af;
+}
+
+div.body a:visited {
+    color: #09e;
+}
+
+a.headerlink:hover {
+    background-color: #424242;
+}
+
+div.related a {
+    color: currentColor;
+}
+
+div.footer,
+div.footer a {
+    color: currentColor; /* classic overwrites */
+}
+
+dt:target,
+span.highlighted {
+    background-color: #616161;
+}
+
+.footnote:target {
+    background-color: #2c3e50;
+}
+
+/* Below for most things in text */
+
+dl.field-list > dt {
+    background-color: #434;
+}
+
+table.docutils td,
+table.docutils th {
+    border-color: #616161 !important;
+}
+
+table.docutils th {
+    background-color: #424242;
+}
+
+.stableabi {
+    color: #bbf;
+}
+
+div.body pre {
+    border-color: #616161;
+}
+
+div.code-block-caption {
+    background-color: #333;
+    border-color: #616161;
+    color: white;
+}
+
+code {
+    background-color: #424242;
+}
+
+div.body div.seealso {
+    background-color: rgba(255, 255, 0, 0.1);
+}
+
+div.warning {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.warning code {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #ffffff1a;
+    --admonition-border: currentColor;
+    --admonition-color: #ffffffde;
+    --attention-background: #ffffff1a;
+    --attention-border: currentColor;
+    --caution-background: #ffff001a;
+    --caution-border: #dd6;
+    --danger-background: #f003;
+    --danger-border: #f66;
+    --error-background: #f003;
+    --error-border: #f66;
+    --hint-background: #0044117a;
+    --hint-border: green;
+    --seealso-background: #ffff001a;
+    --seealso-border: #dd6;
+    --tip-background: #0044117a;
+    --tip-border: green;
+    --warning-background: #ff000033;
+    --warning-border: #ff6666;
+}
+
+aside.topic,
+div.topic,
+div.note,
+nav.contents {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: currentColor;
+}
+
+.note code {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav {
+    box-shadow: rgba(255, 255, 255, 0.25) 0 0 2px 0;
+}
+
+.nav-content {
+    background-color: black;
+}
+
+img.invert-in-dark-mode {
+    filter: invert(1) hue-rotate(.5turn);
+}
+
+/* -- object description styles --------------------------------------------- */
+
+/* C++ specific styling */
+
+/* Override Sphinx's basic.css to fix colour contrast */
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+    color: #5283ff;
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(206, 100, 255);
+    --soft-deprecated-border: rgb(206, 100, 255);
+}
+
+.copybutton {
+    color: #ac9; /* follows div.body pre */
+    background-color: #222222; /* follows body */
+}
+
+.copybutton:hover {
+    background-color: #434343;
+}
+
+.copybutton:active {
+    background-color: #656565;
+}
+</style>
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg">
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+            <script type="text/javascript" src="../_static/rtd_switcher.js"></script>
+            <meta name="readthedocs-addons-api-version" content="1">
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation" aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu">
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo">
+            </a>
+            <span class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg :xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q">
+                <input type="submit" value="Go">
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation" tabindex="-1">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="pathlib.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pathlib</span></code> — Object-oriented filesystem paths</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="stat.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">stat</span></code> — Interpreting <code class="xref py py-func docutils literal notranslate"><span class="pre">stat()</span></code> results</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/os.path.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=os.path+%E2%80%94+Common+pathname+manipulations&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fos.path.html&amp;pagesource=library%2Fos.path.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/os.path.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="stat.html" title="stat — Interpreting stat() results" accesskey="N">next</a> |</li>
+        <li class="right">
+          <a href="pathlib.html" title="pathlib — Object-oriented filesystem paths" accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="filesys.html" accesskey="U">File and Directory Access</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">os.path</span></code> — Common pathname manipulations</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-os.path">
+<span id="os-path-common-pathname-manipulations"></span><h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">os.path</span></code> — Common pathname manipulations<a class="headerlink" href="#module-os.path" title="Link to this heading">¶</a></h1>
+<p><strong>Source code:</strong> <a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/genericpath.py">Lib/genericpath.py</a>, <a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/posixpath.py">Lib/posixpath.py</a> (for POSIX) and
+<a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/ntpath.py">Lib/ntpath.py</a> (for Windows).</p>
+<hr class="docutils" id="index-0">
+<p>This module implements some useful functions on pathnames. To read or write
+files see <a class="reference internal" href="functions.html#open" title="open"><code class="xref py py-func docutils literal notranslate"><span class="pre">open()</span></code></a>, and for accessing the filesystem see the <a class="reference internal" href="os.html#module-os" title="os: Miscellaneous operating system interfaces."><code class="xref py py-mod docutils literal notranslate"><span class="pre">os</span></code></a>
+module. The path parameters can be passed as strings, or bytes, or any object
+implementing the <a class="reference internal" href="os.html#os.PathLike" title="os.PathLike"><code class="xref py py-class docutils literal notranslate"><span class="pre">os.PathLike</span></code></a> protocol.</p>
+<p>Unlike a Unix shell, Python does not do any <em>automatic</em> path expansions.
+Functions such as <a class="reference internal" href="#os.path.expanduser" title="os.path.expanduser"><code class="xref py py-func docutils literal notranslate"><span class="pre">expanduser()</span></code></a> and <a class="reference internal" href="#os.path.expandvars" title="os.path.expandvars"><code class="xref py py-func docutils literal notranslate"><span class="pre">expandvars()</span></code></a> can be invoked
+explicitly when an application desires shell-like path expansion.  (See also
+the <a class="reference internal" href="glob.html#module-glob" title="glob: Unix shell style pathname pattern expansion."><code class="xref py py-mod docutils literal notranslate"><span class="pre">glob</span></code></a> module.)</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>The <a class="reference internal" href="pathlib.html#module-pathlib" title="pathlib: Object-oriented filesystem paths"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pathlib</span></code></a> module offers high-level path objects.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All of these functions accept either only bytes or only string objects as
+their parameters.  The result is an object of the same type, if a path or
+file name is returned.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Since different operating systems have different path name conventions, there
+are several versions of this module in the standard library.  The
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">os.path</span></code> module is always the path module suitable for the operating
+system Python is running on, and therefore usable for local paths.  However,
+you can also import and use the individual modules if you want to manipulate
+a path that is <em>always</em> in one of the different formats.  They all have the
+same interface:</p>
+<ul class="simple">
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">posixpath</span></code> for UNIX-style paths</p></li>
+<li><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">ntpath</span></code> for Windows paths</p></li>
+</ul>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span><a class="reference internal" href="#os.path.exists" title="os.path.exists"><code class="xref py py-func docutils literal notranslate"><span class="pre">exists()</span></code></a>, <a class="reference internal" href="#os.path.lexists" title="os.path.lexists"><code class="xref py py-func docutils literal notranslate"><span class="pre">lexists()</span></code></a>, <a class="reference internal" href="#os.path.isdir" title="os.path.isdir"><code class="xref py py-func docutils literal notranslate"><span class="pre">isdir()</span></code></a>, <a class="reference internal" href="#os.path.isfile" title="os.path.isfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">isfile()</span></code></a>,
+<a class="reference internal" href="#os.path.islink" title="os.path.islink"><code class="xref py py-func docutils literal notranslate"><span class="pre">islink()</span></code></a>, and <a class="reference internal" href="#os.path.ismount" title="os.path.ismount"><code class="xref py py-func docutils literal notranslate"><span class="pre">ismount()</span></code></a> now return <code class="docutils literal notranslate"><span class="pre">False</span></code> instead of
+raising an exception for paths that contain characters or bytes
+unrepresentable at the OS level.</p>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.abspath">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">abspath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.abspath" title="Link to this definition">¶</a></dt>
+<dd><p>Return a normalized absolutized version of the pathname <em>path</em>. On most
+platforms, this is equivalent to calling <code class="docutils literal notranslate"><span class="pre">normpath(join(os.getcwd(),</span> <span class="pre">path))</span></code>.</p>
+<p>On Windows the path is normalized by the operating system,
+therefore the result can differ from <code class="docutils literal notranslate"><span class="pre">normpath(join(os.getcwd(),</span> <span class="pre">path))</span></code>.
+A drive-relative path is resolved against the current directory
+of the specified drive, and the drive letter is capitalized.
+Trailing dots and spaces are stripped.
+For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">'c:spam'</span><span class="p">)</span>
+<span class="go">'C:\\Temp\\spam'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s1">'c:/temp/spam. . .'</span><span class="p">)</span>
+<span class="go">'c:\\temp\\spam'</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#os.path.join" title="os.path.join"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.path.join()</span></code></a> and <a class="reference internal" href="#os.path.normpath" title="os.path.normpath"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.path.normpath()</span></code></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.basename">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">basename</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.basename" title="Link to this definition">¶</a></dt>
+<dd><p>Return the base name of pathname <em>path</em>.  This is the second element of the
+pair returned by passing <em>path</em> to the function <a class="reference internal" href="#os.path.split" title="os.path.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a>.  Note that
+the result of this function is different
+from the Unix <strong class="program">basename</strong> program; where <strong class="program">basename</strong> for
+<code class="docutils literal notranslate"><span class="pre">'/foo/bar/'</span></code> returns <code class="docutils literal notranslate"><span class="pre">'bar'</span></code>, the <code class="xref py py-func docutils literal notranslate"><span class="pre">basename()</span></code> function returns an
+empty string (<code class="docutils literal notranslate"><span class="pre">''</span></code>).</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.commonpath">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">commonpath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.commonpath" title="Link to this definition">¶</a></dt>
+<dd><p>Return the longest common sub-path of each pathname in the iterable
+<em>paths</em>.  Raise <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> if <em>paths</em> contain both absolute
+and relative pathnames, if <em>paths</em> are on different drives, or
+if <em>paths</em> is empty.  Unlike <a class="reference internal" href="#os.path.commonprefix" title="os.path.commonprefix"><code class="xref py py-func docutils literal notranslate"><span class="pre">commonprefix()</span></code></a>, this returns a
+valid path.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.5.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a sequence of <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like objects</span></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.13: </span>Any iterable can now be passed, rather than just sequences.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.commonprefix">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">commonprefix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.commonprefix" title="Link to this definition">¶</a></dt>
+<dd><p>Return the longest string prefix (taken character-by-character) that is a
+prefix of all strings in <em>list</em>.  If <em>list</em> is empty, return the empty string
+(<code class="docutils literal notranslate"><span class="pre">''</span></code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This function may return invalid paths because it works a
+character at a time.
+If you need a <strong>common path prefix</strong>, then the algorithm
+implemented in this function is not secure. Use
+<a class="reference internal" href="#os.path.commonpath" title="os.path.commonpath"><code class="xref py py-func docutils literal notranslate"><span class="pre">commonpath()</span></code></a> for finding a common path prefix.</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonprefix</span><span class="p">([</span><span class="s1">'/usr/lib'</span><span class="p">,</span> <span class="s1">'/usr/local/lib'</span><span class="p">])</span>
+<span class="go">'/usr/l'</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonpath</span><span class="p">([</span><span class="s1">'/usr/lib'</span><span class="p">,</span> <span class="s1">'/usr/local/lib'</span><span class="p">])</span>
+<span class="go">'/usr'</span>
+</pre></div>
+</div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.dirname">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">dirname</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.dirname" title="Link to this definition">¶</a></dt>
+<dd><p>Return the directory name of pathname <em>path</em>.  This is the first element of
+the pair returned by passing <em>path</em> to the function <a class="reference internal" href="#os.path.split" title="os.path.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.exists">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.exists" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> refers to an existing path or an open
+file descriptor.  Returns <code class="docutils literal notranslate"><span class="pre">False</span></code> for broken symbolic links.  On
+some platforms, this function may return <code class="docutils literal notranslate"><span class="pre">False</span></code> if permission is
+not granted to execute <a class="reference internal" href="os.html#os.stat" title="os.stat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.stat()</span></code></a> on the requested file, even
+if the <em>path</em> physically exists.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.3: </span><em>path</em> can now be an integer: <code class="docutils literal notranslate"><span class="pre">True</span></code> is returned if it is an
+ open file descriptor, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.lexists">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">lexists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.lexists" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> refers to an existing path, including
+broken symbolic links.   Equivalent to <a class="reference internal" href="#os.path.exists" title="os.path.exists"><code class="xref py py-func docutils literal notranslate"><span class="pre">exists()</span></code></a> on platforms lacking
+<a class="reference internal" href="os.html#os.lstat" title="os.lstat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.lstat()</span></code></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function" id="index-1">
+<dt class="sig sig-object py" id="os.path.expanduser">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">expanduser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.expanduser" title="Link to this definition">¶</a></dt>
+<dd><p>On Unix and Windows, return the argument with an initial component of <code class="docutils literal notranslate"><span class="pre">~</span></code> or
+<code class="docutils literal notranslate"><span class="pre">~user</span></code> replaced by that <em>user</em>’s home directory.</p>
+<p id="index-2">On Unix, an initial <code class="docutils literal notranslate"><span class="pre">~</span></code> is replaced by the environment variable <span class="target" id="index-3"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">HOME</span></code>
+if it is set; otherwise the current user’s home directory is looked up in the
+password directory through the built-in module <a class="reference internal" href="pwd.html#module-pwd" title="pwd: The password database (getpwnam() and friends)."><code class="xref py py-mod docutils literal notranslate"><span class="pre">pwd</span></code></a>. An initial <code class="docutils literal notranslate"><span class="pre">~user</span></code>
+is looked up directly in the password directory.</p>
+<p>On Windows, <span class="target" id="index-4"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">USERPROFILE</span></code> will be used if set, otherwise a combination
+of <span class="target" id="index-5"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">HOMEPATH</span></code> and <span class="target" id="index-6"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">HOMEDRIVE</span></code> will be used.  An initial
+<code class="docutils literal notranslate"><span class="pre">~user</span></code> is handled by checking that the last directory component of the current
+user’s home directory matches <span class="target" id="index-7"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">USERNAME</span></code>, and replacing it if so.</p>
+<p>If the expansion fails or if the path does not begin with a tilde, the path is
+returned unchanged.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span>No longer uses <span class="target" id="index-8"></span><code class="xref std std-envvar docutils literal notranslate"><span class="pre">HOME</span></code> on Windows.</p>
+</div>
+</dd></dl>
+
+<dl class="py function" id="index-9">
+<dt class="sig sig-object py" id="os.path.expandvars">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">expandvars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.expandvars" title="Link to this definition">¶</a></dt>
+<dd><p>Return the argument with environment variables expanded.  Substrings of the form
+<code class="docutils literal notranslate"><span class="pre">$name</span></code> or <code class="docutils literal notranslate"><span class="pre">${name}</span></code> are replaced by the value of environment variable
+<em>name</em>.  Malformed variable names and references to non-existing variables are
+left unchanged.</p>
+<p>On Windows, <code class="docutils literal notranslate"><span class="pre">%name%</span></code> expansions are supported in addition to <code class="docutils literal notranslate"><span class="pre">$name</span></code> and
+<code class="docutils literal notranslate"><span class="pre">${name}</span></code>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.getatime">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">getatime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.getatime" title="Link to this definition">¶</a></dt>
+<dd><p>Return the time of last access of <em>path</em>.  The return value is a floating-point number giving
+the number of seconds since the epoch (see the  <a class="reference internal" href="time.html#module-time" title="time: Time access and conversions."><code class="xref py py-mod docutils literal notranslate"><span class="pre">time</span></code></a> module).  Raise
+<a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a> if the file does not exist or is inaccessible.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.getmtime">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">getmtime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.getmtime" title="Link to this definition">¶</a></dt>
+<dd><p>Return the time of last modification of <em>path</em>.  The return value is a floating-point number
+giving the number of seconds since the epoch (see the  <a class="reference internal" href="time.html#module-time" title="time: Time access and conversions."><code class="xref py py-mod docutils literal notranslate"><span class="pre">time</span></code></a> module).
+Raise <a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a> if the file does not exist or is inaccessible.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.getctime">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">getctime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.getctime" title="Link to this definition">¶</a></dt>
+<dd><p>Return the system’s ctime which, on some systems (like Unix) is the time of the
+last metadata change, and, on others (like Windows), is the creation time for <em>path</em>.
+The return value is a number giving the number of seconds since the epoch (see
+the  <a class="reference internal" href="time.html#module-time" title="time: Time access and conversions."><code class="xref py py-mod docutils literal notranslate"><span class="pre">time</span></code></a> module).  Raise <a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a> if the file does not exist or
+is inaccessible.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.getsize">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">getsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.getsize" title="Link to this definition">¶</a></dt>
+<dd><p>Return the size, in bytes, of <em>path</em>.  Raise <a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a> if the file does
+not exist or is inaccessible.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isabs">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isabs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isabs" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> is an absolute pathname.  On Unix, that means it
+begins with a slash, on Windows that it begins with two (back)slashes, or a
+drive letter, colon, and (back)slash together.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#os.path.abspath" title="os.path.abspath"><code class="xref py py-func docutils literal notranslate"><span class="pre">abspath()</span></code></a></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.13: </span>On Windows, returns <code class="docutils literal notranslate"><span class="pre">False</span></code> if the given path starts with exactly one
+(back)slash.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isfile">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isfile" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> is an <a class="reference internal" href="#os.path.exists" title="os.path.exists"><code class="xref py py-func docutils literal notranslate"><span class="pre">existing</span></code></a> regular file.
+This follows symbolic links, so both <a class="reference internal" href="#os.path.islink" title="os.path.islink"><code class="xref py py-func docutils literal notranslate"><span class="pre">islink()</span></code></a> and <code class="xref py py-func docutils literal notranslate"><span class="pre">isfile()</span></code> can
+be true for the same path.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isdir">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isdir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isdir" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> is an <a class="reference internal" href="#os.path.exists" title="os.path.exists"><code class="xref py py-func docutils literal notranslate"><span class="pre">existing</span></code></a> directory.  This
+follows symbolic links, so both <a class="reference internal" href="#os.path.islink" title="os.path.islink"><code class="xref py py-func docutils literal notranslate"><span class="pre">islink()</span></code></a> and <code class="xref py py-func docutils literal notranslate"><span class="pre">isdir()</span></code> can be true
+for the same path.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isjunction">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isjunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isjunction" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> refers to an <a class="reference internal" href="#os.path.lexists" title="os.path.lexists"><code class="xref py py-func docutils literal notranslate"><span class="pre">existing</span></code></a> directory
+entry that is a junction.  Always return <code class="docutils literal notranslate"><span class="pre">False</span></code> if junctions are not
+supported on the current platform.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.12.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.islink">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">islink</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.islink" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> refers to an <a class="reference internal" href="#os.path.exists" title="os.path.exists"><code class="xref py py-func docutils literal notranslate"><span class="pre">existing</span></code></a> directory
+entry that is a symbolic link.  Always <code class="docutils literal notranslate"><span class="pre">False</span></code> if symbolic links are not
+supported by the Python runtime.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.ismount">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">ismount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.ismount" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if pathname <em>path</em> is a <em class="dfn">mount point</em>: a point in a
+file system where a different file system has been mounted.  On POSIX, the
+function checks whether <em>path</em>’s parent, <code class="file docutils literal notranslate"><em><span class="pre">path</span></em><span class="pre">/..</span></code>, is on a different
+device than <em>path</em>, or whether <code class="file docutils literal notranslate"><em><span class="pre">path</span></em><span class="pre">/..</span></code> and <em>path</em> point to the same
+i-node on the same device — this should detect mount points for all Unix
+and POSIX variants.  It is not able to reliably detect bind mounts on the
+same filesystem. On Linux systems, it will always return <code class="docutils literal notranslate"><span class="pre">True</span></code> for btrfs
+subvolumes, even if they aren’t mount points. On Windows, a drive letter root
+and a share UNC are always mount points, and for any other path
+<code class="docutils literal notranslate"><span class="pre">GetVolumePathName</span></code> is called to see if it is different from the input path.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Added support for detecting non-root mount points on Windows.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isdevdrive">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isdevdrive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isdevdrive" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if pathname <em>path</em> is located on a Windows Dev Drive.
+A Dev Drive is optimized for developer scenarios, and offers faster
+performance for reading and writing files. It is recommended for use for
+source code, temporary build directories, package caches, and other
+IO-intensive operations.</p>
+<p>May raise an error for an invalid path, for example, one without a
+recognizable drive, but returns <code class="docutils literal notranslate"><span class="pre">False</span></code> on platforms that do not support
+Dev Drives. See <a class="reference external" href="https://learn.microsoft.com/windows/dev-drive/">the Windows documentation</a>
+for information on enabling and creating Dev Drives.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.12.</span></p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.13: </span>The function is now available on all platforms, and will always return <code class="docutils literal notranslate"><span class="pre">False</span></code> on those that have no support for Dev Drives</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.isreserved">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">isreserved</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.isreserved" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if <em>path</em> is a reserved pathname on the current system.</p>
+<p>On Windows, reserved filenames include those that end with a space or dot;
+those that contain colons (i.e. file streams such as “name:stream”),
+wildcard characters (i.e. <code class="docutils literal notranslate"><span class="pre">'*?"&lt;&gt;'</span></code>), pipe, or ASCII control characters;
+as well as DOS device names such as “NUL”, “CON”, “CONIN$”, “CONOUT$”,
+“AUX”, “PRN”, “COM1”, and “LPT1”.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function approximates rules for reserved paths on most Windows
+systems. These rules change over time in various Windows releases.
+This function may be updated in future Python releases as changes to
+the rules become broadly available.</p>
+</div>
+<div class="availability docutils container">
+<p><a class="reference internal" href="intro.html#availability"><span class="std std-ref">Availability</span></a>: Windows.</p>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.13.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.join">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">join</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">paths</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.join" title="Link to this definition">¶</a></dt>
+<dd><p>Join one or more path segments intelligently.  The return value is the
+concatenation of <em>path</em> and all members of <em>*paths</em>, with exactly one
+directory separator following each non-empty part, except the last. That is,
+the result will only end in a separator if the last part is either empty or
+ends in a separator.</p>
+<p>If a segment is an absolute path (which on Windows requires both a drive and
+a root), then all previous segments are ignored and joining continues from the
+absolute path segment. On Linux, for example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'/home/foo'</span><span class="p">,</span> <span class="s1">'bar'</span><span class="p">)</span>
+<span class="go">'/home/foo/bar'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'/home/foo'</span><span class="p">,</span> <span class="s1">'/home/bar'</span><span class="p">)</span>
+<span class="go">'/home/bar'</span>
+</pre></div>
+</div>
+<p>On Windows, the drive is not reset when a rooted path segment (e.g.,
+<code class="docutils literal notranslate"><span class="pre">r'\foo'</span></code>) is encountered. If a segment is on a different drive or is an
+absolute path, all previous segments are ignored and the drive is reset. For
+example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'c:</span><span class="se">\\</span><span class="s1">'</span><span class="p">,</span> <span class="s1">'foo'</span><span class="p">)</span>
+<span class="go">'c:\\foo'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">'c:</span><span class="se">\\</span><span class="s1">foo'</span><span class="p">,</span> <span class="s1">'d:</span><span class="se">\\</span><span class="s1">bar'</span><span class="p">)</span>
+<span class="go">'d:\\bar'</span>
+</pre></div>
+</div>
+<p>Note that since there is a current directory for each drive,
+<code class="docutils literal notranslate"><span class="pre">os.path.join("c:",</span> <span class="pre">"foo")</span></code> represents a path relative to the current
+directory on drive <code class="file docutils literal notranslate"><span class="pre">C:</span></code> (<code class="file docutils literal notranslate"><span class="pre">c:foo</span></code>), not <code class="file docutils literal notranslate"><span class="pre">c:\foo</span></code>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a> for <em>path</em> and <em>paths</em>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.normcase">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">normcase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.normcase" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize the case of a pathname.  On Windows, convert all characters in the
+pathname to lowercase, and also convert forward slashes to backward slashes.
+On other operating systems, return the path unchanged.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.normpath">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">normpath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.normpath" title="Link to this definition">¶</a></dt>
+<dd><p>Normalize a pathname by collapsing redundant separators and up-level
+references so that <code class="docutils literal notranslate"><span class="pre">A//B</span></code>, <code class="docutils literal notranslate"><span class="pre">A/B/</span></code>, <code class="docutils literal notranslate"><span class="pre">A/./B</span></code> and <code class="docutils literal notranslate"><span class="pre">A/foo/../B</span></code> all
+become <code class="docutils literal notranslate"><span class="pre">A/B</span></code>.  This string manipulation may change the meaning of a path
+that contains symbolic links.  On Windows, it converts forward slashes to
+backward slashes. To normalize case, use <a class="reference internal" href="#os.path.normcase" title="os.path.normcase"><code class="xref py py-func docutils literal notranslate"><span class="pre">normcase()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On POSIX systems, in accordance with <a class="reference external" href="https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13">IEEE Std 1003.1 2013 Edition; 4.13
+Pathname Resolution</a>,
+if a pathname begins with exactly two slashes, the first component
+following the leading characters may be interpreted in an implementation-defined
+manner, although more than two leading characters shall be treated as a
+single character.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.realpath">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">realpath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.realpath" title="Link to this definition">¶</a></dt>
+<dd><p>Return the canonical path of the specified filename, eliminating any symbolic
+links encountered in the path (if they are supported by the operating
+system). On Windows, this function will also resolve MS-DOS (also called 8.3)
+style names such as <code class="docutils literal notranslate"><span class="pre">C:\\PROGRA~1</span></code> to <code class="docutils literal notranslate"><span class="pre">C:\\Program</span> <span class="pre">Files</span></code>.
+The returned path uses the case reported by the operating system,
+which can differ from the case of <em>path</em>,
+in particular the drive letter is capitalized.</p>
+<p>By default, the path is evaluated up to the first component that does not
+exist, is a symlink loop, or whose evaluation raises <a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a>.
+All such components are appended unchanged to the existing part of the path.</p>
+<p>Some errors that are handled this way include “access denied”, “not a
+directory”, or “bad argument to internal function”. Thus, the
+resulting path may be missing or inaccessible, may still contain
+links or loops, and may traverse non-directories.</p>
+<p>This behavior can be modified by keyword arguments:</p>
+<p>If <em>strict</em> is <code class="docutils literal notranslate"><span class="pre">True</span></code>, the first error encountered when evaluating the path is
+re-raised.
+In particular, <a class="reference internal" href="exceptions.html#FileNotFoundError" title="FileNotFoundError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></a> is raised if <em>path</em> does not exist,
+or another <a class="reference internal" href="exceptions.html#OSError" title="OSError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">OSError</span></code></a> if it is otherwise inaccessible.</p>
+<p>If <em>strict</em> is <a class="reference internal" href="#os.path.ALLOW_MISSING" title="os.path.ALLOW_MISSING"><code class="xref py py-data docutils literal notranslate"><span class="pre">os.path.ALLOW_MISSING</span></code></a>, errors other than
+<a class="reference internal" href="exceptions.html#FileNotFoundError" title="FileNotFoundError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></a> are re-raised (as with <code class="docutils literal notranslate"><span class="pre">strict=True</span></code>).
+Thus, the returned path will not contain any symbolic links, but the named
+file and some of its parent directories may be missing.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function emulates the operating system’s procedure for making a path
+canonical, which differs slightly between Windows and UNIX with respect
+to how links and subsequent path components interact.</p>
+<p>Operating system APIs make paths canonical as needed, so it’s not
+normally necessary to call this function.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.8: </span>Symbolic links and junctions are now resolved on Windows.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.10: </span>The <em>strict</em> parameter was added.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.14: </span>The <a class="reference internal" href="#os.path.ALLOW_MISSING" title="os.path.ALLOW_MISSING"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALLOW_MISSING</span></code></a> value for the <em>strict</em> parameter
+was added.</p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="os.path.ALLOW_MISSING">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">ALLOW_MISSING</span></span><a class="headerlink" href="#os.path.ALLOW_MISSING" title="Link to this definition">¶</a></dt>
+<dd><p>Special value used for the <em>strict</em> argument in <a class="reference internal" href="#os.path.realpath" title="os.path.realpath"><code class="xref py py-func docutils literal notranslate"><span class="pre">realpath()</span></code></a>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.14.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.relpath">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">relpath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">os.curdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.relpath" title="Link to this definition">¶</a></dt>
+<dd><p>Return a relative filepath to <em>path</em> either from the current directory or
+from an optional <em>start</em> directory.  This is a path computation:  the
+filesystem is not accessed to confirm the existence or nature of <em>path</em> or
+<em>start</em>.  On Windows, <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> is raised when <em>path</em> and <em>start</em>
+are on different drives.</p>
+<p><em>start</em> defaults to <a class="reference internal" href="os.html#os.curdir" title="os.curdir"><code class="xref py py-data docutils literal notranslate"><span class="pre">os.curdir</span></code></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.samefile">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">samefile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path2</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.samefile" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if both pathname arguments refer to the same file or directory.
+This is determined by the device number and i-node number and raises an
+exception if an <a class="reference internal" href="os.html#os.stat" title="os.stat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.stat()</span></code></a> call on either pathname fails.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.2: </span>Added Windows support.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Windows now uses the same implementation as all other platforms.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.sameopenfile">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">sameopenfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fp2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.sameopenfile" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the file descriptors <em>fp1</em> and <em>fp2</em> refer to the same file.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.2: </span>Added Windows support.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.samestat">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">samestat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stat1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stat2</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.samestat" title="Link to this definition">¶</a></dt>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the stat tuples <em>stat1</em> and <em>stat2</em> refer to the same file.
+These structures may have been returned by <a class="reference internal" href="os.html#os.fstat" title="os.fstat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.fstat()</span></code></a>,
+<a class="reference internal" href="os.html#os.lstat" title="os.lstat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.lstat()</span></code></a>, or <a class="reference internal" href="os.html#os.stat" title="os.stat"><code class="xref py py-func docutils literal notranslate"><span class="pre">os.stat()</span></code></a>.  This function implements the
+underlying comparison used by <a class="reference internal" href="#os.path.samefile" title="os.path.samefile"><code class="xref py py-func docutils literal notranslate"><span class="pre">samefile()</span></code></a> and <a class="reference internal" href="#os.path.sameopenfile" title="os.path.sameopenfile"><code class="xref py py-func docutils literal notranslate"><span class="pre">sameopenfile()</span></code></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Added Windows support.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.split">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.split" title="Link to this definition">¶</a></dt>
+<dd><p>Split the pathname <em>path</em> into a pair, <code class="docutils literal notranslate"><span class="pre">(head,</span> <span class="pre">tail)</span></code> where <em>tail</em> is the
+last pathname component and <em>head</em> is everything leading up to that.  The
+<em>tail</em> part will never contain a slash; if <em>path</em> ends in a slash, <em>tail</em>
+will be empty.  If there is no slash in <em>path</em>, <em>head</em> will be empty.  If
+<em>path</em> is empty, both <em>head</em> and <em>tail</em> are empty.  Trailing slashes are
+stripped from <em>head</em> unless it is the root (one or more slashes only).  In
+all cases, <code class="docutils literal notranslate"><span class="pre">join(head,</span> <span class="pre">tail)</span></code> returns a path to the same location as <em>path</em>
+(but the strings may differ).  Also see the functions <a class="reference internal" href="#os.path.join" title="os.path.join"><code class="xref py py-func docutils literal notranslate"><span class="pre">join()</span></code></a>,
+<a class="reference internal" href="#os.path.dirname" title="os.path.dirname"><code class="xref py py-func docutils literal notranslate"><span class="pre">dirname()</span></code></a> and <a class="reference internal" href="#os.path.basename" title="os.path.basename"><code class="xref py py-func docutils literal notranslate"><span class="pre">basename()</span></code></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.splitdrive">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">splitdrive</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.splitdrive" title="Link to this definition">¶</a></dt>
+<dd><p>Split the pathname <em>path</em> into a pair <code class="docutils literal notranslate"><span class="pre">(drive,</span> <span class="pre">tail)</span></code> where <em>drive</em> is either
+a mount point or the empty string.  On systems which do not use drive
+specifications, <em>drive</em> will always be the empty string.  In all cases, <code class="docutils literal notranslate"><span class="pre">drive</span>
+<span class="pre">+</span> <span class="pre">tail</span></code> will be the same as <em>path</em>.</p>
+<p>On Windows, splits a pathname into drive/UNC sharepoint and relative path.</p>
+<p>If the path contains a drive letter, drive will contain everything
+up to and including the colon:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitdrive</span><span class="p">(</span><span class="s2">"c:/dir"</span><span class="p">)</span>
+<span class="go">("c:", "/dir")</span>
+</pre></div>
+</div>
+<p>If the path contains a UNC path, drive will contain the host name
+and share:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitdrive</span><span class="p">(</span><span class="s2">"//host/computer/dir"</span><span class="p">)</span>
+<span class="go">("//host/computer", "/dir")</span>
+</pre></div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.splitroot">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">splitroot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.splitroot" title="Link to this definition">¶</a></dt>
+<dd><p>Split the pathname <em>path</em> into a 3-item tuple <code class="docutils literal notranslate"><span class="pre">(drive,</span> <span class="pre">root,</span> <span class="pre">tail)</span></code> where
+<em>drive</em> is a device name or mount point, <em>root</em> is a string of separators
+after the drive, and <em>tail</em> is everything after the root. Any of these
+items may be the empty string. In all cases, <code class="docutils literal notranslate"><span class="pre">drive</span> <span class="pre">+</span> <span class="pre">root</span> <span class="pre">+</span> <span class="pre">tail</span></code> will
+be the same as <em>path</em>.</p>
+<p>On POSIX systems, <em>drive</em> is always empty. The <em>root</em> may be empty (if <em>path</em> is
+relative), a single forward slash (if <em>path</em> is absolute), or two forward slashes
+(implementation-defined per <a class="reference external" href="https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13">IEEE Std 1003.1-2017; 4.13 Pathname Resolution</a>.)
+For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitroot</span><span class="p">(</span><span class="s1">'/home/sam'</span><span class="p">)</span>
+<span class="go">('', '/', 'home/sam')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitroot</span><span class="p">(</span><span class="s1">'//home/sam'</span><span class="p">)</span>
+<span class="go">('', '//', 'home/sam')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitroot</span><span class="p">(</span><span class="s1">'///home/sam'</span><span class="p">)</span>
+<span class="go">('', '/', '//home/sam')</span>
+</pre></div>
+</div>
+<p>On Windows, <em>drive</em> may be empty, a drive-letter name, a UNC share, or a device
+name. The <em>root</em> may be empty, a forward slash, or a backward slash. For
+example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitroot</span><span class="p">(</span><span class="s1">'C:/Users/Sam'</span><span class="p">)</span>
+<span class="go">('C:', '/', 'Users/Sam')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitroot</span><span class="p">(</span><span class="s1">'//Server/Share/Users/Sam'</span><span class="p">)</span>
+<span class="go">('//Server/Share', '/', 'Users/Sam')</span>
+</pre></div>
+</div>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.12.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="os.path.splitext">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">splitext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#os.path.splitext" title="Link to this definition">¶</a></dt>
+<dd><p>Split the pathname <em>path</em> into a pair <code class="docutils literal notranslate"><span class="pre">(root,</span> <span class="pre">ext)</span></code>  such that <code class="docutils literal notranslate"><span class="pre">root</span> <span class="pre">+</span> <span class="pre">ext</span> <span class="pre">==</span>
+<span class="pre">path</span></code>, and the extension, <em>ext</em>, is empty or begins with a period and contains at
+most one period.</p>
+<p>If the path contains no extension, <em>ext</em> will be <code class="docutils literal notranslate"><span class="pre">''</span></code>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitext</span><span class="p">(</span><span class="s1">'bar'</span><span class="p">)</span>
+<span class="go">('bar', '')</span>
+</pre></div>
+</div>
+<p>If the path contains an extension, then <em>ext</em> will be set to this extension,
+including the leading period. Note that previous periods will be ignored:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitext</span><span class="p">(</span><span class="s1">'foo.bar.exe'</span><span class="p">)</span>
+<span class="go">('foo.bar', '.exe')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitext</span><span class="p">(</span><span class="s1">'/foo/bar.exe'</span><span class="p">)</span>
+<span class="go">('/foo/bar', '.exe')</span>
+</pre></div>
+</div>
+<p>Leading periods of the last component of the path are considered to
+be part of the root:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">splitext</span><span class="p">(</span><span class="s1">'.cshrc'</span><span class="p">)</span>
+<span class="go">('.cshrc', '')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitext</span><span class="p">(</span><span class="s1">'/foo/....jpg'</span><span class="p">)</span>
+<span class="go">('/foo/....jpg', '')</span>
+</pre></div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>Accepts a <a class="reference internal" href="../glossary.html#term-path-like-object"><span class="xref std std-term">path-like object</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="os.path.supports_unicode_filenames">
+<span class="sig-prename descclassname"><span class="pre">os.path.</span></span><span class="sig-name descname"><span class="pre">supports_unicode_filenames</span></span><a class="headerlink" href="#os.path.supports_unicode_filenames" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if arbitrary Unicode strings can be used as file names (within limitations
+imposed by the file system).</p>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="pathlib.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pathlib</span></code> — Object-oriented filesystem paths</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="stat.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">stat</span></code> — Interpreting <code class="xref py py-func docutils literal notranslate"><span class="pre">stat()</span></code> results</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/os.path.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=os.path+%E2%80%94+Common+pathname+manipulations&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fos.path.html&amp;pagesource=library%2Fos.path.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/os.path.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="stat.html" title="stat — Interpreting stat() results">next</a> |</li>
+        <li class="right">
+          <a href="pathlib.html" title="pathlib — Object-oriented filesystem paths">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="filesys.html">File and Directory Access</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">os.path</span></code> — Common pathname manipulations</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    © <a href="../copyright.html">Copyright</a> 2001 Python Software Foundation.
+    <br>
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br>
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br>
+    
+      See <a href="/license.html">History and License</a> for more information.<br>
+    
+    
+    <br>
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br>
+    <br>
+      Last updated on Sep 03, 2026 (10:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br>
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+
+    <script type="text/javascript" src="../_static/switchers.js"></script>
+  
+</body></html>

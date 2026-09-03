@@ -1,0 +1,1938 @@
+Service | Kubernetes
+====================
+
+[Kubernetes](/)
+
+
+- [Documentation](/docs/home/)
+- [Kubernetes Blog](/blog/)
+- [Training](/training/)
+- [Careers](/careers/)
+- [Partners](/partners/)
+- [Community](/community/)
+-
+
+[Versions](#)- [Release Information](/releases)
+- [v1.37](https://kubernetes.io)
+- [v1.36](https://v1-36.docs.kubernetes.io)
+- [v1.35](https://v1-35.docs.kubernetes.io)
+- [v1.34](https://v1-34.docs.kubernetes.io)
+- [v1.33](https://v1-33.docs.kubernetes.io)
+-
+
+[English](#)
+- [中文 (Chinese)](/zh-cn/docs/concepts/services-networking/service/)
+- [Français (French)](/fr/docs/concepts/services-networking/service/)
+- [Deutsch (German)](/de/docs/concepts/services-networking/service/)
+- [Bahasa Indonesia (Indonesian)](/id/docs/concepts/services-networking/service/)
+- [日本語 (Japanese)](/ja/docs/concepts/services-networking/service/)
+- [한국어 (Korean)](/ko/docs/concepts/services-networking/service/)
+- [Português (Portuguese)](/pt-br/docs/concepts/services-networking/service/)
+- [Español (Spanish)](/es/docs/concepts/services-networking/service/)
+- [Tiếng Việt (Vietnamese)](/vi/docs/concepts/services-networking/service/)
+- বাংলা (Bengali)[**](/bn/)
+- हिन्दी (Hindi)[**](/hi/)
+- Italiano (Italian)[**](/it/)
+- فارسی (Persian)[**](/fa/)
+- Polski (Polish)[**](/pl/)
+- Русский (Russian)[**](/ru/)
+- Українська (Ukrainian)[**](/uk/)
+-
+- Light
+- Dark
+- Auto
+
+
+# Service
+
+[English](#)
+- [বাংলা (Bengali)](/bn/docs/concepts/)
+- [中文 (Chinese)](/zh-cn/docs/concepts/)
+- [Français (French)](/fr/docs/concepts/)
+- [Deutsch (German)](/de/docs/concepts/)
+- [हिन्दी (Hindi)](/hi/docs/concepts/)
+- [Bahasa Indonesia (Indonesian)](/id/docs/concepts/)
+- [Italiano (Italian)](/it/docs/concepts/)
+- [日本語 (Japanese)](/ja/docs/concepts/)
+- [한국어 (Korean)](/ko/docs/concepts/)
+- [Polski (Polish)](/pl/docs/concepts/)
+- [Português (Portuguese)](/pt-br/docs/concepts/)
+- [Русский (Russian)](/ru/docs/concepts/)
+- [Español (Spanish)](/es/docs/concepts/)
+- [Українська (Ukrainian)](/uk/docs/concepts/)
+- [Tiếng Việt (Vietnamese)](/vi/docs/concepts/)
+- فارسی (Persian)[**](/fa/)
+
+- [Kubernetes Documentation](/docs/ "Documentation")- [Documentation](/docs/home/ "Kubernetes Documentation")- [Available Documentation Versions](/docs/home/supported-doc-versions/)
+- [Getting started](/docs/setup/)
+- [Learning environment](/docs/setup/learning-environment/)
+- [Production environment](/docs/setup/production-environment/)- [Container Runtimes](/docs/setup/production-environment/container-runtimes/)
+- [Installing Kubernetes with deployment tools](/docs/setup/production-environment/tools/)- [Bootstrapping clusters with kubeadm](/docs/setup/production-environment/tools/kubeadm/)- [Installing kubeadm](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/)
+- [Troubleshooting kubeadm](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/)
+- [Creating a cluster with kubeadm](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+- [Customizing components with the kubeadm API](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/)
+- [Options for Highly Available Topology](/docs/setup/production-environment/tools/kubeadm/ha-topology/)
+- [Creating Highly Available Clusters with kubeadm](/docs/setup/production-environment/tools/kubeadm/high-availability/)
+- [Set up a High Availability etcd Cluster with kubeadm](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/)
+- [Configuring each kubelet in your cluster using kubeadm](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/)
+- [Dual-stack support with kubeadm](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/)
+- [Turnkey Cloud Solutions](/docs/setup/production-environment/turnkey-solutions/)
+- [Best practices](/docs/setup/best-practices/)
+- [Considerations for large clusters](/docs/setup/best-practices/cluster-large/)
+- [Running in multiple zones](/docs/setup/best-practices/multiple-zones/)
+- [Validate node setup](/docs/setup/best-practices/node-conformance/)
+- [Enforcing Pod Security Standards](/docs/setup/best-practices/enforcing-pod-security-standards/)
+- [PKI certificates and requirements](/docs/setup/best-practices/certificates/)
+- [Concepts](/docs/concepts/)
+- [Overview](/docs/concepts/overview/)- [Kubernetes Components](/docs/concepts/overview/components/)
+- [Objects In Kubernetes](/docs/concepts/overview/working-with-objects/)- [Kubernetes Object Management](/docs/concepts/overview/working-with-objects/object-management/)
+- [Object Names and IDs](/docs/concepts/overview/working-with-objects/names/)
+- [Labels and Selectors](/docs/concepts/overview/working-with-objects/labels/)
+- [Namespaces](/docs/concepts/overview/working-with-objects/namespaces/)
+- [Annotations](/docs/concepts/overview/working-with-objects/annotations/)
+- [Field Selectors](/docs/concepts/overview/working-with-objects/field-selectors/)
+- [Finalizers](/docs/concepts/overview/working-with-objects/finalizers/)
+- [Owners and Dependents](/docs/concepts/overview/working-with-objects/owners-dependents/)
+- [Recommended Labels](/docs/concepts/overview/working-with-objects/common-labels/)
+- [Storage Versions](/docs/concepts/overview/working-with-objects/storage-version/)
+- [The Kubernetes API](/docs/concepts/overview/kubernetes-api/)
+- [The kubectl command-line tool](/docs/concepts/overview/kubectl/)
+- [Cluster Architecture](/docs/concepts/architecture/)
+- [Nodes](/docs/concepts/architecture/nodes/)
+- [Communication between Nodes and the Control Plane](/docs/concepts/architecture/control-plane-node-communication/)
+- [Controllers](/docs/concepts/architecture/controller/)
+- [Leases](/docs/concepts/architecture/leases/)
+- [Cloud Controller Manager](/docs/concepts/architecture/cloud-controller/)
+- [About cgroup v2](/docs/concepts/architecture/cgroups/)
+- [Kubernetes Self-Healing](/docs/concepts/architecture/self-healing/)
+- [Garbage Collection](/docs/concepts/architecture/garbage-collection/)
+- [Mixed Version Proxy](/docs/concepts/architecture/mixed-version-proxy/)
+- [Containers](/docs/concepts/containers/)
+- [Images](/docs/concepts/containers/images/)
+- [Container Environment](/docs/concepts/containers/container-environment/)
+- [Runtime Class](/docs/concepts/containers/runtime-class/)
+- [Container Lifecycle Hooks](/docs/concepts/containers/container-lifecycle-hooks/)
+- [Container Runtime Interface (CRI)](/docs/concepts/containers/cri/)
+- [Workloads](/docs/concepts/workloads/)
+- [Pods](/docs/concepts/workloads/pods/)- [Pod Lifecycle](/docs/concepts/workloads/pods/pod-lifecycle/)
+- [Pod Conditions](/docs/concepts/workloads/pods/pod-condition/)
+- [Init Containers](/docs/concepts/workloads/pods/init-containers/)
+- [Sidecar Containers](/docs/concepts/workloads/pods/sidecar-containers/)
+- [Ephemeral Containers](/docs/concepts/workloads/pods/ephemeral-containers/)
+- [Liveness, Readiness, and Startup Probes](/docs/concepts/workloads/pods/probes/)
+- [Disruptions](/icons/favicon-64.png "description")
+- [Pod Hostname](/icons/apple-touch-icon-180x180.png "description")
+- [Pod Quality of Service Classes](/icons/icon-128x128.png "description")
+- [Scheduling Group](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Static Pods](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [User Namespaces](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")
+- [Downward API](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [Advanced Pod Configuration](de "This page is not available in বাংলা (Bengali)")
+- [Workload API](es "This page is not available in বাংলা (Bengali)")
+- [Pod Group Disruption and Priority](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [PodGroup Scheduling Policies](/ "This page is not available in বাংলা (Bengali)")
+- [Topology-Aware Workload Scheduling](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Scheduling Building Block APIs and the workloadbuilder Library](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Workload Management](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Deployments](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ReplicaSet](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [StatefulSets](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [DaemonSet](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Jobs](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Automatic Cleanup for Finished Jobs](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [CronJob](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ReplicationController](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [CompositePodGroup API](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [CompositePodGroup Lifecycle](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [PodGroup API](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [PodGroup Lifecycle](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Managing Workloads](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Autoscaling Workloads](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Horizontal Pod Autoscaling](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Vertical Pod Autoscaling](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Services, Load Balancing, and Networking](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Service](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Ingress](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Ingress Controllers](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Gateway API](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [EndpointSlices](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Network Policies](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [DNS for Services and Pods](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [IPv4/IPv6 dual-stack](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Topology Aware Routing](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Networking on Windows](/training/ "This page is not available in বাংলা (Bengali)")
+- [Service ClusterIP allocation](# "This page is not available in বাংলা (Bengali)")
+- [Service Internal Traffic Policy](https://v1-33.docs.kubernetes.io "This page is not available in বাংলা (Bengali)")
+- [Storage](/de/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Volumes](/ko/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Persistent Volumes](/bn/ "This page is not available in বাংলা (Bengali)")
+- [Projected Volumes](/it/ "This page is not available in Italiano (Italian)")
+- [Ephemeral Volumes](/pl/ "This page is not available in Polski (Polish)")
+- [Storage Classes](/uk/ "This page is not available in Українська (Ukrainian)")
+- [Volume Attributes Classes](#sun-fill "This page is not available in فارسی (Persian)")
+- [Dynamic Volume Provisioning](#sun-fill "This page is not available in فارسی (Persian)")
+- [Volume Snapshots](#sun-fill "This page is not available in فارسی (Persian)")
+- [Volume Snapshot Classes](#sun-fill "This page is not available in فارسی (Persian)")
+- [CSI Volume Cloning](#sun-fill "This page is not available in فارسی (Persian)")
+- [Volume Populators and Data Sources](#check2 "This page is not available in فارسی (Persian)")
+- [Storage Capacity](# "This page is not available in فارسی (Persian)")
+- [Node-specific Volume Limits](# "This page is not available in فارسی (Persian)")
+- [Local ephemeral storage](# "This page is not available in فارسی (Persian)")
+- [Volume Health Monitoring](# "This page is not available in فارسی (Persian)")
+- [Windows Storage](# "This page is not available in فارسی (Persian)")
+- [Configuration](/bn/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [ConfigMaps](/it/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Secrets](/ru/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Resource Management for Pods and Containers](/docs/ "m-docs-li")
+- [Organizing Cluster Access Using kubeconfig Files](/docs/home/ "Kubernetes Documentation")
+- [Resource Management for Windows nodes](/docs/setup/ "m-docs-setup-li")
+- [Security](/docs/setup/learning-environment/ "m-docs-setup-production-environment-li")
+- [Cloud Native Security](/docs/setup/production-environment/ "m-docs-setup-production-environment-container-runtimes-li")
+- [Pod Security Standards](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-tools-li")
+- [Pod Security Admission](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [Service Accounts](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Pod Security Policies](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Security For Linux Nodes](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Security For Windows Nodes](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Controlling Access to the Kubernetes API](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Role Based Access Control Good Practices](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Good practices for Kubernetes Secrets](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Multi-tenancy](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [Hardening Guide - Authentication Mechanisms](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [Hardening Guide - Dynamic Resource Allocation](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Hardening Guide - Scheduler Configuration](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Kubernetes API Server Bypass Risks](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Linux kernel security constraints for Pods and containers](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-best-practices-li")
+- [Security Checklist](/docs/setup/best-practices/ "m-docs-setup-best-practices-cluster-large-li")
+- [Application Security Checklist](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-multiple-zones-li")
+- [Policies](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li")
+- [Limit Ranges](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [Resource Quotas](/docs/setup/best-practices/enforcing-pod-security-standards/ "m-docs-setup-best-practices-certificates-li")
+- [Process ID Limits And Reservations](/docs/setup/best-practices/certificates/ "m-docs-setup-best-practices-certificates-li")
+- [Scheduling, Preemption and Eviction](/docs/concepts/ "m-docs-concepts-li")
+- [Kubernetes Scheduler](/docs/concepts/overview/ "m-docs-concepts-overview-components-li")
+- [Topology-Aware Workload Scheduling](/docs/concepts/overview/components/ "m-docs-concepts-overview-working-with-objects-li")
+- [Assigning Pods to Nodes](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-object-management-li")
+- [Pod Overhead](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [Pod Scheduling Readiness](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [Pod Topology Spread Constraints](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [Taints and Tolerations](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [Scheduling Framework](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+- [Gang Scheduling](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-finalizers-li")
+- [Scheduler Performance Tuning](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [PodGroup Scheduling](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [Resource Bin Packing](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [Workload-Aware Preemption](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubernetes-api-li")
+- [Pod Priority and Preemption](/docs/concepts/overview/kubectl/ "m-docs-concepts-overview-kubectl-li")
+- [Node-pressure Eviction](/docs/concepts/architecture/ "m-docs-concepts-architecture-li")
+- [API-initiated Eviction](/docs/concepts/architecture/nodes/ "m-docs-concepts-architecture-control-plane-node-communication-li")
+- [Node Declared Features](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-controller-li")
+- [Resource Management](/docs/concepts/architecture/controller/ "m-docs-concepts-architecture-leases-li")
+- [Resource managers](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-cloud-controller-li")
+- [Dynamic Resource Allocation](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-cgroups-li")- [DRA API Objects](/docs/concepts/architecture/self-healing/ "m-docs-concepts-architecture-self-healing-li")
+- [How DRA Works](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [Observability of Dynamic Resources](/docs/concepts/containers/ "m-docs-concepts-containers-li")
+- [DRA Features](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li")
+- [Device Taints and Tolerations](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-runtime-class-li")
+- [Pod-level resource managers](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-container-lifecycle-hooks-li")
+- [Cluster Administration](/docs/concepts/containers/cri/ "m-docs-concepts-containers-cri-li")
+- [Node Shutdowns](/docs/concepts/workloads/ "m-docs-concepts-workloads-li")
+- [Swap memory management](/docs/concepts/workloads/pods/ "m-docs-concepts-workloads-pods-pod-lifecycle-li")
+- [Node Autoscaling](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-pod-condition-li")
+- [Certificates](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-init-containers-li")
+- [Cluster Networking](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [Observability](/docs/concepts/workloads/pods/ephemeral-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [Admission Webhook Good Practices](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-probes-li")
+- [Good practices for Dynamic Resource Allocation as a Cluster Admin](/images/kubernetes.png "description")
+- [Logging Architecture](/icons/apple-touch-icon-196x196.png "description")
+- [Compatibility Version For Kubernetes Control Plane Components](/icons/apple-touch-icon-76x76.png "description")
+- [Metrics For Kubernetes System Components](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Metrics for Kubernetes Object States](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [System Logs](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")
+- [Traces For Kubernetes System Components](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [Proxies in Kubernetes](ja "This page is not available in বাংলা (Bengali)")
+- [API Priority and Fairness](https://kubernetes.io/vi/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Installing Addons](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [Coordinated Leader Election](/ "This page is not available in বাংলা (Bengali)")
+- [Windows in Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Windows containers in Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Guide for Running Windows Containers in Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Extending Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Compute, Storage, and Networking Extensions](/docs/home/ "This page is not available in বাংলা (Bengali)")- [Network Plugins](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Device Plugins](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Extending the Kubernetes API](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Custom Resources](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubernetes API Aggregation Layer](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Operator pattern](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Tasks](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Install Tools](/docs/home/ "This page is not available in বাংলা (Bengali)")- [Install and Set Up kubectl on Linux](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Install and Set Up kubectl on macOS](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Install and Set Up kubectl on Windows](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Administer a Cluster](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Administration with kubeadm](/docs/home/ "This page is not available in বাংলা (Bengali)")- [Adding Linux worker nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Adding Windows worker nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Upgrading kubeadm clusters](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Upgrading Linux nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Upgrading Windows nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Certificate Management with kubeadm](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Reconfiguring a kubeadm cluster](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Changing The Kubernetes Package Repository](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Overprovision Node Capacity For A Cluster](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Migrating from dockershim](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Changing the Container Runtime on a Node from Docker Engine to containerd](/blog/ "This page is not available in বাংলা (Bengali)")
+- [Find Out What Container Runtime is Used on a Node](/releases "This page is not available in বাংলা (Bengali)")
+- [Troubleshooting CNI plugin-related errors](/zh-cn/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Check whether dockershim removal affects you](/es/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Migrating telemetry and security agents from dockershim](/it/ "This page is not available in Italiano (Italian)")
+- [Generate Certificates Manually](/ru/ "This page is not available in Русский (Russian)")
+- [Manage Memory, CPU, and API Resources](#sun-fill "This page is not available in فارسی (Persian)")
+- [Configure Default Memory Requests and Limits for a Namespace](#sun-fill "This page is not available in فارسی (Persian)")
+- [Configure Default CPU Requests and Limits for a Namespace](#sun-fill "This page is not available in فارسی (Persian)")
+- [Configure Minimum and Maximum Memory Constraints for a Namespace](#sun-fill "This page is not available in فارسی (Persian)")
+- [Configure Minimum and Maximum CPU Constraints for a Namespace](#moon-stars-fill "This page is not available in فارسی (Persian)")
+- [Configure Memory and CPU Quotas for a Namespace](# "This page is not available in فارسی (Persian)")
+- [Configure a Pod Quota for a Namespace](# "This page is not available in فارسی (Persian)")
+- [Install a Network Policy Provider](# "This page is not available in فارسی (Persian)")
+- [Use Antrea for NetworkPolicy](# "This page is not available in فارسی (Persian)")
+- [Use Calico for NetworkPolicy](/de/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Use Cilium for NetworkPolicy](/ru/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Use Kube-router for NetworkPolicy](/docs/ "m-docs-li")
+- [Access Clusters Using the Kubernetes API](/docs/home/supported-doc-versions/ "m-docs-home-supported-doc-versions-li")
+- [Enable Or Disable Feature Gates](/docs/setup/ "m-docs-setup-li")
+- [Advertise Extended Resources for a Node](/docs/setup/learning-environment/ "m-docs-setup-production-environment-li")
+- [Autoscale the DNS Service in a Cluster](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-container-runtimes-li")
+- [Change the Access Mode of a PersistentVolume to ReadWriteOncePod](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-li")
+- [Change the default StorageClass](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Switching from Polling to CRI Event-based Updates to Container Status](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Change the Reclaim Policy of a PersistentVolume](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Cloud Controller Manager Administration](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Configure a kubelet image credential provider](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Configure Quotas for API Objects](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Control CPU Management Policies on the Node](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [Control Memory Management Policies on a Node](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [Control Topology Management Policies on a node](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Customizing DNS Service](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Debugging DNS Resolution](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Declare Network Policy](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Developing Cloud Controller Manager](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+- [Enable Or Disable A Kubernetes API](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-multiple-zones-li")
+- [Encrypting Confidential Data at Rest](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li")
+- [Decrypt Confidential Data that is Already Encrypted at Rest](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [Guaranteed Scheduling For Critical Add-On Pods](/docs/setup/best-practices/enforcing-pod-security-standards/ "m-docs-setup-best-practices-certificates-li")
+- [IP Masquerade Agent User Guide](/docs/concepts/ "m-docs-concepts-li")
+- [Limit Storage Consumption](/docs/concepts/overview/ "m-docs-concepts-overview-li")
+- [Migrate Replicated Control Plane To Use Cloud Controller Manager](/docs/concepts/overview/components/ "m-docs-concepts-overview-working-with-objects-li")
+- [Operating etcd clusters for Kubernetes](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-object-management-li")
+- [Reserve Compute Resources for System Daemons](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [Running Kubernetes Node Components as a Non-root User](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [Safely Drain a Node](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [Securing a Cluster](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [Harden Dynamic Resource Allocation in Your Cluster](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+- [Set Kubelet Parameters Via A Configuration File](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-finalizers-li")
+- [Share a Cluster with Namespaces](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [Upgrade A Cluster](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [Use Cascading Deletion in a Cluster](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [Using a KMS provider for data encryption](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-kubernetes-api-li")
+- [Using CoreDNS for Service Discovery](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubectl-li")
+- [Using NodeLocal DNSCache in Kubernetes Clusters](/docs/concepts/overview/kubectl/ "m-docs-concepts-architecture-li")
+- [Using sysctls in a Kubernetes Cluster](/docs/concepts/architecture/ "m-docs-concepts-architecture-nodes-li")
+- [Verify Signed Kubernetes Artifacts](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-control-plane-node-communication-li")
+- [Configure Pods and Containers](/docs/concepts/architecture/controller/ "m-docs-concepts-architecture-controller-li")
+- [Assign Memory Resources to Containers and Pods](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-leases-li")
+- [Assign CPU Resources to Containers and Pods](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cloud-controller-li")
+- [Assign Devices to Pods and Containers](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-self-healing-li")- [Set Up DRA in a Cluster](/docs/concepts/architecture/self-healing/ "m-docs-concepts-architecture-garbage-collection-li")
+- [Allocate Devices to Workloads with DRA](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [Access DRA Device Metadata](/docs/concepts/containers/ "m-docs-concepts-containers-images-li")
+- [Assign Pod-level CPU and memory resources](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-container-environment-li")
+- [Configure GMSA for Windows Pods and containers](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-runtime-class-li")
+- [Resize CPU and Memory Resources assigned to Containers](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-container-lifecycle-hooks-li")
+- [Resize CPU and Memory Resources assigned to Pods](/docs/concepts/containers/cri/ "m-docs-concepts-workloads-li")
+- [Configure RunAsUserName for Windows pods and containers](/docs/concepts/workloads/pods/ "m-docs-concepts-workloads-pods-li")
+- [Create a Windows HostProcess Pod](/docs/concepts/workloads/pods/pod-lifecycle/ "m-docs-concepts-workloads-pods-pod-lifecycle-li")
+- [Configure Quality of Service for Pods](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-init-containers-li")
+- [Assign Extended Resources to a Container](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [Configure a Pod to Use a Volume for Storage](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [Configure a Pod to Use a Projected Volume for Storage](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-probes-li")
+- [Configure a Security Context for a Pod or Container](/images/kubernetes.png "description")
+- [Configure Service Accounts for Pods](/icons/apple-touch-icon-196x196.png "description")
+- [Pull an Image from a Private Registry](/icons/icon-128x128.png "description")
+- [Configure Liveness, Readiness and Startup Probes](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Assign Pods to Nodes](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Assign Pods to Nodes using Node Affinity](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [Configure Pod Initialization](de "This page is not available in বাংলা (Bengali)")
+- [Attach Handlers to Container Lifecycle Events](vi "This page is not available in বাংলা (Bengali)")
+- [Configure a Pod to Use a ConfigMap](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [Share Process Namespace between Containers in a Pod](/ "This page is not available in বাংলা (Bengali)")
+- [Use a User Namespace With a Pod](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Use an Image Volume With a Pod](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Set Permissions on an emptyDir Volume](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Set Bind Mount Options on Volume Mounts](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Create static Pods](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Translate a Docker Compose File to Kubernetes Resources](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Enforce Pod Security Standards by Configuring the Built-in Admission Controller](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Enforce Pod Security Standards with Namespace Labels](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Migrate from PodSecurityPolicy to the Built-In PodSecurity Admission Controller](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Monitoring, Logging, and Debugging](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Logging in Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Monitoring in Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Troubleshooting Applications](/docs/home/ "This page is not available in বাংলা (Bengali)")- [Debug Pods](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debug Services](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debug a StatefulSet](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Determine the Reason for Pod Failure](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debug Init Containers](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debug Running Pods](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Get a Shell to a Running Container](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Troubleshooting Clusters](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Troubleshooting kubectl](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Resource metrics pipeline](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Tools for Monitoring Resources](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Monitor Node Health](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debugging Kubernetes nodes with crictl](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Troubleshooting Topology Management](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Auditing](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Debugging Kubernetes Nodes With Kubectl](/careers/ "This page is not available in বাংলা (Bengali)")
+- [Developing and debugging services locally using telepresence](/releases "This page is not available in বাংলা (Bengali)")
+- [Windows debugging tips](# "This page is not available in বাংলা (Bengali)")
+- [Manage Kubernetes Objects](/id/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Declarative Management of Kubernetes Objects Using Configuration Files](/vi/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Declarative Management of Kubernetes Objects Using Kustomize](/it/ "This page is not available in Italiano (Italian)")
+- [Managing Kubernetes Objects Using Imperative Commands](/pl/ "This page is not available in Русский (Russian)")
+- [Imperative Management of Kubernetes Objects Using Configuration Files](#sun-fill "This page is not available in فارسی (Persian)")
+- [Update API Objects in Place Using kubectl patch](#sun-fill "This page is not available in فارسی (Persian)")
+- [Migrate Kubernetes Objects Using Storage Version Migration](#sun-fill "This page is not available in فارسی (Persian)")
+- [Managing Secrets](#sun-fill "This page is not available in فارسی (Persian)")
+- [Managing Secrets using kubectl](#sun-fill "This page is not available in فارسی (Persian)")
+- [Managing Secrets using Configuration File](#circle-half "This page is not available in فارسی (Persian)")
+- [Managing Secrets using Kustomize](# "This page is not available in فارسی (Persian)")
+- [Inject Data Into Applications](# "This page is not available in فارسی (Persian)")
+- [Define a Command and Arguments for a Container](# "This page is not available in فارسی (Persian)")
+- [Define Dependent Environment Variables](# "This page is not available in فارسی (Persian)")
+- [Define Environment Variables for a Container](/de/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Define Environment Variable Values Using An Init Container](/ru/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Expose Pod Information to Containers Through Environment Variables](/docs/ "m-docs-li")
+- [Expose Pod Information to Containers Through Files](/docs/home/supported-doc-versions/ "m-docs-setup-li")
+- [Distribute Credentials Securely Using Secrets](/docs/setup/learning-environment/ "m-docs-setup-learning-environment-li")
+- [Run Applications](/docs/setup/production-environment/ "m-docs-setup-production-environment-li")
+- [Run a Stateless Application Using a Deployment](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-tools-li")
+- [Horizontal Manual Scaling for a Deployment](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [Update a Deployment Without Downtime](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Run a Single-Instance Stateful Application](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Run a Replicated Stateful Application](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Scale a StatefulSet](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Delete a StatefulSet](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Force Delete StatefulSet Pods](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [HorizontalPodAutoscaler Walkthrough](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [Specifying a Disruption Budget for your Application](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [Accessing the Kubernetes API from a Pod](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Run Jobs](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Running Automated Tasks with a CronJob](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Coarse Parallel Processing Using a Work Queue](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Fine Parallel Processing Using a Work Queue](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+- [Indexed Job for Parallel Processing with Static Work Assignment](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-cluster-large-li")
+- [Job with Pod-to-Pod Communication](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-multiple-zones-li")
+- [Parallel Processing using Expansions](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [Handling retriable and non-retriable pod failures with Pod failure policy](/docs/setup/best-practices/enforcing-pod-security-standards/ "m-docs-setup-best-practices-certificates-li")
+- [Access Applications in a Cluster](/docs/setup/best-practices/certificates/ "m-docs-setup-best-practices-certificates-li")
+- [Deploy and Access the Kubernetes Dashboard](/docs/concepts/ "m-docs-concepts-li")
+- [Accessing Clusters](/docs/concepts/overview/components/ "m-docs-concepts-overview-components-li")
+- [Configure Access to Multiple Clusters](/docs/concepts/overview/working-with-objects/ "m-docs-concepts-overview-working-with-objects-li")
+- [Use Port Forwarding to Access Applications in a Cluster](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [Use a Service to Access an Application in a Cluster](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [Connect a Frontend to a Backend Using Services](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [Create an External Load Balancer](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [List All Container Images Running in a Cluster](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+- [Communicate Between Containers in the Same Pod Using a Shared Volume](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [Configure DNS for a Cluster](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [Access Services Running on Clusters](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [Extend Kubernetes](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-kubernetes-api-li")
+- [Configure the Aggregation Layer](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubectl-li")
+- [Use Custom Resources](/docs/concepts/overview/kubectl/ "m-docs-concepts-architecture-li")- [Extend the Kubernetes API with CustomResourceDefinitions](/docs/concepts/architecture/nodes/ "m-docs-concepts-architecture-nodes-li")
+- [Versions in CustomResourceDefinitions](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-controller-li")
+- [Set up an Extension API Server](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-leases-li")
+- [Configure Multiple Schedulers](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cloud-controller-li")
+- [Use an HTTP Proxy to Access the Kubernetes API](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-cgroups-li")
+- [Use a SOCKS5 Proxy to Access the Kubernetes API](/docs/concepts/architecture/self-healing/ "m-docs-concepts-architecture-garbage-collection-li")
+- [Set up Konnectivity service](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [TLS](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-containers-li")
+- [Issue a Certificate for a Kubernetes API Client Using a CertificateSigningRequest](/docs/concepts/containers/ "m-docs-concepts-containers-images-li")
+- [Configure Certificate Rotation for the Kubelet](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li")
+- [Manage TLS Certificates in a Cluster](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-runtime-class-li")
+- [Manual Rotation of CA Certificates](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-container-lifecycle-hooks-li")
+- [Manage Cluster Daemons](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-cri-li")
+- [Building a Basic DaemonSet](/docs/concepts/containers/cri/ "m-docs-concepts-workloads-li")
+- [Perform a Rolling Update on a DaemonSet](/docs/concepts/workloads/pods/ "m-docs-concepts-workloads-pods-li")
+- [Perform a Rollback on a DaemonSet](/docs/concepts/workloads/pods/pod-lifecycle/ "m-docs-concepts-workloads-pods-pod-lifecycle-li")
+- [Running Pods on Only Some Nodes](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-pod-condition-li")
+- [Networking](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-init-containers-li")
+- [Adding entries to Pod /etc/hosts with HostAliases](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [Extend Service IP Ranges](/docs/concepts/workloads/pods/ephemeral-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [Kubernetes Default ServiceCIDR Reconfiguration](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-probes-li")
+- [Validate IPv4/IPv6 dual-stack](/images/kubernetes.png "description")
+- [Extend kubectl with plugins](/icons/apple-touch-icon-256x256.png "description")
+- [Manage HugePages](/icons/apple-touch-icon-120x120.png "description")
+- [Schedule GPUs](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Tutorials](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Hello Minikube](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Learn Kubernetes Basics](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")- [Create a Cluster](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")- [Using Minikube to Create a Cluster](https://kubernetes.io/id/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Deploy an App](https://kubernetes.io/vi/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Using kubectl to Create a Deployment](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [Explore Your App](/ "This page is not available in বাংলা (Bengali)")
+- [Viewing Pods and Nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Expose Your App Publicly](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Using a Service to Expose Your App](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Scale Your App](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Running Multiple Instances of Your App](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Update Your App](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Performing a Rolling Update](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Configuration](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Updating Configuration via a ConfigMap](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Configuring Redis using a ConfigMap](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Adopting Sidecar Containers](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Configure a Pod to Use a PersistentVolume for Storage](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Security](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Apply Pod Security Standards at the Cluster Level](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Apply Pod Security Standards at the Namespace Level](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Restrict a Container's Access to Resources with AppArmor](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Restrict a Container's Syscalls with seccomp](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Stateless Applications](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Exposing an External IP Address to Access an Application in a Cluster](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Example: Deploying PHP Guestbook application with Redis](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Stateful Applications](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [StatefulSet Basics](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Example: Deploying WordPress and MySQL with Persistent Volumes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Example: Deploying Cassandra with a StatefulSet](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Running ZooKeeper, A Distributed System Coordinator](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Cluster Management](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Running Kubelet in Standalone Mode](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Configuring swap memory on Kubernetes nodes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Use Pod-Level Resources with kubelet Resource Managers](/training/ "This page is not available in বাংলা (Bengali)")
+- [Install Drivers and Allocate Devices with DRA](/releases "This page is not available in বাংলা (Bengali)")
+- [Explore Validating and Mutating Admission Policies](# "This page is not available in বাংলা (Bengali)")
+- [Namespaces Walkthrough](/id/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Services](/vi/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Connecting Applications with Services](/hi/ "This page is not available in Italiano (Italian)")
+- [Using Source IP](/fa/ "This page is not available in Polski (Polish)")
+- [Explore Termination Behavior for Pods And Their Endpoints](/uk/ "This page is not available in Українська (Ukrainian)")
+- [Reference](#sun-fill "This page is not available in فارسی (Persian)")
+- [Glossary](#sun-fill "This page is not available in فارسی (Persian)")
+- [API Overview](#sun-fill "This page is not available in فارسی (Persian)")- [Declarative API Validation](#sun-fill "This page is not available in فارسی (Persian)")
+- [Kubernetes API Concepts](#sun-fill "This page is not available in فارسی (Persian)")
+- [Server-Side Apply](#sun-fill "This page is not available in فارسی (Persian)")
+- [Client Libraries](#circle-half "This page is not available in فارسی (Persian)")
+- [Common Expression Language in Kubernetes](# "This page is not available in فارسی (Persian)")
+- [Kubernetes Deprecation Policy](# "This page is not available in فارسی (Persian)")
+- [Deprecated API Migration Guide](# "This page is not available in فارسی (Persian)")
+- [Kubernetes API health endpoints](# "This page is not available in فارسی (Persian)")
+- [API Access Control](# "This page is not available in فارسی (Persian)")
+- [Authenticating](/fr/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Authenticating with Bootstrap Tokens](/ko/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Authorization](/vi/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Using RBAC Authorization](/docs/home/ "m-docs-home-li")
+- [Using Node Authorization](/docs/home/supported-doc-versions/ "m-docs-home-supported-doc-versions-li")
+- [Webhook Mode](/docs/setup/ "m-docs-setup-li")
+- [Using ABAC Authorization](/docs/setup/learning-environment/ "m-docs-setup-production-environment-li")
+- [Admission Control](/docs/setup/production-environment/ "m-docs-setup-production-environment-container-runtimes-li")
+- [Dynamic Admission Control](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-li")
+- [Managing Service Accounts](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [User Impersonation](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Certificates and Certificate Signing Requests](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Mapping PodSecurityPolicies to Pod Security Standards](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Kubelet authentication/authorization](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [TLS bootstrapping](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Manifest-Based Admission Control](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [Mutating Admission Policy](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [Validating Admission Policy](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Well-Known Labels, Annotations and Taints](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Audit Annotations](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Kubernetes API](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [API Groups](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+- [Admissionregistration](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-cluster-large-li")- [MutatingAdmissionPolicy](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li")
+- [MutatingAdmissionPolicyBinding](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [MutatingWebhookConfiguration](/docs/setup/best-practices/certificates/ "m-docs-setup-best-practices-certificates-li")
+- [ValidatingAdmissionPolicy](/docs/concepts/ "m-docs-concepts-overview-li")
+- [ValidatingAdmissionPolicyBinding](/docs/concepts/overview/components/ "m-docs-concepts-overview-working-with-objects-li")
+- [ValidatingWebhookConfiguration](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-object-management-li")
+- [Apiextensions](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [CustomResourceDefinition](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [Apiregistration](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [APIService](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [Apiserverinternal](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+- [StorageVersion](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-finalizers-li")
+- [Apps](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [ControllerRevision](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [DaemonSet](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [Deployment](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubernetes-api-li")
+- [ReplicaSet](/docs/concepts/overview/kubectl/ "m-docs-concepts-overview-kubectl-li")
+- [StatefulSet](/docs/concepts/architecture/ "m-docs-concepts-architecture-li")
+- [Autoscaling](/docs/concepts/architecture/nodes/ "m-docs-concepts-architecture-nodes-li")
+- [HorizontalPodAutoscaler](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-controller-li")
+- [Batch](/docs/concepts/architecture/controller/ "m-docs-concepts-architecture-leases-li")
+- [CronJob](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-cloud-controller-li")
+- [Job](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cgroups-li")
+- [Certificates](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-self-healing-li")
+- [CertificateSigningRequest](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-garbage-collection-li")
+- [ClusterTrustBundle](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [PodCertificateRequest](/docs/concepts/containers/ "m-docs-concepts-containers-images-li")
+- [Coordination](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li")
+- [Lease](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-runtime-class-li")
+- [LeaseCandidate](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-container-lifecycle-hooks-li")
+- [Discovery](/docs/concepts/containers/cri/ "m-docs-concepts-containers-cri-li")
+- [EndpointSlice](/docs/concepts/workloads/ "m-docs-concepts-workloads-pods-li")
+- [Events](/docs/concepts/workloads/pods/ "m-docs-concepts-workloads-pods-pod-lifecycle-li")
+- [Event](/docs/concepts/workloads/pods/pod-lifecycle/ "m-docs-concepts-workloads-pods-pod-condition-li")
+- [Core](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-init-containers-li")
+- [ComponentStatus](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [ConfigMap](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [Endpoints](/docs/concepts/workloads/pods/ephemeral-containers/ "m-docs-concepts-workloads-pods-probes-li")
+- [Event](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-disruptions-li")
+- [LimitRange](/icons/favicon-64.png "description")
+- [Namespace](/icons/apple-touch-icon-180x180.png "description")
+- [Node](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "description")
+- [PersistentVolume](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [PersistentVolumeClaim](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Pod](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")
+- [PodTemplate](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [ReplicationController](ja "This page is not available in বাংলা (Bengali)")
+- [ResourceQuota](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [Secret](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [Service](/ "This page is not available in বাংলা (Bengali)")
+- [ServiceAccount](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Flowcontrol](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [FlowSchema](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [PriorityLevelConfiguration](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Lifecycle](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Eviction](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [EvictionRequest](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Networking](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [IPAddress](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Ingress](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [IngressClass](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [NetworkPolicy](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ServiceCIDR](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Node](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [RuntimeClass](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Policy](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [PodDisruptionBudget](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Rbac](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ClusterRole](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ClusterRoleBinding](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Role](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [RoleBinding](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Resource](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [DeviceClass](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [DeviceTaintRule](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ResourceClaim](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ResourceClaimTemplate](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ResourcePoolStatusRequest](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [ResourceSlice](/partners/ "This page is not available in বাংলা (Bengali)")
+- [Scheduling](/releases "This page is not available in বাংলা (Bengali)")
+- [CompositePodGroup](# "This page is not available in বাংলা (Bengali)")
+- [PodGroup](/ja/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [PriorityClass](/bn/ "This page is not available in বাংলা (Bengali)")
+- [Workload](/it/ "This page is not available in فارسی (Persian)")
+- [Storage](/ru/ "This page is not available in Русский (Russian)")
+- [CSIDriver](#sun-fill "This page is not available in فارسی (Persian)")
+- [CSINode](#sun-fill "This page is not available in فارسی (Persian)")
+- [CSIStorageCapacity](#sun-fill "This page is not available in فارسی (Persian)")
+- [StorageClass](#sun-fill "This page is not available in فارسی (Persian)")
+- [VolumeAttachment](#sun-fill "This page is not available in فارسی (Persian)")
+- [VolumeAttributesClass](#moon-stars-fill "This page is not available in فارسی (Persian)")
+- [Storagemigration](# "This page is not available in فارسی (Persian)")
+- [StorageVersionMigration](# "This page is not available in فارسی (Persian)")
+- [Instrumentation](# "This page is not available in فارسی (Persian)")
+- [Service Level Indicator Metrics](# "This page is not available in فارسی (Persian)")
+- [CRI Pod & Container Metrics](# "This page is not available in فارسی (Persian)")
+- [Native Histograms](/hi/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Node metrics data](/ru/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Understand Pressure Stall Information (PSI) Metrics](/docs/ "m-docs-li")
+- [Kubernetes z-pages](/docs/home/ "Kubernetes Documentation")
+- [Kubernetes Metrics Reference](/docs/home/supported-doc-versions/ "m-docs-setup-li")
+- [Kubernetes Issues and Security](/docs/setup/ "m-docs-setup-learning-environment-li")
+- [Kubernetes Issue Tracker](/docs/setup/production-environment/ "m-docs-setup-production-environment-li")
+- [Kubernetes Security and Disclosure Information](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-container-runtimes-li")
+- [CVE feed](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-li")
+- [Node Reference Information](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [Kubelet Checkpoint API](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Linux Kernel Version Requirements](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [Standard Device Attributes for Dynamic Resource Allocation](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Articles on dockershim Removal and on Using CRI-compatible Runtimes](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Kubelet Pods API](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Pod-level resource managers reference](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [Node Labels Populated By The Kubelet](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [Kubelet Sync Loop](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [Local Files And Paths Used By The Kubelet](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Kubelet Configuration Directory Merging](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Kubelet Device Manager API Versions](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Kubelet Systemd Watchdog](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Node Status](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-best-practices-li")
+- [Seccomp and Kubernetes](/docs/setup/best-practices/ "m-docs-setup-best-practices-cluster-large-li")
+- [What Happens After A Node Restart](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-multiple-zones-li")
+- [Linux Node Swap Behaviors](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li")
+-
+- [Networking Reference](/docs/setup/best-practices/enforcing-pod-security-standards/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [Protocols for Services](/docs/setup/best-practices/certificates/ "m-docs-setup-best-practices-certificates-li")
+- [Ports and Protocols](/docs/concepts/ "m-docs-concepts-li")
+- [Virtual IPs and Service Proxies](/docs/concepts/overview/ "m-docs-concepts-overview-li")
+- [Setup tools](/docs/concepts/overview/components/ "m-docs-concepts-overview-working-with-objects-li")
+- [Kubeadm](/docs/concepts/overview/working-with-objects/ "m-docs-concepts-overview-working-with-objects-object-management-li")- [kubeadm init](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [kubeadm join](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-names-li")
+- [kubeadm upgrade](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [kubeadm upgrade phases](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [kubeadm config](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [kubeadm reset](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+- [kubeadm token](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-finalizers-li")
+- [kubeadm version](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [kubeadm alpha](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [kubeadm certs](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [kubeadm init phase](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-kubernetes-api-li")
+- [kubeadm join phase](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubectl-li")
+- [kubeadm kubeconfig](/docs/concepts/architecture/ "m-docs-concepts-architecture-li")
+- [kubeadm reset phase](/docs/concepts/architecture/nodes/ "m-docs-concepts-architecture-nodes-li")
+- [Implementation details](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-controller-li")
+- [Command line tool (kubectl)](/docs/concepts/architecture/controller/ "m-docs-concepts-architecture-controller-li")
+- [Introduction to kubectl](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-leases-li")
+- [kubectl Quick Reference](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cgroups-li")
+- [kubectl reference](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-cgroups-li")- [kubectl](/docs/concepts/architecture/self-healing/ "m-docs-concepts-architecture-self-healing-li")
+- [kubectl annotate](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [kubectl api-resources](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-containers-li")
+- [kubectl api-versions](/docs/concepts/containers/ "m-docs-concepts-containers-images-li")
+- [kubectl apply](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li")- [kubectl apply edit-last-applied](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-runtime-class-li")
+- [kubectl apply set-last-applied](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-cri-li")
+- [kubectl apply view-last-applied](/docs/concepts/workloads/ "m-docs-concepts-workloads-li")
+- [kubectl attach](/docs/concepts/workloads/pods/ "m-docs-concepts-workloads-pods-li")
+- [kubectl auth](/docs/concepts/workloads/pods/pod-lifecycle/ "m-docs-concepts-workloads-pods-pod-condition-li")
+- [kubectl auth can-i](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-init-containers-li")
+- [kubectl auth reconcile](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [kubectl auth whoami](/docs/concepts/workloads/pods/ephemeral-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [kubectl autoscale](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-probes-li")
+- [kubectl certificate](/images/kubernetes.png "description")
+- [kubectl certificate approve](/icons/apple-touch-icon-192x192.png "description")
+- [kubectl certificate deny](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [kubectl cluster-info](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [kubectl cluster-info dump](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")
+- [kubectl completion](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [kubectl config](id "This page is not available in বাংলা (Bengali)")
+- [kubectl config current-context](vi "This page is not available in বাংলা (Bengali)")
+- [kubectl config delete-cluster](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [kubectl config delete-context](/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config delete-user](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config get-clusters](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config get-contexts](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config get-users](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config rename-context](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config set](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config set-cluster](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config set-context](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config set-credentials](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config unset](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config use-context](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl config view](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl cordon](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl cp](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create clusterrole](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create clusterrolebinding](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create configmap](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create cronjob](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create deployment](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create ingress](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create job](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create namespace](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create poddisruptionbudget](/blog/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create priorityclass](/releases "This page is not available in বাংলা (Bengali)")
+- [kubectl create quota](# "This page is not available in বাংলা (Bengali)")
+- [kubectl create role](/ja/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [kubectl create rolebinding](/bn/ "This page is not available in हिन्दी (Hindi)")
+- [kubectl create secret](/fa/ "This page is not available in فارسی (Persian)")
+- [kubectl create secret docker-registry](/uk/ "This page is not available in Українська (Ukrainian)")
+- [kubectl create secret generic](#sun-fill "This page is not available in فارسی (Persian)")
+- [kubectl create secret tls](#sun-fill "This page is not available in فارسی (Persian)")
+- [kubectl create service](#sun-fill "This page is not available in فارسی (Persian)")
+- [kubectl create service clusterip](#sun-fill "This page is not available in فارسی (Persian)")
+- [kubectl create service externalname](#check2 "This page is not available in فارسی (Persian)")
+- [kubectl create service loadbalancer](# "This page is not available in فارسی (Persian)")
+- [kubectl create service nodeport](# "This page is not available in فارسی (Persian)")
+- [kubectl create serviceaccount](# "This page is not available in فارسی (Persian)")
+- [kubectl create token](/fr/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [kubectl debug](/pl/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [kubectl delete](/fa/ "This page is not available in فارسی (Persian)")
+- [kubectl describe](/docs/home/ "m-docs-home-li")
+- [kubectl diff](/docs/home/supported-doc-versions/ "m-docs-setup-li")
+- [kubectl drain](/docs/setup/ "m-docs-setup-learning-environment-li")
+- [kubectl edit](/docs/setup/learning-environment/ "m-docs-setup-production-environment-li")
+- [kubectl events](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-container-runtimes-li")
+- [kubectl exec](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-li")
+- [kubectl explain](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [kubectl expose](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [kubectl get](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+- [kubectl kuberc](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [kubectl kuberc set](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [kubectl kuberc view](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [kubectl kustomize](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+- [kubectl label](/docs/setup/production-environment/tools/kubeadm/high-availability/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")
+- [kubectl logs](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+- [kubectl options](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [kubectl patch](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [kubectl plugin](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [kubectl plugin list](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [kubectl port-forward](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+- [kubectl proxy](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-multiple-zones-li")
+- [kubectl replace](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li")
+- [kubectl rollout](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li")
+- [kubectl rollout history](/docs/setup/best-practices/enforcing-pod-security-standards/ "m-docs-setup-best-practices-certificates-li")
+- [kubectl rollout pause](/docs/concepts/ "m-docs-concepts-li")
+- [kubectl rollout restart](/docs/concepts/overview/ "m-docs-concepts-overview-components-li")
+- [kubectl rollout resume](/docs/concepts/overview/working-with-objects/ "m-docs-concepts-overview-working-with-objects-li")
+- [kubectl rollout status](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-object-management-li")
+- [kubectl rollout undo](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-labels-li")
+- [kubectl run](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-namespaces-li")
+- [kubectl scale](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [kubectl set](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-annotations-li")
+- [kubectl set env](/docs/concepts/overview/working-with-objects/field-selectors/ "m-docs-concepts-overview-working-with-objects-finalizers-li")
+- [kubectl set image](/docs/concepts/overview/working-with-objects/finalizers/ "m-docs-concepts-overview-working-with-objects-owners-dependents-li")
+- [kubectl set resources](/docs/concepts/overview/working-with-objects/owners-dependents/ "m-docs-concepts-overview-working-with-objects-common-labels-li")
+- [kubectl set selector](/docs/concepts/overview/working-with-objects/common-labels/ "m-docs-concepts-overview-working-with-objects-storage-version-li")
+- [kubectl set serviceaccount](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-kubernetes-api-li")
+- [kubectl set subject](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubectl-li")
+- [kubectl taint](/docs/concepts/architecture/ "m-docs-concepts-architecture-li")
+- [kubectl top](/docs/concepts/architecture/nodes/ "m-docs-concepts-architecture-nodes-li")
+- [kubectl top node](/docs/concepts/architecture/control-plane-node-communication/ "m-docs-concepts-architecture-controller-li")
+- [kubectl top pod](/docs/concepts/architecture/controller/ "m-docs-concepts-architecture-leases-li")
+- [kubectl uncordon](/docs/concepts/architecture/leases/ "m-docs-concepts-architecture-cloud-controller-li")
+- [kubectl version](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cgroups-li")
+- [kubectl wait](/docs/concepts/architecture/cgroups/ "m-docs-concepts-architecture-self-healing-li")
+- [kubectl Commands](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-garbage-collection-li")
+- [kubectl](/docs/concepts/architecture/garbage-collection/ "m-docs-concepts-architecture-mixed-version-proxy-li")
+- [JSONPath Support](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-containers-li")
+- [kubectl for Docker Users](/docs/concepts/containers/ "m-docs-concepts-containers-images-li")
+- [kubectl Usage Conventions](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li")
+- [Kubectl user preferences (kuberc)](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-runtime-class-li")
+- [Encodings](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-container-lifecycle-hooks-li")
+- [KYAML Reference](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-cri-li")
+- [Component tools](/docs/concepts/containers/cri/ "m-docs-concepts-containers-cri-li")
+- [Feature Gates](/docs/concepts/workloads/ "m-docs-concepts-workloads-pods-li")
+- [Feature Gates (removed)](/docs/concepts/workloads/pods/pod-lifecycle/ "m-docs-concepts-workloads-pods-pod-lifecycle-li")
+- [kube-apiserver](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-pod-condition-li")
+- [kube-controller-manager](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li")
+- [kube-proxy](/docs/concepts/workloads/pods/sidecar-containers/ "m-docs-concepts-workloads-pods-ephemeral-containers-li")
+- [kube-scheduler](/docs/concepts/workloads/pods/ephemeral-containers/ "m-docs-concepts-workloads-pods-probes-li")
+- [kubelet](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-disruptions-li")
+- [Debug cluster](/images/kubernetes.png "description")
+- [Flow control](/icons/apple-touch-icon-180x180.png "description")
+- [Configuration APIs](/icons/apple-touch-icon-76x76.png "description")
+- [Client Authentication (v1)](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Client Authentication (v1beta1)](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")
+- [Event Rate Limit Configuration (v1alpha1)](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")
+- [Image Policy API (v1alpha1)](/manifest.webmanifest "This page is not available in বাংলা (Bengali)")
+- [kube-apiserver Admission (v1)](ja "This page is not available in বাংলা (Bengali)")
+- [kube-apiserver Audit Configuration (v1)](vi "This page is not available in বাংলা (Bengali)")
+- [kube-apiserver Configuration (v1)](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)")
+- [kube-apiserver Configuration (v1alpha1)](/ "This page is not available in বাংলা (Bengali)")
+- [kube-apiserver Configuration (v1beta1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kube-controller-manager Configuration (v1alpha1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kube-proxy Configuration (v1alpha1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kube-scheduler Configuration (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubeadm Configuration (v1beta3)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubeadm Configuration (v1beta4)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kubeconfig (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet Configuration (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet Configuration (v1alpha1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet Configuration (v1beta1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet CredentialProvider (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kuberc (v1alpha1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [kuberc (v1beta1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [WebhookAdmission Configuration (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [External APIs](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubernetes Custom Metrics (v1beta2)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubernetes External Metrics (v1beta1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubernetes Metrics (v1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubernetes Metrics (v1beta1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet APIs](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Kubelet Summary API (v1alpha1)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Scheduling](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Scheduler Configuration](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Scheduling Policies](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Other Tools](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Contribute](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Contribute to Kubernetes Documentation](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Contributing to Kubernetes blogs](/docs/home/ "This page is not available in বাংলা (Bengali)")- [Submitting articles to Kubernetes blogs](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Blog guidelines](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Blog article mirroring](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Post-release communications](/partners/ "This page is not available in বাংলা (Bengali)")
+- [Helping as a blog writing buddy](/releases "This page is not available in বাংলা (Bengali)")
+- [Suggesting content improvements](# "This page is not available in বাংলা (Bengali)")
+- [Contributing new content](/de/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Opening a pull request](/pt-br/docs/concepts/services-networking/service/ "This page is not available in বাংলা (Bengali)")
+- [Previewing locally](/bn/ "This page is not available in हिन्दी (Hindi)")
+- [Documenting for a release](/fa/ "This page is not available in فارسی (Persian)")
+- [Case studies](/ru/ "This page is not available in Русский (Russian)")
+- [Reviewing changes](#sun-fill "This page is not available in فارسی (Persian)")
+- [Reviewing pull requests](#sun-fill "This page is not available in فارسی (Persian)")
+- [For approvers and reviewers](#sun-fill "This page is not available in فارسی (Persian)")
+- [Localizing Kubernetes documentation](#sun-fill "This page is not available in فارسی (Persian)")
+- [Participating in SIG Docs](#sun-fill "This page is not available in فارسی (Persian)")
+- [Roles and responsibilities](#sun-fill "This page is not available in فارسی (Persian)")
+- [Issue Wranglers](#circle-half "This page is not available in فارسی (Persian)")
+- [PR wranglers](# "This page is not available in فارسی (Persian)")
+- [Documentation style overview](# "This page is not available in فارسی (Persian)")
+- [Content guide](# "This page is not available in فارسی (Persian)")
+- [Style guide](# "This page is not available in فارسی (Persian)")
+- [Diagram guide](# "This page is not available in فارسی (Persian)")
+- [Writing a new topic](/bn/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Page content types](/it/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Content organization](/es/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Custom Hugo Shortcodes](/docs/ "m-docs-li")
+- [Updating Reference Documentation](/docs/home/ "Kubernetes Documentation")
+- [Quickstart](/docs/home/supported-doc-versions/ "m-docs-setup-li")
+- [Contributing to the Upstream Kubernetes Code](/docs/setup/learning-environment/ "m-docs-setup-learning-environment-li")
+- [Generating Reference Documentation for the Kubernetes API](/docs/setup/production-environment/ "m-docs-setup-production-environment-container-runtimes-li")
+- [Generating Reference Documentation for Configuration APIs](/docs/setup/production-environment/container-runtimes/ "m-docs-setup-production-environment-tools-li")
+- [Generating Reference Documentation for kubectl Commands](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-kubeadm-li")
+- [Generating Reference Documentation for Metrics](/docs/setup/production-environment/tools/kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-install-kubeadm-li")
+- [Generating Reference Pages for Kubernetes Components and Tools](/docs/setup/production-environment/tools/kubeadm/install-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li")
+-
+- [Advanced contributing](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-create-cluster-kubeadm-li")
+- [Viewing Site Analytics](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-control-plane-flags-li")
+- [Docs smoke test page](/docs/setup/production-environment/tools/kubeadm/control-plane-flags/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")
+
+[** Service API reference](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")[**
+Edit this page](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-ha-topology-li")[**
+Create child page](/docs/setup/production-environment/tools/kubeadm/ha-topology/ "m-docs-setup-production-environment-tools-kubeadm-high-availability-li")[**
+Create an issue](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")[**
+Print entire section](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-setup-ha-etcd-with-kubeadm-li")
+
+
+- [Services in Kubernetes](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")- [Cloud-native service discovery](/docs/setup/production-environment/tools/kubeadm/setup-ha-etcd-with-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Defining a Service](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Port definitions](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Services without selectors](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [EndpointSlices](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Endpoints (deprecated)](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Application protocol](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-kubelet-integration-li")
+- [Multi-port Services](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Service type](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [`type: ClusterIP`](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [`type: NodePort`](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [`type: LoadBalancer`](/docs/setup/production-environment/tools/kubeadm/kubelet-integration/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [`type: ExternalName`](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Headless Services](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [With selectors](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Without selectors](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Discovering services](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-tools-kubeadm-dual-stack-support-li")
+- [Environment variables](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [DNS](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Virtual IP addressing mechanism](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Traffic policies](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Traffic distribution control](/docs/setup/production-environment/tools/kubeadm/dual-stack-support/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [Session stickiness](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [External IPs](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [API Object](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+- [What's next](/docs/setup/production-environment/turnkey-solutions/ "m-docs-setup-production-environment-turnkey-solutions-li")
+
+1. [Kubernetes Documentation](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+2. [Concepts](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+3. [Services, Load Balancing, and Networking](/docs/setup/best-practices/ "m-docs-setup-best-practices-li")
+4. Service
+
+
+# Service
+
+Expose an application running in your cluster behind a single outward-facing endpoint,
+even when the workload is split across multiple backends.
+In Kubernetes, a Service is a method for exposing a network application that is running
+as one or more[Pods](/docs/setup/best-practices/cluster-large/ "m-docs-setup-best-practices-multiple-zones-li") in your cluster.
+
+A key aim of Services in Kubernetes is that you don't need to modify your existingapplication
+to use an unfamiliar service discovery mechanism.You can run code in Pods, whether
+this is a code designed for a cloud-native world, oran older app you've containerized.
+You use a Service to make that set of Pods availableon the network so that clients
+can interact with it.
+
+If you use a [Deployment](/docs/setup/best-practices/multiple-zones/ "m-docs-setup-best-practices-node-conformance-li") to run your app,that Deployment can create and destroy Pods dynamically. From one moment to the next,you don't know how many of those Pods are working and healthy; you might not even knowwhat those healthy Pods are named.Kubernetes [Pods](/docs/setup/best-practices/node-conformance/ "m-docs-setup-best-practices-enforcing-pod-security-standards-li") are created and destroyedto match the desired state of your cluster. Pods are ephemeral resources (you should notexpect that an individual Pod is reliable and durable).
+
+Each Pod gets its own IP address (Kubernetes expects network plugins to ensure this).For
+a given Deployment in your cluster, the set of Pods running in one moment intime
+could be different from the set of Pods running that application a moment later.
+
+This leads to a problem: if some set of Pods (call them "backends") providesfunctionality
+to other Pods (call them "frontends") inside your cluster,how do the frontends find
+out and keep track of which IP address to connectto, so that the frontend can use
+the backend part of the workload?
+
+Enter *Services*.
+
+## Services in Kubernetes
+
+The Service API, part of Kubernetes, is an abstraction to help you expose groups
+ofPods over a network. Each Service object defines a logical set of endpoints (usuallythese
+endpoints are Pods) along with a policy about how to make those pods accessible.
+
+For example, consider a stateless image-processing backend which is running with3
+replicas. Those replicas are fungible—frontends do not care which backendthey use.
+While the actual Pods that compose the backend set may change, thefrontend clients
+should not need to be aware of that, nor should they need to keeptrack of the set
+of backends themselves.
+
+The Service abstraction enables this decoupling.
+
+The set of Pods targeted by a Service is usually determinedby a [selector](/docs/concepts/overview/ "m-docs-concepts-overview-components-li") that youdefine.To learn about other ways to define Service endpoints,see [Services
+*without* selectors](/docs/concepts/overview/components/ "m-docs-concepts-overview-working-with-objects-li").
+
+If your workload speaks HTTP, you might choose to use an[Ingress](/docs/concepts/overview/working-with-objects/ "m-docs-concepts-overview-working-with-objects-li") to control how web trafficreaches that workload.Ingress is not a Service type, but it acts as the entry point for yourcluster. An Ingress lets you consolidate your routing rules into a single resource, sothat you can expose multiple components of your workload, running separately in yourcluster, behind a single listener.
+
+The [Gateway](/docs/concepts/overview/working-with-objects/ "m-docs-concepts-overview-working-with-objects-object-management-li") API for Kubernetesprovides extra capabilities beyond Ingress and Service. You can add Gateway to your cluster -it is a family of extension APIs, implemented using[CustomResourceDefinitions](/docs/concepts/overview/working-with-objects/object-management/ "m-docs-concepts-overview-working-with-objects-object-management-li") -and then use these to configure access to network services that are running in your cluster.
+
+### Cloud-native service discovery
+
+If you're able to use Kubernetes APIs for service discovery in your application,you
+can query the [API server](/docs/concepts/overview/working-with-objects/names/ "m-docs-concepts-overview-working-with-objects-labels-li")for matching EndpointSlices. Kubernetes updates the EndpointSlices for a Servicewhenever the set of Pods in a Service changes.
+
+For non-native applications, Kubernetes offers ways to place a network port or loadbalancer
+in between your application and the backend Pods.
+
+Either way, your workload can use these [service discovery](/docs/concepts/overview/working-with-objects/labels/ "m-docs-concepts-overview-working-with-objects-namespaces-li")mechanisms to find the target it wants to connect to.
+
+## Defining a Service
+
+A Service is an [object](/docs/concepts/overview/working-with-objects/namespaces/ "m-docs-concepts-overview-working-with-objects-namespaces-li")(the same way that a Pod or a ConfigMap is an object). You can create,view or modify Service definitions using the Kubernetes API. Usuallyyou use a tool such as `kubectl`
+to make those API calls for you.
+
+For example, suppose you have a set of Pods that each listen on TCP port 9376and
+are labelled as `app.kubernetes.io/name=MyApp`. You can define a Service topublish that TCP listener:
+
+[`service/simple-service.yaml`](/docs/concepts/overview/working-with-objects/annotations/ "m-docs-concepts-overview-working-with-objects-field-selectors-li")![checkbox](/images/copycode.svg "m-docs-concepts-overview-working-with-objects-field-selectors-li")
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+```
+
+Applying this manifest creates a new Service named "my-service" with the defaultClusterIP
+[service type](/docs/concepts/overview/working-with-objects/storage-version/ "m-docs-concepts-overview-kubernetes-api-li"). The Servicetargets TCP port 9376 on any Pod with the `app.kubernetes.io/name: MyApp`
+label.
+
+Kubernetes assigns this Service an IP address (the *cluster IP*),that is used by
+the virtual IP address mechanism. For more details on that mechanism,read [Virtual IPs and Service Proxies](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubernetes-api-li").
+
+The controller for that Service continuously scans for Pods thatmatch its selector,
+and then makes any necessary updates to the set ofEndpointSlices for the Service.
+
+The name of a Service object must be a valid[RFC 1123 label name](/docs/concepts/overview/kubernetes-api/ "m-docs-concepts-overview-kubectl-li").
+
+
+#### Note:
+A Service can map *any* incoming `port` to a `targetPort`. By default andfor convenience, the `targetPort`
+is set to the same value as the `port`field.
+### Port definitions
+
+Port definitions in Pods have names, and you can reference these names in the`targetPort` attribute
+of a Service. For example, we can bind the `targetPort`of the Service to the Pod port in the
+following way:
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__section
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app.kubernetes.io/name: proxy
+  ports:
+  - name: name-of-service-port
+    protocol: TCP
+    port: 80
+    targetPort: http-web-svc
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable
+    ports:
+      - containerPort: 80
+        name: http-web-svc
+```
+
+This works even if there is a mixture of Pods in the Service using a singleconfigured
+name, with the same network protocol available via differentport numbers. This offers
+a lot of flexibility for deploying and evolvingyour Services. For example, you can
+change the port numbers that Pods exposein the next version of your backend software,
+without breaking clients.
+
+The default protocol for Services is[TCP](/docs/concepts/containers/images/ "m-docs-concepts-containers-container-environment-li"); you can alsouse any other [supported protocol](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-container-environment-li").
+
+Because many Services need to expose more than one port, Kubernetes supports[multiple port definitions](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-container-environment-li") for a single Service.Each port definition can have the same
+`protocol`, or a different one.
+
+### Services without selectors
+
+Services most commonly abstract access to Kubernetes Pods thanks to the selector,but
+when used with a corresponding set of[EndpointSlices](/docs/concepts/containers/runtime-class/ "m-docs-concepts-containers-runtime-class-li")objects and without a selector, the Service can abstract other kinds of backends,including ones that run outside the cluster.
+
+For example:
+
+- You want to have an external database cluster in production, but in yourtest environment you use your own databases.
+- You want to point your Service to a Service in a different[Namespace](/docs/concepts/containers/container-lifecycle-hooks/ "m-docs-concepts-containers-cri-li") or on another cluster.
+- You are migrating a workload to Kubernetes. While evaluating the approach,you run only a portion of your backends in Kubernetes.
+
+In any of these scenarios you can define a Service *without* specifying aselector
+to match Pods. For example:
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376
+```
+
+Because this Service has no selector, the corresponding EndpointSliceobjects are
+not created automatically. You can map the Serviceto the network address and port
+where it's running, by adding an EndpointSliceobject manually. For example:
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: my-service-1 # by convention, use the name of the Service
+                     # as a prefix for the name of the EndpointSlice
+  labels:
+    # You should set the "kubernetes.io/service-name" label.
+    # Set its value to match the name of the Service
+    kubernetes.io/service-name: my-service
+addressType: IPv4
+ports:
+  - name: http # should match with the name of the service port defined above
+    appProtocol: http
+    protocol: TCP
+    port: 9376
+endpoints:
+  - addresses:
+      - "10.4.5.6"
+  - addresses:
+      - "10.1.2.3"
+```
+
+#### Custom EndpointSlices
+
+When you create an [EndpointSlice](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service") object for a Service, you canuse any name for the EndpointSlice. Each EndpointSlice in a namespace must have aunique name. You link an EndpointSlice to a Service by setting the`kubernetes.io/service-name`
+[label](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "This page is not available in বাংলা (Bengali)")on that EndpointSlice.
+
+
+#### Note:
+
+The endpoint IPs *must not* be: loopback (127.0.0.0/8 for IPv4, ::1/128 for IPv6),
+orlink-local (169.254.0.0/16 and 224.0.0.0/24 for IPv4, fe80::/64 for IPv6).
+
+The endpoint IP addresses cannot be the cluster IPs of other Kubernetes Services,because
+[kube-proxy](/manifest.webmanifest "This page is not available in বাংলা (Bengali)") doesn't support virtual IPsas a destination.
+
+For an EndpointSlice that you create yourself, or in your own code,you should also
+pick a value to use for the label[`endpointslice.kubernetes.io/managed-by`](de "This page is not available in বাংলা (Bengali)").If you create your own controller code to manage EndpointSlices, consider using avalue similar to
+`"my-domain.example/name-of-controller"`. If you are using a thirdparty tool, use
+the name of the tool in all-lowercase and change spaces and otherpunctuation to dashes
+(`-`).If people are directly using a tool such as `kubectl` to manage EndpointSlices,use
+a name that describes this manual management, such as `"staff"` or`"cluster-admins"`. You shouldavoid using
+the reserved value `"controller"`, which identifies EndpointSlicesmanaged by Kubernetes' own
+control plane.
+
+#### Accessing a Service without a selector
+
+Accessing a Service without a selector works the same as if it had a selector.In
+the [example](/css/toastr-2.1.4.min.css "This page is not available in বাংলা (Bengali)") for a Service without a selector,traffic is routed to one of the two endpoints defined inthe EndpointSlice manifest: a TCP connection to 10.1.2.3 or 10.4.5.6, on port 9376.
+
+
+#### Note:
+The Kubernetes API server does not allow proxying to endpoints that are not mapped
+topods. Actions such as `kubectl port-forward service/<service-name> forwardedPort:servicePort` where the service has noselector will fail due to this
+constraint. This prevents the Kubernetes API serverfrom being used as a proxy to
+endpoints the caller may not be authorized to access.
+An `ExternalName` Service is a special case of Service that does not haveselectors and uses DNS
+names instead. For more information, see the[ExternalName](/ "This page is not available in বাংলা (Bengali)") section.
+
+### EndpointSlices
+
+Feature state:Stable since Kubernetes v1.21
+[EndpointSlices](/docs/home/ "This page is not available in বাংলা (Bengali)") are objects thatrepresent a subset (a
+*slice*) of the backing network endpoints for a Service.
+
+Your Kubernetes cluster tracks how many endpoints each EndpointSlice represents.If
+there are so many endpoints for a Service that a threshold is reached, thenKubernetes
+adds another empty EndpointSlice and stores new endpoint informationthere.By default,
+Kubernetes makes a new EndpointSlice once the existing EndpointSlicesall contain
+at least 100 endpoints. Kubernetes does not make the new EndpointSliceuntil an extra
+endpoint needs to be added.
+
+See [EndpointSlices](/docs/home/ "This page is not available in বাংলা (Bengali)") for moreinformation about this API.
+
+### Endpoints (deprecated)
+
+Feature state:Deprecated since Kubernetes v1.33
+The EndpointSlice API is the evolution of the older[Endpoints](/docs/home/ "This page is not available in বাংলা (Bengali)")API. The deprecated Endpoints API has several problems relative toEndpointSlice:
+
+- It does not support dual-stack clusters.
+- It does not contain information needed to support newer features, such as[trafficDistribution](/docs/home/ "This page is not available in বাংলা (Bengali)").
+- It will truncate the list of endpoints if it is too long to fit in a single object.
+
+Because of this, it is recommended that all clients use theEndpointSlice API rather
+than Endpoints.
+
+#### Over-capacity endpoints
+
+Kubernetes limits the number of endpoints that can fit in a single Endpointsobject.
+When there are over 1000 backing endpoints for a Service, Kubernetestruncates the
+data in the Endpoints object. Because a Service can be linkedwith more than one EndpointSlice,
+the 1000 backing endpoint limit onlyaffects the legacy Endpoints API.
+
+In that case, Kubernetes selects at most 1000 possible backend endpoints to storeinto
+the Endpoints object, and sets an[annotation](/docs/home/ "This page is not available in বাংলা (Bengali)") on the Endpoints:[`endpoints.kubernetes.io/over-capacity: truncated`](/docs/home/ "This page is not available in বাংলা (Bengali)").The control plane also removes that annotation if the number of backend Pods drops below 1000.
+
+Traffic is still sent to backends, but any load balancing mechanism that relies on
+thelegacy Endpoints API only sends traffic to at most 1000 of the available backing
+endpoints.
+
+The same API limit means that you cannot manually update an Endpoints to have more
+than 1000 endpoints.
+
+### Application protocol
+
+Feature state:Stable since Kubernetes v1.20
+The `appProtocol` field provides a way to specify an application protocol foreach Service port.
+This is used as a hint for implementations to offerricher behavior for protocols
+that they understand.The value of this field is mirrored by the correspondingEndpoints
+and EndpointSlice objects.
+
+This field follows standard Kubernetes label syntax. Valid values are one of:
+
+- [IANA standard service names](/docs/home/ "This page is not available in বাংলা (Bengali)").
+- Implementation-defined prefixed names such as `mycompany.com/my-custom-protocol`.
+- Kubernetes-defined prefixed names:
+
+| Protocol            | Description                                                                                                                |
+|---------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `kubernetes.io/h2c` | HTTP/2 over cleartext as described in [RFC 9113](/docs/home/ "This page is not available in বাংলা (Bengali)")    |
+| `kubernetes.io/ws`  | WebSocket over cleartext as described in [RFC 6455](/docs/home/ "This page is not available in বাংলা (Bengali)") |
+| `kubernetes.io/wss` | WebSocket over TLS as described in [RFC 6455](/docs/home/ "This page is not available in বাংলা (Bengali)")       |
+
+### Multi-port Services
+
+For some Services, you need to expose more than one port.Kubernetes lets you configure
+multiple port definitions on a Service object.When using multiple ports for a Service,
+you must give all of your ports namesso that these are unambiguous.For example:
+
+```cls-1
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 9377
+```
+
+
+#### Note:
+
+As with Kubernetes [names](/docs/home/ "This page is not available in বাংলা (Bengali)") in general, names for portsmust only contain lowercase alphanumeric characters and
+`-`. Port names mustalso start and end with an alphanumeric character.
+
+For example, the names `123-abc` and `web` are valid, but `123_abc` and `-web` are not.
+
+## Service type
+
+For some parts of your application (for example, frontends) you may want to expose
+aService onto an external IP address, one that's accessible from outside of yourcluster.
+
+Kubernetes Service types allow you to specify what kind of Service you want.
+
+The available `type` values and their behaviors are:
+[`ClusterIP`](/docs/home/ "This page is not available in বাংলা (Bengali)")Exposes
+the Service on a cluster-internal IP. Choosing this valuemakes the Service only reachable
+from within the cluster. This is thedefault that is used if you don't explicitly
+specify a `type` for a Service.You can expose the Service to the public internet using
+an[Ingress](/docs/home/ "This page is not available in বাংলা (Bengali)") or a[Gateway](/docs/home/ "This page is not available in বাংলা (Bengali)").[`NodePort`](/docs/home/ "This page is not available in বাংলা
+(Bengali)")Exposes the Service on each Node's IP at a static port (the `NodePort`).To make
+the node port available, Kubernetes sets up a cluster IP address,the same as if you
+had requested a Service of `type: ClusterIP`.[`LoadBalancer`](/docs/home/ "This page is not available in বাংলা
+(Bengali)")Exposes the Service externally using an external load balancer. Kubernetesdoes
+not directly offer a load balancing component; you must provide one, oryou can integrate
+your Kubernetes cluster with a cloud provider.[`ExternalName`](/docs/home/ "This page is not available in বাংলা
+(Bengali)")Maps the Service to the contents of the `externalName` field (for example,to the
+hostname `api.foo.bar.example`). The mapping configures your cluster'sDNS server to return a `CNAME` record
+with that external hostname value.No proxying of any kind is set up.
+The `type` field in the Service API is designed as nested functionality - each leveladds
+to the previous. However there is an exception to this nested design. You candefine
+a `LoadBalancer` Service by[disabling the load balancer `NodePort` allocation](/docs/home/ "This page is not available in বাংলা (Bengali)").
+
+### `type: ClusterIP`
+
+This default Service type assigns an IP address from a pool of IP addresses thatyour
+cluster has reserved for that purpose.
+
+Several of the other types for Service build on the `ClusterIP` type as afoundation.
+
+If you define a Service that has the `.spec.clusterIP` set to `"None"` thenKubernetes does not assign
+an IP address. See [headless Services](/docs/home/ "This page is not available in বাংলা (Bengali)")for more information.
+
+#### Choosing your own IP address
+
+You can specify your own cluster IP address as part of a `Service` creationrequest. To do
+this, set the `.spec.clusterIP` field. For example, if youalready have an existing DNS entry that
+you wish to reuse, or legacy systemsthat are configured for a specific IP address
+and difficult to re-configure.
+
+The IP address that you choose must be a valid IPv4 or IPv6 address from within the`service-cluster-ip-range`
+CIDR range that is configured for the API server.If you try to create a Service with
+an invalid `clusterIP` address value, the APIserver will return a 422 HTTP status code to
+indicate that there's a problem.
+
+Read [avoiding collisions](/docs/home/ "This page is not available in বাংলা (Bengali)")to learn how Kubernetes helps reduce the risk and impact of two different Servicesboth trying to use the same IP address.
+
+### `type: NodePort`
+
+If you set the `type` field to `NodePort`, the Kubernetes control planeallocates a port from
+a range specified by `--service-node-port-range` flag (default: 30000-32767).Each node proxies that port (the
+same port number on every Node) into your Service.Your Service reports the allocated
+port in its `.spec.ports[*].nodePort` field.
+
+Using a NodePort gives you the freedom to set up your own load balancing solution,to
+configure environments that are not fully supported by Kubernetes, or evento expose
+one or more nodes' IP addresses directly.
+
+For a node port Service, Kubernetes additionally allocates a port (TCP, UDP orSCTP
+to match the protocol of the Service). Every node in the cluster configuresitself
+to listen on that assigned port and to forward traffic to one of the readyendpoints
+associated with that Service. You'll be able to contact the `type: NodePort`Service, from outside
+the cluster, by connecting to any node using the appropriateprotocol (for example:
+TCP), and the appropriate port (as assigned to that Service).
+
+#### Choosing your own port
+
+If you want a specific port number, you can specify a value in the `nodePort`field. The control
+plane will either allocate you that port or report thatthe API transaction failed.This
+means that you need to take care of possible port collisions yourself.You also have
+to use a valid port number, one that's inside the range configuredfor NodePort use.
+
+Here is an example manifest for a Service of `type: NodePort` that specifiesa NodePort value (30007,
+in this example):
+
+```nav-item me-4 mb-2 mb-lg-0
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - port: 80
+      # By default and for convenience, the `targetPort` is set to
+      # the same value as the `port` field.
+      targetPort: 80
+      # Optional field
+      # By default and for convenience, the Kubernetes control plane
+      # will allocate a port from a range (default: 30000-32767)
+      nodePort: 30007
+```
+
+#### Reserve Nodeport ranges to avoid collisions
+
+The policy for assigning ports to NodePort services applies to both the auto-assignment
+andthe manual assignment scenarios. When a user wants to create a NodePort service
+thatuses a specific port, the target port may conflict with another port that has
+already been assigned.
+
+To avoid this problem, the port range for NodePort services is divided into two bands.Dynamic
+port assignment uses the upper band by default, and it may use the lower band once
+theupper band has been exhausted. Users can then allocate from the lower band with
+a lower risk of port collision.
+
+When using the default NodePort range 30000-32767, the bands are partitioned as follows:
+
+- Static band: 30000-30085
+- Dynamic band: 30086-32767
+
+See [Avoid Collisions Assigning Ports to NodePort Services](#sun-fill "This page is not available in فارسی (Persian)")for more details on how the static and dynamic bands are calculated.
+
+#### IP address configuration for `type: NodePort` Services
+
+When using kube-proxy in [`iptables`mode](#sun-fill "This page is not available in فارسی (Persian)"), NodePort Services areavailable on all node IPs by default. When using
+[`nftables`mode](#sun-fill "This page is not available in فارسی (Persian)"), they are onlyavailable only on the node's primary IP (or dual-stack primary IPs) by default.
+
+You can change the set of node IPs that NodePort Services are available on with the`--nodeport-addresses`
+flag for kube-proxy, or the equivalent `nodePortAddresses`field of the [kube-proxy configuration file](#sun-fill "This page is not available in فارسی (Persian)").It accepts a comma-delimited list of IP blocks (e.g.
+`10.0.0.0/8`, `192.0.2.0/25`) or oneof more of the following keywords:
+
+- `primary` - the node's primary IPv4 and/or IPv6 address, according to the Node object.(This is the default value for `nftables` mode.)
+- `localhost` - the node's loopback addresses (`127.0.0.0/8`, `::1/128`).
+- `all` - all addresses. (This is the default value for `iptables` and `ipvs` mode.)
+
+For example, if you start kube-proxy with the flag `--nodeport-addresses=192.168.0.0/24`,then kube-proxy will try to
+find a local IP address on that subnet on each node, and serveNodePort Services only
+via that IP.
+
+#### `type: NodePort` Services via localhost
+
+The mechanisms used by service proxies to implement NodePort Services do not alwayssupport
+providing NodePort Services on localhost. For kube-proxy:
+
+- When using `iptables` mode, with a `--nodeport-addresses` value that includes`127.0.0.1`, NodePort services will be available on `127.0.0.1`. However, thisrequires enabling a kernel sysctl (`route_localnet`) that may have insecure sideeffects in some clusters. IPTables localhost NodePorts can be disabled by passing`--iptables-localhost-nodeports false` to kube-proxy, or by setting`--nodeport-addresses` to a range that does not include `127.0.0.1`.
+- When using `ipvs` mode, or `iptables` mode in a single-stack IPv6 clusters, NodePortsServices are not available on localhost.
+
+Feature state:Alpha since Kubernetes v1.37; disabled by default
+
+More information about this feature
+To use this feature, you (or a cluster administrator) will need to enable the
+[KubeProxyNFTablesLocalhostNodePorts](# "This page is not available in فارسی (Persian)") feature gate for all relevant components in your cluster.
+
+See [Enable Or Disable Feature Gates](# "This page is not available in فارسی (Persian)") for more information.
+
+- When using `nftables` mode, NodePort Services will be available on localhost when the`KubeProxyNFTablesLocalhostNodePorts` feature gate is enabled, and`--nodeport-addresses` is set to a value that explicitly includes `localhost`.(Setting it to just `all` will *not* enable localhost NodePort Services.) This isimplemented by redirecting localhost NodePort connections through a userspace proxy,so it is not as efficient as ordinary service proxying.
+
+Third-party network plugins that have their own service proxy implementations may
+or maynot support localhost NodePorts; consult the documentation for those plugins.
+
+### `type: LoadBalancer`
+
+On cloud providers which support external load balancers, setting the `type`field to
+`LoadBalancer` provisions a load balancer for your Service.The actual creation of the load balancer
+happens asynchronously, andinformation about the provisioned balancer is published
+in the Service's`.status.loadBalancer` field.For example:
+
+```collapse td-sidebar-nav foldable-nav
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+  clusterIP: 10.0.171.239
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - ip: 192.0.2.127
+```
+
+Traffic from the external load balancer is directed at the backend Pods. The cloudprovider
+decides how it is load balanced.
+
+To implement a Service of `type: LoadBalancer`, Kubernetes typically starts offby making the changes
+that are equivalent to you requesting a Service of`type: NodePort`. The cloud-controller-manager
+component then configures the externalload balancer to forward traffic to that assigned
+node port.
+
+You can configure a load balanced Service to[omit](/docs/setup/production-environment/ "m-docs-setup-production-environment-li") assigning a node port, provided that thecloud provider implementation supports this.
+
+Some cloud providers allow you to specify the `loadBalancerIP`. In those cases, the load-balancer
+is createdwith the user-specified `loadBalancerIP`. If the `loadBalancerIP` field is not specified,the load balancer
+is set up with an ephemeral IP address. If you specify a `loadBalancerIP`but your cloud provider
+does not support the feature, the `loadbalancerIP` field that youset is ignored.
+
+
+#### Note:
+
+The`.spec.loadBalancerIP` field for a Service was deprecated in Kubernetes v1.24.
+
+This field was under-specified and its meaning varies across implementations.It also
+cannot support dual-stack networking. This field may be removed in a future API version.
+
+If you're integrating with a provider that supports specifying the load balancer
+IP address(es)for a Service via a (provider specific) annotation, you should switch
+to doing that.
+
+If you are writing code for a load balancer integration with Kubernetes, avoid using
+this field.You can integrate with [Gateway](/docs/setup/production-environment/tools/ "m-docs-setup-production-environment-tools-kubeadm-li") rather than Service, or youcan define your own (provider specific) annotations on the Service that specify the equivalent detail.
+
+#### Node liveness impact on load balancer traffic
+
+Load balancer health checks are critical to modern applications. They are used todetermine
+which server (virtual machine, or IP address) the load balancer shoulddispatch traffic
+to. The Kubernetes APIs do not define how health checks have to beimplemented for
+Kubernetes managed load balancers, instead it's the cloud providers(and the people
+implementing integration code) who decide on the behavior. Loadbalancer health checks
+are extensively used within the context of supporting the`externalTrafficPolicy` field for Services.
+
+#### Load balancers with mixed protocol types
+
+
+*This is a stable feature in Kubernetes, and has been since the 1.26 release. You
+can no longer toggle this feature (the associated [feature gate](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/ "m-docs-setup-production-environment-tools-kubeadm-troubleshooting-kubeadm-li") has been removed).*
+
+By default, for LoadBalancer type of Services, when there is more than one port defined,
+allports must have the same protocol, and the protocol must be one which is supportedby
+the cloud provider.
+
+The feature gate `MixedProtocolLBService` (enabled by default for the kube-apiserver as of v1.24) allows
+the use ofdifferent protocols for LoadBalancer type of Services, when there is more
+than one port defined.
+
+
+#### Note:
+The set of protocols that can be used for load balanced Services is defined by yourcloud
+provider; they may impose restrictions beyond what the Kubernetes API enforces.
+#### Disabling load balancer NodePort allocation
+
+Feature state:Stable since Kubernetes v1.24
+You can optionally disable node port allocation for a Service of `type: LoadBalancer`, by settingthe
+field `spec.allocateLoadBalancerNodePorts` to `false`. This should only be used for load balancer implementationsthat route
+traffic directly to pods as opposed to using node ports. By default, `spec.allocateLoadBalancerNodePorts`is `true` and
+type LoadBalancer Services will continue to allocate node ports. If `spec.allocateLoadBalancerNodePorts`is set to `false`
+on an existing Service with allocated node ports, those node ports will **not** be
+de-allocated automatically.You must explicitly remove the `nodePorts` entry in every Service
+port to de-allocate those node ports.
+
+#### Specifying class of load balancer implementation
+
+Feature state:Stable since Kubernetes v1.24
+For a Service with `type` set to `LoadBalancer`, the `.spec.loadBalancerClass` fieldenables you to use a load balancer implementation
+other than the cloud provider default.
+
+By default, `.spec.loadBalancerClass` is not set and a `LoadBalancer`type of Service uses the cloud provider's default
+load balancer implementation if thecluster is configured with a cloud provider using
+the `--cloud-provider` componentflag.
+
+If you specify `.spec.loadBalancerClass`, it is assumed that a load balancerimplementation that matches
+the specified class is watching for Services.Any default load balancer implementation
+(for example, the one provided bythe cloud provider) will ignore Services that have
+this field set.`spec.loadBalancerClass` can be set on a Service of type `LoadBalancer` only.Once set, it cannot be
+changed.The value of `spec.loadBalancerClass` must be a label-style identifier,with an optional prefix
+such as "`internal-vip`" or "`example.com/internal-vip`".Unprefixed names are reserved for end-users.
+
+#### Load balancer IP address mode
+
+For a Service of `type: LoadBalancer`, a controller can set `.status.loadBalancer.ingress.ipMode`.The `.status.loadBalancer.ingress.ipMode` specifies how the load-balancer
+IP behaves.It may be specified only when the `.status.loadBalancer.ingress.ip` field is also specified.
+
+There are two possible values for `.status.loadBalancer.ingress.ipMode`: "VIP" and "Proxy".The default value is "VIP"
+meaning that traffic is delivered to the nodewith the destination set to the load-balancer's
+IP and port.There are two cases when setting this to "Proxy", depending on how the
+load-balancerfrom the cloud provider delivers the traffics:
+
+- If the traffic is delivered to the node then DNATed to the pod, the destination would be set to the node's IP and node port;
+- If the traffic is delivered directly to the pod, the destination would be set to the pod's IP and port.
+
+Service implementations may use this information to adjust traffic routing.
+
+#### Internal load balancer
+
+In a mixed environment it is sometimes necessary to route traffic from Services inside
+the same(virtual) network address block.
+
+In a split-horizon DNS environment you would need two Services to be able to route
+both externaland internal traffic to your endpoints.
+
+To set an internal load balancer, add one of the following annotations to your Servicedepending
+on the cloud service provider you're using:
+
+- Default
+- GCP
+- AWS
+- Azure
+- IBM Cloud
+- OpenStack
+- Baidu Cloud
+- Tencent Cloud
+- Alibaba Cloud
+- OCI
+
+
+Select one of the tabs.
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+metadata:
+  name: my-service
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+```
+
+```ul-2 foldable
+metadata:
+  name: my-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+```
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__section
+metadata:
+  name: my-service
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+```
+
+```td-sidebar-nav__section-title td-sidebar-nav__section without-child
+metadata:
+  name: my-service
+  annotations:
+    service.kubernetes.io/ibm-load-balancer-cloud-provider-ip-type: "private"
+```
+
+```td-sidebar-nav__section-title td-sidebar-nav__section without-child
+metadata:
+  name: my-service
+  annotations:
+    service.beta.kubernetes.io/openstack-internal-load-balancer: "true"
+```
+
+```td-sidebar-nav__section-title td-sidebar-nav__section without-child
+metadata:
+  name: my-service
+  annotations:
+    service.beta.kubernetes.io/cce-load-balancer-internal-vpc: "true"
+```
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+metadata:
+  annotations:
+    service.kubernetes.io/qcloud-loadbalancer-internal-subnetid: subnet-xxxxx
+```
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+metadata:
+  annotations:
+    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-address-type: "intranet"
+```
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+metadata:
+  name: my-service
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-internal: true
+```
+
+### `type: ExternalName`
+
+Services of type ExternalName map a Service to a DNS name, not to a typical selector
+such as`my-service` or `cassandra`. You specify these Services with the `spec.externalName` parameter.
+
+This Service definition, for example, mapsthe `my-service` Service in the `prod` namespace to `my.database.example.com`:
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__section
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+  namespace: prod
+spec:
+  type: ExternalName
+  externalName: my.database.example.com
+```
+
+
+#### Note:
+
+A Service of `type: ExternalName` accepts an IPv4 address string,but treats that string as a DNS name
+comprised of digits,not as an IP address (the internet does not however allow such
+names in DNS).Services with external names that resemble IPv4addresses are not resolved
+by DNS servers.
+
+If you want to map a Service directly to a specific IP address, consider using[headless Services](/docs/concepts/architecture/cloud-controller/ "m-docs-concepts-architecture-cloud-controller-li").
+
+When looking up the host `my-service.prod.svc.cluster.local`, the cluster DNS Servicereturns a `CNAME` record with the
+value `my.database.example.com`. Accessing`my-service` works in the same way as other Services but with the crucialdifference
+that redirection happens at the DNS level rather than via proxying orforwarding.
+Should you later decide to move your database into your cluster, youcan start its
+Pods, add appropriate selectors or endpoints, and change theService's `type`.
+
+
+#### Caution:
+
+You may have trouble using ExternalName for some common protocols, including HTTP
+and HTTPS.If you use ExternalName then the hostname used by clients inside your cluster
+is different fromthe name that the ExternalName references.
+
+For protocols that use hostnames this difference may lead to errors or unexpected
+responses.HTTP requests will have a `Host:` header that the origin server does not recognize;TLS
+servers will not be able to provide a certificate matching the hostname that the
+client connected to.
+
+## Headless Services
+
+Sometimes you don't need load-balancing and a single Service IP. Inthis case, you
+can create what are termed *headless Services*, by explicitlyspecifying `"None"` for the
+cluster IP address (`.spec.clusterIP`).
+
+You can use a headless Service to interface with other service discovery mechanisms,without
+being tied to Kubernetes' implementation.
+
+For headless Services, a cluster IP is not allocated, kube-proxy does not handlethese
+Services, and there is no load balancing or proxying done by the platform for them.
+
+A headless Service allows a client to connect to whichever Pod it prefers, directly.
+Services that are headless don'tconfigure routes and packet forwarding using[virtual IP addresses and proxies](/docs/concepts/architecture/mixed-version-proxy/ "m-docs-concepts-containers-li"); instead, headless Services report theendpoint IP addresses of the individual pods via internal DNS records, served through the cluster's[DNS service](/docs/concepts/containers/ "m-docs-concepts-containers-li").To define a headless Service, you make a Service with `.spec.type`
+set to ClusterIP (which is also the default for `type`),and you additionally set `.spec.clusterIP` to
+None.
+
+The string value None is a special case and is not the same as leaving the `.spec.clusterIP` field
+unset.
+
+How DNS is automatically configured depends on whether the Service has selectors
+defined:
+
+### With selectors
+
+For headless Services that define selectors, the endpoints controller createsEndpointSlices
+in the Kubernetes API, and modifies the DNS configuration to returnA or AAAA records
+(IPv4 or IPv6 addresses) that point directly to the Pods backing the Service.
+
+### Without selectors
+
+For headless Services that do not define selectors, the control plane doesnot create
+EndpointSlice objects. However, the DNS system looks for and configureseither:
+
+- DNS CNAME records for [`type: ExternalName`](/docs/concepts/containers/container-environment/ "m-docs-concepts-containers-runtime-class-li") Services.
+- DNS A / AAAA records for all IP addresses of the Service's ready endpoints,for all Service types other than `ExternalName`.- For IPv4 endpoints, the DNS system creates A records.
+- For IPv6 endpoints, the DNS system creates AAAA records.
+
+When you define a headless Service without a selector, the `port` mustmatch the `targetPort`.
+
+## Discovering services
+
+For clients running inside your cluster, Kubernetes supports two primary modes offinding
+a Service: environment variables and DNS.
+
+### Environment variables
+
+When a Pod is run on a Node, the kubelet adds a set of environment variablesfor each
+active Service. It adds `{SVCNAME}_SERVICE_HOST` and `{SVCNAME}_SERVICE_PORT` variables,where the Service name is upper-cased
+and dashes are converted to underscores.
+
+For example, the Service `redis-primary` which exposes TCP port 6379 and has beenallocated cluster
+IP address 10.0.0.11, produces the following environmentvariables:
+
+```align-left ps-0 td-sidebar-link td-sidebar-link__page
+REDIS_PRIMARY_SERVICE_HOST=10.0.0.11
+REDIS_PRIMARY_SERVICE_PORT=6379
+REDIS_PRIMARY_PORT=tcp://10.0.0.11:6379
+REDIS_PRIMARY_PORT_6379_TCP=tcp://10.0.0.11:6379
+REDIS_PRIMARY_PORT_6379_TCP_PROTO=tcp
+REDIS_PRIMARY_PORT_6379_TCP_PORT=6379
+REDIS_PRIMARY_PORT_6379_TCP_ADDR=10.0.0.11
+```
+
+
+#### Note:
+
+When you have a Pod that needs to access a Service, and you are usingthe environment
+variable method to publish the port and cluster IP to the clientPods, you must create
+the Service *before* the client Pods come into existence.Otherwise, those client
+Pods won't have their environment variables populated.
+
+If you only use DNS to discover the cluster IP for a Service, you don't need toworry
+about this ordering issue.
+
+Kubernetes also supports and provides variables that are compatible with DockerEngine's
+"*[legacy container links](/docs/concepts/workloads/pods/pod-condition/
+"m-docs-concepts-workloads-pods-init-containers-li")*" feature.You can read [`makeLinkVariables`](/docs/concepts/workloads/pods/pod-condition/ "m-docs-concepts-workloads-pods-init-containers-li")to see how this is implemented in Kubernetes.
+
+### DNS
+
+You can (and almost always should) set up a DNS service for your Kubernetescluster
+using an [add-on](/docs/concepts/workloads/pods/init-containers/ "m-docs-concepts-workloads-pods-sidecar-containers-li").
+
+A cluster-aware DNS server, such as CoreDNS, watches the Kubernetes API for newServices
+and creates a set of DNS records for each one. If DNS has been enabledthroughout
+your cluster then all Pods should automatically be able to resolveServices by their
+DNS name.
+
+For example, if you have a Service called `my-service` in a Kubernetesnamespace `my-ns`, the control
+plane and the DNS Service acting togethercreate a DNS record for `my-service.my-ns`. Pods in the
+`my-ns` namespaceshould be able to find the service by doing a name lookup for `my-service`(`my-service.my-ns` would
+also work).
+
+Pods in other namespaces must qualify the name as `my-service.my-ns`. These nameswill resolve to
+the cluster IP assigned for the Service.
+
+Kubernetes also supports DNS SRV (Service) records for named ports. If the`my-service.my-ns` Service
+has a port named `http` with the protocol set to`TCP`, you can do a DNS SRV query for `_http._tcp.my-service.my-ns`
+to discoverthe port number for `http`, as well as the IP address.
+
+The Kubernetes DNS server is the only way to access `ExternalName` Services.You can find more
+information about `ExternalName` resolution in[DNS for Services and Pods](/docs/concepts/workloads/pods/probes/ "m-docs-concepts-workloads-pods-probes-li").
+
+## [Virtual IP addressing mechanism](/docs/concepts/workloads/pods/disruptions/ "m-docs-concepts-workloads-pods-disruptions-li")
+
+Read [Virtual IPs and Service Proxies](/images/kubernetes.png "description") explains themechanism Kubernetes provides to expose a Service with a virtual IP address.
+
+### Traffic policies
+
+You can set the `.spec.internalTrafficPolicy` and `.spec.externalTrafficPolicy` fieldsto control how Kubernetes routes traffic to healthy
+(“ready”) backends.
+
+See [Traffic Policies](/icons/apple-touch-icon-256x256.png "description") for more details.
+
+### Traffic distribution control
+
+The `.spec.trafficDistribution` field provides another way to influence trafficrouting within a Kubernetes
+Service. While traffic policies focus on strictsemantic guarantees, traffic distribution
+allows you to express *preferences*(such as routing to topologically closer endpoints).
+This can help optimize forperformance, cost, or reliability. In Kubernetes 1.37,
+thefollowing values are supported:
+`PreferSameZone`Indicates a preference for routing traffic to endpoints that are in the samezone
+as the client.`PreferSameNode`Indicates a preference for routing traffic to endpoints that are
+on the samenode as the client.`PreferClose` (deprecated)This is an older alias for `PreferSameZone` that is
+less clear aboutthe semantics.
+If the field is not set, the implementation will apply its default routing strategy.
+
+See [TrafficDistribution](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service") formore details
+
+### Session stickiness
+
+If you want to make sure that connections from a particular client are passed tothe
+same Pod each time, you can configure session affinity based on the client'sIP address.
+Read [session affinity](/scss/main.min.a4babc327f3ccc855b832a1c36eb0a1e3d0ae22ed8be15e9ba89aea6aeb46a86.css "Service")to learn more.
+
+## External IPs
+
+Feature state:Deprecated since Kubernetes v1.36
+All users should begin migrating away from `externalIPs`.Consider using an external load balancer
+controller or a Gateway APIimplementation instead.
+
+If there are external IPs that route to one or more cluster nodes, Kubernetes Servicescan
+be exposed on those `externalIPs`. When network traffic arrives into the cluster, withthe external
+IP (as destination IP) and the port matching that Service, rules and routesthat Kubernetes
+has configured ensure that the traffic is routed to one of the endpointsfor that
+Service.
+
+When you define a Service, you can specify `externalIPs` for any[service type](/manifest.webmanifest "This page is not available in বাংলা (Bengali)").In the example below, the Service named `"my-service"`
+can be accessed by clients using TCP,on `"198.51.100.32:80"` (calculated from `.spec.externalIPs[]` and `.spec.ports[].port`).
+
+```td-page
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app.kubernetes.io/name: MyApp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 49152
+  externalIPs:
+    - 198.51.100.32
+```
+
+
+#### Note:
+Kubernetes does not manage allocation of `externalIPs`; these are the responsibilityof the cluster
+administrator.
+## API Object
+
+Service is a top-level resource in the Kubernetes REST API. You can find more detailsabout
+the [Service API object](/docs/home/ "This page is not available in বাংলা (Bengali)").
+
+## What's next
+
+Learn more about Services and how they fit into Kubernetes:
+
+- Follow the [Connecting Applications with Services](/docs/home/ "This page is not available in বাংলা (Bengali)")tutorial.
+- Read about [Ingress](/docs/home/ "This page is not available in বাংলা (Bengali)"), whichexposes HTTP and HTTPS routes from outside the cluster to Services withinyour cluster.
+- Read about [Gateway](/docs/home/ "This page is not available in বাংলা (Bengali)"), an extension toKubernetes that provides more flexibility than Ingress.
+
+For more context, read the following:
+
+- [Virtual IPs and Service Proxies](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [EndpointSlices](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Service API reference](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [EndpointSlice API reference](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Endpoint API reference (legacy)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+
+## Feedback
+
+Was this page helpful?
+YesNo
+Thanks for the feedback. If you have a specific, answerable question about how to
+use Kubernetes, ask it on[Stack Overflow](/docs/home/ "This page is not available in বাংলা (Bengali)").Open an issue in the [GitHub Repository](/docs/home/ "This page is not available in বাংলা (Bengali)") if you want to[report a problem](/docs/home/ "This page is not available in বাংলা (Bengali)")or[suggest an improvement](/docs/home/ "This page is not available in বাংলা (Bengali)").
+
+Last modified July 01, 2026 at 3:25 PM PST: [localhost nodeport documentation (63d690069a)](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+
+© 2026 The Kubernetes Authors | Documentation Distributed under [CC BY 4.0](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+© 2026 The Linux Foundation ®. All rights reserved. The Linux Foundation has registered
+trademarks and uses trademarks. For a list of trademarks of The Linux Foundation,
+please see our [Trademark Usage page](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+ICP license: 京ICP备17074266号-3
+
+
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [**](/docs/home/ "This page is not available in বাংলা (Bengali)")
+
+
+- [Kubernetes](/docs/home/ "This page is not available in বাংলা (Bengali)")
+- [Documentation](/de/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Kubernetes Blog](/hi/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Training](/id/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Careers](/it/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Partners](/ja/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Community](/ko/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Versions](/pl/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [Release Information](/ru/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [v1.37](/es/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [v1.36](/uk/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [v1.35](/vi/docs/concepts/ "This page is not available in فارسی (Persian)")
+- [v1.34](/fa/ "This page is not available in فارسی (Persian)")
+- [v1.33](/fa/ "This page is not available in فارسی (Persian)")
+- [English](/fa/ "m-docs-li")
+- [中文 (Chinese)](/docs/ "m-docs-li")
+- [Français (French)](/docs/ "Documentation")
+- [Deutsch (German)](/docs/home/ "m-docs-home-li")
+- [Bahasa Indonesia (Indonesian)](/docs/home/ "m-docs-home-li")
+- [日本語 (Japanese)](/docs/home/ "Kubernetes Documentation")
+- [한국어 (Korean)](/docs/home/supported-doc-versions/ "m-docs-home-supported-doc-versions-li")
+- [Português (Portuguese)](/docs/home/supported-doc-versions/ "m-docs-home-supported-doc-versions-li")
+- [Español (Spanish)](/docs/home/supported-doc-versions/ "m-docs-setup-li")
+- [Tiếng Việt (Vietnamese)](/docs/setup/ "m-docs-setup-li")
+-
+- [Light](/docs/setup/ "m-docs-setup-learning-environment-li")
+- [Dark](/docs/setup/learning-environment/ "m-docs-setup-learning-environment-li")
+- [Auto](/docs/setup/learning-environment/ "m-docs-setup-production-environment-li")

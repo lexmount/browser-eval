@@ -1,0 +1,839 @@
+functools — Higher-order functions and operations on callable objects
+— Python 3.14.7 documentation
+===============================
+
+\*/}#sidebarbutton:hover {    background-color: white;}#sidebarbutton span
+{    display: table-cell;    vertical-align: middle;}div.sphinxsidebarwrapper {  
+float: left;    margin-right: 0;}/\* -- hyperlink styles
+------------------------------------------------------ \*/a {    color: #0090c0;
+text-decoration: none;}a:visited {    color: #00608f;    text-decoration: none;}a:hover
+{    text-decoration: underline;}/\* -- body styles
+----------------------------------------------------------- \*/div.body h1,div.body
+h2,div.body h3,div.body h4,div.body h5,div.body h6 {    font-family: -apple-system,
+BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell,
+Ubuntu, roboto, noto, arial, sans-serif;    background-color: white;    font-weight:
+normal;    color: #1a1a1a;    border-bottom: 1px solid #ccc;    margin: 20px -20px
+10px -20px;    padding: 3px 0 3px 10px;}div.body h1 { margin-top: 0; font-size: 200%;
+}div.body h2 { font-size: 160%; }div.body h3 { font-size: 140%; }div.body h4 { font-size:
+120%; }div.body h5 { font-size: 110%; }div.body h6 { font-size: 100%; }a.headerlink
+{    color: #aaaaaa;    font-size: 0.8em;    padding: 0 4px 0 4px;    text-decoration:
+none;}a.headerlink:hover {    background-color: #aaaaaa;    color: white;}div.body
+p, div.body dd, div.body li, div.body blockquote {    text-align: justify;    line-height:
+130%;}div.admonition p.admonition-title + p {    display: inline;}div.admonition
+p {    margin-bottom: 5px;}div.admonition pre {    margin-bottom: 5px;}div.admonition
+ul, div.admonition ol {    margin-bottom: 5px;}div.note {    background-color: #eee;
+border: 1px solid #ccc;}div.seealso {    background-color: #ffc;    border: 1px
+solid #ff6;}nav.contents,aside.topic,div.topic {    background-color: #eee;}div.warning
+{    background-color: #ffe4e4;    border: 1px solid #f66;}p.admonition-title {  
+display: inline;}p.admonition-title:after {    content: ":";}pre {    padding:
+5px;    background-color: #eeffcc;    color: #333333;    line-height: 120%;    border:
+1px solid #ac9;    border-left: none;    border-right: none;}code {    background-color:
+#ecf0f3;    padding: 0 1px 0 1px;    font-size: 0.95em;}th, dl.field-list > dt {
+background-color: #ede;}.warning code {    background: #efc2c2;}.note code {  
+background: #d6d6d6;}.viewcode-back {    font-family: -apple-system, BlinkMacSystemFont,
+avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto,
+noto, arial, sans-serif;}div.viewcode-block:target {    background-color: #f4debf;
+border-top: 1px solid #ac9;    border-bottom: 1px solid #ac9;}div.code-block-caption
+{    color: #efefef;    background-color: #1c4e63;}  
+
+[                ![Python logo](../_static/py.svg)            ](https://www.python.org/)
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+Theme            Auto  
+Light  
+Dark  
+
+
+### [Table of Contents](../contents.html)
+
+- [`functools` — Higher-order functions and operations on callable objects](#)- [`partial` Objects](#partial-objects)
+
+
+#### Previous topic
+
+[`itertools` — Functions creating iterators for efficient looping](itertools.html "previous chapter")
+
+
+#### Next topic
+
+[`operator` — Standard operators as functions](operator.html "next chapter")
+
+
+### This page
+
+- [Report a bug](../bugs.html)
+- [Improve this page](https://docs.python.org/3/improve-page.html?pagetitle=functools+%E2%80%94+Higher-order+functions+and+operations+on+callable+objects&pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Ffunctools.html&pagesource=library%2Ffunctools.rst)
+-         [Show source        ](https://github.com/python/cpython/blob/main/Doc/library/functools.rst?plain=1)      
+
+
+### Navigation
+
+-           [index](../genindex.html "General Index")
+-           [modules](../py-modindex.html "Python Module Index") |
+-           [next](operator.html "operator — Standard operators as functions") |
+-           [previous](itertools.html "itertools — Functions creating iterators for efficient looping") |
+-
+![Python logo](../_static/py.svg)
+- [Python](https://www.python.org/) »
+-             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+
+-                         
+-       [3.14.7 Documentation](../index.html) »    
+- [The Python Standard Library](index.html) »
+- [Functional Programming Modules](functional.html) »
+- [`functools` — Higher-order functions and operations on callable objects]()
+-                         
+
+|                
+-     Theme            Auto  
+Light  
+Dark  
+|
+
+
+# `functools` — Higher-order functions and operations on callable objects[¶](#module-functools "Link to this heading")
+
+**Source code:** [Lib/functools.py](https://github.com/python/cpython/tree/3.14/Lib/functools.py)
+
+---
+
+The `functools` module is for higher-order functions: functions that act onor return other
+functions. In general, any callable object can be treated as afunction for the purposes
+of this module.
+
+The `functools` module defines the following functions:
+@functools.cache(*user_function*)[¶](../_static/pygments.css?v=b86133f3 "viewport")
+Simple lightweight unbounded function cache.  Sometimes called[“memoize”](../_static/pygments.css?v=b86133f3 "viewport").
+
+Returns the same as `lru_cache(maxsize=None)`, creating a thinwrapper around a dictionary lookup for the
+function arguments.  Because itnever needs to evict old values, this is smaller and
+faster than[`@lru_cache`](../_static/pygments.css?v=b86133f3 "viewport") with a size limit.
+
+For example:
+
+Copy
+
+```@cachedef factorial(n):    return n \* factorial(n-1) if n else 1>>> 
+factorial(10)   # no previously cached result, makes 11 recursive calls3628800>>> 
+factorial(5)    # no new calls, just returns the cached result120>>> factorial(12) 
+  # two new recursive calls, factorial(10) is cached479001600```
+
+The cache is threadsafe so that the wrapped function can be used inmultiple threads. 
+ This means that the underlying data structure willremain coherent during concurrent 
+updates.
+
+It is possible for the wrapped function to be called more than once ifanother thread 
+makes an additional call before the initial call has beencompleted and cached.
+
+
+Added in version 3.9.
+@functools.cached_property(*func*)[¶](../_static/classic.css?v=234b1a7c "highlight-")
+Transform a method of a class into a property whose value is computed onceand then 
+cached as a normal attribute for the life of the instance. Similarto [`@property`](../_static/classic.css?v=234b1a7c "highlight-"), with the addition of caching. Useful for expensivecomputed properties of instances that are otherwise effectively immutable.
+
+Example:
+
+Copy
+
+```class DataSet:    def __init__(self, sequence_of_numbers):        self._data =
+tuple(sequence_of_numbers)    @cached_property    def stdev(self):        return
+statistics.stdev(self._data)```
+
+The mechanics of [`@cached_property`](../_static/classic.css?v=234b1a7c "highlight-") are somewhat different from[`@property`](../_static/classic.css?v=234b1a7c "highlight-").  A regular property blocks attribute writes unless asetter is defined. In contrast, a
+*cached_property* allows writes.
+
+The *cached_property* decorator only runs on lookups and only when anattribute of
+the same name doesn’t exist.  When it does run, the*cached_property* writes to
+the attribute with the same name. Subsequentattribute reads and writes take precedence
+over the *cached_property*method and it works like a normal attribute.
+
+The cached value can be cleared by deleting the attribute.  Thisallows the *cached_property*
+method to run again.
+
+The *cached_property* does not prevent a possible race condition inmulti-threaded
+usage. The getter function could run more than once on thesame instance, with the
+latest run setting the cached value. If the cachedproperty is idempotent or otherwise
+not harmful to run more than once on aninstance, this is fine. If synchronization
+is needed, implement the necessarylocking inside the decorated getter function or
+around the cached propertyaccess.
+
+Note, this decorator interferes with the operation of [**PEP 412**](../_static/pydoctheme.css?v=4365c8fe "highlight-")key-sharing dictionaries.  This means that instance dictionariescan take more space than usual.
+
+Also, this decorator requires that the `__dict__` attribute on each instancebe a mutable
+mapping. This means it will not work with some types, such asmetaclasses (since the
+`__dict__` attributes on type instances areread-only proxies for the class namespace), and
+those that specify`__slots__` without including `__dict__` as one of the defined slots(as such classes
+don’t provide a `__dict__` attribute at all).
+
+If a mutable mapping is not available or if space-efficient key sharing isdesired,
+an effect similar to [`@cached_property`](../_static/pydoctheme.css?v=4365c8fe "highlight-") can also be achieved bystacking [`@property`](../_static/pydoctheme.css?v=4365c8fe "highlight-") on top of [`@lru_cache`](../_static/pydoctheme.css?v=4365c8fe "highlight-").
+See[How do I cache method calls?](../_static/pydoctheme.css?v=4365c8fe "highlight-") for more details on how this differs from
+`@cached_property`.
+
+
+Added in version 3.8.
+
+
+Changed in version 3.12: Prior to Python 3.12, `@cached_property` included an undocumented lock toensure
+that in multi-threaded usage the getter function was guaranteed torun only once per
+instance. However, the lock was per-property, notper-instance, which could result
+in unacceptably high lock contention. InPython 3.12+ this locking is removed.
+functools.cmp_to_key(*func*)[¶](../_static/pydoctheme.css?v=4365c8fe "highlight-")
+Transform an old-style comparison function to a [key function](../_static/pydoctheme.css?v=4365c8fe "highlight-").  Usedwith tools that accept key functions (such as [`sorted()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`min()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"),[`max()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`heapq.nlargest()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"), [`heapq.nsmallest()`](../_static/pydoctheme.css?v=4365c8fe "highlight-"),[`itertools.groupby()`](../_static/pydoctheme.css?v=4365c8fe "highlight-")).  This function is primarily used as a transitiontool for programs being converted from Python 2 which supported the use ofcomparison functions.
+
+A comparison function is any callable that accepts two arguments, compares them,and
+returns a negative number for less-than, zero for equality, or a positivenumber for
+greater-than.  A key function is a callable that accepts oneargument and returns
+another value to be used as the sort key.
+
+Example:
+
+Copy
+
+```sorted(iterable, key=cmp_to_key(locale.strcoll))  # locale-aware sort order```
+
+For sorting examples and a brief sorting tutorial, see [Sorting Techniques](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+
+Added in version 3.2.
+@functools.lru_cache(*user_function*)[¶](../_static/pydoctheme.css?v=4365c8fe
+"stylesheet")@functools.lru_cache(*maxsize=128*, *typed=False*)
+Decorator to wrap a function with a memoizing callable that saves up to the*maxsize* 
+most recent calls.  It can save time when an expensive or I/O boundfunction is periodically 
+called with the same arguments.
+
+The cache is threadsafe so that the wrapped function can be used inmultiple threads. 
+ This means that the underlying data structure willremain coherent during concurrent 
+updates.
+
+It is possible for the wrapped function to be called more than once ifanother thread 
+makes an additional call before the initial call has beencompleted and cached.
+
+Since a dictionary is used to cache results, the positional and keywordarguments 
+to the function must be [hashable](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+Distinct argument patterns may be considered to be distinct calls withseparate cache 
+entries.  For example, `f(a=1, b=2)` and `f(b=2, a=1)`differ in their keyword argument order and may have 
+two separate cacheentries.
+
+If *user_function* is specified, it must be a callable. This allows the*lru_cache* 
+decorator to be applied directly to a user function, leavingthe *maxsize* at its 
+default value of 128:
+
+Copy
+
+```@lru_cachedef count_vowels(sentence):    return sum(sentence.count(vowel) for
+vowel in 'AEIOUaeiou')```
+
+If *maxsize* is set to `None`, the LRU feature is disabled and the cache cangrow without
+bound.
+
+If *typed* is set to true, function arguments of different types will becached separately.
+If *typed* is false, the implementation will usuallyregard them as equivalent calls
+and only cache a single result. (Sometypes such as *str* and *int* may be cached
+separately even when *typed*is false.)
+
+Note, type specificity applies only to the function’s immediate argumentsrather
+than their contents.  The scalar arguments, `Decimal(42)` and`Fraction(42)` are treated as distinct calls
+with distinct results.In contrast, the tuple arguments `('answer', Decimal(42))` and`('answer', Fraction(42))` are treated as equivalent.
+
+The wrapped function is instrumented with a `cache_parameters()`function that returns a new [`dict`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") showing the values for
+*maxsize*and *typed*.  This is for information purposes only.  Mutating the valueshas
+no effect.
+
+To help measure the effectiveness of the cache and tune the *maxsize*parameter, the
+wrapped function is instrumented with a `cache_info()`function that returns a [named tuple](../_static/pydoctheme.css?v=4365c8fe "stylesheet") showing
+*hits*, *misses*,*maxsize* and *currsize*.
+
+The decorator also provides a `cache_clear()` function for clearing orinvalidating the cache.
+
+The original underlying function is accessible through the`__wrapped__` attribute.  This is
+useful for introspection, forbypassing the cache, or for rewrapping the function
+with a different cache.
+
+The cache keeps references to the arguments and return values until they ageout of
+the cache or until the cache is cleared.
+
+If a method is cached, the `self` instance argument is included in thecache.  See [How
+do I cache method calls?](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+
+An [LRU (least recently used) cache](../_static/pydoctheme.css?v=4365c8fe "stylesheet")works best when the most recent calls are the best predictors of upcomingcalls (for example, the most popular articles on a news server tend tochange each day).  The cache’s size limit assures that the cache does notgrow without bound on long-running processes such as web servers.
+
+In general, the LRU cache should only be used when you want to reusepreviously computed
+values.  Accordingly, it doesn’t make sense to cachefunctions with side-effects,
+functions that need to createdistinct mutable objects on each call (such as generators
+and async functions),or impure functions such as time() or random().
+
+Example of an LRU cache for static web content:
+
+Copy
+
+```@lru_cache(maxsize=32)def get_pep(num):    'Retrieve text of a Python Enhancement 
+Proposal'    resource = f'https://peps.python.org/pep-{num:04d}'    try:        with 
+urllib.request.urlopen(resource) as s:            return s.read()    except urllib.error.HTTPError: 
+       return 'Not Found'>>> for n in 8, 290, 308, 320, 8, 218, 320, 279, 
+289, 320, 9991:...     pep = get_pep(n)...     print(n, len(pep))>>>
+get_pep.cache_info()CacheInfo(hits=3, misses=8, maxsize=32, currsize=8)```
+
+Example of efficiently computing[Fibonacci numbers](../_static/pydoctheme.css?v=4365c8fe "stylesheet")using a cache to implement a[dynamic programming](../_static/pydoctheme.css?v=4365c8fe "stylesheet")technique:
+
+Copy
+
+```@lru_cache(maxsize=None)def fib(n):    if n < 2:        return n    return
+fib(n-1) + fib(n-2)>>> [fib(n) for n in range(16)][0, 1, 1, 2, 3, 5, 8,
+13, 21, 34, 55, 89, 144, 233, 377, 610]>>> fib.cache_info()CacheInfo(hits=28,
+misses=16, maxsize=None, currsize=16)```
+
+
+Added in version 3.2.
+
+
+Changed in version 3.3: Added the *typed* option.
+
+
+Changed in version 3.8: Added the *user_function* option.
+
+
+Changed in version 3.9: Added the function `cache_parameters()`
+@functools.total_ordering[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Given a class defining one or more rich comparison ordering methods, thisclass decorator
+supplies the rest.  This simplifies the effort involvedin specifying all of the possible
+rich comparison operations:
+
+The class must define one of [`__lt__()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), [`__le__()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"),[`__gt__()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), or [`__ge__()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").In addition, the class should supply an [`__eq__()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") method.
+
+For example:
+
+Copy
+
+```@total_orderingclass Student:    def _is_valid_operand(self, other):        return 
+(hasattr(other, "lastname") and                hasattr(other, "firstname"))    def 
+__eq__(self, other):        if not self._is_valid_operand(other):            return 
+NotImplemented        return ((self.lastname.lower(), self.firstname.lower()) == 
+               (other.lastname.lower(), other.firstname.lower()))    def __lt__(self, 
+other):        if not self._is_valid_operand(other):            return NotImplemented 
+       return ((self.lastname.lower(), self.firstname.lower()) <              
+  (other.lastname.lower(), other.firstname.lower()))```
+
+
+Note
+
+While this decorator makes it easy to create well behaved totallyordered types, it 
+*does* come at the cost of slower execution andmore complex stack traces for the 
+derived comparison methods. Ifperformance benchmarking indicates this is a bottleneck 
+for a givenapplication, implementing all six rich comparison methods instead islikely 
+to provide an easy speed boost.
+
+
+Note
+
+This decorator makes no attempt to override methods that have beendeclared in the 
+class *or its superclasses*. Meaning that if asuperclass defines a comparison operator, 
+*total_ordering* will notimplement it again, even if the original method is abstract.
+
+
+Added in version 3.2.
+
+
+Changed in version 3.4: Returning `NotImplemented` from the underlying comparison function forunrecognised 
+types is now supported.
+functools.Placeholder[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+A singleton object used as a sentinel to reserve a placefor positional arguments 
+when calling [`partial()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")and [`partialmethod()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation").
+
+
+Added in version 3.14.
+functools.partial(*func*, */*, *\*args*, *\*\*keywords*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+Return a new [partial object](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") which when calledwill behave like
+*func* called with the positional arguments *args*and keyword arguments *keywords*. 
+If more arguments are supplied to thecall, they are appended to *args*. If additional 
+keyword arguments aresupplied, they extend and override *keywords*.Roughly equivalent 
+to:
+
+Copy
+
+```def partial(func, /, \*args, \*\*keywords):    def newfunc(\*more_args, \*\*more_keywords):
+return func(\*args, \*more_args, \*\*(keywords | more_keywords))    newfunc.func
+= func    newfunc.args = args    newfunc.keywords = keywords    return newfunc```
+
+The `partial()` function is used for partial function application which “freezes”some
+portion of a function’s arguments and/or keywords resulting in a new objectwith
+a simplified signature.  For example, `partial()` can be used to createa callable that behaves
+like the [`int()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") function where the
+*base* argumentdefaults to `2`:
+
+Copy
+
+```>>> basetwo = partial(int, base=2)>>> basetwo.__doc__ = 'Convert 
+base 2 string to an int.'>>> basetwo('10010')18```
+
+If [`Placeholder`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") sentinels are present in
+*args*, they will be filled firstwhen `partial()` is called. This makes it possible to pre-fill 
+any positionalargument with a call to `partial()`; without `Placeholder`,only the chosen number of leading 
+positional arguments can be pre-filled.
+
+If any `Placeholder` sentinels are present, all must be filled at call time:
+
+Copy
+
+```>>> say_to_world = partial(print, Placeholder, Placeholder, "world!")>>>
+say_to_world('Hello', 'dear')Hello dear world!```
+
+Calling `say_to_world('Hello')` raises a [`TypeError`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), becauseonly one positional argument is provided, but there are two placeholdersthat must be filled in.
+
+If `partial()` is applied to an existing[partial object](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"), `Placeholder`
+sentinels of theinput object are filled in with new positional arguments.A placeholder
+can be retained by inserting a new`Placeholder` sentinel to the place held by a previous `Placeholder`:
+
+Copy
+
+```>>> from functools import partial, Placeholder as _>>> remove 
+= partial(str.replace, _, _, '')>>> message = 'Hello, dear dear world!'>>> 
+remove(message, ' dear')'Hello, world!'>>> remove_dear = partial(remove, 
+_, ' dear')>>> remove_dear(message)'Hello, world!'>>> remove_first_dear 
+= partial(remove_dear, _, 1)>>> remove_first_dear(message)'Hello, dear world!'```
+
+`Placeholder` cannot be passed to `partial()` as a keyword argument.
+
+
+Changed in version 3.14: Added support for [`Placeholder`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") in positional arguments.
+*class *functools.partialmethod(*func*, */*, *\*args*, *\*\*keywords*)[¶](../_static/opensearch.xml "Search within Python 3.14.7 documentation")
+Return a new `partialmethod` descriptor which behaveslike [`partial`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") except that it is designed to be used as a methoddefinition rather than being directly callable.
+
+*func* must be a [descriptor](../_static/opensearch.xml "Search within Python 3.14.7 documentation") or a callable (objects which are both,like normal functions, are handled as descriptors).
+
+When *func* is a descriptor (such as a normal Python function,[`classmethod()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), [`staticmethod()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation"), [`abstractmethod()`](../_static/opensearch.xml "Search within Python 3.14.7 documentation") oranother instance of
+`partialmethod`), calls to `__get__` aredelegated to the underlying descriptor, and an 
+appropriate[partial object](../_static/opensearch.xml "Search within Python 3.14.7 documentation") returned as the result.
+
+When *func* is a non-descriptor callable, an appropriate bound method iscreated dynamically. 
+This behaves like a normal Python function whenused as a method: the *self* argument 
+will be inserted as the firstpositional argument, even before the *args* and *keywords* 
+supplied tothe `partialmethod` constructor.
+
+Example:
+
+Copy
+
+```>>> class Cell:...     def __init__(self):...         self._alive = False...
+@property...     def alive(self):...         return self._alive...     def set_state(self,
+state):...         self._alive = bool(state)...     set_alive = partialmethod(set_state,
+True)...     set_dead = partialmethod(set_state, False)...>>> c = Cell()>>>
+c.aliveFalse>>> c.set_alive()>>> c.aliveTrue```
+
+
+Added in version 3.4.
+functools.reduce(*function*, *iterable*, */*[, *initial*])[¶](../_static/py.svg "previous chapter")
+Apply *function* of two arguments cumulatively to the items of *iterable*, fromleft
+to right, so as to reduce the iterable to a single value.  For example,`reduce(lambda x, y: x+y, [1, 2, 3, 4, 5])` calculates
+`((((1+2)+3)+4)+5)`.The left argument, *x*, is the accumulated value and the right argument, *y*,
+isthe update value from the *iterable*.  If the optional *initial* is present,it
+is placed before the items of the iterable in the calculation, and serves asa default
+when the iterable is empty.  If *initial* is not given and*iterable* contains only
+one item, the first item is returned.
+
+Roughly equivalent to:
+
+Copy
+
+```initial_missing = object()def reduce(function, iterable, /, initial=initial_missing): 
+   it = iter(iterable)    if initial is initial_missing:        value = next(it) 
+   else:        value = initial    for element in it:        value = function(value, 
+element)    return value```
+
+See [`itertools.accumulate()`](../contents.html "previous chapter") for an iterator that yields all intermediatevalues.
+
+
+Changed in version 3.14: *initial* is now supported as a keyword argument.
+@functools.singledispatch[¶](../contents.html "previous chapter")
+Transform a function into a [single-dispatch](../contents.html "previous chapter") [generic 
+function](../contents.html "previous chapter").
+
+To define a generic function, decorate it with the `@singledispatch`decorator. When defining a function 
+using `@singledispatch`, note that thedispatch happens on the type of the first argument:
+
+Copy
+
+```>>> from functools import singledispatch>>> @singledispatch...
+def fun(arg, verbose=False):...     if verbose:...         print("Let me just say,",
+end=" ")...     print(arg)```
+
+To add overloaded implementations to the function, use the `register()`attribute of the generic
+function, which can be used as a decorator.  Forfunctions annotated with types, the
+decorator will infer the type of thefirst argument automatically:
+
+Copy
+
+```>>> @fun.register... def _(arg: int, verbose=False):...     if verbose:... 
+        print("Strength in numbers, eh?", end=" ")...     print(arg)...>>> 
+@fun.register... def _(arg: list, verbose=False):...     if verbose:...         print("Enumerate 
+this:")...     for i, elem in enumerate(arg):...         print(i, elem)```
+
+[`typing.Union`](../index.html "Link to this heading") can also be used:
+
+Copy
+
+```>>> @fun.register... def _(arg: int | float, verbose=False):...     if
+verbose:...         print("Strength in numbers, eh?", end=" ")...     print(arg)...>>>
+from typing import Union>>> @fun.register... def _(arg: Union[list, set],
+verbose=False):...     if verbose:...         print("Enumerate this:")...     for
+i, elem in enumerate(arg):...         print(i, elem)...```
+
+For code which doesn’t use type annotations, the appropriate typeargument can be
+passed explicitly to the decorator itself:
+
+Copy
+
+```>>> @fun.register(complex)... def _(arg, verbose=False):...     if verbose:... 
+        print("Better than complicated.", end=" ")...     print(arg.real, arg.imag)...```
+
+For code that dispatches on a collections type (e.g., `list`), but wantsto typehint the 
+items of the collection (e.g., `list[int]`), thedispatch type should be passed explicitly 
+to the decorator itself with thetypehint going into the function definition:
+
+Copy
+
+```>>> @fun.register(list)... def _(arg: list[int], verbose=False):...  
+if verbose:...         print("Enumerate this:")...     for i, elem in enumerate(arg):...
+print(i, elem)```
+
+
+Note
+
+At runtime the function will dispatch on an instance of a list regardlessof the type
+contained within the list i.e. `[1,2,3]` will bedispatched the same as `["foo", "bar", "baz"]`. The annotationprovided
+in this example is for static type checkers only and has noruntime impact.
+
+To enable registering [lambdas](../_static/classic.css?v=234b1a7c "highlight-") and pre-existing functions,the [`register()`](../_static/classic.css?v=234b1a7c "highlight-") attribute can also be used in a functional form:
+
+Copy
+
+```>>> def nothing(arg, verbose=False):...     print("Nothing.")...>>> 
+fun.register(type(None), nothing)```
+
+The [`register()`](../_static/classic.css?v=234b1a7c "highlight-") attribute returns the undecorated function. Thisenables decorator stacking, [`pickling`](../_static/classic.css?v=234b1a7c "highlight-"), and the creationof unit tests for each variant independently:
+
+Copy
+
+```>>> @fun.register(float)... @fun.register(Decimal)... def fun_num(arg,
+verbose=False):...     if verbose:...         print("Half of your number:", end="
+")...     print(arg / 2)...>>> fun_num is funFalse```
+
+When called, the generic function dispatches on the type of the firstargument:
+
+Copy
+
+```>>> fun("Hello, world.")Hello, world.>>> fun("test.", verbose=True)Let 
+me just say, test.>>> fun(42, verbose=True)Strength in numbers, eh? 42>>> 
+fun(['spam', 'spam', 'eggs', 'spam'], verbose=True)Enumerate this:0 spam1 spam2 eggs3 
+spam>>> fun(None)Nothing.>>> fun(1.23)0.615```
+
+Where there is no registered implementation for a specific type, itsmethod resolution 
+order is used to find a more generic implementation.The original function decorated 
+with `@singledispatch` is registeredfor the base [`object`](../_static/pydoctheme.css?v=4365c8fe "highlight-") type, which means it is used if no betterimplementation is found.
+
+If an implementation is registered to an [abstract base class](../_static/pydoctheme.css?v=4365c8fe "highlight-"),virtual subclasses of the base class will be dispatched to thatimplementation:
+
+Copy
+
+```>>> from collections.abc import Mapping>>> @fun.register...
+def _(arg: Mapping, verbose=False):...     if verbose:...         print("Keys &
+Values")...     for key, value in arg.items():...         print(key, "=>", value)...>>>
+fun({"a": "b"})a => b```
+
+To check which implementation the generic function will choose fora given type, use
+the `dispatch()` attribute:
+
+Copy
+
+```>>> fun.dispatch(float)<function fun_num at 0x1035a2840>>>> 
+fun.dispatch(dict)    # note: default implementation<function fun at 0x103fe0000>```
+
+To access all registered implementations, use the read-only `registry`attribute:
+
+Copy
+
+```>>> fun.registry.keys()dict_keys([<class 'NoneType'>, <class
+'int'>, <class 'object'>,          <class 'decimal.Decimal'>, <class
+'list'>,          <class 'float'>])>>> fun.registry[float]<function
+fun_num at 0x1035a2840>>>> fun.registry[object]<function fun at 0x103fe0000>```
+
+
+Added in version 3.4.
+
+
+Changed in version 3.7: The [`register()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") attribute now supports using type annotations.
+
+
+Changed in version 3.11: The [`register()`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") attribute now supports[`typing.Union`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") as a type annotation.
+*class *functools.singledispatchmethod(*func*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Transform a method into a [single-dispatch](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+[generic function](../_static/pydoctheme.css?v=4365c8fe "stylesheet").
+
+To define a generic method, decorate it with the `@singledispatchmethod`decorator. When defining a method
+using `@singledispatchmethod`, notethat the dispatch happens on the type of the first non-*self* or non-*cls*argument:
+
+Copy
+
+```class Negator:    @singledispatchmethod    def neg(self, arg):        raise
+NotImplementedError("Cannot negate a")    @neg.register    def _(self, arg: int): 
+       return -arg    @neg.register    def _(self, arg: bool):        return not 
+arg```
+
+`@singledispatchmethod` supports nesting with other decorators such as[`@classmethod`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"). Note that to allow
+for`dispatcher.register`, `singledispatchmethod` must be the *outer most*decorator. Here is the `Negator` class 
+with the `neg` methods bound tothe class, rather than an instance of the class:
+
+Copy
+
+```class Negator:    @singledispatchmethod    @classmethod    def neg(cls, arg):
+raise NotImplementedError("Cannot negate a")    @neg.register    @classmethod
+def _(cls, arg: int):        return -arg    @neg.register    @classmethod    def
+_(cls, arg: bool):        return not arg```
+
+The same pattern can be used for other similar decorators:[`@staticmethod`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), [`@~abc.abstractmethod`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), and others.
+
+
+Added in version 3.8.
+functools.update_wrapper(*wrapper*, *wrapped*, *assigned=WRAPPER_ASSIGNMENTS*,
+*updated=WRAPPER_UPDATES*)[¶](../_static/pydoctheme.css?v=4365c8fe "stylesheet")
+Update a *wrapper* function to look like the *wrapped* function. The optionalarguments
+are tuples to specify which attributes of the original function areassigned directly
+to the matching attributes on the wrapper function and whichattributes of the wrapper
+function are updated with the corresponding attributesfrom the original function.
+The default values for these arguments are themodule level constants `WRAPPER_ASSIGNMENTS` (which assigns
+to the wrapperfunction’s [`__module__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), [`__name__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"),[`__qualname__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), [`__annotations__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"),[`__type_params__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), and [`__doc__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), thedocumentation string) and `WRAPPER_UPDATES`
+(which updates the wrapperfunction’s [`__dict__`](../_static/pydoctheme.css?v=4365c8fe "stylesheet"), i.e. the instance dictionary).
+
+To allow access to the original function for introspection and other purposes(e.g.
+bypassing a caching decorator such as [`@lru_cache`](../_static/pydoctheme.css?v=4365c8fe "stylesheet")), this functionautomatically adds a `__wrapped__`
+attribute to the wrapper that refers tothe function being wrapped.
+
+The main intended use for this function is in [decorator](../_static/pydoctheme.css?v=4365c8fe "stylesheet") functions whichwrap the decorated function and return the wrapper. If the wrapper function isnot updated, the metadata of the returned function will reflect the wrapperdefinition rather than the original function definition, which is typically lessthan helpful.
+
+`update_wrapper()` may be used with callables other than functions. Anyattributes named in *assigned*
+or *updated* that are missing from the objectbeing wrapped are ignored (i.e. this
+function will not attempt to set themon the wrapper function). [`AttributeError`](../_static/pydoctheme.css?v=4365c8fe "stylesheet") is still raised if thewrapper function itself is missing any attributes named in
+*updated*.
+
+
+Changed in version 3.2: The `__wrapped__` attribute is now automatically added.The [`__annotations__`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation") attribute is now copied by default.Missing attributes no longer trigger an [`AttributeError`](../_static/pydoctheme.css?v=4365c8fe "Search within Python 3.14.7 documentation").
+
+
+Changed in version 3.4: The `__wrapped__` attribute now always refers to the wrappedfunction,
+even if that function defined a `__wrapped__` attribute.(see [bpo-17482]( "Search within Python 3.14.7 documentation"))
+
+
+Changed in version 3.12: The [`__type_params__`]( "Search within Python 3.14.7 documentation") attribute is now copied by default.
+@functools.wraps(*wrapped*, *assigned=WRAPPER_ASSIGNMENTS*, *updated=WRAPPER_UPDATES*)[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+This is a convenience function for invoking [`update_wrapper()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") as afunction decorator when defining a wrapper function.  It is equivalent to`partial(update_wrapper, wrapped=wrapped, assigned=assigned,
+updated=updated)`.For example:
+
+Copy
+
+```>>> from functools import wraps>>> def my_decorator(f):...  
+   @wraps(f)...     def wrapper(\*args, \*\*kwds):...         print('Calling decorated 
+function')...         return f(\*args, \*\*kwds)...     return wrapper...>>> 
+@my_decorator... def example():...     """Docstring"""...     print('Called example 
+function')...>>> example()Calling decorated functionCalled example function>>> 
+example.__name__'example'>>> example.__doc__'Docstring'```
+
+Without the use of this decorator factory, the name of the example functionwould 
+have been `'wrapper'`, and the docstring of the original `example()`would have been lost.
+
+## [`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") Objects[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+
+[`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") objects are callable objects created by [`partial()`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation"). Theyhave three read-only attributes:
+partial.func[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+A callable object or function.  Calls to the [`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") object will beforwarded to [`func`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") with new arguments and keywords.
+partial.args[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The leftmost positional arguments that will be prepended to the positionalarguments 
+provided to a [`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") object call.
+partial.keywords[¶](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+The keyword arguments that will be supplied when the [`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") object iscalled.
+
+[`partial`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") objects are like
+[function objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") in that they arecallable, weak referenceable, and can have attributes.  There are some importantdifferences.  For instance, the [`__name__`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") and [`__doc__`](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") attributesare not created automatically.
+            
+
+                              
+
+        
+
+  
+
+    
+### [Table of Contents](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+- [`functools` — Higher-order functions and operations on callable objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")- [`partial` Objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+#### Previous topic
+    
+[`itertools` — Functions creating iterators for efficient looping](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+#### Next topic
+    
+[`operator` — Standard operators as functions](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+    
+
+    
+### This page
+    
+      - [Report a bug](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+      - [Improve this page](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+      -         [Show source        ](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")      
+          
+          
+
+«            
+
+          
+
+      
+### Navigation
+      
+        -           [index](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+        -           [modules](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+        -           [next](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+        -           [previous](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") |
+          - 
+![Python logo](../_static/documentation_options.js?v=2f7d2144 "Search within Python 3.14.7 documentation")
+          - [Python](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") »
+          -             
+
+Greek | Ελληνικά  
+English  
+Spanish | español  
+French | français  
+Italian | italiano  
+Japanese | 日本語  
+Korean | 한국어  
+Polish | polski  
+Brazilian Portuguese | Português brasileiro  
+Romanian | Românește  
+Russian | Русский  
+Turkish | Türkçe  
+Simplified Chinese | 简体中文  
+Traditional Chinese | 繁體中文  
+            
+
+dev (3.16)  
+pre (3.15)  
+3.14.7  
+3.13  
+3.12  
+3.11  
+3.10  
+3.9  
+3.8  
+3.7  
+3.6  
+3.5  
+3.4  
+3.3  
+3.2  
+3.1  
+3.0  
+2.7  
+2.6  
+          
+          -                         
+    -       [3.14.7 Documentation](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") »    
+          - [The Python Standard Library](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") »
+          - [Functional Programming Modules](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") »
+        - [`functools` — Higher-order functions and operations on callable objects](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")
+                -                         
+
+                                                             |                
+            -     Theme            Auto  
+        Light  
+        Dark  
+     |
+                  
+          
+
+    © [Copyright](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") 2001 Python Software Foundation.      
+    This page is licensed under the Python Software Foundation License Version 2. 
+     
+    Examples, recipes, and other code in the documentation are additionally licensed 
+under the Zero Clause BSD License.      
+          See [History and License](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") for more information.  
+              
+    The Python Software Foundation is a non-profit corporation.[Please donate.](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")  
+      
+      Last updated on Sep 03, 2026 (10:47 UTC).          [Found a bug](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation")?          
+    Created using [Sphinx](../_static/pygments_dark.css?v=0fc419ee "Search within Python 3.14.7 documentation") 8.2.3.     
+   

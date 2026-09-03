@@ -1,0 +1,2018 @@
+HTML Video
+==========
+
+document.getElementById("footer").offsetTop) {      elem.style.position = "absolute";
+elem.style.top = (document.getElementById("footer").offsetTop - adHeight) +
+"px";      document.getElementById("stickypos").style.position = "static";    } else
+{        elem.style.position = "fixed";        elem.style.top = "100px";        stickyadstatus
+= "sticky";        document.getElementById("stickypos").style.position = "sticky";
+}  }}function w3_getStyleValue(elmnt,style) {  if (window.getComputedStyle) {
+return window.getComputedStyle(elmnt,null).getPropertyValue(style);  } else {
+return elmnt.currentStyle[style];  }}
+
+
+[      **    ](https://www.w3schools.com "Home")    [        Tutorials        **
+**      ](# "Tutorials and References")      [        References        **
+**      ](# "References")      [        Exercises        **        **     
+](# "Exercises and Quizzes")      [        Certificates        **        **     
+](# "Certificates")    [      Menu      **      **    ](# "Menu")    
+
+
+Search field                        
+
+
+*×*                      
+
+[                  See More                                           
+**        **      ](#)        
+
+[        NEW        
+![](/adventure/img/mascot-lynx.png)                  Adventure app          iOS &
+Android              ](/adventure/index.php "W3Schools Adventure App - iOS and Android")       
+
+
+Sign In                            Sign
+Up       -->       user-anonymous -->            [         -->                   
+-->                        
+★        +1      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")       
+-->                     My W3Schools      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)      -->       
+user-authenticated -->                                              Get Certified
+](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Upgrade      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Academy      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Spaces      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Practice      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)      -->       
+user-anonymous - action-btn -->                                              Get
+Certified      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Upgrade      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Academy      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Spaces      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)       
+Practice      ](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp)      -->       
+user-authenticated - action-btn -->        
+
+
+                              [        My
+W3Schools      ](https://pathfinder.w3schools.com "My W3Schools")      
+
+
+Tutorials          **                
+
+                     
+
+
+References          **                
+
+                     
+
+
+Exercises          **                
+
+                     
+
+
+Certificates          **                
+
+                     [        ![](/adventure/img/mascot-lynx.png)         
+Adventure app          iOS & Android                NEW      ](/adventure/index.php "W3Schools Adventure App - iOS and Android")      [       
+Spaces                                ](/spaces/index.php "Get Your Own Website With W3Schools Spaces")      [       
+Get Certified                                ](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")      [       
+Plus                                                    ](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")      [       
+Practice      ](/practice/index.php "W3Schools Practice Coding Problems")      [        Academy
+](/academy/index.php "W3Schools Academy")      
+
+
+All our Services          **                
+
+                     [        Logout      ](https://profile.w3schools.com/logout "Logout")      
+
+[          **        ](https://www.youtube.com/@w3schools "W3Schools on YouTube")        [          *
+          *        ](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn")        [          *
+          *        ](https://discord.com/invite/w3schools "Join the W3schools community on Discord")        [          *
+          *        ](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook")        [          *
+          *        ](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram")       
+
+
+×      
+
+
+×                    
+
+
+# HTML TUTORIAL
+
+
+[
+
+
+#### HTML Tutorial
+
+Learn HTML with our tutorial. Free, and easy to follow
+
+Learn HTML](https://www.w3schools.com/html/default.asp)[
+
+w3schools CERTIFIED  .  2026
+
+
+#### Become HTML Certified
+
+$95 one-time, official W3Schools certificate
+
+Get Certified](https://campus.w3schools.com/collections/certifications/products/html-course)[
+
+New · W3Schools Adventure App
+#### HTML Adventure Mode
+
+Learn HTML in bite-sized quests with XP and streaks. Free on iOS and Android.
+
+Download on theApp StoreGET IT ONGoogle Play
+
+![](/adventure/img/screen-league.png)
+![](/adventure/img/mascot-lynx.png)](/adventure/index.php)
+
+
+**Tip:** [Sign in](https://profile.w3schools.com/signup) to track your progress.
+
+
+## More Tutorials:
+
+
+×                             
+
+
+[![](/adventure/img/mascot-lynx.png)
+
+New
+#### HTML Adventure
+
+Learn HTML in bite-sized quests
+](/adventure/index.php)[
+
+
+#### HTML
+
+The building blocks of every webpage
+](https://www.w3schools.com/html/default.asp)[
+
+
+#### CSS
+
+Style and layout for web pages
+](https://www.w3schools.com/css/default.asp)[
+
+
+#### JavaScript
+
+Interactive and dynamic web pages
+](https://www.w3schools.com/js/default.asp)[
+
+
+#### SQL
+
+Query and manage databases
+](https://www.w3schools.com/sql/default.asp)[
+
+
+#### Python
+
+Popular programming language for web, data & AI
+](https://www.w3schools.com/python/default.asp)[
+
+
+#### Java
+
+Object-oriented programming language
+](https://www.w3schools.com/java/default.asp)[
+
+
+#### C
+Powerful low-level programming
+](https://www.w3schools.com/favicon.ico "W3Schools.com")[
+
+
+#### C++
+
+Powerful low-level programming
+](https://www.w3schools.com/favicon.ico "W3Schools.com")[
+
+
+#### C#
+
+Powerful low-level programming
+](/lib/fonts/fontawesome.woff2?14663396 "Home")[
+
+
+#### PHP
+
+Server-side scripting language
+](/browserref.css "Home")[
+
+
+#### React
+
+Build interactive user interfaces
+](/browserref.css "Home")[
+
+
+#### MySQL
+
+Query and manage databases
+](/browserref.css "Home")[
+
+
+#### Excel
+
+Spreadsheets and data analysis
+](# "References")[
+
+
+#### DSA
+
+Data structures and algorithms
+](# "Certificates")[
+
+
+#### W3.CSS
+
+W3Schools CSS framework
+](# "Menu")[
+
+
+#### Bootstrap 3
+Responsive CSS framework
+](# "W3Schools Adventure App - iOS and Android")[
+
+
+#### Bootstrap 4
+Responsive CSS framework
+](# "W3Schools Adventure App - iOS and Android")[
+
+
+#### Bootstrap 5
+Responsive CSS framework
+](# "W3Schools Adventure App - iOS and Android")[
+
+
+#### Node.js
+
+Server-side JavaScript runtime
+](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "W3Schools Adventure App - iOS and Android")[
+
+
+#### TypeScript
+
+Typed superset of JavaScript
+](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")[
+
+
+#### Django
+
+Python web framework
+](https://pathfinder.w3schools.com "Your W3Schools Dashboard")[
+
+
+#### PostgreSQL
+
+Advanced relational database
+](https://pathfinder.w3schools.com "Your W3Schools Dashboard")[
+
+jQuery
+======
+
+
+#### jQuery
+
+Fast and concise JavaScript library
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[
+
+
+#### XML
+
+Markup language for data
+](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")[
+
+
+#### NumPy
+
+Scientific computing with Python
+](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")[
+
+
+#### Pandas
+
+Data analysis with Python
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[
+
+
+#### How To
+
+Code snippets and examples
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[
+
+
+#### Angular
+
+Front-end web framework
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[
+
+
+#### AngularJS
+
+JavaScript framework for web apps
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[
+
+
+#### Git
+
+Version control system
+](https://spaces.w3schools.com "Go to Your W3Schools Space")[
+
+
+#### MongoDB
+
+NoSQL document database
+](https://spaces.w3schools.com "Go to Your W3Schools Space")[
+
+
+#### ASP
+
+Server-side web technology
+](/practice/index.php "W3Schools Practice Coding Problems")[
+
+
+#### AI
+
+Artificial intelligence basics
+](https://pathfinder.w3schools.com "My W3Schools")[
+
+
+#### R
+Statistical computing and graphics
+](https://pathfinder.w3schools.com "My W3Schools")[
+
+
+#### Go
+
+Fast and simple compiled language
+](/adventure/index.php "tnb-icon fa fa-caret-down")[
+
+
+#### Kotlin
+
+Modern language for Android
+](/spaces/index.php "tnb-adventure-menu-sub")[
+
+
+#### Swift
+
+Programming language for Apple
+](https://campus.w3schools.com/collections/course-catalog "Get Your Own Website With W3Schools Spaces")[
+
+
+#### Sass
+
+CSS preprocessor language
+](/practice/index.php "tnb-icon")[
+
+
+#### Vue
+
+Progressive JavaScript framework
+](/practice/index.php "W3Schools Practice Coding Problems")[
+
+
+#### Gen AI
+
+AI that creates content
+](/academy/index.php "W3Schools Practice Coding Problems")[
+
+
+#### SciPy
+
+Scientific computing with Python
+](https://profile.w3schools.com/logout "tnb-icon fa fa-caret-down")[
+
+
+#### AWS
+
+Amazon cloud services
+](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram")[
+
+
+#### Cyber Security
+
+Web security fundamentals
+](https://www.w3schools.com/html/default.asp "tutorials_list")[
+
+
+#### Data Science
+
+Analyze and visualize data
+](https://www.w3schools.com/html/default.asp "tutorials_list")[
+
+
+#### Intro to Programming
+
+Introduction to programming concepts
+](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[
+
+
+#### Intro to HTML & CSS
+
+Introduction to HTML and CSS
+](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[
+
+
+#### Bash
+
+Command-line shell scripting
+](/adventure/index.php "tutnav-current-card-desc")[
+
+
+#### Rust
+
+Safe and fast systems programming
+](/adventure/index.php "tutnav-current-card-desc")[
+
+
+#### Tools
+
+Web developer tools
+](https://profile.w3schools.com/signup "Sign in with Facebook")[
+
+
+#### JSON
+
+Lightweight data interchange format
+](/adventure/index.php "tutnav-grid-adventure-desc")[
+
+
+#### RWD
+
+Responsive web design
+](/adventure/index.php "tutnav-grid-adventure-desc")[
+
+
+#### Colors
+
+Color values and palettes
+](/adventure/index.php "tutnav-grid-adventure-desc")[
+
+
+#### Icons
+
+Icon libraries and usage
+](https://www.w3schools.com/html/default.asp "tutnav-card-desc")[
+
+
+#### SVG
+
+Scalable vector graphics
+](https://www.w3schools.com/js/default.asp "tutnav-card-desc")[
+
+
+#### Canvas
+
+Draw graphics with JavaScript
+](https://www.w3schools.com/sql/default.asp "tutnav-card-desc")[
+
+
+#### Graphics
+
+Web graphics tutorials
+](https://www.w3schools.com/sql/default.asp "tutnav-card-desc")[
+
+
+#### AJAX
+
+Asynchronous web requests
+](https://www.w3schools.com/python/default.asp "tutnav-card-desc")[
+
+
+#### AppML
+
+Web application framework
+](https://www.w3schools.com/java/default.asp "tutnav-card-desc")[
+
+
+#### W3.JS
+
+W3Schools JavaScript library
+](https://www.w3schools.com/java/default.asp "tutnav-card-desc")[
+
+
+#### ChatGPT-3.5
+
+OpenAI language model
+](https://www.w3schools.com/c/index.php "tutnav-card-desc")[
+
+
+#### ChatGPT-4
+
+Advanced OpenAI language model
+](https://www.w3schools.com/c/index.php "tutnav-card-desc")[
+
+
+#### Google Bard
+
+Google AI assistant
+](https://www.w3schools.com/favicon.ico "og:title")[
+
+
+#### Machine Learning
+
+Algorithms that learn from data
+](https://www.w3schools.com/favicon.ico "W3Schools.com")[
+
+
+#### Matplotlib
+
+Data visualization with Python
+](https://www.w3schools.com/favicon.ico "W3Schools.com")[
+
+
+#### Statistics
+
+Mathematical statistics basics
+](/apple-touch-icon.png "Home")[
+
+
+#### Google Sheets
+
+Online spreadsheet tool
+](/lib/fonts/source-code-pro-v14-latin-regular.woff2 "Home")[
+
+
+#### UTF-8 / Emojis
+
+Character sets and encoding
+](/lib/topnav/main.v1.0.137.css "Home")[
+
+
+#### Raspberry Pi
+
+Small computer for projects
+](/browserref.css "Home")[
+
+
+#### Accessibility
+
+Making the web accessible
+](/browserref.css "Home")[
+
+
+#### Spaces
+
+Your own space to code and share
+](/browserref.css "Home")[
+
+
+#### Typing Speed Test
+
+Test and improve your typing speed
+](/browserref.css "Home")[
+
+
+#### Code Game
+
+Learn coding through fun games
+](/browserref.css "Home")[
+
+
+#### Code Editor
+
+Write and run code in your browser
+](/browserref.css "Home")[
+
+
+#### Web Templates
+
+Free website templates
+](/browserref.css "Home")[
+
+
+#### Newsletter
+
+Stay updated with W3Schools
+](/browserref.css "Home")                                    
+
+
+← All Topics                                
+
+
+##
+
+
+×                    
+
+
+# HTML REFERENCE
+
+
+[
+
+
+HTML Reference
+
+Complete reference for HTML
+
+HTML Reference](https://www.w3schools.com "Home")[
+
+
+## Become HTML Certified
+
+Get certified with our HTML exam, includes a professional study kit to guide you
+from beginner to exam-ready.
+
+$95one-time
+
+Get HTML Certified
+
+CERTIFICATE OF COMPLETIONThis certifies thatYour Namehas passed the W3Schools HTML
+Certification exam and is hereby declared aCertified HTML DeveloperThe candidate
+has passed the exam at the Professional level.Verify atverify.w3schools.comStale
+Refsnesfor w3schools.com](# "Tutorials and References")            
+
+
+## W3SCHOOLS REFERENCES:
+
+
+×                             
+
+
+#### HTML
+
+Tag reference
+
+
+#### CSS
+
+Reference
+
+
+#### JavaScript
+
+Reference
+
+
+#### SQL
+
+Keyword reference
+
+
+#### Python
+
+Reference
+
+
+#### Java
+
+Reference
+
+
+#### C                  
+Reference
+
+
+#### C++
+
+Reference
+
+
+#### Colors
+
+Color names
+
+
+#### PHP
+
+Reference
+
+
+#### HTML DOM
+
+Reference
+
+
+#### MySQL
+
+Reference
+
+
+#### W3.CSS
+
+Reference
+
+
+#### Bootstrap 3                  
+Reference
+
+
+#### Bootstrap 4                  
+Reference
+
+
+#### Node.js
+
+Reference
+
+
+#### Django
+
+Reference
+
+
+jQuery
+======
+
+
+#### jQuery
+
+Reference
+
+
+#### Vue
+
+Attributes
+
+
+#### Angular
+
+Reference
+
+
+#### Sass
+
+Reference
+
+
+#### XML
+
+Reference
+
+
+#### JSON
+
+Reference
+
+
+#### ASP
+
+Reference
+
+
+#### Icons
+
+Reference
+
+
+#### SVG
+
+Reference
+
+
+#### Canvas
+
+Reference
+
+
+#### Charsets
+
+Reference
+
+
+#### Emojis
+
+Reference
+
+
+#### AppML
+
+Reference
+
+
+#### W3.JS
+
+Reference
+
+
+×                    
+
+
+# HTML Exercises
+
+
+[
+
+
+HTML Exercises
+
+Practice with interactive exercises
+HTML Exercises](https://www.w3schools.com/html/default.asp "tutnav-current-card-desc")[What is an Exercise?](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")
+
+[
+
+
+HTML Quiz
+
+Test your knowledge
+HTML Quiz](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[What is a Quiz?](/adventure/index.php "tutnav-current-card-desc")
+
+[
+
+
+HTML Challenges
+
+Solve coding challenges
+HTML Challenges](/adventure/index.php "tutnav-current-card-desc")[What is a Challenge?](/adventure/index.php "tutnav-current-card-desc")
+
+[
+
+
+Practice HTML Problems
+
+Coming soon
+Practice HTML Problems](/adventure/index.php "tutnav-adventure-desc")[What is a Practice Problem?](https://profile.w3schools.com/signup "Sign in with Google")
+
+
+**Tip:**                [Sign in](https://profile.w3schools.com/signup "Sign in with Google")                to track your progress.              
+
+
+[                                                                
+](https://profile.w3schools.com/signup "Sign in with Google")                [                   
+](https://profile.w3schools.com/signup "Sign in with Facebook")                [                   
+](/adventure/index.php "Sign in with GitHub")               
+
+
+## Select another topic:
+
+
+×                             
+
+
+#### HTML
+
+Exercises
+
+
+#### CSS
+
+Exercises
+
+
+#### JavaScript
+
+Exercises
+
+
+#### SQL
+
+Exercises
+
+
+#### Python
+
+Exercises
+
+
+#### Java
+
+Exercises
+
+
+#### C                  
+Exercises
+
+
+#### C++
+
+Exercises
+
+
+#### C#
+
+Exercises
+
+
+#### PHP
+
+Exercises
+
+
+#### React
+
+Exercises
+
+
+#### MySQL
+
+Exercises
+
+
+#### Excel
+
+Exercises
+
+
+#### DSA
+
+Exercises
+
+
+#### Bootstrap 3                  
+Exercises
+
+
+#### Bootstrap 4                  
+Exercises
+
+
+#### Bootstrap 5                  
+Exercises
+
+
+#### Node.js
+
+Exercises
+
+
+#### TypeScript
+
+Exercises
+
+
+#### Django
+
+Exercises
+
+
+#### PostgreSQL
+
+Exercises
+
+
+jQuery
+======
+
+
+#### jQuery
+
+Exercises
+
+
+#### NumPy
+
+Exercises
+
+
+#### Pandas
+
+Exercises
+
+
+#### Angular
+
+Exercises
+
+
+#### Git
+
+Exercises
+
+
+#### MongoDB
+
+Exercises
+
+
+#### R                  
+Exercises
+
+
+#### Go
+
+Exercises
+
+
+#### Kotlin
+
+Exercises
+
+
+#### Swift
+
+Exercises
+
+
+#### Vue
+
+Exercises
+
+
+#### SciPy
+
+Exercises
+
+
+#### Bash
+
+Exercises
+
+
+##
+
+Choose an activity                
+← Back to topics                   
+
+
+**Tip:**              [                Sign in              ](/practice/index.php "W3Schools Practice Coding Problems")              to track your progress.            
+
+
+×                    
+
+
+# Get Certified
+
+
+## Become a Certified HTML  
+Developer
+
+Master HTML and earn a credential that proves it.  
+The certification includes the full self-paced course, hands-on exercises, and a
+proctored exam leading to an official w3schools Certificate of Completion.
+
+$95one-time
+
+Includes exam, course materials, exercises, and one year of the [Hero plan](https://discord.com/invite/w3schools "Join the W3schools community on Discord").
+[Get HTML Certified](https://discord.com/invite/w3schools "Join the W3schools community on Discord")
+
+CERTIFICATE OF COMPLETIONThis certifies thatYour Namehas passed the W3Schools HTML
+Certification exam and is hereby declared aCertified HTML DeveloperThe candidate
+has passed the exam at the Professional level.Verify atverify.w3schools.comStale
+Refsnesfor w3schools.com            
+
+
+##                 W3SCHOOLS CERTIFICATES:                            
+
+×                             
+
+
+[                  
+
+
+HTML
+](/adventure/index.php "tutnav-current-card-desc")                [                  
+
+
+CSS
+](/adventure/index.php "tutnav-current-card-desc")                [                  
+
+
+JavaScript
+](/adventure/index.php "tutnav-current-card-desc")                [                  
+
+
+SQL
+](/adventure/index.php "tutnav-current-card-desc")                [                  
+
+
+Python
+](https://profile.w3schools.com/signup "tutnav-adventure-desc")                [                  
+
+
+Java
+](https://profile.w3schools.com/signup "Sign in with Google")                [                  
+
+
+C
+](https://profile.w3schools.com/signup "Sign in with Facebook")                [                  
+
+
+C++
+](/adventure/index.php "tutnav-grid-adventure-desc")                [                  
+
+
+C#
+](/adventure/index.php "tutnav-grid-adventure-desc")                [                  
+
+
+PHP
+](https://www.w3schools.com/js/default.asp "tutnav-card-desc")                [                  
+
+
+React
+](https://www.w3schools.com/sql/default.asp "tutnav-card-desc")                [                  
+
+
+MySQL
+](https://www.w3schools.com/favicon.ico "utf-8")                [                  
+
+
+Excel
+](/lib/fonts/SourceSansPro-Regular.woff2 "Home")                [                  
+
+
+DSA
+](/browserref.css "Home")                [                  
+
+
+W3.CSS
+](/browserref.css "Home")                [                  
+
+
+Bootstrap 3
+](/browserref.css "Home")                [                  
+
+
+Bootstrap 4
+](/browserref.css "Home")                [                  
+
+
+Bootstrap 5
+](/browserref.css "Home")                [                  
+
+
+Node.js
+](/browserref.css "Home")                [                  
+
+
+TypeScript
+](https://www.w3schools.com "Home")                [                  
+
+
+Django
+](# "Certificates")                [                  
+
+
+PostgreSQL
+](# "W3Schools Adventure App - iOS and Android")                [                  
+
+jQuery
+======
+
+
+jQuery
+](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")                [                  
+
+
+Vue
+](https://pathfinder.w3schools.com "Your W3Schools Dashboard")                [                  
+
+
+NumPy
+](https://campus.w3schools.com/collections/course-catalog "Your W3Schools Dashboard")                [                  
+
+
+Pandas
+](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")                [                  
+
+
+XML
+](/academy/index.php "Become a PLUS user and unlock powerful features")                [                  
+
+
+Cyber Security
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+Accessibility
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+AngularJS
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+Git
+](/spaces/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+MongoDB
+](/spaces/index.php "Get Your Own Website With W3Schools Spaces")                [                  
+
+
+R
+](/practice/index.php "W3Schools Practice Coding Problems")                [                  
+
+
+Go
+](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")                [                  
+
+
+Kotlin
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+SASS
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+SciPy
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")                [                  
+
+
+BASH
+](/practice/index.php "Go to Your W3Schools Space")                [                  
+
+
+Rust
+](https://pathfinder.w3schools.com "My W3Schools")               
+
+
+## **All Our Services**
+
+
+Dark mode                  
+                      
+
+
+Services filter input                      
+
+
+×                                                           
+
+
+W3Schools offers a wide range of services and products for beginners
+and professionals,                  
+helping millions of people everyday to learn and master new skills.
+
+
+[                  
+
+
+#### Free Tutorials
+
+Enjoy our free tutorials like millions of other internet users since 1999
+](/practice/index.php "W3Schools Practice Coding Problems")               
+
+
+[                  
+
+
+#### References
+
+Explore our selection of references covering all popular coding languages
+](https://profile.w3schools.com/logout "W3Schools Academy")               
+
+
+[                  
+
+
+####                           Adventure app                          NEW        
+
+For iOS & Android,                            
+start a new learning adventure.                        
+
+
+![](/adventure/img/screen-league.png "Join the W3schools community on Discord")                        
+![](/adventure/img/screen-league.png "W3Schools on Facebook")                       
+](https://profile.w3schools.com/logout "Logout")               
+
+
+[                  
+
+
+#### Create a Website
+
+Create your own website with                      **W3Schools
+Spaces**                      - no setup required                    
+](https://www.instagram.com/w3schools.com_official/ "W3Schools on Instagram")               
+
+
+[                  
+
+
+#### Exercises
+
+Test your skills with different exercises
+](https://www.w3schools.com/html/default.asp "tutorials_list")               
+
+
+[                  
+
+
+#### Quizzes
+
+Test yourself with multiple choice questions
+](https://www.w3schools.com/html/default.asp "tutorials_list")               
+
+
+[                  
+
+
+#### Code Challenges
+
+Test your skills with interactive code challenges
+](https://www.w3schools.com/html/default.asp "tutnav-current-card-desc")               
+
+
+[                  
+
+
+#### Get Certified
+
+Document your knowledge
+
+](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")               
+
+
+[                  
+
+
+#### Log in / Sign Up
+
+Create an account to track your progress
+](/adventure/index.php "tutnav-current-card-desc")               
+
+
+[                  
+
+
+#### League
+
+Earn XP and climb the ranks with different challenges
+](/adventure/index.php "tutnav-current-card-desc")               
+
+
+[                  
+
+
+#### Upgrade
+
+Become a PLUS user and unlock powerful features (ad-free, hosting, support,..)
+
+](/adventure/index.php "tutnav-current-card-desc")               
+
+
+[                  
+
+
+#### Where To Start
+
+Not sure where you want to start? Follow our guided path
+](https://profile.w3schools.com/signup "Sign in with Google")               
+
+
+[                  
+
+
+#### Code Editor (Try it)
+
+With our online code editor, you can edit code and view the result in your browser
+](https://profile.w3schools.com/signup "Sign in with Google")               
+
+
+[                  
+
+
+#### Templates
+
+We have created a bunch of responsive website templates you can use - for free!
+](https://profile.w3schools.com/signup "Sign in with Google")               
+
+
+[                  
+
+
+#### Web Hosting
+
+Host your own website, and share it to the world with      
+**W3Schools Spaces**                    
+](https://profile.w3schools.com/signup "Sign in with Facebook")               
+
+
+[                  
+
+
+#### Create a Server
+
+Create your own server using Python, PHP, React.js, Node.js, Java, C#, etc.
+
+](https://profile.w3schools.com/signup "Sign in with Facebook")               
+
+
+[                  
+
+
+#### How To's
+
+Large collection of code snippets for HTML, CSS and JavaScript
+](https://www.w3schools.com/css/default.asp "tutnav-card-desc")               
+
+
+[                  
+
+
+#### CSS Framework
+
+Build fast and responsive sites using our free             
+**W3.CSS**                      framework                    
+](https://www.w3schools.com/css/default.asp "tutnav-card-desc")               
+
+
+[                  
+
+
+#### Videos
+
+Learn the basics of HTML in a fun and engaging video tutorial
+
+](https://www.w3schools.com/js/default.asp "tutnav-card-desc")               
+
+
+[                  
+
+
+#### Browser Statistics
+
+Read long term trends of browser usage
+](https://www.w3schools.com/java/default.asp "tutnav-card-desc")               
+
+
+[                  
+
+
+#### Typing Speed
+
+Test your typing speed
+](https://www.w3schools.com/java/default.asp "tutnav-card-desc")               
+
+#### AWS Training
+
+Learn Amazon Web Services
+](https://www.w3schools.com/java/default.asp)              -->
+
+
+[                  
+
+
+#### Color Picker
+
+Use our color picker to find different RGB, HEX and HSL colors.
+
+![](https://www.gstatic.com/recaptcha/releases/ox8dsmiqR62P1bqhciWOn7Fg/recaptcha__en.js "utf-8")                    
+](https://www.w3schools.com/c/index.php "tutnav-card-desc")               
+
+
+[                  
+
+
+#### Newsletter
+
+Join our newsletter and get access to exclusive content every month
+](https://www.w3schools.com/favicon.ico "W3Schools.com")               
+
+
+#### Set Goal
+
+Get personalized learning journey based on your current skills and goals
+](https://www.w3schools.com/favicon.ico)              -->
+
+
+[                  
+
+
+#### Emojis Reference
+
+Check out our refererence page with all the emojis supported
+in HTML                                              😊                        
+
+](https://www.w3schools.com/favicon.ico "Home")               
+
+
+[                  
+
+
+#### Code Game
+
+W3Schools Coding Game! Help the lynx collect pine cones    
+
+![](https://www.gstatic.com/recaptcha/releases/ox8dsmiqR62P1bqhciWOn7Fg/recaptcha__en.js "Home")                    
+](/lib/fonts/fontawesome.woff2?14663396 "Home")               
+
+
+[                  
+
+
+#### UTF-8 Reference
+
+Check out our full UTF-8 Character reference
+](/lib/fonts/freckle-face-v9-latin-regular.woff2 "Home")               
+
+
+[                  
+
+
+#### Community
+
+Chat, Learn and Connect with Us on Discord
+](/lib/sparteo.css?v=1.0.5 "Home")               
+
+
+[                  
+
+
+#### Academy
+
+Contact us about W3Schools Academy for educational institutions
+](/browserref.css "Home")                      
+
+
+[                  
+
+
+#### For Businesses
+
+Contact us about W3Schools Academy for your organization
+](/browserref.css "Home")                      
+
+
+#### Contact Us
+
+About sales:                      sales@w3schools.com      
+
+About errors:                      help@w3schools.com      
+
+
+[                  **                ](/browserref.css "Home")                [                  *
+                  *                ](/browserref.css "Home")                [                  *
+                  *                ](/browserref.css "Home")                [                  *
+                  *                ](/browserref.css "Home")                [                  *
+                  *                ](/browserref.css "Home")               
+
+
+×                                        
+
+
+10) {scrollspeed = 10;}    if (n == 1) {      document.getElementById("subtopnav").scrollLeft
++= scrollspeed;      } else {      document.getElementById("subtopnav").scrollLeft
+-= scrollspeed;            }    scrollbtn_visible();  }, 10);}var p_s_l = 0;var x_s_l
+= 0;function scrollbtn_visible() {  var c_s_l = document.getElementById("subtopnav").scrollLeft;
+if (c_s_l  1 && c_s_l == p_s_l) {    x_s_l++;  } else {    x_s_l = 0;    }  if (x_s_l
+> 3) {    document.getElementById("scroll_right_btn").style.display = "none";    
+} else {    document.getElementById("scroll_right_btn").style.display = "block";
+}  p_s_l = document.getElementById("subtopnav").scrollLeft;}function stopscrollmenow()
+{  scrollspeed = 1;  window.clearInterval(scrollinterval);}window.addEventListener("load",
+scrollbtn_visible);function subtopnav_intoview() {  var a, b, c, d, i = 0;  a =
+document.getElementById("subtopnav");  if (!a || !a.getElementsByClassName) {return
+false;}  var x = a.getElementsByTagName("A");  b = document.location.pathname;  if
+(b.indexOf("/python/numpy/") > -1 || b.indexOf("/python/pandas/") > -1 ||
+b.indexOf("/python/scipy/") > -1) {    for (i = 0; i  -1 && c == "/python/numpy/default.asp")
+|| (b.indexOf("/python/pandas/") > -1 && c == "/python/pandas/default.asp") ||
+(b.indexOf("/python/scipy/") > -1 && c == "/python/scipy/index.php")) {        x[i].className
++= " active";        break;      }    }  } else {    for (i = 0; i  1000) {break;}
+a.scrollLeft += 10;    //console.log(i);  }  //scrollbtn_visible();}function amIIntoView(x,
+y) {  var a = x.scrollLeft;  var width = Math.min(window.innerWidth, 1750);  var
+b = a + width - 20;  var ytop = y.offsetLeft;  var c = y.offsetWidth;  var d = 0;
+if (document.getElementById("btn_container_subtopnav")) d =
+document.getElementById("btn_container_subtopnav").offsetWidth;  var ybottom = ytop
++ c + d + 20;  return ((ybottom = a));}
+
+
+   ❮         
+
+     ❯       
+
+[HTML](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [CSS](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [JAVASCRIPT](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [SQL](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [PYTHON](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [JAVA](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [PHP](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "W3Schools Adventure App - iOS and Android")  [C](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "W3Schools Adventure App - iOS and Android")  [C++](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "tnb-adventure-badge-sub")  [C#](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "tnb-adventure-badge-sub")  [AWS](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "tnb-adventure-badge-sub")  [W3.CSS](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "tnb-adventure-badge-sub")  [HOW TO](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "tnb-adventure-badge-sub")  [BOOTSTRAP](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign in to your account")  [REACT](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign in to your account")  [MYSQL](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign in to your account")  [JQUERY](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign in to your account")  [EXCEL](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [XML](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [DJANGO](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [NUMPY](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [PANDAS](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [NODEJS](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [DSA](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [TYPESCRIPT](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [ANGULAR](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [ANGULARJS](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [GIT](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [POSTGRESQL](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [MONGODB](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [ASP](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [AI](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Sign Up to Improve Your Learning Experience")  [R](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")  [GO](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")  [KOTLIN](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")  [SWIFT](https://profile.w3schools.com/log-in?redirect_url=https%3A%2F%2Fwww.w3schools.com%2Fhtml%2Fhtml5_video.asp "Your W3Schools Profile")  [SASS](https://pathfinder.w3schools.com "Your W3Schools Profile")  [VUE](https://pathfinder.w3schools.com "Your W3Schools Profile")  [GEN AI](https://pathfinder.w3schools.com "Your W3Schools Profile")  [SCIPY](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [CYBERSECURITY](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [DATA SCIENCE](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [INTRO TO PROGRAMMING](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [INTRO TO HTML & CSS](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [BASH](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [RUST](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  [TOOLS](https://pathfinder.w3schools.com "Your W3Schools Dashboard")  ](https://pathfinder.w3schools.com)   
+
+
+](https://pathfinder.w3schools.com "Your W3Schools Dashboard")](https://pathfinder.w3schools.com)      HTML](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      CSS](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      JAVASCRIPT](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      SQL](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      PYTHON](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      JAVA](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      PHP](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      BOOTSTRAP](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      HOW TO](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      W3.CSS](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      C](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      C++](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      C#](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      REACT](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      R](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      JQUERY](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      DJANGO](https://pathfinder.w3schools.com "Your W3Schools Dashboard")      TYPESCRIPT](https://campus.w3schools.com/collections/course-catalog "Your W3Schools Dashboard")      NODEJS](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")      MYSQL](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")      SWIFT](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")     
+-->
+
+
+&times;](https://campus.w3schools.com/collections/course-catalog)-->
+## HTML Tutorial
+[HTML HOME](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")[HTML Introduction](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")
+
+[Introduction](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")  [Exercises](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")[HTML Editors](/academy/index.php "Become a PLUS user and unlock powerful features")[HTML Basic](/academy/index.php "Become a PLUS user and unlock powerful features")
+
+[Basic](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Code Challenge](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Elements](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Elements](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Code Challenge](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Attributes](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Attributes](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Code Challenge](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Headings](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Headings](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Code Challenge](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Paragraphs](/spaces/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Paragraphs](/spaces/index.php "Get Your Own Website With W3Schools Spaces")  [Exercises](/spaces/index.php "Get Your Own Website With W3Schools Spaces")  [Code Challenge](/spaces/index.php "Get Your Own Website With W3Schools Spaces")[HTML Styles](/spaces/index.php "Get Your Own Website With W3Schools Spaces")
+
+[Styles](/spaces/index.php "Get Your Own Website With W3Schools Spaces")  [Exercises](/spaces/index.php "Get Your Own Website With W3Schools Spaces")  [Code Challenge](/spaces/index.php "Get Your Own Website With W3Schools Spaces")[HTML Formatting](/spaces/index.php "Get Your Own Website With W3Schools Spaces")
+
+[Formatting](/spaces/index.php "Get Your Own Website With W3Schools Spaces")  [Exercises](/practice/index.php "Get Your Own Website With W3Schools Spaces")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Quotations](/practice/index.php "W3Schools Practice Coding Problems")
+
+[Quotations](/practice/index.php "W3Schools Practice Coding Problems")  [Exercises](/practice/index.php "W3Schools Practice Coding Problems")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Comments](/practice/index.php "W3Schools Practice Coding Problems")
+
+[Comments](https://campus.w3schools.com/collections/course-catalog "W3Schools Practice Coding Problems")  [Exercises](https://campus.w3schools.com/collections/course-catalog "W3Schools Practice Coding Problems")  [Code Challenge](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")[HTML Colors](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")
+
+[Colors](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [RGB](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [HEX](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [HSL](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Exercises](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Code Challenge](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")[HTML CSS](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")
+
+[CSS](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Exercises](https://order.w3schools.com/plans "W3Schools Certificates")  [Code Challenge](https://order.w3schools.com/plans "W3Schools Certificates")[HTML Links](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")
+
+[Links](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")  [Link Colors](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")  [Link Bookmarks](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")  [Exercises](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")  [Code Challenge](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")[HTML Images](/academy/index.php "Get personalized learning journey based on your current skills and goals")
+
+[Images](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Image Map](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Background Images](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [The Picture Element](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Code Challenge](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Project](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Favicon](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Favicon](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Page Title](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[Page Title](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Exercises](/academy/index.php "Contact us about W3Schools Academy for educational institutions")[HTML Tables](/academy/index.php "Contact us about W3Schools Academy for educational institutions")
+
+[HTML Tables](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Table Borders](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Table Sizes](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Table Headers](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  [Padding & Spacing](https://spaces.w3schools.com "Contact us about W3Schools Academy for educational institutions")  [Colspan & Rowspan](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Table Styling](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Table Colgroup](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Exercises](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Code Challenge](https://spaces.w3schools.com "Go to Your W3Schools Space")[HTML Lists](https://spaces.w3schools.com "Go to Your W3Schools Space")
+
+[Lists](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Unordered Lists](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Ordered Lists](https://spaces.w3schools.com "Go to Your W3Schools Space")  [Other Lists](/practice/index.php "Go to Your W3Schools Space")  [Exercises](/practice/index.php "Go to Your W3Schools Space")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Block & Inline](/practice/index.php "W3Schools Practice Coding Problems")
+
+[Block & Inline](/practice/index.php "W3Schools Practice Coding Problems")  [Exercises](/practice/index.php "W3Schools Practice Coding Problems")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Div](https://pathfinder.w3schools.com "W3Schools Practice Coding Problems")
+
+[Div](https://pathfinder.w3schools.com "My W3Schools")  [Exercises](https://pathfinder.w3schools.com "My W3Schools")  [Code Challenge](https://pathfinder.w3schools.com "My W3Schools")[HTML Classes](https://pathfinder.w3schools.com "My W3Schools")
+
+[Classes](https://pathfinder.w3schools.com "My W3Schools")  [Exercises](https://pathfinder.w3schools.com "My W3Schools")  [Code Challenge](https://pathfinder.w3schools.com "My W3Schools")[HTML Id](https://pathfinder.w3schools.com "My W3Schools")
+
+[Id](https://pathfinder.w3schools.com "My W3Schools")  [Exercises](https://pathfinder.w3schools.com "My W3Schools")  [Code Challenge](https://pathfinder.w3schools.com "My W3Schools")[HTML Buttons](/adventure/index.php "My W3Schools")
+
+[Buttons](/adventure/index.php "tnb-icon fa fa-caret-down")  [Code Challenge](/adventure/index.php "tnb-icon fa fa-caret-down")[HTML Iframes](/adventure/index.php "tnb-icon fa fa-caret-down")
+
+[Iframes](/adventure/index.php "tnb-icon fa fa-caret-down")  [Exercises](/adventure/index.php "tnb-icon fa fa-caret-down")  [Code Challenge](/adventure/index.php "tnb-icon fa fa-caret-down")[HTML JavaScript](/adventure/index.php "tnb-icon fa fa-caret-down")
+
+[JavaScript](/adventure/index.php "tnb-icon fa fa-caret-down")  [Exercises](/adventure/index.php "tnb-icon fa fa-caret-down")  [Code Challenge](/adventure/index.php "tnb-icon fa fa-caret-down")[HTML File Paths](/adventure/index.php "tnb-icon fa fa-caret-down")
+
+[File Paths](/adventure/index.php "tnb-icon fa fa-caret-down")  [Code Challenge](/adventure/index.php "tnb-icon fa fa-caret-down")[HTML Head](/adventure/index.php "tnb-icon fa fa-caret-down")
+
+[Head](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [Exercises](/adventure/index.php "W3Schools Adventure App - iOS and Android")  [Code Challenge](/spaces/index.php "W3Schools Adventure App - iOS and Android")[HTML Layout](/spaces/index.php "tnb-adventure-menu-sub")
+
+[Layout](/spaces/index.php "tnb-adventure-menu-sub")  [Code Challenge](/spaces/index.php "Get Your Own Website With W3Schools Spaces")[HTML Responsive](https://campus.w3schools.com/collections/course-catalog "Get Your Own Website With W3Schools Spaces")
+
+[Responsive](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Exercises](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Code Challenge](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")[HTML Computercode](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")
+
+[Computercode](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")  [Exercises](https://order.w3schools.com/plans "W3Schools Certificates")  [Code Challenge](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")[HTML Semantics](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")
+
+[Semantics](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")  [Exercises](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")  [Code Challenge](https://order.w3schools.com/plans "Become a PLUS user and unlock powerful features")[HTML Style Guide](/practice/index.php "tnb-icon")[HTML Entities](/practice/index.php "tnb-icon")
+
+[Entities](/practice/index.php "W3Schools Practice Coding Problems")  [Exercises](/practice/index.php "W3Schools Practice Coding Problems")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Symbols](/practice/index.php "W3Schools Practice Coding Problems")[HTML Emojis](/practice/index.php "W3Schools Practice Coding Problems")[HTML Charsets](/practice/index.php "W3Schools Practice Coding Problems")[HTML URL Encode](/practice/index.php "W3Schools Practice Coding Problems")[HTML vs. XHTML](/practice/index.php "W3Schools Practice Coding Problems")  
+
+## HTML Forms
+[HTML Forms](/practice/index.php "W3Schools Practice Coding Problems")
+
+[Forms](/practice/index.php "W3Schools Practice Coding Problems")  [Exercises](/practice/index.php "W3Schools Practice Coding Problems")  [Code Challenge](/practice/index.php "W3Schools Practice Coding Problems")[HTML Form Attributes](/practice/index.php "W3Schools Practice Coding Problems")
+
+[Form Attributes](/practice/index.php "W3Schools Practice Coding Problems")  [Exercises](/practice/index.php "W3Schools Practice Coding Problems")[HTML Form Elements](/academy/index.php "W3Schools Practice Coding Problems")
+
+[Form Elements](/academy/index.php "W3Schools Academy")  [Exercises](https://profile.w3schools.com/logout "tnb-mobile-nav-section")  [Code Challenge](https://profile.w3schools.com/logout "tnb-icon fa fa-caret-down")[HTML Input Types](https://profile.w3schools.com/logout "tnb-icon fa fa-caret-down")
+
+[Input Types](https://profile.w3schools.com/logout "Logout")  [Exercises](https://profile.w3schools.com/logout "Logout")  [Code Challenge](https://www.youtube.com/@w3schools "tnb-social-network-btns")[HTML Input Attributes](https://www.linkedin.com/company/w3schools.com/ "W3Schools on YouTube")
+
+[Input Attributes](https://www.linkedin.com/company/w3schools.com/ "W3Schools on LinkedIn")  [Exercises](https://discord.com/invite/w3schools "Join the W3schools community on Discord")[Input Form Attributes](https://discord.com/invite/w3schools "Join the W3schools community on Discord")
+
+[Input Form Attributes](https://www.facebook.com/w3schoolscom/ "W3Schools on Facebook")  [Exercises](https://www.instagram.com/w3schools.com_official/ "W3Schools on Facebook")  
+
+## HTML Graphics
+[HTML Canvas](https://www.w3schools.com/html/default.asp "W3Schools on Instagram")
+
+[Canvas](https://www.w3schools.com/html/default.asp "tutorials_list")  [Code Challenge](https://www.w3schools.com/html/default.asp "tutorials_list")[HTML SVG](https://www.w3schools.com/html/default.asp "tutorials_list")
+
+[SVG](https://www.w3schools.com/html/default.asp "tutorials_list")  [Code Challenge](https://www.w3schools.com/html/default.asp "tutorials_list")  
+
+## HTML Media
+[HTML Media](https://www.w3schools.com/html/default.asp "tutorials_list")[HTML Video](https://www.w3schools.com/html/default.asp "tutorials_list")
+
+[Video](https://www.w3schools.com/html/default.asp "tutnav-current-card-desc")  [Code Challenge](https://www.w3schools.com/html/default.asp "tutnav-current-card-desc")[HTML Audio](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")
+
+[Audio](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")  [Code Challenge](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML Plug-ins](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML YouTube](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")  
+
+## HTML APIs
+[HTML Web APIs](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML Geolocation](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML Drag and Drop](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML Web Storage](https://campus.w3schools.com/collections/certifications/products/html-course "tutnav-current-card-desc")[HTML Web Workers](/adventure/index.php "tutnav-current-card-desc")[HTML SSE](/adventure/index.php "tutnav-current-card-desc")  
+
+## HTML Cert
+[HTML Certificate](/adventure/index.php "tutnav-current-card-desc")  
+
+## HTML Examples
+[HTML Examples](/adventure/index.php "tutnav-current-card-desc")[HTML Editor](/adventure/index.php "tutnav-current-card-desc")[HTML Quiz](/adventure/index.php "tutnav-current-card-desc")[HTML Exercises](/adventure/index.php "tutnav-current-card-desc")[HTML Challenges](/adventure/index.php "tutnav-current-card-desc")[HTML Website](/adventure/index.php "tutnav-current-card-desc")[HTML Syllabus](/adventure/index.php "tutnav-current-card-desc")[HTML Study Plan](/adventure/index.php "tutnav-current-card-desc")[HTML Interview Prep](/adventure/index.php "tutnav-current-card-desc")[HTML Summary](/adventure/index.php "tutnav-current-card-desc")[HTML Accessibility](/adventure/index.php "tutnav-current-card-desc")  
+
+## HTML References
+[HTML Tag List](/adventure/index.php "tutnav-current-card-desc")[HTML Attributes](/adventure/index.php "tutnav-current-card-desc")[HTML Global Attributes](/adventure/index.php "tutnav-current-card-desc")[HTML Browser Support](/adventure/index.php "tutnav-current-card-desc")[HTML Events](/adventure/index.php "tutnav-current-card-desc")[HTML Colors](/adventure/index.php "tutnav-current-card-desc")[HTML Canvas](/adventure/index.php "tutnav-current-card-desc")[HTML Audio/Video](/adventure/index.php "tutnav-current-card-desc")[HTML Doctypes](/adventure/index.php "tutnav-current-card-desc")[HTML Character Sets](/adventure/index.php "tutnav-current-card-desc")[HTML URL Encode](/adventure/index.php "tutnav-current-card-desc")[HTML Lang Codes](/adventure/index.php "tutnav-current-card-desc")[HTTP Messages](/adventure/index.php "tutnav-current-card-desc")[HTTP Methods](/adventure/index.php "tutnav-current-card-desc")[PX to EM Converter](/adventure/index.php "tutnav-current-card-desc")[Keyboard Shortcuts](/adventure/index.php "tutnav-current-card-desc")
+-1;            if (linkHasX) {              // Numbered exercise link - match exact
+exercise              if (                linkInfo.path === currentPath &&       
+linkInfo.topic === currentTopic &&                linkInfo.x === currentX
+) {                matched = true;                link.classList.add("active");
+}            } else {              // Simplified Exercises link (no
+x) - match any exercise in topic              if (                linkInfo.path ===
+currentPath &&                linkInfo.topic === currentTopic              ) {   
+matched = true;                link.classList.add("active");        
+}            }          } else {            if (linkInfo.path === currentPath)
+{              matched = true;              link.classList.add("active");        
+}          }        } else {          if (linkInfo.path === currentPath && !isEmbedPage)
+{            matched = true;          } else if (isEmbedPage && linkInfo.topic ===
+currentTopic && linkInfo.path === currentPath) {            matched = true;      
+}        }        if (matched) {          isCurrentOverview = true;          
+break;        }      }      if (!isCurrentOverview && isEmbedPage) {        var overviewStepLinks
+= overview.querySelectorAll(".step_link");        for (var k = 0; k         
+
+ny:-->
+
+ny:-->  
+
+ny:-->    
+
+
+#
+
+HTML Video
+
+[❮ Previous](/adventure/index.php "tutnav-grid-adventure-desc")[Next ❯](/adventure/index.php "tutnav-grid-adventure-desc")
+---
+
+The HTML `<video>` element is used to show a video on a web page.
+
+---
+
+## Video
+
+
+### Example
+
+Courtesy of [Big Buck Bunny](/adventure/index.php "tutnav-grid-adventure-desc"):
+
+
+Your browser does not support HTML5 video.   [Try it Yourself »](/adventure/index.php "tutnav-grid-adventure-desc")
+---
+
+## The HTML <video> Element
+
+To show a video in HTML, use the `<video>` element:
+
+
+### Example
+
+<video width="320" height="240" controls>  
+  <source src="movie.mp4" type="video/mp4">  
+  <source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video> [Try it Yourself »](https://www.w3schools.com/js/default.asp "tutnav-card-desc")
+---
+
+## How it Works
+
+The `controls` attribute adds video controls, like play, pause, and volume.
+
+It is a good idea to always include `width` and `height` attributes. If height and width are
+not set, the page might flicker while the video loads.
+
+The `<source>` element allows you to specify alternative video files which the browser may
+choose from. The browser will use the first recognized format.
+
+The text between the `<video>` and `</video>` tags will only be displayed in browsers that do not
+support the `<video>` element.
+
+---
+
+## HTML <video> Autoplay
+
+To start a video automatically, use the `autoplay` attribute:
+
+
+### Example
+
+<video width="320" height="240" autoplay>  
+  <source src="movie.mp4" type="video/mp4">  
+  <source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video> [Try it Yourself »](https://www.w3schools.com/java/default.asp "tutnav-card-desc")
+
+
+**Note:** Chromium browsers do not allow autoplay in most cases. However, muted autoplay
+is always allowed.
+
+Add `muted` after `
+autoplay` to let your video start playing automatically (but muted):
+
+
+### Example
+
+<video width="320" height="240" autoplay muted>  
+  <source src="movie.mp4" type="video/mp4">  
+  <source src="movie.ogg" type="video/ogg">  
+Your browser does not support the video tag.  
+</video> [Try it Yourself »](https://www.w3schools.com/favicon.ico "utf-8")
+---
+
+## Browser Support
+
+The numbers in the table specify the first browser version that fully supports the
+`<video>` element.
+
+|   |
+||---------------||||||
+| - | -             | -   | -   | -   | -   |
+|   |
+|   | <video> | 4.0 | 9.0 | 3.5 | 4.0 | 10.5 |  |
+
+---
+
+Advertisement
+-->
+
+
+[REMOVE ADS](https://www.w3schools.com/favicon.ico "W3Schools.com")
+
+---
+
+## HTML Video Formats
+
+There are three supported video formats: MP4, WebM, and Ogg. The browser support
+for the different formats is:
+
+| Browser | MP4 | WebM | Ogg |
+|---------|-----|------|-----|
+| Edge    | YES | YES  | YES |
+| Chrome  | YES | YES  | YES |
+| Firefox | YES | YES  | YES |
+| Safari  | YES | YES  | NO  |
+| Opera   | YES | YES  | YES |
+
+---
+
+## HTML Video - Media Types
+
+| File Format | Media Type |
+|-------------|------------|
+| MP4         | video/mp4  |
+| WebM        | video/webm |
+| Ogg         | video/ogg  |
+
+---
+
+## HTML Video - Methods, Properties, and Events
+
+The HTML DOM defines methods, properties, and events for the `<video>` element.
+
+This allows you to load, play, and pause videos, as well as setting duration and
+volume.
+
+There are also DOM events that can notify you when a video begins to play, is paused,
+etc.
+
+
+### Example: Using JavaScript
+
+
+Play/Pause   Big  Small  Normal    
+
+Your browser does not support HTML5 video.  
+Video courtesy of [Big Buck Bunny](/lib/w3schools/main.v1.0.2.css "Home").
+[Try it Yourself »](/plus/plans/main.v1.0.3.css "Home")
+For a full DOM reference, go to our [HTML Audio/Video DOM Reference](/browserref.css "Home").
+
+---
+
+## HTML Video Tags
+
+| Tag                                      | Description                                                                                  |
+|------------------------------------------|----------------------------------------------------------------------------------------------|
+| [<video>](/browserref.css "Home")  | Defines a video or movie                                                                     |
+| [<source>](/browserref.css "Home") | Defines multiple media resources for media elements, such as <video> and <audio> |
+| [<track>](/browserref.css "Home")  | Defines text tracks in media players                                                         |
+
+
+[❮ Previous](/browserref.css "Home")[Next ❯](/browserref.css "Home")
+
+
+[                                                              ★      +1   
+](/browserref.css "Home")    
+
+
+[    Sign in to track progress  ](/browserref.css "Home")      
+
+
+[        
+![](/lib/common-deps/main.v1.0.24.js "Home")](/browserref.css "Home")
+
+
+[REMOVE ADS](# "Home")
+
+
+---
+
+-->
+
+
+New      
+
+##         W3Schools Adventure App            
+Coding fundamentals as a game. Bite-sized lessons and challenges.      
+
+
+[                                                                
+Download on the                                      App Store
+](/academy/index.php "Contact us about W3Schools Academy for educational institutions")         
+[                                                                         
+GET IT ON                 
+Google Play                              ](/spaces/index.php "Get Your Own Website With W3Schools Spaces")         
+[          Learn more »        ](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")       
+
+
+**          Ready to start your journey?        **                  Your
+streak is waiting.                    
+
++60 XP            
+![](/adventure/img/mascot-lynx.png "W3Schools Certificates")      
+
+
+![](/adventure/img/mascot-lynx.png "W3Schools Certificates")                    
+
+[    **  ](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")
+
+[PLUS](https://campus.w3schools.com/collections/course-catalog "W3Schools Certificates")
+
+[SPACES](https://order.w3schools.com/plans "W3Schools Certificates")
+
+[GET CERTIFIED](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")
+
+[FOR TEACHERS](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")
+
+[PRACTICE](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")
+
+[CONTACT US](https://order.w3schools.com/plans "Get personalized learning journey based on your current skills and goals")
+
+×  
+## Contact Sales
+
+If you want to use W3Schools services as an educational institution, team or enterprise,
+send us an e-mail:  
+sales@w3schools.com
+
+## Report Error
+
+If you want to report an error, or if you want to make a suggestion, send us an e-mail:  
+help@w3schools.com
+
+
+##### Top Tutorials
+[HTML Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[CSS Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[JavaScript Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[How To Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[SQL Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[Python Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[W3.CSS Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[Bootstrap Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[PHP Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[Java Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[C++ Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[jQuery Tutorial](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+
+
+##### Top References
+[HTML Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[CSS Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[JavaScript Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[SQL Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[Python Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[W3.CSS Reference](/academy/index.php "Contact us about W3Schools Academy for educational institutions")  
+[Bootstrap Reference](https://spaces.w3schools.com "Contact us about W3Schools Academy for educational institutions")  
+[PHP Reference](https://spaces.w3schools.com "Contact us about W3Schools Academy for educational institutions")  
+[HTML Colors](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[Java Reference](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[AngularJS Reference](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[jQuery Reference](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+
+
+##### Top Examples
+[HTML Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[CSS Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[JavaScript Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[How To Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[SQL Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[Python Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[W3.CSS Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[Bootstrap Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[PHP Examples](https://spaces.w3schools.com "Go to Your W3Schools Space")  
+[Java Examples](/practice/index.php "Go to Your W3Schools Space")  
+[XML Examples](/practice/index.php "Go to Your W3Schools Space")  
+[jQuery Examples](/practice/index.php "W3Schools Practice Coding Problems")  
+
+[
+##### Get Certified
+](/practice/index.php "W3Schools Practice Coding Problems")  [HTML Certificate](/practice/index.php "W3Schools Practice Coding Problems")  
+[CSS Certificate](/practice/index.php "W3Schools Practice Coding Problems")  
+[JavaScript Certificate](/practice/index.php "W3Schools Practice Coding Problems")  
+[Front End Certificate](/practice/index.php "W3Schools Practice Coding Problems")  
+[SQL Certificate](https://pathfinder.w3schools.com "W3Schools Practice Coding Problems")  
+[Python Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[PHP Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[jQuery Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[Java Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[C++ Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[C# Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+[XML Certificate](https://pathfinder.w3schools.com "My W3Schools")  
+
+[**](https://pathfinder.w3schools.com "My W3Schools")  [**](https://pathfinder.w3schools.com "My W3Schools")
+[**](/adventure/index.php "My W3Schools")  [**](/adventure/index.php "tnb-mobile-nav-section")
+[**](/adventure/index.php "tnb-icon fa fa-caret-down")  
+
+[FORUM](/adventure/index.php "tnb-icon fa fa-caret-down")  [ABOUT](/adventure/index.php "tnb-icon fa fa-caret-down")  [ACADEMY](/adventure/index.php "tnb-icon fa fa-caret-down")
+
+W3Schools is optimized for learning and training. Examples might be simplified to
+improve reading and learning.  
+Tutorials, references, and examples are constantly reviewed to avoid errors, but
+we cannot warrant full correctness  
+of all content. While using W3Schools, you agree to have read and accepted our [terms of use](/adventure/index.php "tnb-icon fa fa-caret-down"),[cookies](/adventure/index.php "tnb-icon fa fa-caret-down") and [privacy policy](/adventure/index.php "tnb-icon fa fa-caret-down").  
+
+[Copyright 1999-2026](/adventure/index.php "tnb-icon fa fa-caret-down") by Refsnes Data. All Rights Reserved.[W3Schools is Powered by W3.CSS](/adventure/index.php "tnb-icon fa fa-caret-down").  
+

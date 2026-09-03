@@ -1,0 +1,38 @@
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <style>
+        body {
+            font-family: "Arial";
+        }
+    </style>
+    <script type="text/javascript">
+    window.awsWafCookieDomainList = ['imdb.com'];
+    window.gokuProps = {
+"key":"AQIDAHjcYu/GjX+QlghicBgQ/7bFaQZ+m5FKCMDnO+vTbNg96AF8rR1QhQsQTLeNHTx3JbI7AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMOxj9OZpWO1tUYWdWAgEQgDsYyT0iiWQwrxHdcPcAbJRUYD0csgv4xcVVKH4WuXnWia53FbgPookoZwkXvE8M3vtOeNMsxDINUPx0rA==",
+          "iv":"CgAFQTLXeQAAA0KE",
+          "context":"PLDHqmBYawKdYclHIrNgizJ/XgcH5ZiAXDLgLbqlcI4ZzxS38xNmDIIrp0Udnx+/+QP8PTESIM1SDTw5goDcp7LLkys2l0Qvqs47ER8yrReqYON23+43tttb3jSafidxMJWKbIep5Xw+om/AAosEFXzBm776FEIBYpzQ2/l/H98HE5zCykzJUTWT6SdzY953X4kOpGOR04Fwt6AwqLUMO4sjgTTK72znQziQaR4P3Tak7o8r69qdo5poZwKkJMCobElnE61fXimZ8uN+JTjkBQvW1JSLrA0GHykFCiNC/5i5JmrmrRMUyuKq24+NWg2+kaRUauTdfht4MgWVI3SLjLXqZkqQddwBRdXn+tuY/qc/mdFxpA=="
+};
+    </script>
+    <script src="https://fb423e1ef94f.6277d64d.us-east-1.token.awswaf.com/fb423e1ef94f/c3382d439950/916d943f6a58/challenge.js"></script>
+</head>
+<body>
+    <div id="challenge-container"></div>
+    <script type="text/javascript">
+        AwsWafIntegration.saveReferrer();
+        AwsWafIntegration.checkForceRefresh().then((forceRefresh) => {
+            if (forceRefresh) {
+                AwsWafIntegration.forceRefreshToken().then(() => {
+                    window.location.reload(true);
+                });
+            } else {
+                AwsWafIntegration.getToken().then(() => {
+                    window.location.reload(true);
+                });
+            }
+        });
+    </script>
+    
+
+</body></html>

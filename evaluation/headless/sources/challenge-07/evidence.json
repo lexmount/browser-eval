@@ -1,0 +1,13 @@
+{
+  "case_id": "challenge-07",
+  "url": "https://www.amazon.com/s?k=headphones",
+  "checked_at": "2026-09-02",
+  "frozen_at": "2026-09-02T06:16:27.644900+00:00",
+  "source": "独立页面快照；仅保留公开列表字段",
+  "source_sha256": "880d6e1baa07f56aa4e292e755522fcfd1395442055dd1d431a219f669e5cbfb",
+  "reference_sha256": "bd1e790d58882342473b90ab984e8c3469de97b9883a704f94573e5ec8044da9",
+  "scope": "已加载商品卡片；地区为中国，价格币种 CNY",
+  "items": 16,
+  "access_context": "参考来自可访问的浏览器会话；参评方法无登录凭据",
+  "privacy": "仅公开列表；不包含账号页头、脚本、Cookie、私信或个人资料。"
+}

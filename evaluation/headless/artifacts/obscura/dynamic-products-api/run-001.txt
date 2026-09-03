@@ -1,0 +1,124 @@
+JS Rendering Challenge to Learn Web Scraping - ScrapingCourse.com
+=================================================================================
+
+
+[                    ![](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                   
+Scraping                    Course                ](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")             
+
+
+#     JS Rendering
+
+
+![](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")        
+## Challenge
+
+Enable JavaScript to see products    
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Chaz Kangeroo Hoodie                         
+
+$52                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Teton Pullover Hoodie                        
+
+$70                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Bruno Compete Hoodie                         
+
+$63                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Frankie  Sweatshirt                          
+
+$60                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Hollister Backyard Sweatshirt                
+
+$52                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Stark Fundamental Hoodie                     
+
+$42                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Hero Hoodie                                  
+
+$54                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Oslo Trek Hoodie                             
+
+$42                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Abominable Hoodie                            
+
+$69                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Mach Street Sweatshirt                       
+
+$62                                          
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "\2014\00A0")                                
+
+Grayson Crewneck Sweatshirt                  
+
+$64                                          
+](\2014\00A0 "\2014\00A0")                                     
+
+
+[                                ![Chaz Kangeroo Hoodie](https://challenges.cloudflare.com/turnstile/v0/api.js "Segoe UI")                                
+
+Ajax Full-Zip Sweatshirt                     
+
+$69                                          
+](\2014\00A0 "Segoe UI")                                       
+
+[                                            
+
+
+${product.name}                              
+
+$${product.regular_price}                    
+](https://www.scrapingcourse.com/build/assets/app-DxJb4DfE.css "Segoe UI")                             
+
+\`;                    container.insertAdjacentHTML('beforeend',
+productHTML);                });            })            .catch(error => {      
+console.error("Error fetching data: ", error);            });        }
+loadProducts();    });            

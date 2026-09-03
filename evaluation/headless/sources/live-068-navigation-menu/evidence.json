@@ -1,0 +1,39 @@
+{
+  "case_id": "live-068-navigation-menu",
+  "url": "https://github.com/remix-run/react-router",
+  "checked_at": "2026-09-02T03:38:06.696478+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/remix-run/react-router"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/remix-run/react-router",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 338056,
+  "sha256": "355a294e67e49b3f84655b6e0ce6c71a8121d1e965a98b896983e6b2965aa60a",
+  "title": "GitHub - remix-run/react-router: Declarative routing for React · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/b74bace96f2b6508be60a9758a8899b2a6cfd73c54108f1ad66530fa1226a638/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656163742d726f757465722e737667",
+      "alt": "npm package"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/06def92801cb5f3f3fdeb06fe5017dfdba6b5ee76d279808340b8425b206092b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656d69782d72756e2f72656163742d726f757465722f746573742d756e69742e796d6c3f6272616e63683d6d61696e267374796c653d737175617265",
+      "alt": "build"
+    }
+  ],
+  "text_chars": 451,
+  "excerpt": "React Router is a multi-strategy router for React. You can use it maximally as a React framework or minimally as a library with your own architecture.\nGetting Started - Framework\nGetting Started - Library\nUpgrade from v7\nChangelog\nPackages\nreact-router\ncreate-react-router\n@react-router/dev\n@react-router/node\n@react-router/serve\n@react-router/express\n@react-router/architect\n@react-router/cloudflare\n@react-router/fs-routes\nPrevious Versions\nv7\nv6\nv5",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2",
+    "anchor-3"
+  ],
+  "state": "captured"
+}

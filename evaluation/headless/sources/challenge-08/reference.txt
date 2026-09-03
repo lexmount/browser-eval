@@ -1,0 +1,188 @@
+Bazel's UX is really, really, really bad
+u/drmorr0
+•
+14小时前
+Bazel's UX is really, really, really bad
+https://blog.appliedcomputing.io/p/bazels-ux-is-really-really-really
+
+Stack Overflow drops to 1,442 questions in July, down 99% from 2014 peak
+u/danie-l
+•
+25天前
+Stack Overflow drops to 1,442 questions in July, down 99% from 2014 peak
+http://ppc.land/stack-overflow-drops-to-1-442-questions-in-july-down-99-from-2014-peak
+
+The Browser's Main Thread Is Expensive
+u/kciter
+•
+16小时前
+The Browser's Main Thread Is Expensive
+https://kciter.so/posts/the-expensive-main-thread/en/
+
+Cats-Actors 2.2.0 is released
+u/kloudmark
+•
+8小时前
+Cats-Actors 2.2.0 is released
+https://cloudmark.github.io/Cats-Actors-Controlling-Time/
+
+How we saved 100 terabytes of memory by optimizing 1.1.1.1’s DNS cache
+u/Ok_Stomach6651
+•
+5天前
+How we saved 100 terabytes of memory by optimizing 1.1.1.1’s DNS cache
+https://blog.cloudflare.com/dns-cache-memory-optimization-1111/
+
+Rui Ueyama: "We are rewriting the mold linker in Rust"
+u/cachemissed
+•
+21小时前
+Rui Ueyama: "We are rewriting the mold linker in Rust"
+https://x.com/rui314/status/2094677980857680052
+
+Nothing like a Monday morning GitHub outage
+u/Jwosty
+•
+16天前
+Nothing like a Monday morning GitHub outage
+https://www.githubstatus.com/
+
+Wasmi 2.0 - Engineering of the Fastest Wasm Interpreters
+u/tjpalmer
+•
+17小时前
+Wasmi 2.0 - Engineering of the Fastest Wasm Interpreters
+https://wasmi-labs.github.io/blog/posts/wasmi-v2.0/
+
+35 years later, Torvalds' hobby project remains developed worldwide.
+u/masiroo
+•
+1天前
+35 years later, Torvalds' hobby project remains developed worldwide.
+https://tech.yahoo.com/computing/articles/35-years-later-torvalds-hobby-130000907.html
+
+io_uring without readahead
+u/andreiross
+•
+1天前
+io_uring without readahead
+https://frn.sh/io-uring/
+
+How Do HashMaps Work Under the Hood? (putting together a toy implementation in Rust to understand performance optimization, collisions, and time complexities)
+u/PastEar9661
+•
+10小时前
+How Do HashMaps Work Under the Hood? (putting together a toy implementation in Rust to understand performance optimization, collisions, and time complexities)
+https://medium.com/@ein-monarch/how-do-hashmaps-work-under-the-hood-97f43483a241
+
+Hardware researcher spins up 'CPU deoptimization' project to find the slowest single x86 instruction, creates hall of shame — worst offender takes 198 billion cycles spanning 62 seconds to execute
+u/masiroo
+•
+21天前
+Hardware researcher spins up 'CPU deoptimization' project to find the slowest single x86 instruction, creates hall of shame — worst offender takes 198 billion cycles spanning 62 seconds to execute
+https://www.tomshardware.com/pc-components/cpus/hardware-researcher-spins-up-cpu-deoptimization-project-to-find-the-slowest-machine-code-worst-offender-takes-198-billion-cycles-to-execute
+
+Terminating elegantly: a guide to graceful shutdowns
+u/der_gopher
+•
+1天前
+Terminating elegantly: a guide to graceful shutdowns
+https://packagemain.tech/p/graceful-shutdowns-k8s-go
+
+GitHub confirms Actions outage caused by database issue
+u/Codeblix_Ltd
+•
+7天前
+GitHub confirms Actions outage caused by database issue
+https://www.githubstatus.com/incidents/y1t7p9fzrlj2
+
+The Hugging Face incident from a security engineering perspective
+u/No_Zookeepergame7552
+•
+2天前
+The Hugging Face incident from a security engineering perspective
+https://uphack.io/blog/post/the-hugging-face-incident-is-not-an-ai-story/
+
+htmx 4.0.0 has been released!
+u/BrewedDoritos
+•
+5天前
+htmx 4.0.0 has been released!
+https://four.htmx.org/announcements/2026-08-28-htmx-4.0.0-is-released
+
+Node.js sandboxes powered by QuickJS and WebAssembly
+u/syrusakbary
+•
+2天前
+Node.js sandboxes powered by QuickJS and WebAssembly
+https://wasmer.io/posts/nodejs-support-in-wasmer-edge-beta
+
+EVE Online: The Move to Python 3 Begins!
+u/output_broadcast
+•
+8天前
+EVE Online: The Move to Python 3 Begins!
+https://www.eveonline.com/news/view/the-move-to-python-3-begins
+
+How 2004 RuneScape fit a multiplayer RPG into 56k dial-up
+u/fagnerbrack
+•
+19天前
+How 2004 RuneScape fit a multiplayer RPG into 56k dial-up
+https://jkm.dev/posts/how-2004-runescape-fit-a-multiplayer-rpg-into-56k-dialup/
+
+Automating immersive reading
+u/scrollin_thru
+•
+3天前
+Automating immersive reading
+https://smoores.dev/post/automating_immersive_reading/
+
+Latency optimizations on the system level
+u/wineandcode
+•
+7天前
+Latency optimizations on the system level
+https://denyspoltorak.medium.com/latency-optimizations-on-the-system-level-40dd45ddf2db?source=friends_link&sk=effc0de4d25dbafa2211130463187b31
+
+The rust programming language is adopting a new contributing policy
+u/mareek
+•
+28天前
+The rust programming language is adopting a new contributing policy
+https://blog.rust-lang.org/inside-rust/2026/08/05/rust-langrust-is-adopting-an-llm-policy/
+
+Memory ordering in CPUs
+u/mttd
+•
+7天前
+Memory ordering in CPUs
+https://fgiesen.wordpress.com/2026/08/25/memory-ordering-in-cpus/
+
+How to test if your numerical code is Mathematically correct?
+u/Lost-Dragonfruit-663
+•
+7天前
+How to test if your numerical code is Mathematically correct?
+https://medium.com/@aadyachinubhai/scikit-verify-translate-python-numpy-programs-to-symbolic-mathematics-c664d41ba571
+
+Turns are Better than Radians
+u/Iamsodarncool
+•
+13天前
+Turns are Better than Radians
+https://www.computerenhance.com/p/turns-are-better-than-radians
+
+Should you normalize RGB values by 255 or 256?
+u/fagnerbrack
+•
+1个月前
+Should you normalize RGB values by 255 or 256?
+https://30fps.net/pages/255-vs-256-division/
+
+Please, I beg you, we need to stop using Stored Procedures (from applications)
+u/Heffree
+•
+2天前
+Please, I beg you, we need to stop using Stored Procedures (from applications)
+https://heffree.dev/blog/no-more-sprocs.html

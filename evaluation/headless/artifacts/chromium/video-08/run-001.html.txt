@@ -1,0 +1,1 @@
+<html><head><meta name="viewport" content="width=device-width"></head><body><video controls="" autoplay="" name="media"><source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4"></video></body></html>

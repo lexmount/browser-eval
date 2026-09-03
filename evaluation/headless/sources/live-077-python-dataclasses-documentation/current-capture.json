@@ -1,0 +1,46 @@
+{
+  "case_id": "live-077-python-dataclasses-documentation",
+  "url": "https://docs.python.org/3/library/dataclasses.html",
+  "checked_at": "2026-09-03T14:15:54.397647+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/dataclasses.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/dataclasses.html",
+  "mime": "text/html",
+  "bytes": 132314,
+  "sha256": "61dd48fb0915c76fd44b1109b56e91e94854224c547110887bb696c28c841bc6",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "dataclasses — Data Classes — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "219c1b929598937d3f7db381b58092211a47cc0fb2ce3a776a052a2191257c0d",
+  "reference_sha256": "219c1b929598937d3f7db381b58092211a47cc0fb2ce3a776a052a2191257c0d",
+  "text_chars": 29095,
+  "excerpt": "dataclasses\n— Data Classes\n¶\nSource code:\nLib/dataclasses.py\nThis module provides a decorator and functions for automatically\nadding generated\nspecial methods\nsuch as\n__init__()\nand\n__repr__()\nto user-defined classes.  It was originally described\nin\nPEP 557\n.\nThe member variables to use in these generated methods are defined\nusing\nPEP 526\ntype annotations.  For example, this code:\nfrom\ndataclasses\nimport\ndataclass\n@dataclass\nclass\nInventoryItem\n:\n\"\"\"Class for keeping track of an item in inventory.\"\"\"\nname\n:\nstr\nunit_price\n:\nfloat\nquantity_on_hand\n:\nint\n=\n0\ndef\ntotal_cost\n(\nself\n)\n->\nfloat\n:\nreturn\nself\n.\nunit_price\n*\nself\n.\nquantity_on_hand\nwill add, among other things, a\n__init__()\nthat looks like:\ndef\n__init__\n(\nself\n,\nname\n:\nstr\n,\nunit_price\n:\nfloat\n,\nquantity_on_hand\n:\nint\n=\n0\n):\nself\n",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

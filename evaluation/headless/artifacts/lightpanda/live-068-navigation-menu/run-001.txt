@@ -1,0 +1,498 @@
+GitHub - remix-run/react-router: Declarative routing for React · GitHub
+==========================================================================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/ja9-36f036c13c2e3a4c.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/react-core-a7c1cb31a2a07e7c.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/j0-e9bfed51669329e8.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/aq-0dbf7d12b4d37e14.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/xv-92a56478ba361268.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/20x-bcd86191b33f8bc4.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/gbu-e8bb2569b1ae4dcf.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/7cv-ee517aa478d5e709.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/ql0.9e511664b9541231.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/18-2763d0b31646e61c.js "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/selector-observer-e88088f989b27670.js "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/n4u-fba0c89ea7530085.js "route-pattern").
+
+
+[        remix-run](https://github.githubassets.com/assets/bi0-5c188267c6b3529a.js "route-pattern")     
+/    **      [react-router](https://github.githubassets.com/assets/f9-6f78c2d90591da73.js "route-pattern")    **
+Public                  
+
+
+-               
+
+
+###         Uh oh!
+
+
+	There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/dsj-c0e1b19322545aa7.js "route-pattern").
+
+
+-             [        Notifications](https://github.githubassets.com/assets/e84-f35c9201cd42c537.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    10.9k](/opensearch.xml "GitHub")  
+-         
+
+[                  Star          56.6k](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - remix-run/react-router: Declarative routing for React")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Issues          103    ](#start-of-content "_R_5knd_")
+-   [                              Pull requests          69    ](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+-   [                              Discussions              ](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")
+-   [                              Actions              ](/ "_R_5knd_")
+-   [                              Security and quality          22    ](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router "_R_5knd_")
+-   [                              Insights              ](https://github.com/features/copilot "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](https://github.com/mcp "Octicon")  
+-             [                                                      Issues      ](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Pull requests      ](https://github.com/mcp "Octicon")  
+-             [                                                      Discussions      ](https://github.com/features/actions "NavGroup-module__group__W8SqJ")  
+-             [                                                      Actions      ](https://github.com/features/actions "Octicon")  
+-             [                                                      Security and quality      ](https://github.com/features/codespaces "Octicon")  
+-             [                                                      Insights      ](https://github.com/features/issues "Octicon")  
+
+
+main
+
+[Branches](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Tags](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[11,200 Commits](https://github.githubassets.com/assets/0l5-db943e5e450eb617.js "route-pattern")
+
+11,200 Commits
+## Folders and files
+
+| Name                                                                                                                                                                      | Name |   |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                          |
+| -                                                                                                                                                                         | -    | - | - |
+|                                                                                                                                                                           |
+| [.agents/skills](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")                                                     |      |
+| [.agents/skills](https://github.githubassets.com/ "GitHub")                                                                                                               |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.github](/opensearch.xml "GitHub")                                                                                                                                       |      |
+| [.github](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - remix-run/react-router: Declarative routing for React")                        |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.vscode](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                              |      |
+| [.vscode](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                              |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [decisions](https://github.githubassets.com/favicons/favicon.png "_R_5knd_")                                                                                              |      |
+| [decisions](#start-of-content "_R_5knd_")                                                                                                                                 |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [docs](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                                         |      |
+| [docs](https://github.githubassets.com/assets/fz-30a6af7c53dfa4f1.js "_R_5knd_")                                                                                          |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [examples](https://github.githubassets.com/assets/primer-react-brand-css.206bbd4fd232654e.module.css "_R_5knd_")                                                          |      |
+| [examples](/ "_R_5knd_")                                                                                                                                                  |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [integration](/ "_R_5knd_")                                                                                                                                               |      |
+| [integration](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router "_R_5knd_")                                                                            |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [jest](https://github.com/features/copilot "_R_5knd_")                                                                                                                    |      |
+| [jest](https://github.com/features/copilot "_R_5knd_")                                                                                                                    |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [packages](https://github.com/features/copilot "_R_5knd_")                                                                                                                |      |
+| [packages](https://github.com/features/copilot "_R_5knd_")                                                                                                                |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [playground](https://github.com/features/copilot "_R_5knd_")                                                                                                              |      |
+| [playground](https://github.com/features/ai/github-app "Octicon")                                                                                                         |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [scripts](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                           |      |
+| [scripts](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                           |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [static](https://github.com/mcp "Octicon")                                                                                                                                |      |
+| [static](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                               |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [tutorials/address-book](https://github.com/features/actions "Octicon")                                                                                                   |      |
+| [tutorials/address-book](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                             |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.browserslistrc](https://github.com/features/codespaces "Octicon")                                                                                                       |      |
+| [.browserslistrc](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                      |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.gitattributes](https://github.com/features/issues "Octicon")                                                                                                            |      |
+| [.gitattributes](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                           |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.gitignore](https://github.com/features/code-review "Octicon")                                                                                                           |      |
+| [.gitignore](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                          |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.npmrc](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                             |      |
+| [.npmrc](https://github.com/features/code-quality "Octicon")                                                                                                              |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.nvmrc](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                   |      |
+| [.nvmrc](https://github.com/security/advanced-security "_R_dknd_")                                                                                                        |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [.prettierignore](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |      |
+| [.prettierignore](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [AGENTS.md](https://github.githubassets.com "route-pattern")                                                                                                              |      |
+| [AGENTS.md](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern")                                                                 |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [CHANGELOG.md](https://github.githubassets.com/assets/dark_colorblind_high_contrast-e61d4f4ca17852c2.css "route-pattern")                                                 |      |
+| [CHANGELOG.md](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")                                                             |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [CLAUDE.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                    |      |
+| [CLAUDE.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                    |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                           |      |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                           |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [CONTRIBUTING.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                              |      |
+| [CONTRIBUTING.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                              |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [DEVELOPMENT.md](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js "route-pattern")                                                                  |      |
+| [DEVELOPMENT.md](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")                                                                           |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [GOVERNANCE.md](https://github.githubassets.com/assets/aria-live-76b18916d0c8ec4d.js "route-pattern")                                                                     |      |
+| [GOVERNANCE.md](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern")                                                                           |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [LICENSE.md](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")                                                                       |      |
+| [LICENSE.md](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")                                                                              |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [README.md](https://github.githubassets.com/assets/tr-12064c91dfbbd248.js "route-pattern")                                                                                |      |
+| [README.md](https://github.githubassets.com/assets/sp-f70ca8f28bbb41af.js "route-pattern")                                                                                |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [SECURITY.md](https://github.githubassets.com/assets/cj-006d3ff509d05587.js "route-pattern")                                                                              |      |
+| [SECURITY.md](https://github.githubassets.com/assets/4b-7787ae6d29e0c1d8.js "route-pattern")                                                                              |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [build.utils.ts](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern")                                                            |      |
+| [build.utils.ts](https://github.githubassets.com/ "GitHub")                                                                                                               |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [eslint.config.ts](/opensearch.xml "GitHub")                                                                                                                              |      |
+| [eslint.config.ts](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - remix-run/react-router: Declarative routing for React")               |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [package.json](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                         |      |
+| [package.json](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                         |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [pnpm-lock.yaml](/manifest.json "_R_5knd_")                                                                                                                               |      |
+| [pnpm-lock.yaml](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                               |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [pnpm-workspace.yaml](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")                                                                           |      |
+| [pnpm-workspace.yaml](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                     |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [prettier.config.js](/ "_R_5knd_")                                                                                                                                        |      |
+| [prettier.config.js](/ "_R_5knd_")                                                                                                                                        |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [tsconfig.base.json](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router "_R_5knd_")                                                                     |      |
+| [tsconfig.base.json](https://github.com/features/copilot "_R_5knd_")                                                                                                      |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| [typedoc.mjs](https://github.com/features/copilot "_R_5knd_")                                                                                                             |      |
+| [typedoc.mjs](https://github.com/features/copilot "_R_5knd_")                                                                                                             |      |
+|                                                                                                                                                                      |      |
+|                                                                                                                                                                      |
+| View all files                                                                                                                                                            |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.com/features/copilot "Octicon")
+- [Code of conduct](https://github.com/features/ai/github-app "Octicon")
+- [Contributing](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [MIT license](https://github.com/mcp "Octicon")
+- [Security](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+More items
+
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=remix-run "Octicon")](https://github.com/features/codespaces "Octicon")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=remix-run "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+
+React Router is a multi-strategy router for React. You can use it maximally as a
+React framework or minimally as a library with your own architecture.
+
+- [Getting Started - Framework](https://github.com/features/codespaces "Octicon")
+- [Getting Started - Library](https://github.com/features/codespaces "Octicon")
+- [Upgrade from v7](https://github.com/features/issues "Octicon")
+- [Changelog](https://github.com/features/issues "Octicon")
+
+
+## Packages
+
+- [`react-router`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`create-react-router`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/dev`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/node`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/serve`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/express`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/architect`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/cloudflare`](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [`@react-router/fs-routes`](https://github.com/features/issues "Octicon")
+
+
+## Previous Versions
+
+- [v7](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [v6](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [v5](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+
+## About
+
+Declarative routing for React
+
+[reactrouter.com](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+### Resources
+
+[Readme](https://github.com/features/code-quality "Octicon")
+
+[MIT license](https://github.com/security/advanced-security "Octicon")
+### Code of conduct
+
+[Code of conduct](https://github.com/security/advanced-security "Octicon")
+### Contributing
+
+[Contributing](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+### Security policy
+
+[Security policy](https://github.com/security/advanced-security/secret-protection "Octicon")
+
+[Activity](https://github.githubassets.com/assets/light-99f877e9ddfc0e51.css "route-pattern")
+
+[Custom properties](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")
+### Stars
+
+**56.6k** stars
+### Watchers
+
+**806** watching
+### Forks
+
+[**10.9k** forks](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")
+
+[Report repository](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+
+## Releases
+
+
+## Sponsor this project
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+
+## Footer
+
+
+[            ](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")       
+© 2026 GitHub, Inc.              
+### Footer navigation
+
+-             [Terms](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-             [Privacy](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-               [Security](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")            
+-               [Status](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")            
+-             [Community](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-             [Docs](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-             [Contact](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")          
+-             Manage cookies      
+-                   Do not share my personal information            
+
+
+You can’t perform that action at this time.      
+
+
+ 

@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-051-email-an-email-and-mime-handling",
+    "independent": true,
+    "checked_at": "2026-09-03T14:32:51.620081+00:00",
+    "content_text": "email\n— An email and MIME handling package\n¶\nSource code:\nLib/email/__init__.py\nThe\nemail\npackage is a library for managing email messages.  It is\nspecifically\nnot\ndesigned to do any sending of email messages to SMTP\n(\nRFC 2821\n), NNTP, or other servers; those are functions of modules such as\nsmtplib\n.  The\nemail\npackage attempts to be as\nRFC-compliant as possible, supporting\nRFC 5322\nand\nRFC 6532\n, as well as\nsuch MIME-related RFCs as\nRFC 2045\n,\nRFC 2046\n,\nRFC 2047\n,\nRFC 2183\n,\nand\nRFC 2231\n.\nThe overall structure of the email package can be divided into three major\ncomponents, plus a fourth component that controls the behavior of the other\ncomponents.\nThe central component of the package is an “object model” that represents email\nmessages.  An application interacts with the package primarily through the\nobject model interface defined in the\nmessage\nsub-module.  The\napplication can use this API to ask questions about an existing email, to\nconstruct a new email, or to add or remove email subcomponents that themselves\nuse the same object model interface.  That is, following the nature of email\nmessages and their MIME subcomponents, the email object model is a tree\nstructure of objects that all provide the\nEmailMessage\nAPI.\nThe other two major components of the package are the\nparser\nand\nthe\ngenerator\n.  The parser takes the serialized version of an\nemail message (a stream of bytes) and converts it into a tree of\nEmailMessage\nobjects.  The generator takes an\nEmailMessage\nand turns it back into a serialized byte\nstream.  (The parser and generator also handle streams of text characters, but\nthis usage is discouraged as it is too easy to end up with messages that are\nnot valid in one way or another.)\nThe control component is the\npolicy\nmodule.  Every\nEmailMessage\n, every\ngenerator\n, and every\nparser\nhas an associated\npolicy\nobject that\ncontrols its behavior.  Usually an application only needs to specify the policy\nwhen an\nEmailMessage\nis created, either by directly\ninstantiating an\nEmailMessage\nto create a new email,\nor by parsing an input stream using a\nparser\n.  But the policy can\nbe changed when the message is serialized using a\ngenerator\n.\nThis allows, for example, a generic email message to be parsed from disk, but\nto serialize it using standard SMTP settings when sending it to an email\nserver.\nThe email package does its best to hide the details of the various governing\nRFCs from the application.  Conceptually the application should be able to\ntreat the email message as a structured tree of Unicode text and binary\nattachments, without having to worry about how these are represented when\nserialized.  In practice, however, it is often necessary to be aware of at\nleast some of the rules governing MIME messages and their structure,\nspecifically the names and nature of the MIME “content types” and how they\nidentify multipart documents.  For the most part this knowledge should only be\nrequired for more complex applications, and even then it should only be the\nhigh level structure in question, and not the details of how those structures\nare represented.  Since MIME content types are used widely in modern internet\nsoftware (not just email), this will be a familiar concept to many programmers.\nThe following sections describe the functionality of the\nemail\npackage.\nWe start with the\nmessage\nobject model, which is the primary\ninterface an application will use, and follow that with the\nparser\nand\ngenerator\ncomponents.  Then we cover the\npolicy\ncontrols, which completes the treatment of the main\ncomponents of the library.\nThe next three sections cover the exceptions the package may raise and the\ndefects (non-compliance with the RFCs) that the\nparser\nmay\ndetect.  Then we cover the\nheaderregistry\nand the\ncontentmanager\nsub-components, which provide tools for doing more\ndetailed manipulation of headers and payloads, respectively.  Both of these\ncomponents contain features relevant to consuming and producing non-trivial\nmessages, but also document their extensibility APIs, which will be of interest\nto advanced applications.\nFollowing those is a set of examples of using the fundamental parts of the APIs\ncovered in the preceding sections.\nThe foregoing represent the modern (Unicode friendly) API of the email package.\nThe remaining sections, starting with the\nMessage\nclass, cover the legacy\ncompat32\nAPI that deals much more\ndirectly with the details of how email messages are represented.  The\ncompat32\nAPI does\nnot\nhide the details of the RFCs from\nthe application, but for applications that need to operate at that level, they\ncan be useful tools.  This documentation is also relevant for applications that\nare still using the\ncompat32\nAPI for backward\ncompatibility reasons.\nChanged in version 3.6:\nDocs reorganized and rewritten to promote the new\nEmailMessage\n/\nEmailPolicy\nAPI.\nContents of the\nemail\npackage documentation:\nemail.message\n: Representing an email message\nemail.parser\n: Parsing email messages\nFeedParser API\nParser API\nAdditional notes\nemail.generator\n: Generating MIME documents\nemail.policy\n: Policy Objects\nemail.errors\n: Exception and Defect classes\nemail.headerregistry\n: Custom Header Objects\nemail.contentmanager\n: Managing MIME Content\nContent Manager Instances\nemail\n: Examples\nLegacy API:\nemail.message.Message\n: Representing an email message using the\ncompat32\nAPI\nemail.mime\n: Creating email and MIME objects from scratch\nemail.header\n: Internationalized headers\nemail.charset\n: Representing character sets\nemail.encoders\n: Encoders\nemail.utils\n: Miscellaneous utilities\nemail.iterators\n: Iterators\nSee also\nModule\nsmtplib\nSMTP (Simple Mail Transport Protocol) client\nModule\npoplib\nPOP (Post Office Protocol) client\nModule\nimaplib\nIMAP (Internet Message Access Protocol) client\nModule\nmailbox\nTools for creating, reading, and managing collections of messages on disk\nusing a variety standard formats.",
+    "scope_identity": {
+      "case_id": "live-051-email-an-email-and-mime-handling",
+      "url": "https://docs.python.org/3/library/email.html",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "[role=main]",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "email — An email and MIME handling package"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "library for managing email messages"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "object model interface"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 546.2158750742674,
+      "timeout_ms": 120000
+    }
+  }
+]

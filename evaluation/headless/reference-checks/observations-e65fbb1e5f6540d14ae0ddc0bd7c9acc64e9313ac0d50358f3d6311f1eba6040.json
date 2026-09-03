@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "lm-node-intro",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:06.253128+00:00",
+    "content_text": "Introduction to Node.js\nNode.js is an open-source and cross-platform JavaScript runtime environment. It is a popular tool for almost any kind of project!\nNode.js runs the V8 JavaScript engine, the core of Google Chrome, outside of the browser. This allows Node.js to be very performant.\nA Node.js app runs in a single process, without creating a new thread for every request. Node.js provides a set of asynchronous I/O primitives in its standard library that prevent JavaScript code from blocking. In addition, libraries in Node.js are generally written using non-blocking paradigms. Accordingly, blocking behavior is the exception rather than the norm in Node.js.\nWhen Node.js performs an I/O operation, like reading from the network, accessing a database or the filesystem, instead of blocking the thread and wasting CPU cycles waiting, Node.js will resume the operations when the response comes back.\nThis allows Node.js to handle thousands of concurrent connections with a single server without introducing the burden of managing thread concurrency, which could be a significant source of bugs.\nNode.js has a unique advantage because millions of frontend developers that write JavaScript for the browser are now able to write the server-side code in addition to the client-side code without the need to learn a completely different language.\nIn Node.js the new ECMAScript standards can be used without problems, as you don't have to wait for all your users to update their browsers - you are in charge of deciding which ECMAScript version to use by changing the Node.js version, and you can also enable specific experimental features by running Node.js with flags.\nAn Example Node.js Application\nThe most common example Hello World of Node.js is a web server:\nCJS\nESM\nconst\n{\ncreateServer\n}\n=\nrequire\n(\n'\nnode:http\n'\n)\n;\nconst\nhostname\n=\n'\n127.0.0.1\n'\n;\nconst\nport\n=\n3000\n;\nconst\nserver\n=\ncreateServer\n(\n(\nreq\n,\nres\n)\n=>\n{\nres\n.\nstatusCode\n=\n200\n;\nres\n.\nsetHeader\n(\n'\nContent-Type\n'\n,\n'\ntext/plain\n'\n)\n;\nres\n.\nend\n(\n'\nHello World\n'\n)\n;\n}\n)\n;\nserver\n.\nlisten\n(\nport\n,\nhostname\n,\n()\n=>\n{\nconsole\n.\nlog\n(\n`\nServer running at http://\n${\nhostname\n}\n:\n${\nport\n}\n/\n`\n)\n;\n}\n)\n;\nJavaScript\nCopy to clipboard\nTo run this snippet, save it as a\nserver.js\nfile and run\nnode server.js\nin your terminal.\nIf you use the mjs version of the code, you should save it as a\nserver.mjs\nfile and run\nnode server.mjs\nin your terminal.\nThis code first includes the Node.js\nhttp\nmodule\n.\nNode.js has a fantastic\nstandard library\n, including first-class support for networking.\nThe\ncreateServer()\nmethod of\nhttp\ncreates a new HTTP server and returns it.\nThe server is set to listen on the specified port and host name. When the server is ready, the callback function is called, in this case informing us that the server is running.\nWhenever a new request is received, the\nrequest\nevent\nis called, providing two objects: a request (an\nhttp.IncomingMessage\nobject) and a response (an\nhttp.ServerResponse\nobject).\nThose 2 objects are essential to handle the HTTP call.\nThe first provides the request details. In this simple example, this is not used, but you could access the request headers and request data.\nThe second is used to return data to the caller.\nIn this case with:\nres\n.\nstatusCode\n=\n200\n;\nwe set the\nstatusCode\nproperty to\n200\n, to indicate a successful response.\nWe set the\nContent-Type\nheader:\nres\n.\nsetHeader\n(\n'\nContent-Type\n'\n,\n'\ntext/plain\n'\n)\n;\nand we close the response, adding the content as an argument to\nend()\n:\nres\n.\nend\n(\n'\nHello World\n'\n)\n;\nIf you haven't already done so,\ndownload\nNode.js.",
+    "scope_identity": {
+      "case_id": "lm-node-intro",
+      "url": "https://nodejs.org/en/learn/getting-started/introduction-to-nodejs",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "marker-1",
+            "alternatives": [
+              "Node.js"
+            ]
+          },
+          {
+            "id": "marker-2",
+            "alternatives": [
+              "JavaScript"
+            ]
+          },
+          {
+            "id": "marker-3",
+            "alternatives": [
+              "Introduction to Node.js"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA",
+          "Page not found"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 774.967374978587,
+      "timeout_ms": 120000
+    }
+  }
+]

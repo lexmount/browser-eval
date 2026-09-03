@@ -1,0 +1,31 @@
+{
+  "case_id": "image-pexels-detail",
+  "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+  "checked_at": "2026-09-02T08:02:52.685322+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 403,
+      "url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/"
+    }
+  ],
+  "status": 403,
+  "final_url": "https://www.pexels.com/photo/a-green-trees-in-the-forest-12377231/",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 5704,
+  "sha256": "0d6a1224ff7e6465bc4aec9db4dbc79f4f70f2763d62b67413ad89ce2800ee12",
+  "response_headers": {
+    "X-Frame-Options": "SAMEORIGIN",
+    "Content-Security-Policy": "default-src 'none'; script-src 'nonce-45gUlIbDzzkuiMZlWnBvAw' 'unsafe-eval' https://challenges.cloudflare.com; script-src-attr 'none'; style-src 'unsafe-inline'; img-src 'self' https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; frame-src 'self' https://challenges.cloudflare.com blob:; child-src 'self' https://challenges.cloudflare.com blob:; worker-src blob:; form-action http: https:; base-uri 'self'",
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "title": "Just a moment...",
+  "selector": "[role=main]",
+  "resources": [],
+  "text_chars": 0,
+  "excerpt": "",
+  "missing_facts": [],
+  "state": "needs_review",
+  "browser_review": "已核对实际目标内容；403 不等于站点失效",
+  "replacement_reason": "搜索结果会更新，旧规则绑定两张历史作品；改为单张作品详情。"
+}

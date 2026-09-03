@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-057-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:34:26.707861+00:00",
+    "content_text": "Spring Boot\nSpring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.\nIt takes an opinionated view of the Spring platform so that new and existing users can quickly get to the bits they need.\nYou can use Spring Boot to create stand-alone Java applications that can be started using\njava -jar\nor more traditional WAR deployments.\nWe also provide a command-line tool that runs Spring scripts.\nOur primary goals are:\nProvide a radically faster and widely accessible getting started experience for all Spring development.\nBe opinionated, but get out of the way quickly as requirements start to diverge from the defaults.\nProvide a range of non-functional features common to large classes of projects (for example, embedded servers, security, metrics, health checks, externalized configuration).\nAbsolutely no code generation and no requirement for XML configuration.\nInstallation and Getting Started\nThe\nreference documentation\nincludes detailed\ninstallation instructions\nas well as a comprehensive\ngetting started\nguide.\nHere is a quick teaser of a complete Spring Boot application in Java:\nimport\norg\n.\nspringframework\n.\nboot\n.*;\nimport\norg\n.\nspringframework\n.\nboot\n.\nautoconfigure\n.*;\nimport\norg\n.\nspringframework\n.\nweb\n.\nbind\n.\nannotation\n.*;\n@\nRestController\n@\nSpringBootApplication\npublic\nclass\nExample\n{\n@\nRequestMapping\n(\n\"/\"\n)\nString\nhome\n() {\nreturn\n\"Hello World!\"\n;\n}\npublic\nstatic\nvoid\nmain\n(\nString\n[]\nargs\n) {\nSpringApplication\n.\nrun\n(\nExample\n.\nclass\n,\nargs\n);\n}\n}\nGetting Help\nAre you having trouble with Spring Boot? We want to help!\nCheck the\nreference documentation\n, especially the\nHow-to’s\n— they provide solutions to the most common questions.\nLearn the Spring basics — Spring Boot builds on many other Spring projects; check the\nspring.io\nwebsite for a wealth of reference documentation.\nIf you are new to Spring, try one of the\nguides\n.\nIf you are upgrading, read the\nrelease notes\nfor upgrade instructions and \"new and noteworthy\" features.\nAsk a question — we monitor\nstackoverflow.com\nfor questions tagged with\nspring-boot\n.\nReport bugs with Spring Boot at\ngithub.com/spring-projects/spring-boot/issues\n.\nContributing\nWe welcome contributions of all kinds!\nPlease read our\ncontribution guidelines\nbefore submitting a pull request.\nReporting Issues\nSpring Boot uses GitHub’s integrated issue tracking system to record bugs and feature requests.\nIf you want to raise an issue, please follow the recommendations below:\nBefore you log a bug, please search the\nissue tracker\nto see if someone has already reported the problem.\nIf the issue doesn’t already exist,\ncreate a new issue\n.\nPlease provide as much information as possible with the issue report.\nWe like to know the Spring Boot version, operating system, and JVM version you’re using.\nIf you need to paste code or include a stack trace, use Markdown.\n``` escapes before and after your text.\nIf possible, try to create a test case or project that replicates the problem and attach it to the issue.\nBuilding from Source\nYou don’t need to build from source to use Spring Boot.\nIf you want to try out the latest and greatest, Spring Boot can be built and published to your local Maven cache using the\nGradle wrapper\n.\nYou also need JDK 25.\n$ ./gradlew publishToMavenLocal\nThis command builds all modules and publishes them to your local Maven cache.\nIt won’t run any of the tests.\nIf you want to build everything, use the\nbuild\ntask:\n$ ./gradlew build\nGuides\nThe\nspring.io\nsite contains several guides that show how to use Spring Boot step-by-step:\nBuilding an Application with Spring Boot\nis an introductory guide that shows you how to create an application, run it, and add some management services.\nBuilding a RESTful Web Service with Spring Boot Actuator\nis a guide to creating a REST web service and also shows how the server can be configured.\nLicense\nSpring Boot is Open Source software released under the\nApache 2.0 license\n.",
+    "scope_identity": {
+      "case_id": "live-057-navigation-menu",
+      "url": "https://github.com/spring-projects/spring-boot",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "anchor-1",
+            "alternatives": [
+              "spring-projects/spring-boot"
+            ]
+          },
+          {
+            "id": "anchor-2",
+            "alternatives": [
+              "production-grade applications and services"
+            ]
+          },
+          {
+            "id": "anchor-3",
+            "alternatives": [
+              "Installation and Getting Started"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1747.465583961457,
+      "timeout_ms": 120000
+    }
+  }
+]

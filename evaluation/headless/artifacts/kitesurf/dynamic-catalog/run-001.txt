@@ -1,0 +1,188 @@
+		Ajax | Web Scraper Test Sites
+===============================
+
+
+			[				Web Scraper Cloud				replaces your complex scraping stack.				-				Try it
+free for 7
+days								](https://cloud.webscraper.io/register?utm_source=cloud-landing&utm_medium=announcement-bar)
+
+			[				![Web Scraper](/img/logo-v2.svg)			](/)
+
+
+				[					Cloud login				](https://cloud.webscraper.io/)
+
+
+					- 						[Web Scraper Cloud](/)
+					- 						[Extension](/web-scraper-extension)
+					- 						[Pricing](/pricing)
+					- 						[Marketplace](/marketplace)
+					- 													Solutions																											- 								[																					E-commerce								](/solutions/ecommerce-web-scraping)
+							- 								[																					Competitor price monitoring								](/solutions/competitor-price-monitoring)
+							- 								[																					Marketplace data scraping								](/solutions/marketplace-data-scraping)
+							- 								[																				MAP								](/solutions/map-monitoring)
+							- 								[																								Market research								](/solutions/market-research-web-scraping)
+							- 								[																						Lead generation								](/solutions/lead-generation-web-scraping)
+							- 								[																							Real estate data extraction								](/solutions/real-estate-data-extraction)
+							- 								[																															Web data for AI								](/solutions/web-data-for-ai-training)
+							- 								[																								Web data for RAG AI agents								](/solutions/web-data-for-rag-ai-agents)
+
+
+					- 													Learn
+							- 								[																			Documentation								](/documentation)
+							- 								[																			Video Tutorials								](/tutorials)
+							- 								[																			Test Sites								](/test-sites)
+							- 								[																			Forum								](https://forum.webscraper.io/)
+
+
+					[						**						Install extension					](https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en)					[						Cloud
+login					](https://cloud.webscraper.io/)
+
+
+# Test Sites
+
+
+			- 				[Home](/test-sites/e-commerce/ajax)
+						- 				[					Computers					**				](/test-sites/e-commerce/ajax/computers)																				- 						[							Laptops						](/test-sites/e-commerce/ajax/computers/laptops)
+										- 						[							Tablets						](/test-sites/e-commerce/ajax/computers/tablets)
+
+
+						- 				[					Phones					**				](/test-sites/e-commerce/ajax/phones)
+
+
+# Computers / Laptops
+
+117 items
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $295.99
+
+#### [Asus VivoBook X4](/test-sites/e-commerce/ajax/product/60 "name")
+
+Asus VivoBook X441NA-GA190 Chocolate Black, 14", Celeron N3450, 4GB, 128GB SSD, Endless
+OS, ENG kbd
+
+
+1 reviews
+
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $299
+
+#### [Prestigio SmartB](/test-sites/e-commerce/ajax/product/61 "name")
+
+Prestigio SmartBook 133S Dark Grey, 13.3" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB,
+Windows 10 Pro + Office 365 1 gadam
+
+
+9 reviews
+
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $299
+
+#### [Prestigio SmartB](/test-sites/e-commerce/ajax/product/62 "name")
+
+Prestigio SmartBook 133S Gold, 13.3" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows
+10 Pro + Office 365 1 gadam
+
+
+9 reviews
+
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $306.99
+
+#### [Aspire E1-510](/test-sites/e-commerce/ajax/product/32 "name")
+
+15.6", Pentium N3520 2.16GHz, 4GB, 500GB, Linux
+
+
+2 reviews
+
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $321.94
+
+#### [Lenovo V110-15IA](/test-sites/e-commerce/ajax/product/63 "name")
+
+Lenovo V110-15IAP, 15.6" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home
+
+
+12 reviews
+
+
+![item](/images/test-sites/e-commerce/items/cart2.png)
+
+
+#### $356.49
+
+#### [Lenovo V110-15IA](/test-sites/e-commerce/ajax/product/64 "name")
+
+Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6" HD, Pentium N4200, 4GB, 500GB,
+Windows 10 Home, En kbd
+
+
+12 reviews
+
+
+					1					2					3					4					5					6					7					8					9					10					11					12					13					14					15					16					17					18					19					20
+
+		< Previous		Next >
+
+				[			![Web Scraper](/img/logo-v2.svg)		](/)
+
+
+## 											Products
+
+
+						- 							[								Web Scraper browser extension							](/web-scraper-extension)
+						- 							[Web Scraper Cloud](/)
+
+
+## 											Company
+
+
+						- 							[About us](/about-us)
+						- 							[Contacts](/contact)
+						- 							[Website Privacy Policy](/privacy-policy)
+						- 							[Browser Extension Privacy Policy](/extension-privacy-policy)
+						- 							[Media kit](https://webscraper.io/downloads/Web_Scraper_Media_Kit.zip)
+
+
+## 											Resources
+
+
+						- [Blog](/blog)
+						- 							[Documentation](/documentation)
+						- 							[Video Tutorials](/tutorials)
+						- 							[Test Sites](/test-sites)
+						- 							[Forum](https://forum.webscraper.io/)
+						- 							[Status](https://status.webscraper.io/)
+
+
+## 											Contact us
+
+
+						- 							[info@webscraper.io](mailto:info@webscraper.io)
+						- Ubelu 5-71,  
+Adazi, Latvia, LV-2164
+
+
+		[			**		](https://www.facebook.com/webscraperio/)		[			**		](https://lv.linkedin.com/company/web-scraper)		[			**		](https://youtube.com/@WebScraper/videos)		[			**		](https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en)
+
+		[			**		](https://www.facebook.com/webscraperio/)		[			**		](https://lv.linkedin.com/company/web-scraper)		[			**		](https://youtube.com/@WebScraper/videos)		[			**		](https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en)
+
+			[				![Web Scraper](/img/logo-v2.svg)			](/)
+
+Copyright © 2026 Web Scraper | All rights reserved
+

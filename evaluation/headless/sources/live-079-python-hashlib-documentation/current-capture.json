@@ -1,0 +1,51 @@
+{
+  "case_id": "live-079-python-hashlib-documentation",
+  "url": "https://docs.python.org/3/library/hashlib.html",
+  "checked_at": "2026-09-03T14:15:54.550983+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/hashlib.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/hashlib.html",
+  "mime": "text/html",
+  "bytes": 120831,
+  "sha256": "8b68b1ccb14a4db7e4f9bc3ba6b6b5544e01c4b5eeef9e5985513def48ecb0a0",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "hashlib — Secure hashes and message digests — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_images/hashlib-blake2-tree.png",
+      "alt": "Explanation of tree mode parameters."
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "f1edaedec7cda48e87471bd63ea4a34f51906e537526a1d0c267d83f721179fb",
+  "reference_sha256": "f1edaedec7cda48e87471bd63ea4a34f51906e537526a1d0c267d83f721179fb",
+  "text_chars": 26726,
+  "excerpt": "hashlib\n— Secure hashes and message digests\n¶\nSource code:\nLib/hashlib.py\nThis module implements a common interface to many different hash algorithms.\nIncluded are the FIPS secure hash algorithms SHA224, SHA256, SHA384, SHA512,\n(defined in\nthe FIPS 180-4 standard\n), the SHA-3 series (defined in\nthe FIPS\n202 standard\n) as well as the legacy algorithms SHA1 (\nformerly part of FIPS\n)\nand the MD5 algorithm (defined in internet\nRFC 1321\n).\nNote\nIf you want the adler32 or crc32 hash functions, they are available in\nthe\nzlib\nmodule.\nHash algorithms\n¶\nThere is one constructor method named for each type of\nhash\n.  All return\na hash object with the same simple interface. For example: use\nsha256()\nto create a SHA-256 hash object. You can now feed this object with\nbytes-like objects\n(normally\nbytes\n) ",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

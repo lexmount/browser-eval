@@ -1,0 +1,65 @@
+[
+  {
+    "case_id": "lexmount-doc",
+    "independent": true,
+    "checked_at": "2026-09-03T14:21:09.769184+00:00",
+    "content_text": "Quick Start\nSend your first WebFetch request and understand the default response behavior.\nCopy Markdown\nOpen\nUse Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.\nThe most practical starting point is\nPOST /v1/extract\n.\nAuthentication\nThe API is currently in internal testing\nExternal requests must include both\nX-API-Key\nand\nX-Project-Id\nCreate or copy them from\nhttps://browser.lexmount.cn/settings/api-keys\nFor overseas access, use\nhttps://browser.lexmount.com/settings/api-keys\nand replace the endpoint with\nhttps://api.lexmount.com\nSend Your First Request\nAPI_KEY\n=\n'<your-api-key>'\nPROJECT_ID\n=\n'<your-project-id>'\ncurl\n-sS\n-X\nPOST\nhttps://api.lexmount.cn/v1/extract\n\\\n-H\n'Content-Type: application/json'\n\\\n-H\n\"X-API-Key:\n$API_KEY\n\"\n\\\n-H\n\"X-Project-Id:\n$PROJECT_ID\n\"\n\\\n-d\n'{\n\"extract\": {\n\"url\": \"https://example.com\"\n}\n}'\nTypical response:\n{\n\"request_id\"\n:\n\"01964d0f-5f3a-7c3d-8a41-1234567890ab\"\n,\n\"result\"\n: {\n\"url\"\n:\n\"https://example.com\"\n,\n\"final_url\"\n:\n\"https://example.com\"\n,\n\"status_code\"\n:\n200\n,\n\"title\"\n:\n\"Example Domain\"\n,\n\"description\"\n:\n\"Example Domain\"\n,\n\"main_text\"\n:\n\"Example Domain This domain is for use in illustrative examples in documents.\"\n,\n\"engine\"\n:\n\"http\"\n,\n\"dom_id\"\n:\n\"dom_123\"\n},\n\"metadata\"\n: {\n\"dom_id\"\n:\n\"dom_123\"\n,\n\"server_elapsed_ms\"\n:\n1234\n}\n}\nEvery JSON response also includes a top-level\nrequest_id\n. The same value is returned in the\nX-Request-ID\nresponse header for log correlation and support debugging.\nWhat You Get\nPOST /v1/extract\nis the all-in-one endpoint. It handles:\npage fetching\ntemplate matching\nbackground generation when needed\nfinal structured extraction\nCommon fields in\nresult\ninclude:\ntitle\ndescription\nmain_text\nfinal_url\nauthor\npublish_time\nlinks\nimages\nengine\ndom_id\nTop-level debugging fields:\nrequest_id\nWhen To Use Dump DOM\nUse\nPOST /v1/dom/dump\nwhen you need the captured HTML itself, want to inspect rendering output, or want to reuse a\ndom_id\nin a later extraction request.\ncurl\n-sS\n-X\nPOST\nhttps://api.lexmount.cn/v1/dom/dump\n\\\n-H\n'Content-Type: application/json'\n\\\n-H\n\"X-API-Key:\n$API_KEY\n\"\n\\\n-H\n\"X-Project-Id:\n$PROJECT_ID\n\"\n\\\n-d\n'{\"url\":\"https://example.com\"}'\n\\\n|\njq\n'{final_url, engine, dom_id, html_len:(.html|length)}'\nOptional Debug Fields\nPOST /v1/extract\ndoes not return\ntrace\nor\nraw_dom\nby default.\nIf you need workflow diagnostics, see\nEnable Trace\nIf you need\nraw_dom\nin the response, see\nReturn Raw DOM\nNext\nSee\nAll-in-One Extract\nfor the full\n/v1/extract\nrequest and response shape\nSee\nDump DOM\nfor\n/v1/dom/dump\noptions and reuse patterns\nSee\nCommon Errors\nfor troubleshooting guidance",
+    "scope_identity": {
+      "case_id": "lexmount-doc",
+      "url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "endpoint",
+            "alternatives": [
+              "POST /v1/extract",
+              "/v1/extract"
+            ]
+          },
+          {
+            "id": "api-key",
+            "alternatives": [
+              "X-API-Key"
+            ]
+          },
+          {
+            "id": "project-id",
+            "alternatives": [
+              "X-Project-Id"
+            ]
+          },
+          {
+            "id": "content-field",
+            "alternatives": [
+              "main_text"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Page Not Found",
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "min_content_chars": 500,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1.736750011332333,
+      "timeout_ms": 120000
+    }
+  }
+]

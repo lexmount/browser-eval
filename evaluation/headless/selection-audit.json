@@ -1,0 +1,110 @@
+[
+  {
+    "case_id": "live-060-database",
+    "selection_reason": "fresh complete matched cohort after failed reference certificate; no score-based selection",
+    "excluded_attempts": [
+      {
+        "attempt_id": "kitesurf__live-060-database__r001",
+        "run_id": "run-1495729285c12f533682",
+        "started_at": "2026-09-03T14:34:39.898590+00:00",
+        "elapsed_ms": 18332.24
+      },
+      {
+        "attempt_id": "lightpanda__live-060-database__r001",
+        "run_id": "run-85d11641a12498fde58a",
+        "started_at": "2026-09-03T14:23:07.820582+00:00",
+        "elapsed_ms": 4491.2
+      },
+      {
+        "attempt_id": "obscura__live-060-database__r001",
+        "run_id": "run-61b5426ea178fbe81833",
+        "started_at": "2026-09-03T14:35:29.216367+00:00",
+        "elapsed_ms": 37006.61
+      },
+      {
+        "attempt_id": "moli__live-060-database__r001",
+        "run_id": "run-703a0973431fd2231c66",
+        "started_at": "2026-09-03T14:22:33.278707+00:00",
+        "elapsed_ms": 3999.87
+      },
+      {
+        "attempt_id": "chromium__live-060-database__r001",
+        "run_id": "run-9ac8d912cbada1985c04",
+        "started_at": "2026-09-03T14:23:13.412923+00:00",
+        "elapsed_ms": 4907.4
+      }
+    ]
+  },
+  {
+    "case_id": "live-061-version-control",
+    "selection_reason": "fresh complete matched cohort after failed reference certificate; no score-based selection",
+    "excluded_attempts": [
+      {
+        "attempt_id": "kitesurf__live-061-version-control__r001",
+        "run_id": "run-b9ee5dbb2938e0c88317",
+        "started_at": "2026-09-03T14:34:58.984699+00:00",
+        "elapsed_ms": 16313.97
+      },
+      {
+        "attempt_id": "lightpanda__live-061-version-control__r001",
+        "run_id": "run-a69f82d083c49b1efb15",
+        "started_at": "2026-09-03T14:23:13.002563+00:00",
+        "elapsed_ms": 2491.03
+      },
+      {
+        "attempt_id": "obscura__live-061-version-control__r001",
+        "run_id": "run-33952c07b4dfcd803d73",
+        "started_at": "2026-09-03T14:36:06.859882+00:00",
+        "elapsed_ms": 11964.97
+      },
+      {
+        "attempt_id": "moli__live-061-version-control__r001",
+        "run_id": "run-4230a80bb787ab543e82",
+        "started_at": "2026-09-03T14:22:37.973978+00:00",
+        "elapsed_ms": 2027.05
+      },
+      {
+        "attempt_id": "chromium__live-061-version-control__r001",
+        "run_id": "run-60e3082f83de57b0e344",
+        "started_at": "2026-09-03T14:23:18.990564+00:00",
+        "elapsed_ms": 2794.97
+      }
+    ]
+  },
+  {
+    "case_id": "live-062-natural-language-processing",
+    "selection_reason": "fresh complete matched cohort after failed reference certificate; no score-based selection",
+    "excluded_attempts": [
+      {
+        "attempt_id": "kitesurf__live-062-natural-language-processing__r001",
+        "run_id": "run-338c74b25e1e788b68be",
+        "started_at": "2026-09-03T14:35:15.893681+00:00",
+        "elapsed_ms": 12720.18
+      },
+      {
+        "attempt_id": "lightpanda__live-062-natural-language-processing__r001",
+        "run_id": "run-263b337fc3df150275bb",
+        "started_at": "2026-09-03T14:23:16.065171+00:00",
+        "elapsed_ms": 3272.17
+      },
+      {
+        "attempt_id": "obscura__live-062-natural-language-processing__r001",
+        "run_id": "run-34a58fc113b371505e8f",
+        "started_at": "2026-09-03T14:36:19.414144+00:00",
+        "elapsed_ms": 22307.62
+      },
+      {
+        "attempt_id": "moli__live-062-natural-language-processing__r001",
+        "run_id": "run-efced01dd44c16cd0ecc",
+        "started_at": "2026-09-03T14:22:40.576851+00:00",
+        "elapsed_ms": 2756.03
+      },
+      {
+        "attempt_id": "chromium__live-062-natural-language-processing__r001",
+        "run_id": "run-516695f230e82ead3a1c",
+        "started_at": "2026-09-03T14:23:22.361598+00:00",
+        "elapsed_ms": 3704.6
+      }
+    ]
+  }
+]

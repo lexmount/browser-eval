@@ -1,0 +1,27 @@
+{
+  "case_id": "live-012-navigation-menu",
+  "url": "https://github.com/django/django",
+  "checked_at": "2026-09-02T03:37:52.629451+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/django/django"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/django/django",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 313589,
+  "sha256": "2b347f94fbb8b323afa3360d8d6f56894217c54e7d26f03b7b14bad10e29a642",
+  "title": "GitHub - django/django: The Web framework for perfectionists with deadlines. · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [],
+  "text_chars": 1931,
+  "excerpt": "Django\nDjango is a high-level Python web framework that encourages rapid development\nand clean, pragmatic design. Thanks for checking it out.\nAll documentation is in the \"\ndocs\n\" directory and online at\nhttps://docs.djangoproject.com/en/stable/\n. If you're just getting started,\nhere's how we recommend you read the docs:\nFirst, read\ndocs/intro/install.txt\nfor instructions on installing Django.\nNext, work through the tutorials in order (\ndocs/intro/tutorial01.txt\n,\ndocs/intro/tutorial02.txt\n, etc.).\nIf you want to set up an actual deployment server, read\ndocs/howto/deployment/index.txt\nfor instructions.\nYou'll probably want to read through the topical guides (in\ndocs/topics\n)\nnext; from there you can jump to the HOWTOs (in\ndocs/howto\n) for specific\nproblems, and check out the reference (\ndoc",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2"
+  ],
+  "state": "captured"
+}

@@ -1,0 +1,46 @@
+{
+  "case_id": "live-006-python-typing-documentation",
+  "url": "https://docs.python.org/3/library/typing.html",
+  "checked_at": "2026-09-03T14:15:41.542833+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/typing.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/typing.html",
+  "mime": "text/html",
+  "bytes": 537361,
+  "sha256": "546a51126ff96869388217d55454b1c69d320bd15541bac0e3a3d1d845051e8e",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "typing — Support for type hints — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "bbbba2fff68106ad38605de360f48f1a73f3d58ff695d358fda9937762717e2e",
+  "reference_sha256": "bbbba2fff68106ad38605de360f48f1a73f3d58ff695d358fda9937762717e2e",
+  "text_chars": 119524,
+  "excerpt": "typing\n— Support for type hints\n¶\nAdded in version 3.5.\nSource code:\nLib/typing.py\nNote\nThe Python runtime does not enforce function and variable type annotations.\nThey can be used by third party tools such as\ntype checkers\n,\nIDEs, linters, etc.\nThis module provides runtime support for type hints.\nConsider the function below:\ndef\nsurface_area_of_cube\n(\nedge_length\n:\nfloat\n)\n->\nstr\n:\nreturn\nf\n\"The surface area of the cube is\n{\n6\n*\nedge_length\n**\n2\n}\n.\"\nThe function\nsurface_area_of_cube\ntakes an argument expected to\nbe an instance of\nfloat\n, as indicated by the\ntype hint\nedge_length:\nfloat\n. The function is expected to return an instance\nof\nstr\n, as indicated by the\n->\nstr\nhint.\nWhile type hints can be simple classes like\nfloat\nor\nstr\n,\nthey can also be more complex. The\ntyping\nmodule provid",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

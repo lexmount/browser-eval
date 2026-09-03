@@ -1,0 +1,27 @@
+{
+  "case_id": "live-020-navigation-menu",
+  "url": "https://github.com/nodejs/node",
+  "checked_at": "2026-09-02T03:37:54.705440+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/nodejs/node"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/nodejs/node",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 585673,
+  "sha256": "96619f6b9bb286424f7383520f7cab5872c60c7a10022e2a8a9972b6c12b4b5d",
+  "title": "GitHub - nodejs/node: Node.js JavaScript runtime ✨🐢🚀✨ · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [],
+  "text_chars": 26660,
+  "excerpt": "Node.js\nNode.js is an open-source, cross-platform JavaScript runtime environment.\nFor information on using Node.js, see the\nNode.js website\n.\nThe Node.js project uses an\nopen governance model\n. The\nOpenJS Foundation\nprovides support for the project.\nContributors are expected to act in a collaborative manner to move\nthe project forward. We encourage the constructive exchange of contrary\nopinions and compromise. The\nTSC\nreserves the right to limit or block contributors who repeatedly act in ways\nthat discourage, exhaust, or otherwise negatively affect other participants.\nThis project has a\nCode of Conduct\n.\nTable of contents\nSupport\nRelease types\nDownload\nCurrent and LTS releases\nNightly releases\nAPI documentation\nVerifying binaries\nBuilding Node.js\nSecurity\nContributing to Node.js\nCurrent p",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2"
+  ],
+  "state": "captured"
+}

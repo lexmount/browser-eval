@@ -1,0 +1,24 @@
+{
+  "case_id": "document-07",
+  "url": "https://mozilla.github.io/pdf.js/web/viewer.html",
+  "checked_at": "2026-09-02T03:42:29.060329+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://mozilla.github.io/pdf.js/web/viewer.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://mozilla.github.io/pdf.js/web/viewer.html",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 67729,
+  "sha256": "0432cc6ab06150b13f581d955841d2895227fec0171a70920fb20adf0e208ae5",
+  "title": "PDF.js viewer",
+  "selector": "#mainContent",
+  "resources": [],
+  "text_chars": 0,
+  "excerpt": "",
+  "missing_facts": [],
+  "state": "captured"
+}

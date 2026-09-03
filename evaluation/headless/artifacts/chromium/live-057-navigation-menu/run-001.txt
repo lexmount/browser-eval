@@ -1,0 +1,573 @@
+GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered,
+production-grade applications and services with absolute minimum fuss. · GitHub
+================================================================================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.githubassets.com "route-pattern")
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/hotkey-5109c77d7ac61078.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/4t-9933bcccf9a9524f.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/3np-d3e31cfdd09628e3.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/cj-006d3ff509d05587.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+- [Government](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/notifications-subscriptions-menu.957bba726ae10233.module.css "route-pattern")
+
+[View all solutions](/opensearch.xml "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/1lf-a0f2419c1e6629c4.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.githubassets.com "route-pattern")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark_tritanopia-39c10993d5603fac.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/kw-866fd9513ae95106.js "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+{{ message }}              
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern").
+
+
+[        spring-projects](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")     
+/    **      [spring-boot](https://github.githubassets.com/assets/j8s-d6df66de8459f530.js "route-pattern")    **
+Public                  
+
+
+-             [        Notifications](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    42.1k](https://github.githubassets.com/assets/qod-ec54fa7b5f53a827.js "route-pattern")  
+-         
+
+[                  Star          81.4k](https://github.githubassets.com/assets/zy-6616fb758137ff12.js "route-pattern")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+-   [                              Issues          453    ](https://github.githubassets.com/ "GitHub")
+-   [                              Pull requests          33    ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.")
+-   [                              Actions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Wiki              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Security and quality          0    ](#start-of-content "_R_5knd_")
+-   [                              Insights              ](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot "_R_5knd_")  
+-             [                                                      Issues      ](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot "_R_5knd_")  
+-             [                                                      Pull requests      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Actions      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Wiki      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Security and quality      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Insights      ](https://github.com/features/ai/github-app "Octicon")  
+
+
+main
+
+[Branches](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")[Tags](https://github.githubassets.com/assets/b1-0ecf777af36094fd.js "route-pattern")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[62,472 Commits](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.")
+
+62,472 Commits
+## Folders and files
+
+| Name                                                                                                                                                                                                                                                 | Name |   |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                                                                                                     |
+| -                                                                                                                                                                                                                                                    | -    | - | - |
+|                                                                                                                                                                                                                                                      |
+| [.github](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                                                                                                                 |      |
+| [.github](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [.idea](https://github.githubassets.com/assets/tua-417d02f5e5f3ce67.js "_R_5knd_")                                                                                                                                                                   |      |
+| [.idea](/ "_R_5knd_")                                                                                                                                                                                                                                |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [antora](/ "_R_5knd_")                                                                                                                                                                                                                               |      |
+| [antora](/ "_R_5knd_")                                                                                                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [build-plugin](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot "_R_5knd_")                                                                                                                                                 |      |
+| [build-plugin](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                       |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [buildSrc](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                           |      |
+| [buildSrc](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [buildpack/spring-boot-buildpack-platform](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                           |      |
+| [buildpack/spring-boot-buildpack-platform](https://github.com/features/ai/github-app "Octicon")                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [cli/spring-boot-cli](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                          |      |
+| [cli/spring-boot-cli](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                          |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [config](https://github.com/mcp "Octicon")                                                                                                                                                                                                           |      |
+| [config](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                                          |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [configuration-metadata](https://github.com/features/actions "Octicon")                                                                                                                                                                              |      |
+| [configuration-metadata](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [core](https://github.com/features/actions "Octicon")                                                                                                                                                                                                |      |
+| [core](https://github.com/features/codespaces "Octicon")                                                                                                                                                                                             |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [documentation](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                   |      |
+| [documentation](https://github.com/features/issues "Octicon")                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [eclipse](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                             |      |
+| [eclipse](https://github.com/features/code-review "Octicon")                                                                                                                                                                                         |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [git/hooks](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                      |      |
+| [git/hooks](https://github.com/features/code-quality "Octicon")                                                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [gradle](https://github.com/security/advanced-security "Octicon")                                                                                                                                                                                    |      |
+| [gradle](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                                                                                              |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [integration-test](https://github.com/security/advanced-security "_R_dknd_")                                                                                                                                                                         |      |
+| [integration-test](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                                                                            |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [loader](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                     |      |
+| [loader](https://github.githubassets.com "route-pattern")                                                                                                                                                                                            |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [module](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")                                                                                                                                            |      |
+| [module](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern")                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [platform](https://github.githubassets.com/assets/dark_tritanopia_high_contrast-73236c840c0c7d90.css "route-pattern")                                                                                                                                |      |
+| [platform](https://github.githubassets.com/assets/primer-1d2c7f7b52a6068b.css "route-pattern")                                                                                                                                                       |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [smoke-test](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                              |      |
+| [smoke-test](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                              |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [starter](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                 |      |
+| [starter](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [system-test](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                             |      |
+| [system-test](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                             |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [test-support](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                                            |      |
+| [test-support](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js "route-pattern")                                                                                                                                               |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [.editorconfig](https://github.githubassets.com/assets/kw-866fd9513ae95106.js "route-pattern")                                                                                                                                                       |      |
+| [.editorconfig](https://github.githubassets.com/assets/hotkey-5109c77d7ac61078.js "route-pattern")                                                                                                                                                   |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [.git-blame-ignore-revs](https://github.githubassets.com/assets/j0-e9bfed51669329e8.js "route-pattern")                                                                                                                                              |      |
+| [.git-blame-ignore-revs](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [.gitignore](https://github.githubassets.com/assets/j8s-d6df66de8459f530.js "route-pattern")                                                                                                                                                         |      |
+| [.gitignore](https://github.githubassets.com/assets/3np-d3e31cfdd09628e3.js "route-pattern")                                                                                                                                                         |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [.sdkmanrc](https://github.githubassets.com/assets/qod-ec54fa7b5f53a827.js "route-pattern")                                                                                                                                                          |      |
+| [.sdkmanrc](https://github.githubassets.com/assets/gbu-e8bb2569b1ae4dcf.js "route-pattern")                                                                                                                                                          |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [CONTRIBUTING.adoc](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")                                                                                                                             |      |
+| [CONTRIBUTING.adoc](https://github.githubassets.com/assets/lq-180d2e8115502593.js "route-pattern")                                                                                                                                                   |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [LICENSE.txt](https://github.githubassets.com/ "GitHub")                                                                                                                                                                                             |      |
+| [LICENSE.txt](/opensearch.xml "GitHub")                                                                                                                                                                                                              |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [README.adoc](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.") |      |
+| [README.adoc](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                                                     |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [SUPPORT.adoc](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                                                    |      |
+| [SUPPORT.adoc](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")                                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [build.gradle](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                                                                                                            |      |
+| [build.gradle](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                                                                                                            |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [gradle.properties](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")                                                                                                                                          |      |
+| [gradle.properties](/ "_R_5knd_")                                                                                                                                                                                                                    |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [gradlew](/ "_R_5knd_")                                                                                                                                                                                                                              |      |
+| [gradlew](/login?return_to=https%3A%2F%2Fgithub.com%2Fspring-projects%2Fspring-boot "_R_5knd_")                                                                                                                                                      |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [gradlew.bat](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                        |      |
+| [gradlew.bat](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| [settings.gradle](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                    |      |
+| [settings.gradle](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                                    |      |
+|                                                                                                                                                                                                                                                 |      |
+|                                                                                                                                                                                                                                                 |
+| View all files                                                                                                                                                                                                                                       |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.com/features/ai/github-app "Octicon")
+- [Code of conduct](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Contributing](https://github.com/mcp "Octicon")
+- [Apache-2.0 license](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Security](https://github.com/features/actions "Octicon")
+
+More items
+
+
+# Spring Boot [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=spring-projects "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=spring-projects "Octicon")](https://github.com/features/issues "Octicon")
+
+
+Spring Boot helps you to create Spring-powered, production-grade applications and
+services with absolute minimum fuss.It takes an opinionated view of the Spring platform
+so that new and existing users can quickly get to the bits they need.
+
+
+You can use Spring Boot to create stand-alone Java applications that can be started
+using `java -jar` or more traditional WAR deployments.We also provide a command-line tool
+that runs Spring scripts.
+
+
+Our primary goals are:
+
+
+- Provide a radically faster and widely accessible getting started experience for all Spring development.
+- Be opinionated, but get out of the way quickly as requirements start to diverge from the defaults.
+- Provide a range of non-functional features common to large classes of projects (for example, embedded servers, security, metrics, health checks, externalized configuration).
+- Absolutely no code generation and no requirement for XML configuration.
+
+
+## Installation and Getting Started
+
+
+The [reference documentation](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") includes detailed [installation instructions](https://github.com/features/code-review "Octicon") as well as a comprehensive [`getting started`](https://github.com/features/code-quality "Octicon") guide.
+
+
+Here is a quick teaser of a complete Spring Boot application in Java:
+
+```import org.springframework.boot.\*;import org.springframework.boot.autoconfigure.\*;import 
+org.springframework.web.bind.annotation.\*;@RestController@SpringBootApplicationpublic 
+class Example {	@RequestMapping("/")	String home() {		return "Hello World!";	}	public 
+static void main(String[] args) {		SpringApplication.run(Example.class, args);	}}```
+
+                              
+
+
+## Getting Help
+
+
+Are you having trouble with Spring Boot? We want to help!
+
+
+- Check the [reference documentation](https://github.com/security/advanced-security/code-security "Octicon"), especially the [How-to’s](https://github.com/security/advanced-security/code-security "Octicon") — they provide solutions to the most common questions.
+- Learn the Spring basics — Spring Boot builds on many other Spring projects; check the [spring.io](https://github.com/security/advanced-security/code-security "Octicon") website for a wealth of reference documentation.If you are new to Spring, try one of the [guides](https://github.com/security/advanced-security/code-security "Octicon").
+- If you are upgrading, read the [release notes](https://github.com/security/advanced-security/code-security "Octicon") for upgrade instructions and "new and noteworthy" features.
+- Ask a question — we monitor [stackoverflow.com](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") for questions tagged with [`spring-boot`](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0").
+- Report bugs with Spring Boot at [github.com/spring-projects/spring-boot/issues](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0").
+
+
+## Contributing
+
+
+We welcome contributions of all kinds!Please read our [contribution guidelines](https://github.githubassets.com "route-pattern") before submitting a pull request.
+
+
+## Reporting Issues
+
+
+Spring Boot uses GitHub’s integrated issue tracking system to record bugs and feature 
+requests.If you want to raise an issue, please follow the recommendations below:
+
+
+- Before you log a bug, please search the [issue tracker](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern") to see if someone has already reported the problem.
+- If the issue doesn’t already exist, [create a new issue](https://github.githubassets.com/assets/light_colorblind_high_contrast-f661b49995ba0bd8.css "route-pattern").
+- Please provide as much information as possible with the issue report.We like to know the Spring Boot version, operating system, and JVM version you’re using.
+- If you need to paste code or include a stack trace, use Markdown.\`\`\` escapes before and after your text.
+- If possible, try to create a test case or project that replicates the problem and attach it to the issue.
+
+
+## Building from Source
+
+
+You don’t need to build from source to use Spring Boot.If you want to try out the 
+latest and greatest, Spring Boot can be built and published to your local Maven cache 
+using the [Gradle wrapper](https://github.githubassets.com/assets/dark_dimmed_high_contrast-fd1500c8744e40d6.css "route-pattern").You also need JDK 25.
+
+```$ ./gradlew publishToMavenLocal```
+
+
+This command builds all modules and publishes them to your local Maven cache.It won’t
+run any of the tests.If you want to build everything, use the `build` task:
+
+```$ ./gradlew build```
+
+                              
+
+
+## Guides
+
+
+The [spring.io](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") site contains several guides that show how to use Spring Boot step-by-step:
+
+
+- [Building an Application with Spring Boot](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") is an introductory guide that shows you how to create an application, run it, and add some management services.
+- [Building a RESTful Web Service with Spring Boot Actuator](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") is a guide to creating a REST web service and also shows how the server can be configured.
+
+
+## License
+
+
+Spring Boot is Open Source software released under the [Apache 2.0 license](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern").
+
+
+## About
+
+Spring Boot helps you to create Spring-powered, production-grade applications and 
+services with absolute minimum fuss.
+
+[spring.io/projects/spring-boot](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js "route-pattern")
+### Topics
+
+[framework](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")[java](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")[spring](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")[spring-boot](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")
+### Resources
+
+[Readme](https://github.githubassets.com/assets/selector-observer-e88088f989b27670.js "route-pattern")
+
+[Apache-2.0 license](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")
+### Code of conduct
+
+[Code of conduct](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern")
+### Contributing
+
+[Contributing](https://github.githubassets.com/assets/primer-react-c320bd4873ebac94.js "route-pattern")
+### Security policy
+
+[Security policy](https://github.githubassets.com/assets/n4u-fba0c89ea7530085.js "route-pattern")
+
+[Activity](https://github.githubassets.com/assets/3np-d3e31cfdd09628e3.js "route-pattern")
+
+[Custom properties](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")
+### Stars
+
+**81.4k** stars
+### Watchers
+
+**3.3k** watching
+### Forks
+
+[**42.1k** forks](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+
+[Report repository](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern")
+
+
+## Releases
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+                         
+## Footer
+    
+
+    
+
+      [            ](/opensearch.xml "GitHub")              © 2026 GitHub, Inc. 
+             
+### Footer navigation
+      
+          -             [Terms](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.")          
+          -             [Privacy](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - spring-projects/spring-boot: Spring Boot helps you to create Spring-powered, production-grade applications and services with absolute minimum fuss.")          
+            -               [Security](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")            
+            -               [Status](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")            
+          -             [Community](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")          
+          -             [Docs](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")          
+          -             [Contact](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")          
+          -             Manage cookies      
+  -                   Do not share my personal information            
+      
+          
+
+                              You can’t perform that action at this time.      
+                                      
+
+      
+
+  
+
+    
+
+                              
+
+                                  
+
+    
+
+  

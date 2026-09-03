@@ -1,0 +1,635 @@
+{
+  "case_id": "dynamic-products-api",
+  "valid": true,
+  "errors": [],
+  "classification": "absent_from_initial_evidence",
+  "coverage": {
+    "initial_visible": {
+      "hits": 0,
+      "total": 24,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-price",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "initial_payload": {
+      "hits": 0,
+      "total": 24,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-price",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-price",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "rendered": {
+      "hits": 24,
+      "total": 24,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [
+            "Chaz Kangeroo Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-price",
+          "matched": [
+            "$52"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [
+            "Teton Pullover Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-price",
+          "matched": [
+            "$70"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [
+            "Bruno Compete Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-price",
+          "matched": [
+            "$63"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [
+            "Frankie Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-price",
+          "matched": [
+            "$60"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [
+            "Hollister Backyard Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-price",
+          "matched": [
+            "$52"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [
+            "Stark Fundamental Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-price",
+          "matched": [
+            "$42"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [
+            "Hero Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-price",
+          "matched": [
+            "$54"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [
+            "Oslo Trek Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-price",
+          "matched": [
+            "$42"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [
+            "Abominable Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-price",
+          "matched": [
+            "$69"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [
+            "Mach Street Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-price",
+          "matched": [
+            "$62"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [
+            "Grayson Crewneck Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-price",
+          "matched": [
+            "$64"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [
+            "Ajax Full-Zip Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-price",
+          "matched": [
+            "$69"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "reference": {
+      "hits": 24,
+      "total": 24,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [
+            "Chaz Kangeroo Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-price",
+          "matched": [
+            "$52"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [
+            "Teton Pullover Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-price",
+          "matched": [
+            "$70"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [
+            "Bruno Compete Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-price",
+          "matched": [
+            "$63"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [
+            "Frankie Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-price",
+          "matched": [
+            "$60"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [
+            "Hollister Backyard Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-price",
+          "matched": [
+            "$52"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [
+            "Stark Fundamental Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-price",
+          "matched": [
+            "$42"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [
+            "Hero Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-price",
+          "matched": [
+            "$54"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [
+            "Oslo Trek Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-price",
+          "matched": [
+            "$42"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [
+            "Abominable Hoodie"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-price",
+          "matched": [
+            "$69"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [
+            "Mach Street Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-price",
+          "matched": [
+            "$62"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [
+            "Grayson Crewneck Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-price",
+          "matched": [
+            "$64"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [
+            "Ajax Full-Zip Sweatshirt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-price",
+          "matched": [
+            "$69"
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "initial_fact_hits": 0,
+  "initial_html_sha256": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+  "rendered_text_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+  "reference_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+  "completion": {
+    "condition": "dynamic-products-api: 12 nonempty target records with populated text fields; no interaction",
+    "timeout_ms": 30000,
+    "elapsed_ms": 4970,
+    "satisfied": true,
+    "checked_at": "2026-09-03T04:35:18.172Z",
+    "phase": "post-run independent reproduction of pre-run frozen reference"
+  },
+  "js_required_proven": false,
+  "limitations": [
+    "Initial visible content is a static HTML proxy, not computed CSS visibility.",
+    "Payload matching detects literals, not every encoding or external resource.",
+    "Inline payload availability forbids a must-execute-JS conclusion; absence only means these facts were not found in this initial response.",
+    "Fact coverage and declared completion do not prove whole-page completeness."
+  ]
+}

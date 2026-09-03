@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-036-build-on-the-openai-api-platform",
+    "independent": true,
+    "checked_at": "2026-09-03T14:30:01.195790+00:00",
+    "content_text": "API Platform\nDeveloper quickstart\nMake your first API request in minutes. Learn the basics of the OpenAI platform.\nGet started\nCreate API key\nJavaScript\ncurl https://api.openai.com/v1/responses \\\n-H \"Content-Type: application/json\" \\\n-H \"Authorization: Bearer $OPENAI_API_KEY\" \\\n-d '{\n\"model\": \"gpt-5.6\",\n\"input\": \"Write a short bedtime story about a unicorn.\"\n}'\nimport\nOpenAI\nfrom\n\"openai\"\n;\nconst\nclient\n=\nnew\nOpenAI\n();\nconst\nresponse\n=\nawait\nclient.responses.\ncreate\n({\nmodel:\n\"gpt-5.6\"\n,\ninput:\n\"Write a short bedtime story about a unicorn.\"\n,\n});\nconsole.\nlog\n(response.output_text);\nfrom openai import OpenAI\nclient = OpenAI()\nresponse = client.responses.create(model=\"gpt-5.6\", input=\"Write a short bedtime story about a unicorn.\")\nprint(response.output_text)\npackage main\nimport (\n\"context\"\n\"fmt\"\n\"github.com/openai/openai-go/v3\"\n\"github.com/openai/openai-go/v3/responses\"\n)\nfunc main() {\nclient := openai.NewClient()\nresponse, err := client.Responses.New(context.Background(), responses.ResponseNewParams{\nModel: \"gpt-5.6\",\nInput: responses.ResponseNewParamsInputUnion{\nOfString: openai.String(\"Write a short bedtime story about a unicorn.\"),\n},\n})\nif err != nil {\npanic(err)\n}\nfmt.Println(response.OutputText())\n}\nimport com.openai.client.OpenAIClient;\nimport com.openai.client.okhttp.OpenAIOkHttpClient;\nimport com.openai.models.responses.Response;\nimport com.openai.models.responses.ResponseCreateParams;\npublic class PlatformOverviewExample {\npublic static void main(String[] args) {\nOpenAIClient client = OpenAIOkHttpClient.fromEnv();\nResponseCreateParams params =\nResponseCreateParams.builder().model(\"gpt-5.6\").input(\"Write a short bedtime story about a unicorn.\").build();\nResponse response = client.responses().create(params);\nresponse.output().stream()\n.flatMap(item -> item.message().stream())\n.flatMap(message -> message.content().stream())\n.flatMap(content -> content.outputText().stream())\n.forEach(outputText -> System.out.println(outputText.text()));\n}\n}\nusing OpenAI.Responses;\n#pragma warning disable OPENAI001\nstring key = Environment.GetEnvironmentVariable(\"OPENAI_API_KEY\")!;\nResponsesClient client = new(key);\nResponseResult response = await client.CreateResponseAsync(\n\"gpt-5.6\",\n\"Write a short bedtime story about a unicorn.\"\n);\nConsole.WriteLine(response.GetOutputText());\nrequire \"openai\"\nopenai = OpenAI::Client.new\nresponse = openai.responses.create(\nmodel: \"gpt-5.6\",\ninput: \"Write a short bedtime story about a unicorn.\"\n)\nputs(response.output_text)\nopenai responses create \\\n--model gpt-5.6 \\\n--input \"Write a short bedtime story about a unicorn.\" \\\n--raw-output \\\n--transform 'output.#(type==\"message\").content.0.text'\nBuild with the OpenAI API in ChatGPT and Codex\nThe OpenAI Developers plugin connects ChatGPT and Codex to the OpenAI Platform, follows OpenAI API setup guidance, and creates project API keys when your application needs one.\nInstall the plugin\nBuild paths\nResponses API\nMake direct model requests for text, structured output, tools, and multimodal workflows.\nStart with Responses\nAgents SDK\nBuild code-first agents that orchestrate tools, handoffs, approvals, tracing, and container-based execution.\nStart with the Agents SDK\nModels\nStart with\nGPT-5.6 Sol\nfor complex reasoning and coding, choose\nGPT-5.6 Terra\nto balance intelligence and cost, or use\nGPT-5.6 Luna\nfor cost-sensitive, high-volume workloads.\nView all\nGPT-5.6 Sol\nFlagship model for complex professional work\nGPT-5.6 Terra\nGPT-5.6 model that balances intelligence and cost\nGPT-5.6 Luna\nGPT-5.6 model optimized for cost-sensitive workloads\nStart building\nRead and generate text\nUse the API to prompt a model and generate text\nUse a model's vision capabilities\nAllow models to see and analyze images in your application\nGenerate images as output\nCreate images with GPT Image 2\nBuild apps with audio\nAnalyze, transcribe, and generate audio with API endpoints\nBuild agentic applications\nUse the API to build agents that use tools and computers\nAchieve complex tasks with reasoning\nUse reasoning models to carry out complex tasks\nGet structured data from models\nUse Structured Outputs to get model responses that adhere to a JSON schema\nTailor to your use case\nAdjust our models to perform specifically for your use case with fine-tuning, evals, and distillation\nHelp center\nFrequently asked account and billing questions\nDeveloper forum\nDiscuss topics with other developers\nCookbook\nOpen-source collection of examples and guides\nStatus\nCheck the status of OpenAI services",
+    "scope_identity": {
+      "case_id": "live-036-build-on-the-openai-api-platform",
+      "url": "https://developers.openai.com/api/docs",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "Make your first API request in minutes. Learn the basics"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "Make direct model requests for text, structured output, tools, and"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "Check the status of OpenAI services"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 783.5795410210267,
+      "timeout_ms": 120000
+    }
+  }
+]

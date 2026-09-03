@@ -1,0 +1,55 @@
+{
+  "case_id": "document-08",
+  "url": "https://pdfobject.com/static/",
+  "checked_at": "2026-09-02T03:42:29.060234+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://pdfobject.com/static/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://pdfobject.com/static/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 35381,
+  "sha256": "6eda343be4ee24549a4c92c1ce6e570492aa698e4ef05e1b9b4f5367b90cd4bd",
+  "title": "How to embed a PDF without using JavaScript | PDFObject",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://pdfobject.com/img/logo.png",
+      "alt": ""
+    },
+    {
+      "tag": "embed",
+      "url": "https://pdfobject.com/pdf/sample-3pp.pdf#page=2",
+      "alt": ""
+    },
+    {
+      "tag": "iframe",
+      "url": "https://pdfobject.com/pdf/sample-3pp.pdf#page=2",
+      "alt": ""
+    },
+    {
+      "tag": "object",
+      "url": "https://pdfobject.com/pdf/sample-3pp.pdf#page=2",
+      "alt": ""
+    },
+    {
+      "tag": "object",
+      "url": "https://pdfobject.com/pdf/sample-3pp.pdf#page=2",
+      "alt": ""
+    },
+    {
+      "tag": "iframe",
+      "url": "https://pdfobject.com/pdf/sample-3pp.pdf#page=2",
+      "alt": ""
+    }
+  ],
+  "text_chars": 2753,
+  "excerpt": "How to embed a PDF without using JavaScript\n​\nPDFs can be embedded into HTML pages without using JavaScript. Below are four examples of the most common techniques.\nNote: these examples work in most modern desktop browsers, but results will vary in older desktop browsers and mobile browsers. None of these examples work properly on mobile, including iOS.\n<embed>\n​\nThe\n<embed>\nelement became an official part of the HTML specification with HTML5. All HTML5-compliant browsers—all 'modern' browsers—officially support the\n<embed>\nelement. Older browsers also offer surprisingly robust (though sometimes unofficial) support for\n<embed>\n. Unfortunately, when used in static markup, the\n<embed>\nelement doesn't provide a mechanism for fallback content. If the browser doesn't support PDF embedding, which",
+  "missing_facts": [],
+  "state": "captured"
+}

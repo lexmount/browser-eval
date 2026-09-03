@@ -1,0 +1,43 @@
+{
+  "case_id": "live-031-agent",
+  "url": "https://docs.exa.ai/reference/get-contents",
+  "checked_at": "2026-09-03T14:15:45.825475+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://exa.ai/docs/reference/get-contents"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://exa.ai/docs/reference/get-contents",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 644057,
+  "sha256": "7f29ca0e0d5b8a6328a8bd5bec4b7b55c765807914c67997aef707881e20731c",
+  "response_headers": {
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "frame-ancestors 'none'",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "Contents - Exa",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://mintcdn.com/exa-52/rjfwhV9stZF3dXkq/logo/light.svg?fit=max&auto=format&n=rjfwhV9stZF3dXkq&q=85&s=23f6eeaafae25b4c8b6efb60ddc68e0c",
+      "alt": "light logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://mintcdn.com/exa-52/rjfwhV9stZF3dXkq/logo/dark.svg?fit=max&auto=format&n=rjfwhV9stZF3dXkq&q=85&s=977afb715a77c49036c8991b22bb82c7",
+      "alt": "dark logo"
+    }
+  ],
+  "extracted_sha256": "e8150ea6931b207afae0bfe20236e46ea64778cdd9a161ebabe64e14fa407270",
+  "reference_sha256": "e1da12d116fc5f47276950bd4f5ee8293ba6ed43c306741c044f1560d8468876",
+  "text_chars": 12600,
+  "excerpt": "Contents\ncURL\ncurl\n--request\nPOST\n\\\n--url\nhttps://api.exa.ai/contents\n\\\n--header\n'Content-Type: application/json'\n\\\n--header\n'x-api-key: <api-key>'\n\\\n--data\n'\n{\n\"ids\": [\n\"https://arxiv.org/pdf/2307.06435\"\n],\n\"urls\": [\n\"https://arxiv.org/pdf/2307.06435\"\n],\n\"compliance\": \"hipaa\",\n\"text\": false,\n\"highlights\": false,\n\"summary\": {\n\"query\": \"Main developments\",\n\"schema\": {\n\"$schema\": \"http://json-schema.org/draft-07/schema#\",\n\"title\": \"Title\",\n\"type\": \"object\",\n\"properties\": {\n\"Property 1\": {\n\"type\": \"string\",\n\"description\": \"Description\"\n},\n\"Property 2\": {\n\"type\": \"string\",\n\"enum\": [\n\"option 1\",\n\"option 2\",\n\"option 3\"\n],\n\"description\": \"Description\"\n}\n},\n\"required\": [\n\"Property 1\"\n]\n}\n},\n\"extras\": {\n\"links\": 1,\n\"imageLinks\": 1,\n\"richImageLinks\": 0,\n\"richLinks\": 0,\n\"codeBlocks\": 0\n},\n\"context\": ",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

@@ -1,0 +1,58 @@
+{
+  "case_id": "live-017-navigation-menu",
+  "url": "https://github.com/langchain-ai/langchain",
+  "checked_at": "2026-09-03T14:15:43.274055+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/langchain-ai/langchain"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/langchain-ai/langchain",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 314492,
+  "sha256": "02541fa92ec9349c2de26308fb6eb4df49b3bed08afe9cc08fd06a6b1172475f",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'self'; child-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com github.githubassets.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net productionresultssa1.blob.core.windows.net productionresultssa2.blob.core.windows.net productionresultssa3.blob.core.windows.net productionresultssa4.blob.core.windows.net productionresultssa5.blob.core.windows.net productionresultssa6.blob.core.windows.net productionresultssa7.blob.core.windows.net productionresultssa8.blob.core.windows.net productionresultssa9.blob.core.windows.net productionresultssa10.blob.core.windows.net productionresultssa11.blob.core.windows.net productionresultssa12.blob.core.windows.net productionresultssa13.blob.core.windows.net productionresultssa14.blob.core.windows.net productionresultssa15.blob.core.windows.net productionresultssa16.blob.core.windows.net productionresultssa17.blob.core.windows.net productionresultssa18.blob.core.windows.net productionresultssa19.blob.core.windows.net github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com wss://alive-staging.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com wss://production-copilot-host.webpubsub.azure.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com release-assets.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com repository-images.githubusercontent.com marketplace-screenshots.githubusercontent.com copilotprodattachments.blob.core.windows.net/github-production-copilot-attachments/ github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com explore-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com secured-user-images.githubusercontent.com private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "GitHub - langchain-ai/langchain: The agent engineering platform. · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://github.com/langchain-ai/langchain/raw/master/.github/images/logo-dark.svg",
+      "alt": "LangChain Logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fdc88e6a9118536b90bb814a36ad57de79c1bc7357952f1eda5f985e8d290dcb/68747470733a2f2f696d672e736869656c64732e696f2f707970692f6c2f6c616e67636861696e",
+      "alt": "PyPI - License"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/4ff1f8961b07b8db24e3623cd07ace6c5e4331646f362d8da4026943614e3515/68747470733a2f2f696d672e736869656c64732e696f2f706570792f64742f6c616e67636861696e",
+      "alt": "PyPI - Downloads"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/efb010d1af933bdf12de805a99b6c909bf6d3a542049fb9681a89dabb20e392a/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f6c616e67636861696e3f6c6162656c3d253230",
+      "alt": "Version"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/73d657ff82cb4e4506fb4e5598dd8ccef71badee16434a54271fe208ab4eda26/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f75726c2f68747470732f747769747465722e636f6d2f6c616e67636861696e5f6f73732e7376673f7374796c653d736f6369616c266c6162656c3d466f6c6c6f772532302534304c616e67436861696e",
+      "alt": "Twitter / X"
+    }
+  ],
+  "extracted_sha256": "b747123702b61e59eafd51f97ce7f3443e6f220ba861eb49c45e8239ed650e24",
+  "reference_sha256": "b747123702b61e59eafd51f97ce7f3443e6f220ba861eb49c45e8239ed650e24",
+  "text_chars": 3770,
+  "excerpt": "The agent engineering platform.\nLangChain is a framework for building agents and LLM-powered applications. It helps you chain together interoperable components and third-party integrations to simplify AI application development — all while future-proofing decisions as the underlying technology evolves.\nTip\nJust getting started? Check out\nDeep Agents\n— a higher-level package built on LangChain for agents that have built-in capabilities for common usage patterns such as planning, subagents, file system usage, and more.\nQuickstart\nuv add langchain\nfrom\nlangchain\n.\nchat_models\nimport\ninit_chat_model\nmodel\n=\ninit_chat_model\n(\n\"openai:gpt-5.5\"\n)\nresult\n=\nmodel\n.\ninvoke\n(\n\"Hello, world!\"\n)\nIf you're looking for more advanced customization or agent orchestration, check out\nLangGraph\n, our framewor",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

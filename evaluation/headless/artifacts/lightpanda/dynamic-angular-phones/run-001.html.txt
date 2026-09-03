@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="phonecatApp" class="ng-scope"><head><style>@charset "UTF-8";[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>
+    <meta charset="utf-8">
+    <title>Google Phone Gallery</title>
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="app.css">
+    <script src="lib/angular/angular.js"></script>
+    <script src="lib/angular-route/angular-route.js"></script>
+    <script src="app.module.js"></script>
+    <script src="app.config.js"></script>
+    <script src="core/core.module.js"></script>
+    <script src="core/checkmark/checkmark.filter.js"></script>
+    <script src="phone-list/phone-list.module.js"></script>
+    <script src="phone-list/phone-list.component.js"></script>
+    <script src="phone-detail/phone-detail.module.js"></script>
+    <script src="phone-detail/phone-detail.component.js"></script>
+  </head>
+  <body>
+
+    <!-- ngView: --><div ng-view="" class="ng-scope"><phone-list class="ng-scope"></phone-list></div>
+
+  
+
+</body></html>

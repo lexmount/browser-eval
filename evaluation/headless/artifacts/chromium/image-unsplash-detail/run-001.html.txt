@@ -1,0 +1,42 @@
+<html lang="zh-CN"><head><title>哎呀糟糕了！</title><link rel="stylesheet" href="/.within.website/x/xess/xess.min.css?cachebuster=v1.26.2+dirty"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex,nofollow"><style>
+        body,
+        html {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .centered-div {
+            text-align: center;
+        }
+
+        #status {
+            font-variant-numeric: tabular-nums;
+        }
+
+        #progress {
+            display: none;
+            width: 90%;
+            width: min(20rem, 90%);
+            height: 2rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            margin: 1rem 0 2rem;
+            outline-offset: 2px;
+            outline: #b16286 solid 4px;
+        }
+
+        .bar-inner {
+            background-color: #b16286;
+            height: 100%;
+            width: 0;
+            transition: width 0.25s ease-in;
+        }
+    	</style><link rel="stylesheet" href="/.within.website/x/cmd/anubis/static/css/custom.css"><script id="anubis_version" type="application/json">"v1.26.2+dirty"
+</script><script id="anubis_challenge" type="application/json">null
+</script><script id="anubis_base_prefix" type="application/json">""
+</script><script id="anubis_public_url" type="application/json">""
+</script></head><body id="top"><script type="ignore"><a href="/.within.website/x/cmd/anubis/api/honeypot/baa6ab1a-7b66-4d96-9d79-750a17c00765/init">Don't click me</a></script><main><h1 id="title" class="centered-div">哎呀糟糕了！</h1><div class="centered-div"><img id="image" alt="Sad Anubis" style="width:100%;max-width:256px;" src="/.within.website/x/cmd/anubis/static/img/reject.webp?cacheBuster=v1.26.2+dirty"><p>拒绝访问：错误代码 4d1dbaddfcc0f385.</p><p><a href="/">返回首页</a></p></div><footer><div class="centered-div"><p>本网站由 <a href="https://anubis.techaro.lol/docs/admin/botstopper">BotStopper</a> 保护，来自 <a href="https://techaro.lol">Techaro</a>. 在 🇨🇦 用 ❤️ 制作.</p><p>Unsplash | <a href="https://help.unsplash.com/">Help Center</a> | <a href="mailto:support@unsplash.com">support@unsplash.com</a>-- <a href="/.within.website/x/cmd/anubis/api/imprint">Imprint</a></p></div></footer></main></body></html>

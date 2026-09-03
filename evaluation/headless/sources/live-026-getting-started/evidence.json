@@ -1,0 +1,39 @@
+{
+  "case_id": "live-026-getting-started",
+  "url": "https://vuejs.org/guide/introduction.html",
+  "checked_at": "2026-09-02T03:37:56.375834+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://vuejs.org/guide/introduction.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://vuejs.org/guide/introduction.html",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 114346,
+  "sha256": "7395dadb1051ee0e2ca363919b0284a0e71b15ba686aecd1cd9d114e28378e40",
+  "title": "Introduction | Vue.js",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://storage.googleapis.com/vue-mastery.appspot.com/flamelink/media/vuemastery-graphical-link-96x56.png",
+      "alt": "Vue Mastery banner"
+    },
+    {
+      "tag": "img",
+      "url": "https://storage.googleapis.com/vue-mastery.appspot.com/flamelink/media/vue-mastery-logo.png",
+      "alt": "Vue Mastery Logo"
+    }
+  ],
+  "text_chars": 8966,
+  "excerpt": "Introduction\n​\nYou are reading the documentation for Vue 3!\nVue 2 support has ended on\nDec 31, 2023\n. Learn more about\nVue 2 EOL\n.\nUpgrading from Vue 2? Check out the\nMigration Guide\n.\nLearn Vue with video tutorials on\nVueMastery.com\nWhat is Vue?\n​\nVue (pronounced /vjuː/, like\nview\n) is a JavaScript framework for building user interfaces. It builds on top of standard HTML, CSS, and JavaScript and provides a declarative, component-based programming model that helps you efficiently develop user interfaces of any complexity.\nHere is a minimal example:\njs\nimport\n{ createApp }\nfrom\n'vue'\ncreateApp\n({\ndata\n() {\nreturn\n{\ncount:\n0\n}\n}\n}).\nmount\n(\n'#app'\n)\njs\nimport\n{ createApp, ref }\nfrom\n'vue'\ncreateApp\n({\nsetup\n() {\nreturn\n{\ncount:\nref\n(\n0\n)\n}\n}\n}).\nmount\n(\n'#app'\n)\ntemplate\n<\ndiv\nid\n=\n\"app\"\n>\n<",
+  "missing_facts": [
+    "anchor-1",
+    "anchor-2",
+    "anchor-3"
+  ],
+  "state": "captured"
+}

@@ -10,12 +10,13 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote
 
-from .metrics import evaluate_content, task_passed
+from .metrics import evaluate_content, task_passed, percentile
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
+HEADLESS_TITLE = '五种浏览器取同一批网页：速度、正文与交付边界'
 HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -392,9 +393,104 @@ def _dynamic_section(data, cases):
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
 
+def article_title(records):
+    return HEADLESS_TITLE if records and all(r.get('provider_type') == 'headless_html' for r in records) else TITLE
+
+
+def headless_evidence(cases, records):
+    """Matched-task comparisons; never compare unaligned successful subsets."""
+    names = sorted({r['provider'] for r in records})
+    def passed(r):
+        return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
+    data = {'providers': names, 'cases': len(cases), 'attempts': len(records), 'tracks': {},
+            'time_window': [min(r['started_at'] for r in records), max(r.get('completed_at',r['started_at']) for r in records)],
+            'method': 'one URL, fresh browser, DOMContentLoaded, whole DOM HTML, pyhtml2md 1.7.0',
+            'pairs': [], 'runtime': {}, 'encyclopedia': [], 'quality': {}}
+    for name in names:
+        meta = next(r['provider_metadata'] for r in records if r['provider']==name)
+        data['runtime'][name] = {k:v for k,v in meta.items() if k in ('binary_sha256','browser_version','worker_sha256','extractor_version','playwright_version','deployment','wait_until')}
+        text_rows=[r for r in records if r['provider']==name and cases[r['case_id']].get('track','web')=='web' and r['metrics'].get('word_f1') is not None]
+        data['quality'][name]={'attempts':len(text_rows), **{key:_mean([r['metrics'].get(key) for r in text_rows]) for key in ('word_precision','word_recall','word_f1')}}
+    for r in records:
+        if r['case_id']=='english-encyclopedia':
+            meta=r.get('provider_metadata',{})
+            data['encyclopedia'].append({'provider':r['provider'],'attempt_id':r['attempt_id'],
+                'ok':r['ok'],'elapsed_ms':r['elapsed_ms'],
+                'fetch_html_ms':meta.get('fetch_html_ms'),'conversion_ms':meta.get('conversion_ms')})
+    for track in TRACK_NAMES:
+        ids = {c['id'] for c in cases.values() if c.get('track','web')==track}
+        byname = {}
+        for name in names:
+            rows = [r for r in records if r['provider']==name and r['case_id'] in ids]
+            if not rows:
+                continue
+            byname[name] = {'attempts':len(rows), 'request_ok':sum(r['ok'] for r in rows),
+                'passed':sum(passed(r) for r in rows),
+                'p50_ms':statistics.median(r['elapsed_ms'] for r in rows),
+                'p95_ms':percentile([r['elapsed_ms'] for r in rows], .95),
+                'pass_ids':sorted(r['case_id'] for r in rows if passed(r)),
+                'request_failures':dict(Counter(r.get('error_type') or 'unknown' for r in rows if not r['ok']))}
+        data['tracks'][track] = {'cases':len(ids),'providers':byname}
+    web = {name:{r['case_id']:r for r in records if r['provider']==name and cases[r['case_id']].get('track','web')=='web'} for name in names}
+    for name in names:
+        if name=='chromium' or 'chromium' not in web:
+            continue
+        a,b=web[name],web['chromium']
+        matched = sorted(a.keys() & b.keys())
+        common = [cid for cid in matched if passed(a[cid]) and passed(b[cid])]
+        pa,pb=({cid for cid in matched if passed(rows[cid])} for rows in (a,b))
+        data['pairs'].append({'provider':name,'baseline':'chromium','matched':len(matched),
+            'both_pass_ids':common,'provider_only':sorted(pa-pb),'chromium_only':sorted(pb-pa),
+            'union':len(pa|pb),
+            'provider_p50_ms':statistics.median(a[cid]['elapsed_ms'] for cid in common) if common else None,
+            'chromium_p50_ms':statistics.median(b[cid]['elapsed_ms'] for cid in common) if common else None})
+    return data
+
+
+def _render_headless(out, cases, records):
+    data = headless_evidence(cases, records)
+    def num(value):
+        return '—' if value is None else f'{value:,.0f}'
+    overview = _table(['浏览器', *TRACK_NAMES.values()], [
+        (escape(name), *(f'{data["tracks"][t]["providers"][name]["passed"]}/{data["tracks"][t]["providers"][name]["attempts"]}'
+            if name in data['tracks'][t]['providers'] else '—' for t in TRACK_NAMES))
+        for name in data['providers']], '任务通过数 / 实际调用数。六类任务不合成总分；未执行不记为失败。')
+    pairs = _table(['浏览器 vs Chromium','共同通过网页','本方法 P50 ms','Chromium P50 ms','仅本方法通过','仅 Chromium 通过'],[
+        (escape(p['provider']),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
+        for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取 HTML 与转换开销。')
+    latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
+        (escape(name),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
+        for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
+    dynamic = _table(['任务',*data['providers']], [
+        (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
+        for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
+    stages=_table(['浏览器','本次请求','取 HTML ms','转换 ms','端到端 ms'],[
+        (_link('attempts/'+r['attempt_id']+'.html',r['provider']), '成功' if r['ok'] else '未成功',num(r['fetch_html_ms']),num(r['conversion_ms']),num(r['elapsed_ms']))
+        for r in data['encyclopedia']], 'Wikipedia 单页实测。取 HTML 阶段包括浏览器生命周期及传输；进程超时未返回分段数据时记为 —，不猜测耗时分布。')
+    quality=_table(['浏览器','有全文指标的网页调用','纯净度','完整度','F1'],[
+        (escape(n),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
+        for n,r in data['quality'].items()], '逐次词级指标的算术平均，包含已测失败调用；未通过任务不会把已有重合归零。完整度与纯净度均受已声明参考范围约束。')
+    web_rows=data['tracks']['web']['providers']
+    summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
+    dynamic_summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
+    values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
+        'time_window':escape(' 至 '.join(data['time_window'])),'overview':overview,
+        'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
+        'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
+    template=Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())
+    body=template.substitute(values)
+    contained_path(out,'guide').mkdir(parents=True,exist_ok=True)
+    contained_path(out,'guide/interpretation-evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+        f'<title>{HEADLESS_TITLE}</title><style>{STYLE}</style></head><body class="standalone-article"><main class="wrap essay">{body}</main></body></html>')
+    return '<div class="wrap essay">'+body+'<aside id="evidence"><h2>文章与证据下载</h2><p><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json" download>计算明细</a> · <a href="../results.jsonl" download>逐次记录</a></p></aside></div>'
+
+
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
+    if records and all(r.get('provider_type') == 'headless_html' for r in records):
+        return _render_headless(out,cases,records)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)
     data['dynamic']['loading_attempts'] = []

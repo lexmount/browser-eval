@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "lm-vite-guide",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:06.107609+00:00",
+    "content_text": "Are you an LLM? You can read better optimized documentation at /guide.md for this page in Markdown format\nGetting Started\n\nOverview\n\nVite (French word for \"quick\", pronounced\n/viːt/\n, like \"veet\") is a build tool that aims to provide a faster and leaner development experience for modern web projects. It consists of two major parts:\nA dev server that provides\nrich feature enhancements\nover\nnative ES modules\n, for example extremely fast\nHot Module Replacement (HMR)\n.\nA build command that bundles your code with\nRolldown\n, pre-configured to output highly optimized static assets for production.\nVite is opinionated and comes with sensible defaults out of the box. Read about what's possible in the\nFeatures Guide\n. Support for frameworks or integration with other tools is possible through\nPlugins\n. The\nConfig Section\nexplains how to adapt Vite to your project if needed.\nVite is also highly extensible via its\nPlugin API\nand\nJavaScript API\nwith full typing support.\nYou can learn more about the rationale behind the project in the\nWhy Vite\nsection.\nLearn Vite through interactive tutorials on Scrimba\nBrowser Support\n\nDuring development, Vite assumes that a modern browser is used. This means the browser supports most of the latest JavaScript and CSS features. For that reason, Vite sets\nesnext\nas the transform target\n. This prevents syntax lowering, letting Vite serve modules as close as possible to the original source code. Vite injects some runtime code to make the development server work. This code uses features included in\nBaseline\nNewly Available at the time of each major release (2026-01-01 for this major).\nFor production builds, Vite by default targets\nBaseline\nWidely Available browser versions as of a date fixed for each major release. For this major, that corresponds to\nbrowser versions released around mid-2023\n. The target can be lowered via configuration. Additionally, legacy browsers can be supported via the official\n@vitejs/plugin-legacy\n. See the\nBuilding for Production\nsection for more details.\nTrying Vite Online\n\nYou can try Vite online on\nStackBlitz\n. It runs the Vite-based build setup directly in the browser, so it is almost identical to the local setup but doesn't require installing anything on your machine. You can navigate to\nvite.new/{template}\nto select which framework to use.\nThe supported template presets are:\nJavaScript\nTypeScript\nvanilla\nvanilla-ts\nvue\nvue-ts\nreact\nreact-ts\npreact\npreact-ts\nlit\nlit-ts\nsvelte\nsvelte-ts\nsolid\nsolid-ts\nqwik\nqwik-ts\nScaffolding Your First Vite Project\n\nnpm\nYarn\npnpm\nBun\nDeno\nbash\n$\nnpm\ncreate\nvite@latest\nbash\n$\nyarn\ncreate\nvite\nbash\n$\npnpm\ncreate\nvite\nbash\n$\nbun\ncreate\nvite\nbash\n$\ndeno\ninit\n--npm\nvite\nThen follow the prompts!\nWatch an interactive lesson on Scrimba\nCompatibility Note\nVite requires\nNode.js\nversion 20.19+, 22.12+. However, some templates require a higher Node.js version to work, please upgrade if your package manager warns about it.\nUsing create vite with command line options\nYou can also directly specify the project name and the template you want to use via additional command line options. For example, to scaffold a Vite + Vue project, run:\nnpm\nYarn\npnpm\nBun\nDeno\nbash\n# npm 7+, extra double-dash is needed:\n$\nnpm\ncreate\nvite@latest\nmy-vue-app\n--\n--template\nvue\nbash\n$\nyarn\ncreate\nvite\nmy-vue-app\n--template\nvue\nbash\n$\npnpm\ncreate\nvite\nmy-vue-app\n--template\nvue\nbash\n$\nbun\ncreate\nvite\nmy-vue-app\n--template\nvue\nbash\n$\ndeno\ninit\n--npm\nvite\nmy-vue-app\n--template\nvue\nSee\ncreate-vite\nfor more details on each supported template:\nvanilla\n,\nvanilla-ts\n,\nvue\n,\nvue-ts\n,\nreact\n,\nreact-compiler\n,\nreact-ts\n,\nreact-compiler-ts\n,\npreact\n,\npreact-ts\n,\nlit\n,\nlit-ts\n,\nsvelte\n,\nsvelte-ts\n,\nsolid\n,\nsolid-ts\n,\nqwik\n,\nqwik-ts\n.\nYou can use\n.\nfor the project name to scaffold in the current directory.\nTo create a project without interactive prompts, you can use the\n--no-interactive\nflag.\nCommunity Templates\n\ncreate-vite is a tool to quickly start a project from a basic template for popular frameworks. Check out Awesome Vite for\ncommunity maintained templates\nthat include other tools or target different frameworks.\nFor a template at\nhttps://github.com/user/project\n, you can try it out online using\nhttps://github.stackblitz.com/user/project\n(adding\n.stackblitz\nafter\ngithub\nto the URL of the project).\nYou can also use a tool like\ntiged\nto scaffold your project with one of the templates. Assuming the project is on GitHub and uses\nmain\nas the default branch, you can create a local copy using:\nbash\nnpx\ntiged\nuser/project\nmy-project\ncd\nmy-project\nnpm\ninstall\nnpm\nrun\ndev\nManual Installation\n\nIn your project, you can install the\nvite\nCLI using:\nnpm\nYarn\npnpm\nBun\nDeno\nbash\n$\nnpm\ninstall\n-D\nvite\nbash\n$\nyarn\nadd\n-D\nvite\nbash\n$\npnpm\nadd\n-D\nvite\nbash\n$\nbun\nadd\n-D\nvite\nbash\n$\ndeno\nadd\n-D\nnpm:vite\nAnd create an\nindex.html\nfile like this:\nhtml\n<\np\n>Hello Vite!</\np\n>\nThen run the appropriate CLI command in your terminal:\nnpm\nYarn\npnpm\nBun\nDeno\nbash\n$\nnpx\nvite\nbash\n$\nyarn\nvite\nbash\n$\npnpm\nvite\nbash\n$\nbunx\nvite\nbash\n$\ndeno\nrun\n-A\nnpm:vite\nThe\nindex.html\nwill be served on\nhttp://localhost:5173\n.\nindex.html\nand Project Root\n\nOne thing you may have noticed is that in a Vite project,\nindex.html\nis front-and-central instead of being tucked away inside\npublic\n. This is intentional: during development Vite is a server, and\nindex.html\nis the entry point to your application.\nVite treats\nindex.html\nas source code and part of the module graph. It resolves\n<script type=\"module\" src=\"...\">\nthat references your JavaScript source code. Even inline\n<script type=\"module\">\nand CSS referenced via\n<link href>\nalso enjoy Vite-specific features. In addition, URLs inside\nindex.html\nare automatically rebased so there's no need for special\n%PUBLIC_URL%\nplaceholders.\nSimilar to static http servers, Vite has the concept of a \"root directory\" which your files are served from. You will see it referenced as\n<root>\nthroughout the rest of the docs. Absolute URLs in your source code will be resolved using the project root as base, so you can write code as if you are working with a normal static file server (except way more powerful!). Vite is also capable of handling dependencies that resolve to out-of-root file system locations, which makes it usable even in a monorepo-based setup.\nVite also supports\nmulti-page apps\nwith multiple\n.html\nentry points.\nSpecifying Alternative Root\n\nRunning\nvite\nstarts the dev server using the current working directory as root. You can specify an alternative root with\nvite serve some/sub/dir\n. Note that Vite will also resolve\nits config file (i.e.\nvite.config.js\n)\ninside the project root, so you'll need to move it if the root is changed.\nCommand Line Interface\n\nIn a project where Vite is installed, you can use the\nvite\nbinary in your npm scripts, or run it directly with\nnpx vite\n. Here are the default npm scripts in a scaffolded Vite project:\npackage.json\njson\n{\n\"scripts\"\n: {\n\"dev\"\n:\n\"vite\"\n,\n// start dev server, aliases: `vite dev`, `vite serve`\n\"build\"\n:\n\"vite build\"\n,\n// build for production\n\"preview\"\n:\n\"vite preview\"\n// locally preview production build\n}\n}\nYou can specify additional CLI options like\n--port\nor\n--open\n. For a full list of CLI options, run\nnpx vite --help\nin your project.\nLearn more about the\nCommand Line Interface\n.\nUsing Unreleased Commits\n\nIf you can't wait for a new release to test the latest features, you can install a specific commit of Vite with\nhttps://pkg.pr.new\n:\nnpm\nYarn\npnpm\nBun\nbash\n$\nnpm\ninstall\n-D\nhttps://pkg.pr.new/vite@SHA\nbash\n$\nyarn\nadd\n-D\nhttps://pkg.pr.new/vite@SHA\nbash\n$\npnpm\nadd\n-D\nhttps://pkg.pr.new/vite@SHA\nbash\n$\nbun\nadd\n-D\nhttps://pkg.pr.new/vite@SHA\nReplace\nSHA\nwith any of\nVite's commit SHAs\n. Note that only commits within the last month will work, as older commit releases are purged.\nAlternatively, you can also clone the\nvite repo\nto your local machine and then build and link it yourself (\npnpm\nis required):\nbash\ngit\nclone\nhttps://github.com/vitejs/vite.git\ncd\nvite\npnpm\ninstall\ncd\npackages/vite\npnpm\nrun\nbuild\npnpm\nlink\n# use your preferred package manager for this step\nThen go to your Vite based project and run\npnpm link vite\n(or the package manager that you used to link\nvite\nglobally). Now restart the development server to ride on the bleeding edge!\nTo learn more about how and when Vite does releases, check out the\nReleases\ndocumentation.\nDependencies using Vite\nTo replace the Vite version used by dependencies transitively, you should use\nnpm overrides\nor\npnpm overrides\n.\nCommunity\n\nIf you have questions or need help, reach out to the community at\nDiscord\nand\nGitHub Discussions\n.",
+    "scope_identity": {
+      "case_id": "lm-vite-guide",
+      "url": "https://vite.dev/guide/",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "marker-1",
+            "alternatives": [
+              "Vite"
+            ]
+          },
+          {
+            "id": "marker-2",
+            "alternatives": [
+              "build tool"
+            ]
+          },
+          {
+            "id": "marker-3",
+            "alternatives": [
+              "Getting Started"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA",
+          "Page not found"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 574.6116669615731,
+      "timeout_ms": 120000
+    }
+  }
+]

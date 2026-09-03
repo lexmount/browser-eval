@@ -1,0 +1,1019 @@
+{
+  "case_id": "dynamic-angular-phones",
+  "valid": true,
+  "errors": [],
+  "classification": "absent_from_initial_evidence",
+  "coverage": {
+    "initial_visible": {
+      "hits": 0,
+      "total": 40,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-13-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-13-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-14-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-14-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-15-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-15-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-16-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-16-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-17-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-17-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-18-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-18-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-19-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-19-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-20-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-20-description",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "initial_payload": {
+      "hits": 0,
+      "total": 40,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-11-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-12-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-13-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-13-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-14-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-14-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-15-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-15-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-16-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-16-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-17-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-17-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-18-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-18-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-19-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-19-description",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-20-name",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-20-description",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "rendered": {
+      "hits": 40,
+      "total": 40,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [
+            "Motorola XOOM™ with Wi-Fi"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-description",
+          "matched": [
+            "The Next, Next Generation Experience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [
+            "MOTOROLA XOOM™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-description",
+          "matched": [
+            "The Next, Next Generation Experience the future with MOTOROLA XOOM, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [
+            "MOTOROLA ATRIX™ 4G"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-description",
+          "matched": [
+            "MOTOROLA ATRIX 4G the world's most powerful smartphone."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [
+            "Dell Streak 7"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-description",
+          "matched": [
+            "Introducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [
+            "Samsung Gem™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-description",
+          "matched": [
+            "The Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [
+            "Dell Venue"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-description",
+          "matched": [
+            "The Dell Venue; Your Personal Express Lane to Everything"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [
+            "Nexus S"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-description",
+          "matched": [
+            "Fast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [
+            "LG Axis"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-description",
+          "matched": [
+            "Android Powered, Google Maps Navigation, 5 Customizable Home Screens"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [
+            "Samsung Galaxy Tab™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-description",
+          "matched": [
+            "Feel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [
+            "Samsung Showcase™ a Galaxy S™ phone"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-description",
+          "matched": [
+            "The Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [
+            "DROID™ 2 Global by Motorola"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-description",
+          "matched": [
+            "The first smartphone with a 1.2 GHz processor and global capabilities."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [
+            "DROID™ Pro by Motorola"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-description",
+          "matched": [
+            "The next generation of DOES."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-13-name",
+          "matched": [
+            "MOTOROLA BRAVO™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-13-description",
+          "matched": [
+            "An experience to cheer about."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-14-name",
+          "matched": [
+            "Motorola DEFY™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-14-description",
+          "matched": [
+            "Are you ready for everything life throws your way?"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-15-name",
+          "matched": [
+            "T-Mobile myTouch 4G"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-15-description",
+          "matched": [
+            "The T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-16-name",
+          "matched": [
+            "Samsung Mesmerize™ a Galaxy S™ phone"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-16-description",
+          "matched": [
+            "The Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-17-name",
+          "matched": [
+            "SANYO ZIO"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-17-description",
+          "matched": [
+            "The Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-18-name",
+          "matched": [
+            "Samsung Transform™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-18-description",
+          "matched": [
+            "The Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-19-name",
+          "matched": [
+            "T-Mobile G2"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-19-description",
+          "matched": [
+            "The T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-20-name",
+          "matched": [
+            "Motorola CHARM™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-20-description",
+          "matched": [
+            "Motorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service."
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "reference": {
+      "hits": 40,
+      "total": 40,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-name",
+          "matched": [
+            "Motorola XOOM™ with Wi-Fi"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-description",
+          "matched": [
+            "The Next, Next Generation Experience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-name",
+          "matched": [
+            "MOTOROLA XOOM™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-description",
+          "matched": [
+            "The Next, Next Generation Experience the future with MOTOROLA XOOM, the world's first tablet powered by Android 3.0 (Honeycomb)."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-name",
+          "matched": [
+            "MOTOROLA ATRIX™ 4G"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-description",
+          "matched": [
+            "MOTOROLA ATRIX 4G the world's most powerful smartphone."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-name",
+          "matched": [
+            "Dell Streak 7"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-description",
+          "matched": [
+            "Introducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-name",
+          "matched": [
+            "Samsung Gem™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-description",
+          "matched": [
+            "The Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-name",
+          "matched": [
+            "Dell Venue"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-description",
+          "matched": [
+            "The Dell Venue; Your Personal Express Lane to Everything"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-name",
+          "matched": [
+            "Nexus S"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-description",
+          "matched": [
+            "Fast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-name",
+          "matched": [
+            "LG Axis"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-description",
+          "matched": [
+            "Android Powered, Google Maps Navigation, 5 Customizable Home Screens"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-name",
+          "matched": [
+            "Samsung Galaxy Tab™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-description",
+          "matched": [
+            "Feel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-name",
+          "matched": [
+            "Samsung Showcase™ a Galaxy S™ phone"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-description",
+          "matched": [
+            "The Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-name",
+          "matched": [
+            "DROID™ 2 Global by Motorola"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-11-description",
+          "matched": [
+            "The first smartphone with a 1.2 GHz processor and global capabilities."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-name",
+          "matched": [
+            "DROID™ Pro by Motorola"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-12-description",
+          "matched": [
+            "The next generation of DOES."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-13-name",
+          "matched": [
+            "MOTOROLA BRAVO™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-13-description",
+          "matched": [
+            "An experience to cheer about."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-14-name",
+          "matched": [
+            "Motorola DEFY™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-14-description",
+          "matched": [
+            "Are you ready for everything life throws your way?"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-15-name",
+          "matched": [
+            "T-Mobile myTouch 4G"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-15-description",
+          "matched": [
+            "The T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-16-name",
+          "matched": [
+            "Samsung Mesmerize™ a Galaxy S™ phone"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-16-description",
+          "matched": [
+            "The Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-17-name",
+          "matched": [
+            "SANYO ZIO"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-17-description",
+          "matched": [
+            "The Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-18-name",
+          "matched": [
+            "Samsung Transform™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-18-description",
+          "matched": [
+            "The Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-19-name",
+          "matched": [
+            "T-Mobile G2"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-19-description",
+          "matched": [
+            "The T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-20-name",
+          "matched": [
+            "Motorola CHARM™ with MOTOBLUR™"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-20-description",
+          "matched": [
+            "Motorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service."
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "initial_fact_hits": 0,
+  "initial_html_sha256": "7c3764ba94011fe3ccdafd51eeb679e49a2fa0519bbc09e6b31aa7438b727954",
+  "rendered_text_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+  "reference_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+  "completion": {
+    "condition": "dynamic-angular-phones: 20 nonempty target records with populated text fields; no interaction",
+    "timeout_ms": 45000,
+    "elapsed_ms": 21269,
+    "satisfied": true,
+    "checked_at": "2026-09-03T06:49:29.581Z",
+    "phase": "post-run independent reproduction of pre-run frozen reference"
+  },
+  "js_required_proven": false,
+  "limitations": [
+    "Initial visible content is a static HTML proxy, not computed CSS visibility.",
+    "Payload matching detects literals, not every encoding or external resource.",
+    "Inline payload availability forbids a must-execute-JS conclusion; absence only means these facts were not found in this initial response.",
+    "Fact coverage and declared completion do not prove whole-page completeness."
+  ]
+}

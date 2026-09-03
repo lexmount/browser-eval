@@ -1,0 +1,2258 @@
+OpenAI API Platform Documentation
+=================================
+
+";inherits:false;initial-value:#0000}@property
+--tw-gradient-via{syntax:"";inherits:false;initial-value:#0000}@property
+--tw-gradient-to{syntax:"";inherits:false;initial-value:#0000}@property
+--tw-gradient-stops{syntax:"\*";inherits:false}@property
+--tw-gradient-via-stops{syntax:"\*";inherits:false}@property
+--tw-gradient-from-position{syntax:"";inherits:false;initial-value:0%}@property
+--tw-gradient-via-position{syntax:"";inherits:false;initial-value:50%}@property
+--tw-gradient-to-position{syntax:"";inherits:false;initial-value:100%}@property
+--tw-leading{syntax:"\*";inherits:false}@property
+--tw-font-weight{syntax:"\*";inherits:false}@property
+--tw-tracking{syntax:"\*";inherits:false}@property
+--tw-ordinal{syntax:"\*";inherits:false}@property
+--tw-slashed-zero{syntax:"\*";inherits:false}@property
+--tw-numeric-figure{syntax:"\*";inherits:false}@property
+--tw-numeric-spacing{syntax:"\*";inherits:false}@property
+--tw-numeric-fraction{syntax:"\*";inherits:false}@property
+--tw-shadow{syntax:"\*";inherits:false;initial-value:0 0 #0000}@property
+--tw-shadow-color{syntax:"\*";inherits:false}@property
+--tw-shadow-alpha{syntax:"";inherits:false;initial-value:100%}@property
+--tw-inset-shadow{syntax:"\*";inherits:false;initial-value:0 0 #0000}@property
+--tw-inset-shadow-color{syntax:"\*";inherits:false}@property
+--tw-inset-shadow-alpha{syntax:"";inherits:false;initial-value:100%}@property
+--tw-ring-color{syntax:"\*";inherits:false}@property
+--tw-ring-shadow{syntax:"\*";inherits:false;initial-value:0 0 #0000}@property
+--tw-inset-ring-color{syntax:"\*";inherits:false}@property
+--tw-inset-ring-shadow{syntax:"\*";inherits:false;initial-value:0 0 #0000}@property
+--tw-ring-inset{syntax:"\*";inherits:false}@property
+--tw-ring-offset-width{syntax:"";inherits:false;initial-value:0}@property
+--tw-ring-offset-color{syntax:"\*";inherits:false;initial-value:#fff}@property
+--tw-ring-offset-shadow{syntax:"\*";inherits:false;initial-value:0 0 #0000}@property
+--tw-outline-style{syntax:"\*";inherits:false;initial-value:solid}@property
+--tw-blur{syntax:"\*";inherits:false}@property --tw-brightness{syntax:"\*";inherits:false}@property
+--tw-contrast{syntax:"\*";inherits:false}@property
+--tw-grayscale{syntax:"\*";inherits:false}@property
+--tw-hue-rotate{syntax:"\*";inherits:false}@property
+--tw-invert{syntax:"\*";inherits:false}@property --tw-opacity{syntax:"\*";inherits:false}@property
+--tw-saturate{syntax:"\*";inherits:false}@property --tw-sepia{syntax:"\*";inherits:false}@property
+--tw-drop-shadow{syntax:"\*";inherits:false}@property
+--tw-drop-shadow-color{syntax:"\*";inherits:false}@property
+--tw-drop-shadow-alpha{syntax:"";inherits:false;initial-value:100%}@property
+--tw-drop-shadow-size{syntax:"\*";inherits:false}@property
+--tw-backdrop-blur{syntax:"\*";inherits:false}@property
+--tw-backdrop-brightness{syntax:"\*";inherits:false}@property
+--tw-backdrop-contrast{syntax:"\*";inherits:false}@property
+--tw-backdrop-grayscale{syntax:"\*";inherits:false}@property
+--tw-backdrop-hue-rotate{syntax:"\*";inherits:false}@property
+--tw-backdrop-invert{syntax:"\*";inherits:false}@property
+--tw-backdrop-opacity{syntax:"\*";inherits:false}@property
+--tw-backdrop-saturate{syntax:"\*";inherits:false}@property
+--tw-backdrop-sepia{syntax:"\*";inherits:false}@property
+--tw-duration{syntax:"\*";inherits:false}@property --tw-ease{syntax:"\*";inherits:false}@property
+--tw-text-shadow-color{syntax:"\*";inherits:false}@property
+--tw-text-shadow-alpha{syntax:"";inherits:false;initial-value:100%}@property
+--tw-content{syntax:"\*";inherits:false;initial-value:""}@property
+--tw-divide-x-reverse{syntax:"\*";inherits:false;initial-value:0}@keyframes
+spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.5}}@keyframes
+twinkle{0%{opacity:0;transform:rotate(0)}50%{opacity:1;transform:rotate(180deg)}to{opacity:0;transform:rotate(360deg)}}@keyframes
+meteor{0%{opacity:0;transform:translateY(200%)}50%{opacity:1}to{opacity:0;transform:translateY(0)}}@font-face{font-display:block;font-family:KaTeX_AMS;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_AMS-Regular.BQhdFMY1.woff2)
+format("woff2"),url(/_astro/KaTeX_AMS-Regular.DMm9YOAa.woff)
+format("woff"),url(/_astro/KaTeX_AMS-Regular.DRggAlZN.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Caligraphic;font-style:normal;font-weight:700;src:url(/_astro/KaTeX_Caligraphic-Bold.Dq_IR9rO.woff2)
+format("woff2"),url(/_astro/KaTeX_Caligraphic-Bold.BEiXGLvX.woff)
+format("woff"),url(/_astro/KaTeX_Caligraphic-Bold.ATXxdsX0.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Caligraphic;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Caligraphic-Regular.Di6jR-x-.woff2)
+format("woff2"),url(/_astro/KaTeX_Caligraphic-Regular.CTRA-rTL.woff)
+format("woff"),url(/_astro/KaTeX_Caligraphic-Regular.wX97UBjC.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Fraktur;font-style:normal;font-weight:700;src:url(/_astro/KaTeX_Fraktur-Bold.CL6g_b3V.woff2)
+format("woff2"),url(/_astro/KaTeX_Fraktur-Bold.BsDP51OF.woff)
+format("woff"),url(/_astro/KaTeX_Fraktur-Bold.BdnERNNW.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Fraktur;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Fraktur-Regular.CTYiF6lA.woff2)
+format("woff2"),url(/_astro/KaTeX_Fraktur-Regular.Dxdc4cR9.woff)
+format("woff"),url(/_astro/KaTeX_Fraktur-Regular.CB_wures.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:normal;font-weight:700;src:url(/_astro/KaTeX_Main-Bold.Cx986IdX.woff2)
+format("woff2"),url(/_astro/KaTeX_Main-Bold.Jm3AIy58.woff)
+format("woff"),url(/_astro/KaTeX_Main-Bold.waoOVXN0.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:italic;font-weight:700;src:url(/_astro/KaTeX_Main-BoldItalic.DxDJ3AOS.woff2)
+format("woff2"),url(/_astro/KaTeX_Main-BoldItalic.SpSLRI95.woff)
+format("woff"),url(/_astro/KaTeX_Main-BoldItalic.DzxPMmG6.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:italic;font-weight:400;src:url(/_astro/KaTeX_Main-Italic.NWA7e6Wa.woff2)
+format("woff2"),url(/_astro/KaTeX_Main-Italic.BMLOBm91.woff)
+format("woff"),url(/_astro/KaTeX_Main-Italic.3WenGoN9.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Main-Regular.B22Nviop.woff2)
+format("woff2"),url(/_astro/KaTeX_Main-Regular.Dr94JaBh.woff)
+format("woff"),url(/_astro/KaTeX_Main-Regular.ypZvNtVU.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Math;font-style:italic;font-weight:700;src:url(/_astro/KaTeX_Math-BoldItalic.CZnvNsCZ.woff2)
+format("woff2"),url(/_astro/KaTeX_Math-BoldItalic.iY-2wyZ7.woff)
+format("woff"),url(/_astro/KaTeX_Math-BoldItalic.B3XSjfu4.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Math;font-style:italic;font-weight:400;src:url(/_astro/KaTeX_Math-Italic.t53AETM-.woff2)
+format("woff2"),url(/_astro/KaTeX_Math-Italic.DA0__PXp.woff)
+format("woff"),url(/_astro/KaTeX_Math-Italic.flOr_0UB.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_SansSerif;font-style:normal;font-weight:700;src:url(/_astro/KaTeX_SansSerif-Bold.D1sUS0GD.woff2)
+format("woff2"),url(/_astro/KaTeX_SansSerif-Bold.DbIhKOiC.woff)
+format("woff"),url(/_astro/KaTeX_SansSerif-Bold.CFMepnvq.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_SansSerif;font-style:italic;font-weight:400;src:url(/_astro/KaTeX_SansSerif-Italic.C3H0VqGB.woff2)
+format("woff2"),url(/_astro/KaTeX_SansSerif-Italic.DN2j7dab.woff)
+format("woff"),url(/_astro/KaTeX_SansSerif-Italic.YYjJ1zSn.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_SansSerif;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_SansSerif-Regular.DDBCnlJ7.woff2)
+format("woff2"),url(/_astro/KaTeX_SansSerif-Regular.CS6fqUqJ.woff)
+format("woff"),url(/_astro/KaTeX_SansSerif-Regular.BNo7hRIc.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Script;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Script-Regular.D3wIWfF6.woff2)
+format("woff2"),url(/_astro/KaTeX_Script-Regular.D5yQViql.woff)
+format("woff"),url(/_astro/KaTeX_Script-Regular.C5JkGWo-.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size1;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Size1-Regular.mCD8mA8B.woff2)
+format("woff2"),url(/_astro/KaTeX_Size1-Regular.C195tn64.woff)
+format("woff"),url(/_astro/KaTeX_Size1-Regular.Dbsnue_I.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size2;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Size2-Regular.Dy4dx90m.woff2)
+format("woff2"),url(/_astro/KaTeX_Size2-Regular.oD1tc_U0.woff)
+format("woff"),url(/_astro/KaTeX_Size2-Regular.B7gKUWhC.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size3;font-style:normal;font-weight:400;src:url(data:font/woff2;base64,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)
+format("woff2"),url(/_astro/KaTeX_Size3-Regular.CTq5MqoE.woff)
+format("woff"),url(/_astro/KaTeX_Size3-Regular.DgpXs0kz.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size4;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Size4-Regular.Dl5lxZxV.woff2)
+format("woff2"),url(/_astro/KaTeX_Size4-Regular.BF-4gkZK.woff)
+format("woff"),url(/_astro/KaTeX_Size4-Regular.DWFBv043.ttf)
+format("truetype")}@font-face{font-display:block;font-family:KaTeX_Typewriter;font-style:normal;font-weight:400;src:url(/_astro/KaTeX_Typewriter-Regular.CO6r4hn1.woff2)
+format("woff2"),url(/_astro/KaTeX_Typewriter-Regular.C0xS9mPB.woff)
+format("woff"),url(/_astro/KaTeX_Typewriter-Regular.D3Ib7_Hf.ttf) format("truetype")}.katex{font:
+1.21em KaTeX_Main,Times New
+Roman,serif;line-height:1.2;position:relative;text-indent:0;text-rendering:auto}.katex
+\*{-ms-high-contrast-adjust:none!important;border-color:currentColor}.katex
+.katex-version:after{content:"0.16.45"}.katex
+.katex-mathml{clip:rect(1px,1px,1px,1px);border:0;height:1px;overflow:hidden;padding:0;position:absolute;width:1px}.katex
+.katex-html>.newline{display:block}.katex
+.base{position:relative;white-space:nowrap;width:-moz-min-content;width:min-content}.katex
+.base,.katex .strut{display:inline-block}.katex .textbf{font-weight:700}.katex
+.textit{font-style:italic}.katex .textrm{font-family:KaTeX_Main}.katex
+.textsf{font-family:KaTeX_SansSerif}.katex .texttt{font-family:KaTeX_Typewriter}.katex
+.mathnormal{font-family:KaTeX_Math;font-style:italic}.katex
+.mathit{font-family:KaTeX_Main;font-style:italic}.katex .mathrm{font-style:normal}.katex
+.mathbf{font-family:KaTeX_Main;font-weight:700}.katex
+.boldsymbol{font-family:KaTeX_Math;font-style:italic;font-weight:700}.katex .amsrm,.katex
+.mathbb,.katex .textbb{font-family:KaTeX_AMS}.katex .mathcal{font-family:KaTeX_Caligraphic}.katex
+.mathfrak,.katex .textfrak{font-family:KaTeX_Fraktur}.katex .mathboldfrak,.katex
+.textboldfrak{font-family:KaTeX_Fraktur;font-weight:700}.katex
+.mathtt{font-family:KaTeX_Typewriter}.katex .mathscr,.katex
+.textscr{font-family:KaTeX_Script}.katex .mathsf,.katex .textsf{font-family:KaTeX_SansSerif}.katex
+.mathboldsf,.katex .textboldsf{font-family:KaTeX_SansSerif;font-weight:700}.katex
+.mathitsf,.katex .mathsfit,.katex .textitsf{font-family:KaTeX_SansSerif;font-style:italic}.katex
+.mainrm{font-family:KaTeX_Main;font-style:normal}.katex
+.vlist-t{border-collapse:collapse;display:inline-table;table-layout:fixed}.katex
+.vlist-r{display:table-row}.katex
+.vlist{display:table-cell;position:relative;vertical-align:bottom}.katex
+.vlist>span{display:block;height:0;position:relative}.katex
+.vlist>span>span{display:inline-block}.katex .vlist>span>.pstrut{overflow:hidden;width:0}.katex
+.vlist-t2{margin-right:-2px}.katex
+.vlist-s{display:table-cell;font-size:1px;min-width:2px;vertical-align:bottom;width:2px}.katex
+.vbox{align-items:baseline;display:inline-flex;flex-direction:column}.katex .hbox{width:100%}.katex
+.hbox,.katex .thinbox{display:inline-flex;flex-direction:row}.katex
+.thinbox{max-width:0;width:0}.katex .msupsub{text-align:left}.katex
+.mfrac>span>span{text-align:center}.katex .mfrac
+.frac-line{border-bottom-style:solid;display:inline-block;width:100%}.katex .hdashline,.katex
+.hline,.katex .mfrac .frac-line,.katex .overline .overline-line,.katex .rule,.katex
+.underline .underline-line{min-height:1px}.katex .mspace{display:inline-block}.katex
+.smash{display:inline;line-height:0}.katex .clap,.katex .llap,.katex
+.rlap{position:relative;width:0}.katex .clap>.inner,.katex .llap>.inner,.katex
+.rlap>.inner{position:absolute}.katex .clap>.fix,.katex .llap>.fix,.katex
+.rlap>.fix{display:inline-block}.katex .llap>.inner{right:0}.katex .clap>.inner,.katex
+.rlap>.inner{left:0}.katex .clap>.inner>span{margin-left:-50%;margin-right:50%}.katex
+.rule{border:0 solid;display:inline-block;position:relative}.katex .hline,.katex
+.overline .overline-line,.katex .underline
+.underline-line{border-bottom-style:solid;display:inline-block;width:100%}.katex
+.hdashline{border-bottom-style:dashed;display:inline-block;width:100%}.katex
+.sqrt>.root{margin-left:.2777777778em;margin-right:-.5555555556em}.katex
+.fontsize-ensurer.reset-size1.size1,.katex .sizing.reset-size1.size1{font-size:1em}.katex
+.fontsize-ensurer.reset-size1.size2,.katex .sizing.reset-size1.size2{font-size:1.2em}.katex
+.fontsize-ensurer.reset-size1.size3,.katex .sizing.reset-size1.size3{font-size:1.4em}.katex
+.fontsize-ensurer.reset-size1.size4,.katex .sizing.reset-size1.size4{font-size:1.6em}.katex
+.fontsize-ensurer.reset-size1.size5,.katex .sizing.reset-size1.size5{font-size:1.8em}.katex
+.fontsize-ensurer.reset-size1.size6,.katex .sizing.reset-size1.size6{font-size:2em}.katex
+.fontsize-ensurer.reset-size1.size7,.katex .sizing.reset-size1.size7{font-size:2.4em}.katex
+.fontsize-ensurer.reset-size1.size8,.katex .sizing.reset-size1.size8{font-size:2.88em}.katex
+.fontsize-ensurer.reset-size1.size9,.katex .sizing.reset-size1.size9{font-size:3.456em}.katex
+.fontsize-ensurer.reset-size1.size10,.katex .sizing.reset-size1.size10{font-size:4.148em}.katex
+.fontsize-ensurer.reset-size1.size11,.katex .sizing.reset-size1.size11{font-size:4.976em}.katex
+.fontsize-ensurer.reset-size2.size1,.katex .sizing.reset-size2.size1{font-size:.8333333333em}.katex
+.fontsize-ensurer.reset-size2.size2,.katex .sizing.reset-size2.size2{font-size:1em}.katex
+.fontsize-ensurer.reset-size2.size3,.katex .sizing.reset-size2.size3{font-size:1.1666666667em}.katex
+.fontsize-ensurer.reset-size2.size4,.katex .sizing.reset-size2.size4{font-size:1.3333333333em}.katex
+.fontsize-ensurer.reset-size2.size5,.katex .sizing.reset-size2.size5{font-size:1.5em}.katex
+.fontsize-ensurer.reset-size2.size6,.katex .sizing.reset-size2.size6{font-size:1.6666666667em}.katex
+.fontsize-ensurer.reset-size2.size7,.katex .sizing.reset-size2.size7{font-size:2em}.katex
+.fontsize-ensurer.reset-size2.size8,.katex .sizing.reset-size2.size8{font-size:2.4em}.katex
+.fontsize-ensurer.reset-size2.size9,.katex .sizing.reset-size2.size9{font-size:2.88em}.katex
+.fontsize-ensurer.reset-size2.size10,.katex
+.sizing.reset-size2.size10{font-size:3.4566666667em}.katex
+.fontsize-ensurer.reset-size2.size11,.katex
+.sizing.reset-size2.size11{font-size:4.1466666667em}.katex
+.fontsize-ensurer.reset-size3.size1,.katex .sizing.reset-size3.size1{font-size:.7142857143em}.katex
+.fontsize-ensurer.reset-size3.size2,.katex .sizing.reset-size3.size2{font-size:.8571428571em}.katex
+.fontsize-ensurer.reset-size3.size3,.katex .sizing.reset-size3.size3{font-size:1em}.katex
+.fontsize-ensurer.reset-size3.size4,.katex .sizing.reset-size3.size4{font-size:1.1428571429em}.katex
+.fontsize-ensurer.reset-size3.size5,.katex .sizing.reset-size3.size5{font-size:1.2857142857em}.katex
+.fontsize-ensurer.reset-size3.size6,.katex .sizing.reset-size3.size6{font-size:1.4285714286em}.katex
+.fontsize-ensurer.reset-size3.size7,.katex .sizing.reset-size3.size7{font-size:1.7142857143em}.katex
+.fontsize-ensurer.reset-size3.size8,.katex .sizing.reset-size3.size8{font-size:2.0571428571em}.katex
+.fontsize-ensurer.reset-size3.size9,.katex .sizing.reset-size3.size9{font-size:2.4685714286em}.katex
+.fontsize-ensurer.reset-size3.size10,.katex
+.sizing.reset-size3.size10{font-size:2.9628571429em}.katex
+.fontsize-ensurer.reset-size3.size11,.katex
+.sizing.reset-size3.size11{font-size:3.5542857143em}.katex
+.fontsize-ensurer.reset-size4.size1,.katex .sizing.reset-size4.size1{font-size:.625em}.katex
+.fontsize-ensurer.reset-size4.size2,.katex .sizing.reset-size4.size2{font-size:.75em}.katex
+.fontsize-ensurer.reset-size4.size3,.katex .sizing.reset-size4.size3{font-size:.875em}.katex
+.fontsize-ensurer.reset-size4.size4,.katex .sizing.reset-size4.size4{font-size:1em}.katex
+.fontsize-ensurer.reset-size4.size5,.katex .sizing.reset-size4.size5{font-size:1.125em}.katex
+.fontsize-ensurer.reset-size4.size6,.katex .sizing.reset-size4.size6{font-size:1.25em}.katex
+.fontsize-ensurer.reset-size4.size7,.katex .sizing.reset-size4.size7{font-size:1.5em}.katex
+.fontsize-ensurer.reset-size4.size8,.katex .sizing.reset-size4.size8{font-size:1.8em}.katex
+.fontsize-ensurer.reset-size4.size9,.katex .sizing.reset-size4.size9{font-size:2.16em}.katex
+.fontsize-ensurer.reset-size4.size10,.katex .sizing.reset-size4.size10{font-size:2.5925em}.katex
+.fontsize-ensurer.reset-size4.size11,.katex .sizing.reset-size4.size11{font-size:3.11em}.katex
+.fontsize-ensurer.reset-size5.size1,.katex .sizing.reset-size5.size1{font-size:.5555555556em}.katex
+.fontsize-ensurer.reset-size5.size2,.katex .sizing.reset-size5.size2{font-size:.6666666667em}.katex
+.fontsize-ensurer.reset-size5.size3,.katex .sizing.reset-size5.size3{font-size:.7777777778em}.katex
+.fontsize-ensurer.reset-size5.size4,.katex .sizing.reset-size5.size4{font-size:.8888888889em}.katex
+.fontsize-ensurer.reset-size5.size5,.katex .sizing.reset-size5.size5{font-size:1em}.katex
+.fontsize-ensurer.reset-size5.size6,.katex .sizing.reset-size5.size6{font-size:1.1111111111em}.katex
+.fontsize-ensurer.reset-size5.size7,.katex .sizing.reset-size5.size7{font-size:1.3333333333em}.katex
+.fontsize-ensurer.reset-size5.size8,.katex .sizing.reset-size5.size8{font-size:1.6em}.katex
+.fontsize-ensurer.reset-size5.size9,.katex .sizing.reset-size5.size9{font-size:1.92em}.katex
+.fontsize-ensurer.reset-size5.size10,.katex
+.sizing.reset-size5.size10{font-size:2.3044444444em}.katex
+.fontsize-ensurer.reset-size5.size11,.katex
+.sizing.reset-size5.size11{font-size:2.7644444444em}.katex
+.fontsize-ensurer.reset-size6.size1,.katex .sizing.reset-size6.size1{font-size:.5em}.katex
+.fontsize-ensurer.reset-size6.size2,.katex .sizing.reset-size6.size2{font-size:.6em}.katex
+.fontsize-ensurer.reset-size6.size3,.katex .sizing.reset-size6.size3{font-size:.7em}.katex
+.fontsize-ensurer.reset-size6.size4,.katex .sizing.reset-size6.size4{font-size:.8em}.katex
+.fontsize-ensurer.reset-size6.size5,.katex .sizing.reset-size6.size5{font-size:.9em}.katex
+.fontsize-ensurer.reset-size6.size6,.katex .sizing.reset-size6.size6{font-size:1em}.katex
+.fontsize-ensurer.reset-size6.size7,.katex .sizing.reset-size6.size7{font-size:1.2em}.katex
+.fontsize-ensurer.reset-size6.size8,.katex .sizing.reset-size6.size8{font-size:1.44em}.katex
+.fontsize-ensurer.reset-size6.size9,.katex .sizing.reset-size6.size9{font-size:1.728em}.katex
+.fontsize-ensurer.reset-size6.size10,.katex .sizing.reset-size6.size10{font-size:2.074em}.katex
+.fontsize-ensurer.reset-size6.size11,.katex .sizing.reset-size6.size11{font-size:2.488em}.katex
+.fontsize-ensurer.reset-size7.size1,.katex .sizing.reset-size7.size1{font-size:.4166666667em}.katex
+.fontsize-ensurer.reset-size7.size2,.katex .sizing.reset-size7.size2{font-size:.5em}.katex
+.fontsize-ensurer.reset-size7.size3,.katex .sizing.reset-size7.size3{font-size:.5833333333em}.katex
+.fontsize-ensurer.reset-size7.size4,.katex .sizing.reset-size7.size4{font-size:.6666666667em}.katex
+.fontsize-ensurer.reset-size7.size5,.katex .sizing.reset-size7.size5{font-size:.75em}.katex
+.fontsize-ensurer.reset-size7.size6,.katex .sizing.reset-size7.size6{font-size:.8333333333em}.katex
+.fontsize-ensurer.reset-size7.size7,.katex .sizing.reset-size7.size7{font-size:1em}.katex
+.fontsize-ensurer.reset-size7.size8,.katex .sizing.reset-size7.size8{font-size:1.2em}.katex
+.fontsize-ensurer.reset-size7.size9,.katex .sizing.reset-size7.size9{font-size:1.44em}.katex
+.fontsize-ensurer.reset-size7.size10,.katex
+.sizing.reset-size7.size10{font-size:1.7283333333em}.katex
+.fontsize-ensurer.reset-size7.size11,.katex
+.sizing.reset-size7.size11{font-size:2.0733333333em}.katex
+.fontsize-ensurer.reset-size8.size1,.katex .sizing.reset-size8.size1{font-size:.3472222222em}.katex
+.fontsize-ensurer.reset-size8.size2,.katex .sizing.reset-size8.size2{font-size:.4166666667em}.katex
+.fontsize-ensurer.reset-size8.size3,.katex .sizing.reset-size8.size3{font-size:.4861111111em}.katex
+.fontsize-ensurer.reset-size8.size4,.katex .sizing.reset-size8.size4{font-size:.5555555556em}.katex
+.fontsize-ensurer.reset-size8.size5,.katex .sizing.reset-size8.size5{font-size:.625em}.katex
+.fontsize-ensurer.reset-size8.size6,.katex .sizing.reset-size8.size6{font-size:.6944444444em}.katex
+.fontsize-ensurer.reset-size8.size7,.katex .sizing.reset-size8.size7{font-size:.8333333333em}.katex
+.fontsize-ensurer.reset-size8.size8,.katex .sizing.reset-size8.size8{font-size:1em}.katex
+.fontsize-ensurer.reset-size8.size9,.katex .sizing.reset-size8.size9{font-size:1.2em}.katex
+.fontsize-ensurer.reset-size8.size10,.katex
+.sizing.reset-size8.size10{font-size:1.4402777778em}.katex
+.fontsize-ensurer.reset-size8.size11,.katex
+.sizing.reset-size8.size11{font-size:1.7277777778em}.katex
+.fontsize-ensurer.reset-size9.size1,.katex .sizing.reset-size9.size1{font-size:.2893518519em}.katex
+.fontsize-ensurer.reset-size9.size2,.katex .sizing.reset-size9.size2{font-size:.3472222222em}.katex
+.fontsize-ensurer.reset-size9.size3,.katex .sizing.reset-size9.size3{font-size:.4050925926em}.katex
+.fontsize-ensurer.reset-size9.size4,.katex .sizing.reset-size9.size4{font-size:.462962963em}.katex
+.fontsize-ensurer.reset-size9.size5,.katex .sizing.reset-size9.size5{font-size:.5208333333em}.katex
+.fontsize-ensurer.reset-size9.size6,.katex .sizing.reset-size9.size6{font-size:.5787037037em}.katex
+.fontsize-ensurer.reset-size9.size7,.katex .sizing.reset-size9.size7{font-size:.6944444444em}.katex
+.fontsize-ensurer.reset-size9.size8,.katex .sizing.reset-size9.size8{font-size:.8333333333em}.katex
+.fontsize-ensurer.reset-size9.size9,.katex .sizing.reset-size9.size9{font-size:1em}.katex
+.fontsize-ensurer.reset-size9.size10,.katex
+.sizing.reset-size9.size10{font-size:1.2002314815em}.katex
+.fontsize-ensurer.reset-size9.size11,.katex
+.sizing.reset-size9.size11{font-size:1.4398148148em}.katex
+.fontsize-ensurer.reset-size10.size1,.katex
+.sizing.reset-size10.size1{font-size:.2410800386em}.katex
+.fontsize-ensurer.reset-size10.size2,.katex
+.sizing.reset-size10.size2{font-size:.2892960463em}.katex
+.fontsize-ensurer.reset-size10.size3,.katex
+.sizing.reset-size10.size3{font-size:.337512054em}.katex
+.fontsize-ensurer.reset-size10.size4,.katex
+.sizing.reset-size10.size4{font-size:.3857280617em}.katex
+.fontsize-ensurer.reset-size10.size5,.katex
+.sizing.reset-size10.size5{font-size:.4339440694em}.katex
+.fontsize-ensurer.reset-size10.size6,.katex
+.sizing.reset-size10.size6{font-size:.4821600771em}.katex
+.fontsize-ensurer.reset-size10.size7,.katex
+.sizing.reset-size10.size7{font-size:.5785920926em}.katex
+.fontsize-ensurer.reset-size10.size8,.katex
+.sizing.reset-size10.size8{font-size:.6943105111em}.katex
+.fontsize-ensurer.reset-size10.size9,.katex
+.sizing.reset-size10.size9{font-size:.8331726133em}.katex
+.fontsize-ensurer.reset-size10.size10,.katex .sizing.reset-size10.size10{font-size:1em}.katex
+.fontsize-ensurer.reset-size10.size11,.katex
+.sizing.reset-size10.size11{font-size:1.1996142719em}.katex
+.fontsize-ensurer.reset-size11.size1,.katex
+.sizing.reset-size11.size1{font-size:.2009646302em}.katex
+.fontsize-ensurer.reset-size11.size2,.katex
+.sizing.reset-size11.size2{font-size:.2411575563em}.katex
+.fontsize-ensurer.reset-size11.size3,.katex
+.sizing.reset-size11.size3{font-size:.2813504823em}.katex
+.fontsize-ensurer.reset-size11.size4,.katex
+.sizing.reset-size11.size4{font-size:.3215434084em}.katex
+.fontsize-ensurer.reset-size11.size5,.katex
+.sizing.reset-size11.size5{font-size:.3617363344em}.katex
+.fontsize-ensurer.reset-size11.size6,.katex
+.sizing.reset-size11.size6{font-size:.4019292605em}.katex
+.fontsize-ensurer.reset-size11.size7,.katex
+.sizing.reset-size11.size7{font-size:.4823151125em}.katex
+.fontsize-ensurer.reset-size11.size8,.katex
+.sizing.reset-size11.size8{font-size:.578778135em}.katex
+.fontsize-ensurer.reset-size11.size9,.katex
+.sizing.reset-size11.size9{font-size:.6945337621em}.katex
+.fontsize-ensurer.reset-size11.size10,.katex
+.sizing.reset-size11.size10{font-size:.8336012862em}.katex
+.fontsize-ensurer.reset-size11.size11,.katex .sizing.reset-size11.size11{font-size:1em}.katex
+.delimsizing.size1{font-family:KaTeX_Size1}.katex .delimsizing.size2{font-family:KaTeX_Size2}.katex
+.delimsizing.size3{font-family:KaTeX_Size3}.katex .delimsizing.size4{font-family:KaTeX_Size4}.katex
+.delimsizing.mult .delim-size1>span{font-family:KaTeX_Size1}.katex .delimsizing.mult
+.delim-size4>span{font-family:KaTeX_Size4}.katex
+.nulldelimiter{display:inline-block;width:.12em}.katex .delimcenter,.katex
+.op-symbol{position:relative}.katex .op-symbol.small-op{font-family:KaTeX_Size1}.katex
+.op-symbol.large-op{font-family:KaTeX_Size2}.katex .accent>.vlist-t,.katex
+.op-limits>.vlist-t{text-align:center}.katex .accent .accent-body{position:relative}.katex
+.accent .accent-body:not(.accent-full){width:0}.katex .overlay{display:block}.katex
+.mtable .vertical-separator{display:inline-block;min-width:1px}.katex .mtable
+.arraycolsep{display:inline-block}.katex .mtable .col-align-c>.vlist-t{text-align:center}.katex
+.mtable .col-align-l>.vlist-t{text-align:left}.katex .mtable
+.col-align-r>.vlist-t{text-align:right}.katex .svg-align{text-align:left}.katex
+svg{fill:currentColor;stroke:currentColor;display:block;height:inherit;position:absolute;width:100%}.katex
+svg path{stroke:none}.katex
+svg{fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1}.katex
+img{border-style:none;max-height:none;max-width:none;min-height:0;min-width:0}.katex
+.stretchy{display:block;overflow:hidden;position:relative;width:100%}.katex .stretchy:after,.katex
+.stretchy:before{content:""}.katex .hide-tail{overflow:hidden;position:relative;width:100%}.katex
+.halfarrow-left{left:0;overflow:hidden;position:absolute;width:50.2%}.katex
+.halfarrow-right{overflow:hidden;position:absolute;right:0;width:50.2%}.katex
+.brace-left{left:0;overflow:hidden;position:absolute;width:25.1%}.katex
+.brace-center{left:25%;overflow:hidden;position:absolute;width:50%}.katex
+.brace-right{overflow:hidden;position:absolute;right:0;width:25.1%}.katex .x-arrow-pad{padding:0
+.5em}.katex .cd-arrow-pad{padding:0 .55556em 0 .27778em}.katex .mover,.katex .munder,.katex
+.x-arrow{text-align:center}.katex .boxpad{padding:0 .3em}.katex .fbox,.katex .fcolorbox{border:.04em
+solid;box-sizing:border-box}.katex .cancel-pad{padding:0 .2em}.katex
+.cancel-lap{margin-left:-.2em;margin-right:-.2em}.katex
+.sout{border-bottom-style:solid;border-bottom-width:.08em}.katex .angl{border-right:.049em
+solid;border-top:.049em solid;box-sizing:border-box;margin-right:.03889em}.katex
+.anglpad{padding:0 .03889em}.katex .eqn-num:before{content:"(" counter(katexEqnNo)
+")";counter-increment:katexEqnNo}.katex .mml-eqn-num:before{content:"(" counter(mmlEqnNo)
+")";counter-increment:mmlEqnNo}.katex .mtr-glue{width:50%}.katex
+.cd-vert-arrow{display:inline-block;position:relative}.katex
+.cd-label-left{display:inline-block;position:absolute;right:calc(50% + .3em);text-align:left}.katex
+.cd-label-right{display:inline-block;left:calc(50% +
+.3em);position:absolute;text-align:right}.katex-display{display:block;margin:1em
+0;text-align:center}.katex-display>.katex{display:block;text-align:center;white-space:nowrap}.katex-display>.katex>.katex-html{display:block;position:relative}.katex-display>.katex>.katex-html>.tag{position:absolute;right:0}.katex-display.leqno>.katex>.katex-html>.tag{left:0;right:auto}.katex-display.fleqn>.katex{padding-left:2em;text-align:left}body{counter-reset:katexEqnNo
+mmlEqnNo}.astro-route-announcer{position:absolute;left:0;top:0;clip:rect(0 0 0
+0);clip-path:inset(50%);overflow:hidden;white-space:nowrap;width:1px;height:1px}html[data-navigation-pending]:before{content:"";position:fixed;inset:0
+auto auto 0;width:35%;height:2px;background:var(--color-text-primary,
+currentColor);z-index:1000;pointer-events:none;animation:page-progress 1.2s ease-in-out
+infinite}@keyframes
+page-progress{0%{transform:translate(-100%)}to{transform:translate(300%)}}@media(prefers-reduced-motion:reduce){html[data-navigation-pending]:before{animation:none;width:100%}}nav:where(.astro-73gi4scu)[data-left-nav]::-webkit-scrollbar{display:none}nav:where(.astro-73gi4scu)[data-left-nav]{scrollbar-width:none}nav:where(.astro-73gi4scu)[data-left-nav]
+summary:where(.astro-73gi4scu)::-webkit-details-marker{display:none}body[data-docs-agent-hidden=true]
+[data-docs-agent-root]{display:none}:root{--docs-agent-panel-width:
+440px;--docs-agent-drawer-height: min(78dvh, 640px)}html.dark body.docs-agent-open
+[data-docs-agent-page] ::selection,html[data-theme=dark] body.docs-agent-open [data-docs-agent-page]
+::selection{background-color:var(--blue-a100)}html.dark body.docs-agent-open [data-docs-agent-page]
+::-moz-selection,html[data-theme=dark] body.docs-agent-open [data-docs-agent-page]
+::-moz-selection{background-color:var(--blue-a100)}[data-docs-agent-page]{width:100%;transition:width
+.3s ease,transform .3s ease}body.docs-agent-open
+[data-use-case-toc]{display:none!important}#header{transition:width .3s
+ease}[data-context-subnav]{transition:right .3s ease}[data-context-subnav] nav{transition:transform
+.3s
+ease}[data-docs-agent-panel]{transform:translateY(100%)}[data-docs-agent-page].is-docs-agent-open{transform:translateY(calc(-1
+\*
+var(--docs-agent-drawer-height)))}[data-docs-agent-panel].is-open{transform:translateY(0)}[data-docs-agent-root].is-open>button[data-docs-agent-open]{display:none}@media(min-width:768px){[data-docs-agent-panel]{transform:translate(100%)}[data-docs-agent-panel].is-open{transform:translate(0)}[data-docs-agent-page].is-docs-agent-open{width:calc(100%
+- var(--docs-agent-panel-width));transform:none}#header.is-docs-agent-open{width:calc(100%
+- var(--docs-agent-panel-width))}body.docs-agent-open
+[data-context-subnav]{right:var(--docs-agent-panel-width)}body.docs-agent-open
+[data-context-subnav] nav{transform:translate(var(--docs-agent-context-subnav-offset,
+0px))}#header.is-docs-agent-open>div{grid-template-columns:auto minmax(0,1fr)
+auto}#header.is-docs-agent-open nav{min-width:0}#header.is-docs-agent-open
+[data-header-search-button],#header.is-docs-agent-open
+button[data-docs-agent-open]{display:none!important}}@media(min-width:1280px){body.docs-agent-open
+[data-docs-agent-page].is-docs-agent-open
+[data-content-page-container]{padding-left:clamp(4rem,4vw,5rem)}}@media(prefers-reduced-motion:reduce){[data-docs-agent-page],[data-docs-agent-panel]{transition:none}[data-context-subnav],[data-context-subnav]
+nav{transition:none}}@keyframes astroFadeInOut{0%{opacity:1}to{opacity:0}}@keyframes
+astroFadeIn{0%{opacity:0;mix-blend-mode:plus-lighter}to{opacity:1;mix-blend-mode:plus-lighter}}@keyframes
+astroFadeOut{0%{opacity:1;mix-blend-mode:plus-lighter}to{opacity:0;mix-blend-mode:plus-lighter}}@keyframes
+astroSlideFromRight{0%{transform:translate(100%)}}@keyframes
+astroSlideFromLeft{0%{transform:translate(-100%)}}@keyframes
+astroSlideToRight{to{transform:translate(100%)}}@keyframes
+astroSlideToLeft{to{transform:translate(-100%)}}@media(prefers-reduced-motion){::view-transition-group(\*),::view-transition-old(\*),::view-transition-new(\*){animation:none!important}[data-astro-transition-scope]{animation:none!important}}
+
+For the complete documentation index, see [llms.txt]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff"). Markdown versions of documentation pages are available by appending`.md`
+to the page URL.  
+
+[ ![OpenAI Developers]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+ChatGPT   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ Home  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ API  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ Codex  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[
+
+
+Docs
+
+Guides, concepts, and product docs for Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Use cases
+
+Example workflows and tasks teams can take on with ChatGPT or Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+
+[ Docs  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ Use cases  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ Training  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ Resources  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+[ ChatGPT  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[
+
+
+Plugins
+
+Extend ChatGPT and Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Workspace Agents
+
+Trigger published ChatGPT workspace agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Commerce
+
+Build commerce flows in ChatGPT   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Ads
+
+Publish and measure ads in ChatGPT   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+
+[ Resources  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[
+
+
+Showcase
+
+Demo apps to get inspired   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Blog
+
+Learnings and experiences from developers   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Cookbook
+
+Notebook examples for building with OpenAI models   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Learn
+
+Docs, videos, and demo apps for building with OpenAI   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")[
+
+
+Community
+
+Programs, meetups, and support for builders   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+
+Start searching   
+
+
+[API Dashboard]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[Try ChatGPT]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")    
+
+
+[ Overview  ]()[ Models  ]()[ Agents  ]()[ Tools  ]()[ Voice & Audio  ]()[ Production
+]()[ API reference  ]()  
+
+
+##  Search the API docs
+
+",v=this.getAttribute("component-export");throw v&&(s+=\` (export
+${v})\`),console.error(\`[hydrate] Error parsing props for component
+${s}\`,this.getAttribute("props"),r),r}let u;await
+this.hydrator(this)(this.Component,p,n,{client:this.getAttribute("client")}),this.removeAttribute("ssr"),this.dispatchEvent(new
+CustomEvent("astro:hydrate"))});d(this,"unmount",()=>{this.isConnected||this.dispatchEvent(new
+CustomEvent("astro:unmount"))})}disconnectedCallback(){document.removeEventListener("astro:after-swap",this.unmount),document.addEventListener("astro:after-swap",this.unmount,{once:!0})}connectedCallback(){if(!this.hasAttribute("await-children")||document.readyState==="interactive"||document.readyState==="complete")this.childrenConnectedCallback();else{let
+e=()=>{document.removeEventListener("DOMContentLoaded",e),c.disconnect(),this.childrenConnectedCallback()},c=new
+MutationObserver(()=>{var n;((n=this.lastChild)==null?void
+0:n.nodeType)===Node.COMMENT_NODE&&this.lastChild.nodeValue==="astro:end"&&(this.lastChild.remove(),e())});c.observe(this,{childList:!0}),document.addEventListener("DOMContentLoaded",e)}}async
+childrenConnectedCallback(){let e=this.getAttribute("before-hydration-url");e&&await
+import(e),this.start()}async start(){let
+e=JSON.parse(this.getAttribute("opts")),c=this.getAttribute("client");if(Astro[c]===void
+0){window.addEventListener(\`astro:${c}\`,()=>this.start(),{once:!0});return}try{await
+Astro[c](async()=>{let n=this.getAttribute("renderer-url"),[h,{default:p}]=await
+Promise.all([import(this.getAttribute("component-url")),n?import(n):()=>()=>{}]),u=this.getAttribute("component-export")||"default";if(!u.includes("."))this.Component=h[u];else{this.Component=h;for(let
+f of u.split("."))this.Component=this.Component[f]}return
+this.hydrator=p,this.hydrate},e,this)}catch(n){console.error(\`[astro-island] Error
+hydrating
+${this.getAttribute("component-url")}\`,n)}}attributeChangedCallback(){this.hydrate()}}d(y,"observedAttributes",["props"]),customElements.get("astro-island")||customElements.define("astro-island",y)}})();
+
+Search docs
+
+
+### Suggested
+
+response_formatreasoning_effortstreamingtools     
+
+
+Primary navigation  
+
+API  Codex  ChatGPT  Docs  Use cases  Training  Resources  Resources  
+
+
+Search docs
+
+
+### Suggested
+
+response_formatreasoning_effortstreamingtools  
+
+
+Overview  Models  Agents  Tools  Voice & Audio  Production  API reference  
+
+
+Overview  
+Models  
+Agents  
+Tools  
+Voice & Audio  
+Production  
+API reference  
+DocsOverview
+
+
+-  [ Home   ]( "Apple Color Emoji")
+
+
+###  Get started
+
+-  [ Quickstart   ]( "Apple Color Emoji")
+-  [ Using GPT-5.6   ]( "Apple Color Emoji")
+-  [ Key concepts   ]( "Apple Color Emoji")
+
+
+###  Core concepts
+
+-  [ Responses API   ]( "Apple Color Emoji")
+-  [ Conversation state   ]( "Apple Color Emoji")
+-  [ Background mode   ]( "Apple Color Emoji")
+-  [ Streaming   ]( "Apple Color Emoji")
+-  [ WebSocket mode   ]( "Apple Color Emoji")
+-  [ Multi-agent   ]( "Apple Color Emoji")
+-  [ Webhooks   ]( "Apple Color Emoji")
+-  [ File inputs   ]( "Apple Color Emoji")
+-  [ Compaction   ]( "Apple Color Emoji")
+-  [ Counting tokens   ]( "Apple Color Emoji")
+
+
+###  SDKs and CLI
+
+-  [ OpenAI SDK   ]( "Apple Color Emoji")
+-  [ OpenAI CLI   ]( "Apple Color Emoji")
+
+
+###  Resources
+
+-  [ Changelog   ]( "Apple Color Emoji")
+-  [ Deprecations   ]( "Apple Color Emoji")
+-  [ Supported countries   ]( "Apple Color Emoji")
+-  [ OpenAI Crawlers   ]( "Apple Color Emoji")
+-  [ Terms and policies   ]( "Apple Color Emoji")
+
+
+###  Legacy APIs
+
+-    Agent Builder    -  [ Overview   ]( "Apple Color Emoji")
+-  [ Migration guide   ]( "Apple Color Emoji")
+-  [ Node reference   ]( "Apple Color Emoji")
+-  [ Safety in building agents   ]( "Apple Color Emoji")
+
+
+-    Evals   
+-  [ Getting started   ]( "Apple Color Emoji")
+-  [ Working with evals   ]( "Apple Color Emoji")
+-  [ Prompt optimizer   ]( "Apple Color Emoji")
+-  [ External models   ]( "Apple Color Emoji")
+-  [ Best practices   ]( "Apple Color Emoji")
+-  [ Graders   ]( "Apple Color Emoji")
+
+
+-    Fine-tuning   
+-  [ Optimization cycle   ]( "Apple Color Emoji")
+-  [ Supervised fine-tuning   ]( "Apple Color Emoji")
+-  [ Vision fine-tuning   ]( "Apple Color Emoji")
+-  [ Direct preference optimization   ]( "Apple Color Emoji")
+-  [ Reinforcement fine-tuning   ]( "Apple Color Emoji")
+-  [ RFT use cases   ]( "Apple Color Emoji")
+-  [ Best practices   ]( "Apple Color Emoji")
+
+
+-    Assistants API   
+-  [ Migration guide   ]( "Apple Color Emoji")
+
+
+-  [ Model catalog   ]( "Apple Color Emoji")
+
+
+###  Choose a model
+
+-  [ Pricing   ]( "Apple Color Emoji")
+-  [ Model selection   ]( "Apple Color Emoji")
+
+
+###  Text and code
+
+-  [ Text generation   ]( "Apple Color Emoji")
+-  [ Code generation   ]( "Apple Color Emoji")
+-  [ Structured output   ]( "Apple Color Emoji")
+
+
+###  Prompting
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Prompt engineering   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Citation formatting   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Migration guide   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Prompt generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Frontend prompting   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Reasoning
+
+-  [ Reasoning models   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Reasoning best practices   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Images and video
+
+-    [ Images and vision  ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")    -  [ Image input cost calculator   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Image generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Video generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Realtime and audio
+
+-  [ Audio and speech   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Voice agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Specialized models
+
+-  [ Deep research   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Embeddings   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Moderation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Agents SDK
+
+-  [ Quickstart   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Agent definitions   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Models and providers   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Running agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Sandbox agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Orchestration   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Guardrails   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Results and state   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Integrations and observability   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Evaluate agent workflows   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  ChatKit
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Customize   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Widgets   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Actions   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Advanced integrations   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Function calling   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Search and retrieval
+
+-  [ Web search   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ File search   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Retrieval   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Connect tools and data
+
+-  [ MCP and Connectors   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Secure MCP Tunnel   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Build tool workflows
+
+-  [ Skills   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Tool search   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Programmatic tool calling   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Computer and code
+
+-  [ Shell   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Computer use   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Apply Patch   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Local shell   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Code interpreter   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Media
+
+-  [ Image generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Get started
+
+-  [ Voice agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Live translation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Realtime prompting guide   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Audio
+
+-  [ Audio and speech   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Transcription   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ File transcription   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Realtime transcription   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Speech generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Connection methods
+
+-  [ WebRTC   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ WebSocket   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ SIP   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Sessions and operations
+
+-  [ Managing conversations   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Voice activity detection   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Realtime with tools   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Webhooks and server-side controls   ]()
+-  [ Managing costs   ]()
+
+
+###  Go live
+
+-  [ Production best practices   ]()
+-  [ Deployment checklist   ]()
+
+
+###  Performance and quality
+
+-  [ Latency optimization   ]()
+-  [ Predicted Outputs   ]()
+-  [ Fast mode   ]()
+-  [ Accuracy optimization   ]()
+
+
+###  Cost and throughput
+
+-  [ Cost optimization   ]()
+-  [ Prompt caching   ]()
+-  [ Batch   ]()
+-  [ Flex processing   ]()
+
+
+###  Safety and governance
+
+-  [ Safety best practices   ]()
+-  [ Red teaming   ]()
+-    [ Safety checks  ]()    -  [ Cybersecurity checks   ]()
+-  [ Under 18 API Guidance   ]()
+
+
+-  [ CSAM guidance   ]()
+-  [ Content provenance   ]()
+-  [ Your data   ]()
+-  [ Permissions   ]()
+
+
+###  Infrastructure and access
+
+-    [ Terraform provider  ]()    -  [ Overview   ]()
+-  [ Projects and access   ]()
+-  [ Service accounts   ]()
+-  [ Rate limits and spend   ]()
+-  [ Model, tool, and data controls   ]()
+-  [ Import and reconciliation   ]()
+
+
+-  [ Private Link   ]()
+-  [ IP allowlist   ]()
+-  [ Mutual TLS   ]()
+-    [ Workload identity federation  ]()   
+-  [ Codex setup   ]()
+-  [ Federation rules   ]()
+-  [ Admin API   ]()
+-  [ X.509 certificates   ]()
+-  [ Kubernetes   ]()
+-  [ AWS   ]()
+-  [ Microsoft Azure   ]()
+-  [ Google Cloud   ]()
+-  [ Oracle Cloud Infrastructure   ]()
+-  [ GitHub Actions   ]()
+-  [ SPIFFE   ]()
+
+
+-  [ IP egress ranges   ]()
+-  [ Amazon Bedrock   ]()
+
+
+###  Operations
+
+-  [ Rate limits   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ Spend limits   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ Admin APIs   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ Error codes   ](/favicon.png "OpenAI API Platform Documentation")
+
+
+[ Docs ](/favicon.png "OpenAI API Platform Documentation")[ Use cases ](/favicon.png "OpenAI API Platform Documentation")  
+
+
+Docs  
+Use cases  
+DocsDocs
+
+
+Plugins  Workspace Agents  Commerce  Ads   
+
+
+Plugins  
+Workspace Agents  
+Commerce  
+Ads  
+DocsSelect...
+
+
+-  [ Home   ]( "Apple Color Emoji")
+-  [ Quickstart   ]( "Apple Color Emoji")
+
+
+###  Core concepts
+
+-  [ Plugin architecture   ]( "Apple Color Emoji")
+-  [ Skills   ]( "Apple Color Emoji")
+-  [ MCP server   ]( "Apple Color Emoji")
+
+
+###  Plan
+
+-  [ Brainstorm use cases   ]( "Apple Color Emoji")
+-  [ Define tools   ]( "Apple Color Emoji")
+
+
+###  Build
+
+-  [ Build an MCP server   ]( "Apple Color Emoji")
+-  [ Add UI to your MCP server (optional)   ]( "Apple Color Emoji")
+-  [ Authenticate users   ]( "Apple Color Emoji")
+-  [ Build skills   ]( "Apple Color Emoji")
+-  [ Package your plugin   ]( "Apple Color Emoji")
+-  [ Examples   ]( "Apple Color Emoji")
+
+
+###  Test and publish
+
+-  [ Connect and test your plugin   ]( "Apple Color Emoji")
+-  [ Submit and publish   ]( "Apple Color Emoji")
+-  [ Submission error reference   ]( "Apple Color Emoji")
+
+
+###  Conversion specs
+
+-  [ Restaurant reservation spec   ]( "Apple Color Emoji")
+-  [ Get Quote spec   ]( "Apple Color Emoji")
+-  [ Product checkout spec   ]( "Apple Color Emoji")
+
+
+###  Guides
+
+-  [ UI guidelines   ]( "Apple Color Emoji")
+-  [ Optimize Metadata   ]( "Apple Color Emoji")
+-  [ Submit a Claude Code plugin   ]( "Apple Color Emoji")
+-  [ Security & Privacy   ]( "Apple Color Emoji")
+-  [ Troubleshooting   ]( "Apple Color Emoji")
+
+
+###  Resources
+
+-  [ Changelog   ]( "Apple Color Emoji")
+-  [ Plugin guidelines   ]( "Apple Color Emoji")
+-  [ MCP server review requirements   ]( "Apple Color Emoji")
+-  [ Plugin UI reference   ]( "Apple Color Emoji")
+-  [ Checkout API reference   ]( "Apple Color Emoji")
+
+
+-  [ Home   ]( "Apple Color Emoji")
+
+
+###  Get started
+
+-  [ Trigger workspace agent runs   ]( "Apple Color Emoji")
+-  [ Authenticate with Workspace Agent access tokens   ]( "Apple Color Emoji")
+
+
+-  [ Home   ]( "Apple Color Emoji")
+
+
+###  Guides
+
+-  [ Get started   ]( "Apple Color Emoji")
+-  [ Best practices   ]( "Apple Color Emoji")
+
+
+###  File Upload
+
+-  [ Overview   ]( "Apple Color Emoji")
+-  [ Products   ]( "Apple Color Emoji")
+
+
+###  API
+
+-  [ Overview   ]( "Apple Color Emoji")
+-  [ Feeds   ]( "Apple Color Emoji")
+-  [ Products   ]( "Apple Color Emoji")
+-  [ Promotions   ]( "Apple Color Emoji")
+
+
+-  [ Ads Overview   ]( "Apple Color Emoji")
+
+
+###  Measurement
+
+-  [ Measurement Pixel   ]( "Apple Color Emoji")
+-  [ Multiple Pixels (Advanced)   ]( "Apple Color Emoji")
+-  [ Image Tag   ]( "Apple Color Emoji")
+-  [ Conversions API   ]( "Apple Color Emoji")
+-  [ Supported Events   ]( "Apple Color Emoji")
+
+
+###  Advertiser API
+
+-  [ Overview   ]( "Apple Color Emoji")
+-  [ API Partner Setup   ]( "Apple Color Emoji")
+-  [ Quickstart   ]( "Apple Color Emoji")
+-  [ Bulk API   ]( "Apple Color Emoji")
+-  [ Product Feeds   ]( "Apple Color Emoji")
+-  [ Delta Feeds API   ]( "Apple Color Emoji")
+-  [ Campaign Targeting   ]( "Apple Color Emoji")
+-  [ Conversion-Optimized Campaigns   ]( "Apple Color Emoji")
+-  [ Custom Audiences   ]( "Apple Color Emoji")
+
+
+###  API Reference
+
+-  [ Authentication   ]( "Apple Color Emoji")
+-  [ Ad Account   ]( "Apple Color Emoji")
+-  [ Campaigns   ]( "Apple Color Emoji")
+-  [ Ad Groups   ]( "Apple Color Emoji")
+-  [ Ads   ]( "Apple Color Emoji")
+-  [ Insights   ]( "Apple Color Emoji")
+-  [ Files   ]( "Apple Color Emoji")
+-  [ Conversion Setup   ]( "Apple Color Emoji")
+
+
+Overview  Features  Configuration  Developers  Security  Administration  Use Cases
+Resources   
+
+
+Overview  
+Features  
+Configuration  
+Developers  
+Security  
+Administration  
+Use Cases  
+Resources  
+DocsOverview
+
+
+-  [ Home   ]( "Apple Color Emoji")
+
+
+###  Get started
+
+-  [ Quickstart   ]( "Apple Color Emoji")
+-  [ Use ChatGPT   ]( "Apple Color Emoji")
+-  [ Get started with Work   ]( "Apple Color Emoji")
+-  [ Import from another agent   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Foundations
+
+-  [ Prompting   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Personalize ChatGPT   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Skills & Plugins   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Permissions   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Explore
+
+-  [ What's new   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Models   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Pricing   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Glossary   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Available on
+
+-  [ ChatGPT desktop app   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Remote   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ ChatGPT on the web   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex CLI   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex IDE extension   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex cloud   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Releases
+
+-  [ Changelog   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Feature Maturity   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Open Source   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Workflows
+
+-  [ Projects and chats   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Sites   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Visualizations   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Scheduled tasks   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Long-running work   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Notifications   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Pets   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex Micro   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Capabilities
+
+-  [ Browser   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Computer use   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Voice   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Plugins   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Web search   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Image generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Image inputs   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Appshots   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Browser extension   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Work with files   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Reference
+
+-  [ Commands   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Slash commands   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Settings   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Troubleshooting   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Customization
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Memories   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Computer History   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Config file
+
+-  [ Config Basics   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Advanced Config   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Config Reference   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Environment Variables   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Sample Config   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Agent configuration
+
+-  [ AGENTS.md   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Subagents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Speed   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Rules   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Extend ChatGPT and Codex
+
+-  [ Record & Replay   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ MCP   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Linux
+
+-  [ Desktop app   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Windows
+
+-  [ Desktop app   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Windows sandbox   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ WSL   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Overview   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Development workflows
+
+-  [ Code review   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Integrated terminal   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Extend and automate
+
+-  [ Build skills   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Build plugins   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Site tools (WebMCP)   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Hooks   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Environments
+
+-  [ Modes   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Local environments   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Cloud environment   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Git worktrees   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Build with Codex
+
+-  [ Codex SDK   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ App Server   ]()
+-  [ MCP Server   ]()
+-  [ GitHub Action   ]()
+-  [ Non-interactive mode   ]()
+
+
+###  Third-party integrations
+
+-  [ GitHub   ]()
+-  [ GitLab (Beta)   ]()
+-  [ Slack   ]()
+-  [ Linear   ]()
+
+
+###  Reference
+
+-  [ CLI customization   ]()
+-  [ Developer commands   ]()
+-  [ Developer settings   ]()
+
+
+-  [ Overview   ]()
+
+
+###  Permissions
+
+-  [ Profiles   ]()
+-  [ Sandboxing   ]()
+-  [ Auto-review   ]()
+-  [ Agent approvals & security   ]()
+-  [ Internet access   ]()
+
+
+###  Codex Security
+
+-  [ Overview   ]()
+-    Codex Security plugin    -  [ Quickstart   ]()
+-  [ Run a security scan   ]()
+-  [ Run a deep scan   ]()
+-  [ Review code changes   ]()
+-  [ Use the Security workbench   ]()
+-  [ Triage a backlog   ]()
+-  [ Fix findings   ]()
+-  [ Propose security hardening   ]()
+-  [ Write vulnerability reports   ]()
+-  [ Export and track findings   ]()
+-  [ Changelog   ]()
+
+
+-    Codex Security CLI   
+-  [ Quickstart   ]()
+-  [ Run bulk scans   ]()
+-  [ Run scans in CI   ]()
+-  [ GitLab CI/CD   ]()
+-  [ Reference   ]()
+-  [ FAQ   ]()
+
+
+-  [ TypeScript SDK   ]()
+-    Codex Security cloud   
+-  [ Setup   ]()
+-  [ Security Review   ]()
+-  [ Improving the threat model   ]()
+-  [ FAQ   ]()
+
+
+###  Cyber safety
+
+-  [ Models & Trusted Access   ]()
+-  [ Recommended configuration   ]()
+
+
+-  [ Overview   ]()
+
+
+###  Getting started
+
+-  [ Admin rollout guide   ]()
+
+
+###  ChatGPT Work
+
+-  [ ChatGPT Work Overview   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ ChatGPT Work cloud security   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ ChatGPT Work local security   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ ChatGPT Work admin FAQ   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ ChatGPT Work: usage and cost   ](/favicon.png "OpenAI API Platform Documentation")
+
+
+###  Identity and authentication
+
+-  [ Authentication overview   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ Workload identity   ](/favicon.png "OpenAI API Platform Documentation")
+-  [ Personal Access Tokens   ](https://cdn.openai.com/common/fonts/openai-sans/v2/OpenAISans-Regular.woff2 "OpenAI API Platform Documentation")
+-  [ Service accounts   ](https://developers.openai.com/api/docs "OpenAI API Platform Documentation")
+
+
+###  Workspace access, policy, and models
+
+-  [ Groups and provisioning   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ User lifecycle management   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ Roles and workspace permissions   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ GPTs and Sharing   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ Managed configuration   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ Prisma AIRS   ](/sitemap-index.xml "OpenAI API Platform Documentation")
+-  [ HIPAA configuration   ](https://developers.openai.com/rss.xml "OpenAI API Platform Documentation")
+-  [ Workspace model availability   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+
+
+###  Plugin and connector controls
+
+-  [ Plugin controls   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+-  [ Plugin management   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+-  [ Skill controls   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+
+
+###  Usage, governance, and compliance
+
+-  [ Governance   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+-  [ Admin plugin   ](/_astro/PageLayout.gjKvSZ2h.css "Apple Color Emoji")
+-  [ Workspace analytics   ]( "Apple Color Emoji")
+-  [ Analytics API   ]( "Apple Color Emoji")
+-  [ Compliance API and audit events   ]( "Apple Color Emoji")
+
+
+###  Deployment and model providers
+
+-  [ Manage app updates   ]( "Apple Color Emoji")
+-  [ Windows app deployment   ]( "Apple Color Emoji")
+-  [ Remote connections   ]( "Apple Color Emoji")
+-  [ Amazon Bedrock   ]( "Apple Color Emoji")
+
+
+-  [ Explore use cases   ]( "Apple Color Emoji")
+-  [ Collections   ]( "Apple Color Emoji")
+
+
+-  [ Home   ]( "Apple Color Emoji")
+-  [ Videos   ]( "Apple Color Emoji")
+-  [ Showcase   ]( "Apple Color Emoji")
+-  [ OpenAI Academy   ]( "Apple Color Emoji")
+-  [ Online trainings   ]( "Apple Color Emoji")
+
+
+###  Community
+
+-  [ Codex Ambassadors   ]( "Apple Color Emoji")
+-  [ Codex for Students   ]( "Apple Color Emoji")
+-  [ Codex for Open Source   ]( "Apple Color Emoji")
+-  [ Meetups   ]( "Apple Color Emoji")
+
+
+###  Blog
+
+-  [ Company blog   ]( "Apple Color Emoji")
+-  [ Developer blog   ]( "Apple Color Emoji")
+
+
+-  [ Explore use cases   ]( "Apple Color Emoji")
+-  [ Collections   ]( "Apple Color Emoji")
+
+
+-  [ Home   ]( "Apple Color Emoji")
+-  [ Videos   ]( "Apple Color Emoji")
+-  [ Showcase   ]( "Apple Color Emoji")
+-  [ OpenAI Academy   ]( "Apple Color Emoji")
+-  [ Online trainings   ]( "Apple Color Emoji")
+
+
+###  Community
+
+-  [ Codex Ambassadors   ]( "Apple Color Emoji")
+-  [ Codex for Students   ]( "Apple Color Emoji")
+-  [ Codex for Open Source   ]( "Apple Color Emoji")
+-  [ Meetups   ]( "Apple Color Emoji")
+
+
+###  Blog
+
+-  [ Company blog   ]( "Apple Color Emoji")
+-  [ Developer blog   ]( "Apple Color Emoji")
+
+
+[ Showcase ]( "Apple Color Emoji") Blog  Cookbook  Learn  Community   
+
+
+Showcase  
+Blog  
+Cookbook  
+Learn  
+Community  
+DocsSelect...
+
+
+-  [ All posts   ]( "Apple Color Emoji")
+
+
+###  Recent
+
+-  [ Meet Rosalind Workbench: Empowering every scientist to be their own research team   ]( "Apple Color Emoji")
+-  [ Automating repetitive work at OpenAI with Codex   ]( "Apple Color Emoji")
+-  [ Meet the winners of OpenAI Build Week   ]( "Apple Color Emoji")
+-  [ Scaling cyber defenders with Daybreak   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex as a platform: build on the open agent harness   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Topics
+
+-  [ General   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ API   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Apps SDK   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Audio   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Life sciences   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Home   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Topics
+
+-  [ Agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Evals   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Multimodal   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Text   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Guardrails   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Optimization   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ ChatGPT   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ gpt-oss   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Contribute
+
+-  [ Cookbook on GitHub   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Home   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ OpenAI Developers plugin   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Docs MCP   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Categories
+
+-  [ Demo apps   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Videos   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Topics
+
+-  [ Agents   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Audio & Voice   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Computer Use   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Evals   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ gpt-oss   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Fine-tuning   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Image generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Scaling   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Tools   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Video generation   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+-  [ Community   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Programs
+
+-  [ Codex Ambassadors   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex for Students   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Codex for Open Source   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ OpenAI for Startups   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Events
+
+-  [ Meetups   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+###  Spaces
+
+-  [ Developer Forum   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Discord   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ Reddit   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+-  [ X   ]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[API Dashboard]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")
+
+
+[Try ChatGPT]( "https://developers.openai.com/fonts/OpenAISans-Regular.woff")  
+
+
+-  [  Home    ]( "Apple Color Emoji")
+
+
+### Get started
+
+-  [  Quickstart    ]( "Apple Color Emoji")
+-  [  Using GPT-5.6    ]( "Apple Color Emoji")
+-  [  Key concepts    ]( "Apple Color Emoji")
+
+
+### Core concepts
+
+-  [  Responses API    ]( "Apple Color Emoji")
+-  [  Conversation state    ]( "Apple Color Emoji")
+-  [  Background mode    ]( "Apple Color Emoji")
+-  [  Streaming    ]( "Apple Color Emoji")
+-  [  WebSocket mode    ]( "Apple Color Emoji")
+-  [  Multi-agent    ]( "Apple Color Emoji")
+-  [  Webhooks    ]( "Apple Color Emoji")
+-  [  File inputs    ]( "Apple Color Emoji")
+-  [  Compaction    ]( "Apple Color Emoji")
+-  [  Counting tokens    ]( "Apple Color Emoji")
+
+
+### SDKs and CLI
+
+-  [  OpenAI SDK    ]( "Apple Color Emoji")
+-  [  OpenAI CLI    ]( "Apple Color Emoji")
+
+
+### Resources
+
+-  [  Changelog    ]( "Apple Color Emoji")
+-  [  Deprecations    ]( "Apple Color Emoji")
+-  [  Supported countries    ]( "Apple Color Emoji")
+-  [  OpenAI Crawlers    ]( "Apple Color Emoji")
+-  [  Terms and policies    ]( "Apple Color Emoji")
+
+
+### Legacy APIs
+
+-    Agent Builder     -  [  Overview    ]( "Apple Color Emoji")
+-  [  Migration guide    ]( "Apple Color Emoji")
+-  [  Node reference    ]( "Apple Color Emoji")
+-  [  Safety in building agents    ]( "Apple Color Emoji")
+
+
+-    Evals    
+-  [  Getting started    ]( "Apple Color Emoji")
+-  [  Working with evals    ]( "Apple Color Emoji")
+-  [  Prompt optimizer    ]( "Apple Color Emoji")
+-  [  External models    ]( "Apple Color Emoji")
+-  [  Best practices    ]( "Apple Color Emoji")
+-  [  Graders    ]( "Apple Color Emoji")
+
+
+-    Fine-tuning    
+-  [  Optimization cycle    ]( "Apple Color Emoji")
+-  [  Supervised fine-tuning    ]( "Apple Color Emoji")
+-  [  Vision fine-tuning    ]( "Apple Color Emoji")
+-  [  Direct preference optimization    ]( "Apple Color Emoji")
+-  [  Reinforcement fine-tuning    ]( "Apple Color Emoji")
+-  [  RFT use cases    ]( "Apple Color Emoji")
+-  [  Best practices    ]( "Apple Color Emoji")
+
+
+-    Assistants API    
+-  [  Migration guide    ]( "Apple Color Emoji")
+
+
+item.message().stream())\\n        .flatMap(message -> message.content().stream())\\n
+.flatMap(content -> content.outputText().stream())\\n        .forEach(outputText
+-> System.out.println(outputText.text()));\\n  }\\n}"],"csharp":[0,"using
+OpenAI.Responses;\\n#pragma warning disable OPENAI001\\n\\nstring key =
+Environment.GetEnvironmentVariable(\\"OPENAI_API_KEY\\")!;\\nResponsesClient
+client = new(key);\\n\\nResponseResult response = await client.CreateResponseAsync(\\n
+\\"gpt-5.6\\",\\n    \\"Write a short bedtime story about a
+unicorn.\\"\\n);\\n\\nConsole.WriteLine(response.GetOutputText());"],"ruby":[0,"require
+\\"openai\\"\\n\\nopenai = OpenAI::Client.new\\n\\nresponse = openai.responses.create(\\n
+model: \\"gpt-5.6\\",\\n  input: \\"Write a short bedtime story about
+a unicorn.\\"\\n)\\n\\nputs(response.output_text)"],"cli":[0,"openai
+responses create \\\\\\n  --model gpt-5.6 \\\\\\n  --input \\"Write a short
+bedtime story about a unicorn.\\" \\\\\\n  --raw-output \\\\\\n  --transform
+'output.#(type==\\"message\\").content.0.text'\\n"]}],"featuredModels":[1,[[0,{"name":[0,"gpt-5.6-sol"],"displayName":[0,"GPT-5.6
+Sol"],"tagline":[0,"Flagship model for complex professional
+work"],"artSrc":[0,"/images/api/models/gpt-5.6-sol.jpg"],"badge":[0]}],[0,{"name":[0,"gpt-5.6-terra"],"displayName":[0,"GPT-5.6
+Terra"],"tagline":[0,"GPT-5.6 model that balances intelligence
+and
+cost"],"artSrc":[0,"/images/api/models/gpt-5.6-terra.jpg"],"badge":[0]}],[0,{"name":[0,"gpt-5.6-luna"],"displayName":[0,"GPT-5.6
+Luna"],"tagline":[0,"GPT-5.6 model optimized for cost-sensitive
+workloads"],"artSrc":[0,"/images/api/models/gpt-5.6-luna.jpg"],"badge":[0]}]]]}"
+client="load" opts="{"name":"PlatformOverview","value":true}"
+await-children="">
+
+
+# API Platform
+
+
+## Developer quickstart
+
+Make your first API request in minutes. Learn the basics of the OpenAI platform.
+
+[Get started]( "Apple Color Emoji")[Create API key]( "Apple Color Emoji")
+
+JavaScript
+
+```
+1
+2
+3
+4
+5
+6
+7curl https://api.openai.com/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "model": "gpt-5.6",
+    "input": "Write a short bedtime story about a unicorn."
+  }'```
+
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client.responses.create({
+model: "gpt-5.6",
+input: "Write a short bedtime story about a unicorn.",
+});
+
+console.log(response.output_text);```
+
+```
+1
+2
+3
+4
+5
+6
+7from openai import OpenAI
+
+client = OpenAI()
+
+response = client.responses.create(model="gpt-5.6", input="Write a short bedtime story about a unicorn.")
+
+print(response.output_text)```
+
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Write a short bedtime story about a unicorn."),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}```
+
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.Response;
+import com.openai.models.responses.ResponseCreateParams;
+
+public class PlatformOverviewExample {
+  public static void main(String[] args) {
+    OpenAIClient client = OpenAIOkHttpClient.fromEnv();
+
+    ResponseCreateParams params =
+        ResponseCreateParams.builder().model("gpt-5.6").input("Write a short bedtime story about a unicorn.").build();
+
+    Response response = client.responses().create(params);
+    response.output().stream()
+        .flatMap(item -> item.message().stream())
+        .flatMap(message -> message.content().stream())
+        .flatMap(content -> content.outputText().stream())
+        .forEach(outputText -> System.out.println(outputText.text()));
+  }
+}```
+
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+ResponseResult response = await client.CreateResponseAsync(
+"gpt-5.6",
+"Write a short bedtime story about a unicorn."
+);
+
+Console.WriteLine(response.GetOutputText());```
+
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10require "openai"
+
+openai = OpenAI::Client.new
+
+response = openai.responses.create(
+  model: "gpt-5.6",
+  input: "Write a short bedtime story about a unicorn."
+)
+
+puts(response.output_text)```
+
+```
+1
+2
+3
+4
+5openai responses create \
+--model gpt-5.6 \
+--input "Write a short bedtime story about a unicorn." \
+--raw-output \
+--transform 'output.#(type=="message").content.0.text'```
+
+
+Build with the OpenAI API in ChatGPT and Codex
+
+The OpenAI Developers plugin connects ChatGPT and Codex to the OpenAI Platform, follows
+OpenAI API setup guidance, and creates project API keys when your application needs
+one.
+[Install the plugin]()
+## Build paths
+
+[
+
+### Responses API
+
+Make direct model requests for text, structured output, tools, and multimodal workflows.
+Start with Responses]()[
+
+
+### Agents SDK
+
+Build code-first agents that orchestrate tools, handoffs, approvals, tracing, and
+container-based execution.
+Start with the Agents SDK]()
+
+
+## Models
+
+Start with GPT-5.6 Sol for complex reasoning and coding, choose GPT-5.6 Terra to
+balance intelligence and cost, or use GPT-5.6 Luna for cost-sensitive, high-volume
+workloads.
+
+[View all]()
+
+[
+
+GPT-5.6 Sol
+
+Flagship model for complex professional work]()
+
+[
+
+GPT-5.6 Terra
+
+GPT-5.6 model that balances intelligence and cost]()
+
+[
+
+GPT-5.6 Luna
+
+GPT-5.6 model optimized for cost-sensitive workloads]()
+## Start building
+
+[
+
+Read and generate text
+
+Use the API to prompt a model and generate text]()[
+
+Use a model's vision capabilities
+
+Allow models to see and analyze images in your application]()[
+
+Generate images as output
+
+Create images with GPT Image 2]()[
+
+Build apps with audio
+
+Analyze, transcribe, and generate audio with API endpoints](/favicon.png "OpenAI API Platform Documentation")[
+
+Build agentic applications
+
+Use the API to build agents that use tools and computers](/sitemap-index.xml "OpenAI API Platform Documentation")[
+
+Achieve complex tasks with reasoning
+
+Use reasoning models to carry out complex tasks]( "Apple Color Emoji")[
+
+Get structured data from models
+
+Use Structured Outputs to get model responses that adhere to a JSON schema]( "Apple Color Emoji")[
+
+Tailor to your use case
+
+Adjust our models to perform specifically for your use case with fine-tuning, evals,
+and distillation]( "Apple Color Emoji")
+
+[
+
+Help center
+
+Frequently asked account and billing questions]( "Apple Color Emoji")[
+
+Developer forum
+
+Discuss topics with other developers]( "Apple Color Emoji")[
+
+Cookbook
+
+Open-source collection of examples and guides]( "Apple Color Emoji")[
+
+Status
+
+Check the status of OpenAI services]( "Apple Color Emoji")        {console.log(\`[Vercel
+Speed Insights] Failed to load script from ${n}. Please check if any content blockers
+are enabled and try again.\`)},document.head.appendChild(t),{setRoute:s=>{t.dataset.route=s??void
+0}}}function p(){try{return}catch{}}customElements.define("vercel-speed-insights",class
+extends HTMLElement{constructor(){super();try{const
+r=JSON.parse(this.dataset.props??"{}"),n=JSON.parse(this.dataset.params??"{}"),t=v(this.dataset.pathname??"",n);w({route:t,...r,framework:"astro",basePath:p(),beforeSend:window.speedInsightsBeforeSend})}catch(r){throw
+new Error(\`Failed to parse SpeedInsights properties: ${r}\`)}}});
+
+Ask AI
+
+
+## Docs agent
+
+
+Loading docs agent...
+byte.toString(16).padStart(2, "0")      );      return [        hex.slice(0,
+4).join(""),        hex.slice(4, 6).join(""),        hex.slice(6, 8).join(""),   
+hex.slice(8, 10).join(""),        hex.slice(10, 16).join(""),      ].join("-");
+};    let docsAgentSessionIdValue = null;    const storeDocsAgentSessionId = (sessionId)
+=> {      docsAgentSessionIdValue = sessionId;      try {       
+window.sessionStorage.setItem(docsAgentSessionStorageKey, sessionId);      } catch
+{        // Ignore storage failures.      }      return sessionId;    };    const
+resetDocsAgentSessionId = () =>      storeDocsAgentSessionId(randomUuid().toLowerCase());
+const docsAgentSessionId = () => {      if (        docsAgentSessionIdValue &&
+uuidPattern.test(docsAgentSessionIdValue)      ) {        return
+docsAgentSessionIdValue.toLowerCase();      }      try {        const stored =
+window.sessionStorage.getItem(          docsAgentSessionStorageKey        );    
+if (stored && uuidPattern.test(stored)) {          docsAgentSessionIdValue =
+stored.toLowerCase();          return docsAgentSessionIdValue;        }      } catch
+{        // Fall through and create an in-memory session id.      }      return
+resetDocsAgentSessionId();    };    if (      !mobileOpenButton ||      !closeButton
+||      !newButton ||      !(panel instanceof HTMLElement) ||      !chatkit ||   
+!apiURL    ) {      return;    }    let chatkitInitialized = false;    let chatkitResponseActive
+= false;    let chatkitTurnActive = false;    let docsAgentNavigationInProgress =
+false;    let chatkitReplacement = null;    let desiredPathname = window.location.pathname
+|| "/";    let previousFocus = null;    let lastPageSelection = { text: "", capturedAt:
+0 };    let conversationStartedTracked = false;    const selectedTextLimit = 3000;
+const staleSelectionMs = 2 \* 60 \* 1000;    const docsAgentRequestTimeoutMs =
+40 \* 1000;    const docsAgentNavigationTimeoutMs = 8 \* 1000;    const
+docsAgentTransitionWaitTimeoutMs = 15 \* 1000;    const docsAgentInitializationTimeoutMs
+= 15 \* 1000;    const docsAgentUnavailableMessage =      "The docs agent couldn't
+complete the request. Please retry.";    const chatKitUserTurnTypes = new Set([  
+"threads.create",      "threads.add_user_message",      "threads.retry_after_item",
+]);    const desktopPanelMedia = window.matchMedia("(min-width: 768px)");    const
+withTimeout = (operation, timeoutMs, message) =>      new Promise((resolve, reject)
+=> {        const timeout = window.setTimeout(          () => reject(new Error(message)),
+timeoutMs        );        Promise.resolve(operation).then(          (value)
+=> {            window.clearTimeout(timeout);            resolve(value);         
+},          (error) => {            window.clearTimeout(timeout);            reject(error);
+}        );      });    const requestDeadlineSignal = (existingSignal) =>
+{      const controller = new AbortController();      const abort = (signal) =>
+controller.abort(signal?.reason);      if (existingSignal) {        if (existingSignal.aborted)
+{          abort(existingSignal);        } else {          existingSignal.addEventListener(
+"abort",            () => abort(existingSignal),            {         
+once: true,            }          );        }      }      window.setTimeout(
+() => controller.abort(new Error("Docs agent request timed out")),        
+docsAgentRequestTimeoutMs      );      return controller.signal;    };    const chatKitErrorFrame
+= (message = docsAgentUnavailableMessage) =>      new TextEncoder().encode(      
+\`data: ${JSON.stringify({          type: "error",          code: "custom",    
+message,          allow_retry: true,        })}\\n\\n\`      );    const chatKitErrorResponse
+= (message = docsAgentUnavailableMessage) =>      new Response(chatKitErrorFrame(message),
+{        status: 200,        headers: {          "content-type": "text/event-stream;
+charset=utf-8",          "cache-control": "no-cache",        },      });    const
+chatKitFrameHasTerminalEvent = (frame) => {      const data = frame        .split("\\n")
+.filter((line) => line.startsWith("data: "))        .map((line) => line.slice("data:
+".length))        .join("\\n");      if (!data) return false;      try {        const
+payload = JSON.parse(data);        if (payload?.type === "error") return true;   
+return (          payload?.type === "thread.item.done" &&          payload?.item?.type
+=== "assistant_message" &&          Array.isArray(payload.item.content) &&       
+payload.item.content.some(            (part) =>              typeof part?.text
+=== "string" && Boolean(part.text.trim())          )        );      } catch {    
+return false;      }    };    const observeChatKitTerminalEvents = (state, chunk,
+final = false) => {      state.buffer += chunk        ? state.decoder.decode(chunk,
+{ stream: !final })        : state.decoder.decode();      state.buffer =
+state.buffer.replace(/\\r\\n/g, "\\n");      const frames = state.buffer.split("\\n\\n");
+const trailingFrame = frames.pop() || "";      state.buffer = final ? "" : trailingFrame;
+for (const frame of frames) {        if (chatKitFrameHasTerminalEvent(frame))
+state.emitted = true;      }      if (        final &&        trailingFrame &&   
+chatKitFrameHasTerminalEvent(trailingFrame)      ) {        state.emitted =
+true;      }    };    const ensureUserTurnTerminalResponse = (response) => {     
+if (!response.body) return chatKitErrorResponse();      const reader = response.body.getReader();
+const state = {        decoder: new TextDecoder(),        buffer: "",       
+emitted: false,      };      const body = new ReadableStream({        async pull(controller)
+{          try {            const result = await reader.read();            if (result.done)
+{              observeChatKitTerminalEvents(state, null, true);              if (!state.emitted)
+controller.enqueue(chatKitErrorFrame());              controller.close();        
+return;            }            observeChatKitTerminalEvents(state, result.value);
+controller.enqueue(result.value);          } catch {            if (!state.emitted)
+controller.enqueue(chatKitErrorFrame());            controller.close();          
+}        },        cancel(reason) {          void reader.cancel(reason).catch(()
+=> undefined);        },      });      return new Response(body, {        status:
+response.status,        statusText: response.statusText,        headers: response.headers,
+});    };    const syncOpenButtons = (expanded) => {      document       
+.querySelectorAll("button[data-docs-agent-open]")        .forEach((button) => {
+button.setAttribute("aria-expanded", expanded);        });    };    const
+syncLayoutTargets = () => {      // Keep the persisted chat mounted, but never cover
+a hands-on lesson.      // Reset open state so returning to a walkthrough doesn't
+reopen the panel.      const hidden = document.body.dataset.docsAgentHidden === "true";
+root.hidden = hidden;      if (hidden) {        delete root.dataset.open;   
+root.classList.remove("is-open");      }      const isOpen = root.dataset.open
+=== "true";      const isDesktopPanel = desktopPanelMedia.matches;     
+document.body.classList.toggle("docs-agent-open", isOpen);      if (isOpen) {   
+document.body.dataset.docsAgentOpen = "true";      } else {        delete
+document.body.dataset.docsAgentOpen;      }      syncOpenButtons(isOpen ? "true"
+: "false");      document.querySelectorAll("[data-docs-agent-page]").forEach((page)
+=> {        if (page instanceof HTMLElement) {          page.classList.toggle("is-docs-agent-open",
+isOpen);          page.style.width =            isOpen && isDesktopPanel         
+? "calc(100% - var(--docs-agent-panel-width))"              : "";          page.style.transform
+= isOpen            ? isDesktopPanel              ? "none"              : "translateY(calc(-1
+\* var(--docs-agent-drawer-height)))"            : "";        }      });      const
+header = document.getElementById("header");      header?.classList.toggle("is-docs-agent-open",
+isOpen);      if (header) {        const headerInner = header.firstElementChild;
+const headerNav = header.querySelector("nav");        const headerSearchButton
+= header.querySelector(          "[data-header-search-button]"        );        header.style.width
+=          isOpen && isDesktopPanel            ? "calc(100% - var(--docs-agent-panel-width))"
+: "";        if (headerInner instanceof HTMLElement) {         
+headerInner.style.gridTemplateColumns =            isOpen && isDesktopPanel ? "auto
+minmax(0, 1fr) auto" : "";        }        if (headerNav instanceof HTMLElement)
+{          headerNav.style.minWidth = isOpen && isDesktopPanel ? "0" : "";       
+headerNav.style.overflow = "";        }        if (headerSearchButton instanceof
+HTMLElement) {          headerSearchButton.style.display =            isOpen && isDesktopPanel
+? "none" : "";        }        const leadingControls = headerNav?.previousElementSibling;
+const trailingControls = headerNav?.nextElementSibling;        const marginBoxWidth
+= (element) => {          const styles = window.getComputedStyle(element);       
+const horizontalMargin =            (Number.parseFloat(styles.marginLeft) || 0)
++            (Number.parseFloat(styles.marginRight) || 0);          return
+element.getBoundingClientRect().width + horizontalMargin;        };        const
+contextSubnavOffset =          isOpen &&          isDesktopPanel &&          leadingControls
+instanceof HTMLElement &&          trailingControls instanceof HTMLElement       
+? (marginBoxWidth(leadingControls) -                marginBoxWidth(trailingControls))
+/              2            : 0;        document.documentElement.style.setProperty(
+"--docs-agent-context-subnav-offset",          \`${contextSubnavOffset}px\`
+);      }      panel.classList.toggle("is-open", isOpen);      panel.style.transform
+= isOpen        ? isDesktopPanel          ? "translateX(0)"          : "translateY(0)"
+: "";    };    const normalizeAnalyticsText = (value) =>      typeof value
+=== "string" ? value.replace(/\\s+/g, " ").trim() : "";    const analyticsSlug =
+(value, fallback) => {      const slug = normalizeAnalyticsText(value)        .toLowerCase()
+.replace(/[^a-z0-9]+/g, "_")        .replace(/^_+|_+$/g, "");      return
+slug || fallback;    };    const normalizePathname = (pathname) => {      if (!pathname
+|| pathname === "/") return "/";      return pathname.replace(/\\/+$/, "") || "/";
+};    const docsAgentParentRoute = (pathname) => {      const normalized =
+normalizePathname(pathname);      if (normalized === "/") return "home";      if
+(normalized === "/api" || normalized.startsWith("/api/")) {        return "api";
+}      if (normalized === "/codex" || normalized.startsWith("/codex/")) {   
+return "codex";      }      if (        normalized === "/docs" ||       
+normalized.startsWith("/docs/") ||        normalized === "/use-cases" ||        
+normalized.startsWith("/use-cases/")      ) {        return "codex";      }      
+if (        normalized === "/chatgpt" ||        normalized.startsWith("/chatgpt/")
+||        normalized === "/plugins" ||        normalized.startsWith("/plugins/")
+||        normalized === "/commerce" ||        normalized.startsWith("/commerce/")
+) {        return "chatgpt";      }      if (        normalized === "/learn"
+||        normalized.startsWith("/learn/") ||        normalized === "/community"
+||        normalized.startsWith("/community/") ||        normalized === "/cookbook"
+||        normalized.startsWith("/cookbook/") ||        normalized === "/showcase"
+||        normalized.startsWith("/showcase/") ||        normalized === "/tracks"
+||        normalized.startsWith("/tracks/") ||        normalized === "/blog" ||  
+normalized.startsWith("/blog/")      ) {        return "resources";      }
+return "home";    };    const startPromptsForRoute = (      pathname = window.location.pathname
+|| "/"    ) => {      const parentRoute = docsAgentParentRoute(pathname);      const
+prompts = startPromptsByParentRoute[parentRoute];      if (Array.isArray(prompts))
+return prompts;      return Array.isArray(startPromptsByParentRoute.home)        
+? startPromptsByParentRoute.home        : [];    };    const startPromptAnalyticsForRoute
+= (pathname) =>      startPromptsForRoute(pathname)        .map((prompt, index) =>
+{          const promptText = normalizeAnalyticsText(prompt?.prompt);          if
+(!promptText) return null;          return {            id: analyticsSlug(prompt?.label,
+\`prompt_${index + 1}\`),            label:              normalizeAnalyticsText(prompt?.label)
+|| \`Prompt ${index + 1}\`,            position: index + 1,            text: promptText,
+};        })        .filter(Boolean);    const normalizeSelectedText = (value)
+=>      value.replace(/\\r\\n?/g, "\\n").trim().slice(0, selectedTextLimit);    const
+nodeIsInDocsAgent = (node) => {      if (!node) return false;      const element
+=        node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;      return
+element instanceof Element && root.contains(element);    };    const currentPageSelectionText
+= () => {      const selection = window.getSelection?.();      if (!selection ||
+selection.isCollapsed) return "";      if (        nodeIsInDocsAgent(selection.anchorNode)
+||        nodeIsInDocsAgent(selection.focusNode)      ) {        return "";      
+}      return normalizeSelectedText(selection.toString());    };    const rememberPageSelection
+= () => {      const text = currentPageSelectionText();      if (!text) return;  
+lastPageSelection = {        text,        capturedAt: Date.now(),      };    
+};    const selectedTextForAgentContext = () => {      const text = currentPageSelectionText();
+if (text) {        lastPageSelection = {          text,          capturedAt:
+Date.now(),        };        return text;      }      if (Date.now() - lastPageSelection.capturedAt
+{      const context = {        route: \`${window.location.pathname ||
+"/"}${window.location.search}\`,        siteDomain,      };      const selectedText
+= selectedTextForAgentContext();      if (selectedText) {        context.selectedText
+= selectedText;      }      return context;    };    const hasPageSelectionForAnalytics
+= () => {      if (currentPageSelectionText()) return true;      return Date.now()
+- lastPageSelection.capturedAt  {      const content = body?.params?.input?.content;
+if (!Array.isArray(content)) return "";      return content        .map((part)
+=>          part?.type === "input_text" && typeof part.text === "string"         
+? part.text            : ""        )        .filter(Boolean)        .join("\\n")
+.trim();    };    const defaultPromptMatch = (body) => {      const text =
+normalizeAnalyticsText(chatKitRequestInputText(body));      if (!text) return null;
+const startPromptByText = new Map(        startPromptAnalyticsForRoute(window.location.pathname
+|| "/").map(          (prompt) => [prompt.text, prompt]        )      );      return
+startPromptByText.get(text) || null;    };    const promptAnalyticsData = (prompt)
+=>      prompt        ? {            prompt_id: prompt.id,            prompt_label:
+prompt.label,            prompt_position: prompt.position,          }        : {};
+const isDocsAgentApiRequest = (input) => {      try {        const requestUrl
+=          typeof input === "string" || input instanceof URL            ? new URL(input,
+window.location.href)            : new URL(input.url);        const configuredUrl
+= new URL(apiURL, window.location.href);        return requestUrl.href === configuredUrl.href;
+} catch {        return false;      }    };    const docsAgentFetch = async
+(input, init) => {      if (!isDocsAgentApiRequest(input)) {        return window.fetch(input,
+init);      }      const nextInit = init ? { ...init } : {};      if (typeof nextInit.body
+=== "string") {        try {          const body = JSON.parse(nextInit.body);    
+if (body && typeof body === "object" && !Array.isArray(body)) {            
+if (body.type === "threads.create" && !conversationStartedTracked) {             
+const prompt = defaultPromptMatch(body);              const promptData =
+promptAnalyticsData(prompt);              conversationStartedTracked = true;    
+trackDocsAgentEvent("docs_agent_conversation_started", {               
+entry_point: prompt ? "default_prompt" : "composer",                request_type:
+body.type,                has_page_selection: hasPageSelectionForAnalytics(),    
+...promptData,              });              if (prompt) {           
+trackDocsAgentEvent("docs_agent_default_prompt_selected", {                 
+request_type: body.type,                  ...promptData,                });     
+}            }            const metadata =              body.metadata &&
+typeof body.metadata === "object" &&              !Array.isArray(body.metadata)
+? body.metadata                : {};            body.metadata = {
+...metadata,              pageContext: docsAgentPageContext(),      
+};            nextInit.body = JSON.stringify(body);          }        } catch
+{          // Preserve the original body if it is not JSON.        }      }      
+const headers = new Headers(        nextInit.headers ||          (input instanceof
+Request ? input.headers : undefined)      );      headers.set("x-docs-agent-user",
+docsAgentSessionId());      nextInit.headers = headers;      nextInit.signal =
+requestDeadlineSignal(        nextInit.signal || (input instanceof Request ? input.signal
+: null)      );      let requestType = "";      if (typeof nextInit.body === "string")
+{        try {          requestType = JSON.parse(nextInit.body)?.type || "";     
+} catch {          // The proxy will return the protocol validation error.    
+}      }      const requireTerminalEvent = chatKitUserTurnTypes.has(requestType);
+if (requireTerminalEvent) {        chatkitTurnActive = true;      }      try
+{        const response = await window.fetch(input, nextInit);        return requireTerminalEvent
+? ensureUserTurnTerminalResponse(response)          : response;      } catch
+(error) {        if (requireTerminalEvent) return chatKitErrorResponse();        
+throw error;      }    };    const clearLegacyStoredState = () => {      try {   
+window.localStorage.removeItem("docs-agent.panel-open");       
+window.localStorage.removeItem("docs-agent.thread-id");       
+window.localStorage.removeItem("docs-agent.user-id");      } catch {        // Ignore
+storage failures.      }    };    const showStatus = (message) => {      if (!status)
+return;      status.textContent = message;      status.hidden = false;    };    const
+hideStatus = () => {      if (status) status.hidden = true;    };    const getColorTheme
+= () => {      const html = document.documentElement;      return html.dataset.theme
+=== "dark" || html.classList.contains("dark")        ? "dark"        : "light";  
+};    const normalizeClientToolArgs = (args) => {      if (!args) return {};   
+if (typeof args === "string") {        try {          return JSON.parse(args);
+} catch {          return {};        }      }      return args;    };    const
+analyticsViewport = () =>      window.matchMedia("(min-width: 768px)").matches ?
+"desktop" : "mobile";    const trackDocsAgentEvent = (name, data = {}) => {      
+try {        window.__docsAgentTrackEvent?.(name, {          surface: "docs_agent",
+route: window.location.pathname || "/",          viewport: analyticsViewport(),
+...data,        });      } catch {        // Ignore analytics failures.
+}    };    const navigationTarget = (href, options) =>     
+window.__getDocsAgentNavigationTarget(        href,        window.location.href,
+options      );    const navigateToHref = async (href, { externalNewTab =
+false } = {}) => {      const target = navigationTarget(href);      if (!target.ok)
+return target;      const routeHref = target.href;      if (        routeHref.startsWith("/")
+&&        typeof window.__docsAgentNavigate === "function"      ) {       
+docsAgentNavigationInProgress = true;        try {          await withTimeout(  
+window.__docsAgentNavigate(routeHref, { history: "push" }),            
+docsAgentNavigationTimeoutMs,            "Docs agent navigation timed out"       
+);        } catch (error) {          console.error("Docs agent navigation failed",
+error);          return { ok: false, error: "Navigation failed or timed out." };
+} finally {          docsAgentNavigationInProgress = false;        }      
+} else if (externalNewTab) {        window.open(routeHref, "_blank", "noopener,noreferrer");
+} else {        window.location.assign(routeHref);      }      return { ok:
+true, href: routeHref };    };    const navigationQueue =     
+window.__createDocsAgentNavigationQueue(navigateToHref);    const queueNavigationToHref
+= (href, options) => {      const target = navigationTarget(href, options);      
+if (!target.ok) return target;      navigationQueue.queue(target.href);      return
+target;    };    const chatKitTurnSettledCallbacks = new Set();    const chatKitTurnIsActive
+= () =>      chatkitResponseActive ||      chatkitTurnActive ||      navigationQueue.hasPending();
+const notifyChatKitTurnSettled = () => {      if (chatKitTurnIsActive()) return;
+for (const callback of chatKitTurnSettledCallbacks) {        callback();    
+}      chatKitTurnSettledCallbacks.clear();    };    const waitForChatKitTurnToSettle
+= (signal) => {      if (signal.aborted) return Promise.resolve("aborted");      
+if (!chatKitTurnIsActive()) return Promise.resolve("settled");      return new Promise((resolve)
+=> {        let timeout;        const finish = (result) => {          window.clearTimeout(timeout);
+signal.removeEventListener("abort", onAbort);         
+chatKitTurnSettledCallbacks.delete(onSettled);          resolve(result);        
+};        const onAbort = () => finish("aborted");        const onSettled = () =>
+finish("settled");        signal.addEventListener("abort", onAbort, { once: true
+});        chatKitTurnSettledCallbacks.add(onSettled);        timeout = window.setTimeout(
+() => finish("timed-out"),          docsAgentTransitionWaitTimeoutMs    
+);      });    };    const deferPageTransitionDuringChatKitTurn = (event) =>
+{      if (docsAgentNavigationInProgress || !chatKitTurnIsActive()) return;      
+const loadPage = event.loader;      event.loader = async () => {        const result
+= await waitForChatKitTurnToSettle(event.signal);        if (result === "aborted"
+|| event.signal.aborted) return;        if (result === "timed-out") {          //
+Asking Astro to cancel here makes it fall back to a full load. That          // is
+safer than moving a ChatKit frame whose turn did not terminate.          event.preventDefault();
+return;        }        await loadPage();      };    };    const bindChatKitLifecycle
+= () => {      if (chatkit.dataset.docsAgentLifecycleBound === "true") return;   
+chatkit.dataset.docsAgentLifecycleBound = "true";     
+chatkit.addEventListener("chatkit.thread.change", (event) => {        const threadId
+= event?.detail?.threadId;        if (threadId === null) {          conversationStartedTracked
+= false;        }      });      chatkit.addEventListener("chatkit.response.start",
+() => {        chatkitResponseActive = true;        navigationQueue.onResponseStart();
+});      chatkit.addEventListener("chatkit.response.end", () => {        chatkitResponseActive
+= false;        void navigationQueue          .onResponseEnd()          .then(()
+=> {            if (!navigationQueue.hasPending()) {              chatkitTurnActive
+= false;              notifyChatKitTurnSettled();            }          })       
+.catch((error) => {            console.error("Docs agent navigation failed", error);
+});      });      chatkit.addEventListener("chatkit.error", (event) => {
+chatkitResponseActive = false;        chatkitTurnActive = false;       
+navigationQueue.clear();        notifyChatKitTurnSettled();        if (         
+event?.detail?.error?.name === "IntegrationError" ||          event?.detail?.error?.name
+=== "DomainVerificationRequestError"        ) {          showStatus("Docs agent is
+unavailable.");        }      });    };    const buildChatKitOptions = () => ({  
+api: {        url: apiURL,        domainKey,        fetch: docsAgentFetch,   
+},      theme: {        colorScheme: getColorTheme(),      },      history: {
+enabled: false },      header: { enabled: false },      onClientTool(toolCall) {
+const args = normalizeClientToolArgs(          toolCall?.params || toolCall?.arguments
+);        if (toolCall?.name === "navigate_to_page") {          return
+queueNavigationToHref(args.href, { internalOnly: true });        }        if (toolCall?.name
+=== "open_custom_guide") {          const guideHref =            args.href ||    
+(args.generated_id ? \`/custom-guide/${args.generated_id}\` : "");       
+trackDocsAgentEvent("docs_agent_custom_guide_opened", {            source: "client_tool",
+guide_id: args.generated_id || "",            href: guideHref,        
+});          return queueNavigationToHref(guideHref);        }        return {
+ok: false,          error: \`Unknown client tool: ${toolCall?.name || "unknown"}.\`,
+};      },      widgets: {        onAction(action) {          const payload
+= normalizeClientToolArgs(action?.payload);          if (action?.type === "custom_guide.view")
+{            const guideHref =              payload.href ||              payload.url
+||              (payload.generated_id                ? \`/custom-guide/${payload.generated_id}\`
+: "");            trackDocsAgentEvent("docs_agent_custom_guide_opened",
+{              source: "widget_action",              guide_id: payload.generated_id
+|| "",              href: guideHref,            });            return navigateToHref(guideHref);
+}          if (action?.type === "docs_agent.navigate") {            const
+href = payload.href || payload.url || "";           
+trackDocsAgentEvent("docs_agent_suggested_page_opened", {              source: "widget_action",
+href,              suggestion_title: payload.title || "",           
+suggestion_type: payload.type || "",            });            return navigateToHref(href,
+{ externalNewTab: true });          }          return {            ok: false,    
+error: \`Unknown widget action: ${action?.type || "unknown"}.\`,         
+};        },      },      composer: {        placeholder: "Ask about docs or what
+you want to build",      },      startScreen: {        greeting: startGreeting,  
+prompts: startPromptsForRoute(desiredPathname),      },    });    const applyChatKitOptions
+= () => {      chatkit.setOptions(buildChatKitOptions());    };    // Existing ChatKit
+instances keep the options they were created with.    // Route changes only select
+the prompts for the next explicit new thread.    const syncDesiredPathnameForPageLoad
+= () => {      desiredPathname = window.location.pathname || "/";    };    const
+syncDesiredPathnameBeforeSwap = (event) => {      const destination = event?.to;
+if (destination instanceof URL) {        desiredPathname = destination.pathname
+|| "/";      } else if (typeof destination === "string") {        desiredPathname
+= new URL(destination, window.location.href).pathname;      }    };    const initializeChatKit
+= async () => {      if (chatkitInitialized) return;      showStatus("Loading docs
+agent...");      try {        await withTimeout(         
+customElements.whenDefined("openai-chatkit"),          docsAgentInitializationTimeoutMs,
+"Docs agent initialization timed out"        );        bindChatKitLifecycle();
+applyChatKitOptions();        chatkitInitialized = true;        hideStatus();
+} catch (error) {        console.error("Failed to initialize Docs Agent ChatKit",
+error);        showStatus("Docs agent is unavailable.");      }    };    const resetChatKit
+= () => {      if (chatkitReplacement) return chatkitReplacement;      navigationQueue.clear();
+chatkitReplacement = (async () => {        const nextChatKit =
+document.createElement("openai-chatkit");        nextChatKit.id = "docs-agent-chatkit";
+nextChatKit.className = "block h-full w-full";        chatkit.replaceWith(nextChatKit);
+chatkit = nextChatKit;        chatkitInitialized = false;        chatkitResponseActive
+= false;        chatkitTurnActive = false;        conversationStartedTracked = false;
+resetDocsAgentSessionId();        await initializeChatKit();       
+notifyChatKitTurnSettled();      })();      void chatkitReplacement.then(       
+() => {          chatkitReplacement = null;        },        () => {          chatkitReplacement
+= null;        }      );      return chatkitReplacement;    };    const openPanel
+= () => {      if (document.body.dataset.docsAgentHidden === "true") return;     
+if (root.dataset.open !== "true") {        trackDocsAgentEvent("docs_agent_panel_opened",
+{          source: "ask_button",          has_page_selection: hasPageSelectionForAnalytics(),
+});      }      previousFocus = document.activeElement;     
+document.body.dataset.docsAgentOpen = "true";      document.body.classList.add("docs-agent-open");
+root.dataset.open = "true";      root.classList.add("is-open");      syncLayoutTargets();
+initializeChatKit();      requestAnimationFrame(() => closeButton.focus());
+};    const closePanel = () => {      delete document.body.dataset.docsAgentOpen;
+document.body.classList.remove("docs-agent-open");      delete root.dataset.open;
+root.classList.remove("is-open");      syncLayoutTargets();      if (previousFocus
+instanceof HTMLElement) {        previousFocus.focus();      }    };    clearLegacyStoredState();
+desktopPanelMedia.addEventListener("change", syncLayoutTargets);   
+document.addEventListener("selectionchange", rememberPageSelection);    document.addEventListener(
+"astro:before-preparation",      deferPageTransitionDuringChatKitTurn    );
+document.addEventListener(      "astro:before-swap",      syncDesiredPathnameBeforeSwap
+);    document.addEventListener("astro:page-load", syncLayoutTargets);   
+document.addEventListener(      "astro:page-load",      syncDesiredPathnameForPageLoad
+);    document.addEventListener("pointerdown", (event) => {      if (        event.target
+instanceof Element &&        event.target.closest("button[data-docs-agent-open]")
+) {        rememberPageSelection();      }    });    document.addEventListener("click",
+(event) => {      if (        event.target instanceof Element &&       
+event.target.closest("button[data-docs-agent-open]")      ) {        openPanel();
+}    });    newButton.addEventListener("click", resetChatKit);   
+closeButton.addEventListener("click", closePanel);    window.addEventListener("docs-agent:close",
+closePanel);    panel.addEventListener("keydown", (event) => {      if (event.key
+=== "Escape") {        closePanel();      }    });    root.dataset.initialized =
+"true";    syncLayoutTargets();  }  document.addEventListener("astro:page-load",
+initializeDocsAgentLauncher);  window.addEventListener(    "docs-agent:helpers-ready",
+initializeDocsAgentLauncher  );  initializeDocsAgentLauncher();

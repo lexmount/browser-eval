@@ -1,0 +1,35 @@
+{
+  "case_id": "lexmount-doc",
+  "url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+  "checked_at": "2026-09-02T03:37:48.087119+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://browser.lexmount.com/docs/webfetch/quickstart"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 214601,
+  "sha256": "3078455a6eb58f124972fd20f43684a5c1b1a141d9e5e55c335d386c06ec8f10",
+  "title": "Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI Agents",
+  "selector": "article",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://browser.lexmount.com/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75",
+      "alt": "Logo of Lexmount"
+    },
+    {
+      "tag": "img",
+      "url": "https://browser.lexmount.com/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75",
+      "alt": "Logo of Lexmount"
+    }
+  ],
+  "text_chars": 2660,
+  "excerpt": "Quick Start\nSend your first WebFetch request and understand the default response behavior.\nCopy Markdown\nOpen\nUse Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.\nThe most practical starting point is\nPOST /v1/extract\n.\nAuthentication\nThe API is currently in internal testing\nExternal requests must include both\nX-API-Key\nand\nX-Project-Id\nCreate or copy them from\nhttps://browser.lexmount.cn/settings/api-keys\nFor overseas access, use\nhttps://browser.lexmount.com/settings/api-keys\nand replace the endpoint with\nhttps://api.lexmount.com\nSend Your First Request\nAPI_KEY\n=\n'<your-api-key>'\nPROJECT_ID\n=\n'<your-project-id>'\ncurl\n-sS\n-X\nPOST\nhttps://api.lexmount.cn/v1/extract\n\\\n-H\n'Content-Type: application/js",
+  "missing_facts": [],
+  "state": "captured"
+}

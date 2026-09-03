@@ -1,0 +1,437 @@
+Fearless Concurrency - The Rust Programming Language
+============================================================================
+
+tag.\*/#mdbook-body-container {    /\*  
+This is used when the sidebar pushes the body content off the side of      
+the screen on small screens. Without it, dragging on mobile Safari        will
+want to reposition the viewport in a weird way.    \*/    overflow-x: clip;}/\* Menu
+Bar \*/#mdbook-menu-bar,#mdbook-menu-bar-hover-placeholder {    z-index: 101;    
+margin: auto calc(0px - var(--page-padding));}#mdbook-menu-bar {    position: relative;
+display: flex;    flex-wrap: wrap;    background-color: var(--bg);    border-block-end-color:
+var(--bg);    border-block-end-width: 1px;    border-block-end-style:
+solid;}#mdbook-menu-bar.sticky,#mdbook-menu-bar-hover-placeholder:hover +
+#mdbook-menu-bar,#mdbook-menu-bar:hover,html.sidebar-visible #mdbook-menu-bar {
+position: -webkit-sticky;    position: sticky;    top: 0
+!important;}#mdbook-menu-bar-hover-placeholder {    position: sticky;    position:
+-webkit-sticky;    top: 0;    height: var(--menu-bar-height);}#mdbook-menu-bar.bordered
+{    border-block-end-color: var(--table-border-color);}#mdbook-menu-bar .fa-svg,
+#mdbook-menu-bar .icon-button {    position: relative;    padding: 0 8px;    z-index:
+10;    line-height: var(--menu-bar-height);    cursor: pointer;    transition: color
+0.5s;}@media only screen and (max-width: 420px) {    #mdbook-menu-bar .fa-svg, #mdbook-menu-bar
+.icon-button {        padding: 0 5px;    }}.icon-button {    border: none;    background:
+none;    padding: 0;    color: inherit;}.icon-button .fa-svg {    margin: 0;}.right-buttons
+{    margin: 0 15px;}.right-buttons a {    text-decoration: none;}.left-buttons {
+display: flex;    margin: 0 5px;}html:not(.js) .left-buttons button {    display:
+none;}.menu-title {    display: inline-block;    font-weight: 200;    font-size:
+2.4rem;    line-height: var(--menu-bar-height);    text-align: center;    margin:
+0;    flex: 1;    white-space: nowrap;    overflow: hidden;    text-overflow: ellipsis;}.menu-title
+{    cursor:
+pointer;}.menu-bar,.menu-bar:visited,.nav-chapters,.nav-chapters:visited,.mobile-nav-chapters,.mobile-nav-chapters:visited,.menu-bar
+.icon-button,.menu-bar a .fa-svg {    color: var(--icons);}.menu-bar .fa-svg:hover,.menu-bar
+.icon-button:hover,.nav-chapters:hover,.mobile-nav-chapters .fa-svg:hover {    color:
+var(--icons-hover);}/\* Nav Icons \*/.nav-chapters {    font-size: 2.5em;    text-align:
+center;    text-decoration: none;    position: fixed;    top: 0;    bottom: 0;   
+margin: 0;    max-width: 150px;    min-width: 90px;    display: flex;    justify-content:
+center;    align-content: center;    flex-direction: column;    transition: color
+0.5s, background-color 0.5s;}.nav-chapters:hover {    text-decoration: none;    background-color:
+var(--theme-hover);    transition: background-color 0.15s, color 0.15s;}.nav-wrapper
+{    margin-block-start: 50px;    display: none;}.mobile-nav-chapters {    font-size:
+2.5em;    text-align: center;    text-decoration: none;    width: 90px;    border-radius:
+5px;    background-color: var(--sidebar-bg);}/\* Only Firefox supports flow-relative
+values \*/.previous { float: left; }[dir=rtl] .previous { float: right; }/\* Only
+Firefox supports flow-relative values \*/.next {    float: right;    right:
+var(--page-padding);}[dir=rtl] .next {    float: left;    right: unset;    left:
+var(--page-padding);}@media only screen and (max-width: 1080px) {    .nav-wide-wrapper
+{ display: none; }    .nav-wrapper { display: block; }}/\* sidebar-visible \*/@media
+only screen and (max-width: 1380px) {    #mdbook-sidebar-toggle-anchor:checked ~
+.page-wrapper .nav-wide-wrapper { display: none; }    #mdbook-sidebar-toggle-anchor:checked
+~ .page-wrapper .nav-wrapper { display: block; }}/\* Inline code \*/:not(pre) > .hljs
+{    display: inline;    padding: 0.1em 0.3em;    border-radius: 3px;}:not(pre):not(a)
+> .hljs {    color: var(--inline-code-color);    overflow-x: initial;}a:hover > .hljs
+{    text-decoration: underline;}pre {    position: relative;}pre > .buttons {   
+position: absolute;    z-index: 100;    right: 0px;    top: 2px;    margin: 0px;
+padding: 2px 0px;    color: var(--sidebar-fg);    cursor: pointer;    visibility:
+hidden;    opacity: 0;    transition: visibility 0.1s linear, opacity 0.1s linear;}pre:hover
+> .buttons {    visibility: visible;    opacity: 1}pre > .buttons :hover {    color:
+var(--sidebar-active);    border-color: var(--icons-hover);    background-color:
+var(--theme-hover);}pre > .buttons button {    cursor: inherit;    margin: 0px 5px;
+padding: 2px 3px 0px 4px;    font-size: 23px;    border-style: solid;    border-width:
+1px;    border-radius: 4px;    border-color: var(--icons);    background-color:
+var(--theme-popup-bg);    transition: 100ms;    transition-property:
+color,border-color,background-color;    color: var(--icons);}pre > .buttons button.clip-button
+{    padding: 2px 4px 0px 6px;}pre > .buttons button.clip-button::before {    /\*
+clipboard image from octicons (https://github.com/primer/octicons/tree/v2.0.0) MIT
+license     \*/    content: url('data:image/svg+xml,\\\\\\');    filter:
+var(--copy-button-filter);}pre > .buttons button.clip-button:hover::before {    
+filter: var(--copy-button-filter-hover);}@media (pointer: coarse) {    pre > .buttons
+button {        /\* On mobile, make it easier to tap buttons. \*/        padding:
+0.3rem 1rem;    }    .sidebar-resize-indicator {        /\* Hide resize indicator
+on devices with limited accuracy \*/        display: none;    }}pre > code {    display:
+block;    padding: 1rem;}/\* FIXME: ACE editors overlap their buttons because ACE
+does absolute   positioning within the code block which breaks padding. The only
+solution I   can think of is to move the padding to the outer pre tag (or insert
+a div   wrapper), but that would require fixing a whole bunch of CSS rules.\*/.hljs.ace_editor
+{  padding: 0rem 0rem;}pre > .result {    margin-block-start: 10px;}/\* Search
+\*/#mdbook-searchresults a {    text-decoration: none;}mark {    border-radius:
+2px;    padding-block-start: 0;    padding-block-end: 1px;    padding-inline-start:
+3px;    padding-inline-end: 3px;    margin-block-start: 0;    margin-block-end: -1px;
+margin-inline-start: -3px;    margin-inline-end: -3px;    background-color:
+var(--search-mark-bg);    transition: background-color 300ms linear;    cursor:
+pointer;}mark.fade-out {    background-color: rgba(0,0,0,0) !important;    cursor:
+auto;}.searchbar-outer {    margin-inline-start: auto;    margin-inline-end: auto;
+max-width: var(--content-max-width);}#mdbook-searchbar-outer.searching #mdbook-searchbar
+{    padding-right: 30px;}#mdbook-searchbar-outer .spinner-wrapper {    display:
+none;}#mdbook-searchbar-outer.searching .spinner-wrapper {    display: block;}.search-wrapper
+{    position: relative;}.spinner-wrapper {    --spinner-margin: 2px;    position:
+absolute;    margin-block-start: calc(var(--searchbar-margin-block-start) + var(--spinner-margin));
+right: var(--spinner-margin);    top: 0;    bottom: var(--spinner-margin);    
+padding: 6px;    background-color: var(--bg);}#fa-spin {    animation: rotating 2s
+linear infinite;    display: inline-block;}@keyframes rotating {    from {       
+transform: rotate(0deg);    }    to {        transform: rotate(360deg);    }}#mdbook-searchbar
+{    width: 100%;    margin-block-start: var(--searchbar-margin-block-start);    
+margin-block-end: 0;    margin-inline-start: auto;    margin-inline-end: auto;   
+padding: 10px 16px;    transition: box-shadow 300ms ease-in-out;    border: 1px
+solid var(--searchbar-border-color);    border-radius: 3px;    background-color:
+var(--searchbar-bg);    color: var(--searchbar-fg);}#mdbook-searchbar:focus,#mdbook-searchbar.active
+{    box-shadow: 0 0 3px var(--searchbar-shadow-color);}.searchresults-header {  
+font-weight: bold;    font-size: 1em;    padding-block-start: 18px;    padding-block-end:
+0;    padding-inline-start: 5px;    padding-inline-end: 0;    color:
+var(--searchresults-header-fg);}.searchresults-outer {    margin-inline-start: auto;
+margin-inline-end: auto;    max-width: var(--content-max-width);    border-block-end:
+1px dashed var(--searchresults-border-color);}ul#mdbook-searchresults {    list-style:
+none;    padding-inline-start: 20px;}ul#mdbook-searchresults li {    margin: 10px
+0px;    padding: 2px;    border-radius: 2px;}ul#mdbook-searchresults li.focus {  
+background-color: var(--searchresults-li-bg);}ul#mdbook-searchresults span.teaser
+{    display: block;    clear: both;    margin-block-start: 5px;    margin-block-end:
+0;    margin-inline-start: 20px;    margin-inline-end: 0;    font-size:
+0.8em;}ul#mdbook-searchresults span.teaser em {    font-weight: bold;    font-style:
+normal;}/\* Sidebar \*/.sidebar {    position: fixed;    left: 0;    top: 0;    bottom:
+0;    width: var(--sidebar-width);    font-size: 0.875em;    box-sizing: border-box;
+-webkit-overflow-scrolling: touch;    overscroll-behavior-y: contain;    background-color:
+var(--sidebar-bg);    color: var(--sidebar-fg);}.sidebar-iframe-inner {    --padding:
+10px;    background-color: var(--sidebar-bg);    padding: var(--padding);    margin:
+0;    font-size: 1.4rem;    color: var(--sidebar-fg);    min-height: calc(100vh -
+var(--padding) \* 2);}.sidebar-iframe-outer {    border: none;    height: 100%;  
+position: absolute;    top: 0;    bottom: 0;    left: 0;    right: 0;}[dir=rtl]
+.sidebar { left: unset; right: 0; }.sidebar-resizing {    -moz-user-select: none;
+-webkit-user-select: none;    -ms-user-select: none;    user-select:
+none;}html:not(.sidebar-resizing) .sidebar {    transition: transform 0.3s; /\*
+Animation: slide away \*/}.sidebar code {    line-height: 2em;}.sidebar .sidebar-scrollbox
+{    overflow-y: auto;    position: absolute;    top: 0;    bottom: 0;    left: 0;
+right: 0;    padding: 10px 10px;}.sidebar .sidebar-resize-handle {    position:
+absolute;    cursor: col-resize;    width: 0;    right: calc(var(--sidebar-resize-indicator-width)
+\* -1);    top: 0;    bottom: 0;    display: flex;    align-items: center;}.sidebar-resize-handle
+.sidebar-resize-indicator {    width: 100%;    height: 16px;    color: var(--icons);
+margin-inline-start: var(--sidebar-resize-indicator-space);    display: flex;
+align-items: center;    justify-content: flex-start;}.sidebar-resize-handle
+.sidebar-resize-indicator::before {    content: "";    width: 2px;    height: 12px;
+border-left: dotted 2px currentColor;}.sidebar-resize-handle .sidebar-resize-indicator::after
+{    content: "";    width: 2px;    height: 16px;    border-left: dotted 2px currentColor;}[dir=rtl]
+.sidebar .sidebar-resize-handle {    left: calc(var(--sidebar-resize-indicator-width)
+\* -1);    right: unset;}.js .sidebar .sidebar-resize-handle {    cursor: col-resize;
+width: calc(var(--sidebar-resize-indicator-width) -
+var(--sidebar-resize-indicator-space));}html:not(.js) .sidebar-resize-handle {  
+display: none;}/\* sidebar-hidden \*/#mdbook-sidebar-toggle-anchor:not(:checked)
+~ .sidebar {    transform: translateX(calc(0px - var(--sidebar-width) -
+var(--sidebar-resize-indicator-width)));}[dir=rtl] #mdbook-sidebar-toggle-anchor:not(:checked)
+~ .sidebar {    transform: translateX(calc(var(--sidebar-width) +
+var(--sidebar-resize-indicator-width)));}.sidebar::-webkit-scrollbar {    background:
+var(--sidebar-bg);}.sidebar::-webkit-scrollbar-thumb {    background: var(--scrollbar);}/\*
+sidebar-visible \*/#mdbook-sidebar-toggle-anchor:checked ~ .page-wrapper {    transform:
+translateX(calc(var(--sidebar-width) + var(--sidebar-resize-indicator-width)));}[dir=rtl]
+#mdbook-sidebar-toggle-anchor:checked ~ .page-wrapper {    transform: translateX(calc(0px
+- var(--sidebar-width) - var(--sidebar-resize-indicator-width)));}@media only screen
+and (min-width: 620px) {    #mdbook-sidebar-toggle-anchor:checked ~ .page-wrapper
+{        transform: none;        margin-inline-start: calc(var(--sidebar-width) +
+var(--sidebar-resize-indicator-width));    }    [dir=rtl] #mdbook-sidebar-toggle-anchor:checked
+~ .page-wrapper {        transform: none;    }}.chapter {    list-style: none outside
+none;    padding-inline-start: 0;    line-height: 2.2em;}.chapter li {    color:
+var(--sidebar-non-existant);}/\* This is a span wrapping the chapter link and the
+fold chevron. \*/.chapter-link-wrapper {    /\* Used to position the chevron to the
+right, allowing the text to wrap before it. \*/    display: flex;}.chapter li a {
+/\* Remove underlines. \*/    text-decoration: none;    color: var(--sidebar-fg);}.chapter
+li a:hover {    color: var(--sidebar-active);}.chapter li a.active {    color:
+var(--sidebar-active);}/\* This is the toggle chevron. \*/.chapter-fold-toggle {
+cursor: pointer;    /\* Positions the chevron to the side. \*/    margin-inline-start:
+auto;    padding: 0 10px;    user-select: none;    opacity: 0.68;}.chapter-fold-toggle
+div {    transition: transform 0.5s;}/\* collapse the section \*/.chapter li:not(.expanded)
+> ol {    display: none;}.chapter li.chapter-item {    line-height: 1.5em;    margin-block-start:
+0.6em;}.chapter li.header-item {    /\* Make sure there is plenty of spacing between
+sections so they don't blend in       with each other. \*/    margin-block-end: 0.5em;
+/\* Avoid too much spacing between lines when section heading word wraps so that
+it can be distinguished between successive headings. \*/    line-height: 1.5em;}/\*
+When expanded, rotate the chevron to point down. \*/.chapter li.expanded > span >
+.chapter-fold-toggle div {    transform: rotate(90deg);}.chapter a.current-header
+{    color: var(--sidebar-active);}.on-this-page {    margin-left: 22px;    border-inline-start:
+4px solid var(--sidebar-header-border-color);    padding-left: 8px;}.on-this-page
+> ol {    padding-left: 0;}/\* Horizontal line in chapter list. \*/.spacer {    width:
+100%;    height: 3px;    margin: 5px 0px;}.chapter .spacer {    background-color:
+var(--sidebar-spacer);}/\* On touch devices, add more vertical spacing to make it
+easier to tap links. \*/@media (-moz-touch-enabled: 1), (pointer: coarse) {    .chapter
+li a { padding: 5px 0; }    .spacer { margin: 10px 0; }}.section {    list-style:
+none outside none;    padding-inline-start: 20px;    line-height: 1.9em;}/\* Theme
+Menu Popup \*/.theme-popup {    position: absolute;    left: 10px;    top: var(--menu-bar-height);
+z-index: 1000;    border-radius: 4px;    font-size: 0.7em;    color: var(--fg);
+background: var(--theme-popup-bg);    border: 1px solid var(--theme-popup-border);
+margin: 0;    padding: 0;    list-style: none;    display: none;    /\* Don't
+let the children's background extend past the rounded corners. \*/    overflow: hidden;}[dir=rtl]
+.theme-popup { left: unset;  right: 10px; }.theme-popup .default {    color:
+var(--icons);}.theme-popup .theme {    width: 100%;    border: 0;    margin: 0;
+padding: 2px 20px;    line-height: 25px;    white-space: nowrap;    text-align:
+start;    cursor: pointer;    color: inherit;    background: inherit;    font-size:
+inherit;}.theme-popup .theme:hover {    background-color:
+var(--theme-hover);}.theme-selected::before {    display: inline-block;    content:
+"✓";    margin-inline-start: -14px;    width: 14px;}/\* The container for the help
+popup that covers the whole window. \*/#mdbook-help-container {    /\* Position and
+size for the whole window. \*/    position: fixed;    top: 0;    left: 0;    right:
+0;    bottom: 0;    /\* This uses flex layout (which is set in book.js), and centers
+the popup       in the window.\*/    display: none;    align-items: center;    justify-content:
+center;    z-index: 1000;    /\* Dim out the book while the popup is visible. \*/
+background: var(--overlay-bg);}/\* The popup help box. \*/#mdbook-help-popup {
+box-shadow: 0 4px 24px rgba(0,0,0,0.15);    min-width: 300px;    max-width: 500px;
+width: 100%;    box-sizing: border-box;    display: flex;    flex-direction: column;
+align-items: center;    background-color: var(--bg);    color: var(--fg);    border-width:
+1px;    border-color: var(--theme-popup-border);    border-style: solid;    border-radius:
+8px;    padding: 10px;}.mdbook-help-title {    text-align: center;    /\* mdbook's
+margin for h2 is way too large. \*/    margin: 10px;}                            
+
+
+## Keyboard shortcuts
+
+
+Press ← or → to navigate between chapters
+
+Press S or / to search in the book
+
+Press ? to show this help
+
+Press Esc to hide this help
+
+
+1. [The Rust Programming Language](title-page.html "0")
+2. [Foreword](foreword.html)
+3. [Introduction](ch00-00-introduction.html)
+4. [**1.** Getting
+Started](ch01-00-getting-started.html)
+1. [**1.1.** Installation](ch01-01-installation.html)
+2. [**1.2.** Hello, World!](ch01-02-hello-world.html)
+3. [**1.3.** Hello, Cargo!](ch01-03-hello-cargo.html)
+
+- [**2.** Programming a Guessing Game](ch02-00-guessing-game-tutorial.html)
+- [**3.** Common Programming
+Concepts](ch03-00-common-programming-concepts.html)
+1. [**3.1.** Variables and Mutability](ch03-01-variables-and-mutability.html)
+2. [**3.2.** Data Types](ch03-02-data-types.html)
+3. [**3.3.** Functions](ch03-03-how-functions-work.html)
+4. [**3.4.** Comments](ch03-04-comments.html)
+5. [**3.5.** Control Flow](ch03-05-control-flow.html)
+
+- [**4.** Understanding
+Ownership](ch04-00-understanding-ownership.html)
+1. [**4.1.** What is Ownership?](ch04-01-what-is-ownership.html)
+2. [**4.2.** References and Borrowing](ch04-02-references-and-borrowing.html)
+3. [**4.3.** The Slice Type](ch04-03-slices.html)
+
+- [**5.** Using Structs to Structure Related
+Data](ch05-00-structs.html)
+1. [**5.1.** Defining and Instantiating Structs](ch05-01-defining-structs.html)
+2. [**5.2.** An Example Program Using Structs](ch05-02-example-structs.html)
+3. [**5.3.** Methods](ch05-03-method-syntax.html)
+
+- [**6.** Enums and Pattern
+Matching](ch06-00-enums.html)
+1. [**6.1.** Defining an Enum](ch06-01-defining-an-enum.html)
+2. [**6.2.** The match Control Flow Construct](ch06-02-match.html)
+3. [**6.3.** Concise Control Flow with if let and let...else](ch06-03-if-let.html)
+
+- [**7.** Packages, Crates, and
+Modules](ch07-00-managing-growing-projects-with-packages-crates-and-modules.html)
+1. [**7.1.** Packages and Crates](ch07-01-packages-and-crates.html)
+2. [**7.2.** Control Scope and Privacy with Modules](ch07-02-defining-modules-to-control-scope-and-privacy.html)
+3. [**7.3.** Paths for Referring to an Item in the Module Tree](ch07-03-paths-for-referring-to-an-item-in-the-module-tree.html)
+4. [**7.4.** Bringing Paths Into Scope with the use Keyword](ch07-04-bringing-paths-into-scope-with-the-use-keyword.html)
+5. [**7.5.** Separating Modules into Different Files](ch07-05-separating-modules-into-different-files.html)
+
+- [**8.** Common
+Collections](ch08-00-common-collections.html)
+1. [**8.1.** Storing Lists of Values with Vectors](ch08-01-vectors.html)
+2. [**8.2.** Storing UTF-8 Encoded Text with Strings](ch08-02-strings.html)
+3. [**8.3.** Storing Keys with Associated Values in Hash Maps](ch08-03-hash-maps.html)
+
+- [**9.** Error
+Handling](ch09-00-error-handling.html)
+1. [**9.1.** Unrecoverable Errors with panic!](ch09-01-unrecoverable-errors-with-panic.html)
+2. [**9.2.** Recoverable Errors with Result](ch09-02-recoverable-errors-with-result.html)
+3. [**9.3.** To panic! or Not to panic!](ch09-03-to-panic-or-not-to-panic.html)
+
+- [**10.** Generic Types, Traits, and
+Lifetimes](ch10-00-generics.html)
+1. [**10.1.** Generic Data Types](ch10-01-syntax.html)
+2. [**10.2.** Defining Shared Behavior with Traits](ch10-02-traits.html)
+3. [**10.3.** Validating References with Lifetimes](ch10-03-lifetime-syntax.html)
+
+- [**11.** Writing Automated
+Tests](ch11-00-testing.html)
+1. [**11.1.** How to Write Tests](ch11-01-writing-tests.html)
+2. [**11.2.** Controlling How Tests Are Run](ch11-02-running-tests.html)
+3. [**11.3.** Test Organization](ch11-03-test-organization.html)
+
+- [**12.** An I/O Project: Building a Command Line
+Program](ch12-00-an-io-project.html)
+1. [**12.1.** Accepting Command Line Arguments](ch12-01-accepting-command-line-arguments.html)
+2. [**12.2.** Reading a File](ch12-02-reading-a-file.html)
+3. [**12.3.** Refactoring to Improve Modularity and Error Handling](ch12-03-improving-error-handling-and-modularity.html)
+4. [**12.4.** Adding Functionality with Test Driven Development](ch12-04-testing-the-librarys-functionality.html)
+5. [**12.5.** Working with Environment Variables](ch12-05-working-with-environment-variables.html)
+6. [**12.6.** Redirecting Errors to Standard Error](favicon-de23e50b.svg "description")
+
+- [**13.** Functional Language Features: Iterators and Closures](favicon-de23e50b.svg
+"stylesheet")
+1. [**13.1.** Closures](css/variables-8adf115d.css "stylesheet")
+2. [**13.2.** Processing a Series of Items with Iterators](css/general-0392ca55.css "stylesheet")
+3. [**13.3.** Improving Our I/O Project](css/general-0392ca55.css "stylesheet")
+4. [**13.4.** Performance in Loops vs. Iterators](css/general-0392ca55.css "stylesheet")
+
+- [**14.** More about Cargo and Crates.io](css/general-0392ca55.css
+"stylesheet")
+1. [**14.1.** Customizing Builds with Release Profiles](css/general-0392ca55.css "stylesheet")
+2. [**14.2.** Publishing a Crate to Crates.io](css/general-0392ca55.css "stylesheet")
+3. [**14.3.** Cargo Workspaces](css/general-0392ca55.css "stylesheet")
+4. [**14.4.** Installing Binaries with cargo install](css/general-0392ca55.css "stylesheet")
+5. [**14.5.** Extending Cargo with Custom Commands](css/general-0392ca55.css "stylesheet")
+
+- [**15.** Smart Pointers](css/general-0392ca55.css
+"stylesheet")
+1. [**15.1.** Using Box<T> to Point to Data on the Heap](css/general-0392ca55.css "stylesheet")
+2. [**15.2.** Treating Smart Pointers Like Regular References](css/general-0392ca55.css "stylesheet")
+3. [**15.3.** Running Code on Cleanup with the Drop Trait](css/general-0392ca55.css "stylesheet")
+4. [**15.4.** Rc<T>, the Reference Counted Smart Pointer](css/general-0392ca55.css "stylesheet")
+5. [**15.5.** RefCell<T> and the Interior Mutability Pattern](css/general-0392ca55.css "stylesheet")
+6. [**15.6.** Reference Cycles Can Leak Memory](css/general-0392ca55.css "stylesheet")
+
+- [**16.** Fearless Concurrency](css/general-0392ca55.css
+"stylesheet")
+1. [**16.1.** Using Threads to Run Code Simultaneously](css/general-0392ca55.css "stylesheet")
+2. [**16.2.** Transfer Data Between Threads with Message Passing](css/general-0392ca55.css "stylesheet")
+3. [**16.3.** Shared-State Concurrency](css/general-0392ca55.css "stylesheet")
+4. [**16.4.** Extensible Concurrency with Send and Sync](css/general-0392ca55.css "stylesheet")
+
+- [**17.** Fundamentals of Asynchronous Programming: Async, Await, Futures, and Streams](css/general-0392ca55.css
+"stylesheet")
+1. [**17.1.** Futures and the Async Syntax](css/general-0392ca55.css "stylesheet")
+2. [**17.2.** Applying Concurrency with Async](css/general-0392ca55.css "stylesheet")
+3. [**17.3.** Working With Any Number of Futures](css/general-0392ca55.css "stylesheet")
+4. [**17.4.** Streams: Futures in Sequence](css/general-0392ca55.css "stylesheet")
+5. [**17.5.** A Closer Look at the Traits for Async](css/general-0392ca55.css "stylesheet")
+6. [**17.6.** Futures, Tasks, and Threads](css/general-0392ca55.css "stylesheet")
+
+- [**18.** Object Oriented Programming Features](css/general-0392ca55.css
+"stylesheet")
+1. [**18.1.** Characteristics of Object-Oriented Languages](css/general-0392ca55.css "stylesheet")
+2. [**18.2.** Using Trait Objects to Abstract over Shared Behavior](css/general-0392ca55.css "stylesheet")
+3. [**18.3.** Implementing an Object-Oriented Design Pattern](css/general-0392ca55.css "stylesheet")
+
+- [**19.** Patterns and Matching](css/general-0392ca55.css
+"stylesheet")
+1. [**19.1.** All the Places Patterns Can Be Used](css/general-0392ca55.css "stylesheet")
+2. [**19.2.** Refutability: Whether a Pattern Might Fail to Match](css/general-0392ca55.css "stylesheet")
+3. [**19.3.** Pattern Syntax](css/general-0392ca55.css "stylesheet")
+
+- [**20.** Advanced Features](css/general-0392ca55.css
+"stylesheet")
+1. [**20.1.** Unsafe Rust](css/general-0392ca55.css "stylesheet")
+2. [**20.2.** Advanced Traits](css/general-0392ca55.css "stylesheet")
+3. [**20.3.** Advanced Types](css/general-0392ca55.css "stylesheet")
+4. [**20.4.** Advanced Functions and Closures](css/general-0392ca55.css "stylesheet")
+5. [**20.5.** Macros](css/general-0392ca55.css "stylesheet")
+
+- [**21.** Final Project: Building a Multithreaded Web Server](css/general-0392ca55.css
+"stylesheet")
+1. [**21.1.** Building a Single-Threaded Web Server](css/general-0392ca55.css "stylesheet")
+2. [**21.2.** From Single-Threaded to Multithreaded Server](css/general-0392ca55.css "stylesheet")
+3. [**21.3.** Graceful Shutdown and Cleanup](css/general-0392ca55.css "stylesheet")
+
+- [**22.** Appendix](css/general-0392ca55.css
+"stylesheet")
+1. [**22.1.** A - Keywords](css/general-0392ca55.css "stylesheet")
+2. [**22.2.** B - Operators and Symbols](css/chrome-fc474251.css "stylesheet")
+3. [**22.3.** C - Derivable Traits](css/chrome-fc474251.css "stylesheet")
+4. [**22.4.** D - Useful Development Tools](css/chrome-fc474251.css "stylesheet")
+5. [**22.5.** E - Editions](css/chrome-fc474251.css "stylesheet")
+6. [**22.6.** F - Translations of the Book](css/chrome-fc474251.css "stylesheet")
+7. [**22.7.** G - How Rust is Made and “Nightly Rust”](css/chrome-fc474251.css "stylesheet")
+
+
+- Auto
+- Light
+- Rust
+- Coal
+- Navy
+- Ayu
+
+
+# The Rust Programming Language
+
+
+[                                                    ](css/chrome-fc474251.css "stylesheet")                        [                             
+](css/chrome-fc474251.css "stylesheet")                     
+
+
+# [Fearless Concurrency](css/print-9e4910d8.css "data:image/svg+xml,<svg width="21" height="20" viewBox="0 0 24 25" \
+xmlns="http://www.w3.org/2000/svg" aria-label="Copy to clipboard">\
+<path d="M18 20h2v3c0 1-1 2-2 2H2c-.998 0-2-1-2-2V5c0-.911.755-1.667 1.667-1.667h5A3.323 3.323 0 \
+0110 0a3.323 3.323 0 013.333 3.333h5C19.245 3.333 20 4.09 20 5v8.333h-2V9H2v14h16v-3zM3 \
+7h14c0-.911-.793-1.667-1.75-1.667H13.5c-.957 0-1.75-.755-1.75-1.666C11.75 2.755 10.957 2 10 \
+2s-1.75.755-1.75 1.667c0 .911-.793 1.666-1.75 1.666H4.75C3.793 5.333 3 6.09 3 7z"/>\
+<path d="M4 19h6v2H4zM12 11H4v2h8zM4 17h4v-2H4zM15 15v-3l-4.5 4.5L15 21v-3l8.027-.032L23 15z"/>\
+</svg>")
+
+Handling concurrent programming safely and efficiently is another of Rust’smajor
+goals. *Concurrent programming*, in which different parts of a programexecute independently,
+and *parallel programming*, in which different parts ofa program execute at the same
+time, are becoming increasingly important as morecomputers take advantage of their
+multiple processors. Historically,programming in these contexts has been difficult
+and error-prone. Rust hopes tochange that.
+
+Initially, the Rust team thought that ensuring memory safety and preventingconcurrency
+problems were two separate challenges to be solved with differentmethods. Over time,
+the team discovered that the ownership and type systems area powerful set of tools
+to help manage memory safety *and* concurrencyproblems! By leveraging ownership and
+type checking, many concurrency errorsare compile-time errors in Rust rather than
+runtime errors. Therefore, ratherthan making you spend lots of time trying to reproduce
+the exact circumstancesunder which a runtime concurrency bug occurs, incorrect code
+will refuse tocompile and present an error explaining the problem. As a result, you
+can fixyour code while you’re working on it rather than potentially after it has
+beenshipped to production. We’ve nicknamed this aspect of Rust *fearlessconcurrency*.
+Fearless concurrency allows you to write code that is free ofsubtle bugs and is easy
+to refactor without introducing new bugs.
+
+Note: For simplicity’s sake, we’ll refer to many of the problems as*concurrent*
+rather than being more precise by saying *concurrent and/orparallel*. For this chapter,
+please mentally substitute *concurrent and/orparallel* whenever we use *concurrent*.
+In the next chapter, where thedistinction matters more, we’ll be more specific.
+
+Many languages are dogmatic about the solutions they offer for handlingconcurrent
+problems. For example, Erlang has elegant functionality formessage-passing concurrency
+but has only obscure ways to share state betweenthreads. Supporting only a subset
+of possible solutions is a reasonablestrategy for higher-level languages because
+a higher-level language promisesbenefits from giving up some control to gain abstractions.
+However, lower-levellanguages are expected to provide the solution with the best
+performance in anygiven situation and have fewer abstractions over the hardware.
+Therefore, Rustoffers a variety of tools for modeling problems in whatever way is
+appropriatefor your situation and requirements.
+
+Here are the topics we’ll cover in this chapter:
+
+- How to create threads to run multiple pieces of code at the same time
+- *Message-passing* concurrency, where channels send messages between threads
+- *Shared-state* concurrency, where multiple threads have access to some pieceof data
+- The `Sync` and `Send` traits, which extend Rust’s concurrency guarantees touser-defined types as well as types provided by the standard library
+[                                 
+](css/print-9e4910d8.css "stylesheet")                            [                                 
+](css/print-9e4910d8.css "stylesheet")                        
+
+[                                    
+](css/print-9e4910d8.css "stylesheet")                    [                         
+](css/print-9e4910d8.css "stylesheet")                        
+

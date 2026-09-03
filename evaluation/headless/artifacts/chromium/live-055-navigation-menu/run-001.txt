@@ -1,0 +1,545 @@
+GitHub - pytest-dev/pytest: The pytest framework makes it easy to write small tests,
+yet scales to support complex functional testing · GitHub
+==========================================================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_colorblind_high_contrast-f661b49995ba0bd8.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/kw-866fd9513ae95106.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/04-2e0b5b7403cb7b99.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/0p-c8fed99e921442ca.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/t7l-0a8b07066f584f39.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/j8s-d6df66de8459f530.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/dsj-c0e1b19322545aa7.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/ni-419f3a05b2a0ba11.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components-83736918ee9cf92c.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/ni.0196e6fcc070ac09.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/lq-180d2e8115502593.js "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark_colorblind-f50cacf0a86b9929.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/selector-observer-e88088f989b27670.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+{{ message }}              
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/react-core.317e10d2d7e90593.module.css "route-pattern").
+
+
+[        pytest-dev](https://github.githubassets.com/assets/j6-1e8b001d24ed9cac.js "route-pattern")     
+/    **      [pytest](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")    **
+Public                  
+
+
+-                          Sponsor        
+
+
+#         Sponsor pytest-dev/pytest                      
+
+
+###         Uh oh!
+
+
+	There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/4b-7787ae6d29e0c1d8.js "route-pattern").
+
+
+-             [        Notifications](https://github.githubassets.com/assets/gt-0f9768f83b5f431f.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    3.3k](https://github.githubassets.com/ "route-pattern")  
+-         
+
+[                  Star          14.5k](https://github.githubassets.com/ "GitHub")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pytest-dev/pytest: The pytest framework makes it easy to write small tests, yet scales to support complex functional testing")
+-   [                              Issues          681    ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Pull requests          131    ](/manifest.json "_R_5knd_")
+-   [                              Discussions              ](https://github.githubassets.com/assets/keyboard-shortcuts-dialog.b3ce4cc113f3c5ee.module.css "_R_5knd_")
+-   [                              Actions              ](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")
+-   [                              Projects              ](/ "_R_5knd_")
+-   [                              Wiki              ](/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest "_R_5knd_")
+-   [                              Security and quality          0    ](https://github.com/features/copilot "_R_5knd_")
+-   [                              Insights              ](https://github.com/features/copilot "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Issues      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Pull requests      ](https://github.com/mcp "Octicon")  
+-             [                                                      Discussions      ](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Actions      ](https://github.com/features/actions "Octicon")  
+-             [                                                      Projects      ](https://github.com/features/actions "NavGroup-module__group__W8SqJ")  
+-             [                                                      Wiki      ](https://github.com/features/actions "Octicon")  
+-             [                                                      Security and quality      ](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Insights      ](https://github.com/features/issues "Octicon")  
+
+
+main
+
+[Branches](https://github.githubassets.com/assets/notifications-subscriptions-menu.957bba726ae10233.module.css
+"route-pattern")[Tags](https://github.githubassets.com/ "GitHub")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[17,715 Commits](https://github.githubassets.com/assets/1lf-a0f2419c1e6629c4.js "_R_5knd_")
+
+17,715 Commits
+## Folders and files
+
+| Name                                                                                                                                                                                                                           | Name |   |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                                                                               |
+| -                                                                                                                                                                                                                              | -    | - | - |
+|                                                                                                                                                                                                                                |
+| [.github](/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest "_R_5knd_")                                                                                                                                          |      |
+| [.github](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                      |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [bench](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                        |      |
+| [bench](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [changelog](https://github.com/features/copilot "_R_5knd_")                                                                                                                                                                    |      |
+| [changelog](https://github.com/features/copilot "Octicon")                                                                                                                                                                     |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [doc/en](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                 |      |
+| [doc/en](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                 |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [extra](https://github.com/mcp "Octicon")                                                                                                                                                                                      |      |
+| [extra](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                     |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [scripts](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                                   |      |
+| [scripts](https://github.com/features/actions "Octicon")                                                                                                                                                                       |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [src](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                                                                                     |      |
+| [src](https://github.com/features/actions "Octicon")                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [testing](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                   |      |
+| [testing](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                                   |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.git-blame-ignore-revs](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                        |      |
+| [.git-blame-ignore-revs](https://github.com/features/issues "Octicon")                                                                                                                                                         |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.gitattributes](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                           |      |
+| [.gitattributes](https://github.com/features/code-quality "Octicon")                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.gitignore](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                              |      |
+| [.gitignore](https://github.com/security/advanced-security "Octicon")                                                                                                                                                          |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.mailmap](https://github.com/security/advanced-security "_R_dknd_")                                                                                                                                                           |      |
+| [.mailmap](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                                                              |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.pre-commit-config.yaml](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                              |      |
+| [.pre-commit-config.yaml](https://avatars.githubusercontent.com "route-pattern")                                                                                                                                               |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [.readthedocs.yaml](https://github.githubassets.com/assets/light_colorblind-f4bf1142976e4bbf.css "route-pattern")                                                                                                              |      |
+| [.readthedocs.yaml](https://github.githubassets.com/assets/dark_colorblind-f50cacf0a86b9929.css "route-pattern")                                                                                                               |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [AUTHORS](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")                                                                                                                       |      |
+| [AUTHORS](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                           |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [CHANGELOG.rst](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                     |      |
+| [CHANGELOG.rst](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                     |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [CITATION](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                          |      |
+| [CITATION](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                          |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                |      |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                                                |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [CONTRIBUTING.rst](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")                                                                                                                              |      |
+| [CONTRIBUTING.rst](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")                                                                                                                 |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [LICENSE](https://github.githubassets.com/assets/z1-43f07743b557bfbe.js "route-pattern")                                                                                                                                       |      |
+| [LICENSE](https://github.githubassets.com/assets/ic-991f04433f366e7b.js "route-pattern")                                                                                                                                       |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [OPENCOLLECTIVE.rst](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")                                                                                                                           |      |
+| [OPENCOLLECTIVE.rst](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern")                                                                                                                           |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [README.rst](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern")                                                                                                                                    |      |
+| [README.rst](https://github.githubassets.com/assets/e84-f35c9201cd42c537.js "route-pattern")                                                                                                                                   |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [RELEASING.rst](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components-83736918ee9cf92c.js "route-pattern")                                                                                     |      |
+| [RELEASING.rst](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")                                                                             |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [SECURITY.md](https://github.githubassets.com/ "GitHub")                                                                                                                                                                       |      |
+| [SECURITY.md](https://github.githubassets.com/ "GitHub")                                                                                                                                                                       |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [TIDELIFT.rst](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - pytest-dev/pytest: The pytest framework makes it easy to write small tests, yet scales to support complex functional testing") |      |
+| [TIDELIFT.rst](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                              |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [codecov.yml](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                               |      |
+| [codecov.yml](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                                                               |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [pyproject.toml](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")                                                                                                                                    |      |
+| [pyproject.toml](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                                                                                    |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [tox.ini](https://github.githubassets.com/assets/lazy-react-partial-marketing-header-338f470e257199f5.js "_R_5knd_")                                                                                                           |      |
+| [tox.ini](/ "_R_5knd_")                                                                                                                                                                                                        |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| [uv.lock](/ "_R_5knd_")                                                                                                                                                                                                        |      |
+| [uv.lock](/login?return_to=https%3A%2F%2Fgithub.com%2Fpytest-dev%2Fpytest "_R_5knd_")                                                                                                                                          |      |
+|                                                                                                                                                                                                                           |      |
+|                                                                                                                                                                                                                           |
+| View all files                                                                                                                                                                                                                 |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.com/features/copilot "_R_5knd_")
+- [Code of conduct](https://github.com/features/copilot "_R_5knd_")
+- [Contributing](https://github.com/features/copilot "_R_5knd_")
+- [MIT license](https://github.com/features/copilot "_R_5knd_")
+- [Security](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+More items
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+---
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Octicon")](https://github.com/mcp "Octicon")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Octicon")](https://github.com/features/actions "Octicon")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Octicon")](https://github.com/features/actions "Octicon")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "_R_9knd_")](https://github.com/features/actions "_R_9knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Octicon")](https://github.com/features/codespaces "Octicon")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=pytest-dev "Octicon")](https://github.com/features/codespaces "Octicon")
+
+The `pytest` framework makes it easy to write small tests, yetscales to support complex
+functional testing for applications and libraries.
+
+An example of a simple test:
+
+```# content of test_sample.pydef inc(x):    return x + 1def test_answer():    assert 
+inc(3) == 5```
+
+                              
+To execute it:
+
+```$ pytest============================= test session starts =============================collected
+1 itemstest_sample.py F================================== FAILURES
+===================================_________________________________ test_answer
+_________________________________    def test_answer():>       assert inc(3) ==
+5E       assert 4 == 5E        +  where 4 = inc(3)test_sample.py:5:
+AssertionError========================== 1 failed in 0.04 seconds ===========================```
+
+Thanks to `pytest`'s detailed assertion introspection, you can simply use plain `assert` statements.
+See [getting-started](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") for more examples.
+
+
+## Features
+
+- Detailed info on failing [assert statements](https://github.com/features/code-review "Octicon") (no need to remember `self.assert*` names)
+- [Auto-discovery](https://github.com/features/code-review "Octicon")of test modules and functions
+- [Modular fixtures](https://github.com/features/code-review "Octicon") formanaging small or parametrized long-lived test resources
+- Can run [unittest](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") (or trial)test suites out of the box
+- Python 3.10+ or PyPy3
+- Rich plugin architecture, with over 1300+ [external plugins](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") and thriving community
+
+
+## Documentation
+
+For full documentation, including installation, tutorials and PDF documents, please
+see [https://docs.pytest.org/en/stable/](https://github.com/features/code-quality "Octicon").
+
+
+## Bugs/Requests
+
+Please use the [GitHub issue tracker](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") to submit bugs or request features.
+
+
+## Changelog
+
+Consult the [Changelog](https://github.com/security/advanced-security "Octicon") page for fixes and enhancements of each version.
+
+
+## Support pytest
+
+[Open Collective](https://github.com/security/advanced-security "_R_dknd_") is an online funding platform for open and transparent communities.It provides tools to raise money and share your finances in full transparency.
+
+It is the platform of choice for individuals and companies that want to make one-time
+ormonthly donations directly to the project.
+
+See more details in the [pytest collective](https://github.com/security/advanced-security "Octicon").
+
+
+## pytest for enterprise
+
+Available as part of the Tidelift Subscription.
+
+The maintainers of pytest and thousands of other packages are working with Tidelift
+to deliver commercial support andmaintenance for the open source dependencies you
+use to build your applications.Save time, reduce risk, and improve code health, while
+paying the maintainers of the exact dependencies you use.
+
+[Learn more.](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+
+### Security
+
+If you have found an issue that you believe is a security vulnerability, please do
+not create an issue -- instead, report it via a [new security advisory](https://github.githubassets.com "route-pattern").
+
+
+## License
+
+Copyright Holger Krekel and others, 2004.
+
+Distributed under the terms of the [MIT](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern") license, pytest is free and open source software.
+
+
+## About
+
+The pytest framework makes it easy to write small tests, yet scales to support complex
+functional testing
+
+[pytest.org](https://github.githubassets.com/assets/dark_tritanopia_high_contrast-73236c840c0c7d90.css "route-pattern")
+### Topics
+
+[hacktoberfest](https://github.githubassets.com/assets/dark_dimmed_high_contrast-fd1500c8744e40d6.css "route-pattern")[python](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")[test](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")[testing](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")[unit-testing](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+### Resources
+
+[Readme](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")
+
+[MIT license](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+### Code of conduct
+
+[Code of conduct](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+### Contributing
+
+[Contributing](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+### Security policy
+
+[Security policy](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Cite this repository
+
+[Activity](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[Custom properties](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js "route-pattern")
+### Stars
+
+**14.5k** stars
+### Watchers
+
+**192** watching
+### Forks
+
+[**3.3k** forks](https://github.githubassets.com/assets/04-2e0b5b7403cb7b99.js "route-pattern")
+
+[Report repository](https://github.githubassets.com/assets/9y-6b7bf91c8c76c342.js "route-pattern")
+
+
+## Releases
+
+
+## Sponsor this project
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+
+## Footer
+
+
+[            ](https://github.githubassets.com/assets/tr-12064c91dfbbd248.js "route-pattern")       
+© 2026 GitHub, Inc.              
+### Footer navigation
+
+-             [Terms](https://github.githubassets.com/assets/qod-ec54fa7b5f53a827.js "route-pattern")          
+-             [Privacy](https://github.githubassets.com/assets/20x-bcd86191b33f8bc4.js "route-pattern")          
+-               [Security](https://github.githubassets.com/assets/e84-f35c9201cd42c537.js "route-pattern")            
+-               [Status](https://github.githubassets.com/assets/5h1-73d9d70370b86dc7.js "route-pattern")            
+-             [Community](https://github.githubassets.com/assets/ni-419f3a05b2a0ba11.js "route-pattern")          
+-             [Docs](https://github.githubassets.com/assets/pvt-a6c8440b1a148ab9.js "route-pattern")          
+-             [Contact](https://github.githubassets.com/assets/4b-7787ae6d29e0c1d8.js "route-pattern")          
+-             Manage cookies      
+-                   Do not share my personal information            
+
+
+You can’t perform that action at this time.      
+
+

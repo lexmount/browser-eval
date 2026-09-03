@@ -1,0 +1,779 @@
+GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration
+Platform · GitHub
+==================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fapache%2Fsuperset)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/fetch-utilities-dbd53fc595a25c22.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/aria-live-76b18916d0c8ec4d.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/wo-8dee386ae7fdbf5e.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/du-f505f75f51311ee8.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/cj-006d3ff509d05587.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.svg "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Fapache%2Fsuperset "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/code-2d56bdb0166c0238.css "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/fetch-utilities-dbd53fc595a25c22.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+{{ message }}              
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/wo-8dee386ae7fdbf5e.js "route-pattern").
+
+
+[        apache](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")     
+/    **      [superset](https://github.githubassets.com/assets/aq-0dbf7d12b4d37e14.js "route-pattern")    **
+Public                  
+
+
+-             [        Notifications](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    18.2k](https://github.githubassets.com/assets/b1-0ecf777af36094fd.js "route-pattern")  
+-         
+
+[                  Star          74.6k](https://github.githubassets.com/assets/dsj-c0e1b19322545aa7.js "route-pattern")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/ni.0196e6fcc070ac09.module.css "route-pattern")
+-   [                              Issues          188    ](https://github.githubassets.com/ "GitHub")
+-   [                              Pull requests          417    ](/opensearch.xml "GitHub")
+-   [                              Discussions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform")
+-   [                              Actions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Projects              ](#start-of-content "_R_5knd_")
+-   [                              Wiki              ](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+-   [                              Security and quality          0    ](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+-   [                              Insights              ](/ "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Issues      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Pull requests      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Discussions      ](https://github.com/features/ai/github-app "Octicon")  
+-             [                                                      Actions      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Projects      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Wiki      ](https://github.com/mcp "Octicon")  
+-             [                                                      Security and quality      ](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+-             [                                                      Insights      ](https://github.com/features/actions "Octicon")  
+
+
+master
+
+[Branches](https://github.com/security/advanced-security "Octicon")[Tags](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[22,596 Commits](https://github.githubassets.com/assets/github-552513ad07a183a1.css "route-pattern")
+
+22,596 Commits
+## Folders and files
+
+| Name                                                                                                                                                                                           | Name |   |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                                                               |
+| -                                                                                                                                                                                              | -    | - | - |
+|                                                                                                                                                                                                |
+| [.claude](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                           |      |
+| [.claude](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                           |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.cursor/rules](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                     |      |
+| [.cursor/rules](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.devcontainer](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")                                                                              |      |
+| [.devcontainer](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern")                                                                                                |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.github](https://github.githubassets.com/assets/04-2e0b5b7403cb7b99.js "route-pattern")                                                                                                       |      |
+| [.github](https://github.githubassets.com/assets/j0-e9bfed51669329e8.js "route-pattern")                                                                                                       |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [ASF](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")                                                                                                   |      |
+| [ASF](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")                                                                                                          |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [CHANGELOG](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern")                                                                                                    |      |
+| [CHANGELOG](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")                                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [RELEASING](https://github.githubassets.com/assets/20x-bcd86191b33f8bc4.js "route-pattern")                                                                                                    |      |
+| [RELEASING](https://github.githubassets.com/assets/bsb-068a5d32224f5601.js "route-pattern")                                                                                                    |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [RESOURCES](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")                                                                               |      |
+| [RESOURCES](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern")                                                                                      |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docker](https://github.githubassets.com/ "GitHub")                                                                                                                                            |      |
+| [docker](https://github.githubassets.com/ "GitHub")                                                                                                                                            |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docs](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform")               |      |
+| [docs](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform")               |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [helm/superset](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                             |      |
+| [helm/superset](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                             |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [requirements](#start-of-content "_R_5knd_")                                                                                                                                                   |      |
+| [requirements](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                                                 |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [scripts](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")                                                                                                           |      |
+| [scripts](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                                                      |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset-core](/ "_R_5knd_")                                                                                                                                                                  |      |
+| [superset-core](/ "_R_5knd_")                                                                                                                                                                  |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset-embedded-sdk](/login?return_to=https%3A%2F%2Fgithub.com%2Fapache%2Fsuperset "_R_5knd_")                                                                                              |      |
+| [superset-embedded-sdk](/login?return_to=https%3A%2F%2Fgithub.com%2Fapache%2Fsuperset "_R_5knd_")                                                                                              |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset-extensions-cli](https://github.com/features/copilot "_R_5knd_")                                                                                                                      |      |
+| [superset-extensions-cli](https://github.com/features/copilot "_R_5knd_")                                                                                                                      |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset-frontend](https://github.com/features/copilot "_R_5knd_")                                                                                                                            |      |
+| [superset-frontend](https://github.com/features/copilot "_R_5knd_")                                                                                                                            |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset-websocket](https://github.com/features/ai/github-app "Octicon")                                                                                                                      |      |
+| [superset-websocket](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset](https://github.com/features/ai/github-app "Octicon")                                                                                                                                |      |
+| [superset](https://github.com/mcp "Octicon")                                                                                                                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [tests](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                     |      |
+| [tests](https://github.com/features/actions "Octicon")                                                                                                                                         |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.asf.yaml](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                                               |      |
+| [.asf.yaml](https://github.com/features/actions "Octicon")                                                                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.codecov.yml](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                              |      |
+| [.codecov.yml](https://github.com/features/issues "Octicon")                                                                                                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.coveragerc](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                   |      |
+| [.coveragerc](https://github.com/features/code-review "Octicon")                                                                                                                               |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.dockerignore](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                            |      |
+| [.dockerignore](https://github.com/features/code-quality "Octicon")                                                                                                                            |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.editorconfig](https://github.com/security/advanced-security "Octicon")                                                                                                                       |      |
+| [.editorconfig](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                                                 |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.envrc.example](https://github.com/security/advanced-security "Octicon")                                                                                                                      |      |
+| [.envrc.example](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                       |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.flaskenv](https://github.com/security/advanced-security/code-security "Octicon")                                                                                                             |      |
+| [.flaskenv](https://github.githubassets.com "route-pattern")                                                                                                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.fossa.yml](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")                                                                                  |      |
+| [.fossa.yml](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern")                                                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.gitattributes](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")                                                                                |      |
+| [.gitattributes](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                    |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.gitignore](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                        |      |
+| [.gitignore](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                        |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.gitmodules](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                       |      |
+| [.gitmodules](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                       |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.markdownlint.json](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                |      |
+| [.markdownlint.json](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.pre-commit-config.yaml](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")                                                                    |      |
+| [.pre-commit-config.yaml](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")                                                                          |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.pylintrc](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern")                                                                                                    |      |
+| [.pylintrc](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern")                                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [.rat-excludes](https://github.githubassets.com/assets/fe-68c3c54c382c22e7.js "route-pattern")                                                                                                 |      |
+| [.rat-excludes](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")                                                                                                |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [AGENTS.md](https://github.githubassets.com/assets/sp-f70ca8f28bbb41af.js "route-pattern")                                                                                                     |      |
+| [AGENTS.md](https://github.githubassets.com/assets/j9-4483dc33313243df.js "route-pattern")                                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [CHANGELOG.md](https://github.githubassets.com/assets/7cv-ee517aa478d5e709.js "route-pattern")                                                                                                 |      |
+| [CHANGELOG.md](https://github.githubassets.com/assets/4b.04650e8ebd1e08f2.module.css "route-pattern")                                                                                          |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [CLAUDE.md](https://github.githubassets.com/ "GitHub")                                                                                                                                         |      |
+| [CLAUDE.md](/opensearch.xml "GitHub")                                                                                                                                                          |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform") |      |
+| [CODE_OF_CONDUCT.md](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                        |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [CONTRIBUTING.md](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                                                           |      |
+| [CONTRIBUTING.md](#start-of-content "_R_5knd_")                                                                                                                                                |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [Dockerfile](https://github.githubassets.com/assets/keyboard-shortcuts-dialog.b3ce4cc113f3c5ee.module.css "_R_5knd_")                                                                          |      |
+| [Dockerfile](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")                                                                                                        |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [GEMINI.md](/ "_R_5knd_")                                                                                                                                                                      |      |
+| [GEMINI.md](/ "_R_5knd_")                                                                                                                                                                      |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [GPT.md](/login?return_to=https%3A%2F%2Fgithub.com%2Fapache%2Fsuperset "_R_5knd_")                                                                                                             |      |
+| [GPT.md](https://github.com/features/copilot "_R_5knd_")                                                                                                                                       |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [INSTALL.md](https://github.com/features/copilot "_R_5knd_")                                                                                                                                   |      |
+| [INSTALL.md](https://github.com/features/copilot "_R_5knd_")                                                                                                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [LICENSE.txt](https://github.com/features/copilot "_R_5knd_")                                                                                                                                  |      |
+| [LICENSE.txt](https://github.com/features/ai/github-app "Octicon")                                                                                                                             |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [MANIFEST.in](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                            |      |
+| [MANIFEST.in](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                            |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [Makefile](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                  |      |
+| [Makefile](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                                  |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [NOTICE](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                                                  |      |
+| [NOTICE](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                                                                                  |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [README.md](https://github.com/features/codespaces "Octicon")                                                                                                                                  |      |
+| [README.md](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                 |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [SECURITY.md](https://github.com/features/issues "Octicon")                                                                                                                                    |      |
+| [SECURITY.md](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                                   |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [UPDATING.md](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                                              |      |
+| [UPDATING.md](https://github.com/features/code-quality "Octicon")                                                                                                                              |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docker-compose-image-tag.yml](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                            |      |
+| [docker-compose-image-tag.yml](https://github.com/security/advanced-security "Octicon")                                                                                                        |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docker-compose-light.yml](https://github.com/security/advanced-security "_R_dknd_")                                                                                                           |      |
+| [docker-compose-light.yml](https://github.com/security/advanced-security/code-security "Octicon")                                                                                              |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docker-compose-non-dev.yml](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")           |      |
+| [docker-compose-non-dev.yml](https://github.githubassets.com "route-pattern")                                                                                                                  |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [docker-compose.yml](https://github.githubassets.com/assets/light-99f877e9ddfc0e51.css "route-pattern")                                                                                        |      |
+| [docker-compose.yml](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern")                                                               |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [dockerize.Dockerfile](https://github.githubassets.com/assets/dark_dimmed-0de76f07cc035b10.css "route-pattern")                                                                                |      |
+| [dockerize.Dockerfile](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")                                                                                 |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [lintconf.yaml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                     |      |
+| [lintconf.yaml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                     |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [pyproject.toml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                    |      |
+| [pyproject.toml](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                    |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [pytest.ini](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                        |      |
+| [pytest.ini](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")                                                                                        |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [setup.py](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")                                                                                                |      |
+| [setup.py](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")                                                                                                      |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| [superset_text.yml](https://github.githubassets.com/assets/ur-024971cb63acad59.js "route-pattern")                                                                                             |      |
+| [superset_text.yml](https://github.githubassets.com/assets/react-core.317e10d2d7e90593.module.css "route-pattern")                                                                             |      |
+|                                                                                                                                                                                           |      |
+|                                                                                                                                                                                           |
+| View all files                                                                                                                                                                                 |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.githubassets.com/assets/t7l-0a8b07066f584f39.js "route-pattern")
+- [Code of conduct](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")
+- [Contributing](https://github.githubassets.com/assets/0k-e6270dafdc95b78d.js "route-pattern")
+- [Apache-2.0 license](https://github.githubassets.com/assets/j9-4483dc33313243df.js "route-pattern")
+- [Security](https://github.githubassets.com/assets/gt-0f9768f83b5f431f.js "route-pattern")
+
+More items
+
+
+# Superset
+
+[![Apache Superset is a Data Visualization and Data Exploration Platform - apache/superset](/in-product-messaging/budget-threshold-banner?organization=apache "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - apache/superset: Apache Superset is a Data Visualization and Data Exploration Platform")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![js-site-favicon](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](/manifest.json "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](#start-of-content "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/keyboard-shortcuts-dialog.b3ce4cc113f3c5ee.module.css "_R_5knd_")
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")
+
+
+![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")
+A modern, enterprise-ready business intelligence web application.
+
+
+### Documentation
+
+- **[User Guide](/ "_R_5knd_")** — For analysts and business users. Explore data, build charts, create dashboards, and connect databases.
+- **[Administrator Guide](/ "_R_5knd_")** — Install, configure, and operate Superset. Covers security, scaling, and database drivers.
+- **[Developer Guide](/ "_R_5knd_")** — Contribute to Superset or build on its REST API and extension framework.
+
+[**Why Superset?**](/ "_R_5knd_") |[**Supported Databases**](/ "_R_5knd_") |[**Release
+Notes**](/ "_R_5knd_") |[**Get Involved**](/ "_R_5knd_") |[**Resources**](/ "_R_5knd_")
+|[**Organizations Using Superset**](/ "_R_5knd_")
+
+
+## Why Superset?
+
+Superset is a modern data exploration and data visualization platform. Superset can
+replace or augment proprietary business intelligence tools for many teams. Superset
+integrates well with a variety of data sources.
+
+Superset provides:
+
+- A **no-code interface** for building charts quickly
+- A powerful, web-based **SQL Editor** for advanced querying
+- A **lightweight semantic layer** for quickly defining custom dimensions and metrics
+- Out of the box support for **nearly any SQL** database or data engine
+- A wide array of **beautiful visualizations** to showcase your data, ranging from simple bar charts to geospatial visualizations
+- Lightweight, configurable **caching layer** to help ease database load
+- Highly extensible **security roles and authentication** options
+- An **API** for programmatic customization
+- A **cloud-native architecture** designed from the ground up for scale
+
+
+## Screenshots & Gifs
+
+**Video Overview**
+superset-video-1080p.webm            
+
+**Large Gallery of Visualizations**
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.com/features/copilot "_R_5knd_")
+
+
+**Craft Beautiful, Dynamic Dashboards**
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_5knd_")](https://github.com/features/copilot "_R_5knd_")
+
+
+**No-Code Chart Builder**
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/ai/github-app "Octicon")
+
+
+**Powerful SQL Editor**
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+
+## Supported Databases
+
+Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino,
+Athena, [and more](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")) that has a Python DB-API driver and a SQLAlchemy dialect.
+
+Here are some of the major database solutions that are supported:
+
+[![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/mcp "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/mcp "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/mcp "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/actions "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/actions "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/actions "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_9knd_")](https://github.com/features/actions "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_9knd_")](https://github.com/features/actions "_R_9knd_")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/actions "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/codespaces "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/codespaces "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/codespaces "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/issues "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/issues "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/issues "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/issues "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/code-review "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/code-review "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-review "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/code-review "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/code-quality "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/features/code-quality "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-quality "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/security/advanced-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "NavGroup-module__group__W8SqJ")](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "_R_dknd_")](https://github.com/security/advanced-security "_R_dknd_")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security/code-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security/code-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Octicon")](https://github.com/security/advanced-security/code-security "Octicon")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+   [![{"action":"healthcare","tag":"link","context":"solutions","location":"navbar","label":"healthcare_link_solutions_navbar"}](/in-product-messaging/budget-threshold-banner?organization=apache "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+
+
+**A more comprehensive list of supported databases** along with the configuration
+instructions can be found [here](https://github.com/security/advanced-security/code-security "Octicon").
+
+Want to add support for your datastore or data engine? Read more [here](https://github.com/security/advanced-security/secret-protection "Octicon") about the technical requirements.
+
+
+## Installation and Configuration
+
+Try out Superset's [quickstart](https://github.githubassets.com "route-pattern") guide or learn about [the options for production deployments](https://avatars.githubusercontent.com "route-pattern").
+
+
+## Get Involved
+
+- Ask and answer questions on [StackOverflow](https://github.githubassets.com/assets/light_colorblind_high_contrast-f661b49995ba0bd8.css "route-pattern") using the **apache-superset** tag
+- [Join our community's Slack](https://github.githubassets.com/assets/light_colorblind_high_contrast-f661b49995ba0bd8.css "route-pattern")and please read our [Slack Community Guidelines](https://github.githubassets.com/assets/light_tritanopia-0b38d22346321c92.css "route-pattern")
+- [Join our dev@superset.apache.org Mailing list](https://github.githubassets.com/assets/light_tritanopia_high_contrast-f1c62c9e70259b9f.css "route-pattern"). To join, simply send an email to [dev-subscribe@superset.apache.org](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern")
+- Follow us on social media:[X](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern") |[LinkedIn](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern") |[Bluesky](https://github.githubassets.com/assets/dark_high_contrast-24484a076f02295f.css "route-pattern") |[Reddit](https://github.githubassets.com/assets/dark_colorblind-f50cacf0a86b9929.css "route-pattern")
+- If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://github.githubassets.com/assets/dark_colorblind_high_contrast-e61d4f4ca17852c2.css "route-pattern")
+- Join Superset's Town Hall and [Operational Model](https://github.githubassets.com/assets/dark_tritanopia-39c10993d5603fac.css "route-pattern") recurring meetings. Meeting info is available on the [Superset Community Calendar](https://github.githubassets.com/assets/dark_tritanopia_high_contrast-73236c840c0c7d90.css "route-pattern")
+
+
+## Contributor Guide
+
+Interested in contributing? Check out our[Developer Guide](https://github.githubassets.com/assets/global-adcabba7b5c5d221.css "route-pattern")to find resources around contributing along with a detailed guide onhow to set up a development environment.
+
+
+## Resources
+
+- [Superset "In the Wild"](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") - see who's using Superset, and [add your organization](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") to the list!
+- [Feature Flags](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") - the status of Superset's Feature Flags.
+- [Standard Roles](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") - How RBAC permissions map to roles.
+- [Superset Wiki](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") - Tons of additional community resources: best practices, community content and other information.
+- [Superset SIPs](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern") - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
+
+Understanding the Superset Points of View
+
+- [The Case for Dataset-Centric Visualization](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Understanding the Superset Semantic Layer](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- Getting Started with Superset
+- [Superset in 2 Minutes using Docker Compose](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Installing Database Drivers](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Building New Database Connectors](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Create Your First Dashboard](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Comprehensive Tutorial for Contributing Code to Apache Superset](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+[Resources to master Superset by Preset](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+Deploying Superset
+
+- [Official Docker image](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Helm Chart](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+Recordings of Past [Superset Community Events](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+- [Mixed Time Series Charts](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Introduction to the Superset API](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Building a Database Connector for Superset](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+Visualizations
+
+- [Creating Viz Plugins](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Managing and Deploying Custom Viz Plugins](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Why Apache Superset is Betting on Apache ECharts](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+[Superset API](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[![Apache Superset is a Data Visualization and Data Exploration Platform - apache/superset](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+
+## About
+
+Apache Superset is a Data Visualization and Data Exploration Platform
+
+[superset.apache.org/](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern")
+### Topics
+
+[analytics](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern")[apache](https://github.githubassets.com/assets/catalyst-86a8f5de995615f8.js "route-pattern")[apache-superset](https://github.githubassets.com/assets/selector-observer-e88088f989b27670.js "route-pattern")[asf](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")[bi](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")[business-analytics](https://github.githubassets.com/assets/by-6b3c07383371bf58.js "route-pattern")[business-intelligence](https://github.githubassets.com/assets/ja9-36f036c13c2e3a4c.js "route-pattern")[data-analysis](https://github.githubassets.com/assets/kw-866fd9513ae95106.js "route-pattern")[data-analytics](https://github.githubassets.com/assets/r1-b075aab3204f32f9.js "route-pattern")[data-engineering](https://github.githubassets.com/assets/r1-b075aab3204f32f9.js "route-pattern")[data-science](https://github.githubassets.com/assets/jz5-7c5d1669717041f8.js "route-pattern")[data-visualization](https://github.githubassets.com/assets/hj-5126390ff433704d.js "route-pattern")[data-viz](https://github.githubassets.com/assets/j05-dce4d588268f0f7e.js "route-pattern")[flask](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")[python](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")[react](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")[sql-editor](https://github.githubassets.com/assets/runtime-helpers-f3f5d71440009c48.js "route-pattern")[superset](https://github.githubassets.com/assets/aria-live-76b18916d0c8ec4d.js "route-pattern")
+### Resources
+
+[Readme](https://github.githubassets.com/assets/hotkey-5109c77d7ac61078.js "route-pattern")
+
+[Apache-2.0 license](https://github.githubassets.com/assets/yhq-3a209035a30b1a09.js "route-pattern")
+### Code of conduct
+
+[Code of conduct](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+### Contributing
+
+[Contributing](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern")
+### Security policy
+
+[Security policy](https://github.githubassets.com/assets/c2-2adbf0bc411aac88.js "route-pattern")
+
+[Activity](https://github.githubassets.com/assets/ql0-1c35b9cab4e2019c.js "route-pattern")
+
+[Custom properties](https://github.githubassets.com/assets/5h1-73d9d70370b86dc7.js "route-pattern")
+### Stars
+
+**74.6k** stars
+### Watchers
+
+**1.5k** watching
+### Forks
+
+[**18.2k** forks](https://github.githubassets.com/assets/notifications-subscriptions-menu.957bba726ae10233.module.css "route-pattern")
+
+[Report repository](https://github.githubassets.com/ "GitHub")
+
+
+## Releases
+
+
+## Packages
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+
+## Footer
+
+
+[            ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")       
+© 2026 GitHub, Inc.              
+### Footer navigation
+
+-             [Terms](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")          
+-             [Privacy](https://github.githubassets.com/favicons/favicon.png "_R_5knd_")          
+-               [Security](/manifest.json "_R_5knd_")            
+-               [Status](#start-of-content "_R_5knd_")            
+-             [Community](#start-of-content "_R_5knd_")          
+-             [Docs](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")          
+-             [Contact](https://github.githubassets.com/assets/keyboard-shortcuts-dialog-7edd7db2305efaf0.js "_R_5knd_")          
+-             Manage cookies      
+-                   Do not share my personal information            
+
+
+You can’t perform that action at this time.      
+
+

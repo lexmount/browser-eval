@@ -1,0 +1,46 @@
+{
+  "case_id": "live-076-python-unittest-documentation",
+  "url": "https://docs.python.org/3/library/unittest.html",
+  "checked_at": "2026-09-03T14:15:54.191007+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/unittest.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/unittest.html",
+  "mime": "text/html",
+  "bytes": 333905,
+  "sha256": "6eb51664fe4c93ba2fb47cdc1816b208e1318ec1cf91ea58dbb096e30a98748e",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "unittest — Unit testing framework — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "70adcd0e024cbd2e9e942544ea2cfb270e03ab710c5e9311883634156b4a6bb8",
+  "reference_sha256": "70adcd0e024cbd2e9e942544ea2cfb270e03ab710c5e9311883634156b4a6bb8",
+  "text_chars": 81832,
+  "excerpt": "unittest\n— Unit testing framework\n¶\nSource code:\nLib/unittest/__init__.py\n(If you are already familiar with the basic concepts of testing, you might want\nto skip to\nthe list of assert methods\n.)\nThe\nunittest\nunit testing framework was originally inspired by JUnit\nand has a similar flavor as major unit testing frameworks in other\nlanguages.  It supports test automation, sharing of setup and shutdown code\nfor tests, aggregation of tests into collections, and independence of the\ntests from the reporting framework.\nTo achieve this,\nunittest\nsupports some important concepts in an\nobject-oriented way:\ntest fixture\nA\ntest fixture\nrepresents the preparation needed to perform one or more\ntests, and any associated cleanup actions.  This may involve, for example,\ncreating temporary or proxy databases",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

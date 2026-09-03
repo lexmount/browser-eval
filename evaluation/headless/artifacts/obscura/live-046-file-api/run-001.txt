@@ -1,0 +1,342 @@
+File API - Web APIs | MDN
+=======================================================
+
+
+.token.string{--csstools-light-dark-toggle-92f7e96b-6:var(--csstools-color-scheme--light)
+#bea5ff;color:var(--csstools-light-dark-toggle-92f7e96b-6,#872bff);color:light-dark(#872bff,#bea5ff)}:is(.code-example,.css-formal-syntax)
+.token.bold,:is(.code-example,.css-formal-syntax)
+.token.important{font-weight:700}:is(.code-example,.css-formal-syntax)
+.token.italic{font-style:italic}:is(.code-example,.css-formal-syntax)
+.token.entity{cursor:help}.content-section{line-height:var(--font-line-content)}.content-section
+:target{scroll-margin-top:var(--sticky-header-height)}.content-section h2,.content-section
+h3,.content-section h4,.content-section h5,.content-section
+h6{font-weight:var(--font-weight-normal);line-height:var(--font-line-header);margin:1rem
+0 0}:is(.content-section h2,.content-section h3,.content-section h4,.content-section
+h5,.content-section h6) code{padding:0 .125em}.content-section
+h2{font-size:var(--font-size-larger)}.content-section
+h3{font-size:var(--font-size-large)}.content-section
+h4{font-size:var(--font-size-medium)}.content-section h5,.content-section
+h6{font-size:var(--font-size-normal);font-weight:var(--font-weight-bold)}:is(.content-section
+a):visited{color:var(--color-link-visited)}:is(.content-section
+a):not([href^="#"]){-webkit-text-decoration:underline;text-decoration:underline}:is(.content-section
+a):not([href^="#"]):hover,[href^="#"]:is(.content-section
+a){-webkit-text-decoration:none;text-decoration:none}[href^="#"]:is(.content-section
+a):hover{-webkit-text-decoration:underline;text-decoration:underline}.content-section
+blockquote{border-inline-start:.25rem solid
+var(--color-border-primary);color:var(--color-text-secondary);margin-inline:0}:is(.content-section
+blockquote)>p{padding:1rem 2rem}.content-section code,.content-section
+pre{background-color:var(--color-background-secondary);font-family:var(--font-family-code)}.content-section
+pre{white-space:pre-wrap}.content-section pre:not(.code-example pre){border:1px solid
+var(--color-border-primary);border-radius:.25rem;overflow:auto;padding:1rem}.css-formal-syntax:is(.content-section
+pre:not(.code-example
+pre)){border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0;text-wrap:wrap}.css-formal-syntax:is(.content-section
+pre:not(.code-example pre))~footer{border:1px solid
+var(--color-border-primary);border-bottom-left-radius:.25rem;border-bottom-right-radius:.25rem;border-top:0;margin-bottom:1rem;padding:.5rem
+1rem}.example-bad:is(.content-section pre:not(.code-example pre)),.example-good:is(.content-section
+pre:not(.code-example
+pre)){display:flex;justify-content:space-between}:is(.example-good:is(.content-section
+pre:not(.code-example pre)),.example-bad:is(.content-section pre:not(.code-example
+pre))):after{content:"";display:inline-block;flex-shrink:0;height:var(--font-size-medium);mask-size:cover;width:var(--font-size-medium)}.example-good:is(.content-section
+pre:not(.code-example
+pre)){background-color:var(--color-background-green)}.example-good:is(.content-section
+pre:not(.code-example
+pre)):after{background-color:var(--color-text-green);mask-image:url("https://developer.mozilla.org/static/client/circle-check.205f48f66c3c9d17.svg")}.example-bad:is(.content-section
+pre:not(.code-example
+pre)){background-color:var(--color-background-red)}.example-bad:is(.content-section
+pre:not(.code-example
+pre)):after{background-color:var(--color-text-red);mask-image:url("https://developer.mozilla.org/static/client/circle-x.4b1c3fa0511867e7.svg")}.content-section
+code{border-radius:var(--radius-normal);padding:.125em .25em}.content-section
+kbd{background-color:var(--color-background-primary);border:solid
+var(--color-border-primary);border-radius:var(--radius-normal);border-width:1px
+1px 2px;color:var(--color-text-secondary);font-family:var(--font-family-code);padding:.0625em
+.125em}.content-section img{background-color:var(--color-white);display:block;margin:2rem
+auto}.content-section iframe,.content-section img{border:1px solid
+var(--color-border-primary);border-radius:.25rem}.content-section
+table{border-collapse:collapse;width:100%}:is(.content-section table)
+tr{background-color:var(--color-background-primary)}:is(.content-section table)
+thead tr,:is(.content-section table)
+tr:nth-of-type(2n){background-color:var(--color-background-page)}:is(.content-section
+table) td,:is(.content-section table) th{border:1px solid var(--color-border-primary);padding:.5rem
+.75rem}:is(.content-section table)
+th{font-weight:var(--font-weight-bold);text-align:left}.properties:is(.content-section
+table) td,.properties:is(.content-section table) th{border-width:1px
+0}.properties:is(.content-section table)
+th{background-color:initial;font-weight:var(--font-weight-bold);min-width:25%}.content-section
+.code-example,.content-section .table-container,.content-section mdn-code-example,.content-section
+mdn-live-sample-result{margin:1rem 0}:is(.content-section .code-example,.content-section
+mdn-code-example,.content-section mdn-live-sample-result)+:is(.content-section
+.code-example,.content-section mdn-code-example,.content-section
+mdn-live-sample-result){margin-top:1.5rem}.content-section
+interactive-example{display:block;height:375px;margin:1rem 0}[name^="JavaScript
+Demo:" i]:is(.content-section interactive-example){height:444px}[height=shorter]:is(.content-section
+interactive-example){height:364px}[height=taller]:is(.content-section
+interactive-example){height:654px}[height=tabbed-shorter]:is(.content-section
+interactive-example){height:351px;margin-top:1.5rem}[height=tabbed-standard]:is(.content-section
+interactive-example){height:421px}[height=tabbed-taller]:is(.content-section
+interactive-example){height:631px}@media (width
+summary{margin-bottom:.5rem}:is([open]:is(:is(.content-section ul.specifications-list)
+details)>summary):before{transform:rotate(90deg)}:is(:is(.content-section ul.specifications-list)
+details) summary{align-items:center;cursor:pointer;display:flex}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):before{background-color:currentcolor;content:"";display:inline-block;flex-shrink:0;height:1rem;margin:.125rem;mask-image:url("https://developer.mozilla.org/static/client/chevron-right.a81fc439dd5e4839.svg");mask-size:cover;width:1rem}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):hover{background-color:var(--color-background-secondary)}:is(:is(:is(.content-section
+ul.specifications-list) details)
+summary):hover:has(a:hover){background-color:unset}:is(.content-section .index)
+.index-nav
+ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(1.75rem,1fr));list-style:none;padding:0}:is(:is(.content-section
+.index) .index-nav ul) li{margin:0;text-align:center}:is(:is(.content-section .index)
+.index-nav ul) a{display:block}:is(.content-section
+.index)>ul{column-gap:2rem;columns:18rem}:is(.content-section .index)
+li{break-inside:avoid;page-break-inside:avoid}:is(.content-section .index)
+.icon{margin-left:.5ch}.content-section.article-footer{margin:2rem 0}/\*#
+sourceMappingURL=styles-content-section.1eb240d1720d8ac3.css.map\*/
+1044px){:root{--navigation-height:4.125rem}.navigation{align-items:center;column-gap:1rem;display:grid;grid-template-columns:min-content
+1fr min-content
+min-content;height:var(--navigation-height);justify-items:center;padding-block:.75rem;padding-inline:var(--layout-side-padding)}.navigation__logo{margin-inline-start:-6px}.navigation__popup{display:contents}.navigation__button,.navigation__search[data-view=mobile]{display:none}.navigation__search[data-view=desktop]{display:block}mdn-user-menu{height:2.125rem;width:2.125rem}}/\*#
+sourceMappingURL=styles-navigation.c3ebf384e65df345.css.map\*/
+1044px){.menu{--menu-button-padding:0.5rem
+0.7rem;position:relative}.menu,.menu__tab-button{align-items:center;display:flex}.menu__tab-button{border:1px
+solid
+#0000;border-bottom:none;column-gap:.125rem;padding:var(--menu-button-padding)}.menu__tab-button[aria-expanded=true]{position:relative;z-index:1}.menu__tab-button:after{margin-right:-4px}.menu__tab-link{padding:var(--menu-button-padding)}.menu__tab-label[data-type=short]{display:none}@media
+(width                                 
+-         [Skip to main content](/static/client/270.66bae6059a1c23f9.css "#")      
+-         [Skip to search](/static/client/270.66bae6059a1c23f9.css "#")      
+
+
+[                  MDN
+============================
+
+](/static/client/270.66bae6059a1c23f9.css "#")     
+
+
+HTML                       
+
+
+[ /en-US/docs/Web/HTML">HTML: Markup language            
+
+
+HTML reference           
+
+-                                   [ /en-US/docs/Web/HTML/Reference/Elements">Elements                                -                                    /en-US/docs/Web/HTML/Reference/Global_attributes">Global attributes                                -                                    /en-US/docs/Web/HTML/Reference/Attributes">Attributes                                -                                    /en-US/docs/Web/HTML/Reference">See all…                                                                                                                        HTML guides                                                            -                                    /en-US/docs/Web/HTML/Guides/Responsive_images">Responsive images                                -                                    /en-US/docs/Web/HTML/Guides/Cheatsheet">HTML cheatsheet                                -                                    /en-US/docs/Web/HTML/Guides/Date_and_time_formats">Date & time formats                                -                                    /en-US/docs/Web/HTML/Guides">See all…                                                                                                                        Markup languages                                                            -                                    /en-US/docs/Web/SVG">SVG                                -                                    /en-US/docs/Web/MathML">MathML                                -                                    /en-US/docs/Web/XML">XML                                                                                                                                                              
+
+CSS                                        
+
+[ /en-US/docs/Web/CSS">CSS: Styling language                                            
+
+CSS reference                                                            -                                   [ /en-US/docs/Web/CSS/Reference/Properties">Properties                                -                                    /en-US/docs/Web/CSS/Reference/Selectors">Selectors                                -                                    /en-US/docs/Web/CSS/Reference/At-rules">At-rules                                -                                    /en-US/docs/Web/CSS/Reference/Values">Values                                -                                    /en-US/docs/Web/CSS/Reference">See all…                                                                                                                        CSS guides                                                            -                                    /en-US/docs/Web/CSS/Guides/Box_model/Introduction">Box model                                -                                    /en-US/docs/Web/CSS/Guides/Animations/Using">Animations                                -                                    /en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts">Flexbox                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Applying_color">Colors                                -                                    /en-US/docs/Web/CSS/Guides">See all…                                                                                                                        Layout cookbook                                                            -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts">Column layouts                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element">Centering an element                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook/Card">Card component                                -                                    /en-US/docs/Web/CSS/How_to/Layout_cookbook">See all…                                                                                                                                                              
+
+JavaScriptJS                                        
+
+[ /en-US/docs/Web/JavaScript">JavaScript: Scripting language                                            
+
+JS reference                                                            -                                   [ /en-US/docs/Web/JavaScript/Reference/Global_Objects">Standard built-in objects                                -                                    /en-US/docs/Web/JavaScript/Reference/Operators">Expressions & operators                                -                                    /en-US/docs/Web/JavaScript/Reference/Statements">Statements & declarations                                -                                    /en-US/docs/Web/JavaScript/Reference/Functions">Functions                                -                                    /en-US/docs/Web/JavaScript/Reference">See all…                                                                                                                        JS guides                                                            -                                    /en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling">Control flow & error handing                                -                                    /en-US/docs/Web/JavaScript/Guide/Loops_and_iteration">Loops and iteration                                -                                    /en-US/docs/Web/JavaScript/Guide/Working_with_objects">Working with objects                                -                                    /en-US/docs/Web/JavaScript/Guide/Using_classes">Using classes                                -                                    /en-US/docs/Web/JavaScript/Guide">See all…                                                                                                                                                              
+
+Web APIs                                        
+
+[ /en-US/docs/Web/API">Web APIs: Programming interfaces                                            
+
+Web API reference                                                            -                                   [ /en-US/docs/Web/API/File_System_API">File system API                                -                                    /en-US/docs/Web/API/Fetch_API">Fetch API                                -                                    /en-US/docs/Web/API/Geolocation_API">Geolocation API                                -                                    /en-US/docs/Web/API/HTML_DOM_API">HTML DOM API                                -                                    /en-US/docs/Web/API/Push_API">Push API                                -                                    /en-US/docs/Web/API/Service_Worker_API">Service worker API                                -                                    /en-US/docs/Web/API">See all…                                                                                                                        Web API guides                                                            -                                    /en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API">Using the Web animation API                                -                                    /en-US/docs/Web/API/Fetch_API/Using_Fetch">Using the Fetch API                                -                                    /en-US/docs/Web/API/History_API/Working_with_the_History_API">Working with the History API                                -                                    /en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API">Using the Web speech API                                -                                    /en-US/docs/Web/API/Web_Workers_API/Using_web_workers">Using web workers                                                                                                                                                              
+
+All                                        
+
+[ /en-US/docs/Web">All web technology                                            
+
+Technologies                                                            -                                   [ /en-US/docs/Web/Accessibility">Accessibility                                -                                    /en-US/docs/Web/HTTP">HTTP                                -                                    /en-US/docs/Web/URI">URI                                -                                    /en-US/docs/Mozilla/Add-ons/WebExtensions">Web extensions                                -                                    /en-US/docs/WebAssembly">WebAssembly                                -                                    /en-US/docs/Web/WebDriver">WebDriver                                -                                    /en-US/docs/Web">See all…                                                                                                                        Topics                                                            -                                    /en-US/docs/Web/Media">Media                                -                                    /en-US/docs/Web/Performance">Performance                                -                                    /en-US/docs/Web/Privacy">Privacy                                -                                    /en-US/docs/Web/Security">Security                                -                                    /en-US/docs/Web/Progressive_web_apps">Progressive web apps                                                                                                                                                              
+
+Learn                                        
+
+[ /en-US/docs/Learn_web_development">Learn web development                                            
+
+Frontend developer course                                                            -                                   [ /en-US/docs/Learn_web_development/Getting_started">Getting started modules                                -                                    /en-US/docs/Learn_web_development/Core">Core modules                                -                                    /en-US/curriculum/">MDN Curriculum                                -                                   [ https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar">Check out the video course from Scrimba, our partner                                                                                                                        Learn HTML                                                            -                                    /en-US/docs/Learn_web_development/Core/Structuring_content">Structuring content with HTML module                                                                                                                        Learn CSS                                                            -                                    /en-US/docs/Learn_web_development/Core/Styling_basics">CSS styling basics module                                -                                    /en-US/docs/Learn_web_development/Core/CSS_layout">CSS layout module                                                                                                                        Learn JavaScript                                                            -                                    /en-US/docs/Learn_web_development/Core/Scripting">Dynamic scripting with JavaScript module                                                                                                                                                              
+
+Tools                                        
+
+Discover our tools                      
+
+
+-                                   [ /en-US/play">Playground                                -                                   [ /en-US/observatory">HTTP Observatory                                                                                      -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator">Border-image generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator">Border-radius generator                                -                                    /en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator">Box-shadow generator                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_format_converter">Color format converter                                -                                    /en-US/docs/Web/CSS/Guides/Colors/Color_mixer">Color mixer                                -                                    /en-US/docs/Web/CSS/Guides/Shapes/Shape_generator">Shape generator                                                                                                                                
+
+About                                        
+
+Get to know MDN better                      
+
+
+-                                   [ /en-US/about">About MDN                                -                                   [ /en-US/advertising">Advertise with us                                                                                      -                                   [ /en-US/community">Community                                -                                   [ https://github.com/mdn">MDN on GitHub                                                                                                                                
+
+[ /en-US/blog/">Blog                              
+
+
+1.               [Web](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")                          
+2.               [Web APIs](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")                          
+3.               [File API](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")                          
+
+
+# File API
+
+
+**Note:** This feature is available in [Web Workers](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").
+
+## In this article
+-               [Concepts and Usage](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Relationship to other file-related APIs](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Interfaces](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Examples](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [Specifications](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+-               [See also](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+
+
+## [Concepts and Usage](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+The File API enables web applications to access files and their contents.
+
+Web applications can access files when the user makes them available, either using
+a [file `<input>` element](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") or [via drag and drop](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").
+
+Sets of files made available in this way are represented as [`FileList`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects, which enable a web application to retrieve individual [`File`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects. In turn [`File`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects provide access to metadata such as the file's name, size, type, and last modified date.
+
+[`File`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects can be passed to [`FileReader`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects to access the contents of the file. The [`FileReader`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") interface is asynchronous, but a synchronous version, available only in [web workers](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg"), is provided by the [`FileReaderSync`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") interface.
+
+## [Relationship to other file-related APIs](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+There are two other major APIs that also deal with files: [File and Directory Entries API](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") and [File System API](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").
+
+The File API is the most basic one. It supports reading and processing file data
+explicitly provided by the user in the form of a form element input or drag-and-drop
+operation. It also enables binary data handling via blobs.
+
+The File and Directory Entries API, like the File API, also deals with files provided
+by the user via form inputs or drag-and-drop operations. However, instead of a single
+file, the input element now allows the selection of a directory or multiple files.
+The API then provides a way to process the directory or files. It is mostly Chrome's
+own invention—you will find that its extensions to other interfaces are all prefixed
+with `webkit`. The [File and Directory Entries API](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") has a more complete story about its implementation and standardization. It was originally intended to support a full virtual file system, but now only supports read operations on user-provided data.
+
+The File System API provides a virtual file system for web applications, so that
+they can persistently store data in a virtual system which is private to the document's
+origin (known as an [Origin private file system (OPFS)](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")). The File System Access API further extends the File System API to allow websites to read and write user files, subject to user consent. Unlike the File API and the File and Directory Entries API, the File System API is purely JavaScript and does not deal with form inputs.
+
+## [Interfaces](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+[`Blob`](# "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Represents a "Binary Large Object", meaning a file-like object of immutable, raw
+data; a [`Blob`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") can be read as text or binary data, or converted into a [`ReadableStream`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") so its methods can be used for processing the data.
+[`File`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Provides information about a file and allows JavaScript in a web page to access its
+content.
+[`FileList`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Returned by the `files` property of the HTML [`<input>`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") element; this lets you access the list of files selected with the `<input type="file">`
+element. It's also used for a list of files dropped into web content when using the
+drag and drop API; see the [`DataTransfer`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") object for details on this usage.
+[`FileReader`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Enables web applications to asynchronously read the contents of files (or raw data
+buffers) stored on the user's computer, using [`File`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") or [`Blob`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects to specify the file or data to read.
+[`FileReaderSync`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Enables web applications to synchronously read the contents of files (or raw data
+buffers) stored on the user's computer, using [`File`](/static/client/styles-heading-anchor.0eec5185ab9425b7.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") or [`Blob`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") objects to specify the file or data to read.
+
+### [Extensions to other interfaces](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+[`URL.createObjectURL()`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Creates a URL that can be used to fetch a [`File`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") or [`Blob`](/static/client/styles-reference-toc.9b9bd019efd16b86.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") object.
+[`URL.revokeObjectURL()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+Releases an existing object URL which was previously created by calling [`URL.createObjectURL()`](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").
+
+## [Examples](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+### [Reading a file](/static/client/styles-article-footer.81ae18c89fc527dc.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+In this example, we provide a [file `<input>` element](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg"), and when the user selects a file, we read the contents of the first file selected as text, and display the result in a [`<div>`](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").
+
+#### HTML
+
+html
+
+```page-layout
+<input type="file" />
+<div class="output"></div>
+```
+
+#### CSS
+
+css
+
+```page-layout
+.output {
+  overflow: scroll;
+  margin: 1rem 0;
+  height: 200px;
+}
+```
+
+#### JavaScript
+
+js
+
+```page-layout
+const fileInput = document.querySelector("input[type=file]");
+const output = document.querySelector(".output");
+
+fileInput.addEventListener("change", async () => {
+  const [file] = fileInput.files;
+
+  if (file) {
+    output.innerText = await file.text();
+  }
+});
+```
+
+### [Result](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+
+## [Specifications](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+|   |
+||---------------------------------------------------------------------------------------------------------------------------------------------------|
+| - |
+|   |
+|   | [File API](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") |  |
+
+## [See also](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+- [`<input type="file">`](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg"): the file input element
+- [`Blob.text()`](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+- The [`DataTransfer`](/static/client/styles-page-layout.5a4354f33e894319.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") interface
+
+
+##             Help improve MDN                              [Learn how to contribute](/static/client/styles-logo.aea5ff6edf1b9cfb.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+This page was last modified on Apr 10, 2025 by [MDN contributors](/static/client/styles-logo.aea5ff6edf1b9cfb.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg").  
+
+[View this page on GitHub](/static/client/styles-logo.aea5ff6edf1b9cfb.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg") • [Report a problem with this content](/static/client/styles-logo.aea5ff6edf1b9cfb.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")   
+
+
+1. *[File API](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")*
+2.
+Guides
+1. [Using files from web applications](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+-
+Interfaces
+1. [`Blob`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+2. [`File`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+3. [`FileList`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+4. [`FileReader`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+5. [`FileReaderSync`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+-
+Methods
+1. [`URL.createObjectURL`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+2. [`URL.revokeObjectURL`](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")
+
+
+[MDN
+================
+
+](/static/client/styles-breadcrumbs-bar.9a51a3c76a6231d0.css "https://developer.mozilla.org/static/client/circle-play.6ed4ac1fb3c93a04.svg")            
+Your blueprint for a better internet.            
+
+-                   [ github">                                              -                    bluesky">                                              -                    x">                                              -                    mastodon">                                              -                    rss">                                                                                MDN                                                                              -                           [ /en-US/about">                            About                                                                                                -                            /en-US/blog/">                            Blog                                                                                                -                            https://www.mozilla.org/en-US/careers/listings/">                            Mozilla careers                                                                                                -                            /en-US/advertising">                            Advertise with us                                                                                                -                            /en-US/plus">                            MDN Plus                                                                                                -                            https://support.mozilla.org/products/mdn-plus">                            Product help                                                                                                                                                                  Contribute                                                                              -                           [ /en-US/community">                            MDN Community                                                                                                -                            /en-US/docs/MDN/Community">                            Community resources                                                                                                -                            /en-US/docs/MDN/Writing_guidelines">                            Writing guidelines                                                                                                -                            /discord">                            MDN Discord                                                                                                -                            https://github.com/mdn">                            MDN on GitHub                                                                                                                                                                  Developers                                                                              -                           [ /en-US/docs/Web">                            Web technologies                                                                                                -                            /en-US/docs/Learn_web_development">                            Learn web development                                                                                                -                            /en-US/docs/MDN/Guides">                            Guides                                                                                                -                            /en-US/docs/MDN/Tutorials">                            Tutorials                                                                                                -                            /en-US/docs/Glossary">                            Glossary                                                                                                -                            https://hacks.mozilla.org/">                            Hacks blog                                                                                                                                                    
+
+[Mozilla
+==================
+
+](/static/client/270.66bae6059a1c23f9.css "#")                                      -                   [ https://www.mozilla.org/privacy/websites/">Website Privacy Notice                                              -                    https://www.mozilla.org/en-US/privacy/websites/data-preferences/">Telemetry Settings                                              -                    https://www.mozilla.org/about/legal/terms/mozilla">Legal                                              -                    https://www.mozilla.org/about/governance/policies/participation/">Community Participation Guidelines                                                              Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under a Creative Commons license](/static/client/270.66bae6059a1c23f9.css "#").          
+

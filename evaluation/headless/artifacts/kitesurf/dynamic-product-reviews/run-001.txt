@@ -1,0 +1,191 @@
+web-scraping.dev product Box of Chocolate Candy
+===========================================================
+
+
+[web-scraping.dev](https://web-scraping.dev/)                            
+
+
+-               [                Docs              ](#)                              - [API](/docs)
+- [Graphql](/api/graphql)
+
+
+- [Products](https://web-scraping.dev/products)
+- [Reviews](https://web-scraping.dev/reviews)
+- [Testimonials](https://web-scraping.dev/testimonials)
+- [File Download](https://web-scraping.dev/file-download)
+- [MCP Tools](https://web-scraping.dev/mcp-tools)
+
+
+- [login](https://web-scraping.dev/login)
+-               
+
+0                
+
+
+Clear                  [Continue](/cart)                                                        
+
+
+1. [Home](/)
+2. [Products](/products)
+3. Box of Chocolate Candy
+
+
+### Box of Chocolate Candy
+
+######
+
+
+![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-1.webp)                        
+![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-2.webp)                        
+![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-3.webp)                        
+![](https://web-scraping.dev/assets/products/orange-chocolate-box-small-4.webp)                       
+
+
+#### Description
+
+Indulge your sweet tooth with our Box of Chocolate Candy. Each box contains an assortment
+of rich, flavorful chocolates with a smooth, creamy filling. Choose from a variety
+of flavors including zesty orange and sweet cherry. Whether you're looking for the
+perfect gift or just want to treat yourself, our Box of Chocolate Candy is sure to
+satisfy.
+
+
+$9.99             from $12.99                            
+
+
+Quantity                                              1  
+2  
+3  
+4  
+5  
+6  
+7  
+8  
+9  
+10  
+1                        
+
+Delivery              
+
+
+Standard Delivery                
+- [Standard Delivery](#)
+- [Fast Delivery (+$9.99)](#)
+
+
+Total:             $9.99                     Add to Cart          Buy
+Now          
+### Variants
+
+
+[                                                        
+orange, small            ](https://web-scraping.dev/product/1?variant=orange-small)                        [                             
+orange, medium            ](https://web-scraping.dev/product/1?variant=orange-medium)                        [                             
+orange, large            ](https://web-scraping.dev/product/1?variant=orange-large)                        [                             
+cherry, small            ](https://web-scraping.dev/product/1?variant=cherry-small)                        [                             
+cherry, medium            ](https://web-scraping.dev/product/1?variant=cherry-medium)                        [                             
+cherry, large            ](https://web-scraping.dev/product/1?variant=cherry-large)                       
+
+
+### Features Vertical Table
+
+
+|  |
+||-------------------|---------------------------------------------||
+|  | flavors           | Available in Orange and Cherry flavors      |  |
+|  | sizes             | Available in small, medium, and large boxes |  |
+|  | brand             | ChocoDelight                                |  |
+|  | care instructions | Store in a cool, dry place                  |  |
+|  | purpose           | Ideal for gifting or self-indulgence        |  |
+
+### Packs Horizontal Table
+
+|   |
+||---------|----------------|-------------------|-------------|----------------|
+| - | -       | -              | -                 | -           |
+|   |
+|   | Pack 1  | 1,00 kg        | 100x230 cm        | 6 available | 1 Day shipping |  |
+|   | Pack 2  | 2,11 kg        | 200x460 cm        | 6 available | 1 Day shipping |  |
+|   | Pack 3  | 3,22 kg        | 300x690 cm        | 6 available | 1 Day shipping |  |
+|   | Pack 4  | 4,33 kg        | 400x920 cm        | 6 available | 1 Day shipping |  |
+|   | Pack 5  | 5,44 kg        | 500x1150 cm       | 6 available | 1 Day shipping |  |
+
+
+### Reviews
+
+
+2022-07-22                        
+Absolutely delicious! The orange flavor is my favorite.
+
+2022-08-16                    
+I bought these as a gift, and they were well received. Will definitely purchase again.
+
+2022-09-10                        
+Nice variety of flavors. The chocolate is rich and smooth.
+
+2022-10-02                        
+The cherry flavor is amazing. Will be buying more.
+
+2022-11-05                    
+A bit pricey, but the quality of the chocolate is worth it.
+Load More                          
+
+
+### Similar Products
+
+
+[  
+
+
+![thumbnail of Classic Leather Sneakers](https://web-scraping.dev/assets/products/classic-leather-sneakers-white.webp)     
+
+
+### Classic Leather Sneakers
+
+
+79.99      ](https://web-scraping.dev/product/23)                          [  
+
+
+![thumbnail of Classic Leather Sneakers](https://web-scraping.dev/assets/products/classic-leather-sneakers-white.webp)     
+
+
+### Classic Leather Sneakers
+
+
+79.99      ](https://web-scraping.dev/product/11)                          [  
+
+
+![thumbnail of Dark Red Energy Potion](https://web-scraping.dev/assets/products/darkred-potion.webp)     
+
+
+### Dark Red Energy Potion
+
+
+4.99      ](https://web-scraping.dev/product/14)                          [  
+
+
+![thumbnail of Blue Energy Potion](https://web-scraping.dev/assets/products/blue-potion.webp)     
+
+
+### Blue Energy Potion
+
+
+4.99      ](https://web-scraping.dev/product/5)                                  
+
+
+{{review['date']}}  {% for i in range(review['rating']) %}    {% endfor %}  
+{{review['text']}}
+{% endfor %}
+
+
+[                                    SCRAPFLY ACADEMY                  
+](https://scrapfly.io/academy "learn web scraping at scrapfly academy for free!")         
+
+- [API Docs](/docs "API Documentation")
+- [Sitemap](/sitemap.xml "Sitemap")
+- [Blog](https://scrapfly.io/blog "Web Scraping Blog")
+- [GitHub](https://github.com/scrapfly "ScrapFly on GitHub")
+- v1.3.0
+- made by [ScrapFly](https://web-scraping.dev/)                                                                                        
+
+

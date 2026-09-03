@@ -1,0 +1,67 @@
+"||stack.indexOf("extension://")>=0;var
+replaced=stack.replace(/https:\\/\\/www.youtube.com\\//g,"");if(replaced.match(/https?:\\/\\/[^/]+\\//))thirdPartyScript=true;else
+if(stack.indexOf("trapProp")>=0&&stack.indexOf("trapChain")>=0)thirdPartyScript=true;else
+if(message.indexOf("redefine non-configurable")>=0)thirdPartyScript=true;var
+baseUrl=window["ytcfg"].get("EMERGENCY_BASE_URL","https://www.youtube.com/error_204?t=jserror&level=ERROR");var
+unsupported=message.indexOf("window.customElements is
+undefined")>=0;if(thirdPartyScript||unsupported)baseUrl=baseUrl.replace("level=ERROR","level=WARNING");var
+parts=[baseUrl];var key;for(key in values){var
+value=values[key];if(value)parts.push(key+"="+encodeURIComponent(value))}img.src=parts.join("&")};(function(){function
+_getExtendedNativePrototype(tag){var
+p=this._nativePrototypes[tag];if(!p){p=Object.create(this.getNativePrototype(tag));var
+p$=Object.getOwnPropertyNames(window["Polymer"].Base);var i=0;var n=void
+0;for(;i0&&ua.toLowerCase().indexOf("webkit") - YouTube
+========================================================
+
+>>0)+"_",f=0;return b});r("Symbol.iterator",function(a){if(a)return
+a;a=Symbol("Symbol.iterator");m(Array.prototype,a,{configurable:!0,writable:!0,value:function(){return
+z(t(this))}});return a});function z(a){a={next:a};a[Symbol.iterator]=function(){return
+this};return a}r("WeakMap",function(a){function
+b(e){this.h=(q+=Math.random()+1).toString();if(e){e=u(e);for(var
+k;!(k=e.next()).done;)k=k.value,this.set(k[0],k[1])}}function c(){}function d(e){var
+k=typeof e;return k==="object"&&e!==null||k==="function"}function f(e){if(!x(e,g)){var
+k=new c;m(e,g,{value:k})}}function h(e){var k=Object[e];k&&(Object[e]=function(l){if(l
+instanceof c)return l;Object.isExtensible(l)&&f(l);return
+k(l)})}if(function(){if(!a||!Object.seal)return!1;try{var e=Object.seal({}),k=Object.seal({}),l=new
+a([[e,2],[k,3]]);if(l.get(e)!=2||l.get(k)!=3)return!1;l.delete(e);l.set(k,4);return!l.has(e)&&l.get(k)==4}catch(da){return!1}}())return
+a;var g="$jscomp_hidden_"+Math.random();h("freeze");h("preventExtensions");h("seal");var
+q=0;b.prototype.set=function(e,k){if(!d(e))throw Error("Invalid WeakMap key");f(e);if(!x(e,g))throw
+Error("WeakMap key fail: "+e);e[g][this.h]=k;return this};b.prototype.get=function(e){return
+d(e)&&x(e,g)?e[g][this.h]:void 0};b.prototype.has=function(e){return
+d(e)&&x(e,g)&&x(e[g],this.h)};b.prototype.delete=function(e){return
+d(e)&&x(e,g)&&x(e[g],this.h)?delete e[g][this.h]:!1};return b});function A(a,b){a
+instanceof String&&(a+="");var
+c=0,d=!1,f={next:function(){if(!d&&c>>0),F=0;Math.max.apply(Math,w(Object.values({A:1,v:2,u:4,F:8,H:16,C:32,i:64,m:128,j:256,G:512,l:1024,o:2048,D:4096,B:8192})));function
+G(a,b){this.width=a;this.height=b}G.prototype.aspectRatio=function(){return
+this.width/this.height};G.prototype.ceil=function(){this.width=Math.ceil(this.width);this.height=Math.ceil(this.height);return
+this};G.prototype.floor=function(){this.width=Math.floor(this.width);this.height=Math.floor(this.height);return
+this};G.prototype.round=function(){this.width=Math.round(this.width);this.height=Math.round(this.height);return
+this};function H(){var a=document;var
+b="DIV";a.contentType==="application/xhtml+xml"&&(b=b.toLowerCase());return a.createElement(b)};var
+I=new WeakMap;function J(a,b){a=[a];for(var c=b.length-1;c>=0;--c)a.push(typeof b[c],b[c]);return
+a.join("\\v")};function K(a,b,c){if(b instanceof G)c=b.height,b=b.width;else if(c==void
+0)throw Error("missing height argument");a.style.width=L(b);a.style.height=L(c)}function
+L(a){typeof a=="number"&&(a=Math.round(a)+"px");return a};(function(a,b){function
+c(f){f=u(f);f.next();f=v(f);return b(d,f)}b=b===void 0?J:b;var d=D(a);return function(){var
+f=y.apply(0,arguments),h=this||B,g=I.get(h);g||(g={},I.set(h,g));h=g;g=[this].concat(w(f));f=c?c(g):g;if(Object.prototype.hasOwnProperty.call(h,f))h=h[f];else{var
+q=u(g);g=q.next().value;q=v(q);g=a.apply(g,q);h=h[f]=g}return h}})(function(a){var
+b=H();a&&(b.className=a);b.style.cssText="overflow:auto;position:absolute;top:0;width:100px;height:100px";a=H();K(a,"200px","200px");b.appendChild(a);document.body.appendChild(b);a=b.offsetWidth-b.clientWidth;b&&b.parentNode&&b.parentNode.removeChild(b);return
+a});var M=B.window,N,O,P=(M==null?void 0:(N=M.yt)==null?void 0:N.config_)||(M==null?void
+0:(O=M.ytcfg)==null?void 0:O.data_)||{};C("yt.config_",P);function Q(a){a=R(a);return
+typeof a==="string"&&a==="false"?!1:!!a}function R(a,b){var c={};a=("EXPERIMENT_FLAGS"in
+P?P.EXPERIMENT_FLAGS:c)[a];return a!==void 0?a:b};var
+S=Number(R("kevlar_watch_page_horizontal_margin",24)||0),T=Number(R("kevlar_watch_page_columns_top_padding",24)||0),U=426+S\*2,V=Number(R("kevlar_watch_two_column_width_threshold",1E3)||0),W=S\*2,aa=Number(R("kevlar_watch_secondary_width",402)||0),ba=Number(R("kevlar_watch_max_player_width",1280)||0),X=Q("web_side_rail_with_border")?77:64,ca=Number(R("kevlar_watch_flexy_metadata_height",136)||0);function
+Y(a,b,c){c=c===void 0?!1:c;var d=d===void 0?!1:d;var
+f=Math.max(a.width,U);f=a.width>=V?f-(W+aa+S+((d===void 0?0:d)?X:0)):f-W;f=Math.min(f,ba);var
+h=Math.min(f\*b,a.height-(56+T+ca)),g=240;(c===void
+0?0:c)&&(g=380);b=657||a.height>=630&&a.width>=V&&a.width=630&&a.width>=1327&&(g=480));(d===void
+0?0:d)&&a.width>=V&&(g-=X/2\*b);h=Math.max(h,g);b=V&&(f=Y(a,.5625,c).width);return
+new G(Math.round(f),Math.round(h))}function Z(a){if(a){var
+b=.5625,c=a.querySelector(".html5-video-player");c&&typeof
+c.getVideoAspectRatio==="function"&&(b=1/c.getVideoAspectRatio());c=window.document;c=c.compatMode=="CSS1Compat"?c.documentElement:c.body;K(a,Y(new
+G(c.clientWidth,c.clientHeight),b))}};C("yt.flexy.setPlayerlikeElementSize",Z);Q("desktop_delay_player_resizing")||Z(document.querySelector("#player.skeleton
+#player-api"));}).call(this);
+
+[About](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Press](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Copyright](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Contact us](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Creators](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Advertise](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Developers](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Terms](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Privacy](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Policy & Safety](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[How YouTube works](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[Test new features](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")[NFL Sunday Ticket](//fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=YouTube+Sans:wght@300..900&display=swap "ABOUT_CATEGORY_TITLE")
+
+© 2026 Google LLC

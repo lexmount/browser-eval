@@ -1,0 +1,46 @@
+{
+  "case_id": "live-049-functools-higher-order-functions",
+  "url": "https://docs.python.org/3/library/functools.html",
+  "checked_at": "2026-09-03T14:15:48.886166+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/functools.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/functools.html",
+  "mime": "text/html",
+  "bytes": 116433,
+  "sha256": "ef005663b23192339145760d93f53513655ab98e5d6bd5d33f46099f1c6d9081",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "functools — Higher-order functions and operations on callable objects — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "e4822720ea7353b64aa901d2f6885ff70f551f47ff616a351b68209d62ade8a8",
+  "reference_sha256": "e4822720ea7353b64aa901d2f6885ff70f551f47ff616a351b68209d62ade8a8",
+  "text_chars": 26876,
+  "excerpt": "functools\n— Higher-order functions and operations on callable objects\n¶\nSource code:\nLib/functools.py\nThe\nfunctools\nmodule is for higher-order functions: functions that act on\nor return other functions. In general, any callable object can be treated as a\nfunction for the purposes of this module.\nThe\nfunctools\nmodule defines the following functions:\n@\nfunctools.\ncache\n(\nuser_function\n)\n¶\nSimple lightweight unbounded function cache.  Sometimes called\n“memoize”\n.\nReturns the same as\nlru_cache(maxsize=None)\n, creating a thin\nwrapper around a dictionary lookup for the function arguments.  Because it\nnever needs to evict old values, this is smaller and faster than\n@lru_cache\nwith a size limit.\nFor example:\n@cache\ndef\nfactorial\n(\nn\n):\nreturn\nn\n*\nfactorial\n(\nn\n-\n1\n)\nif\nn\nelse\n1\n>>>\nfactorial\n(\n10\n",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

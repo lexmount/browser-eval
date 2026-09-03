@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-018-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:24:50.071929+00:00",
+    "content_text": "OpenClaw 🦞 — Your assistant, on your devices, in your chats\nOpenClaw is an AI assistant that runs on your devices and meets you in the channels you already use. It connects models, tools, messaging channels, and optional companion apps through one Gateway, for a single operator or for a team whose members trust each other: the same gateway runs as a personal assistant on one laptop or as a shared\nteam deployment\n, and configuration is the only difference. The architecture case — trusted gateway, untrusted execution, deterministic policy — is in\nWhy OpenClaw\n.\nWebsite\n·\nDocs\n·\nGetting started\n·\nWhy OpenClaw\n·\nShowcase\n·\nFAQ\n·\nVision\n·\nDeepWiki\nInstall\nThe installer supports macOS, Linux, and Windows. It provisions a supported Node.js runtime when needed.\n#\nmacOS / Linux / WSL2\ncurl -fsSL https://openclaw.ai/install.sh\n|\nbash\n#\nWindows PowerShell\niwr\n-\nuseb https:\n//\nopenclaw.ai\n/\ninstall.ps1\n|\niex\nAlready manage Node.js? Install the published package instead (Node 22.22.3+, 24.15+, or 25.9+):\nnpm install -g openclaw@latest --allow-scripts=openclaw\nThat command is for npm 12 or npm 11.16+. On npm 11.15 and earlier, omit\n--allow-scripts=openclaw\n. See the\ninstallation guide\nfor the lifecycle script\ncontract, Docker, Nix, and other deployment paths.\nQuick start\nOn a fresh install, the installer scripts start onboarding automatically.\nComplete the wizard they open. If you installed the package directly with npm,\npnpm, or Bun, run:\nopenclaw onboard --install-daemon\nAfter onboarding:\nopenclaw gateway status\nopenclaw dashboard\nOnboarding verifies model access, creates the workspace, and configures the Gateway. The last command opens the Control UI; send a message there to confirm the assistant is working. See the\ngetting started guide\nfor channel setup and troubleshooting.\nHow it fits together\nThe\nGateway\nis the local control plane for sessions, tools, events, and channel connections.\nThe\nControl UI\n, CLI, and\nTUI\nconnect to the Gateway.\nChannels\nbring the assistant to WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, and other messaging services.\nCompanion apps and nodes\nadd voice, Canvas, camera, screen, and device-local actions on supported platforms.\nOpenClaw works with hosted and local\nmodel providers\n. Its\ntools\n,\nskills\n, and\nplugins\nextend what an assistant can do.\nSecurity\nTreat inbound messages as untrusted input. DM-capable channels pair unknown senders by default; approve a pairing request with\nopenclaw pairing approve <channel> <code>\n.\nTools run on the host for the main session unless you configure sandboxing. Read the\nsecurity guide\n,\nexposure runbook\n, and\nsandboxing guide\nbefore connecting other users or exposing the Gateway remotely.\nDocumentation\nGoal\nStart here\nConfigure models and auth\nModels\n·\nModel providers\nConnect a messaging service\nChannels\nAdd tools, skills, and plugins\nTools\n·\nSkills\n·\nPlugins\n·\nClawHub\nRun apps and device nodes\nPlatforms\n·\nNodes\nUse the CLI and chat commands\nCLI reference\n·\nSlash commands\nConfigure or operate the Gateway\nConfiguration\n·\nArchitecture\n·\nUpdating\n·\nRelease channels\nDevelopment\nThe repository is a pnpm workspace. Plain\nnpm install\nat the repository root is not supported.\ngit clone https://github.com/openclaw/openclaw.git\ncd\nopenclaw\npnpm install\npnpm build\npnpm ui:build\nSee\nCONTRIBUTING.md\nfor the contribution workflow and the\nsource setup guide\nfor the development loop.\nCommunity\nOpenClaw is developed in the open by the\nOpenClaw Foundation\n, a non-profit. See\nCONTRIBUTING.md\nfor maintainers and contribution guidelines; AI-assisted PRs are welcome.\nUse the\nissue chooser\nfor bugs and feature requests, ask setup questions in\nDiscord\n, and report vulnerabilities through\nSECURITY.md\n. New capabilities usually belong in plugins built on the\nplugin SDK\nand shared through\nClawHub\n.\nOpenClaw was built for\nMolty\n, a space lobster AI assistant, by Peter Steinberger and the community. Explore the\nproject lore\n,\nsoul.md\n,\nPeter's site\n,\nStar History\n, and\n@openclaw\n.\nSpecial thanks to\nMario Zechner\nfor his support and for\npi\n, and to Adam Doppelt for the lobster.bot domain.\nSponsors\nContributors\nThanks to all clawtributors:\nLicense\nMIT\n© OpenClaw Foundation. See\nTHIRD_PARTY_NOTICES.md\nfor incorporated or adapted code.",
+    "scope_identity": {
+      "case_id": "live-018-navigation-menu",
+      "url": "https://github.com/openclaw/openclaw",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "OpenClaw 🦞 — Your assistant, on your devices, in your"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "before connecting other users or exposing the Gateway remotely."
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "for incorporated or adapted code."
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1979.1066250763834,
+      "timeout_ms": 120000
+    }
+  }
+]

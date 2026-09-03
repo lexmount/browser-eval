@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-014-navigation-menu",
+    "independent": true,
+    "checked_at": "2026-09-03T14:23:10.856493+00:00",
+    "content_text": "PostgreSQL Database Management System\nThis directory contains the source code distribution of the PostgreSQL\ndatabase management system.\nPostgreSQL is an advanced object-relational database management system\nthat supports an extended subset of the SQL standard, including\ntransactions, foreign keys, subqueries, triggers, user-defined types\nand functions.  This distribution also contains C language bindings.\nCopyright and license information can be found in the file COPYRIGHT.\nGeneral documentation about this version of PostgreSQL can be found at\nhttps://www.postgresql.org/docs/devel/\n.  In particular, information\nabout building PostgreSQL from the source code can be found at\nhttps://www.postgresql.org/docs/devel/installation.html\n.\nThe latest version of this software, and related software, may be\nobtained at\nhttps://www.postgresql.org/download/\n.  For more information\nlook at our web site located at\nhttps://www.postgresql.org/\n.",
+    "scope_identity": {
+      "case_id": "live-014-navigation-menu",
+      "url": "https://github.com/postgres/postgres",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "article.markdown-body",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "PostgreSQL Database Management System"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "and functions. This distribution also contains C language bindings."
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "look at our web site located at"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 1515.0159168988466,
+      "timeout_ms": 120000
+    }
+  }
+]

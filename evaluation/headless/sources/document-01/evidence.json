@@ -1,0 +1,25 @@
+{
+  "case_id": "document-01",
+  "url": "https://arxiv.org/pdf/1706.03762",
+  "checked_at": "2026-09-02T03:42:29.059656+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://arxiv.org/pdf/1706.03762"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://arxiv.org/pdf/1706.03762",
+  "mime": "application/pdf",
+  "bytes": 2215244,
+  "sha256": "bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697",
+  "title": "Attention Is All You Need · PDF",
+  "selector": "PDF all pages",
+  "page_count": 15,
+  "resources": [],
+  "text_chars": 39524,
+  "excerpt": "Provided proper attribution is provided, Google hereby grants permission to\nreproduce the tables and figures in this paper solely for use in journalistic or\nscholarly works.\nAttention Is All You Need\nAshish Vaswani∗\nGoogle Brain\navaswani@google.com\nNoam Shazeer∗\nGoogle Brain\nnoam@google.com\nNiki Parmar∗\nGoogle Research\nnikip@google.com\nJakob Uszkoreit∗\nGoogle Research\nusz@google.com\nLlion Jones∗\nGoogle Research\nllion@google.com\nAidan N. Gomez∗†\nUniversity of Toronto\naidan@cs.toronto.edu\nŁukasz Kaiser∗\nGoogle Brain\nlukaszkaiser@google.com\nIllia Polosukhin∗‡\nillia.polosukhin@gmail.com\nAbstract\nThe dominant sequence transduction models are based on complex recurrent or\nconvolutional neural networks that include an encoder and a decoder. The best\nperforming models also connect the encoder and ",
+  "missing_facts": [],
+  "state": "captured"
+}

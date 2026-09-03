@@ -32,6 +32,11 @@ def render_pricing(out, names, *, table, cell, link, esc):
     def sources(p):
         return ' · '.join(link(s['url'], s['label'] + ' ↗') for s in p['sources'])
 
+    if set(names) <= {'kitesurf','lightpanda','obscura','moli','chromium'}:
+        rows=[('',cell(esc(p['label']))+cell(esc(p['status']))+cell(esc(p['note']))+cell(sources(p)))
+              for p in data['other_methods'] if set(p['ids']) & set(names)]
+        return '<h3>本轮执行模式的成本边界</h3><p>这是客户端实测，不是计费或同机 CPU / 内存测试。公开价格核验日期：2026-09-03。</p>'+table(['方法','价格状态','成本边界','官方来源'],rows,cls='pricing-table',metrics=[])
+
     body = '<h3>获取 1,000 个网页，究竟付哪一种费用？</h3>'
     body += '<p>按给定 URL 获取正文比较，不包含搜索、研究 Agent 或聊天模型。按页产品可以换算为每千页；浏览器时长产品必须带上耗时假设。套餐价、超额价与试用额度分开列示。</p>'
     body += '<p class="source-note">官方公开价格核验：' + esc(data['checked_at']) + '；币种 USD，未加地区税费。以下为报价换算，不是本轮账单；供应商定义的提取成功不等于评测任务通过。' + link('pricing.json', '下载价格与来源数据') + '</p>'

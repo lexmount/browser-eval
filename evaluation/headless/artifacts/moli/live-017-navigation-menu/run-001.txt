@@ -1,0 +1,461 @@
+GitHub - langchain-ai/langchain: The agent engineering platform. · GitHub
+============================================================================
+
+
+[Skip to content](#start-of-content)                          
+
+
+## Navigation Menu
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain)
+
+Appearance settings
+
+
+-
+
+Platform
+
+-
+
+AI CODE CREATION- [GitHub CopilotWrite better code with AI](https://github.com/features/copilot)
+- [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app)
+- [MCP RegistryIntegrate external tools](https://github.com/mcp)
+-
+
+DEVELOPER WORKFLOWS
+- [ActionsAutomate any workflow](https://github.com/features/actions)
+- [CodespacesInstant dev environments](https://github.com/features/codespaces)
+- [IssuesPlan and track work](https://github.com/features/issues)
+- [Code ReviewManage code changes](https://github.com/features/code-review)
+- [Code QualityEnforce quality at merge](https://github.com/features/code-quality)
+-
+
+APPLICATION SECURITY
+- [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security)
+- [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security)
+- [Secret protectionStop leaks before they start](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")
+-
+
+EXPLORE
+- [Why GitHub](https://github.githubassets.com/assets/primer-primitives-ed9ca172356fd545.css "route-pattern")
+- [Documentation](https://github.githubassets.com/assets/repository-11ee8a031c040c1a.css "route-pattern")
+- [Blog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Changelog](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+- [Marketplace](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+[View all features](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+-
+
+Solutions
+
+
+-
+
+BY COMPANY SIZE- [Enterprises](https://github.githubassets.com/assets/fetch-utilities-dbd53fc595a25c22.js "route-pattern")
+- [Small and medium teams](https://github.githubassets.com/assets/relative-time-element-bbe413f4f344c84e.js "route-pattern")
+- [Startups](https://github.githubassets.com/assets/jz5-7c5d1669717041f8.js "route-pattern")
+- [Nonprofits](https://github.githubassets.com/assets/aria-live-76b18916d0c8ec4d.js "route-pattern")
+-
+
+BY USE CASE
+- [App Modernization](https://github.githubassets.com/assets/z1-43f07743b557bfbe.js "route-pattern")
+- [DevSecOps](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern")
+- [DevOps](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")
+- [CI/CD](https://github.githubassets.com/assets/wsr-5fd3071e5a9061ab.js "route-pattern")
+- [View all use cases](https://github.githubassets.com/assets/7c-b9b5d8b3fc88b7b2.js "route-pattern")
+-
+
+BY INDUSTRY
+- [Healthcare](https://github.githubassets.com/assets/du-f505f75f51311ee8.js "route-pattern")
+- [Financial services](https://github.githubassets.com/assets/cj-006d3ff509d05587.js "route-pattern")
+- [Manufacturing](https://github.githubassets.com/assets/me-39023c23cd285ffe.js "route-pattern")
+- [Government](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern")
+- [View all industries](https://github.githubassets.com/assets/dynamic-github-ui--code-view--route-components.d3a6308da5afea3d.module.css "route-pattern")
+
+[View all solutions](https://github.githubassets.com/ "GitHub")
+-
+
+Resources
+
+
+-
+
+EXPLORE BY TOPIC- [AI](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Software Development](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [DevOps](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+- [Security](https://github.githubassets.com/favicons/favicon.png "_R_5knd_")
+- [View all topics](#start-of-content "_R_5knd_")
+-
+
+EXPLORE BY TYPE
+- [Customer stories](https://github.githubassets.com/assets/lht-d07b466cb387fec6.js "_R_5knd_")
+- [Events & webinars](https://github.githubassets.com/assets/marketing-header-4a3388ed74257146.js "_R_5knd_")
+- [Ebooks & reports](/ "_R_5knd_")
+- [Business insights](/ "_R_5knd_")
+- [GitHub Skills](/ "_R_5knd_")
+-
+
+SUPPORT & SERVICES
+- [Documentation](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain "_R_5knd_")
+- [Customer support](https://github.com/features/copilot "_R_5knd_")
+- [Community forum](https://github.com/features/copilot "_R_5knd_")
+- [Trust center](https://github.com/features/copilot "_R_5knd_")
+- [Partners](https://github.com/features/copilot "Octicon")
+
+[View all resources](https://github.com/features/ai/github-app "Octicon")
+-
+
+Open Source
+
+
+-
+
+COMMUNITY- [GitHub SponsorsFund open source developers](https://github.com/mcp "Octicon")
+-
+
+PROGRAMS
+- [Security Lab](https://github.com/features/actions "Octicon")
+- [Maintainer Community](https://github.com/features/actions "_R_9knd_")
+- [GitHub Stars](https://github.com/features/codespaces "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Archive Program](https://github.com/features/issues "Octicon")
+-
+
+REPOSITORIES
+- [Topics](https://github.com/features/code-review "Octicon")
+- [Trending](https://github.com/features/code-review "Octicon")
+- [Collections](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+Enterprise
+
+
+-
+
+ENTERPRISE SOLUTIONS- [Enterprise platformAI-powered developer platform](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+-
+
+AVAILABLE ADD-ONS
+- [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security "Octicon")
+- [Copilot for BusinessEnterprise-grade AI features](https://github.com/security/advanced-security/code-security "Octicon")
+- [Premium SupportEnterprise-grade 24/7 support](https://github.githubassets.com/assets/dark-79ad2ace604703b3.css "route-pattern")
+- [Pricing](https://github.githubassets.com/assets/code-2d56bdb0166c0238.css "route-pattern")
+
+Search/
+
+[Sign in](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js
+"route-pattern")[Sign up](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+Appearance settings
+
+
+You signed in with another tab or window. [Reload](https://github.githubassets.com/assets/fetch-utilities-dbd53fc595a25c22.js "route-pattern") to refresh your session.
+You signed out in another tab or window. [Reload](https://github.githubassets.com/assets/ser-cd1b421ad0ad7ed5.js "route-pattern") to refresh your session.
+You switched accounts on another tab or window. [Reload](https://github.githubassets.com/assets/app-runtime.e266b6af0d12fb94.module.css "route-pattern") to refresh your session.
+Dismiss alert        
+
+
+{{ message }}              
+
+
+###         Uh oh!
+
+
+There was an error while loading. [Please reload this page](https://github.githubassets.com/assets/wo-8dee386ae7fdbf5e.js "route-pattern").
+
+
+[        langchain-ai](https://github.githubassets.com/assets/wp-runtime-91dd26a8119ffb9c.js "route-pattern")     
+/    **      [langchain](https://github.githubassets.com/assets/aq-0dbf7d12b4d37e14.js "route-pattern")    **
+Public                  
+
+
+-             [        Notifications](https://github.githubassets.com/assets/ps6-ccbe0db236f6e22f.js "route-pattern")    You must be signed in to change notification settings  
+-           [        Fork    24.3k](https://github.githubassets.com/assets/0l5-db943e5e450eb617.js "route-pattern")  
+-         
+
+[                  Star          146k](https://github.githubassets.com/assets/dsj-c0e1b19322545aa7.js "route-pattern")  
+
+
+-   [                              Code              ](https://github.githubassets.com/assets/ni.0196e6fcc070ac09.module.css "route-pattern")
+-   [                              Issues          358    ](https://github.githubassets.com/ "GitHub")
+-   [                              Pull requests          85    ](/opensearch.xml "GitHub")
+-   [                              Discussions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Actions              ](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+-   [                              Security and quality          9    ](#start-of-content "_R_5knd_")
+-   [                              Insights              ](https://github.githubassets.com/assets/mz-154c6729d30af821.js "_R_5knd_")
+Additional navigation options  
+
+
+-             [                                                      Code      ](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain "_R_5knd_")  
+-             [                                                      Issues      ](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain "_R_5knd_")  
+-             [                                                      Pull requests      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Discussions      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Actions      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Security and quality      ](https://github.com/features/copilot "_R_5knd_")  
+-             [                                                      Insights      ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")  
+
+
+master
+
+[Branches](https://github.githubassets.com/assets/app-runtime-c05886759386df44.js
+"route-pattern")[Tags](https://github.githubassets.com/assets/ja9-36f036c13c2e3a4c.js "route-pattern")
+
+Go to fileCode
+
+Open more actions menu
+
+
+## Latest commit
+
+ 
+
+
+## History
+[16,721 Commits](https://github.githubassets.com/assets/5h1-73d9d70370b86dc7.js "route-pattern")
+
+16,721 Commits
+## Folders and files
+
+| Name                                                                                                                                                       | Name |   |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------||
+| Last commit date                                                                                                                                           |
+| -                                                                                                                                                          | -    | - | - |
+|                                                                                                                                                            |
+| [.devcontainer](https://github.githubassets.com/ "GitHub")                                                                                                 |      |
+| [.devcontainer](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.") |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.github](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                               |      |
+| [.github](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                               |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.vscode](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")                                                               |      |
+| [.vscode](#start-of-content "_R_5knd_")                                                                                                                    |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [libs](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                                     |      |
+| [libs](https://github.githubassets.com/assets/nvz-643b96fe2de42734.js "_R_5knd_")                                                                          |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.dockerignore](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "_R_5knd_")                                            |      |
+| [.dockerignore](/ "_R_5knd_")                                                                                                                              |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.editorconfig](/ "_R_5knd_")                                                                                                                              |      |
+| [.editorconfig](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain "_R_5knd_")                                                           |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.gitattributes](https://github.com/features/copilot "_R_5knd_")                                                                                           |      |
+| [.gitattributes](https://github.com/features/copilot "_R_5knd_")                                                                                           |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.gitignore](https://github.com/features/copilot "_R_5knd_")                                                                                               |      |
+| [.gitignore](https://github.com/features/copilot "_R_5knd_")                                                                                               |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.markdownlint.json](https://github.com/features/ai/github-app "Octicon")                                                                                  |      |
+| [.markdownlint.json](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0") |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.mcp.json](https://github.com/mcp "Octicon")                                                                                                              |      |
+| [.mcp.json](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")                             |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [.pre-commit-config.yaml](https://github.com/features/actions "Octicon")                                                                                   |      |
+| [.pre-commit-config.yaml](https://github.com/features/actions "NavGroup-module__group__W8SqJ")                                                             |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [AGENTS.md](https://github.com/features/actions "Octicon")                                                                                                 |      |
+| [AGENTS.md](https://github.com/features/codespaces "Octicon")                                                                                              |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [CITATION.cff](https://github.com/features/issues "Octicon")                                                                                               |      |
+| [CITATION.cff](https://github.com/features/issues "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")              |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [CLAUDE.md](https://github.com/features/code-review "Octicon")                                                                                             |      |
+| [CLAUDE.md](https://github.com/features/code-review "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")            |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [LICENSE](https://github.com/features/code-quality "Octicon")                                                                                              |      |
+| [LICENSE](https://github.com/features/code-quality "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")             |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| [README.md](https://github.com/security/advanced-security "NavGroup-module__group__W8SqJ")                                                                 |      |
+| [README.md](https://github.com/security/advanced-security "_R_dknd_")                                                                                      |      |
+|                                                                                                                                                       |      |
+|                                                                                                                                                       |
+| View all files                                                                                                                                             |
+
+
+## Repository files navigation
+
+-
+- [README](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Code of conduct](https://github.com/security/advanced-security/code-security "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")
+- [Contributing](https://user-images.githubusercontent.com/ "route-pattern")
+- [MIT license](https://github.githubassets.com/assets/light_high_contrast-48fdd0811afbab3c.css "route-pattern")
+- [Security](https://github.githubassets.com/assets/dark_colorblind_high_contrast-e61d4f4ca17852c2.css "route-pattern")
+
+More items
+
+[                      
+![The agent engineering platform. Contribute to langchain-ai/langchain development by creating an account on GitHub.](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")     
+](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+
+### The agent engineering platform.
+
+[![The agent engineering platform. Contribute to langchain-ai/langchain development by creating an account on GitHub.](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+[![The agent engineering platform. Contribute to langchain-ai/langchain development by creating an account on GitHub.](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+[![The agent engineering platform. Contribute to langchain-ai/langchain development by creating an account on GitHub.](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+[![The agent engineering platform. Contribute to langchain-ai/langchain development by creating an account on GitHub.](https://github.githubassets.com/assets/high-contrast-cookie-939abaf46c674b9a.js "route-pattern")](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")
+
+
+LangChain is a framework for building agents and LLM-powered applications. It helps
+you chain together interoperable components and third-party integrations to simplify
+AI application development — all while future-proofing decisions as the underlying
+technology evolves.
+
+
+Tip
+
+Just getting started? Check out **[Deep Agents](https://github.githubassets.com/assets/app-foundation-d65636f1d3602c9e.js "route-pattern")**
+— a higher-level package built on LangChain for agents that have built-in capabilities
+for common usage patterns such as planning, subagents, file system usage, and more.
+
+
+## Quickstart
+
+```uv add langchain```
+
+                              
+
+```from langchain.chat_models import init_chat_modelmodel = init_chat_model("openai:gpt-5.5")result
+= model.invoke("Hello, world!")```
+
+
+If you're looking for more advanced customization or agent orchestration, check out
+[LangGraph](https://github.githubassets.com/assets/react-core.317e10d2d7e90593.module.css "route-pattern"), our framework for building controllable agent workflows.
+
+For an equivalent JS/TS library, check out [LangChain.js](https://github.githubassets.com/assets/n9-97e2e5539969aaaf.js "route-pattern").
+
+
+Tip
+
+For developing, debugging, and deploying AI agents and LLM applications, see [LangSmith](https://github.githubassets.com/assets/j6-1e8b001d24ed9cac.js "route-pattern").
+
+
+## LangChain ecosystem
+
+While the LangChain framework can be used standalone, it also integrates seamlessly
+with any LangChain product, giving developers a full suite of tools when building
+LLM applications.
+
+- **[Deep Agents](https://github.githubassets.com/assets/pa0-e1b166821f206374.js "route-pattern")** — Build agents that can plan, use subagents, and leverage file systems for complex tasks
+- **[LangGraph](https://github.githubassets.com/assets/rwf-1dd6dffd391bcb85.js "route-pattern")** — Build agents that can reliably handle complex tasks with our low-level agent orchestration framework
+- **[Integrations](https://github.githubassets.com/assets/tr-12064c91dfbbd248.js "route-pattern")** — Chat & embedding models, tools & toolkits, and more
+- **[LangSmith](https://github.githubassets.com/assets/on-965308f70a2d682c.js "route-pattern")** — Agent evals, observability, and debugging for LLM apps
+- **[LangSmith Deployment](https://github.githubassets.com/assets/bi0-5c188267c6b3529a.js "route-pattern")** — Deploy and scale agents with a purpose-built platform for long-running, stateful workflows
+
+
+## Why use LangChain?
+
+LangChain helps developers build applications powered by LLMs through a standard
+interface for models, embeddings, vector stores, and more.
+
+- **Real-time data augmentation** — Easily connect LLMs to diverse data sources and external/internal systems, drawing from LangChain's vast library of integrations with model providers, tools, vector stores, retrievers, and more
+- **Model interoperability** — Swap models in and out as your engineering team experiments to find the best choice for your application's needs. As the industry frontier evolves, adapt quickly — LangChain's abstractions keep you moving without losing momentum
+- **Rapid prototyping** — Quickly build and iterate on LLM applications with LangChain's modular, component-based architecture. Test different approaches and workflows without rebuilding from scratch, accelerating your development cycle
+- **Production-ready features** — Deploy reliable applications with built-in support for monitoring, evaluation, and debugging through integrations like LangSmith. Scale with confidence using battle-tested patterns and best practices
+- **Vibrant community and ecosystem** — Leverage a rich ecosystem of integrations, templates, and community-contributed components. Benefit from continuous improvements and stay up-to-date with the latest AI developments through an active open-source community
+- **Flexible abstraction layers** — Work at the level of abstraction that suits your needs — from high-level chains for quick starts to low-level components for fine-grained control. LangChain grows with your application's complexity
+
+---
+
+
+## Resources
+
+- [Documentation](https://github.githubassets.com/assets/ni.0196e6fcc070ac09.module.css "route-pattern") — conceptual overviews and guides
+- [LangChain ecosystem overview](https://github.githubassets.com/assets/4b.04650e8ebd1e08f2.module.css "route-pattern") — how LangChain, LangGraph, and Deep Agents fit together
+- [API reference](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern") — complete reference for all public classes, functions, and types
+- [Discussions](https://github.githubassets.com/assets/code-view.5db41632d917603f.module.css "route-pattern") — community forum for technical questions, ideas, and feedback
+- [LangChain Academy](https://github.githubassets.com/assets/lq-180d2e8115502593.js "route-pattern") — comprehensive, free courses on LangChain libraries and products, made by the LangChain team
+- [Contributing Guide](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern") — how to contribute and find good first issues
+- [Code of Conduct](https://github.githubassets.com/assets/primer-react-css.5781bf31392a2ea2.module.css "route-pattern") — community guidelines and standards
+
+
+## About
+
+The agent engineering platform.
+
+[docs.langchain.com/langchain/](/opensearch.xml "GitHub")
+### Topics
+
+[agents](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[ai](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[ai-agents](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[anthropic](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[chatgpt](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[deepagents](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[enterprise](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[framework](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[gemini](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[generative-ai](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "GitHub - langchain-ai/langchain: The agent engineering platform.")[langchain](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[langgraph](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[llm](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[multiagent](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[open-source](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[openai](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[pydantic](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[python](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[rag](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")[typescript](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+### Resources
+
+[Readme](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+
+[MIT license](https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg "_R_5knd_")
+### Code of conduct
+
+[Code of conduct](https://github.githubassets.com/assets/obo-b97774c6eb95c7ee.js "_R_5knd_")
+### Contributing
+
+[Contributing](https://github.githubassets.com/assets/1lf-a0f2419c1e6629c4.js "_R_5knd_")
+### Security policy
+
+[Security policy](https://github.githubassets.com/assets/primer-react-brand-css.206bbd4fd232654e.module.css "_R_5knd_")
+
+Cite this repository
+
+[Activity](/ "_R_5knd_")
+
+[Custom properties](/login?return_to=https%3A%2F%2Fgithub.com%2Flangchain-ai%2Flangchain "_R_5knd_")
+### Stars
+
+**145.6k** stars
+### Watchers
+
+**916** watching
+### Forks
+
+[**24.3k** forks](https://github.com/features/copilot "_R_5knd_")
+
+[Report repository](https://github.com/features/copilot "_R_5knd_")
+
+
+## Releases
+
+
+## Used by
+
+
+## Contributors
+
+
+## Languages
+
+
+## Footer
+
+
+[            ](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")       
+© 2026 GitHub, Inc.              
+### Footer navigation
+
+-             [Terms](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+-             [Privacy](https://github.com/features/ai/github-app "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+-               [Security](https://github.com/mcp "Octicon")            
+-               [Status](https://github.com/mcp "Octicon")            
+-             [Community](https://github.com/mcp "Octicon")          
+-             [Docs](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+-             [Contact](https://github.com/mcp "Primer_Brand__Link-module__Link___lF11y Primer_Brand__Link-module__Link--default___VRVW0")          
+-             Manage cookies      
+-                   Do not share my personal information            
+
+
+You can’t perform that action at this time.      
+
+

@@ -1,0 +1,492 @@
+History API - Web APIs | MDN
+==========================================================
+
+
+-         [Skip to main content](#content)      
+-         [Skip to search](#search)      
+
+
+[                  MDN
+============================
+
+](/en-US/)            
+
+
+HTML                          
+
+
+[HTML: Markup language](/en-US/docs/Web/HTML)                      
+
+
+HTML reference           
+
+-                                   [Elements](/en-US/docs/Web/HTML/Reference/Elements)                                
+-                                   [Global attributes](/en-US/docs/Web/HTML/Reference/Global_attributes)                                
+-                                   [Attributes](/en-US/docs/Web/HTML/Reference/Attributes)                                
+-                                   [See all…](/en-US/docs/Web/HTML/Reference "See all HTML references")                                
+
+HTML guides        
+
+-                                   [Responsive images](/en-US/docs/Web/HTML/Guides/Responsive_images)                                
+-                                   [HTML cheatsheet](/en-US/docs/Web/HTML/Guides/Cheatsheet)                                
+-                                   [Date & time formats](/en-US/docs/Web/HTML/Guides/Date_and_time_formats)                                
+-                                   [See all…](/en-US/docs/Web/HTML/Guides "See all HTML guides")                                
+
+Markup languages   
+
+-                                   [SVG](/en-US/docs/Web/SVG)                                
+-                                   [MathML](/en-US/docs/Web/MathML)                                
+-                                   [XML](/en-US/docs/Web/XML)                                
+
+
+CSS                          
+
+
+[CSS: Styling language](/en-US/docs/Web/CSS)                      
+
+
+CSS reference            
+
+-                                   [Properties](/en-US/docs/Web/CSS/Reference/Properties)                                
+-                                   [Selectors](/en-US/docs/Web/CSS/Reference/Selectors)                                
+-                                   [At-rules](/en-US/docs/Web/CSS/Reference/At-rules)                                
+-                                   [Values](/en-US/docs/Web/CSS/Reference/Values)                                
+-                                   [See all…](/en-US/docs/Web/CSS/Reference "See all CSS references")                                
+
+CSS guides         
+
+-                                   [Box model](/en-US/docs/Web/CSS/Guides/Box_model/Introduction)                                
+-                                   [Animations](/en-US/docs/Web/CSS/Guides/Animations/Using)                                
+-                                   [Flexbox](/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts)                                
+-                                   [Colors](/en-US/docs/Web/CSS/Guides/Colors/Applying_color)                                
+-                                   [See all…](/en-US/docs/Web/CSS/Guides "See all CSS guides")                                
+
+Layout cookbook    
+
+-                                   [Column layouts](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts)                                
+-                                   [Centering an element](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element)                                
+-                                   [Card component](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card)                                
+-                                   [See all…](/en-US/docs/Web/CSS/How_to/Layout_cookbook)                                
+
+
+JavaScriptJS                          
+
+
+[JavaScript: Scripting language](/en-US/docs/Web/JavaScript)                      
+
+
+JS reference             
+
+-                                   [Standard built-in objects](/en-US/docs/Web/JavaScript/Reference/Global_Objects)                                
+-                                   [Expressions & operators](/en-US/docs/Web/JavaScript/Reference/Operators)                                
+-                                   [Statements & declarations](/en-US/docs/Web/JavaScript/Reference/Statements)                                
+-                                   [Functions](/en-US/docs/Web/JavaScript/Reference/Functions)                                
+-                                   [See all…](/en-US/docs/Web/JavaScript/Reference "See all JavaScript references")                                
+
+JS guides          
+
+-                                   [Control flow & error handing](/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling)                                
+-                                   [Loops and iteration](/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration)                                
+-                                   [Working with objects](/en-US/docs/Web/JavaScript/Guide/Working_with_objects)                                
+-                                   [Using classes](/en-US/docs/Web/JavaScript/Guide/Using_classes)                                
+-                                   [See all…](/en-US/docs/Web/JavaScript/Guide "See all JavaScript guides")                                
+
+
+Web APIs                          
+
+
+[Web APIs: Programming interfaces](/en-US/docs/Web/API)                      
+
+
+Web API reference        
+
+-                                   [File system API](/en-US/docs/Web/API/File_System_API)                                
+-                                   [Fetch API](/en-US/docs/Web/API/Fetch_API)                                
+-                                   [Geolocation API](/en-US/docs/Web/API/Geolocation_API)                                
+-                                   [HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)                                
+-                                   [Push API](/en-US/docs/Web/API/Push_API)                                
+-                                   [Service worker API](/en-US/docs/Web/API/Service_Worker_API)                                
+-                                   [See all…](/en-US/docs/Web/API "See all Web API guides")                                
+
+Web API guides     
+
+-                                   [Using the Web animation API](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API)                                
+-                                   [Using the Fetch API](/en-US/docs/Web/API/Fetch_API/Using_Fetch)                                
+-                                   [Working with the History API](/en-US/docs/Web/API/History_API/Working_with_the_History_API)                                
+-                                   [Using the Web speech API](/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API)                                
+-                                   [Using web workers](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)                                
+
+
+All                          
+
+
+[All web technology](/en-US/docs/Web)                      
+
+
+Technologies             
+
+-                                   [Accessibility](/en-US/docs/Web/Accessibility)                                
+-                                   [HTTP](/en-US/docs/Web/HTTP)                                
+-                                   [URI](/en-US/docs/Web/URI)                                
+-                                   [Web extensions](/en-US/docs/Mozilla/Add-ons/WebExtensions)                                
+-                                   [WebAssembly](/en-US/docs/WebAssembly)                                
+-                                   [WebDriver](/en-US/docs/Web/WebDriver)                                
+-                                   [See all…](/en-US/docs/Web "See all web technology references")                                
+
+Topics             
+
+-                                   [Media](/en-US/docs/Web/Media)                                
+-                                   [Performance](/en-US/docs/Web/Performance)                                
+-                                   [Privacy](/en-US/docs/Web/Privacy)                                
+-                                   [Security](/en-US/docs/Web/Security)                                
+-                                   [Progressive web apps](/en-US/docs/Web/Progressive_web_apps)                                
+
+
+Learn                          
+
+
+[Learn web development](/en-US/docs/Learn_web_development)                      
+
+
+Frontend developer course
+
+-                                   [Getting started modules](/en-US/docs/Learn_web_development/Getting_started)                                
+-                                   [Core modules](/en-US/docs/Learn_web_development/Core)                                
+-                                   [MDN Curriculum](/en-US/curriculum/)                                
+-                                   [Check out the video course from Scrimba, our partner](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar)                                
+
+Learn HTML         
+
+-                                   [Structuring content with HTML module](/en-US/docs/Learn_web_development/Core/Structuring_content)                                
+
+Learn CSS          
+
+-                                   [CSS styling basics module](/en-US/docs/Learn_web_development/Core/Styling_basics)                                
+-                                   [CSS layout module](/en-US/docs/Learn_web_development/Core/CSS_layout)                                
+
+Learn JavaScript   
+
+-                                   [Dynamic scripting with JavaScript module](/en-US/docs/Learn_web_development/Core/Scripting)                                
+
+
+Tools                          
+
+
+Discover our tools                      
+
+
+-                                   [Playground](/en-US/play)                                
+-                                   [HTTP Observatory](/en-US/observatory)                                
+
+
+-                                   [Border-image generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator)                                
+-                                   [Border-radius generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator)                                
+-                                   [Box-shadow generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator)                                
+-                                   [Color format converter](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter)                                
+-                                   [Color mixer](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer)                                
+-                                   [Shape generator](/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator)                                
+
+
+About                          
+
+
+Get to know MDN better                      
+
+
+-                                   [About MDN](/en-US/about)                                
+-                                   [Advertise with us](/en-US/advertising)                                
+
+
+-                                   [Community](/en-US/community)                                
+-                                   [MDN on GitHub](https://github.com/mdn)                                
+
+
+[Blog](/en-US/blog/)                          
+
+
+Exit search      
+
+
+Toggle sidebar                          
+
+1.               [Web](/en-US/docs/Web)                          
+2.               [Web APIs](/en-US/docs/Web/API)                          
+3.               [History API](/en-US/docs/Web/API/History_API)                          
+
+
+span{display:none}}.color-theme__button:before{background-color:currentcolor;content:"";height:1.25rem;mask-size:cover;width:1.25rem}.color-theme__button[data-mode="light
+dark"]:before{mask-image:var(--color-theme-light-dark)}.color-theme__button[data-mode=light]:before{mask-image:var(--color-theme-light)}.color-theme__button[data-mode=dark]:before{mask-image:var(--color-theme-dark)}.color-theme__dropdown{border:1px
+solid
+var(--color-border-primary);padding:.75rem;position:absolute;right:0;z-index:1}.color-theme__dropdown,.color-theme__list{background-color:var(--color-background-primary);margin:0;width:max-content}.color-theme__list{list-style:none;padding:0}.color-theme__option{align-items:center;background-color:initial;border:none;color:var(--color-text-primary);column-gap:.25rem;cursor:pointer;display:flex;font:inherit;margin:0;padding:.25rem;width:100%}.color-theme__option:hover{background-color:var(--color-background-secondary)}.color-theme__option:before{background-color:currentcolor;content:"";height:1.25rem;mask-size:cover;width:1.25rem}.color-theme__option[data-mode="light
+dark"]:before{mask-image:var(--color-theme-light-dark)}.color-theme__option[data-mode=light]:before{mask-image:var(--color-theme-light)}.color-theme__option[data-mode=dark]:before{mask-image:var(--color-theme-dark)}.color-theme__option[data-current]{background:var(--color-background-secondary)}
+
+Theme              
+
+
+-                                       OS default                                  
+-                                       Light                                  
+-                                       Dark                                  
+
+
+span{display:none}}.language-switcher__button:before{background-color:currentcolor;content:"";height:1.25rem;mask-image:url(/static/ssr/languages.dcba936080e5be86.svg);mask-size:cover;width:1.25rem}.language-switcher__dropdown{background-color:var(--color-background-primary);border:1px
+solid
+var(--color-border-primary);margin:0;padding:.75rem;position:absolute;right:0;width:max-content;z-index:1}.language_switcher__remember{border-bottom:1px
+solid
+var(--color-border-primary);display:flex;font-size:var(--font-size-small);place-items:center;width:100%}.language_switcher__remember
+mdn-switch{padding:.25rem}:is(.language_switcher__remember
+mdn-switch):hover{background-color:var(--color-background-secondary)}.language-switcher__list{background-color:var(--color-background-primary);list-style:none;margin:0;padding:0;width:100%}.language-switcher__option{align-items:center;background-color:initial;border:none;color:var(--color-text-primary);column-gap:.25rem;display:flex;font:inherit;margin:0;padding:.25rem;-webkit-text-decoration:none;text-decoration:none;width:100%}.language-switcher__option:hover,.language-switcher__option[data-current]{background-color:var(--color-background-secondary)}
+
+English (US)              
+
+
+";inherits:false;initial-value:0}.switch{cursor:pointer;display:flex;gap:.5em;place-items:center}.switch__input{--switch-size:1.25em;appearance:none;background-color:var(--color-text-secondary);background-image:radial-gradient(circle
+at calc(var(--switch-size)/2),var(--color-background-primary) calc((var(--switch-size)/2)\*.8),#0000
+calc((var(--switch-size)/2)\*.8 + 1px));background-position:var(--switch-position)
+0;background-repeat:no-repeat;background-size:var(--switch-size);border-radius:var(--radius-full);display:inline-block;height:var(--switch-size);margin:0;transition:--switch-position
+.2s;width:calc(var(--switch-size)\*1.6)}.switch__input:checked{--switch-position:100%;background-color:var(--color-link-normal)}.switch__input:focus-visible{outline:2px
+solid
+var(--color-link-normal);outline-offset:2px}.switch__input:active:not(:disabled){filter:brightness(1.2)}.switch__input:disabled{opacity:.7}
+Remember language                        [              Learn more   
+](#content "logo__letter")                          
+-             [Deutsch](/en-US/docs/Web/HTML "Search the site")          
+-             [English (US)](/en-US/docs/Web/HTML "Search the site")          
+-             [Español](/en-US/docs/Web/HTML "Search the site")          
+-             [Français](/en-US/docs/Web/HTML "Search the site")          
+-             [日本語](/en-US/docs/Web/HTML "Search the site")          
+-             [한국어](/en-US/docs/Web/HTML "Search the site")          
+-             [Português (do Brasil)](/en-US/docs/Web/HTML "Search the site")          
+-             [Русский](/en-US/docs/Web/HTML "Search the site")          
+-             [中文 (简体)](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+-             [正體中文 (繁體)](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+
+
+# History API
+
+
+Baseline                                      Widely
+available                                                                        
+
+
+This feature is well established and works across many devices and browser versions.
+It’s been available across browsers since July 2015.
+
+-             [              Learn more            ](/en-US/docs/Web/HTML/Guides/Responsive_images "See all HTML references")          
+-             [              See full compatibility            ](/en-US/docs/Web/HTML/Guides/Responsive_images "See all HTML guides")          
+
+
+The **History API** provides access to the browser's session history (not to be confused
+with [WebExtensions history](/en-US/docs/Web/HTML/Guides/Date_and_time_formats "See all HTML guides")) through the [`history`](/en-US/docs/Web/HTML/Guides/Date_and_time_formats "See all HTML guides") global object. It exposes useful methods and properties that let you navigate back and forth through the user's history, and manipulate the contents of the history stack.
+
+
+**Note:**This API is only available on the main thread ([`Window`](/en-US/docs/Web/SVG "See all HTML guides")). It cannot be accessed in [`Worker`](/en-US/docs/Web/SVG "/en-US/docs/Web/CSS") or [`Worklet`](/en-US/docs/Web/SVG "/en-US/docs/Web/CSS") contexts.
+
+## In this article
+
+-               [Concepts and usage](/en-US/docs/Web/MathML "/en-US/docs/Web/CSS")            
+-               [Interfaces](/en-US/docs/Web/XML "/en-US/docs/Web/CSS")            
+-               [Examples](/en-US/docs/Web/XML "/en-US/docs/Web/CSS")            
+-               [Specifications](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [Browser compatibility](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [See also](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+
+
+## [Concepts and usage](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")
+
+Moving backward and forward through the user's history is done using the [`back()`](/en-US/docs/Web/CSS/Reference/Properties "See all CSS references"), [`forward()`](/en-US/docs/Web/CSS/Reference/Properties "See all CSS references"), and [`go()`](/en-US/docs/Web/CSS/Reference/Properties "See all CSS references") methods.
+
+### [Moving forward and backward](/en-US/docs/Web/CSS/Reference/Selectors "See all CSS references")
+
+To move backward through history:
+
+js
+
+```menu__tab
+history.back();
+```
+
+This acts exactly as if the user clicked on the **Back** button in their browser
+toolbar.
+
+Similarly, you can move forward (as if the user clicked the **Forward** button),
+like this:
+
+js
+
+```menu__tab
+history.forward();
+```
+
+### [Moving to a specific point in history](/en-US/docs/Web/CSS/Guides/Box_model/Introduction "See all CSS guides")
+
+You can use the [`go()`](/en-US/docs/Web/CSS/Guides/Box_model/Introduction "See all CSS guides") method to load a specific page from session history, identified by its relative position to the current page. (The current page's relative position is
+`0`.)
+
+To move back one page (the equivalent of calling [`back()`](/en-US/docs/Web/CSS/Guides/Animations/Using "See all CSS guides")):
+
+js
+
+```menu__tab
+history.go(-1);
+```
+
+To move forward a page, just like calling [`forward()`](/en-US/docs/Web/CSS/Guides/Colors/Applying_color "See all CSS guides"):
+
+js
+
+```menu__tab
+history.go(1);
+```
+
+Similarly, you can move forward 2 pages by passing `2`, and so forth.
+
+Another use for the `go()` method is to refresh the current page by either passing `0`,
+or by invoking it without an argument:
+
+js
+
+```menu__tab
+// The following statements
+// both have the effect of
+// refreshing the page
+history.go(0);
+history.go();
+```
+
+You can determine the number of pages in the history stack by looking at the value
+of the `length` property:
+
+js
+
+```menu__tab
+const numberOfEntries = history.length;
+```
+
+## [Interfaces](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card "/en-US/docs/Web/JavaScript")
+[`History`](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card "/en-US/docs/Web/JavaScript")
+Allows manipulation of the browser *session history* (that is, the pages visited
+in the tab or frame that the current page is loaded in).
+[`PopStateEvent`](/en-US/docs/Web/CSS/How_to/Layout_cookbook "/en-US/docs/Web/JavaScript")
+The interface of the [`popstate`](/en-US/docs/Web/JavaScript "/en-US/docs/Web/JavaScript") event.
+
+## [Examples](/en-US/docs/Web/JavaScript "/en-US/docs/Web/JavaScript")
+
+The following example assigns a listener for the [`popstate`](/en-US/docs/Web/JavaScript "/en-US/docs/Web/JavaScript") event. It then illustrates some of the methods of the history object to add, replace, and move within the browser history for the current tab.
+
+js
+
+```menu__panel
+window.addEventListener("popstate", (event) => {
+  alert(
+    `location: ${document.location}, state: ${JSON.stringify(event.state)}`,
+  );
+});
+
+history.pushState({ page: 1 }, "title 1", "?page=1");
+history.pushState({ page: 2 }, "title 2", "?page=2");
+history.replaceState({ page: 3 }, "title 3", "?page=3");
+history.back(); // alerts "location: http://example.com/example.html?page=1, state: {"page":1}"
+history.back(); // alerts "location: http://example.com/example.html, state: null"
+history.go(2); // alerts "location: http://example.com/example.html?page=3, state: {"page":3}"
+```
+
+## [Specifications](/en-US/docs/Web/JavaScript/Reference/Operators "See all JavaScript references")
+
+|   |
+||--------------------------------------------------------------------------------------------------------------------|
+| - |
+|   |
+|   | [HTML<br># the-history-interface](/en-US/docs/Web/JavaScript/Reference/Statements "See all JavaScript references") |  |
+
+## [Browser compatibility](/en-US/docs/Web/JavaScript/Reference "See all JavaScript references")
+
+
+## [See also](/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration "See all JavaScript guides")
+
+- [`history`](/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration "See all JavaScript guides") global object
+- [`popstate`](/en-US/docs/Web/JavaScript/Guide/Working_with_objects "See all JavaScript guides") event
+
+
+##             Help improve MDN                          Was this page helpful to
+you?            
+
+Yes                                      
+No                                            [Learn how to contribute](/en-US/docs/Web "History API")
+This page was last modified on Jul 26, 2024 by [MDN contributors](/en-US/docs/Web "History API").  
+
+[View this page on GitHub](/en-US/docs/Web "History API") • [Report a problem with this content](/en-US/docs/Web "History API")   
+
+
+Filter sidebar                                             
+Clear filter input                                
+
+
+1. *[History API](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Web/API/History_API")*
+2.
+Guides
+1. [Working with the History API](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Web/API/History_API")
+
+-
+Interfaces
+1. [`History`](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Web/API/History_API")
+2. [`PopStateEvent`](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Web/API/History_API")
+
+-
+Properties
+1. [`Window.history`](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Web/API/History_API")
+
+-
+Events
+1. [`Window: popstate`](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")
+
+
+[MDN
+================
+
+](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")            
+Your blueprint for a better internet.            
+
+-                                   
+-                                   
+-                                   
+-                                   
+-                                   
+
+MDN                                  
+-                           [                            About                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Blog                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Mozilla careers                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            Advertise with us                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            MDN Plus                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            Product help                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+
+Contribute
+
+-                           [                            MDN Community                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            Community resources                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            Writing guidelines                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            MDN Discord                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+-                           [                            MDN on GitHub                          ](https://github.com/orgs/mdn/discussions/739 "not-bold")                        
+
+Developers
+
+-                           [                            Web technologies                          ](/static/client/styles-global.edd46645a22dfb0f.css "theme")                        
+-                           [                            Learn web development                          ](/static/client/styles-global.edd46645a22dfb0f.css "History API - Web APIs | MDN")                        
+-                           [                            Guides                          ](/static/client/styles-global.edd46645a22dfb0f.css "History API - Web APIs | MDN")                        
+-                           [                            Tutorials                          ](/static/client/9228.84e610e6bb0bf33e.css "History API - Web APIs | MDN")                        
+-                           [                            Glossary                          ](/static/client/styles-baseline-indicator.e40ad3654e66ca24.css "History API - Web APIs | MDN")                        
+-                           [                            Hacks blog                          ](/static/client/styles-left-sidebar.46e37af4d0b5c883.css "History API - Web APIs | MDN")                        
+
+
+[Mozilla
+==================
+
+](/static/client/styles-logo.aea5ff6edf1b9cfb.css "History API - Web APIs | MDN")          
+-                   [Website Privacy Notice](https://developer.mozilla.org/en-US/docs/Web/API/History_API "History API - Web APIs | MDN")                
+-                   [Telemetry Settings](https://developer.mozilla.org/en-US/docs/Web/API/History_API "History API - Web APIs | MDN")                
+-                   [Legal](https://developer.mozilla.org/en-US/docs/Web/API/History_API "MDN")                
+-                   [Community Participation Guidelines](https://developer.mozilla.org/en-US/docs/Web/API/History_API "MDN")                
+
+
+Portions of this content are ©1998–2026 by individual mozilla.org
+contributors. Content available under [a Creative Commons license](https://developer.mozilla.org/en-US/docs/Web/API/History_API "MDN").          
+

@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "javascript-spa",
+    "content_text": "Quotes to Scrape\n\n“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+    "checked_at": "2026-09-03T14:23:01.403Z",
+    "independent": true,
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 18,
+      "timeout_ms": 30000
+    },
+    "scope_identity": {
+      "case_id": "javascript-spa",
+      "url": "https://quotes.toscrape.com/js/",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "h1 + all 10 .quote elements; no navigation/footer",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "quote",
+            "alternatives": [
+              "The world as we have created it"
+            ]
+          },
+          {
+            "id": "author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "tag",
+            "alternatives": [
+              "change",
+              "deep-thoughts"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "min_content_chars": 500,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    }
+  }
+]

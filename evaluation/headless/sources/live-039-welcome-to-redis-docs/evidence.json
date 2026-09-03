@@ -1,0 +1,30 @@
+{
+  "case_id": "live-039-welcome-to-redis-docs",
+  "url": "https://redis.io/docs/latest/",
+  "checked_at": "2026-09-02T03:38:01.200652+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://redis.io/docs/latest/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://redis.io/docs/latest/",
+  "mime": "text/html",
+  "bytes": 118316,
+  "sha256": "f08e9e551267fb3055ea5af16af351f0f1e3f9925dab7d4f071fc93590db4ed7",
+  "title": "Docs",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "iframe",
+      "url": "https://www.googletagmanager.com/ns.html?id=GTM-TKZ6J9R",
+      "alt": ""
+    }
+  ],
+  "text_chars": 2593,
+  "excerpt": "Welcome to Redis Docs\nQuickly set up a Redis cache, primary, vector or custom database\nDevelop with Redis Open Source\nRun Redis in production\nDevelop in your language\nRedisVL\nRedis for AI and search\nVector database\nGet started with vector databases\nAI development\nBuild AI applications with Redis\nJSON\nStore and query JSON documents\nStreams\nReal-time data streaming and event processing\nAI Applications\nChatbots, agents, RAG systems\nReal-time context engine\nMemory, retrieval, state, streaming\nAI models & infrastructure\nLLMs, embeddings, vector models\nFrom open source to production scale\nRedis Open Source\nExperimentation and local development\n• Core data structures\n• Vector search\n• Streams & pub/sub\n• Community support\nRedis Software\nEnterprise on-prem / hybrid\n• Active-Active geo-distribution",
+  "missing_facts": [],
+  "state": "captured"
+}

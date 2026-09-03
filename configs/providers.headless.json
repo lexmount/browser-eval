@@ -1,0 +1,9 @@
+{
+  "providers": {
+    "kitesurf": {"type": "headless_html", "engine": "kitesurf", "endpoint": "${KITESURF_CDP_ENDPOINT:-wss://kitesurf.cloudflare.app/devtools/browser}"},
+    "lightpanda": {"type": "headless_html", "engine": "lightpanda", "binary": "${LIGHTPANDA_BINARY:-lightpanda}"},
+    "obscura": {"type": "headless_html", "engine": "obscura", "binary": "${OBSCURA_BINARY:-obscura}"},
+    "moli": {"type": "headless_html", "engine": "moli", "binary": "${MOLI_BINARY:-moli}"},
+    "chromium": {"type": "headless_html", "engine": "chromium", "binary": "${CHROMIUM_BINARY:-chromium}"}
+  }
+}

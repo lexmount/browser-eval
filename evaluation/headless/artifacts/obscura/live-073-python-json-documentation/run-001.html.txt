@@ -1,0 +1,3578 @@
+<!DOCTYPE html>
+<html lang="en" data-content_root="../"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="json — JSON encoder and decoder">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://docs.python.org/3/library/json.html">
+<meta property="og:site_name" content="Python documentation">
+<meta property="og:description" content="Source code: Lib/json/__init__.py JSON (JavaScript Object Notation), specified by RFC 7159(which obsoletes RFC 4627) and by ECMA-404, is a lightweight data interchange format inspired by JavaScript...">
+<meta property="og:image:width" content="1146">
+<meta property="og:image:height" content="600">
+<meta property="og:image" content="https://docs.python.org/3.14/_images/social_previews/summary_library_json_0fabf18f.png">
+<meta property="og:image:alt" content="Source code: Lib/json/__init__.py JSON (JavaScript Object Notation), specified by RFC 7159(which obsoletes RFC 4627) and by ECMA-404, is a lightweight data interchange format inspired by JavaScript...">
+<meta name="description" content="Source code: Lib/json/__init__.py JSON (JavaScript Object Notation), specified by RFC 7159(which obsoletes RFC 4627) and by ECMA-404, is a lightweight data interchange format inspired by JavaScript...">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#3776ab">
+
+    <title>json — JSON encoder and decoder — Python 3.14.7 documentation</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3"><style data-obscura-external-stylesheets="">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f8f8f8; }
+.highlight .c { color: #3D7B7B; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #9C6500 } /* Comment.Preproc */
+.highlight .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #E40000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #008400 } /* Generic.Inserted */
+.highlight .go { color: #717171 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #687822 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #00F; font-weight: bold } /* Name.Class */
+.highlight .no { color: #800 } /* Name.Constant */
+.highlight .nd { color: #A2F } /* Name.Decorator */
+.highlight .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #00F } /* Name.Function */
+.highlight .nl { color: #767600 } /* Name.Label */
+.highlight .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666 } /* Literal.Number.Float */
+.highlight .mh { color: #666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666 } /* Literal.Number.Oct */
+.highlight .sa { color: #BA2121 } /* Literal.String.Affix */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #A45A77 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #00F } /* Name.Function.Magic */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .vm { color: #19177C } /* Name.Variable.Magic */
+.highlight .il { color: #666 } /* Literal.Number.Integer.Long */</style>
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=234b1a7c"><style data-obscura-external-stylesheets="">/*
+ * Sphinx stylesheet -- basic theme.
+ */
+
+/* -- main layout ----------------------------------------------------------- */
+
+div.clearer {
+    clear: both;
+}
+
+div.section::after {
+    display: block;
+    content: '';
+    clear: left;
+}
+
+/* -- relbar ---------------------------------------------------------------- */
+
+div.related {
+    width: 100%;
+    font-size: 90%;
+}
+
+div.related h3 {
+    display: none;
+}
+
+div.related ul {
+    margin: 0;
+    padding: 0 0 0 10px;
+    list-style: none;
+}
+
+div.related li {
+    display: inline;
+}
+
+div.related li.right {
+    float: right;
+    margin-right: 5px;
+}
+
+/* -- sidebar --------------------------------------------------------------- */
+
+div.sphinxsidebarwrapper {
+    padding: 10px 5px 0 10px;
+}
+
+div.sphinxsidebar {
+    float: left;
+    width: 230px;
+    margin-left: -100%;
+    font-size: 90%;
+    word-wrap: break-word;
+    overflow-wrap : break-word;
+}
+
+div.sphinxsidebar ul {
+    list-style: none;
+}
+
+div.sphinxsidebar ul ul,
+div.sphinxsidebar ul.want-points {
+    margin-left: 20px;
+    list-style: square;
+}
+
+div.sphinxsidebar ul ul {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+div.sphinxsidebar form {
+    margin-top: 10px;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #98dbcc;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+div.sphinxsidebar #searchbox form.search {
+    overflow: hidden;
+}
+
+div.sphinxsidebar #searchbox input[type="text"] {
+    float: left;
+    width: 80%;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+div.sphinxsidebar #searchbox input[type="submit"] {
+    float: left;
+    width: 20%;
+    border-left: none;
+    padding: 0.25em;
+    box-sizing: border-box;
+}
+
+
+img {
+    border: 0;
+    max-width: 100%;
+}
+
+/* -- search page ----------------------------------------------------------- */
+
+ul.search {
+    margin-top: 10px;
+}
+
+ul.search li {
+    padding: 5px 0;
+}
+
+ul.search li a {
+    font-weight: bold;
+}
+
+ul.search li p.context {
+    color: #888;
+    margin: 2px 0 0 30px;
+    text-align: left;
+}
+
+ul.keywordmatches li.goodmatch a {
+    font-weight: bold;
+}
+
+/* -- index page ------------------------------------------------------------ */
+
+table.contentstable {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.contentstable p.biglink {
+    line-height: 150%;
+}
+
+a.biglink {
+    font-size: 1.3em;
+}
+
+span.linkdescr {
+    font-style: italic;
+    padding-top: 5px;
+    font-size: 90%;
+}
+
+/* -- general index --------------------------------------------------------- */
+
+table.indextable {
+    width: 100%;
+}
+
+table.indextable td {
+    text-align: left;
+    vertical-align: top;
+}
+
+table.indextable ul {
+    margin-top: 0;
+    margin-bottom: 0;
+    list-style-type: none;
+}
+
+table.indextable > tbody > tr > td > ul {
+    padding-left: 0em;
+}
+
+table.indextable tr.pcap {
+    height: 10px;
+}
+
+table.indextable tr.cap {
+    margin-top: 10px;
+    background-color: #f2f2f2;
+}
+
+img.toggler {
+    margin-right: 3px;
+    margin-top: 3px;
+    cursor: pointer;
+}
+
+div.modindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+div.genindex-jumpbox {
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    margin: 1em 0 1em 0;
+    padding: 0.4em;
+}
+
+/* -- domain module index --------------------------------------------------- */
+
+table.modindextable td {
+    padding: 2px;
+    border-collapse: collapse;
+}
+
+/* -- general body styles --------------------------------------------------- */
+
+div.body {
+    min-width: 360px;
+    max-width: 800px;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+a.headerlink {
+    visibility: hidden;
+}
+
+a:visited {
+    color: #551A8B;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink,
+caption:hover > a.headerlink,
+p.caption:hover > a.headerlink,
+div.code-block-caption:hover > a.headerlink {
+    visibility: visible;
+}
+
+div.body p.caption {
+    text-align: inherit;
+}
+
+div.body td {
+    text-align: left;
+}
+
+.first {
+    margin-top: 0 !important;
+}
+
+p.rubric {
+    margin-top: 30px;
+    font-weight: bold;
+}
+
+img.align-left, figure.align-left, .figure.align-left, object.align-left {
+    clear: left;
+    float: left;
+    margin-right: 1em;
+}
+
+img.align-right, figure.align-right, .figure.align-right, object.align-right {
+    clear: right;
+    float: right;
+    margin-left: 1em;
+}
+
+img.align-center, figure.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img.align-default, figure.align-default, .figure.align-default {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+    text-align: left;
+}
+
+.align-center {
+    text-align: center;
+}
+
+.align-default {
+    text-align: center;
+}
+
+.align-right {
+    text-align: right;
+}
+
+/* -- sidebars -------------------------------------------------------------- */
+
+div.sidebar,
+aside.sidebar {
+    margin: 0 0 0.5em 1em;
+    border: 1px solid #ddb;
+    padding: 7px;
+    background-color: #ffe;
+    width: 40%;
+    float: right;
+    clear: right;
+    overflow-x: auto;
+}
+
+p.sidebar-title {
+    font-weight: bold;
+}
+
+nav.contents,
+aside.topic,
+div.admonition, div.topic, blockquote {
+    clear: left;
+}
+
+/* -- topics ---------------------------------------------------------------- */
+
+nav.contents,
+aside.topic,
+div.topic {
+    border: 1px solid #ccc;
+    padding: 7px;
+    margin: 10px 0 10px 0;
+}
+
+p.topic-title {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+/* -- admonitions ----------------------------------------------------------- */
+
+div.admonition {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 7px;
+}
+
+div.admonition dt {
+    font-weight: bold;
+}
+
+p.admonition-title {
+    margin: 0px 10px 5px 0px;
+    font-weight: bold;
+}
+
+div.body p.centered {
+    text-align: center;
+    margin-top: 25px;
+}
+
+/* -- content of sidebars/topics/admonitions -------------------------------- */
+
+div.sidebar > :last-child,
+aside.sidebar > :last-child,
+nav.contents > :last-child,
+aside.topic > :last-child,
+div.topic > :last-child,
+div.admonition > :last-child {
+    margin-bottom: 0;
+}
+
+div.sidebar::after,
+aside.sidebar::after,
+nav.contents::after,
+aside.topic::after,
+div.topic::after,
+div.admonition::after,
+blockquote::after {
+    display: block;
+    content: '';
+    clear: both;
+}
+
+/* -- tables ---------------------------------------------------------------- */
+
+table.docutils {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 0;
+    border-collapse: collapse;
+}
+
+table.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.align-default {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table caption span.caption-number {
+    font-style: italic;
+}
+
+table caption span.caption-text {
+}
+
+table.docutils td, table.docutils th {
+    padding: 1px 8px 1px 5px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid #aaa;
+}
+
+th {
+    text-align: left;
+    padding-right: 5px;
+}
+
+table.citation {
+    border-left: solid 1px gray;
+    margin-left: 1px;
+}
+
+table.citation td {
+    border-bottom: none;
+}
+
+th > :first-child,
+td > :first-child {
+    margin-top: 0px;
+}
+
+th > :last-child,
+td > :last-child {
+    margin-bottom: 0px;
+}
+
+/* -- figures --------------------------------------------------------------- */
+
+div.figure, figure {
+    margin: 0.5em;
+    padding: 0.5em;
+}
+
+div.figure p.caption, figcaption {
+    padding: 0.3em;
+}
+
+div.figure p.caption span.caption-number,
+figcaption span.caption-number {
+    font-style: italic;
+}
+
+div.figure p.caption span.caption-text,
+figcaption span.caption-text {
+}
+
+/* -- field list styles ----------------------------------------------------- */
+
+table.field-list td, table.field-list th {
+    border: 0 !important;
+}
+
+.field-list ul {
+    margin: 0;
+    padding-left: 1em;
+}
+
+.field-list p {
+    margin: 0;
+}
+
+.field-name {
+    -moz-hyphens: manual;
+    -ms-hyphens: manual;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+}
+
+/* -- hlist styles ---------------------------------------------------------- */
+
+table.hlist {
+    margin: 1em 0;
+}
+
+table.hlist td {
+    vertical-align: top;
+}
+
+/* -- object description styles --------------------------------------------- */
+
+.sig {
+	font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
+}
+
+.sig-name, code.descname {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+.sig-name {
+	font-size: 1.1em;
+}
+
+code.descname {
+    font-size: 1.2em;
+}
+
+.sig-prename, code.descclassname {
+    background-color: transparent;
+}
+
+.optional {
+    font-size: 1.3em;
+}
+
+.sig-paren {
+    font-size: larger;
+}
+
+.sig-param.n {
+	font-style: italic;
+}
+
+/* C++ specific styling */
+
+.sig-inline.c-texpr,
+.sig-inline.cpp-texpr {
+	font-family: unset;
+}
+
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+	color: #0033B3;
+}
+
+.sig.c   .m,
+.sig.cpp .m {
+	color: #1750EB;
+}
+
+.sig.c   .s, .sig.c   .sc,
+.sig.cpp .s, .sig.cpp .sc {
+	color: #067D17;
+}
+
+
+/* -- other body styles ----------------------------------------------------- */
+
+ol.arabic {
+    list-style: decimal;
+}
+
+ol.loweralpha {
+    list-style: lower-alpha;
+}
+
+ol.upperalpha {
+    list-style: upper-alpha;
+}
+
+ol.lowerroman {
+    list-style: lower-roman;
+}
+
+ol.upperroman {
+    list-style: upper-roman;
+}
+
+:not(li) > ol > li:first-child > :first-child,
+:not(li) > ul > li:first-child > :first-child {
+    margin-top: 0px;
+}
+
+:not(li) > ol > li:last-child > :last-child,
+:not(li) > ul > li:last-child > :last-child {
+    margin-bottom: 0px;
+}
+
+ol.simple ol p,
+ol.simple ul p,
+ul.simple ol p,
+ul.simple ul p {
+    margin-top: 0;
+}
+
+ol.simple > li:not(:first-child) > p,
+ul.simple > li:not(:first-child) > p {
+    margin-top: 0;
+}
+
+ol.simple p,
+ul.simple p {
+    margin-bottom: 0;
+}
+
+aside.footnote > span,
+div.citation > span {
+    float: left;
+}
+aside.footnote > span:last-of-type,
+div.citation > span:last-of-type {
+  padding-right: 0.5em;
+}
+aside.footnote > p {
+  margin-left: 2em;
+}
+div.citation > p {
+  margin-left: 4em;
+}
+aside.footnote > p:last-of-type,
+div.citation > p:last-of-type {
+    margin-bottom: 0em;
+}
+aside.footnote > p:last-of-type:after,
+div.citation > p:last-of-type:after {
+    content: "";
+    clear: both;
+}
+
+dl.field-list {
+    display: grid;
+    grid-template-columns: fit-content(30%) auto;
+}
+
+dl.field-list > dt {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+dl.field-list > dd {
+    padding-left: 0.5em;
+    margin-top: 0em;
+    margin-left: 0em;
+    margin-bottom: 0em;
+}
+
+dl {
+    margin-bottom: 15px;
+}
+
+dd > :first-child {
+    margin-top: 0px;
+}
+
+dd ul, dd table {
+    margin-bottom: 10px;
+}
+
+dd {
+    margin-top: 3px;
+    margin-bottom: 10px;
+    margin-left: 30px;
+}
+
+.sig dd {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+.sig dl {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+dl > dd:last-child,
+dl > dd:last-child > :last-child {
+    margin-bottom: 0;
+}
+
+dt:target, span.highlighted {
+    background-color: #fbe54e;
+}
+
+rect.highlighted {
+    fill: #fbe54e;
+}
+
+dl.glossary dt {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.versionmodified {
+    font-style: italic;
+}
+
+.system-message {
+    background-color: #fda;
+    padding: 5px;
+    border: 3px solid red;
+}
+
+.footnote:target  {
+    background-color: #ffa;
+}
+
+.line-block {
+    display: block;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.line-block .line-block {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 1.5em;
+}
+
+.guilabel, .menuselection {
+    font-family: sans-serif;
+}
+
+.accelerator {
+    text-decoration: underline;
+}
+
+.classifier {
+    font-style: oblique;
+}
+
+.classifier:before {
+    font-style: normal;
+    margin: 0 0.5em;
+    content: ":";
+    display: inline-block;
+}
+
+abbr, acronym {
+    border-bottom: dotted 1px;
+    cursor: help;
+}
+
+/* -- code displays --------------------------------------------------------- */
+
+pre {
+    overflow: auto;
+    overflow-y: hidden;  /* fixes display issues on Chrome browsers */
+}
+
+pre, div[class*="highlight-"] {
+    clear: both;
+}
+
+span.pre {
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
+    white-space: nowrap;
+}
+
+div[class*="highlight-"] {
+    margin: 1em 0;
+}
+
+td.linenos pre {
+    border: 0;
+    background-color: transparent;
+    color: #aaa;
+}
+
+table.highlighttable {
+    display: block;
+}
+
+table.highlighttable tbody {
+    display: block;
+}
+
+table.highlighttable tr {
+    display: flex;
+}
+
+table.highlighttable td {
+    margin: 0;
+    padding: 0;
+}
+
+table.highlighttable td.linenos {
+    padding-right: 0.5em;
+}
+
+table.highlighttable td.code {
+    flex: 1;
+    overflow: hidden;
+}
+
+.highlight .hll {
+    display: block;
+}
+
+div.highlight pre,
+table.highlighttable pre {
+    margin: 0;
+}
+
+div.code-block-caption + div {
+    margin-top: 0;
+}
+
+div.code-block-caption {
+    margin-top: 1em;
+    padding: 2px 5px;
+    font-size: small;
+}
+
+div.code-block-caption code {
+    background-color: transparent;
+}
+
+table.highlighttable td.linenos,
+span.linenos,
+div.highlight span.gp {  /* gp: Generic.Prompt */
+  user-select: none;
+  -webkit-user-select: text; /* Safari fallback only */
+  -webkit-user-select: none; /* Chrome/Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+ */
+}
+
+div.code-block-caption span.caption-number {
+    padding: 0.1em 0.3em;
+    font-style: italic;
+}
+
+div.code-block-caption span.caption-text {
+}
+
+div.literal-block-wrapper {
+    margin: 1em 0;
+}
+
+code.xref, a code {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
+    background-color: transparent;
+}
+
+.viewcode-link {
+    float: right;
+}
+
+.viewcode-back {
+    float: right;
+    font-family: sans-serif;
+}
+
+div.viewcode-block:target {
+    margin: -1px -10px;
+    padding: 0 10px;
+}
+
+/* -- math display ---------------------------------------------------------- */
+
+img.math {
+    vertical-align: middle;
+}
+
+div.body div.math p {
+    text-align: center;
+}
+
+span.eqno {
+    float: right;
+}
+
+span.eqno a.headerlink {
+    position: absolute;
+    z-index: 1;
+}
+
+div.math:hover a.headerlink {
+    visibility: visible;
+}
+
+/* -- printout stylesheet --------------------------------------------------- */
+
+@media print {
+    div.document,
+    div.documentwrapper,
+    div.bodywrapper {
+        margin: 0 !important;
+        width: 100%;
+    }
+
+    div.sphinxsidebar,
+    div.related,
+    div.footer,
+    #top-link {
+        display: none;
+    }
+}
+/*
+ * Sphinx stylesheet -- classic theme.
+ */
+
+
+
+/* -- page layout ----------------------------------------------------------- */
+
+html {
+    /* CSS hack for macOS's scrollbar (see #1125) */
+    background-color: #FFFFFF;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    font-size: 100%;
+    background-color: white;
+    color: #000;
+    margin: 0;
+    padding: 0;
+}
+
+div.document {
+    display: flex;
+    background-color: white;
+}
+
+div.documentwrapper {
+    float: left;
+    width: 100%;
+}
+
+div.bodywrapper {
+    margin: 0 0 0 230px;
+}
+
+div.body {
+    background-color: white;
+    color: #222222;
+    padding: 0 20px 30px 20px;
+}
+
+div.footer {
+    color: #555555;
+    width: 100%;
+    padding: 9px 0 9px 0;
+    text-align: center;
+    font-size: 75%;
+}
+
+div.footer a {
+    color: #555555;
+    text-decoration: underline;
+}
+
+div.related {
+    background-color: white;
+    line-height: 30px;
+    color: #666666;
+}
+
+div.related a {
+    color: #444444;
+}
+
+div.sphinxsidebar {
+}
+
+div.sphinxsidebar h3 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.4em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0;
+}
+
+div.sphinxsidebar h3 a {
+    color: #444444;
+}
+
+div.sphinxsidebar h4 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    color: #444444;
+    font-size: 1.3em;
+    font-weight: normal;
+    margin: 5px 0 0 0;
+    padding: 0;
+}
+
+div.sphinxsidebar p {
+    color: #444444;
+}
+
+div.sphinxsidebar p.topless {
+    margin: 5px 10px 10px 10px;
+}
+
+div.sphinxsidebar ul {
+    margin: 10px;
+    padding: 0;
+    color: #444444;
+}
+
+div.sphinxsidebar a {
+    color: #444444;
+}
+
+div.sphinxsidebar input {
+    border: 1px solid #444444;
+    font-family: sans-serif;
+    font-size: 1em;
+}
+
+
+
+    
+    
+
+/* for collapsible sidebar */
+#sidebarbutton {
+    height: 100%;
+    background-color: #cccccc;
+    margin-left: 0;
+    color: #FFFFFF;
+    border-left: 1px solid white;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding-top: 1px;
+    float: right;
+    display: table; /* for vertically centering the <span> */
+}
+
+#sidebarbutton:hover {
+    background-color: white;
+}
+
+#sidebarbutton span {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+div.sphinxsidebarwrapper {
+    float: left;
+    margin-right: 0;
+}
+
+
+/* -- hyperlink styles ------------------------------------------------------ */
+
+a {
+    color: #0090c0;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #00608f;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+
+
+/* -- body styles ----------------------------------------------------------- */
+
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    background-color: white;
+    font-weight: normal;
+    color: #1a1a1a;
+    border-bottom: 1px solid #ccc;
+    margin: 20px -20px 10px -20px;
+    padding: 3px 0 3px 10px;
+}
+
+div.body h1 { margin-top: 0; font-size: 200%; }
+div.body h2 { font-size: 160%; }
+div.body h3 { font-size: 140%; }
+div.body h4 { font-size: 120%; }
+div.body h5 { font-size: 110%; }
+div.body h6 { font-size: 100%; }
+
+a.headerlink {
+    color: #aaaaaa;
+    font-size: 0.8em;
+    padding: 0 4px 0 4px;
+    text-decoration: none;
+}
+
+a.headerlink:hover {
+    background-color: #aaaaaa;
+    color: white;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: justify;
+    line-height: 130%;
+}
+
+div.admonition p.admonition-title + p {
+    display: inline;
+}
+
+div.admonition p {
+    margin-bottom: 5px;
+}
+
+div.admonition pre {
+    margin-bottom: 5px;
+}
+
+div.admonition ul, div.admonition ol {
+    margin-bottom: 5px;
+}
+
+div.note {
+    background-color: #eee;
+    border: 1px solid #ccc;
+}
+
+div.seealso {
+    background-color: #ffc;
+    border: 1px solid #ff6;
+}
+
+nav.contents,
+aside.topic,
+div.topic {
+    background-color: #eee;
+}
+
+div.warning {
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
+}
+
+p.admonition-title {
+    display: inline;
+}
+
+p.admonition-title:after {
+    content: ":";
+}
+
+pre {
+    padding: 5px;
+    background-color: #eeffcc;
+    color: #333333;
+    line-height: 120%;
+    border: 1px solid #ac9;
+    border-left: none;
+    border-right: none;
+}
+
+code {
+    background-color: #ecf0f3;
+    padding: 0 1px 0 1px;
+    font-size: 0.95em;
+}
+
+th, dl.field-list > dt {
+    background-color: #ede;
+}
+
+.warning code {
+    background: #efc2c2;
+}
+
+.note code {
+    background: #d6d6d6;
+}
+
+.viewcode-back {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+}
+
+div.viewcode-block:target {
+    background-color: #f4debf;
+    border-top: 1px solid #ac9;
+    border-bottom: 1px solid #ac9;
+}
+
+div.code-block-caption {
+    color: #efefef;
+    background-color: #1c4e63;
+}</style>
+    <link rel="stylesheet" type="text/css" href="../_static/pydoctheme.css?v=4365c8fe"><style data-obscura-external-stylesheets="">/* Common colours */
+:root {
+    --good-color: rgb(41 100 51);
+    --good-border: rgb(79 196 100);
+    --middle-color: rgb(133 72 38);
+    --middle-border: rgb(244, 227, 76);
+    --bad-color: rgb(159 49 51);
+    --bad-border: rgb(244, 76, 78);
+}
+
+/* unset some styles from the classic stylesheet */
+div.document,
+div.body,
+div.related,
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6,
+div.sphinxsidebar a,
+div.sphinxsidebar p,
+div.sphinxsidebar ul,
+div.sphinxsidebar h3,
+div.sphinxsidebar h3 a,
+div.sphinxsidebar h4,
+.menu a,
+.menu p,
+.menu ul,
+.menu h3,
+.menu h3 a,
+.menu h4,
+table.docutils td,
+table.indextable tr.cap,
+pre {
+    background-color: inherit;
+    color: inherit;
+}
+
+/* Add underlines to links */
+a[href] {
+    text-decoration: underline 1px;
+}
+
+/* Increase the underline offset for code to avoid obscuring underscores */
+a[href]:has(> code) {
+    text-underline-offset: 0.25em;
+}
+
+/* No underline for navigation */
+a.headerlink,
+div.genindex-jumpbox a,
+div.modindex-jumpbox a,
+div#search-results a,
+div.sphinxsidebar a,
+div.toctree-wrapper a,
+div[role=navigation] a,
+table.contentstable a,
+table.indextable a {
+    text-decoration: none;
+}
+
+/* Except when hovered */
+div.genindex-jumpbox a:hover,
+div.modindex-jumpbox a:hover,
+div#search-results a:hover,
+div.sphinxsidebar a:hover,
+div.toctree-wrapper a:hover,
+div[role=navigation] a:hover,
+table.contentstable a:hover,
+table.indextable a:hover {
+    text-decoration: underline;
+    text-underline-offset: auto;
+}
+
+body {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.mobile-nav,
+.menu-wrapper {
+    display: none;
+}
+
+div.related {
+    margin-top: 0.5em;
+    margin-bottom: 1.2em;
+    padding: 0.5em 0;
+    border-width: 1px;
+    border-color: #ccc;
+}
+
+.mobile-nav + div.related {
+    border-bottom-style: solid;
+}
+
+.document + div.related {
+    border-top-style: solid;
+}
+
+div.related a:hover {
+    color: #0095c4;
+}
+
+.related .switchers {
+    display: inline-flex;
+}
+
+.switchers > div {
+    margin-right: 5px;
+}
+
+div.related ul::after {
+    content: '';
+    clear: both;
+    display: block;
+}
+
+.inline-search,
+form.inline-search input {
+    display: inline;
+}
+
+form.inline-search input[type='submit'] {
+    /* In some languages, more than 40px is required */
+    width: auto;
+    min-width: 40px;
+}
+
+div.document {
+    display: flex;
+    /* Don't let long code literals extend beyond the right side of the screen */
+    overflow-wrap: break-word;
+}
+
+/* Don't let long code literals extend beyond the right side of the screen */
+span.pre {
+    white-space: unset;
+}
+
+div.sphinxsidebar {
+    display: flex;
+    width: min(25vw, 350px);
+    float: none;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    color: #444;
+    background-color: #eee;
+    border-radius: 5px;
+    line-height: 130%;
+    font-size: smaller;
+}
+
+div.sphinxsidebar h3,
+div.sphinxsidebar h4 {
+    margin-top: 1.5em;
+}
+
+div.bodywrapper {
+    margin-left: min(25vw, 350px);
+}
+
+div.sphinxsidebarwrapper {
+    box-sizing: border-box;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    float: none;
+    flex-grow: 1;
+}
+
+div.sphinxsidebarwrapper > h3:first-child {
+    margin-top: 0.2em;
+}
+
+div.sphinxsidebarwrapper > ul > li > ul > li {
+    margin-bottom: 0.4em;
+}
+
+div.sphinxsidebar a:hover {
+    color: #0095c4;
+}
+
+form.inline-search input,
+div.sphinxsidebar input,
+div.related input {
+    font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, segoe ui, helvetica neue, helvetica, Cantarell, Ubuntu, roboto, noto, arial, sans-serif;
+    border: 1px solid #999999;
+    font-size: smaller;
+    border-radius: 3px;
+}
+
+div.sphinxsidebar input[type='text'] {
+    max-width: 150px;
+}
+
+#sidebarbutton {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 12px;
+    min-width: 12px;
+    border-radius: 0 5px 5px 0;
+    border-left: none;
+}
+
+#sidebarbutton:hover {
+    background-color: #AAAAAA;
+}
+
+div.body {
+    padding: 0 0 0 1.2em;
+}
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    text-align: left;
+    line-height: 1.6;
+}
+div.body h1, div.body h2, div.body h3, div.body h4, div.body h5, div.body h6 {
+    margin: 0;
+    border: 0;
+    padding: 0.3em 0;
+}
+div.body dl.field-list > dt {
+    line-height: 1.6;
+}
+
+div.body hr {
+    border: 0;
+    background-color: #ccc;
+    height: 1px;
+}
+
+div.body pre {
+    border-radius: 3px;
+    border: 1px solid #ac9;
+}
+
+div.body {
+    .good pre {
+        border-left: 3px solid var(--good-border);
+    }
+    .bad pre {
+        border-left: 3px solid var(--bad-border);
+    }
+    .maybe pre {
+        border-left: 3px solid var(--middle-border);
+    }
+}
+
+div.code-block-caption {
+    background-color: #eee;
+    border: 1px solid #ac9;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    padding: 0.3em 0.6em;
+    font-size: 90%;
+    color: #333;
+
+    & + div pre {
+        border-top-left-radius: 0 !important;
+        border-top-right-radius: 0 !important;
+    }
+
+    & + div .copybutton {
+        border-top-right-radius: 0 !important;
+    }
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #eee;
+    --admonition-border: #ccc;
+    --admonition-color: black;
+    --attention-background: #bbddff5c;
+    --attention-border: #0000ff36;
+    --caution-background: #ffc;
+    --caution-border: #dd6;
+    --danger-background: #ffe4e4;
+    --danger-border: red;
+    --error-background: #ffe4e4;
+    --error-border: red;
+    --hint-background: #dfd;
+    --hint-border: green;
+    --seealso-background: #ffc;
+    --seealso-border: #dd6;
+    --tip-background: #dfd;
+    --tip-border: green;
+    --warning-background: #ffe4e4;
+    --warning-border: red;
+}
+
+div.body div.admonition {
+    background-color: var(--admonition-background);
+    border: 1px solid var(--admonition-border);
+    border-radius: 3px;
+    color: var(--admonition-color);
+}
+
+div.body div.admonition.attention {
+    background-color: var(--attention-background);
+    border-color: var(--attention-border);
+}
+
+div.body div.admonition.caution {
+    background-color: var(--caution-background);
+    border-color: var(--caution-border);
+}
+
+div.body div.admonition.danger {
+    background-color: var(--danger-background);
+    border-color: var(--danger-border);
+}
+
+div.body div.admonition.error {
+    background-color: var(--error-background);
+    border-color: var(--error-border);
+}
+
+div.body div.admonition.hint {
+    background-color: var(--hint-background);
+    border-color: var(--hint-border);
+}
+
+div.body div.admonition.seealso {
+    background-color: var(--seealso-background);
+    border-color: var(--seealso-border);
+}
+
+div.body div.admonition.tip {
+    background-color: var(--tip-background);
+    border-color: var(--tip-border);
+}
+
+div.body div.admonition.warning {
+    background-color: var(--warning-background);
+    border-color: var(--warning-border);
+}
+
+div.body div.impl-detail {
+    border-radius: 3px;
+}
+
+div.body div.impl-detail > p {
+    margin: 0;
+}
+
+div.body a {
+    color: #0072aa;
+}
+
+div.body a:visited {
+    color: #6363bb;
+}
+
+div.body a:hover {
+    color: #00b0e4;
+}
+
+tt, code, pre {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 96.5%;
+}
+
+div.body pre {
+    line-height: 120%;
+}
+
+div.body tt,
+div.body code {
+    border-radius: 3px;
+}
+
+div.body tt.descname,
+div.body code.descname {
+    font-size: 120%;
+}
+
+div.body tt.xref,
+div.body a tt,
+div.body code.xref,
+div.body a code {
+    font-weight: normal;
+}
+
+table.docutils {
+    border: 1px solid #ddd;
+    min-width: 20%;
+    border-radius: 3px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+table.docutils td,
+table.docutils th {
+    border: 1px solid #ddd !important;
+    border-radius: 3px;
+    padding: 0.3em 0.5em;
+}
+
+table p,
+table li {
+    text-align: left !important;
+}
+
+table.docutils th {
+    background-color: #eee;
+}
+
+table.footnote,
+table.footnote td {
+    border: 0 !important;
+}
+
+div.footer {
+    line-height: 150%;
+    text-align: right;
+    width: auto;
+    margin-right: 10px;
+}
+
+div.footer a {
+    text-underline-offset: auto;
+}
+
+div.footer a:hover {
+    color: #0095c4;
+}
+
+/* C API return value annotations */
+:root {
+    --refcount: var(--good-color);
+    --refcount-return-borrowed-ref: var(--middle-color);
+}
+
+.refcount {
+    color: var(--refcount);
+}
+
+.refcount.return_borrowed_ref {
+    color: var(--refcount-return-borrowed-ref)
+}
+
+.stableabi {
+    color: #229;
+}
+
+/* C API thread safety annotations */
+:root {
+    --threadsafety-incompatible: var(--bad-color);
+    --threadsafety-compatible: var(--middle-color);
+    --threadsafety-distinct: var(--middle-color);
+    --threadsafety-shared: var(--good-color);
+    --threadsafety-atomic: var(--good-color);
+}
+
+.threadsafety.threadsafety-incompatible {
+    color: var(--threadsafety-incompatible);
+}
+
+.threadsafety.threadsafety-compatible {
+    color: var(--threadsafety-compatible);
+}
+
+.threadsafety.threadsafety-distinct {
+    color: var(--threadsafety-distinct);
+}
+
+.threadsafety.threadsafety-shared {
+    color: var(--threadsafety-shared);
+}
+
+.threadsafety.threadsafety-atomic {
+    color: var(--threadsafety-atomic);
+}
+
+
+dl > dt span ~ em,
+.sig {
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+}
+
+.toctree-wrapper ul {
+    padding-left: 20px;
+}
+
+.theme-selector {
+    margin-left: .5em;
+}
+
+div.genindex-jumpbox,
+div.genindex-jumpbox > p {
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+
+div.genindex-jumpbox a {
+    margin: 0 5px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.copybutton {
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    font-size: 80%;
+    padding-left: .5em;
+    padding-right: .5em;
+    height: 100%;
+    max-height: min(100%, 2.4em);
+    border-radius: 0 3px 0 0;
+    color: #000;
+    background-color: #fff;
+    border: 1px solid #ac9; /* follows div.body pre */
+    display: none;
+}
+
+.copybutton:hover {
+    background-color: #eee;
+}
+
+.copybutton:active {
+    background-color: #ddd;
+}
+
+.highlight:active .copybutton {
+    display: block;
+}
+
+.highlight:hover .copybutton {
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    /* Body layout */
+    div.body {
+        min-width: 100%;
+        padding: 0;
+        font-size: 0.875rem;
+    }
+    div.bodywrapper {
+        margin: 0;
+    }
+    /* Typography */
+    div.body h1 {
+        font-size: 1.625rem;
+    }
+    div.body h2 {
+        font-size: 1.25rem;
+    }
+    div.body h3, div.body h4, div.body h5 {
+        font-size: 1rem;
+    }
+    /* Override default styles to make more readable */
+    div.body ul {
+        padding-inline-start: 1rem;
+    }
+    div.body blockquote {
+        margin-inline-start: 1rem;
+        margin-inline-end: 0;
+    }
+    /* Remove sidebar and top related bar */
+    div.related, div.sphinxsidebar {
+        display: none;
+    }
+    /* Anchorlinks are not hidden by fixed-positioned navbar when scrolled to */
+    html {
+        scroll-padding-top: 40px;
+    }
+    body {
+        margin-top: 40px;
+    }
+
+    /* Top navigation bar */
+    .mobile-nav {
+        display: block;
+        height: 40px;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        box-shadow: rgba(0, 0, 0, 0.25) 0 0 2px 0;
+        z-index: 1;
+    }
+    .mobile-nav * {
+        box-sizing: border-box;
+    }
+    .nav-content {
+        position: absolute;
+        z-index: 1;
+        height: 40px;
+        width: 100%;
+        display: flex;
+        background-color: white;
+    }
+    .nav-items-wrapper {
+        display: flex;
+        flex: auto;
+        padding: .25rem;
+        align-items: stretch;
+    }
+    .nav-logo {
+        margin-right: 1rem;
+        flex-shrink: 0;
+        align-self: center;
+    }
+    .nav-content img {
+        display: block;
+        width: 20px;
+    }
+    .version_switcher_placeholder {
+        margin-right: 1rem;
+    }
+    .version_switcher_placeholder > select {
+        height: 100%;
+    }
+    .nav-content .search {
+        display: flex;
+        flex: auto;
+        border: 1px solid #a9a9a9;
+        align-items: stretch;
+    }
+    .nav-content .search input[type=search] {
+        border: 0;
+        padding-left: 24px;
+        width: 100%;
+        flex: 1;
+    }
+    .nav-content .search input[type=submit] {
+        height: 100%;
+        box-shadow: none;
+        border: 0;
+        border-left: 1px solid #a9a9a9;
+        cursor: pointer;
+        margin-right: 0;
+    }
+    .nav-content .search svg {
+        position: absolute;
+        align-self: center;
+        padding-left: 4px;
+    }
+    .toggler__input {
+        display: none;
+    }
+    .toggler__label {
+        width: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        flex-shrink: 0;
+    }
+    .toggler__label:hover, .toggler__label:focus {
+        background-color: rgba(127 127 127 / 50%);
+    }
+    .toggler__label > span {
+        position: relative;
+        flex: none;
+        height: 2px;
+        width: 100%;
+        background: currentColor;
+        transition: all 400ms ease;
+    }
+    .toggler__label > span::before,
+    .toggler__label > span::after {
+        content: '';
+        height: 2px;
+        width: 100%;
+        background: inherit;
+        position: absolute;
+        left: 0;
+        top: -8px;
+    }
+    .toggler__label > span::after {
+        top: 8px;
+    }
+    .toggler__input:checked ~ nav > .toggler__label span {
+        transform: rotate(135deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before {
+        transform: rotate(90deg);
+    }
+    .toggler__input:checked ~ nav > .toggler__label span::before,
+    .toggler__input:checked ~ nav > .toggler__label span::after {
+        top: 0;
+    }
+    .toggler__input:checked:hover ~ nav > .toggler__label span {
+        transform: rotate(315deg);
+    }
+    .toggler__input:checked ~ .menu-wrapper {
+        visibility: visible;
+        left: 0;
+    }
+
+    /* Sliding side menu */
+    .menu-wrapper {
+        display: block;
+        position: fixed;
+        top: 0;
+        transition: left 400ms ease;
+        left: -310px;
+        width: 300px;
+        height: 100%;
+        background-color: #eee;
+        color: #444444;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+    }
+    .menu-wrapper.open {
+        visibility: visible;
+        left: 0;
+    }
+    .menu {
+        padding: 40px 10px 30px 20px;
+    }
+    .menu-wrapper h3,
+    .menu-wrapper h4 {
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+    .menu-wrapper h4 {
+        font-size: 1.3em;
+    }
+    .menu-wrapper h3 {
+        font-size: 1.4em;
+    }
+    .menu-wrapper h3 + p,
+    .menu-wrapper h4 + p {
+        margin-top: 0.5rem;
+    }
+    .menu a {
+        font-size: smaller;
+        text-decoration: none;
+    }
+    .menu ul {
+        list-style: none;
+        line-height: 1.4;
+        overflow-wrap: break-word;
+        padding-left: 0;
+    }
+    .menu ul ul {
+        margin-left: 20px;
+        list-style: square;
+    }
+    .menu ul li {
+        margin-bottom: 0.5rem;
+    }
+    .language_switcher_placeholder {
+        margin-top: 2rem;
+    }
+    .language_switcher_placeholder select {
+        width: 100%;
+    }
+    .document {
+        position: relative;
+        z-index: 0;
+    }
+    /*Responsive tables*/
+    .responsive-table__container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .menu .theme-selector-label {
+        margin-top: .5em;
+        display: flex;
+        width: 100%;
+    }
+
+    .menu .theme-selector {
+        flex: auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    div.footer {
+        margin-top: -2em;
+    }
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(175, 0, 255);
+
+    --versionadded-border: var(--good-border);
+    --versionchanged-border: var(--middle-border);
+    --deprecated-border: var(--bad-border);
+    --soft-deprecated-border: rgb(175, 0, 255);
+}
+
+div.versionadded,
+div.versionchanged,
+div.deprecated,
+div.deprecated-removed {
+    border-left: 3px solid;
+    padding: 0 1rem;
+}
+
+div.versionadded {
+    border-left-color: var(--versionadded-border);
+}
+
+div.versionchanged {
+    border-left-color: var(--versionchanged-border);
+}
+
+div.deprecated,
+div.deprecated-removed,
+div.versionremoved {
+    border-left-color: var(--deprecated-border);
+}
+
+div.soft-deprecated {
+    border-left-color: var(--soft-deprecated-border);
+}
+
+div.versionadded .versionmodified {
+    color: var(--versionadded);
+}
+
+div.versionchanged .versionmodified {
+    color: var(--versionchanged);
+}
+
+div.deprecated .versionmodified,
+div.deprecated-removed .versionmodified,
+div.versionremoved .versionmodified {
+    color: var(--deprecated);
+}
+
+div.soft-deprecated .versionmodified {
+    color: var(--soft-deprecated);
+}
+
+/* Hide header when printing */
+@media print {
+    div.mobile-nav {
+        display: none;
+    }
+}
+</style>
+    <link id="pygments_dark_css" media="(prefers-color-scheme: dark)" rel="stylesheet" type="text/css" href="../_static/pygments_dark.css?v=0fc419ee"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #49483e }
+.highlight { background: #272822; color: #F8F8F2 }
+.highlight .c { color: #959077 } /* Comment */
+.highlight .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.highlight .esc { color: #F8F8F2 } /* Escape */
+.highlight .g { color: #F8F8F2 } /* Generic */
+.highlight .k { color: #66D9EF } /* Keyword */
+.highlight .l { color: #AE81FF } /* Literal */
+.highlight .n { color: #F8F8F2 } /* Name */
+.highlight .o { color: #FF4689 } /* Operator */
+.highlight .x { color: #F8F8F2 } /* Other */
+.highlight .p { color: #F8F8F2 } /* Punctuation */
+.highlight .ch { color: #959077 } /* Comment.Hashbang */
+.highlight .cm { color: #959077 } /* Comment.Multiline */
+.highlight .cp { color: #959077 } /* Comment.Preproc */
+.highlight .cpf { color: #959077 } /* Comment.PreprocFile */
+.highlight .c1 { color: #959077 } /* Comment.Single */
+.highlight .cs { color: #959077 } /* Comment.Special */
+.highlight .gd { color: #FF4689 } /* Generic.Deleted */
+.highlight .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.highlight .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #FF4689 } /* Generic.Error */
+.highlight .gh { color: #F8F8F2 } /* Generic.Heading */
+.highlight .gi { color: #A6E22E } /* Generic.Inserted */
+.highlight .go { color: #66D9EF } /* Generic.Output */
+.highlight .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #959077 } /* Generic.Subheading */
+.highlight .gt { color: #66D9EF } /* Generic.Traceback */
+.highlight .kc { color: #66D9EF } /* Keyword.Constant */
+.highlight .kd { color: #66D9EF } /* Keyword.Declaration */
+.highlight .kn { color: #FF4689 } /* Keyword.Namespace */
+.highlight .kp { color: #66D9EF } /* Keyword.Pseudo */
+.highlight .kr { color: #66D9EF } /* Keyword.Reserved */
+.highlight .kt { color: #66D9EF } /* Keyword.Type */
+.highlight .ld { color: #E6DB74 } /* Literal.Date */
+.highlight .m { color: #AE81FF } /* Literal.Number */
+.highlight .s { color: #E6DB74 } /* Literal.String */
+.highlight .na { color: #A6E22E } /* Name.Attribute */
+.highlight .nb { color: #A6E22E } /* Name.Builtin */
+.highlight .nc { color: #A6E22E } /* Name.Class */
+.highlight .no { color: #66D9EF } /* Name.Constant */
+.highlight .nd { color: #A6E22E } /* Name.Decorator */
+.highlight .ni { color: #F8F8F2 } /* Name.Entity */
+.highlight .ne { color: #A6E22E } /* Name.Exception */
+.highlight .nf { color: #A6E22E } /* Name.Function */
+.highlight .nl { color: #F8F8F2 } /* Name.Label */
+.highlight .nn { color: #F8F8F2 } /* Name.Namespace */
+.highlight .nx { color: #A6E22E } /* Name.Other */
+.highlight .py { color: #F8F8F2 } /* Name.Property */
+.highlight .nt { color: #FF4689 } /* Name.Tag */
+.highlight .nv { color: #F8F8F2 } /* Name.Variable */
+.highlight .ow { color: #FF4689 } /* Operator.Word */
+.highlight .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.highlight .w { color: #F8F8F2 } /* Text.Whitespace */
+.highlight .mb { color: #AE81FF } /* Literal.Number.Bin */
+.highlight .mf { color: #AE81FF } /* Literal.Number.Float */
+.highlight .mh { color: #AE81FF } /* Literal.Number.Hex */
+.highlight .mi { color: #AE81FF } /* Literal.Number.Integer */
+.highlight .mo { color: #AE81FF } /* Literal.Number.Oct */
+.highlight .sa { color: #E6DB74 } /* Literal.String.Affix */
+.highlight .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.highlight .sc { color: #E6DB74 } /* Literal.String.Char */
+.highlight .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.highlight .sd { color: #E6DB74 } /* Literal.String.Doc */
+.highlight .s2 { color: #E6DB74 } /* Literal.String.Double */
+.highlight .se { color: #AE81FF } /* Literal.String.Escape */
+.highlight .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.highlight .si { color: #E6DB74 } /* Literal.String.Interpol */
+.highlight .sx { color: #E6DB74 } /* Literal.String.Other */
+.highlight .sr { color: #E6DB74 } /* Literal.String.Regex */
+.highlight .s1 { color: #E6DB74 } /* Literal.String.Single */
+.highlight .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.highlight .bp { color: #A6E22E } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #A6E22E } /* Name.Function.Magic */
+.highlight .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.highlight .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.highlight .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.highlight .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.highlight .il { color: #AE81FF } /* Literal.Number.Integer.Long */</style>
+    
+    <script src="../_static/documentation_options.js?v=2f7d2144"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    
+    <script src="../_static/sidebar.js"></script>
+    
+    <link rel="search" type="application/opensearchdescription+xml" title="Search within Python 3.14.7 documentation" href="../_static/opensearch.xml">
+    <link rel="author" title="About these documents" href="../about.html">
+    <link rel="index" title="Index" href="../genindex.html">
+    <link rel="search" title="Search" href="../search.html">
+    <link rel="copyright" title="Copyright" href="../copyright.html">
+    <link rel="next" title="mailbox — Manipulate mailboxes in various formats" href="mailbox.html">
+    <link rel="prev" title="email.iterators: Iterators" href="email.iterators.html">
+    
+      
+      <script defer="" file-types="bz2,epub,zip" data-domain="docs.python.org" src="https://analytics.python.org/js/script.file-downloads.outbound-links.js"></script>
+      
+      <link rel="canonical" href="https://docs.python.org/3/library/json.html">
+      
+    
+
+    
+    <style>
+      @media only screen {
+        table.full-width-table {
+            width: 100%;
+        }
+      }
+    </style>
+<link rel="stylesheet" href="../_static/pydoctheme_dark.css" media="(prefers-color-scheme: dark)" id="pydoctheme_dark_css"><style data-obscura-external-stylesheets="" media="(prefers-color-scheme: dark)">/* Common colours */
+:root {
+    --good-color: rgb(79 196 100);
+    --good-border: var(--good-color);
+    --middle-color: rgb(244, 227, 76);
+    --middle-border: var(--middle-color);
+    --bad-color: rgb(244, 76, 78);
+    --bad-border: var(--bad-color);
+}
+
+
+/* Browser elements */
+:root {
+    scrollbar-color: #616161 transparent;
+    color-scheme: dark;
+}
+
+html,
+body {
+    background-color: #222;
+    color: rgba(255, 255, 255, 0.87);
+}
+
+div.related {
+    color: rgba(255, 255, 255, 0.7); /* classic overwrite */
+    border-color: #424242;
+}
+
+/* SIDEBAR */
+div.sphinxsidebar, .menu-wrapper {
+    background-color: #333;
+    color: inherit;
+}
+
+#sidebarbutton {
+    /* important to overwrite style attribute */
+    background-color: #555 !important;
+    color: inherit !important;
+}
+
+div.sidebar, aside.sidebar {
+    background-color: #424242;
+    border-color: #616161;
+}
+
+/* ANCHORS AND HIGHLIGHTS */
+div.body a {
+    color: #7af;
+}
+
+div.body a:visited {
+    color: #09e;
+}
+
+a.headerlink:hover {
+    background-color: #424242;
+}
+
+div.related a {
+    color: currentColor;
+}
+
+div.footer,
+div.footer a {
+    color: currentColor; /* classic overwrites */
+}
+
+dt:target,
+span.highlighted {
+    background-color: #616161;
+}
+
+.footnote:target {
+    background-color: #2c3e50;
+}
+
+/* Below for most things in text */
+
+dl.field-list > dt {
+    background-color: #434;
+}
+
+table.docutils td,
+table.docutils th {
+    border-color: #616161 !important;
+}
+
+table.docutils th {
+    background-color: #424242;
+}
+
+.stableabi {
+    color: #bbf;
+}
+
+div.body pre {
+    border-color: #616161;
+}
+
+div.code-block-caption {
+    background-color: #333;
+    border-color: #616161;
+    color: white;
+}
+
+code {
+    background-color: #424242;
+}
+
+div.body div.seealso {
+    background-color: rgba(255, 255, 0, 0.1);
+}
+
+div.warning {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.warning code {
+    background-color: rgba(255, 0, 0, 0.5);
+}
+
+/* Admonitions */
+:root {
+    --admonition-background: #ffffff1a;
+    --admonition-border: currentColor;
+    --admonition-color: #ffffffde;
+    --attention-background: #ffffff1a;
+    --attention-border: currentColor;
+    --caution-background: #ffff001a;
+    --caution-border: #dd6;
+    --danger-background: #f003;
+    --danger-border: #f66;
+    --error-background: #f003;
+    --error-border: #f66;
+    --hint-background: #0044117a;
+    --hint-border: green;
+    --seealso-background: #ffff001a;
+    --seealso-border: #dd6;
+    --tip-background: #0044117a;
+    --tip-border: green;
+    --warning-background: #ff000033;
+    --warning-border: #ff6666;
+}
+
+aside.topic,
+div.topic,
+div.note,
+nav.contents {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: currentColor;
+}
+
+.note code {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav {
+    box-shadow: rgba(255, 255, 255, 0.25) 0 0 2px 0;
+}
+
+.nav-content {
+    background-color: black;
+}
+
+img.invert-in-dark-mode {
+    filter: invert(1) hue-rotate(.5turn);
+}
+
+/* -- object description styles --------------------------------------------- */
+
+/* C++ specific styling */
+
+/* Override Sphinx's basic.css to fix colour contrast */
+.sig.c   .k, .sig.c   .kt,
+.sig.cpp .k, .sig.cpp .kt {
+    color: #5283ff;
+}
+
+/* Version change directives */
+:root {
+    --versionadded: var(--good-color);
+    --versionchanged: var(--middle-color);
+    --deprecated: var(--bad-color);
+    --soft-deprecated: rgb(206, 100, 255);
+    --soft-deprecated-border: rgb(206, 100, 255);
+}
+
+.copybutton {
+    color: #ac9; /* follows div.body pre */
+    background-color: #222222; /* follows body */
+}
+
+.copybutton:hover {
+    background-color: #434343;
+}
+
+.copybutton:active {
+    background-color: #656565;
+}
+</style>
+    <link rel="shortcut icon" type="image/png" href="../_static/py.svg">
+            <script type="text/javascript" src="../_static/copybutton.js"></script>
+            <script type="text/javascript" src="../_static/menu.js"></script>
+            <script type="text/javascript" src="../_static/search-focus.js"></script>
+            <script type="text/javascript" src="../_static/themetoggle.js"></script> 
+            <script type="text/javascript" src="../_static/rtd_switcher.js"></script>
+            <meta name="readthedocs-addons-api-version" content="1">
+
+  </head>
+<body>
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation" aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu">
+    <nav class="nav-content" role="navigation">
+        <label for="menuToggler" class="toggler__label">
+            <span></span>
+        </label>
+        <span class="nav-items-wrapper">
+            <a href="https://www.python.org/" class="nav-logo">
+                <img src="../_static/py.svg" alt="Python logo">
+            </a>
+            <span class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></span>
+            <form role="search" class="search" action="../search.html" method="get">
+                <svg :xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" class="search-icon">
+                    <path fill-rule="nonzero" fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                </svg>
+                <input placeholder="Quick search" aria-label="Quick search" type="search" name="q">
+                <input type="submit" value="Go">
+            </form>
+        </span>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation" tabindex="-1">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label>
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> — JSON encoder and decoder</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li><a class="reference internal" href="#encoders-and-decoders">Encoders and Decoders</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+<li><a class="reference internal" href="#standard-compliance-and-interoperability">Standard Compliance and Interoperability</a><ul>
+<li><a class="reference internal" href="#character-encodings">Character Encodings</a></li>
+<li><a class="reference internal" href="#infinite-and-nan-number-values">Infinite and NaN Number Values</a></li>
+<li><a class="reference internal" href="#repeated-names-within-an-object">Repeated Names Within an Object</a></li>
+<li><a class="reference internal" href="#top-level-non-object-non-array-values">Top-level Non-Object, Non-Array Values</a></li>
+<li><a class="reference internal" href="#implementation-limitations">Implementation Limitations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-json.tool">Command-line interface</a><ul>
+<li><a class="reference internal" href="#command-line-options">Command-line options</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="email.iterators.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">email.iterators</span></code>: Iterators</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="mailbox.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mailbox</span></code> — Manipulate mailboxes in various formats</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/json.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=json+%E2%80%94+JSON+encoder+and+decoder&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fjson.html&amp;pagesource=library%2Fjson.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/json.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </nav>
+    </div>
+</div>
+
+  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="mailbox.html" title="mailbox — Manipulate mailboxes in various formats" accesskey="N">next</a> |</li>
+        <li class="right">
+          <a href="email.iterators.html" title="email.iterators: Iterators" accesskey="P">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="netdata.html" accesskey="U">Internet Data Handling</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> — JSON encoder and decoder</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-json">
+<span id="json-json-encoder-and-decoder"></span><h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> — JSON encoder and decoder<a class="headerlink" href="#module-json" title="Link to this heading">¶</a></h1>
+<p><strong>Source code:</strong> <a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/json/__init__.py">Lib/json/__init__.py</a></p>
+<hr class="docutils">
+<p><a class="reference external" href="https://json.org">JSON (JavaScript Object Notation)</a>, specified by
+<span class="target" id="index-0"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc7159.html"><strong>RFC 7159</strong></a> (which obsoletes <span class="target" id="index-1"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc4627.html"><strong>RFC 4627</strong></a>) and by
+<a class="reference external" href="https://ecma-international.org/publications-and-standards/standards/ecma-404/">ECMA-404</a>,
+is a lightweight data interchange format inspired by
+<a class="reference external" href="https://en.wikipedia.org/wiki/JavaScript">JavaScript</a> object literal syntax
+(although it is not a strict subset of JavaScript <a class="footnote-reference brackets" href="#rfc-errata" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> ).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The term “object” in the context of JSON processing in Python can be
+ambiguous. All values in Python are objects. In JSON, an object refers to
+any data wrapped in curly braces, similar to a Python dictionary.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Be cautious when parsing JSON data from untrusted sources. A malicious
+JSON string may cause the decoder to consume considerable CPU and memory
+resources. Limiting the size of data to be parsed is recommended.</p>
+</div>
+<p>This module exposes an API familiar to users of the standard library
+<a class="reference internal" href="marshal.html#module-marshal" title="marshal: Convert Python objects to streams of bytes and back (with different constraints)."><code class="xref py py-mod docutils literal notranslate"><span class="pre">marshal</span></code></a> and <a class="reference internal" href="pickle.html#module-pickle" title="pickle: Convert Python objects to streams of bytes and back."><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> modules.</p>
+<p>Encoding basic Python object hierarchies:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="s1">'foo'</span><span class="p">,</span> <span class="p">{</span><span class="s1">'bar'</span><span class="p">:</span> <span class="p">(</span><span class="s1">'baz'</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}])</span>
+<span class="go">'["foo", {"bar": ["baz", null, 1.0, 2]}]'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="s2">"</span><span class="se">\"</span><span class="s2">foo</span><span class="se">\b</span><span class="s2">ar"</span><span class="p">))</span>
+<span class="go">"\"foo\bar"</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="s1">'</span><span class="se">\u1234</span><span class="s1">'</span><span class="p">))</span>
+<span class="go">"\u1234"</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="s1">'</span><span class="se">\\</span><span class="s1">'</span><span class="p">))</span>
+<span class="go">"\\"</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"c"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">:</span> <span class="mi">0</span><span class="p">},</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="go">{"a": 0, "b": 0, "c": 0}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">io</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">([</span><span class="s1">'streaming API'</span><span class="p">],</span> <span class="n">io</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">io</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+<span class="go">'["streaming API"]'</span>
+</pre></div>
+</div>
+<p>Compact encoding:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">{</span><span class="s1">'4'</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">'6'</span><span class="p">:</span> <span class="mi">7</span><span class="p">}],</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s1">','</span><span class="p">,</span> <span class="s1">':'</span><span class="p">))</span>
+<span class="go">'[1,2,3,{"4":5,"6":7}]'</span>
+</pre></div>
+</div>
+<p>Pretty printing:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">'6'</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">'4'</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+<span class="go">{</span>
+<span class="go">    "4": 5,</span>
+<span class="go">    "6": 7</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+<p>Customizing JSON object encoding:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">custom_json</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">complex</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="p">{</span><span class="s1">'__complex__'</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">'real'</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="s1">'imag'</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">imag</span><span class="p">}</span>
+<span class="gp">... </span>    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Cannot serialize object of </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span><span class="n">j</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">custom_json</span><span class="p">)</span>
+<span class="go">'{"__complex__": true, "real": 1.0, "imag": 2.0}'</span>
+</pre></div>
+</div>
+<p>Decoding JSON:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'["foo", {"bar":["baz", null, 1.0, 2]}]'</span><span class="p">)</span>
+<span class="go">['foo', {'bar': ['baz', None, 1.0, 2]}]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'"</span><span class="se">\\</span><span class="s1">"foo</span><span class="se">\\</span><span class="s1">bar"'</span><span class="p">)</span>
+<span class="go">'"foo\x08ar'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">io</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span><span class="s1">'["streaming API"]'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">io</span><span class="p">)</span>
+<span class="go">['streaming API']</span>
+</pre></div>
+</div>
+<p>Customizing JSON object decoding:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">as_complex</span><span class="p">(</span><span class="n">dct</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="s1">'__complex__'</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="nb">complex</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s1">'real'</span><span class="p">],</span> <span class="n">dct</span><span class="p">[</span><span class="s1">'imag'</span><span class="p">])</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">dct</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'{"__complex__": true, "real": 1, "imag": 2}'</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">object_hook</span><span class="o">=</span><span class="n">as_complex</span><span class="p">)</span>
+<span class="go">(1+2j)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">decimal</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'1.1'</span><span class="p">,</span> <span class="n">parse_float</span><span class="o">=</span><span class="n">decimal</span><span class="o">.</span><span class="n">Decimal</span><span class="p">)</span>
+<span class="go">Decimal('1.1')</span>
+</pre></div>
+</div>
+<p>Extending <a class="reference internal" href="#json.JSONEncoder" title="json.JSONEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONEncoder</span></code></a>:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">ComplexEncoder</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">complex</span><span class="p">):</span>
+<span class="gp">... </span>            <span class="k">return</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">imag</span><span class="p">]</span>
+<span class="gp">... </span>        <span class="c1"># Let the base class default method raise the TypeError</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">ComplexEncoder</span><span class="p">)</span>
+<span class="go">'[2.0, 1.0]'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ComplexEncoder</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="p">)</span>
+<span class="go">'[2.0, 1.0]'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">ComplexEncoder</span><span class="p">()</span><span class="o">.</span><span class="n">iterencode</span><span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="p">))</span>
+<span class="go">['[2.0', ', 1.0', ']']</span>
+</pre></div>
+</div>
+<p>Using <code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> from the shell to validate and pretty-print:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'{"json":"obj"}'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json
+<span class="go">{</span>
+<span class="go">    "json": "obj"</span>
+<span class="go">}</span>
+<span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'{1.2:3.4}'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json
+<span class="go">Expecting property name enclosed in double quotes: line 1 column 2 (char 1)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="#json-commandline"><span class="std std-ref">Command-line interface</span></a> for detailed documentation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>JSON is a subset of <a class="reference external" href="https://yaml.org/">YAML</a> 1.2.  The JSON produced by
+this module’s default settings (in particular, the default <em>separators</em>
+value) is also a subset of YAML 1.0 and 1.1.  This module can thus also be
+used as a YAML serializer.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This module’s encoders and decoders preserve input and output order by
+default.  Order is only lost if the underlying containers are unordered.</p>
+</div>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="json.dump">
+<span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fp</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.dump" title="Link to this definition">¶</a></dt>
+<dd><p>Serialize <em>obj</em> as a JSON formatted stream to <em>fp</em> (a <code class="docutils literal notranslate"><span class="pre">.write()</span></code>-supporting
+<a class="reference internal" href="../glossary.html#term-file-like-object"><span class="xref std std-term">file-like object</span></a>) using this <a class="reference internal" href="#py-to-json-table"><span class="std std-ref">Python-to-JSON conversion table</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike <a class="reference internal" href="pickle.html#module-pickle" title="pickle: Convert Python objects to streams of bytes and back."><code class="xref py py-mod docutils literal notranslate"><span class="pre">pickle</span></code></a> and <a class="reference internal" href="marshal.html#module-marshal" title="marshal: Convert Python objects to streams of bytes and back (with different constraints)."><code class="xref py py-mod docutils literal notranslate"><span class="pre">marshal</span></code></a>, JSON is not a framed protocol,
+so trying to serialize multiple objects with repeated calls to
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code> using the same <em>fp</em> will result in an invalid JSON file.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>obj</strong> (<a class="reference internal" href="functions.html#object" title="object"><em>object</em></a>) – The Python object to be serialized.</p></li>
+<li><p><strong>fp</strong> (<a class="reference internal" href="../glossary.html#term-file-like-object"><span class="xref std std-term">file-like object</span></a>) – The file-like object <em>obj</em> will be serialized to.
+The <code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> module always produces <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> objects,
+not <a class="reference internal" href="stdtypes.html#bytes" title="bytes"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> objects,
+therefore <code class="docutils literal notranslate"><span class="pre">fp.write()</span></code> must support <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> input.</p></li>
+<li><p><strong>skipkeys</strong> (<a class="reference internal" href="functions.html#bool" title="bool"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, keys that are not of a basic type
+(<a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference internal" href="functions.html#int" title="int"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference internal" href="functions.html#float" title="float"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">None</span></code>)
+will be skipped instead of raising a <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>ensure_ascii</strong> (<a class="reference internal" href="functions.html#bool" title="bool"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), the output is guaranteed to
+have all incoming non-ASCII and non-printable characters escaped.
+If <code class="docutils literal notranslate"><span class="pre">False</span></code>, all characters will be outputted as-is, except for
+the characters that must be escaped: quotation mark, reverse solidus,
+and the control characters U+0000 through U+001F.</p></li>
+<li><p><strong>check_circular</strong> (<a class="reference internal" href="functions.html#bool" title="bool"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">False</span></code>, the circular reference check for container types is skipped
+and a circular reference will result in a <a class="reference internal" href="exceptions.html#RecursionError" title="RecursionError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">RecursionError</span></code></a> (or worse).
+Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>allow_nan</strong> (<a class="reference internal" href="functions.html#bool" title="bool"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">False</span></code>, serialization of out-of-range <a class="reference internal" href="functions.html#float" title="float"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a> values
+(<code class="docutils literal notranslate"><span class="pre">nan</span></code>, <code class="docutils literal notranslate"><span class="pre">inf</span></code>, <code class="docutils literal notranslate"><span class="pre">-inf</span></code>) will result in a <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a>,
+in strict compliance with the JSON specification.
+If <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), their JavaScript equivalents
+(<code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">Infinity</span></code>, <code class="docutils literal notranslate"><span class="pre">-Infinity</span></code>) are used.</p></li>
+<li><p><strong>cls</strong> (a <a class="reference internal" href="#json.JSONEncoder" title="json.JSONEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONEncoder</span></code></a> subclass) – If set, a custom JSON encoder with the
+<a class="reference internal" href="#json.JSONEncoder.default" title="json.JSONEncoder.default"><code class="xref py py-meth docutils literal notranslate"><span class="pre">default()</span></code></a> method overridden,
+for serializing into custom datatypes.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), <code class="xref py py-class docutils literal notranslate"><span class="pre">JSONEncoder</span></code> is used.</p></li>
+<li><p><strong>indent</strong> (<a class="reference internal" href="functions.html#int" title="int"><em>int</em></a><em> | </em><a class="reference internal" href="stdtypes.html#str" title="str"><em>str</em></a><em> | </em><em>None</em>) – If a positive integer or string, JSON array elements and
+object members will be pretty-printed with that indent level.
+A positive integer indents that many spaces per level;
+a string (such as <code class="docutils literal notranslate"><span class="pre">"\t"</span></code>) is used to indent each level.
+If zero, negative, or <code class="docutils literal notranslate"><span class="pre">""</span></code> (the empty string),
+only newlines are inserted.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), no newlines are inserted.</p></li>
+<li><p><strong>separators</strong> (<a class="reference internal" href="stdtypes.html#tuple" title="tuple"><em>tuple</em></a><em> | </em><em>None</em>) – A two-tuple: <code class="docutils literal notranslate"><span class="pre">(item_separator,</span> <span class="pre">key_separator)</span></code>.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), <em>separators</em> defaults to
+<code class="docutils literal notranslate"><span class="pre">(',</span> <span class="pre">',</span> <span class="pre">':</span> <span class="pre">')</span></code> if <em>indent</em> is <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':</span> <span class="pre">')</span></code> otherwise.
+For the most compact JSON,
+specify <code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':')</span></code> to eliminate whitespace.</p></li>
+<li><p><strong>default</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – A function that is called for objects that can’t otherwise be serialized.
+It should return a JSON encodable version of the object
+or raise a <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), <code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code> is raised.</p></li>
+<li><p><strong>sort_keys</strong> (<a class="reference internal" href="functions.html#bool" title="bool"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, dictionaries will be outputted sorted by key.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.2: </span>Allow strings for <em>indent</em> in addition to integers.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Use <code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':</span> <span class="pre">')</span></code> as default if <em>indent</em> is not <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>All optional parameters are now <a class="reference internal" href="../glossary.html#keyword-only-parameter"><span class="std std-ref">keyword-only</span></a>.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="json.dumps">
+<span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">dumps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.dumps" title="Link to this definition">¶</a></dt>
+<dd><p>Serialize <em>obj</em> to a JSON formatted <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> using this <a class="reference internal" href="#py-to-json-table"><span class="std std-ref">conversion
+table</span></a>.  The arguments have the same meaning as in
+<a class="reference internal" href="#json.dump" title="json.dump"><code class="xref py py-func docutils literal notranslate"><span class="pre">dump()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Keys in key/value pairs of JSON are always of the type <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>. When
+a dictionary is converted into JSON, all the keys of the dictionary are
+coerced to strings. As a result of this, if a dictionary is converted
+into JSON and then back into a dictionary, the dictionary may not equal
+the original one. That is, <code class="docutils literal notranslate"><span class="pre">loads(dumps(x))</span> <span class="pre">!=</span> <span class="pre">x</span></code> if x has non-string
+keys.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="json.load">
+<span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_int</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_pairs_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.load" title="Link to this definition">¶</a></dt>
+<dd><p>Deserialize <em>fp</em> to a Python object
+using the <a class="reference internal" href="#json-to-py-table"><span class="std std-ref">JSON-to-Python conversion table</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fp</strong> (<a class="reference internal" href="../glossary.html#term-file-like-object"><span class="xref std std-term">file-like object</span></a>) – A <code class="docutils literal notranslate"><span class="pre">.read()</span></code>-supporting <a class="reference internal" href="../glossary.html#term-text-file"><span class="xref std std-term">text file</span></a> or <a class="reference internal" href="../glossary.html#term-binary-file"><span class="xref std std-term">binary file</span></a>
+containing the JSON document to be deserialized.</p></li>
+<li><p><strong>cls</strong> (a <a class="reference internal" href="#json.JSONDecoder" title="json.JSONDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONDecoder</span></code></a> subclass) – If set, a custom JSON decoder.
+Additional keyword arguments to <code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code>
+will be passed to the constructor of <em>cls</em>.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), <code class="xref py py-class docutils literal notranslate"><span class="pre">JSONDecoder</span></code> is used.</p></li>
+<li><p><strong>object_hook</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – If set, a function that is called with the result of
+any JSON object literal decoded (a <a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>).
+The return value of this function will be used
+instead of the <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>.
+This feature can be used to implement custom decoders,
+for example <a class="reference external" href="https://www.jsonrpc.org">JSON-RPC</a> class hinting.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>object_pairs_hook</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – If set, a function that is called with the result of
+any JSON object literal decoded with an ordered list of pairs.
+The return value of this function will be used
+instead of the <a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.
+This feature can be used to implement custom decoders.
+If <em>object_hook</em> is also set, <em>object_pairs_hook</em> takes priority.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>parse_float</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – If set, a function that is called with
+the string of every JSON float to be decoded.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), it is equivalent to <code class="docutils literal notranslate"><span class="pre">float(num_str)</span></code>.
+This can be used to parse JSON floats into custom datatypes,
+for example <a class="reference internal" href="decimal.html#decimal.Decimal" title="decimal.Decimal"><code class="xref py py-class docutils literal notranslate"><span class="pre">decimal.Decimal</span></code></a>.</p></li>
+<li><p><strong>parse_int</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – If set, a function that is called with
+the string of every JSON int to be decoded.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default), it is equivalent to <code class="docutils literal notranslate"><span class="pre">int(num_str)</span></code>.
+This can be used to parse JSON integers into custom datatypes,
+for example <a class="reference internal" href="functions.html#float" title="float"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>.</p></li>
+<li><p><strong>parse_constant</strong> (<a class="reference internal" href="../glossary.html#term-callable"><span class="xref std std-term">callable</span></a> | None) – If set, a function that is called with one of the following strings:
+<code class="docutils literal notranslate"><span class="pre">'-Infinity'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Infinity'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'NaN'</span></code>.
+This can be used to raise an exception
+if invalid JSON numbers are encountered.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#json.JSONDecodeError" title="json.JSONDecodeError"><strong>JSONDecodeError</strong></a> – When the data being deserialized is not a valid JSON document.</p></li>
+<li><p><a class="reference internal" href="exceptions.html#UnicodeDecodeError" title="UnicodeDecodeError"><strong>UnicodeDecodeError</strong></a> – When the data being deserialized does not contain
+UTF-8, UTF-16 or UTF-32 encoded data.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.1: </span></p>
+<ul class="simple">
+<li><p>Added the optional <em>object_pairs_hook</em> parameter.</p></li>
+<li><p><em>parse_constant</em> doesn’t get called on ‘null’, ‘true’, ‘false’ anymore.</p></li>
+</ul>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span></p>
+<ul class="simple">
+<li><p>All optional parameters are now <a class="reference internal" href="../glossary.html#keyword-only-parameter"><span class="std std-ref">keyword-only</span></a>.</p></li>
+<li><p><em>fp</em> can now be a <a class="reference internal" href="../glossary.html#term-binary-file"><span class="xref std std-term">binary file</span></a>.
+The input encoding should be UTF-8, UTF-16 or UTF-32.</p></li>
+</ul>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.11: </span>The default <em>parse_int</em> of <a class="reference internal" href="functions.html#int" title="int"><code class="xref py py-func docutils literal notranslate"><span class="pre">int()</span></code></a> now limits the maximum length of
+the integer string via the interpreter’s <a class="reference internal" href="stdtypes.html#int-max-str-digits"><span class="std std-ref">integer string
+conversion length limitation</span></a> to help avoid denial
+of service attacks.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="json.loads">
+<span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">loads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_int</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_pairs_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.loads" title="Link to this definition">¶</a></dt>
+<dd><p>Identical to <a class="reference internal" href="#json.load" title="json.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a>, but instead of a file-like object,
+deserialize <em>s</em> (a <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference internal" href="stdtypes.html#bytes" title="bytes"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> or <a class="reference internal" href="stdtypes.html#bytearray" title="bytearray"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytearray</span></code></a>
+instance containing a JSON document) to a Python object using this
+<a class="reference internal" href="#json-to-py-table"><span class="std std-ref">conversion table</span></a>.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span><em>s</em> can now be of type <a class="reference internal" href="stdtypes.html#bytes" title="bytes"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a> or <a class="reference internal" href="stdtypes.html#bytearray" title="bytearray"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytearray</span></code></a>. The
+input encoding should be UTF-8, UTF-16 or UTF-32.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.9: </span>The keyword argument <em>encoding</em> has been removed.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="encoders-and-decoders">
+<h2>Encoders and Decoders<a class="headerlink" href="#encoders-and-decoders" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="json.JSONDecoder">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">JSONDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_float</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_int</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parse_constant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_pairs_hook</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONDecoder" title="Link to this definition">¶</a></dt>
+<dd><p>Simple JSON decoder.</p>
+<p>Performs the following translations in decoding by default:</p>
+<table class="docutils align-default" id="json-to-py-table">
+<thead>
+<tr class="row-odd"><th class="head"><p>JSON</p></th>
+<th class="head"><p>Python</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>object</p></td>
+<td><p>dict</p></td>
+</tr>
+<tr class="row-odd"><td><p>array</p></td>
+<td><p>list</p></td>
+</tr>
+<tr class="row-even"><td><p>string</p></td>
+<td><p>str</p></td>
+</tr>
+<tr class="row-odd"><td><p>number (int)</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-even"><td><p>number (real)</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>true</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-even"><td><p>false</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-odd"><td><p>null</p></td>
+<td><p>None</p></td>
+</tr>
+</tbody>
+</table>
+<p>It also understands <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">Infinity</span></code>, and <code class="docutils literal notranslate"><span class="pre">-Infinity</span></code> as their
+corresponding <code class="docutils literal notranslate"><span class="pre">float</span></code> values, which is outside the JSON spec.</p>
+<p><em>object_hook</em> is an optional function that will be called with the result of
+every JSON object decoded and its return value will be used in place of the
+given <a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.  This can be used to provide custom deserializations
+(e.g. to support <a class="reference external" href="https://www.jsonrpc.org">JSON-RPC</a> class hinting).</p>
+<p><em>object_pairs_hook</em> is an optional function that will be called with the
+result of every JSON object decoded with an ordered list of pairs.  The
+return value of <em>object_pairs_hook</em> will be used instead of the
+<a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>.  This feature can be used to implement custom decoders.  If
+<em>object_hook</em> is also defined, the <em>object_pairs_hook</em> takes priority.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.1: </span>Added support for <em>object_pairs_hook</em>.</p>
+</div>
+<p><em>parse_float</em> is an optional function that will be called with the string of
+every JSON float to be decoded.  By default, this is equivalent to
+<code class="docutils literal notranslate"><span class="pre">float(num_str)</span></code>.  This can be used to use another datatype or parser for
+JSON floats (e.g. <a class="reference internal" href="decimal.html#decimal.Decimal" title="decimal.Decimal"><code class="xref py py-class docutils literal notranslate"><span class="pre">decimal.Decimal</span></code></a>).</p>
+<p><em>parse_int</em> is an optional function that will be called with the string of
+every JSON int to be decoded.  By default, this is equivalent to
+<code class="docutils literal notranslate"><span class="pre">int(num_str)</span></code>.  This can be used to use another datatype or parser for
+JSON integers (e.g. <a class="reference internal" href="functions.html#float" title="float"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>).</p>
+<p><em>parse_constant</em> is an optional function that will be called with one of the
+following strings: <code class="docutils literal notranslate"><span class="pre">'-Infinity'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Infinity'</span></code>, <code class="docutils literal notranslate"><span class="pre">'NaN'</span></code>.  This can be
+used to raise an exception if invalid JSON numbers are encountered.</p>
+<p>If <em>strict</em> is false (<code class="docutils literal notranslate"><span class="pre">True</span></code> is the default), then control characters
+will be allowed inside strings.  Control characters in this context are
+those with character codes in the 0–31 range, including <code class="docutils literal notranslate"><span class="pre">'\t'</span></code> (tab),
+<code class="docutils literal notranslate"><span class="pre">'\n'</span></code>, <code class="docutils literal notranslate"><span class="pre">'\r'</span></code> and <code class="docutils literal notranslate"><span class="pre">'\0'</span></code>.</p>
+<p>If the data being deserialized is not a valid JSON document, a
+<a class="reference internal" href="#json.JSONDecodeError" title="json.JSONDecodeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">JSONDecodeError</span></code></a> will be raised.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>All parameters are now <a class="reference internal" href="../glossary.html#keyword-only-parameter"><span class="std std-ref">keyword-only</span></a>.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="json.JSONDecoder.decode">
+<span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONDecoder.decode" title="Link to this definition">¶</a></dt>
+<dd><p>Return the Python representation of <em>s</em> (a <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> instance
+containing a JSON document).</p>
+<p><a class="reference internal" href="#json.JSONDecodeError" title="json.JSONDecodeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">JSONDecodeError</span></code></a> will be raised if the given JSON document is not
+valid.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="json.JSONDecoder.raw_decode">
+<span class="sig-name descname"><span class="pre">raw_decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONDecoder.raw_decode" title="Link to this definition">¶</a></dt>
+<dd><p>Decode a JSON document from <em>s</em> (a <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> beginning with a
+JSON document) and return a 2-tuple of the Python representation
+and the index in <em>s</em> where the document ended.</p>
+<p>This can be used to decode a JSON document from a string that may have
+extraneous data at the end.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="json.JSONEncoder">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">JSONEncoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">skipkeys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ensure_ascii</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_circular</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separators</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONEncoder" title="Link to this definition">¶</a></dt>
+<dd><p>Extensible JSON encoder for Python data structures.</p>
+<p>Supports the following objects and types by default:</p>
+<table class="docutils align-default" id="py-to-json-table">
+<thead>
+<tr class="row-odd"><th class="head"><p>Python</p></th>
+<th class="head"><p>JSON</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>dict</p></td>
+<td><p>object</p></td>
+</tr>
+<tr class="row-odd"><td><p>list, tuple</p></td>
+<td><p>array</p></td>
+</tr>
+<tr class="row-even"><td><p>str</p></td>
+<td><p>string</p></td>
+</tr>
+<tr class="row-odd"><td><p>int, float, int- &amp; float-derived Enums</p></td>
+<td><p>number</p></td>
+</tr>
+<tr class="row-even"><td><p>True</p></td>
+<td><p>true</p></td>
+</tr>
+<tr class="row-odd"><td><p>False</p></td>
+<td><p>false</p></td>
+</tr>
+<tr class="row-even"><td><p>None</p></td>
+<td><p>null</p></td>
+</tr>
+</tbody>
+</table>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Added support for int- and float-derived Enum classes.</p>
+</div>
+<p>To extend this to recognize other objects, subclass and implement a
+<a class="reference internal" href="#json.JSONEncoder.default" title="json.JSONEncoder.default"><code class="xref py py-meth docutils literal notranslate"><span class="pre">default()</span></code></a> method with another method that returns a serializable object
+for <code class="docutils literal notranslate"><span class="pre">o</span></code> if possible, otherwise it should call the superclass implementation
+(to raise <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>).</p>
+<p>If <em>skipkeys</em> is false (the default), a <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a> will be raised when
+trying to encode keys that are not <a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference internal" href="functions.html#int" title="int"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference internal" href="functions.html#float" title="float"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>,
+<a class="reference internal" href="functions.html#bool" title="bool"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a> or <code class="docutils literal notranslate"><span class="pre">None</span></code>.  If <em>skipkeys</em> is true, such items are simply skipped.</p>
+<p>If <em>ensure_ascii</em> is true (the default), the output is guaranteed to
+have all incoming non-ASCII and non-printable characters escaped.
+If <em>ensure_ascii</em> is false, all characters will be output as-is, except for
+the characters that must be escaped: quotation mark, reverse solidus,
+and the control characters U+0000 through U+001F.</p>
+<p>If <em>check_circular</em> is true (the default), then lists, dicts, and custom
+encoded objects will be checked for circular references during encoding to
+prevent an infinite recursion (which would cause a <a class="reference internal" href="exceptions.html#RecursionError" title="RecursionError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">RecursionError</span></code></a>).
+Otherwise, no such check takes place.</p>
+<p>If <em>allow_nan</em> is true (the default), then <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">Infinity</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">-Infinity</span></code> will be encoded as such.  This behavior is not JSON
+specification compliant, but is consistent with most JavaScript based
+encoders and decoders.  Otherwise, it will be a <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> to encode
+such floats.</p>
+<p>If <em>sort_keys</em> is true (default: <code class="docutils literal notranslate"><span class="pre">False</span></code>), then the output of dictionaries
+will be sorted by key; this is useful for regression tests to ensure that
+JSON serializations can be compared on a day-to-day basis.</p>
+<p>If <em>indent</em> is a non-negative integer or string, then JSON array elements and
+object members will be pretty-printed with that indent level.  An indent level
+of 0, negative, or <code class="docutils literal notranslate"><span class="pre">""</span></code> will only insert newlines.  <code class="docutils literal notranslate"><span class="pre">None</span></code> (the default)
+selects the most compact representation. Using a positive integer indent
+indents that many spaces per level.  If <em>indent</em> is a string (such as <code class="docutils literal notranslate"><span class="pre">"\t"</span></code>),
+that string is used to indent each level.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.2: </span>Allow strings for <em>indent</em> in addition to integers.</p>
+</div>
+<p>If specified, <em>separators</em> should be an <code class="docutils literal notranslate"><span class="pre">(item_separator,</span> <span class="pre">key_separator)</span></code>
+tuple.  The default is <code class="docutils literal notranslate"><span class="pre">(',</span> <span class="pre">',</span> <span class="pre">':</span> <span class="pre">')</span></code> if <em>indent</em> is <code class="docutils literal notranslate"><span class="pre">None</span></code> and
+<code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':</span> <span class="pre">')</span></code> otherwise.  To get the most compact JSON representation,
+you should specify <code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':')</span></code> to eliminate whitespace.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.4: </span>Use <code class="docutils literal notranslate"><span class="pre">(',',</span> <span class="pre">':</span> <span class="pre">')</span></code> as default if <em>indent</em> is not <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</div>
+<p>If specified, <em>default</em> should be a function that gets called for objects that
+can’t otherwise be serialized.  It should return a JSON encodable version of
+the object or raise a <a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>.  If not specified, <code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code>
+is raised.</p>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.6: </span>All parameters are now <a class="reference internal" href="../glossary.html#keyword-only-parameter"><span class="std std-ref">keyword-only</span></a>.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="json.JSONEncoder.default">
+<span class="sig-name descname"><span class="pre">default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONEncoder.default" title="Link to this definition">¶</a></dt>
+<dd><p>Implement this method in a subclass such that it returns a serializable
+object for <em>o</em>, or calls the base implementation (to raise a
+<a class="reference internal" href="exceptions.html#TypeError" title="TypeError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">TypeError</span></code></a>).</p>
+<p>For example, to support arbitrary iterators, you could implement
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">default()</span></code> like this:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o</span><span class="p">):</span>
+   <span class="k">try</span><span class="p">:</span>
+       <span class="n">iterable</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+   <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+       <span class="k">pass</span>
+   <span class="k">else</span><span class="p">:</span>
+       <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterable</span><span class="p">)</span>
+   <span class="c1"># Let the base class default method raise the TypeError</span>
+   <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">default</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="json.JSONEncoder.encode">
+<span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONEncoder.encode" title="Link to this definition">¶</a></dt>
+<dd><p>Return a JSON string representation of a Python data structure, <em>o</em>.  For
+example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">"foo"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"bar"</span><span class="p">,</span> <span class="s2">"baz"</span><span class="p">]})</span>
+<span class="go">'{"foo": ["bar", "baz"]}'</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="json.JSONEncoder.iterencode">
+<span class="sig-name descname"><span class="pre">iterencode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONEncoder.iterencode" title="Link to this definition">¶</a></dt>
+<dd><p>Encode the given object, <em>o</em>, and yield each string representation as
+available.  For example:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">()</span><span class="o">.</span><span class="n">iterencode</span><span class="p">(</span><span class="n">bigobject</span><span class="p">):</span>
+    <span class="n">mysocket</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="json.JSONDecodeError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">json.</span></span><span class="sig-name descname"><span class="pre">JSONDecodeError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">doc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#json.JSONDecodeError" title="Link to this definition">¶</a></dt>
+<dd><p>Subclass of <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a> with the following additional attributes:</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="json.JSONDecodeError.msg">
+<span class="sig-name descname"><span class="pre">msg</span></span><a class="headerlink" href="#json.JSONDecodeError.msg" title="Link to this definition">¶</a></dt>
+<dd><p>The unformatted error message.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="json.JSONDecodeError.doc">
+<span class="sig-name descname"><span class="pre">doc</span></span><a class="headerlink" href="#json.JSONDecodeError.doc" title="Link to this definition">¶</a></dt>
+<dd><p>The JSON document being parsed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="json.JSONDecodeError.pos">
+<span class="sig-name descname"><span class="pre">pos</span></span><a class="headerlink" href="#json.JSONDecodeError.pos" title="Link to this definition">¶</a></dt>
+<dd><p>The start index of <em>doc</em> where parsing failed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="json.JSONDecodeError.lineno">
+<span class="sig-name descname"><span class="pre">lineno</span></span><a class="headerlink" href="#json.JSONDecodeError.lineno" title="Link to this definition">¶</a></dt>
+<dd><p>The line corresponding to <em>pos</em>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="json.JSONDecodeError.colno">
+<span class="sig-name descname"><span class="pre">colno</span></span><a class="headerlink" href="#json.JSONDecodeError.colno" title="Link to this definition">¶</a></dt>
+<dd><p>The column corresponding to <em>pos</em>.</p>
+</dd></dl>
+
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.5.</span></p>
+</div>
+</dd></dl>
+
+</section>
+<section id="standard-compliance-and-interoperability">
+<h2>Standard Compliance and Interoperability<a class="headerlink" href="#standard-compliance-and-interoperability" title="Link to this heading">¶</a></h2>
+<p>The JSON format is specified by <span class="target" id="index-2"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc7159.html"><strong>RFC 7159</strong></a> and by
+<a class="reference external" href="https://ecma-international.org/publications-and-standards/standards/ecma-404/">ECMA-404</a>.
+This section details this module’s level of compliance with the RFC.
+For simplicity, <a class="reference internal" href="#json.JSONEncoder" title="json.JSONEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONEncoder</span></code></a> and <a class="reference internal" href="#json.JSONDecoder" title="json.JSONDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">JSONDecoder</span></code></a> subclasses, and
+parameters other than those explicitly mentioned, are not considered.</p>
+<p>This module does not comply with the RFC in a strict fashion, implementing some
+extensions that are valid JavaScript but not valid JSON.  In particular:</p>
+<ul class="simple">
+<li><p>Infinite and NaN number values are accepted and output;</p></li>
+<li><p>Repeated names within an object are accepted, and only the value of the last
+name-value pair is used.</p></li>
+</ul>
+<p>Since the RFC permits RFC-compliant parsers to accept input texts that are not
+RFC-compliant, this module’s deserializer is technically RFC-compliant under
+default settings.</p>
+<section id="character-encodings">
+<h3>Character Encodings<a class="headerlink" href="#character-encodings" title="Link to this heading">¶</a></h3>
+<p>The RFC requires that JSON be represented using either UTF-8, UTF-16, or
+UTF-32, with UTF-8 being the recommended default for maximum interoperability.</p>
+<p>As permitted, though not required, by the RFC, this module’s serializer sets
+<em>ensure_ascii=True</em> by default, thus escaping the output so that the resulting
+strings only contain printable ASCII characters.</p>
+<p>Other than the <em>ensure_ascii</em> parameter, this module is defined strictly in
+terms of conversion between Python objects and
+<a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">Unicode</span> <span class="pre">strings</span></code></a>, and thus does not otherwise directly address
+the issue of character encodings.</p>
+<p>The RFC prohibits adding a byte order mark (BOM) to the start of a JSON text,
+and this module’s serializer does not add a BOM to its output.
+The RFC permits, but does not require, JSON deserializers to ignore an initial
+BOM in their input.  This module’s deserializer raises a <a class="reference internal" href="exceptions.html#ValueError" title="ValueError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code></a>
+when an initial BOM is present.</p>
+<p>The RFC does not explicitly forbid JSON strings which contain byte sequences
+that don’t correspond to valid Unicode characters (e.g. unpaired UTF-16
+surrogates), but it does note that they may cause interoperability problems.
+By default, this module accepts and outputs (when present in the original
+<a class="reference internal" href="stdtypes.html#str" title="str"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>) code points for such sequences.</p>
+</section>
+<section id="infinite-and-nan-number-values">
+<h3>Infinite and NaN Number Values<a class="headerlink" href="#infinite-and-nan-number-values" title="Link to this heading">¶</a></h3>
+<p>The RFC does not permit the representation of infinite or NaN number values.
+Despite that, by default, this module accepts and outputs <code class="docutils literal notranslate"><span class="pre">Infinity</span></code>,
+<code class="docutils literal notranslate"><span class="pre">-Infinity</span></code>, and <code class="docutils literal notranslate"><span class="pre">NaN</span></code> as if they were valid JSON number literal values:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Neither of these calls raises an exception, but the results are not valid JSON</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s1">'-inf'</span><span class="p">))</span>
+<span class="go">'-Infinity'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s1">'nan'</span><span class="p">))</span>
+<span class="go">'NaN'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Same when deserializing</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'-Infinity'</span><span class="p">)</span>
+<span class="go">-inf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="s1">'NaN'</span><span class="p">)</span>
+<span class="go">nan</span>
+</pre></div>
+</div>
+<p>In the serializer, the <em>allow_nan</em> parameter can be used to alter this
+behavior.  In the deserializer, the <em>parse_constant</em> parameter can be used to
+alter this behavior.</p>
+</section>
+<section id="repeated-names-within-an-object">
+<h3>Repeated Names Within an Object<a class="headerlink" href="#repeated-names-within-an-object" title="Link to this heading">¶</a></h3>
+<p>The RFC specifies that the names within a JSON object should be unique, but
+does not mandate how repeated names in JSON objects should be handled.  By
+default, this module does not raise an exception; instead, it ignores all but
+the last name-value pair for a given name:</p>
+<div class="highlight-python3 notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">weird_json</span> <span class="o">=</span> <span class="s1">'{"x": 1, "x": 2, "x": 3}'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">weird_json</span><span class="p">)</span>
+<span class="go">{'x': 3}</span>
+</pre></div>
+</div>
+<p>The <em>object_pairs_hook</em> parameter can be used to alter this behavior.</p>
+</section>
+<section id="top-level-non-object-non-array-values">
+<h3>Top-level Non-Object, Non-Array Values<a class="headerlink" href="#top-level-non-object-non-array-values" title="Link to this heading">¶</a></h3>
+<p>The old version of JSON specified by the obsolete <span class="target" id="index-3"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc4627.html"><strong>RFC 4627</strong></a> required that
+the top-level value of a JSON text must be either a JSON object or array
+(Python <a class="reference internal" href="stdtypes.html#dict" title="dict"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> or <a class="reference internal" href="stdtypes.html#list" title="list"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>), and could not be a JSON null,
+boolean, number, or string value.  <span class="target" id="index-4"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc7159.html"><strong>RFC 7159</strong></a> removed that restriction, and
+this module does not and has never implemented that restriction in either its
+serializer or its deserializer.</p>
+<p>Regardless, for maximum interoperability, you may wish to voluntarily adhere
+to the restriction yourself.</p>
+</section>
+<section id="implementation-limitations">
+<h3>Implementation Limitations<a class="headerlink" href="#implementation-limitations" title="Link to this heading">¶</a></h3>
+<p>Some JSON deserializer implementations may set limits on:</p>
+<ul class="simple">
+<li><p>the size of accepted JSON texts</p></li>
+<li><p>the maximum level of nesting of JSON objects and arrays</p></li>
+<li><p>the range and precision of JSON numbers</p></li>
+<li><p>the content and maximum length of JSON strings</p></li>
+</ul>
+<p>This module does not impose any such limits beyond those of the relevant
+Python datatypes themselves or the Python interpreter itself.</p>
+<p>When serializing to JSON, beware any such limitations in applications that may
+consume your JSON.  In particular, it is common for JSON numbers to be
+deserialized into IEEE 754 double precision numbers and thus subject to that
+representation’s range and precision limitations.  This is especially relevant
+when serializing Python <a class="reference internal" href="functions.html#int" title="int"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> values of extremely large magnitude, or
+when serializing instances of “exotic” numerical types such as
+<a class="reference internal" href="decimal.html#decimal.Decimal" title="decimal.Decimal"><code class="xref py py-class docutils literal notranslate"><span class="pre">decimal.Decimal</span></code></a>.</p>
+</section>
+</section>
+<section id="module-json.tool">
+<span id="command-line-interface"></span><span id="json-commandline"></span><h2>Command-line interface<a class="headerlink" href="#module-json.tool" title="Link to this heading">¶</a></h2>
+<p><strong>Source code:</strong> <a class="extlink-source reference external" href="https://github.com/python/cpython/tree/3.14/Lib/json/tool.py">Lib/json/tool.py</a></p>
+<hr class="docutils">
+<p>The <code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> module can be invoked as a script via <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">json</span></code>
+to validate and pretty-print JSON objects. The <code class="xref py py-mod docutils literal notranslate"><span class="pre">json.tool</span></code> submodule
+implements this interface.</p>
+<p>If the optional <code class="docutils literal notranslate"><span class="pre">infile</span></code> and <code class="docutils literal notranslate"><span class="pre">outfile</span></code> arguments are not
+specified, <a class="reference internal" href="sys.html#sys.stdin" title="sys.stdin"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.stdin</span></code></a> and <a class="reference internal" href="sys.html#sys.stdout" title="sys.stdout"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.stdout</span></code></a> will be used respectively:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'{"json": "obj"}'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json
+<span class="go">{</span>
+<span class="go">    "json": "obj"</span>
+<span class="go">}</span>
+<span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'{1.2:3.4}'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>json
+<span class="go">Expecting property name enclosed in double quotes: line 1 column 2 (char 1)</span>
+</pre></div>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.5: </span>The output is now in the same order as the input. Use the
+<a class="reference internal" href="#cmdoption-json-sort-keys"><code class="xref std std-option docutils literal notranslate"><span class="pre">--sort-keys</span></code></a> option to sort the output of dictionaries
+alphabetically by key.</p>
+</div>
+<div class="versionchanged">
+<p><span class="versionmodified changed">Changed in version 3.14: </span>The <code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> module may now be directly executed as
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">json</span></code>. For backwards compatibility, invoking
+the CLI as <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">json.tool</span></code> remains supported.</p>
+</div>
+<section id="command-line-options">
+<h3>Command-line options<a class="headerlink" href="#command-line-options" title="Link to this heading">¶</a></h3>
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-arg-infile">
+<span class="sig-name descname"><span class="pre">infile</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-arg-infile" title="Link to this definition">¶</a></dt>
+<dd><p>The JSON file to be validated or pretty-printed:</p>
+<div class="highlight-shell-session notranslate"><div class="highlight" style="position: relative;"><button class="copybutton" type="button" title="Copy to clipboard">Copy</button><pre><span></span><span class="gp">$ </span>python<span class="w"> </span>-m<span class="w"> </span>json<span class="w"> </span>mp_films.json
+<span class="go">[</span>
+<span class="go">    {</span>
+<span class="go">        "title": "And Now for Something Completely Different",</span>
+<span class="go">        "year": 1971</span>
+<span class="go">    },</span>
+<span class="go">    {</span>
+<span class="go">        "title": "Monty Python and the Holy Grail",</span>
+<span class="go">        "year": 1975</span>
+<span class="go">    }</span>
+<span class="go">]</span>
+</pre></div>
+</div>
+<p>If <em>infile</em> is not specified, read from <a class="reference internal" href="sys.html#sys.stdin" title="sys.stdin"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.stdin</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-arg-outfile">
+<span class="sig-name descname"><span class="pre">outfile</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-arg-outfile" title="Link to this definition">¶</a></dt>
+<dd><p>Write the output of the <em>infile</em> to the given <em>outfile</em>. Otherwise, write it
+to <a class="reference internal" href="sys.html#sys.stdout" title="sys.stdout"><code class="xref py py-data docutils literal notranslate"><span class="pre">sys.stdout</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-sort-keys">
+<span class="sig-name descname"><span class="pre">--sort-keys</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-sort-keys" title="Link to this definition">¶</a></dt>
+<dd><p>Sort the output of dictionaries alphabetically by key.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.5.</span></p>
+</div>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-no-ensure-ascii">
+<span class="sig-name descname"><span class="pre">--no-ensure-ascii</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-no-ensure-ascii" title="Link to this definition">¶</a></dt>
+<dd><p>Disable escaping of non-ascii characters, see <a class="reference internal" href="#json.dumps" title="json.dumps"><code class="xref py py-func docutils literal notranslate"><span class="pre">json.dumps()</span></code></a> for more information.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.9.</span></p>
+</div>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-json-lines">
+<span class="sig-name descname"><span class="pre">--json-lines</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-json-lines" title="Link to this definition">¶</a></dt>
+<dd><p>Parse every input line as separate JSON object.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.8.</span></p>
+</div>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-indent">
+<span id="cmdoption-json-tab"></span><span id="cmdoption-json-no-indent"></span><span id="cmdoption-json-compact"></span><span class="sig-name descname"><span class="pre">--indent</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--tab</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--no-indent</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--compact</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-indent" title="Link to this definition">¶</a></dt>
+<dd><p>Mutually exclusive options for whitespace control.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.9.</span></p>
+</div>
+</dd></dl>
+
+<dl class="std option">
+<dt class="sig sig-object std" id="cmdoption-json-h">
+<span id="cmdoption-json-help"></span><span class="sig-name descname"><span class="pre">-h</span></span><span class="sig-prename descclassname"></span><span class="sig-prename descclassname"><span class="pre">,</span> </span><span class="sig-name descname"><span class="pre">--help</span></span><span class="sig-prename descclassname"></span><a class="headerlink" href="#cmdoption-json-h" title="Link to this definition">¶</a></dt>
+<dd><p>Show the help message.</p>
+</dd></dl>
+
+<p class="rubric">Footnotes</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="rfc-errata" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>As noted in <a class="reference external" href="https://www.rfc-editor.org/errata_search.php?rfc=7159">the errata for RFC 7159</a>,
+JSON permits literal U+2028 (LINE SEPARATOR) and
+U+2029 (PARAGRAPH SEPARATOR) characters in strings, whereas JavaScript
+(as of ECMAScript Edition 5.1) does not.</p>
+</aside>
+</aside>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="../contents.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> — JSON encoder and decoder</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li><a class="reference internal" href="#encoders-and-decoders">Encoders and Decoders</a></li>
+<li><a class="reference internal" href="#exceptions">Exceptions</a></li>
+<li><a class="reference internal" href="#standard-compliance-and-interoperability">Standard Compliance and Interoperability</a><ul>
+<li><a class="reference internal" href="#character-encodings">Character Encodings</a></li>
+<li><a class="reference internal" href="#infinite-and-nan-number-values">Infinite and NaN Number Values</a></li>
+<li><a class="reference internal" href="#repeated-names-within-an-object">Repeated Names Within an Object</a></li>
+<li><a class="reference internal" href="#top-level-non-object-non-array-values">Top-level Non-Object, Non-Array Values</a></li>
+<li><a class="reference internal" href="#implementation-limitations">Implementation Limitations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-json.tool">Command-line interface</a><ul>
+<li><a class="reference internal" href="#command-line-options">Command-line options</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="email.iterators.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">email.iterators</span></code>: Iterators</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="mailbox.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">mailbox</span></code> — Manipulate mailboxes in various formats</a></p>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const title = document.querySelector('meta[property="og:title"]').content;
+        const elements = document.querySelectorAll('.improvepage');
+        const pageurl = window.location.href.split('?')[0];
+        elements.forEach(element => {
+            const url = new URL(element.href.split('?')[0].replace("-nojs", ""));
+            url.searchParams.set('pagetitle', title);
+            url.searchParams.set('pageurl', pageurl);
+            url.searchParams.set('pagesource', "library/json.rst");
+            element.href = url.toString();
+        });
+    });
+  </script>
+  <div role="note" aria-label="source link">
+    <h3>This page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../bugs.html">Report a bug</a></li>
+      <li><a class="improvepage" href="https://docs.python.org/3/improve-page.html?pagetitle=json+%E2%80%94+JSON+encoder+and+decoder&amp;pageurl=https%3A%2F%2Fdocs.python.org%2F3%2Flibrary%2Fjson.html&amp;pagesource=library%2Fjson.rst">Improve this page</a></li>
+      <li>
+        <a href="https://github.com/python/cpython/blob/main/Doc/library/json.rst?plain=1" rel="nofollow">Show source
+        </a>
+      </li>
+      
+    </ul>
+  </div>
+        </div>
+<div id="sidebarbutton" title="Collapse sidebar">
+<span>«</span>
+</div>
+
+      </div>
+      <div class="clearer"></div>
+    </div>  
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index">index</a></li>
+        <li class="right">
+          <a href="../py-modindex.html" title="Python Module Index">modules</a> |</li>
+        <li class="right">
+          <a href="mailbox.html" title="mailbox — Manipulate mailboxes in various formats">next</a> |</li>
+        <li class="right">
+          <a href="email.iterators.html" title="email.iterators: Iterators">previous</a> |</li>
+
+          <li><img src="../_static/py.svg" alt="Python logo" style="vertical-align: middle; margin-top: -1px"></li>
+          <li><a href="https://www.python.org/">Python</a> »</li>
+          <li class="switchers">
+            <div class="language_switcher_placeholder"><select class="language-select" aria-label="Language"><option value="el">Greek | Ελληνικά</option><option value="en" selected="">English</option><option value="es">Spanish | español</option><option value="fr">French | français</option><option value="it">Italian | italiano</option><option value="ja">Japanese | 日本語</option><option value="ko">Korean | 한국어</option><option value="pl">Polish | polski</option><option value="pt-br">Brazilian Portuguese | Português brasileiro</option><option value="ro">Romanian | Românește</option><option value="ru">Russian | Русский</option><option value="tr">Turkish | Türkçe</option><option value="zh-cn">Simplified Chinese | 简体中文</option><option value="zh-tw">Traditional Chinese | 繁體中文</option></select></div>
+            <div class="version_switcher_placeholder"><select class="version-select" aria-label="Python version"><option value="3.16">dev (3.16)</option><option value="3.15">pre (3.15)</option><option value="3.14" selected="">3.14.7</option><option value="3.13">3.13</option><option value="3.12">3.12</option><option value="3.11">3.11</option><option value="3.10">3.10</option><option value="3.9">3.9</option><option value="3.8">3.8</option><option value="3.7">3.7</option><option value="3.6">3.6</option><option value="3.5">3.5</option><option value="3.4">3.4</option><option value="3.3">3.3</option><option value="3.2">3.2</option><option value="3.1">3.1</option><option value="3.0">3.0</option><option value="2.7">2.7</option><option value="2.6">2.6</option></select></div>
+          </li>
+          <li>
+              
+          </li>
+    <li id="cpython-language-and-version">
+      <a href="../index.html">3.14.7 Documentation</a> »
+    </li>
+
+          <li class="nav-item nav-item-1"><a href="index.html">The Python Standard Library</a> »</li>
+          <li class="nav-item nav-item-2"><a href="netdata.html">Internet Data Handling</a> »</li>
+        <li class="nav-item nav-item-this"><a href=""><code class="xref py py-mod docutils literal notranslate"><span class="pre">json</span></code> — JSON encoder and decoder</a></li>
+                <li class="right">
+                    
+
+    <div class="inline-search" role="search">
+        <form class="inline-search" action="../search.html" method="get">
+          <input placeholder="Quick search" aria-label="Quick search" type="search" name="q" id="search-box">
+          <input type="submit" value="Go">
+        </form>
+    </div>
+                     |
+                </li>
+            <li class="right">
+<label class="theme-selector-label">
+    Theme
+    <select class="theme-selector" oninput="activateTheme(this.value)">
+        <option value="auto" selected="">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+    </select>
+</label> |</li>
+            
+      </ul>
+    </div>  
+    <div class="footer">
+    © <a href="../copyright.html">Copyright</a> 2001 Python Software Foundation.
+    <br>
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br>
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero Clause BSD License.
+    <br>
+    
+      See <a href="/license.html">History and License</a> for more information.<br>
+    
+    
+    <br>
+
+    The Python Software Foundation is a non-profit corporation.
+<a href="https://www.python.org/psf/donations/">Please donate.</a>
+<br>
+    <br>
+      Last updated on Sep 03, 2026 (10:47 UTC).
+    
+      <a href="/bugs.html">Found a bug</a>?
+    
+    <br>
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+
+    <script type="text/javascript" src="../_static/switchers.js"></script>
+  
+</body></html>

@@ -1,0 +1,1219 @@
+HTML images - Learn web development | MDN
+=======================================================================
+
+
+-         [Skip to main content](#content)      
+-         [Skip to search](#search)      
+
+
+[                  MDN
+============================
+
+](/en-US/)            
+
+
+HTML                          
+
+
+[HTML: Markup language](/en-US/docs/Web/HTML)                      
+
+
+HTML reference           
+
+-                                   [Elements](/en-US/docs/Web/HTML/Reference/Elements)                                
+-                                   [Global attributes](/en-US/docs/Web/HTML/Reference/Global_attributes)                                
+-                                   [Attributes](/en-US/docs/Web/HTML/Reference/Attributes)                                
+-                                   [See all…](/en-US/docs/Web/HTML/Reference "See all HTML references")                                
+
+HTML guides        
+
+-                                   [Responsive images](/en-US/docs/Web/HTML/Guides/Responsive_images)                                
+-                                   [HTML cheatsheet](/en-US/docs/Web/HTML/Guides/Cheatsheet)                                
+-                                   [Date & time formats](/en-US/docs/Web/HTML/Guides/Date_and_time_formats)                                
+-                                   [See all…](/en-US/docs/Web/HTML/Guides "See all HTML guides")                                
+
+Markup languages   
+
+-                                   [SVG](/en-US/docs/Web/SVG)                                
+-                                   [MathML](/en-US/docs/Web/MathML)                                
+-                                   [XML](/en-US/docs/Web/XML)                                
+
+
+CSS                          
+
+
+[CSS: Styling language](/en-US/docs/Web/CSS)                      
+
+
+CSS reference            
+
+-                                   [Properties](/en-US/docs/Web/CSS/Reference/Properties)                                
+-                                   [Selectors](/en-US/docs/Web/CSS/Reference/Selectors)                                
+-                                   [At-rules](/en-US/docs/Web/CSS/Reference/At-rules)                                
+-                                   [Values](/en-US/docs/Web/CSS/Reference/Values)                                
+-                                   [See all…](/en-US/docs/Web/CSS/Reference "See all CSS references")                                
+
+CSS guides         
+
+-                                   [Box model](/en-US/docs/Web/CSS/Guides/Box_model/Introduction)                                
+-                                   [Animations](/en-US/docs/Web/CSS/Guides/Animations/Using)                                
+-                                   [Flexbox](/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Basic_concepts)                                
+-                                   [Colors](/en-US/docs/Web/CSS/Guides/Colors/Applying_color)                                
+-                                   [See all…](/en-US/docs/Web/CSS/Guides "See all CSS guides")                                
+
+Layout cookbook    
+
+-                                   [Column layouts](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Column_layouts)                                
+-                                   [Centering an element](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Center_an_element)                                
+-                                   [Card component](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card)                                
+-                                   [See all…](/en-US/docs/Web/CSS/How_to/Layout_cookbook)                                
+
+
+JavaScriptJS                          
+
+
+[JavaScript: Scripting language](/en-US/docs/Web/JavaScript)                      
+
+
+JS reference             
+
+-                                   [Standard built-in objects](/en-US/docs/Web/JavaScript/Reference/Global_Objects)                                
+-                                   [Expressions & operators](/en-US/docs/Web/JavaScript/Reference/Operators)                                
+-                                   [Statements & declarations](/en-US/docs/Web/JavaScript/Reference/Statements)                                
+-                                   [Functions](/en-US/docs/Web/JavaScript/Reference/Functions)                                
+-                                   [See all…](/en-US/docs/Web/JavaScript/Reference "See all JavaScript references")                                
+
+JS guides          
+
+-                                   [Control flow & error handing](/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling)                                
+-                                   [Loops and iteration](/en-US/docs/Web/JavaScript/Guide/Loops_and_iteration)                                
+-                                   [Working with objects](/en-US/docs/Web/JavaScript/Guide/Working_with_objects)                                
+-                                   [Using classes](/en-US/docs/Web/JavaScript/Guide/Using_classes)                                
+-                                   [See all…](/en-US/docs/Web/JavaScript/Guide "See all JavaScript guides")                                
+
+
+Web APIs                          
+
+
+[Web APIs: Programming interfaces](/en-US/docs/Web/API)                      
+
+
+Web API reference        
+
+-                                   [File system API](/en-US/docs/Web/API/File_System_API)                                
+-                                   [Fetch API](/en-US/docs/Web/API/Fetch_API)                                
+-                                   [Geolocation API](/en-US/docs/Web/API/Geolocation_API)                                
+-                                   [HTML DOM API](/en-US/docs/Web/API/HTML_DOM_API)                                
+-                                   [Push API](/en-US/docs/Web/API/Push_API)                                
+-                                   [Service worker API](/en-US/docs/Web/API/Service_Worker_API)                                
+-                                   [See all…](/en-US/docs/Web/API "See all Web API guides")                                
+
+Web API guides     
+
+-                                   [Using the Web animation API](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API)                                
+-                                   [Using the Fetch API](/en-US/docs/Web/API/Fetch_API/Using_Fetch)                                
+-                                   [Working with the History API](/en-US/docs/Web/API/History_API/Working_with_the_History_API)                                
+-                                   [Using the Web speech API](/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API)                                
+-                                   [Using web workers](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)                                
+
+
+All                          
+
+
+[All web technology](/en-US/docs/Web)                      
+
+
+Technologies             
+
+-                                   [Accessibility](/en-US/docs/Web/Accessibility)                                
+-                                   [HTTP](/en-US/docs/Web/HTTP)                                
+-                                   [URI](/en-US/docs/Web/URI)                                
+-                                   [Web extensions](/en-US/docs/Mozilla/Add-ons/WebExtensions)                                
+-                                   [WebAssembly](/en-US/docs/WebAssembly)                                
+-                                   [WebDriver](/en-US/docs/Web/WebDriver)                                
+-                                   [See all…](/en-US/docs/Web "See all web technology references")                                
+
+Topics             
+
+-                                   [Media](/en-US/docs/Web/Media)                                
+-                                   [Performance](/en-US/docs/Web/Performance)                                
+-                                   [Privacy](/en-US/docs/Web/Privacy)                                
+-                                   [Security](/en-US/docs/Web/Security)                                
+-                                   [Progressive web apps](/en-US/docs/Web/Progressive_web_apps)                                
+
+
+Learn                          
+
+
+[Learn web development](/en-US/docs/Learn_web_development)                      
+
+
+Frontend developer course
+
+-                                   [Getting started modules](/en-US/docs/Learn_web_development/Getting_started)                                
+-                                   [Core modules](/en-US/docs/Learn_web_development/Core)                                
+-                                   [MDN Curriculum](/en-US/curriculum/)                                
+-                                   [Check out the video course from Scrimba, our partner](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar)                                
+
+Learn HTML         
+
+-                                   [Structuring content with HTML module](/en-US/docs/Learn_web_development/Core/Structuring_content)                                
+
+Learn CSS          
+
+-                                   [CSS styling basics module](/en-US/docs/Learn_web_development/Core/Styling_basics)                                
+-                                   [CSS layout module](/en-US/docs/Learn_web_development/Core/CSS_layout)                                
+
+Learn JavaScript   
+
+-                                   [Dynamic scripting with JavaScript module](/en-US/docs/Learn_web_development/Core/Scripting)                                
+
+
+Tools                          
+
+
+Discover our tools                      
+
+
+-                                   [Playground](/en-US/play)                                
+-                                   [HTTP Observatory](/en-US/observatory)                                
+
+
+-                                   [Border-image generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator)                                
+-                                   [Border-radius generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator)                                
+-                                   [Box-shadow generator](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator)                                
+-                                   [Color format converter](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter)                                
+-                                   [Color mixer](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer)                                
+-                                   [Shape generator](/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator)                                
+
+
+About                          
+
+
+Get to know MDN better                      
+
+
+-                                   [About MDN](/en-US/about)                                
+-                                   [Advertise with us](/en-US/advertising)                                
+
+
+-                                   [Community](/en-US/community)                                
+-                                   [MDN on GitHub](https://github.com/mdn)                                
+
+
+[Blog](/en-US/blog/)                          
+
+
+Exit search      
+
+
+Toggle sidebar                          
+
+1.               [Learn](/en-US/docs/Learn_web_development)                          
+2.               [Core learning modules](/en-US/docs/Learn_web_development/Core)                          
+3.               [HTML](/en-US/docs/Learn_web_development/Core/Structuring_content)                          
+4.               [Images](/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images)                          
+
+
+span{display:none}}.color-theme__button:before{background-color:currentcolor;content:"";height:1.25rem;mask-size:cover;width:1.25rem}.color-theme__button[data-mode="light
+dark"]:before{mask-image:var(--color-theme-light-dark)}.color-theme__button[data-mode=light]:before{mask-image:var(--color-theme-light)}.color-theme__button[data-mode=dark]:before{mask-image:var(--color-theme-dark)}.color-theme__dropdown{border:1px
+solid
+var(--color-border-primary);padding:.75rem;position:absolute;right:0;z-index:1}.color-theme__dropdown,.color-theme__list{background-color:var(--color-background-primary);margin:0;width:max-content}.color-theme__list{list-style:none;padding:0}.color-theme__option{align-items:center;background-color:initial;border:none;color:var(--color-text-primary);column-gap:.25rem;cursor:pointer;display:flex;font:inherit;margin:0;padding:.25rem;width:100%}.color-theme__option:hover{background-color:var(--color-background-secondary)}.color-theme__option:before{background-color:currentcolor;content:"";height:1.25rem;mask-size:cover;width:1.25rem}.color-theme__option[data-mode="light
+dark"]:before{mask-image:var(--color-theme-light-dark)}.color-theme__option[data-mode=light]:before{mask-image:var(--color-theme-light)}.color-theme__option[data-mode=dark]:before{mask-image:var(--color-theme-dark)}.color-theme__option[data-current]{background:var(--color-background-secondary)}
+
+Theme              
+
+
+-                                       OS default                                  
+-                                       Light                                  
+-                                       Dark                                  
+
+
+span{display:none}}.language-switcher__button:before{background-color:currentcolor;content:"";height:1.25rem;mask-image:url(/static/ssr/languages.dcba936080e5be86.svg);mask-size:cover;width:1.25rem}.language-switcher__dropdown{background-color:var(--color-background-primary);border:1px
+solid
+var(--color-border-primary);margin:0;padding:.75rem;position:absolute;right:0;width:max-content;z-index:1}.language_switcher__remember{border-bottom:1px
+solid
+var(--color-border-primary);display:flex;font-size:var(--font-size-small);place-items:center;width:100%}.language_switcher__remember
+mdn-switch{padding:.25rem}:is(.language_switcher__remember
+mdn-switch):hover{background-color:var(--color-background-secondary)}.language-switcher__list{background-color:var(--color-background-primary);list-style:none;margin:0;padding:0;width:100%}.language-switcher__option{align-items:center;background-color:initial;border:none;color:var(--color-text-primary);column-gap:.25rem;display:flex;font:inherit;margin:0;padding:.25rem;-webkit-text-decoration:none;text-decoration:none;width:100%}.language-switcher__option:hover,.language-switcher__option[data-current]{background-color:var(--color-background-secondary)}
+
+English (US)              
+
+
+";inherits:false;initial-value:0}.switch{cursor:pointer;display:flex;gap:.5em;place-items:center}.switch__input{--switch-size:1.25em;appearance:none;background-color:var(--color-text-secondary);background-image:radial-gradient(circle
+at calc(var(--switch-size)/2),var(--color-background-primary) calc((var(--switch-size)/2)\*.8),#0000
+calc((var(--switch-size)/2)\*.8 + 1px));background-position:var(--switch-position)
+0;background-repeat:no-repeat;background-size:var(--switch-size);border-radius:var(--radius-full);display:inline-block;height:var(--switch-size);margin:0;transition:--switch-position
+.2s;width:calc(var(--switch-size)\*1.6)}.switch__input:checked{--switch-position:100%;background-color:var(--color-link-normal)}.switch__input:focus-visible{outline:2px
+solid
+var(--color-link-normal);outline-offset:2px}.switch__input:active:not(:disabled){filter:brightness(1.2)}.switch__input:disabled{opacity:.7}
+Remember language                        [              Learn more   
+](/en-US/ "logo__letter")                          
+-             [Deutsch](/en-US/docs/Web/HTML "Search the site")          
+-             [English (US)](/en-US/docs/Web/HTML "Search the site")          
+-             [Español](/en-US/docs/Web/HTML "Search the site")          
+-             [Français](/en-US/docs/Web/HTML "Search the site")          
+-             [日本語](/en-US/docs/Web/HTML "Search the site")          
+-             [한국어](/en-US/docs/Web/HTML "Search the site")          
+-             [Português (do Brasil)](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+-             [Русский](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+-             [中文 (简体)](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+-             [正體中文 (繁體)](/en-US/docs/Web/HTML "/en-US/docs/Web/HTML")          
+
+
+# HTML images
+
+- [ Previous ](/en-US/docs/Web/HTML/Reference/Attributes "See all HTML references")
+- [ Overview: Structuring content with HTML](/en-US/docs/Web/HTML/Reference/Attributes "See all HTML references")
+- [ Next  ](/en-US/docs/Web/HTML/Reference "See all HTML references")
+
+In the beginning, the web was just text, and it was really quite boring. Fortunately,
+it wasn't too long before the ability to embed images (and other more interesting
+types of content) inside web pages was added. In this article we'll look at how to
+use the [`<img>`](/en-US/docs/Web/HTML/Guides/Responsive_images "See all HTML guides") element in depth, including the basics, annotating it with captions using [`<figure>`](/en-US/docs/Web/HTML/Guides/Cheatsheet "See all HTML guides"), and detailing how it relates to [CSS](/en-US/docs/Web/HTML/Guides/Cheatsheet "See all HTML guides") background images.
+
+|   |
+||-------------------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| - |
+|   |
+|   | Learning outcomes: | The term "replaced element" — what does it mean?          Basic `<img>` tag syntax          Using `src` to point to a resource.          Using `width` and `height`, for example, to avoid unpleasant jerky updates to the UI once an image has finished loading and is displayed.          Optimizing media assets for the web — keep file sizes small.          Understanding media asset licensing — different types of license, how to comply with them, and how to search for appropriately licensed media files to use in projects. |
+| - |
+|   |
+
+## In this article
+
+-               [How do we put an image on a webpage?](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [Media assets and licensing](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [Annotating images with figures and figure captions](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [CSS background images](/en-US/docs/Web/CSS "/en-US/docs/Web/CSS")            
+-               [Summary](/en-US/docs/Web/CSS/Reference/Properties "See all CSS references")            
+
+
+## [How do we put an image on a webpage?](/en-US/docs/Web/CSS/Reference/Selectors "See all CSS references")
+
+In order to put an image on a web page, we use the [`<img>`](/en-US/docs/Web/CSS/Reference/At-rules "See all CSS references") element. This is a [void element](/en-US/docs/Web/CSS/Reference/At-rules "See all CSS references") (meaning, it cannot have any child content and cannot have an end tag) that requires two attributes to be useful: `src`
+and `alt`. The `src` attribute contains a URL pointing to the image you want to embed in
+the page. As with the `href` attribute for [`<a>`](/en-US/docs/Web/CSS/Reference "See all CSS references") elements, the `src`
+attribute can be a relative URL or an absolute URL. Without a `src` attribute, an `img`
+element has no image to load.
+
+The [`alt` attribute is described below](/en-US/docs/Web/CSS/Guides/Box_model/Introduction "See all CSS guides").
+
+
+**Note:**You should read [A quick primer on URLs and paths](/en-US/docs/Web/CSS/Guides/Box_model/Introduction "See all CSS guides") to refresh your memory on relative and absolute URLs before continuing.
+
+So for example, if your image is called `dinosaur.jpg`, and it sits in the same directory as
+your HTML page, you could embed the image like so:
+
+html
+
+```menu__tab
+<img src="dinosaur.jpg" alt="Dinosaur" />
+```
+
+If the image was in an `images` subdirectory, which was inside the same directory as the
+HTML page, then you'd embed it like this:
+
+html
+
+```menu__tab
+<img src="images/dinosaur.jpg" alt="Dinosaur" />
+```
+
+And so on.
+
+
+**Note:**Search engines also read image filenames and count them towards SEO. Therefore,
+you should give your image a descriptive filename; `dinosaur.jpg` is better than `img835.png`.
+
+You could also embed the image using its absolute URL, for example:
+
+html
+
+```menu__tab
+<img src="https://www.example.com/images/dinosaur.jpg" alt="Dinosaur" />
+```
+
+Linking via absolute URLs is not recommended, however. You should host the images
+you want to use on your site, which in simple setups means keeping the images for
+your website on the same server as your HTML. In addition, it is more efficient to
+use relative URLs than absolute URLs in terms of maintenance (when you move your
+site to a different domain, you won't need to update all your URLs to include the
+new domain). In more advanced setups, you might use a [CDN (Content Delivery Network)](/en-US/docs/Web/CSS/How_to/Layout_cookbook/Card "/en-US/docs/Web/JavaScript") to deliver your images.
+
+If you did not create the images, you should make sure you have the permission to
+use them under the conditions of the license they are published under (see [Media assets and licensing](/en-US/docs/Web/CSS/How_to/Layout_cookbook "/en-US/docs/Web/JavaScript") below for more information).
+
+
+**Warning:***Never* point the `src` attribute at an image hosted on someone else's website
+*without permission*. This is called "hotlinking". It is considered unethical, since
+someone else would be paying the bandwidth costs for delivering the image when someone
+visits your page. It also leaves you with no control over the image being removed
+or replaced with something embarrassing.
+
+The previous code snippet, either with the absolute or the relative URL, will give
+us the following result:
+
+![/en-US/docs/Web/HTML/Reference/Elements/a](layout__right-sidebar reference-layout__toc "/en-US/docs/Web/JavaScript")
+
+
+**Note:**Elements like [`<img>`](/en-US/docs/Web/JavaScript "/en-US/docs/Web/JavaScript") and [`<video>`](/en-US/docs/Web/JavaScript "/en-US/docs/Web/JavaScript") are sometimes referred to as
+**replaced elements**. This is because the element's content and size are defined
+by an external resource (like an image or video file), not by the contents of the
+element itself. You can read more about them at [replaced elements](/en-US/docs/Web/JavaScript/Reference/Global_Objects "See all JavaScript references").
+
+### [Alternative text](/en-US/docs/Web/JavaScript/Reference/Operators "See all JavaScript references")
+
+The next attribute we'll look at is `alt`. Its value is supposed to be a textual description
+of the image, for use in situations where the image cannot be seen/displayed or takes
+a long time to render because of a slow internet connection. For example, our above
+code could be modified like so:
+
+html
+
+```menu_click_submenu: javascript -> /en-US/docs/Web/JavaScript/Guide/Using_classes
+<img
+  src="images/dinosaur.jpg"
+  alt="The head and torso of a dinosaur skeleton;
+          it has a large head with long sharp teeth" />
+```
+
+The easiest way to test your `alt` text is to purposely misspell your filename. If for
+example our image name was spelled `dinosooooor.jpg`, the browser wouldn't display the image, and
+would display the alt text instead:
+
+![/en-US/docs/Web/HTML/Reference/Elements/a](layout__right-sidebar reference-layout__toc "See all JavaScript references")
+
+So, why would you ever see or need alt text? It can come in handy for a number of
+reasons:
+
+- The user is visually impaired, and is using a [screen reader](/en-US/docs/Web/JavaScript/Guide/Control_flow_and_error_handling "See all JavaScript guides") to read the web out to them. In fact, having alt text available to describe images is useful to most users.
+- As described above, the spelling of the file or path name might be wrong.
+- The browser doesn't support the image type. Some people still use text-only browsers, such as [Lynx](/en-US/docs/Web/JavaScript/Guide/Working_with_objects "See all JavaScript guides"), which displays the alt text of images.
+- You may want to provide text for search engines to utilize; for example, search engines can match alt text with search queries.
+- Users have turned off images to reduce data transfer volume and distractions. This is especially common on mobile phones, and in countries where bandwidth is limited or expensive.
+
+What exactly should you write inside your `alt` attribute? It depends on *why* the image
+is there in the first place. In other words, what you lose if your image doesn't
+show up:
+
+- **Decoration.** You should use [CSS background images](/en-US/docs/Web/API "See all JavaScript guides") for decorative images, but if you must use HTML, add a blank `alt=""`. If the image isn't part of the content, a screen reader shouldn't waste time reading it.
+- **Content.** If your image provides significant information, provide the same information in a *brief* `alt` text – or even better, in the main text which everybody can see. Don't write redundant `alt` text. How annoying would it be for a sighted user if all paragraphs were written twice in the main content? If the image is described adequately by the main text body, you can just use `alt=""`.
+- **Link.** If you put an image inside [`<a>`](/en-US/docs/Web/API "/en-US/docs/Web/API") tags, to turn an image into a link, you still must provide [accessible link text](/en-US/docs/Web/API "/en-US/docs/Web/API"). In such cases you may, either, write it inside the same `<a>` element, or inside the image's `alt` attribute – whichever works best in your case.
+- **Text.** You should not put your text into images. If your main heading needs a drop shadow, for example, [use CSS](/en-US/docs/Web/API/File_System_API "See all Web API guides") for that rather than putting the text into an image. However, if you *really can't avoid doing this*, you should supply the text inside the `alt` attribute.
+
+Essentially, the key is to deliver a usable experience, even when the images can't
+be seen. This ensures all users are not missing any of the content. Try turning off
+images in your browser and see how things look. You'll soon realize how helpful alt
+text is if the image cannot be seen.
+
+
+**Note:**See our guide to [Text Alternatives](/en-US/docs/Web/API/HTML_DOM_API "See all Web API guides") and [An alt Decision Tree](/en-US/docs/Web/API/HTML_DOM_API "See all Web API guides") to learn how to use an `alt`
+attribute for images in various situations.
+
+
+**Note:**[HTML tags](/en-US/docs/Web/API/Service_Worker_API "See all Web API guides") [*MDN
+learning partner*](/en-US/docs/Web/API/Service_Worker_API "See all Web API guides")
+from Scrimba is an interactive lesson providing information on images, and mini-challenges.
+
+### [Width and height](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API "/en-US/docs/Web")
+
+You can use the [`width`](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API "/en-US/docs/Web") and [`height`](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API "/en-US/docs/Web") attributes to specify the width and height of your image. They are given as integers without a unit, and represent the image's width and height in pixels.
+
+You can find your image's width and height in a number of ways. For example, on the
+Mac you can use Cmd + I to get the display information for the image file. Returning
+to our example, we could do this:
+
+html
+
+```menu__tab
+<img
+  src="images/dinosaur.jpg"
+  alt="The head and torso of a dinosaur skeleton;
+          it has a large head with long sharp teeth"
+  width="400"
+  height="341" />
+```
+
+There's a very good reason to do this. The HTML for your page and the image are separate
+resources, fetched by the browser as separate HTTP(S) requests. As soon as the browser
+has received the HTML, it will start to display it to the user. If the images haven't
+yet been received (and this will often be the case, as image file sizes are often
+much larger than HTML files), then the browser will render only the HTML, and will
+update the page with the image as soon as it is received.
+
+For example, suppose we have some text after the image:
+
+html
+
+```menu__tab
+<h1>Images in HTML</h1>
+
+<img
+  src="dinosaur.jpg"
+  alt="The head and torso of a dinosaur skeleton; it has a large head with long sharp teeth"
+  title="A T-Rex on display in the Manchester University Museum" />
+<blockquote>
+  <p>
+    But down there it would be dark now, and not the lovely lighted aquarium she
+    imagined it to be during the daylight hours, eddying with schools of tiny,
+    delicate animals floating and dancing slowly to their own serene currents
+    and creating the look of a living painting. That was wrong, in any case. The
+    ocean was different from an aquarium, which was an artificial environment.
+    The ocean was a world. And a world is not art. Dorothy thought about the
+    living things that moved in that world: large, ruthless and hungry. Like us
+    up here.
+  </p>
+  <footer>- Rachel Ingalls, <cite>Mrs. Caliban</cite></footer>
+</blockquote>
+```
+
+As soon as the browser downloads the HTML, the browser will start to display the
+page.
+
+Once the image is loaded, the browser adds the image to the page. Because the image
+takes up space, the browser has to move the text down the page, to fit the image
+above it:
+
+![/en-US/docs/Web/HTML/Reference/Elements/a](layout__right-sidebar reference-layout__toc "See all web technology references")
+
+Moving the text like this is extremely distracting to users, especially if they have
+already started to read it, and it also causes the browser to re-render the page,
+which is bad for performance.
+
+If you specify the actual size of the image in your HTML using the `width` and `height` attributes,
+then the browser knows how much space to allow for the image, before it has downloaded.
+
+This means that when the image has been downloaded, the browser doesn't have to move
+the surrounding content.
+
+![/en-US/docs/Web/HTML/Reference/Elements/a](layout__right-sidebar reference-layout__toc "See all web technology references")
+
+For an excellent article on the history of this feature, see [Setting height and width on images is important again](/en-US/docs/Web/Media "See all web technology references").
+
+Note that if there's no content below the image, re-rendering isn't a problem because
+resizing the image won't cause other elements to shift. In that case, you can set
+the image's `width` only. If you set a `width` but don't set a `height`, the `height` defaults to `auto` which
+means it is set to a value that maintains the image's [aspect ratio](/en-US/docs/Web/Privacy "/en-US/docs/Learn_web_development").
+
+#### Resizing images
+
+Although, as we have said, it is good practice to specify the *actual* size of your
+images using HTML attributes, you should not use them to *resize* images.
+
+If you set the image size too big, you'll end up with images that look grainy, fuzzy,
+or too small, and wasting bandwidth downloading an image that is not fitting the
+user's needs. The image may also end up looking distorted, if you don't maintain
+the correct [aspect ratio](/en-US/docs/Web/Progressive_web_apps "/en-US/docs/Learn_web_development"). You should use an image editor to put your image at the correct size before putting it on your webpage.
+
+If you do need to alter an image's size, you should use [CSS](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development") instead.
+
+### [Image titles](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+
+As [with links](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development"), you can also add `title`
+attributes to images, to provide further supporting information if needed. In our
+example, we could do this:
+
+html
+
+```menu__panel-content
+<img
+  src="images/dinosaur.jpg"
+  alt="The head and torso of a dinosaur skeleton;
+          it has a large head with long sharp teeth"
+  width="400"
+  height="341"
+  title="A T-Rex on display in the Manchester University Museum" />
+```
+
+This gives us a tooltip on mouse hover, just like link titles:
+
+![/en-US/docs/Web/HTML/Reference/Elements/a](layout__right-sidebar reference-layout__toc "menu__panel-content")
+
+However, this is not recommended — `title` has a number of accessibility problems, mainly
+based around the fact that screen reader support is very unpredictable and most browsers
+won't show it unless you are hovering with a mouse (so e.g., no access to keyboard
+users). If you are interested in more information about this, read [The Trials and Tribulations of the Title Attribute](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar "menu__panel-content") by Scott O'Hara.
+
+It is better to include such supporting information in the main article text, rather
+than attached to the image.
+
+### [Image embedding practice](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+
+It is now your turn to play! This task will get you to embed an image.
+
+1. Click **"Play"** in the code block below to edit the example in the MDN Playground.
+2. Edit the existing [`<img>`](/en-US/docs/Learn_web_development/Core/Styling_basics "menu__panel-content") element so that it embeds the image `dinosaur_small.jpg`.
+3. Add an `alt` attribute to the image. You can check that the alt text works by temporarily misspelling the image filename.
+4. Set the image's correct `width` and `height` (hint: it is `200px` wide and `171px` high), then experiment with other values to see what the effect is.
+5. Set a `title` on the image.
+
+
+If you make a mistake, you can clear your work using the *Reset* button in the MDN
+Playground. If you get really stuck, you can view the solution below the code block.
+
+html
+
+```menu__tab
+<img />
+```
+
+Click here to show the solution
+Your finished HTML should look something like this:
+
+html
+
+```menu__tab-button
+<img
+  src="dinosaur_small.jpg"
+  alt="The head and torso of a dinosaur skeleton; it has a large head with long sharp teeth"
+  width="200"
+  height="171"
+  title="A T-Rex on display in the Manchester University Museum" />
+```
+
+## [Media assets and licensing](/en-US/play "menu__panel-content")
+
+Images (and other media asset types) you find on the web are released under various
+license types. Before you use an image on a site you are building, ensure you own
+it, have permission to use it, or comply with the owner's licensing conditions.
+
+### [Understanding license types](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator "menu__panel-content")
+
+Let's look at some common categories of licenses you are likely to find on the web.
+
+#### All rights reserved
+
+Creators of original work such as songs, books, or software often release their work
+under closed copyright protection. This means that, by default, they (or their publisher)
+have exclusive rights to use (for example, display or distribute) their work. If
+you want to use copyrighted images with an *all rights reserved* license, you need
+to do one of the following:
+
+- Obtain explicit, written permission from the copyright holder.
+- Pay a license fee to use them. This can be a one-time fee for unlimited use ("royalty-free"), or it might be "rights-managed", in which case you might have to pay specific fees per use by time slot, geographic region, industry or media type, etc.
+- Limit your uses to those that would be considered [fair use](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter "menu__panel-content") or [fair dealing](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer "menu__panel-content") in your jurisdiction.
+
+Authors are not required to include a copyright notice or license terms with their
+work. Copyright exists automatically in an original work of authorship once it is
+created in a tangible medium. So if you find an image online and there are no copyright
+notices or license terms, the safest course is to assume it is protected by copyright
+with all rights reserved.
+
+#### Permissive
+
+If the image is released under a permissive license, such as [MIT](/en-US/about "menu__panel-content"), [BSD](/en-US/about "menu__panel-content"), or a suitable [Creative Commons (CC) license](/en-US/about "menu__panel-content"), you do not need to pay a license fee or seek permission to use it. Still, there are various licensing conditions you will have to fulfill, which vary by license.
+
+For example, you might have to:
+
+- Provide a link to the original source of the image and credit its creator.
+- Indicate whether any changes were made to it.
+- Share any derivative works created using the image under the same license as the original.
+- Not share any derivative works at all.
+- Not use the image in any commercial work.
+- Include a copy of the license along with any release that uses the image.
+
+You should consult the applicable license for the specific terms you will need to
+follow.
+
+
+**Note:**You may come across the term "copyleft" in the context of permissive licenses.
+Copyleft licenses (such as the [GNU General Public License (GPL)](/en-US/community "Search the site") or "Share Alike" Creative Commons licenses) stipulate that derivative works need to be released under the same license as the original.
+
+Copyleft licenses are prominent in the software world. The basic idea is that a new
+project built with the code of a copyleft-licensed project (this is known as a "fork"
+of the original software) will also need to be licensed under the same copyleft license.
+This ensures that the source code of the new project will also be made available
+for others to study and modify. Note that, in general, licenses that were drafted
+for software, such as the GPL, are not considered to be good licenses for non-software
+works as they were not drafted with non-software works in mind.
+
+Explore the links provided earlier in this section to read about the different license
+types and the kinds of conditions they specify.
+
+#### Public domain/CC0
+
+Work released into the public domain is sometimes referred to as "no rights reserved"
+— no copyright applies to it, and it can be used without permission and without
+having to fulfill any licensing conditions. Work can end up in the public domain
+by various means such as expiration of copyright, or specific waiving of rights.
+
+One of the most effective ways to place work in the public domain is to license it
+under [CC0](/en-US/docs/Learn_web_development "Search the site"), a specific creative commons license that provides a clear and unambiguous legal tool for this purpose.
+
+When using public domain images, obtain proof that the image is in the public domain
+and keep the proof for your records. For example, take a screenshot of the original
+source with the licensing status clearly displayed, and consider adding a page to
+your website with a list of the images acquired along with their license requirements.
+
+### [Searching for permissively-licensed images](/en-US/docs/Learn_web_development "HTML images")
+
+You can find permissive-licensed images for your projects using an image search engine
+or directly from image repositories.
+
+Search for images using a description of the image you are seeking along with relevant
+licensing terms. For example, when searching for "yellow dinosaur" add "public domain
+images", "public domain image library", "open licensed images", or similar terms
+to the search query.
+
+Some search engines have tools to help you find images with permissive licenses.
+For example, when using Google, go to the "Images" tab to search for images, then
+click "Tools". There is a "Usage Rights" dropdown in the resulting toolbar where
+you can choose to search specifically for images under creative commons licenses.
+
+Image repository sites, such as [Flickr](/en-US/docs/Learn_web_development "HTML images"), [ShutterStock](/en-US/docs/Learn_web_development "HTML images"), and [Pixabay](/en-US/docs/Learn_web_development "HTML images"), have search options to allow you to search just for permissively-licensed images. Some sites exclusively distribute permissively-licensed images and icons, such as [Picryl](/en-US/docs/Learn_web_development "HTML images") and [The Noun Project](/en-US/docs/Learn_web_development "HTML images").
+
+Complying with the license the image has been released under is a matter of finding
+the license details, reading the license or instruction page provided by the source,
+and then following those instructions. Reputable image repositories make their license
+conditions clear and easy to find.
+
+## [Annotating images with figures and figure captions](/en-US/docs/Learn_web_development "HTML images")
+
+Speaking of captions, there are a number of ways that you could add a caption to
+go with your image. For example, there would be nothing to stop you from doing this:
+
+html
+
+```button
+<div class="figure">
+  <img
+    src="images/dinosaur.jpg"
+    alt="The head and torso of a dinosaur skeleton;
+            it has a large head with long sharp teeth"
+    width="400"
+    height="341" />
+
+  <p>A T-Rex on display in the Manchester University Museum.</p>
+</div>
+```
+
+This is OK. It contains the content you need, and is nicely stylable using CSS. But
+there is a problem here: there is nothing that semantically links the image to its
+caption, which can cause problems for screen readers. For example, when you have
+50 images and captions, which caption goes with which image?
+
+A better solution, is to use the HTML [`<figure>`](/en-US/docs/Learn_web_development "HTML images") and [`<figcaption>`](/en-US/docs/Learn_web_development "HTML images") elements. These are created for exactly this purpose: to provide a semantic container for figures, and to clearly link the figure to the caption. Our above example could be rewritten like this:
+
+html
+
+```button
+<figure>
+  <img
+    src="images/dinosaur.jpg"
+    alt="The head and torso of a dinosaur skeleton;
+            it has a large head with long sharp teeth"
+    width="400"
+    height="341" />
+
+  <figcaption>
+    A T-Rex on display in the Manchester University Museum.
+  </figcaption>
+</figure>
+```
+
+The [`<figcaption>`](/en-US/docs/Learn_web_development "HTML images") element tells browsers, and assistive technology that the caption describes the other content of the [`<figure>`](/en-US/docs/Learn_web_development "HTML images") element.
+
+
+**Note:**From an accessibility viewpoint, captions and [`alt`](/en-US/docs/Learn_web_development "HTML images") text have distinct roles. Captions benefit even people who can see the image, whereas [`alt`](/en-US/docs/Learn_web_development "HTML images") text provides the same functionality as an absent image. Therefore, captions and `alt`
+text shouldn't just say the same thing, because they both appear when the image is
+gone. Try turning images off in your browser and see how it looks.
+
+A figure doesn't have to be an image. It is an independent unit of content that:
+
+- Expresses your meaning in a compact, easy-to-grasp way.
+- Could go in several places in the page's linear flow.
+- Provides essential information supporting the main text.
+
+A figure could be several images, a code snippet, audio, video, equations, a table,
+or something else.
+
+### [Creating a figure](/en-US/docs/Learn_web_development "HTML images")
+
+In this task, we'd like you to take the finished code from the previous task as a
+starting point, and turn it into a figure:
+
+1. Click **"Play"** in the code block below to edit the example in the MDN Playground.
+2. Wrap the `<img>` element in a [`<figure>`](/en-US/docs/Learn_web_development "HTML images") element.
+3. Copy the text out of the `title` attribute, put it inside a [`<figcaption>`](/en-US/docs/Learn_web_development "HTML images") element below the `<img>` element, then remove the `title` attribute.
+
+
+If you make a mistake, you can clear your work using the *Reset* button in the MDN
+Playground. If you get really stuck, you can view the solution below the code block.
+
+html
+
+```button
+<img
+  src="dinosaur_small.jpg"
+  alt="The head and torso of a dinosaur skeleton; it has a large head with long sharp teeth"
+  width="200"
+  height="171"
+  title="A T-Rex on display in the Manchester University Museum" />
+```
+
+Click here to show the solution
+Your finished HTML should look like this:
+
+html
+
+```button
+<figure>
+  <img
+    src="dinosaur_small.jpg"
+    alt="The head and torso of a dinosaur skeleton; it has a large head with long sharp teeth"
+    width="200"
+    height="171" />
+  <figcaption>
+    A T-Rex on display in the Manchester University Museum
+  </figcaption>
+</figure>
+```
+
+## [CSS background images](/en-US/docs/Learn_web_development "HTML images")
+
+You can also use CSS to embed images into webpages (and JavaScript, but that's another
+story entirely). The CSS [`background-image`](/en-US/docs/Learn_web_development "HTML images") property, and the other `background-*`
+properties, are used to control background image placement. For example, to place
+a background image on every paragraph on a page, you could do this:
+
+css
+
+```button
+p {
+  background-image: url("images/dinosaur.jpg");
+}
+```
+
+The resulting embedded image is arguably easier to position and control than HTML
+images. So why bother with HTML images? As hinted above, CSS background images are
+for decoration only. If you just want to add something pretty to your page to enhance
+the visuals, this is fine. However, such images have no semantic meaning at all.
+They can't have any text equivalents, are invisible to screen readers, and so on.
+This is where HTML images shine!
+
+Summing up: if an image has meaning, in terms of your content, you should use an
+HTML image. If an image is purely decoration, you should use CSS background images
+(we'll cover these in detail later in the Core modules).
+
+## [Summary](/en-US/docs/Learn_web_development "HTML images")
+
+That's all for now. We have covered images and captions in detail.
+
+In the next article, we'll give you some tests that you can use to check how well
+you've understood and retained the information we've provided on HTML images.
+
+- [ Previous ](/en-US/docs/Learn_web_development "HTML images")
+- [ Overview: Structuring content with HTML](/en-US/docs/Learn_web_development "HTML images")
+- [ Next  ](/en-US/docs/Learn_web_development "HTML images")
+
+
+##             Help improve MDN                          Was this page helpful to
+you?            
+
+Yes                                      
+No                                            [Learn how to contribute](/en-US/docs/Web/HTML/Reference/Elements "See all HTML references")
+This page was last modified on Aug 25, 2026 by [MDN contributors](/en-US/docs/Web/HTML/Reference/Elements "See all HTML references").  
+
+[View this page on GitHub](/en-US/docs/Web/HTML/Reference/Global_attributes "See all HTML references") • [Report a problem with this content](/en-US/docs/Web/HTML/Reference/Attributes "See all HTML references")   
+
+
+Filter sidebar                                             
+Clear filter input                                
+
+
+1. [Learn web development](/en-US/docs/Web/API "See all Web API guides")
+2. [MDN curriculum](/en-US/docs/Web/API/File_System_API "See all Web API guides")
+3. [Getting started modules](/en-US/docs/Web/API/File_System_API "See all Web API guides")
+4. [Environment setup](/en-US/docs/Web/API/File_System_API "See all Web API
+guides")
+1. [Installing software](/en-US/docs/Web/API/File_System_API "See all Web API guides")
+2. [Browsing the web](/en-US/docs/Web/API/Fetch_API "See all Web API guides")
+3. [Code editors](/en-US/docs/Web/API/Fetch_API "See all Web API guides")
+4. [Dealing with files](/en-US/docs/Web/API/Geolocation_API "See all Web API guides")
+5. [Command line](/en-US/docs/Web/API/HTML_DOM_API "See all Web API guides")
+
+- [Your first website](/en-US/docs/Web/API/HTML_DOM_API "See all Web API
+guides")
+1. [What will it look like?](/en-US/docs/Web/API/Push_API "See all Web API guides")
+2. [Creating the content](/en-US/docs/Web/API/Push_API "See all Web API guides")
+3. [Styling the content](/en-US/docs/Web/API/Service_Worker_API "See all Web API guides")
+4. [Adding interactivity](/en-US/docs/Web/API "See all Web API guides")
+5. [Publishing](/en-US/docs/Web/API "See all Web API guides")
+
+- [Web standards](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API
+"/en-US/docs/Web")
+1. [How the web works](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API "/en-US/docs/Web")
+2. [The web standards model](/en-US/docs/Web/API/Web_Animations_API/Using_the_Web_Animations_API "/en-US/docs/Web")
+3. [How browsers load websites](/en-US/docs/Web/API/Fetch_API/Using_Fetch "/en-US/docs/Web")
+
+- [Soft skills](/en-US/docs/Web/API/Fetch_API/Using_Fetch
+"/en-US/docs/Web")
+1. [Research and learning](/en-US/docs/Web/API/Fetch_API/Using_Fetch "/en-US/docs/Web")
+2. [Collaboration and teamwork](/en-US/docs/Web/API/History_API/Working_with_the_History_API "/en-US/docs/Web")
+3. [Workflows and processes](/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API "/en-US/docs/Web")
+4. [Finding a job](/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API "/en-US/docs/Web")
+
+- [Core modules](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers "/en-US/docs/Web")
+- [Structuring content with HTML](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers
+"/en-US/docs/Web")
+1. [Basic HTML syntax](/en-US/docs/Web/API/Web_Workers_API/Using_web_workers "/en-US/docs/Web")
+2. [Web page metadata](/en-US/docs/Web "/en-US/docs/Web")
+3. [Headings and paragraphs](/en-US/docs/Web "/en-US/docs/Web")
+4. [Emphasis and importance](/en-US/docs/Web "/en-US/docs/Web")
+5. [Lists](/en-US/docs/Web "/en-US/docs/Web")
+6. [Test: HTML text basics](/en-US/docs/Web "/en-US/docs/Web")
+7. [Advanced text features](/en-US/docs/Web "/en-US/docs/Web")
+8. [Test: Advanced HTML text](/en-US/docs/Web "/en-US/docs/Web")
+9. [Challenge: Letter markup](/en-US/docs/Web "/en-US/docs/Web")
+10. [Structuring documents](/en-US/docs/Web/Accessibility "See all web technology references")
+11. [Creating links](/en-US/docs/Web/Accessibility "See all web technology references")
+12. [Test: Links](/en-US/docs/Web/Accessibility "See all web technology references")
+13. [Challenge: Bird watching site](/en-US/docs/Web/Accessibility "See all web technology references")
+14. *[Images](/en-US/docs/Web/HTTP "See all web technology references")*
+15. [Test: Images](/en-US/docs/Web/URI "See all web technology references")
+16. [Video and audio](/en-US/docs/Web/URI "See all web technology references")
+17. [Test: Audio and video](/en-US/docs/Mozilla/Add-ons/WebExtensions "See all web technology references")
+18. [Challenge: Splash page](/en-US/docs/WebAssembly "See all web technology references")
+19. [Table basics](/en-US/docs/WebAssembly "See all web technology references")
+20. [Table accessibility](/en-US/docs/Web/WebDriver "See all web technology references")
+21. [Challenge: Planet data table](/en-US/docs/Web/WebDriver "See all web technology references")
+22. [Forms and buttons](/en-US/docs/Web "See all web technology references")
+23. [Test: Forms and buttons](/en-US/docs/Web/Media "See all web technology references")
+24. [Challenge: Feedback form](/en-US/docs/Web/Media "/en-US/docs/Learn_web_development")
+25. [Debugging HTML](/en-US/docs/Web/Media "/en-US/docs/Learn_web_development")
+26. [Test: HTML tests index](/en-US/docs/Web/Media "/en-US/docs/Learn_web_development")
+27. Additional
+tutorials
+1. [Vector graphics](/en-US/docs/Web/Performance "/en-US/docs/Learn_web_development")
+2. [Embedding technologies](/en-US/docs/Web/Privacy "/en-US/docs/Learn_web_development")
+
+
+- [CSS styling basics](/en-US/docs/Web/Security
+"/en-US/docs/Learn_web_development")
+1. [What is CSS?](/en-US/docs/Web/Security "/en-US/docs/Learn_web_development")
+2. [CSS getting started](/en-US/docs/Web/Progressive_web_apps "/en-US/docs/Learn_web_development")
+3. [Challenge: Biography page](/en-US/docs/Web/Progressive_web_apps "/en-US/docs/Learn_web_development")
+4. [Basic selectors](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+5. [Attribute selectors](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+6. [Pseudo-classes and elements](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+7. [Combinators](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+8. [Test: Selectors](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+9. [Box model](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+10. [Test: Box model](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+11. [Handling conflicts](/en-US/docs/Learn_web_development "/en-US/docs/Learn_web_development")
+12. [Test: Cascade](/en-US/docs/Learn_web_development/Getting_started "menu__panel-content")
+13. [Challenge: Fixing blog styles](/en-US/docs/Learn_web_development/Getting_started "menu__panel-content")
+14. [Values and units](/en-US/docs/Learn_web_development/Getting_started "menu__panel-content")
+15. [Test: Values and units](/en-US/docs/Learn_web_development/Getting_started "menu__panel-content")
+16. [Sizing](/en-US/docs/Learn_web_development/Core "menu__panel-content")
+17. [Test: Sizing](/en-US/docs/Learn_web_development/Core "menu__panel-content")
+18. [Backgrounds and borders](/en-US/docs/Learn_web_development/Core "menu__panel-content")
+19. [Test: Backgrounds and borders](/en-US/curriculum/ "menu__panel-content")
+20. [Overflow](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar "menu__panel-content")
+21. [Test: Overflow](https://scrimba.com/frontend-path-c0j?via=mdn-learn-navbar "menu__panel-content")
+22. [Challenge: Sizing and decorating](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+23. [Images, media, forms](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+24. [Test: Images and forms](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+25. [Styling tables](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+26. [Challenge: Styling color scheme search](/en-US/docs/Learn_web_development/Core/Structuring_content "menu__panel-content")
+27. [Debugging CSS](/en-US/docs/Learn_web_development/Core/Styling_basics "menu__panel-content")
+28. [Test: Styling basics tests index](/en-US/docs/Learn_web_development/Core/Styling_basics "menu__panel-content")
+29. Additional
+tutorials
+1. [Advanced styling effects](/en-US/docs/Learn_web_development/Core/Styling_basics "menu__panel-content")
+2. [Cascade layers](/en-US/docs/Learn_web_development/Core/CSS_layout "menu__panel-content")
+3. [Multiple text directions](/en-US/docs/Learn_web_development/Core/CSS_layout "menu__panel-content")
+4. [Organizing your CSS](/en-US/docs/Learn_web_development/Core/Scripting "menu__panel-content")
+
+
+- [CSS text styling](/en-US/docs/Learn_web_development/Core/Scripting
+"menu__panel-content")
+1. [Text and font fundamentals](/en-US/docs/Learn_web_development/Core/Scripting "menu__panel-content")
+2. [Styling lists](/en-US/docs/Learn_web_development/Core/Scripting "menu__panel-content")
+3. [Styling links](/en-US/play "menu__panel-content")
+4. [Web fonts](/en-US/play "menu__panel-content")
+5. [Challenge: Community school homepage](/en-US/play "menu__panel-content")
+
+- [CSS layout](/en-US/play
+"menu__panel-content")
+1. [Introduction](/en-US/play "menu__panel-content")
+2. [Floats](/en-US/play "menu__panel-content")
+3. [Test: Floats](/en-US/play "menu__panel-content")
+4. [Positioning](/en-US/play "menu__panel-content")
+5. [Test: Positioning](/en-US/play "menu__panel-content")
+6. [Flexbox](/en-US/play "menu__panel-content")
+7. [Test: Flexbox](/en-US/play "menu__panel-content")
+8. [CSS grid layout](/en-US/play "menu__panel-content")
+9. [Test: CSS grid](/en-US/observatory "menu__panel-content")
+10. [Challenge: Fundamental layout](/en-US/observatory "menu__panel-content")
+11. [Responsive web design](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator "menu__panel-content")
+12. [Media queries](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator "menu__panel-content")
+13. [Test: RWD & media queries](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-image_generator "menu__panel-content")
+14. [Challenge: mobile-first](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator "menu__panel-content")
+15. [Test: Layout tests index](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Border-radius_generator "menu__panel-content")
+16. Additional
+tutorials
+1. [Multiple-column layout](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator "menu__panel-content")
+2. [Practical positioning examples](/en-US/docs/Web/CSS/Guides/Backgrounds_and_borders/Box-shadow_generator "menu__panel-content")
+3. [Legacy layout methods](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter "menu__panel-content")
+4. [Supporting older browsers](/en-US/docs/Web/CSS/Guides/Colors/Color_format_converter "menu__panel-content")
+
+
+- [Dynamic scripting with JavaScript](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer
+"menu__panel-content")
+1. [What is JavaScript?](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer "menu__panel-content")
+2. [JavaScript walkthrough](/en-US/docs/Web/CSS/Guides/Colors/Color_mixer "menu__panel-content")
+3. [Troubleshooting](/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator "menu__panel-content")
+4. [Variables](/en-US/docs/Web/CSS/Guides/Shapes/Shape_generator "menu__panel-content")
+5. [Test: Variables](/en-US/about "menu__panel-content")
+6. [Numbers and operators](/en-US/about "menu__panel-content")
+7. [Test: Math](/en-US/about "menu__panel-content")
+8. [Strings](/en-US/about "menu__panel-content")
+9. [String methods](/en-US/about "menu__panel-content")
+10. [Test: Strings](/en-US/about "menu__panel-content")
+11. [Arrays](/en-US/about "menu__panel-content")
+12. [Test: Arrays](/en-US/about "menu__panel-content")
+13. [Challenge: Story generator](/en-US/about "menu__panel-content")
+14. [Conditionals](/en-US/about "Search the site")
+15. [Test: Conditionals](/en-US/about "Search the site")
+16. [Loops](/en-US/about "Search the site")
+17. [Test: Loops](/en-US/advertising "Search the site")
+18. [Functions](/en-US/advertising "Search the site")
+19. [Build your own function](/en-US/community "Search the site")
+20. [Function return values](/en-US/community "Search the site")
+21. [Test: Functions](/en-US/community "Search the site")
+22. [Events](https://github.com/mdn "Search the site")
+23. [Event bubbling](https://github.com/mdn "Search the site")
+24. [Test: Events](/en-US/blog/ "Search the site")
+25. [Objects](/en-US/blog/ "Search the site")
+26. [Test: Objects](/en-US/blog/ "Search the site")
+27. [DOM scripting](/en-US/blog/ "Search the site")
+28. [Challenge: Image gallery](/en-US/docs/Learn_web_development "Search the site")
+29. [Network requests](/en-US/docs/Learn_web_development "Search the site")
+30. [JSON](/en-US/docs/Learn_web_development "Search the site")
+31. [Test: JSON](/en-US/docs/Learn_web_development "Search the site")
+32. [Challenge: House data UI](/en-US/docs/Learn_web_development "Search the site")
+33. [Debugging and error handling](/en-US/docs/Learn_web_development "Search the site")
+34. [Test: JavaScript tests index](/en-US/docs/Learn_web_development "Search the site")
+
+- [JavaScript frameworks and libraries](/en-US/docs/Learn_web_development "Search the
+site")
+1. [Introduction](/en-US/docs/Learn_web_development "Search the site")
+2. [Framework features](/en-US/docs/Learn_web_development "Search the site")
+3. [React getting started](/en-US/docs/Learn_web_development "HTML images")
+4. [React ToDo app](/en-US/docs/Learn_web_development "HTML images")
+5. [React components](/en-US/docs/Learn_web_development "HTML images")
+6. [React events and state](/en-US/docs/Learn_web_development "HTML images")
+7. [React editing, filtering, conditional UI](/en-US/docs/Learn_web_development "HTML images")
+8. [React accessibility](/en-US/docs/Learn_web_development "HTML images")
+9. [React resources](/en-US/docs/Learn_web_development "HTML images")
+
+- [Accessibility](/en-US/docs/Learn_web_development "HTML
+images")
+1. [What is accessibility?](/en-US/docs/Learn_web_development "HTML images")
+2. [Accessibility tools](/en-US/docs/Learn_web_development "HTML images")
+3. [Accessible HTML](/en-US/docs/Learn_web_development "HTML images")
+4. [Test: HTML a11y](/en-US/docs/Learn_web_development "HTML images")
+5. [Accessible CSS and JS](/en-US/docs/Learn_web_development "HTML images")
+6. [Test: CSS/JS a11y](/en-US/docs/Learn_web_development "HTML images")
+7. [WAI-ARIA](/en-US/docs/Learn_web_development "HTML images")
+8. [Test: WAI-ARIA](/en-US/docs/Learn_web_development "HTML images")
+9. [Accessible multimedia](/en-US/docs/Learn_web_development "HTML images")
+10. [Mobile accessibility](/en-US/docs/Learn_web_development "HTML images")
+11. [Challenge: A11y debugging](/en-US/docs/Learn_web_development "HTML images")
+12. [Test: A11y tests index](/en-US/docs/Learn_web_development "HTML images")
+
+- [Design for developers](/en-US/docs/Learn_web_development "HTML images")
+- [Version control](/en-US/docs/Learn_web_development "HTML images")
+- [Extension modules](/en-US/docs/Learn_web_development "HTML images")
+- [Advanced JavaScript objects](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Object prototypes](/en-US/docs/Learn_web_development "HTML images")
+2. [Object-oriented programming](/en-US/docs/Learn_web_development "HTML images")
+3. [Classes in JavaScript](/en-US/docs/Learn_web_development "HTML images")
+4. [Test: Object-oriented JavaScript](/en-US/docs/Learn_web_development "HTML images")
+5. [Object building practice](/en-US/docs/Learn_web_development "HTML images")
+6. [Challenge: Bouncing balls features](/en-US/docs/Learn_web_development "HTML images")
+7. [Test: OOJS tests index](/en-US/docs/Learn_web_development "HTML images")
+
+- [Client-side web APIs](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Introduction](/en-US/docs/Learn_web_development "HTML images")
+2. [Video and audio](/en-US/docs/Learn_web_development "HTML images")
+3. [Drawing graphics](/en-US/docs/Learn_web_development "HTML images")
+4. [Client-side storage](/en-US/docs/Learn_web_development "HTML images")
+5. [Third-party APIs](/en-US/docs/Learn_web_development "HTML images")
+
+- [Asynchronous JavaScript](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Introduction](/en-US/docs/Learn_web_development "HTML images")
+2. [Using promises](/en-US/docs/Learn_web_development "HTML images")
+3. [Implementing promise-based APIs](/en-US/docs/Learn_web_development "HTML images")
+4. [Introducing workers](/en-US/docs/Learn_web_development "HTML images")
+5. [Challenge: Animation sequence](/en-US/docs/Learn_web_development "HTML images")
+
+- [Web forms](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Your first form](/en-US/docs/Learn_web_development "HTML images")
+2. [How to structure a web form](/en-US/docs/Learn_web_development "HTML images")
+3. [Basic native form controls](/en-US/docs/Learn_web_development "HTML images")
+4. [The HTML5 input types](/en-US/docs/Learn_web_development "HTML images")
+5. [Other form controls](/en-US/docs/Learn_web_development "HTML images")
+6. [Styling web forms](/en-US/docs/Learn_web_development "HTML images")
+7. [Advanced form styling](/en-US/docs/Learn_web_development "HTML images")
+8. [Customizable selects](/en-US/docs/Learn_web_development "HTML images")
+9. [Customizable listboxes](/en-US/docs/Learn_web_development "HTML images")
+10. [UI pseudo-classes](/en-US/docs/Learn_web_development "HTML images")
+11. [Client-side form validation](/en-US/docs/Learn_web_development "HTML images")
+12. [Sending form data](/en-US/docs/Learn_web_development "HTML images")
+13. Additional
+tutorials
+1. [Custom form controls](/en-US/docs/Learn_web_development "HTML images")
+2. [JS form submission](/en-US/docs/Learn_web_development "HTML images")
+3. [Forms in legacy browsers](/en-US/docs/Learn_web_development "HTML images")
+4. [UI methods & controls](/en-US/docs/Learn_web_development "HTML images")
+
+
+- [Understanding client-side tools](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Overview](/en-US/docs/Learn_web_development "HTML images")
+2. [Package management](/en-US/docs/Learn_web_development "HTML images")
+3. [Sample toolchain](/en-US/docs/Learn_web_development "HTML images")
+4. [Deploying our app](/en-US/docs/Learn_web_development "HTML images")
+
+- [Server-side websites](/en-US/docs/Learn_web_development "HTML
+images")
+1. [First steps](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Introduction](/en-US/docs/Learn_web_development "HTML images")
+2. [Client-server overview](/en-US/docs/Learn_web_development "HTML images")
+3. [Server-side frameworks](/en-US/docs/Learn_web_development "HTML images")
+4. [Website security](/en-US/docs/Learn_web_development "HTML images")
+
+- [Django (Python)](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Django introduction](/en-US/docs/Learn_web_development "HTML images")
+2. [Dev environment setup](/en-US/docs/Learn_web_development "HTML images")
+3. [1: Local library tutorial](/en-US/docs/Learn_web_development "HTML images")
+4. [2: Skeleton website](/en-US/docs/Learn_web_development "HTML images")
+5. [3: Models](/en-US/docs/Learn_web_development "HTML images")
+6. [4: Django admin site](/en-US/docs/Learn_web_development "HTML images")
+7. [5: Home page](/en-US/docs/Learn_web_development "HTML images")
+8. [6: Generic list and detail views](/en-US/docs/Learn_web_development "HTML images")
+9. [7: Sessions framework](/en-US/docs/Learn_web_development "HTML images")
+10. [8: Authentication and permissions](/en-US/docs/Learn_web_development "HTML images")
+11. [9: Forms](/en-US/docs/Learn_web_development "HTML images")
+12. [10: Testing](/en-US/docs/Learn_web_development "HTML images")
+13. [11: Deploying](/en-US/docs/Learn_web_development "HTML images")
+14. [Django security](/en-US/docs/Learn_web_development "HTML images")
+15. [Challenge: Django blog](/en-US/docs/Learn_web_development "HTML images")
+
+- [Express (Node.js)](/en-US/docs/Learn_web_development "HTML
+images")
+1. [Express/Node introduction](/en-US/docs/Learn_web_development "HTML images")
+2. [Dev environment setup](/en-US/docs/Learn_web_development "HTML images")
+3. [1: Local library tutorial](/en-US/docs/Learn_web_development/Core "HTML images")
+4. [2: Skeleton website](/en-US/docs/Learn_web_development/Core "HTML images")
+5. [3: Using databases with Mongoose](/en-US/docs/Learn_web_development/Core/Structuring_content "HTML images")
+6. [4: Routes and controllers](/en-US/docs/Learn_web_development/Core/Structuring_content "HTML images")
+7. [5: Displaying data](/en-US/docs/Learn_web_development/Core/Structuring_content "HTML images")
+8. [6: Working with forms](/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images "HTML images")
+9. [7: Deploying](/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images "HTML images")
+
+- Additional
+tutorials
+1. [Apache .htaccess](https://github.com/orgs/mdn/discussions/739 "HTML images")
+2. [Server MIME type config](https://github.com/orgs/mdn/discussions/739 "HTML images")
+3. [Plain Node.js server](https://github.com/orgs/mdn/discussions/739 "HTML images")
+
+
+- [Web performance](https://github.com/orgs/mdn/discussions/739
+"/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+1. [The "why" of web performance](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+2. [What is web performance?](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+3. [Perceived performance](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+4. [Measuring performance](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+5. [Multimedia: Images](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+6. [Multimedia: video](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+7. [Performant JavaScript](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+8. [Performant HTML](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+9. [Performant CSS](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+10. [Performance business case](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+11. [Best practices & tips](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+
+- [Testing](https://github.com/orgs/mdn/discussions/739
+"/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+1. [Introduction](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+2. [Testing strategies](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+3. [Common HTML and CSS problems](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+4. [Feature detection](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+5. [Automated testing](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+6. [Automation environment setup](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+
+- Further resources
+- [How to solve common problems](https://github.com/orgs/mdn/discussions/739
+"/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+1. [Common CSS problems](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+2. [Common HTML problems](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+3. [Common JavaScript problems](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+4. [Design and accessibility](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+5. [Tools and setup](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+6. [Web mechanics](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+
+- [About](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+- [Resources for educators](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+- [Changelog](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")
+
+
+[MDN
+================
+
+](https://github.com/orgs/mdn/discussions/739 "/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images")            
+Your blueprint for a better internet.            
+
+-                                   
+-                                   
+-                                   
+-                                   
+-                                   
+
+MDN                                  
+-                           [                            About                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Blog                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Mozilla careers                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Advertise with us                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            MDN Plus                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Product help                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+
+Contribute
+
+-                           [                            MDN Community                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Community resources                          ](https://github.com/orgs/mdn/discussions/739 "Enable this setting to always switch to the current language when available. (Click to learn more.)")                        
+-                           [                            Writing guidelines                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            MDN Discord                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            MDN on GitHub                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+
+Developers
+
+-                           [                            Web technologies                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            Learn web development                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            Guides                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            Tutorials                          ](https://github.com/orgs/mdn/discussions/739 "700")                        
+-                           [                            Glossary                          ](/static/client/styles-global.edd46645a22dfb0f.css "theme")                        
+-                           [                            Hacks blog                          ](/static/client/styles-global.edd46645a22dfb0f.css "HTML images - Learn web development | MDN")                        
+
+
+[Mozilla
+==================
+
+](/static/client/270.66bae6059a1c23f9.css "HTML images - Learn web development | MDN")          
+-                   [Website Privacy Notice](/static/client/styles-breadcrumbs.87eb742f4e711dc3.css "HTML images - Learn web development | MDN")                
+-                   [Telemetry Settings](/static/client/jetbrains-mono-latin.119994ed445212c7.woff2 "HTML images - Learn web development | MDN")                
+-                   [Legal](https://developer.mozilla.org/favicon.ico "HTML images - Learn web development | MDN")                
+-                   [Community Participation Guidelines](https://developer.mozilla.org/favicon.ico "HTML images - Learn web development | MDN")                
+
+
+Portions of this content are ©1998–2026 by individual mozilla.org
+contributors. Content available under [a Creative Commons license](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_images "HTML images - Learn web development | MDN").          
+

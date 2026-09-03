@@ -1,0 +1,62 @@
+[
+  {
+    "case_id": "cowagent-doc",
+    "independent": true,
+    "checked_at": "2026-09-03T14:21:09.768882+00:00",
+    "content_text": "内置工具\nweb_fetch - 网页获取\n获取网页或文档内容\n获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。\n\n参数\n参数\n类型\n必填\n说明\nurl\nstring\n是\nHTTP/HTTPS URL（网页或文档链接）\n\n支持的文件类型\n类型\n格式\nPDF\n.pdf\nWord\n.docx\n文本\n.txt\n、\n.md\n、\n.csv\n、\n.log\n表格\n.xls\n、\n.xlsx\n演示文稿\n.ppt\n、\n.pptx\n\n使用场景\n获取网页的文本内容\n下载并解析远程文档\n获取 API 响应内容\nweb_fetch\n只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用\nbrowser\n工具。",
+    "scope_identity": {
+      "case_id": "cowagent-doc",
+      "url": "https://docs.cowagent.ai/zh/tools/web-fetch",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "tool-name",
+            "alternatives": [
+              "web_fetch",
+              "Web Fetch"
+            ]
+          },
+          {
+            "id": "url-input",
+            "alternatives": [
+              "url",
+              "URL"
+            ]
+          },
+          {
+            "id": "purpose",
+            "alternatives": [
+              "网页内容",
+              "网页正文",
+              "获取网页"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Page Not Found",
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "min_content_chars": 217,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 0.7039590273052454,
+      "timeout_ms": 120000
+    }
+  }
+]

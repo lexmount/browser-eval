@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "live-033-nasa-science",
+    "independent": true,
+    "checked_at": "2026-09-03T14:29:26.011251+00:00",
+    "content_text": "Explore This Section\nNASA Science\nNASA Science seeks to discover the secrets of the universe, search for life elsewhere, and protect and improve life on Earth and in space.\nExplore\nIce Island Survives Run-In With Joe Island\nObserve\nNASA’s Nancy Grace Roman Space Telescope Launches\nFocus\nPasterze Hangs on as Austria’s Largest Glacier\nLatest News\nMore Science News\nArticle\n4 Min Read\nRare, Widespread Snow in the Atacama Desert\nArticle\n7 Min Read\nA Changing World for Emperor Penguins\nArticle\n5 Min Read\nNASA’s Pandora Mission Begins Study of Exoplanets, Host Stars\nArticle\n4 Min Read\nGalactic Gems Glisten in New Gallery From NASA’s Chandra\n7 Min Read\nIntegrating Model-Based Systems Engineering and Fault Management to Enable Autonomous Space Missions\nArticle\n3 Min Read\nLala Batters Hawaii\nArticle\n5 Min Read\nHubble Solves Merger Mystery From Milky Way’s Early Years\nArticle\n6 Min Read\nChasing Fire Clouds in Utah\nArticle\nAdopt a Pixel\nClaim your pixel on one of the first images from\nNASA’s Nancy Grace Roman Space Telescope!\nWhen Roman captures its first images, each pixel will represent a piece of the cosmos never seen before at this resolution. Claim your pixel and be part of this historic moment!\nUnable to render the provided source\n2026 NASA Science Calendar\nImage of the Month\nAugust – Pyramid Lake in Bloom.\nDownload Now\nDownload the Cover\nLearn about those of the NASA corps who make “space sailing” their career profession.\nDownload Now\nAll Images\nSee all images for 2026\nDownload Now\nUnable to render the provided source\nFeatured Video\nWhat’s Up: August 2026 Skywatching Tips from NASA\nA solar eclipse, one of the year’s best meteor showers, Venus at its brightest in the evening sky, and a partial lunar eclipse to close out the month.\nOn August 12, a total solar eclipse crosses northern Russia, Greenland, Iceland, northern Spain, and a small corner of Portugal. In parts of the United States, from Alaska to North Carolina, the eclipse will be partial. Use certified eclipse glasses or a safe solar viewer whenever any part of the Sun is visible.\nLater that night, the Perseid meteor shower peaks under the dark skies of the New Moon.\nLearn More\nLANDSAT\nA Spaceship Called Earth\nWith NASA’s “Your Name in Landsat” online interactive, users can type in their name, then view and export the graphic of that name spelled out in Earth features found in Landsat images.\nSee Your Name in Landsat\nMark your calendars\nMost Notable 2026 Astronomical Events\nThis year will be busy for avid skywatchers, with some incredible opportunities to view meteor showers, planets, and the Moon in the night sky.\nSee the Top Sky Watching Events\nNASA/JPL-Caltech\nFeatured Missions\nOur mission milestones showcase the breadth and depth of NASA science.\nAll Science Missions\nIMAP\nLaunched September 24, 2025, IMAP will help researchers better understand the boundary of the heliosphere, a huge bubble created by the Sun surrounding and protecting our solar system.\nMore about IMAP\nPandora\nPandora is a small satellite designed to characterize exoplanet atmospheres and their host stars. It is slated to observe at least 20 different planets during its one year of science operations.\nMore about Pandora\nDragonfly\nDragonfly, the first-of-its-kind rotorcraft to explore another world, will fly to various locations on Saturn’s moon Titan and investigate the moon’s habitability.\nMore about Dragonfly\nDive Deeper\nSMD Community Public Meetings\nView upcoming and past community public meetings.\nPublic Meetings\nNASA Science Strategy\nOur science strategy articulates a forward-thinking vision and presents a comprehensive, cohesive and long-term roadmap for all NASA activities.\nScience Strategy\nPeople of NASA Science\nMeet the individuals who are instrumental in enabling the realization of NASA Science’s extraordinary mission.\nPeople of Science\nNASA Science Careers\nDiscover career opportunities at NASA Science, where innovation, growth and collaboration shape the future of scientific exploration.\nScience Careers\nKeep Exploring\nMore about NASA Science\nScience Missions\nLatest NASA Science News\nScience for Everyone\nFor Researchers",
+    "scope_identity": {
+      "case_id": "live-033-nasa-science",
+      "url": "https://science.nasa.gov/",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+      "reference_scope": null,
+      "selector": "main",
+      "source_benchmark": {},
+      "render_scope": null,
+      "evaluation_contract": {
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "NASA Science seeks to discover the secrets of the universe,"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "Learn about those of the NASA corps who make “space"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "Discover career opportunities at NASA Science, where innovation, growth and"
+            ]
+          }
+        ],
+        "required_patterns": [],
+        "forbidden_any": [
+          "Access denied",
+          "Attention Required! | Cloudflare",
+          "CAPTCHA",
+          "Page not found",
+          "404 Not Found",
+          "无法访问此站点"
+        ],
+        "min_content_chars": 300,
+        "fact_coverage_threshold": 1.0,
+        "content_score_applicable": true,
+        "expected_resources": [],
+        "reference_answer": ""
+      }
+    },
+    "completion": {
+      "satisfied": true,
+      "elapsed_ms": 918.5285830171779,
+      "timeout_ms": 120000
+    }
+  }
+]
