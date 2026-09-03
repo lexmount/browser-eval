@@ -1,5 +1,5 @@
 import unittest
-from browser_harness_eval.list_verification import verify_list,identity,name_matches
+from harness.web_fetch.list_verification import verify_list,identity,name_matches
 
 class ListVerificationTests(unittest.TestCase):
  def setUp(self):

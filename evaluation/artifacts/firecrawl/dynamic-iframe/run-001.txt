@@ -1,0 +1,109 @@
+# Turtles All the Way Down: Frames & iFrames  14 items
+
+* * *
+
+Some older sites might still use frames to break up thier pages. Modern ones might be using iFrames to expose data. Learn about turtles as you scrape content inside frames.
+See if you can find the 'real' URL that our content is being loaded from, and scrape that page. Also practice interating over a list of items and loading their detail pages to get more information about each one.
+
+
+* * *
+
+There are [3 video lessons](https://www.scrapethissite.com/lessons/) that show you how to scrape this page.
+
+
+* * *
+
+
+Data via
+[https://en.wikipedia.org/wiki/List\_of\_Testudines\_families](https://en.wikipedia.org/wiki/List_of_Testudines_families)
+
+* * *
+
+Your browser does not support frames.
+
+
+Turtles All the Way Down: Frames & iFrames \| Scrape This Site \| A public sandbox for learning web scraping
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Carettochelys_insculpta.jpg/200px-Carettochelys_insculpta.jpg)
+
+### Carettochelyidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Carettochelyidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/GreenSeaTurtle-2.jpg/200px-GreenSeaTurtle-2.jpg)
+
+### Cheloniidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Cheloniidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Alligator_snapping_turtle.jpg/200px-Alligator_snapping_turtle.jpg)
+
+### Chelydridae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Chelydridae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Dermatemydidae.JPG/200px-Dermatemydidae.JPG)
+
+### Dermatemydidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Dermatemydidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/LeatherbackTurtle.jpg/200px-LeatherbackTurtle.jpg)
+
+### Dermochelyidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Dermochelyidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Tortoise1_cepolina.jpg/200px-Tortoise1_cepolina.jpg)
+
+### Emydidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Emydidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Cuora_amboinensis_kamaroma_j.jpg/200px-Cuora_amboinensis_kamaroma_j.jpg)
+
+### Geoemydidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Geoemydidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Sternotherus_odoratus.jpg/200px-Sternotherus_odoratus.jpg)
+
+### Kinosternidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Kinosternidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Zolw_wielkoglowy.jpg/200px-Zolw_wielkoglowy.jpg)
+
+### Platysternidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Platysternidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Tortoise.aldabra.750pix.jpg/200px-Tortoise.aldabra.750pix.jpg)
+
+### Testudinidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Testudinidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Apalone_spinifera.jpg/200px-Apalone_spinifera.jpg)
+
+### Trionychidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Trionychidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Eastern_long_neck_tortoise_-_chelodina_longicollis.jpg/200px-Eastern_long_neck_tortoise_-_chelodina_longicollis.jpg)
+
+### Chelidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Chelidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Pelomedusa_subrufa.JPG/200px-Pelomedusa_subrufa.JPG)
+
+### Pelomedusidae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Pelomedusidae)
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Erymnochelys_madagascariensis.jpg/200px-Erymnochelys_madagascariensis.jpg)
+
+### Podocnemididae
+
+[Learn more →](https://www.scrapethissite.com/pages/frames/?frame=i&family=Podocnemididae)

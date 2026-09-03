@@ -1,0 +1,757 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://web-scraping.dev/assets/css/main.css"/>
+    <link rel="stylesheet" href="https://web-scraping.dev/assets/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://web-scraping.dev/assets/css/bootstrap-icons.css"/>
+    <link rel="stylesheet" href="https://web-scraping.dev/assets/css/highlight-nord.css"/>
+    <link rel="icon" href="https://web-scraping.dev/assets/media/icon.png" type="image/png" />
+    <script src="https://web-scraping.dev/assets/js/cash.min.js"></script>
+    <script src="https://web-scraping.dev/assets/js/main.js"></script>
+    <script src="https://web-scraping.dev/assets/js/bootstrap.js"></script>
+    
+
+
+<title>web-scraping.dev product Box of Chocolate Candy</title>
+<meta name="description" content="Mock product Box of Chocolate Candy page for web scraper testing" />
+<meta name="keywords" content="webscraping,mock,product,web scraping,testing,mock website,e-commerce,scraping tutorial" />
+<meta name="author" content="ScrapFly" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="https://web-scraping.dev/product/1" />
+
+
+<meta property="og:site_name" content="web-scraping.dev" />
+<meta property="og:type" content="article" />
+<meta property="og:title" content="web-scraping.dev product Box of Chocolate Candy" />
+<meta property="og:description" content="Mock product Box of Chocolate Candy page for web scraper testing" />
+<meta property="og:url" content="https://web-scraping.dev/product/1" />
+<meta property="og:image" content="https://web-scraping.dev/banners/product.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="web-scraping.dev product Box of Chocolate Candy" />
+<meta property="og:locale" content="en_US" />
+<meta property="article:published_time" content="2023-05-20T00:00:00.000Z" />
+<meta property="article:modified_time" content="2023-05-20T00:00:00.000Z" />
+<meta property="article:tag" content="webscraping,mock,product" />
+<meta property="article:publisher" content="https://web-scraping.dev/" />
+
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="web-scraping.dev product Box of Chocolate Candy" />
+<meta name="twitter:description" content="Mock product Box of Chocolate Candy page for web scraper testing" />
+<meta name="twitter:url" content="https://web-scraping.dev/product/1" />
+<meta name="twitter:image" content="https://web-scraping.dev/banners/product.png" />
+<meta name="twitter:image:alt" content="web-scraping.dev product Box of Chocolate Candy" />
+<meta name="twitter:site" content="@Scrapfly_dev" />
+<meta name="twitter:creator" content="@Scrapfly_dev" />
+
+
+<meta name="theme-color" content="#4ea8f1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+<style>
+  .delivery-dropdown {
+    position: relative;
+    min-width: 200px;
+  }
+  .delivery-dropdown .delivery-toggle {
+    cursor: pointer;
+    background-color: #fff;
+    min-width: 200px;
+    text-align: left;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+    font-size: 1rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    appearance: none;
+    display: block;
+    width: 100%;
+    line-height: 1.5;
+  }
+  .delivery-dropdown .delivery-toggle:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    outline: 0;
+  }
+  .delivery-dropdown .delivery-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    margin-top: 2px;
+    list-style: none;
+    padding: 0.25rem 0;
+  }
+  .delivery-dropdown.open .delivery-options {
+    display: block;
+  }
+  .delivery-dropdown .delivery-option {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: #212529;
+  }
+  .delivery-dropdown .delivery-option:hover {
+    background-color: #e9ecef;
+  }
+  .delivery-dropdown .delivery-option.active {
+    background-color: #0d6efd;
+    color: #fff;
+  }
+</style>
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "Box of Chocolate Candy",
+  "description": "Indulge your sweet tooth with our Box of Chocolate Candy. Each box contains an assortment of rich, flavorful chocolates with a smooth, creamy filling. Choose from a variety of flavors including zesty orange and sweet cherry. Whether you're looking for the perfect gift or just want to treat yourself, our Box of Chocolate Candy is sure to satisfy.",
+  "image": "https://web-scraping.dev/assets/products/orange-chocolate-box-medium-1.webp",
+  "brand": {
+    "@type": "Brand",
+    "name": "web-scraping.dev"
+  },
+  "offers": {
+    "@type": "AggregateOffer",
+    "url": "https://web-scraping.dev/product/1",
+    "priceCurrency": "USD",
+    "lowPrice": "9.99",
+    "highPrice": "19.99",
+    "offerCount": "6",
+    "availability": "https://schema.org/InStock"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.7",
+    "reviewCount": "10"
+  },
+  "review": [
+    
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": ""
+      },
+      "datePublished": "2022-07-22",
+      "reviewBody": "Absolutely delicious! The orange flavor is my favorite.",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "5",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": ""
+      },
+      "datePublished": "2022-08-16",
+      "reviewBody": "I bought these as a gift, and they were well received. Will definitely purchase again.",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "4",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": ""
+      },
+      "datePublished": "2022-09-10",
+      "reviewBody": "Nice variety of flavors. The chocolate is rich and smooth.",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "5",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": ""
+      },
+      "datePublished": "2022-10-02",
+      "reviewBody": "The cherry flavor is amazing. Will be buying more.",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "5",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    },
+    
+    {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": ""
+      },
+      "datePublished": "2022-11-05",
+      "reviewBody": "A bit pricey, but the quality of the chocolate is worth it.",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "4",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    
+  ]
+}
+</script>
+
+
+  </head>
+  <body>
+    
+    <nav class="navbar navbar-expand-lg navbar-light">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="https://web-scraping.dev/">web-scraping.dev</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarContent">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle text-center" href="#" id="headersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Docs
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="headersDropdown">
+                <li><a class="dropdown-item" href="/docs">API</a></li>
+                <li><a class="dropdown-item" href="/api/graphql">Graphql</a></li>
+              </ul>
+            </li>
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/products">Products</a></li>
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/reviews">Reviews</a></li>
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/testimonials">Testimonials</a></li>
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/file-download">File Download</a></li>
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/mcp-tools">MCP Tools</a></li>
+          </ul>
+          <ul class="navbar-nav mb-2 mb-lg-0">
+            
+            <li class="nav-item"><a class="nav-link" aria-current="page" href="https://web-scraping.dev/login">login</a></li>
+            
+            <li class="nav-item cart-preview">
+              <div class="cart-icon">
+                <svg width="25" height="24.72" fill="none" version="1.1" viewBox="0 0 .75 .7415" xmlns="http://www.w3.org/2000/svg">
+                 <path d="m0.1345 0.1046h0.511c0.05191 0 0.08857 0.05086 0.07215 0.1001l-0.06338 0.1901c-0.01035 0.03105-0.03941 0.052-0.07215 0.052h-0.3988m-0.04889-0.3422-0.00154-0.01076c-0.00535-0.03747-0.03744-0.0653-0.07529-0.0653h-0.0291m0.1059 0.07605 0.04889 0.3422m0 0 0.00697 0.04878c0.00535 0.03747 0.03744 0.0653 0.07529 0.0653h0.3333m0 0c-0.042 0-0.07605 0.03405-0.07605 0.07605s0.03405 0.07605 0.07605 0.07605c0.042 0 0.07605-0.03405 0.07605-0.07605 0-0.042-0.03405-0.07605-0.07605-0.07605zm-0.2282 0.07605c0 0.042-0.03405 0.07605-0.07605 0.07605-0.042 0-0.07605-0.03405-0.07605-0.07605 0-0.042 0.03405-0.07605 0.07605-0.07605 0.042 0 0.07605 0.03405 0.07605 0.07605z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width=".05704"/>
+                </svg>
+                <sup class="cart-count"></sup>
+                <div class="cart-data">
+                  <div class="cart-items"></div>
+                  <div class="cart-meta"></div>
+                  <div class="cart-control">
+                  <button class="btn btn-primary btn-rounded cart-clear btn-danger">Clear</button>
+                  <a href="/cart"><button class="btn btn-primary btn-rounded cart-continue btn-success">Continue</button></a>
+                </div>
+              </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    
+    <div class="main">
+        
+<div class="container">
+    
+        
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/products">Products</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Box of Chocolate Candy</li>
+          </ol>
+        </nav>
+    
+
+  <div class="container card product-card">
+    <div class="card-body">
+      
+      <h3 class="card-title product-title mb-3">Box of Chocolate Candy</h3>
+      <h6 class="card-subtitle product-subtitle"></h6>
+
+      <div class="row product-data">
+        <div class="col-lg-5 col-md-5 col-sm-6">
+          <div class="white-box text-center row product-images">
+            
+            <img src="https://web-scraping.dev/assets/products/orange-chocolate-box-small-1.webp" class="img-responsive product-img active" />
+            
+            <img src="https://web-scraping.dev/assets/products/orange-chocolate-box-small-2.webp" class="img-responsive product-img " />
+            
+            <img src="https://web-scraping.dev/assets/products/orange-chocolate-box-small-3.webp" class="img-responsive product-img " />
+            
+            <img src="https://web-scraping.dev/assets/products/orange-chocolate-box-small-4.webp" class="img-responsive product-img " />
+            
+          </div>
+        </div>
+        <div class="col-lg-7 col-md-7 col-sm-6">
+          <h4 class="box-title">Description</h4>
+          <p class="product-description">Indulge your sweet tooth with our Box of Chocolate Candy. Each box contains an assortment of rich, flavorful chocolates with a smooth, creamy filling. Choose from a variety of flavors including zesty orange and sweet cherry. Whether you're looking for the perfect gift or just want to treat yourself, our Box of Chocolate Candy is sure to satisfy.</p>
+
+          <div class="price">
+            
+            <span class="product-price mt-5 fs-1 text-success">$9.99 </span>
+            <small class="align-top text-center">from <span
+                class="product-price-full">$12.99</span></small>
+            
+          </div>
+
+          <div class="row mt-4 mb-4">
+            <div class="col-auto">
+              <label for="quantity" class="form-label fw-bold">Quantity</label>
+              <select id="quantity" name="quantity" class="form-select" aria-label="Quantity">
+                
+                <option value="1">1</option>
+                
+                <option value="2">2</option>
+                
+                <option value="3">3</option>
+                
+                <option value="4">4</option>
+                
+                <option value="5">5</option>
+                
+                <option value="6">6</option>
+                
+                <option value="7">7</option>
+                
+                <option value="8">8</option>
+                
+                <option value="9">9</option>
+                
+                <option value="10">10</option>
+                
+              </select>
+            </div>
+            <div class="col-auto">
+              <label class="form-label fw-bold">Delivery</label>
+              <div class="delivery-dropdown" id="delivery-dropdown">
+                <div class="delivery-toggle" id="delivery-selected" tabindex="0">Standard Delivery</div>
+                <ul class="delivery-options">
+                  <li><a class="delivery-option active" href="#" data-delivery="standard" data-delivery-fee="0">Standard Delivery</a></li>
+                  <li><a class="delivery-option" href="#" data-delivery="fast" data-delivery-fee="9.99">Fast Delivery (+$9.99)</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <span class="text-muted">Total: </span>
+            <span class="product-total fs-4 fw-bold" id="product-total">$9.99</span>
+          </div>
+
+          <button class="btn btn-secondary btn-rounded me-3 add-to-cart" data-product-id="1" data-variant-id="orange-small"> Add to Cart</button>
+          <button class="btn btn-primary btn-rounded buy-now">Buy Now</button>
+          <h3 class="box-title mt-5">Variants</h3>
+          <div class="list-group variants">
+            
+            <a href="https://web-scraping.dev/product/1?variant=orange-small" data-variant-id="orange-small"
+              class="variant list-group-item list-group-item-action active"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ffa500"></span>
+              
+              orange, small
+            </a>
+            
+            <a href="https://web-scraping.dev/product/1?variant=orange-medium" data-variant-id="orange-medium"
+              class="variant list-group-item list-group-item-action"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ffa500"></span>
+              
+              orange, medium
+            </a>
+            
+            <a href="https://web-scraping.dev/product/1?variant=orange-large" data-variant-id="orange-large"
+              class="variant list-group-item list-group-item-action"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ffa500"></span>
+              
+              orange, large
+            </a>
+            
+            <a href="https://web-scraping.dev/product/1?variant=cherry-small" data-variant-id="cherry-small"
+              class="variant list-group-item list-group-item-action"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ff4500"></span>
+              
+              cherry, small
+            </a>
+            
+            <a href="https://web-scraping.dev/product/1?variant=cherry-medium" data-variant-id="cherry-medium"
+              class="variant list-group-item list-group-item-action"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ff4500"></span>
+              
+              cherry, medium
+            </a>
+            
+            <a href="https://web-scraping.dev/product/1?variant=cherry-large" data-variant-id="cherry-large"
+              class="variant list-group-item list-group-item-action"
+              aria-current="true">
+              
+              <span class="variant-color" style="background:#ff4500"></span>
+              
+              cherry, large
+            </a>
+            
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-12 col-md-12 col-sm-12 product-features">
+        <h3 class="box-title mt-5">Features <small class="text-muted float-end">Vertical Table</small></h3>
+        <div class="table-responsive features">
+          <table class="table table-striped table-product">
+            <tbody>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">material</td>
+                <td class="feature-value">Premium quality chocolate</td>
+              </tr>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">flavors</td>
+                <td class="feature-value">Available in Orange and Cherry flavors</td>
+              </tr>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">sizes</td>
+                <td class="feature-value">Available in small, medium, and large boxes</td>
+              </tr>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">brand</td>
+                <td class="feature-value">ChocoDelight</td>
+              </tr>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">care instructions</td>
+                <td class="feature-value">Store in a cool, dry place</td>
+              </tr>
+              
+              <tr class="feature">
+                <td width="390" class="feature-label">purpose</td>
+                <td class="feature-value">Ideal for gifting or self-indulgence</td>
+              </tr>
+              
+            </tbody>
+          </table>
+
+          <h3>Packs <small class="text-muted float-end">Horizontal Table</small></h3>
+          <table class="table table-striped table-product">
+              <thead>
+                <tr>
+                    <th>Version</th>
+                    <th>Package Weight</th>
+                    <th>Package Dimension</th>
+                    <th>Variants</th>
+                    <th>Delivery Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                  
+                    <tr>
+                        <td>Pack 1</td>
+                        <td> 1,00 kg</td>
+                        <td> 100x230 cm</td>
+                        <td> 6 available</td>
+                        <td> 1 Day shipping</td>
+                    </tr>
+                  
+                    <tr>
+                        <td>Pack 2</td>
+                        <td> 2,11 kg</td>
+                        <td> 200x460 cm</td>
+                        <td> 6 available</td>
+                        <td> 1 Day shipping</td>
+                    </tr>
+                  
+                    <tr>
+                        <td>Pack 3</td>
+                        <td> 3,22 kg</td>
+                        <td> 300x690 cm</td>
+                        <td> 6 available</td>
+                        <td> 1 Day shipping</td>
+                    </tr>
+                  
+                    <tr>
+                        <td>Pack 4</td>
+                        <td> 4,33 kg</td>
+                        <td> 400x920 cm</td>
+                        <td> 6 available</td>
+                        <td> 1 Day shipping</td>
+                    </tr>
+                  
+                    <tr>
+                        <td>Pack 5</td>
+                        <td> 5,44 kg</td>
+                        <td> 500x1150 cm</td>
+                        <td> 6 available</td>
+                        <td> 1 Day shipping</td>
+                    </tr>
+                  
+              </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-lg-12 col-md-12 col-sm-12 product-reviews">
+        <div class="row">
+        <div class="col-md-6">
+          <h3 class="box-title mt-5">Reviews</h3>
+          <div id="reviews" data-page="1" class="mt-4">
+          </div>
+          
+          <button
+            id="load-more-reviews"
+            class="btn btn-primary btn-rounded plausible-event-name=socials/twitter plausible-event-revenue-amount=10.29 plausible-event-revenue-currency=EUR"
+          >Load More</button>
+          
+        </div>
+        <div class="col-md-6">
+          <h3 class="box-title mt-5">Similar Products</h3>
+          <div class="similar-products">
+            
+              
+<a href="https://web-scraping.dev/product/3" class="product-preview">
+  <div class="row product">
+    <div class="col-2 thumbnail">
+      <img width=182 height=182 alt="thumbnail of Teal Energy Potion" src="https://web-scraping.dev/assets/products/teal-potion.webp" class="img-thumbnail">
+    </div>
+    <div class="col-8 d-flex align-items-center">
+      <h3 class="mb-0">Teal Energy Potion</h3>
+    </div>
+    <div class="col-2 price-wrap">
+      <div class="price">4.99</div>
+    </div>
+  </div>
+</a>
+
+            
+              
+<a href="https://web-scraping.dev/product/16" class="product-preview">
+  <div class="row product">
+    <div class="col-2 thumbnail">
+      <img width=182 height=182 alt="thumbnail of Red Energy Potion" src="https://web-scraping.dev/assets/products/red-potion.webp" class="img-thumbnail">
+    </div>
+    <div class="col-8 d-flex align-items-center">
+      <h3 class="mb-0">Red Energy Potion</h3>
+    </div>
+    <div class="col-2 price-wrap">
+      <div class="price">4.99</div>
+    </div>
+  </div>
+</a>
+
+            
+              
+<a href="https://web-scraping.dev/product/22" class="product-preview">
+  <div class="row product">
+    <div class="col-2 thumbnail">
+      <img width=182 height=182 alt="thumbnail of Kids' Light-Up Sneakers" src="https://web-scraping.dev/assets/products/kids-light-up-sneakers-red-1.webp" class="img-thumbnail">
+    </div>
+    <div class="col-8 d-flex align-items-center">
+      <h3 class="mb-0">Kids' Light-Up Sneakers</h3>
+    </div>
+    <div class="col-2 price-wrap">
+      <div class="price">29.99</div>
+    </div>
+  </div>
+</a>
+
+            
+              
+<a href="https://web-scraping.dev/product/1" class="product-preview">
+  <div class="row product">
+    <div class="col-2 thumbnail">
+      <img width=182 height=182 alt="thumbnail of Box of Chocolate Candy" src="https://web-scraping.dev/assets/products/orange-chocolate-box-medium-1.webp" class="img-thumbnail">
+    </div>
+    <div class="col-8 d-flex align-items-center">
+      <h3 class="mb-0">Box of Chocolate Candy</h3>
+    </div>
+    <div class="col-2 price-wrap">
+      <div class="price">24.99</div>
+    </div>
+  </div>
+</a>
+
+            
+        </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+    </div>
+    
+<input type="hidden" name="csrf-token" value="secret-csrf-token-123"/>
+<script type="application/json" id="reviews-data">[{"date": "2022-07-22", "id": "chocolate-candy-box-1", "rating": 5, "text": "Absolutely delicious! The orange flavor is my favorite."}, {"date": "2022-08-16", "id": "chocolate-candy-box-2", "rating": 4, "text": "I bought these as a gift, and they were well received. Will definitely purchase again."}, {"date": "2022-09-10", "id": "chocolate-candy-box-3", "rating": 5, "text": "Nice variety of flavors. The chocolate is rich and smooth."}, {"date": "2022-10-02", "id": "chocolate-candy-box-4", "rating": 5, "text": "The cherry flavor is amazing. Will be buying more."}, {"date": "2022-11-05", "id": "chocolate-candy-box-5", "rating": 4, "text": "A bit pricey, but the quality of the chocolate is worth it."}]</script>
+
+<script id="reviews-template" type="nunjucks">
+{% for review in reviews %}
+<div class="review review-{{review['id']}}">
+  <span>{{review['date']}}</span>
+  {% for i in range(review['rating']) %}
+  <svg width="20px" height="20px" viewBox="0 0 64 64" role="img"><path d="M62 25.2H39.1L32 3l-7.1 22.2H2l18.5 13.7l-7 22.1L32 47.3L50.5 61l-7.1-22.2L62 25.2z" fill="#ffce31"></path></svg>
+  {% endfor %}
+  <p>{{review['text']}}</p>
+</div>
+{% endfor %}
+</script>
+
+
+<script src="https://web-scraping.dev/assets/js/nunjucks.js"></script>
+<script>
+  /**
+   * Takes reviews from hidden web data JSON (the id=reviews-data element)
+   * and renders that JSON to HTML using nunjucks
+   */
+  function renderReviews() {
+    var template = document.getElementById('reviews-template').innerHTML;
+    var data = JSON.parse(document.getElementById('reviews-data').innerHTML);
+    var rendered = nunjucks.renderString(template, {reviews: data});
+    document.getElementById('reviews').innerHTML += rendered;
+  }
+  /**
+   * Request next page of reviews via XHR and calls renderReviews again
+   */
+  async function nextReviews() {
+    let page = parseInt(document.getElementById('reviews').dataset['page']) + 1;
+    let url = new URL("https://web-scraping.dev/api/reviews?product_id=1");
+    url.searchParams.set("page", page);
+    let csrf = document.querySelector('[name=csrf-token]').value;
+    let options = {
+        method: 'GET',
+        headers: {
+            'x-csrf-token': csrf
+        }
+    };
+    let data = await (await fetch(url, options)).json();
+    document.getElementById('reviews-data').innerHTML = JSON.stringify(data['results']);
+    renderReviews();
+    document.getElementById('reviews').dataset['page'] = page;
+    if (!data['next_url']){
+      document.getElementById('load-more-reviews').remove();
+    };
+    console.log('loaded next page of reviews');
+  }
+
+  window.addEventListener('load', (event) => {
+    setTimeout(renderReviews, 500);
+    document.getElementById('load-more-reviews').addEventListener('click', async function() {
+      // Your asynchronous code here
+      await nextReviews();
+    });
+  });
+
+  // quantity + delivery total price calculator
+  (function() {
+    var unitPrice = 9.99;
+    var deliveryFee = 0;
+    var quantitySelect = document.getElementById('quantity');
+    var totalEl = document.getElementById('product-total');
+    var dropdown = document.getElementById('delivery-dropdown');
+    var toggle = document.getElementById('delivery-selected');
+    var items = document.querySelectorAll('.delivery-option');
+
+    function updateTotal() {
+      var qty = parseInt(quantitySelect.value);
+      var total = (unitPrice * qty + deliveryFee).toFixed(2);
+      totalEl.textContent = '$' + total;
+    }
+
+    quantitySelect.addEventListener('change', updateTotal);
+
+    // custom dropdown toggle
+    toggle.addEventListener('click', function() {
+      dropdown.classList.toggle('open');
+    });
+
+    // close on outside click
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    items.forEach(function(item) {
+      item.addEventListener('click', function(e) {
+        e.preventDefault();
+        items.forEach(function(i) { i.classList.remove('active'); });
+        item.classList.add('active');
+        deliveryFee = parseFloat(item.dataset.deliveryFee);
+        toggle.textContent = item.textContent.trim();
+        dropdown.classList.remove('open');
+        updateTotal();
+      });
+    });
+  })();
+</script>
+
+    <div class="container">
+      <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+        <div class="col-md-4 d-flex align-items-center">
+          <a title="learn web scraping at scrapfly academy for free!" href="https://scrapfly.io/academy" target="_blank" rel="noopener noreferrer">
+            <button class="btn btn-primary btn-sm btn-block">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><g style="fill:#fff"><path d="M1087-226a.733.733 0 0 0-.72.597.646.646 0 0 0-.107-.01h-.02c-.01 0-.012 0-.019.002a.697.697 0 0 0-.648.814.698.698 0 0 0-.594.689c0 .042.01.085.014.13a.921.921 0 0 0-.075 1.364 1.077 1.077 0 0 0 .197 1.59.826.826 0 0 0 .251.851.83.83 0 0 0 .711.19.93.93 0 0 0 1.742-.454v-5.03a.736.736 0 0 0-.734-.735zm.506 5.76a.701.701 0 0 1-1.347.274.114.114 0 0 0-.141-.064.593.593 0 0 1-.587-.118.602.602 0 0 1-.16-.683v-.004a.622.622 0 0 1 .58-.378c.153 0 .153-.23 0-.23-.294 0-.57.15-.727.4a.85.85 0 0 1-.1-1.246.926.926 0 0 0 1.391-.798c0-.156-.231-.156-.228 0a.697.697 0 0 1-1.392 0 .701.701 0 0 1 .306-.554.114.114 0 0 0 .045-.13.453.453 0 0 1-.025-.14c0-.258.209-.468.472-.468l.024.003a.115.115 0 0 0 .118-.145v-.007c0-.014 0-.027-.01-.04a.448.448 0 0 1-.028-.15c0-.255.205-.463.46-.467a.469.469 0 0 1 .458.468c0 .153.23.153.23 0a.698.698 0 0 0-.353-.605.504.504 0 0 1 1.006.055v5.03z" style="fill:#fff;stroke-width:.0763" transform="matrix(3.5471 0 0 3.5471 -3847.064 801.682)"></path><path d="M94 45.3c0-3.68-1.66-7.12-4.49-9.41.12-.561.182-1.13.184-1.71 0-4.58-3.39-8.38-7.78-9.04.099-.513.149-1.03.149-1.56 0-4.88-3.84-8.86-8.66-9.11a1.49 1.49 0 0 0-.242-.024c-.04 0-.079.005-.12.006-.04-.001-.079-.006-.12-.006-.458 0-.919.041-1.41.126a9.586 9.586 0 0 0-9.44-7.82c-5.31 0-9.63 4.32-9.63 9.63v65.9c0 6.72 5.47 12.2 12.2 12.2 4.46 0 8.51-2.41 10.6-6.25a9.43 9.43 0 0 0 1.4.198c2.9.185 5.73-.766 7.93-2.69 2.19-1.91 3.52-4.61 3.7-7.51.077-1.23-.06-2.46-.403-3.64 3.8-2.69 6.03-6.95 6.03-11.6 0-3.38-1.22-6.64-3.44-9.22 2.24-2.27 3.51-5.3 3.51-8.46zM90.94 63c0 3.48-1.58 6.68-4.3 8.82-2.01-3.2-5.57-5.24-9.43-5.24-2 0-2 3 0 3a8.157 8.157 0 0 1 7.58 5.21c.41 1.09.592 2.19.521 3.27a7.922 7.922 0 0 1-2.68 5.45 7.865 7.865 0 0 1-5.75 1.95c-.594-.039-1.21-.167-1.93-.402a1.507 1.507 0 0 0-1.85.84 9.164 9.164 0 0 1-8.46 5.6c-5.07 0-9.19-4.12-9.19-9.19v-65.9a6.635 6.635 0 0 1 6.63-6.63c3.4 0 6.19 2.56 6.56 5.91-2.75 1.58-4.61 4.54-4.61 7.93 0 2 3 2 3 0 0-3.34 2.69-6.06 6.02-6.13 3.33.065 6.02 2.79 6.02 6.13 0 .622-.117 1.27-.359 1.97-.07.202-.094.417-.074.63l-.01.035a1.505 1.505 0 0 0 1.55 1.87c.131-.01.262-.026.392-.046a6.15 6.15 0 0 1 6.14 6.14c0 .572-.103 1.16-.322 1.85-.203.635.038 1.33.591 1.7a9.1 9.1 0 0 1 4.01 7.24l-.001.012c0 5.03-4.09 9.12-9.12 9.12-5.03 0-9.12-4.09-9.12-9.12 0-2-3-2-3 0 0 6.68 5.44 12.1 12.1 12.1 2.23 0 4.31-.615 6.11-1.67 1.92 2.09 2.98 4.76 2.98 7.55z" style="fill:#fff" transform="matrix(.27072 0 0 .27072 -1.447 -1.662)"></path></g></svg>
+            <span>SCRAPFLY ACADEMY</span>
+            </button>
+          </a>
+        </div>
+
+        <ul class="nav col-md-8 justify-content-end list-unstyled d-flex align-items-center gap-3">
+          <li><a href="/docs" class="text-muted text-decoration-none" title="API Documentation">API Docs</a></li>
+          <li><a href="/sitemap.xml" class="text-muted text-decoration-none" title="Sitemap">Sitemap</a></li>
+          <li><a href="https://scrapfly.io/blog" target="_blank" rel="noopener noreferrer" class="text-muted text-decoration-none" title="Web Scraping Blog">Blog</a></li>
+          <li><a href="https://github.com/scrapfly" target="_blank" rel="noopener noreferrer" class="text-muted text-decoration-none" title="ScrapFly on GitHub">GitHub</a></li>
+          <li class="text-muted meta-version">v1.3.0</li>
+          <li class="text-muted meta-created-by">made by <a href="https://web-scraping.dev/" rel="noopener noreferrer" target="_blank">ScrapFly</a>
+          <svg width="20" height="20" fill="#000000" version="1.1" viewBox="0 0 542.2 542.2" xml:space="preserve" xmlns="http://www.w3.org/2000/svg">
+          <g fill="#4ea8f1">
+            <g fill="#4ea8f1">
+              <path d="m411.3 21.42c-65.34-59.9-140.2 24.84-140.2 24.84h-0.545s-74.88-84.74-140.2-24.84c-63.28 58.02-11.38 187.4 126.7 250.3-2.008 3.672-2.037 4.877-2.037 4.877l-10.08 27.5c-4.829 8.798-0.918 29.01 8.73 29.01h8.616c0.832 71.74-11.74 182 60.94 208.3 14.48 5.231 20.66-17.8 6.33-22.97-54.23-19.6-44.25-123-43.87-185.3h2.917c9.648 0 13.56-21.61 8.73-30.41-4.819-8.797-9.257-22.16-9.257-22.16l-2.592-6.714c139.5-62.49 189.4-194.1 125.8-252.4z" fill="#4ea8f1"/>
+            </g>
+          </g>
+          </svg>
+          </li>
+        </ul>
+      </footer>
+    </div>
+    
+
+  </body>
+</html>

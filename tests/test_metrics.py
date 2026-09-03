@@ -1,9 +1,29 @@
 import unittest
 
-from browser_harness_eval.metrics import evaluate_content, evaluate_resources, normalize_for_match, summarize, word_overlap
+from harness.web_fetch.metrics import evaluate_content, evaluate_resources, normalize_for_match, summarize, word_overlap
 
 
 class MetricsTest(unittest.TestCase):
+    def test_adjacent_markdown_links_keep_distinct_label_boundaries(self):
+        text='[change](https://example.com/a(b))[deep-thoughts](https://example.com)[thinking](u)[world](v)'
+        reference='change deep-thoughts thinking world'
+        self.assertEqual(normalize_for_match(text),reference)
+        self.assertEqual(word_overlap(text,reference),(1.0,1.0,1.0))
+        self.assertTrue(evaluate_content(text,[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+        # No guessing where boundaries were already lost in plaintext.
+        self.assertFalse(evaluate_content('changedeep-thoughtsthinkingworld',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+        self.assertEqual(normalize_for_match('pre[fix](u)'),'prefix')
+        self.assertEqual(normalize_for_match('[read](u)able'),'readable')
+        self.assertEqual(normalize_for_match('[5](u)[1](v)'),'51')
+        self.assertFalse(evaluate_content('[change](u)[world](v)',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
+
+    def test_adjacent_numeric_links_cannot_invent_positive_number_hits(self):
+        for text, visible in [('[-](u)[10](v)','-10'),('[10](u)[.5](v)','10.5'),
+                              ('[10](u)[0](v)','100'),('[+](u)[10](v)','+10')]:
+            with self.subTest(text=text):
+                self.assertEqual(normalize_for_match(text),visible)
+                self.assertFalse(evaluate_content(text,[],required_facts=[{'id':'number','alternatives':['10']}])['content_pass'])
+
     def test_markdown_balanced_urls_and_f1_share_layout_cleaning(self):
         raw='hello [world](https://example.com/a(b)) end'
         self.assertEqual(normalize_for_match(raw),'hello world end')
@@ -76,7 +96,7 @@ class MetricsTest(unittest.TestCase):
         ]
         item = summarize(records)["providers"]["p"]
         self.assertEqual(item["transport_success_rate"], 1.0)
-        self.assertEqual(item["content_pass_rate"], 0.5)
+        self.assertEqual(item["task_pass_rate"], 0.5)
         self.assertEqual(item["failure_types"], {"content_validation_failure": 1})
         self.assertEqual(item["mean_content_ms"], 100)
         self.assertEqual(item["p50_ms"], 100)

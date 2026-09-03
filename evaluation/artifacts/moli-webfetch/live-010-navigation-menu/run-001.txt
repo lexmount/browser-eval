@@ -1,0 +1,269 @@
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[/](/)[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)Appearance settings
+
+- Platform - AI CODE CREATION - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot) - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app) - [MCP RegistryIntegrate external tools](https://github.com/mcp) - DEVELOPER WORKFLOWS - [ActionsAutomate any workflow](https://github.com/features/actions) - [CodespacesInstant dev environments](https://github.com/features/codespaces) - [IssuesPlan and track work](https://github.com/features/issues) - [Code ReviewManage code changes](https://github.com/features/code-review) - [Code QualityEnforce quality at merge](https://github.com/features/code-quality) - APPLICATION SECURITY - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security) - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security) - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection) - EXPLORE - [Why GitHub](https://github.com/why-github) - [Documentation](https://docs.github.com) - [Blog](https://github.blog) - [Changelog](https://github.blog/changelog) - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions - BY COMPANY SIZE - [Enterprises](https://github.com/enterprise) - [Small and medium teams](https://github.com/team) - [Startups](https://github.com/enterprise/startups) - [Nonprofits](https://github.com/solutions/industry/nonprofits) - BY USE CASE - [App Modernization](https://github.com/solutions/use-case/app-modernization) - [DevSecOps](https://github.com/solutions/use-case/devsecops) - [DevOps](https://github.com/solutions/use-case/devops) - [CI/CD](https://github.com/solutions/use-case/ci-cd) - [View all use cases](https://github.com/solutions/use-case) - BY INDUSTRY - [Healthcare](https://github.com/solutions/industry/healthcare) - [Financial services](https://github.com/solutions/industry/financial-services) - [Manufacturing](https://github.com/solutions/industry/manufacturing) - [Government](https://github.com/solutions/industry/government) - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources - EXPLORE BY TOPIC - [AI](https://github.com/resources/articles?topic=ai) - [Software Development](https://github.com/resources/articles?topic=software-development) - [DevOps](https://github.com/resources/articles?topic=devops) - [Security](https://github.com/resources/articles?topic=security) - [View all topics](https://github.com/resources/articles) - EXPLORE BY TYPE - [Customer stories](https://github.com/customer-stories) - [Events & webinars](https://github.com/resources/events) - [Ebooks & reports](https://github.com/resources/whitepapers) - [Business insights](https://github.com/solutions/executive-insights) - [GitHub Skills](https://skills.github.com) - SUPPORT & SERVICES - [Documentation](https://docs.github.com) - [Customer support](https://support.github.com) - [Community forum](https://github.com/orgs/community/discussions) - [Trust center](https://github.com/trust-center) - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source - COMMUNITY - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors) - PROGRAMS - [Security Lab](https://securitylab.github.com) - [Maintainer Community](https://maintainers.github.com) - [GitHub Stars](https://stars.github.com) - [Archive Program](https://archiveprogram.github.com) - REPOSITORIES - [Topics](https://github.com/topics) - [Trending](https://github.com/trending) - [Collections](https://github.com/collections)
+- Enterprise - ENTERPRISE SOLUTIONS - [Enterprise platformAI-powered developer platform](https://github.com/enterprise) - AVAILABLE ADD-ONS - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security) - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business) - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy)
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=scrapy%2Fscrapy)Appearance settings
+
+You signed in with another tab or window.Reloadto refresh your session.You signed out in another tab or window.Reloadto refresh your session.You switched accounts on another tab or window.Reloadto refresh your session.Dismiss alert
+
+### Uh oh!
+
+There was an error while loading.Please reload this page.
+
+[scrapy](/scrapy)/**[scrapy](/scrapy/scrapy)**Public
+
+- [Notifications](/login?return_to=%2Fscrapy%2Fscrapy)You must be signed in to change notification settings
+- [Fork11.9k](/login?return_to=%2Fscrapy%2Fscrapy)
+- [Star64.2k](/login?return_to=%2Fscrapy%2Fscrapy)
+
+- [Code](/scrapy/scrapy)
+- [Issues229](/scrapy/scrapy/issues)
+- [Pull requests203](/scrapy/scrapy/pulls)
+- [Discussions](/scrapy/scrapy/discussions)
+- [Actions](/scrapy/scrapy/actions)
+- [Projects](/scrapy/scrapy/projects)
+- [Wiki](/scrapy/scrapy/wiki)
+- [Security and quality12](/scrapy/scrapy/security)
+- [Insights](/scrapy/scrapy/pulse)
+
+Additional navigation options
+- [Code](/scrapy/scrapy)
+- [Issues](/scrapy/scrapy/issues)
+- [Pull requests](/scrapy/scrapy/pulls)
+- [Discussions](/scrapy/scrapy/discussions)
+- [Actions](/scrapy/scrapy/actions)
+- [Projects](/scrapy/scrapy/projects)
+- [Wiki](/scrapy/scrapy/wiki)
+- [Security and quality](/scrapy/scrapy/security)
+- [Insights](/scrapy/scrapy/pulse)
+
+[/scrapy/scrapy](/scrapy/scrapy)
+
+master
+
+[Branches](/scrapy/scrapy/branches)[Tags](/scrapy/scrapy/tags)
+[/scrapy/scrapy/branches](/scrapy/scrapy/branches)[/scrapy/scrapy/tags](/scrapy/scrapy/tags)
+
+Go to file
+
+CodeOpen more actions menu
+
+## Latest commit
+
+## History
+
+[11,429 Commits](/scrapy/scrapy/commits/master/)
+[/scrapy/scrapy/commits/master/](/scrapy/scrapy/commits/master/)11,429 Commits
+
+## Folders and files
+
+NameNameLast commit message
+Last commit date
+[.github](/scrapy/scrapy/tree/master/.github)
+
+[.github](/scrapy/scrapy/tree/master/.github)
+
+[docs](/scrapy/scrapy/tree/master/docs)
+
+[docs](/scrapy/scrapy/tree/master/docs)
+
+[extras](/scrapy/scrapy/tree/master/extras)
+
+[extras](/scrapy/scrapy/tree/master/extras)
+
+[scrapy](/scrapy/scrapy/tree/master/scrapy)
+
+[scrapy](/scrapy/scrapy/tree/master/scrapy)
+
+[sep](/scrapy/scrapy/tree/master/sep)
+
+[sep](/scrapy/scrapy/tree/master/sep)
+
+[tests](/scrapy/scrapy/tree/master/tests)
+
+[tests](/scrapy/scrapy/tree/master/tests)
+
+[tests_typing](/scrapy/scrapy/tree/master/tests_typing)
+
+[tests_typing](/scrapy/scrapy/tree/master/tests_typing)
+
+[.git-blame-ignore-revs](/scrapy/scrapy/blob/master/.git-blame-ignore-revs)
+
+[.git-blame-ignore-revs](/scrapy/scrapy/blob/master/.git-blame-ignore-revs)
+
+[.gitattributes](/scrapy/scrapy/blob/master/.gitattributes)
+
+[.gitattributes](/scrapy/scrapy/blob/master/.gitattributes)
+
+[.gitignore](/scrapy/scrapy/blob/master/.gitignore)
+
+[.gitignore](/scrapy/scrapy/blob/master/.gitignore)
+
+[.pre-commit-config.yaml](/scrapy/scrapy/blob/master/.pre-commit-config.yaml)
+
+[.pre-commit-config.yaml](/scrapy/scrapy/blob/master/.pre-commit-config.yaml)
+
+[.readthedocs.yml](/scrapy/scrapy/blob/master/.readthedocs.yml)
+
+[.readthedocs.yml](/scrapy/scrapy/blob/master/.readthedocs.yml)
+
+[AUTHORS](/scrapy/scrapy/blob/master/AUTHORS)
+
+[AUTHORS](/scrapy/scrapy/blob/master/AUTHORS)
+
+[CITATION.cff](/scrapy/scrapy/blob/master/CITATION.cff)
+
+[CITATION.cff](/scrapy/scrapy/blob/master/CITATION.cff)
+
+[CODE_OF_CONDUCT.md](/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md)
+
+[CODE_OF_CONDUCT.md](/scrapy/scrapy/blob/master/CODE_OF_CONDUCT.md)
+
+[CONTRIBUTING.md](/scrapy/scrapy/blob/master/CONTRIBUTING.md)
+
+[CONTRIBUTING.md](/scrapy/scrapy/blob/master/CONTRIBUTING.md)
+
+[INSTALL.md](/scrapy/scrapy/blob/master/INSTALL.md)
+
+[INSTALL.md](/scrapy/scrapy/blob/master/INSTALL.md)
+
+[LICENSE](/scrapy/scrapy/blob/master/LICENSE)
+
+[LICENSE](/scrapy/scrapy/blob/master/LICENSE)
+
+[NEWS](/scrapy/scrapy/blob/master/NEWS)
+
+[NEWS](/scrapy/scrapy/blob/master/NEWS)
+
+[README.rst](/scrapy/scrapy/blob/master/README.rst)
+
+[README.rst](/scrapy/scrapy/blob/master/README.rst)
+
+[SECURITY.md](/scrapy/scrapy/blob/master/SECURITY.md)
+
+[SECURITY.md](/scrapy/scrapy/blob/master/SECURITY.md)
+
+[codecov.yml](/scrapy/scrapy/blob/master/codecov.yml)
+
+[codecov.yml](/scrapy/scrapy/blob/master/codecov.yml)
+
+[conftest.py](/scrapy/scrapy/blob/master/conftest.py)
+
+[conftest.py](/scrapy/scrapy/blob/master/conftest.py)
+
+[pyproject.toml](/scrapy/scrapy/blob/master/pyproject.toml)
+
+[pyproject.toml](/scrapy/scrapy/blob/master/pyproject.toml)
+
+[tox.ini](/scrapy/scrapy/blob/master/tox.ini)
+
+[tox.ini](/scrapy/scrapy/blob/master/tox.ini)
+
+View all files
+
+## Repository files navigation
+
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [BSD-3-Clause license](#)
+- [Security](#)
+
+Moreitems
+
+[![Scrapy](https://raw.githubusercontent.com/scrapy/scrapy/master/docs/_static/logo.svg)](https://scrapy.org)
+
+[![PyPI Version](https://camo.githubusercontent.com/c6e5cf8390893a8a251117f8ed53e246bf4ac6e4ec4ed9e1e7244d313bf6b316/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f5363726170792e737667)](https://pypi.org/pypi/Scrapy)[![Supported Python Versions](https://camo.githubusercontent.com/126656e2f64dc33e98e0788a9d4af3170c84e9941a568ae6e6732de34402997e/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f5363726170792e737667)](https://pypi.org/pypi/Scrapy)[![Tests](https://camo.githubusercontent.com/c92c37b9d53e255045df9e947105992ed7c19be57624160c2556835806e7618e/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f636865636b2d72756e732f7363726170792f7363726170792f6d61737465723f6c6162656c3d7465737473)](https://github.com/scrapy/scrapy/actions?query=branch%3Amaster)[![Coverage report](https://camo.githubusercontent.com/d7ed79d0e710327ba38026e9137c069c1682689d91f9753743c1ee8eb8f80be3/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f7363726170792f7363726170792f6d61737465722e737667)](https://codecov.io/github/scrapy/scrapy?branch=master)[![Conda Version](https://camo.githubusercontent.com/243d9a22e34216cb3bc6492290e30eef6cc7494827e86e780135314d2b4ecda3/68747470733a2f2f616e61636f6e64612e6f72672f636f6e64612d666f7267652f7363726170792f6261646765732f76657273696f6e2e737667)](https://anaconda.org/conda-forge/scrapy)[![Ask DeepWiki](https://camo.githubusercontent.com/0f5ae213ac378635adeb5d7f13cef055ad2f7d9a47b36de7b1c67dbe09f609ca/68747470733a2f2f6465657077696b692e636f6d2f62616467652e737667)](https://deepwiki.com/scrapy/scrapy)
+
+[Scrapy](https://scrapy.org/)is a web scraping framework to extract structured data from websites. It is cross-platform, and requires Python 3.10+. It is maintained by[Zyte](https://www.zyte.com/)(formerly Scrapinghub) and[many other contributors](https://github.com/scrapy/scrapy/graphs/contributors).
+
+Install with:
+
+```text
+pip install scrapy
+```
+
+And follow the[documentation](https://docs.scrapy.org/en/latest/)to learn how to use it.
+
+If you wish to contribute, see[Contributing](https://docs.scrapy.org/en/master/contributing.html).
+
+## About
+
+Scrapy, a fast high-level web crawling & scraping framework for Python.
+
+[scrapy.org](https://scrapy.org)
+
+### Topics
+
+[crawler](/topics/crawler)[crawling](/topics/crawling)[framework](/topics/framework)[hacktoberfest](/topics/hacktoberfest)[python](/topics/python)[scraping](/topics/scraping)[web-scraping](/topics/web-scraping)[web-scraping-python](/topics/web-scraping-python)
+
+### Resources
+
+[Readme](#readme-ov-file)
+[BSD-3-Clause license](#BSD-3-Clause-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/scrapy/scrapy#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+Cite this repository
+[Activity](/scrapy/scrapy/activity)
+[Custom properties](/scrapy/scrapy/custom-properties)
+
+### Stars
+
+**64.2k**stars
+
+### Watchers
+
+**1.8k**watching
+
+### Forks
+
+[**11.9k**forks](/scrapy/scrapy/forks)
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fscrapy%2Fscrapy&report=scrapy+%28user%29)
+
+## Releases
+
+## Used by
+
+## Contributors
+
+## Languages
+
+## Footer
+
+[https://github.com](https://github.com)© 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

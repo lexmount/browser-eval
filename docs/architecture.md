@@ -8,4 +8,6 @@
 
 `evaluation/execution.json` associates the selected attempts with their actual runtime parameters and timestamps. Measurements retain original content hashes. `sources/` contains publishable reference evidence; signed-in raw HTML and private account information are excluded.
 
-Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, integration, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
+Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
+
+The report application owns full rules, interfaces and auditable records. Its tables retain local metric definitions and link to the matching methodology example. The interpretation article owns the argument, mechanism experiments, counterexamples and decision implications; it repeats only enough context to stand alone. The homepage provides quantitative overview and article access, not a second prose summary. Provider integration details belong with their interface examples, not a separate page repeating task boundaries.

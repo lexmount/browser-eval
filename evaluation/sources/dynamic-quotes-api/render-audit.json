@@ -1,0 +1,779 @@
+{
+  "case_id": "dynamic-quotes-api",
+  "valid": true,
+  "errors": [],
+  "classification": "absent_from_initial_evidence",
+  "coverage": {
+    "initial_visible": {
+      "hits": 0,
+      "total": 30,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-tags",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "initial_payload": {
+      "hits": 0,
+      "total": 30,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-6-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-7-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-8-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-9-tags",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-quote",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-author",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-10-tags",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "rendered": {
+      "hits": 30,
+      "total": 30,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-quote",
+          "matched": [
+            "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-tags",
+          "matched": [
+            "change deep-thoughts thinking world"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-quote",
+          "matched": [
+            "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-author",
+          "matched": [
+            "J.K. Rowling"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-tags",
+          "matched": [
+            "abilities choices"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-quote",
+          "matched": [
+            "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-tags",
+          "matched": [
+            "inspirational life live miracle miracles"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-quote",
+          "matched": [
+            "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-author",
+          "matched": [
+            "Jane Austen"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-tags",
+          "matched": [
+            "aliteracy books classic humor"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-quote",
+          "matched": [
+            "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-author",
+          "matched": [
+            "Marilyn Monroe"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-tags",
+          "matched": [
+            "be-yourself inspirational"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-quote",
+          "matched": [
+            "“Try not to become a man of success. Rather become a man of value.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-tags",
+          "matched": [
+            "adulthood success value"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-quote",
+          "matched": [
+            "“It is better to be hated for what you are than to be loved for what you are not.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-author",
+          "matched": [
+            "André Gide"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-tags",
+          "matched": [
+            "life love"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-quote",
+          "matched": [
+            "“I have not failed. I've just found 10,000 ways that won't work.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-author",
+          "matched": [
+            "Thomas A. Edison"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-tags",
+          "matched": [
+            "edison failure inspirational paraphrased"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-quote",
+          "matched": [
+            "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-author",
+          "matched": [
+            "Eleanor Roosevelt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-tags",
+          "matched": [
+            "misattributed-eleanor-roosevelt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-quote",
+          "matched": [
+            "“A day without sunshine is like, you know, night.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-author",
+          "matched": [
+            "Steve Martin"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-tags",
+          "matched": [
+            "humor obvious simile"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "reference": {
+      "hits": 30,
+      "total": 30,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-quote",
+          "matched": [
+            "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-tags",
+          "matched": [
+            "change deep-thoughts thinking world"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-quote",
+          "matched": [
+            "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-author",
+          "matched": [
+            "J.K. Rowling"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-tags",
+          "matched": [
+            "abilities choices"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-quote",
+          "matched": [
+            "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-tags",
+          "matched": [
+            "inspirational life live miracle miracles"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-quote",
+          "matched": [
+            "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-author",
+          "matched": [
+            "Jane Austen"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-tags",
+          "matched": [
+            "aliteracy books classic humor"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-quote",
+          "matched": [
+            "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-author",
+          "matched": [
+            "Marilyn Monroe"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-tags",
+          "matched": [
+            "be-yourself inspirational"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-quote",
+          "matched": [
+            "“Try not to become a man of success. Rather become a man of value.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-author",
+          "matched": [
+            "Albert Einstein"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-6-tags",
+          "matched": [
+            "adulthood success value"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-quote",
+          "matched": [
+            "“It is better to be hated for what you are than to be loved for what you are not.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-author",
+          "matched": [
+            "André Gide"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-7-tags",
+          "matched": [
+            "life love"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-quote",
+          "matched": [
+            "“I have not failed. I've just found 10,000 ways that won't work.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-author",
+          "matched": [
+            "Thomas A. Edison"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-8-tags",
+          "matched": [
+            "edison failure inspirational paraphrased"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-quote",
+          "matched": [
+            "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-author",
+          "matched": [
+            "Eleanor Roosevelt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-9-tags",
+          "matched": [
+            "misattributed-eleanor-roosevelt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-quote",
+          "matched": [
+            "“A day without sunshine is like, you know, night.”"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-author",
+          "matched": [
+            "Steve Martin"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-10-tags",
+          "matched": [
+            "humor obvious simile"
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "initial_fact_hits": 0,
+  "initial_html_sha256": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5",
+  "rendered_text_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+  "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+  "completion": {
+    "condition": "dynamic-quotes-api: 10 nonempty target records with populated text fields; no interaction",
+    "timeout_ms": 30000,
+    "elapsed_ms": 3814,
+    "satisfied": true,
+    "checked_at": "2026-09-03T04:35:13.202Z",
+    "phase": "post-run independent reproduction of pre-run frozen reference"
+  },
+  "js_required_proven": false,
+  "limitations": [
+    "Initial visible content is a static HTML proxy, not computed CSS visibility.",
+    "Payload matching detects literals, not every encoding or external resource.",
+    "Inline payload availability forbids a must-execute-JS conclusion; absence only means these facts were not found in this initial response.",
+    "Fact coverage and declared completion do not prove whole-page completeness."
+  ]
+}

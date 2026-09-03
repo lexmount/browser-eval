@@ -1,0 +1,17 @@
+{
+  "scope": "Synthetic offline mechanism probe, not an additional benchmark attempt",
+  "source_sha256": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+  "extractor_source": "def _extract_text(html: str) -> str:\n    text = re.sub('<script[^>]*>.*?</script>', '', html, flags=re.IGNORECASE | re.DOTALL)\n    text = re.sub('<style[^>]*>.*?</style>', '', text, flags=re.IGNORECASE | re.DOTALL)\n    text = re.sub('<[^>]+>', '', text)\n    text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')\n    text = text.replace('&quot;', '\"').replace('&#39;', \"'\").replace('&nbsp;', ' ')\n    text = re.sub('[^\\\\S\\\\n]+', ' ', text)\n    text = re.sub('\\\\n{3,}', '\\n\\n', text)\n    lines = [line.strip() for line in text.splitlines()]\n    text = '\\n'.join(lines)\n    return text.strip()",
+  "fixture": "<html><head><title>Fixture</title><script>SECRET_SCRIPT</script></head>\n<body><nav>MENU_NOISE</nav><main><h1>Example article</h1><p>BODY_FACT</p>\n<a href=\"https://example.org/detail/1\">DETAIL_LABEL</a>\n<img src=\"https://example.org/image.png\"><video src=\"https://example.org/video.mp4\"></video>\n</main><footer>FOOTER_NOISE</footer></body></html>",
+  "output": "Fixture\nMENU_NOISEExample articleBODY_FACT\nDETAIL_LABEL\n\nFOOTER_NOISE",
+  "observations": {
+    "body_preserved": true,
+    "navigation_preserved": true,
+    "footer_preserved": true,
+    "link_label_preserved": true,
+    "script_preserved": false,
+    "detail_url_preserved": false,
+    "image_url_preserved": false,
+    "video_url_preserved": false
+  }
+}

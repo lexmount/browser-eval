@@ -1,0 +1,11 @@
+IMDb Top 250 movies
+
+As rated by regular IMDb voters.
+
+Ranking
+IMDb rating
+Release date
+Number of ratings
+Alphabetical
+Popularity
+Runtime

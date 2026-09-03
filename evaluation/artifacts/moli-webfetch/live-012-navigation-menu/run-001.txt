@@ -1,0 +1,299 @@
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[/](/)[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango)Appearance settings
+
+- Platform - AI CODE CREATION - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot) - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app) - [MCP RegistryIntegrate external tools](https://github.com/mcp) - DEVELOPER WORKFLOWS - [ActionsAutomate any workflow](https://github.com/features/actions) - [CodespacesInstant dev environments](https://github.com/features/codespaces) - [IssuesPlan and track work](https://github.com/features/issues) - [Code ReviewManage code changes](https://github.com/features/code-review) - [Code QualityEnforce quality at merge](https://github.com/features/code-quality) - APPLICATION SECURITY - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security) - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security) - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection) - EXPLORE - [Why GitHub](https://github.com/why-github) - [Documentation](https://docs.github.com) - [Blog](https://github.blog) - [Changelog](https://github.blog/changelog) - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions - BY COMPANY SIZE - [Enterprises](https://github.com/enterprise) - [Small and medium teams](https://github.com/team) - [Startups](https://github.com/enterprise/startups) - [Nonprofits](https://github.com/solutions/industry/nonprofits) - BY USE CASE - [App Modernization](https://github.com/solutions/use-case/app-modernization) - [DevSecOps](https://github.com/solutions/use-case/devsecops) - [DevOps](https://github.com/solutions/use-case/devops) - [CI/CD](https://github.com/solutions/use-case/ci-cd) - [View all use cases](https://github.com/solutions/use-case) - BY INDUSTRY - [Healthcare](https://github.com/solutions/industry/healthcare) - [Financial services](https://github.com/solutions/industry/financial-services) - [Manufacturing](https://github.com/solutions/industry/manufacturing) - [Government](https://github.com/solutions/industry/government) - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources - EXPLORE BY TOPIC - [AI](https://github.com/resources/articles?topic=ai) - [Software Development](https://github.com/resources/articles?topic=software-development) - [DevOps](https://github.com/resources/articles?topic=devops) - [Security](https://github.com/resources/articles?topic=security) - [View all topics](https://github.com/resources/articles) - EXPLORE BY TYPE - [Customer stories](https://github.com/customer-stories) - [Events & webinars](https://github.com/resources/events) - [Ebooks & reports](https://github.com/resources/whitepapers) - [Business insights](https://github.com/solutions/executive-insights) - [GitHub Skills](https://skills.github.com) - SUPPORT & SERVICES - [Documentation](https://docs.github.com) - [Customer support](https://support.github.com) - [Community forum](https://github.com/orgs/community/discussions) - [Trust center](https://github.com/trust-center) - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source - COMMUNITY - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors) - PROGRAMS - [Security Lab](https://securitylab.github.com) - [Maintainer Community](https://maintainers.github.com) - [GitHub Stars](https://stars.github.com) - [Archive Program](https://archiveprogram.github.com) - REPOSITORIES - [Topics](https://github.com/topics) - [Trending](https://github.com/trending) - [Collections](https://github.com/collections)
+- Enterprise - ENTERPRISE SOLUTIONS - [Enterprise platformAI-powered developer platform](https://github.com/enterprise) - AVAILABLE ADD-ONS - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security) - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business) - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango)
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=django%2Fdjango)Appearance settings
+
+You signed in with another tab or window.Reloadto refresh your session.You signed out in another tab or window.Reloadto refresh your session.You switched accounts on another tab or window.Reloadto refresh your session.Dismiss alert
+
+### Uh oh!
+
+There was an error while loading.Please reload this page.
+
+[django](/django)/**[django](/django/django)**Public
+
+- ### Uh oh! There was an error while loading.Please reload this page.
+- [Notifications](/login?return_to=%2Fdjango%2Fdjango)You must be signed in to change notification settings
+- [Fork34.2k](/login?return_to=%2Fdjango%2Fdjango)
+- [Star89.6k](/login?return_to=%2Fdjango%2Fdjango)
+
+- [Code](/django/django)
+- [Pull requests478](/django/django/pulls)
+- [Actions](/django/django/actions)
+- [Security and quality0](/django/django/security)
+- [Insights](/django/django/pulse)
+
+Additional navigation options
+- [Code](/django/django)
+- [Pull requests](/django/django/pulls)
+- [Actions](/django/django/actions)
+- [Security and quality](/django/django/security)
+- [Insights](/django/django/pulse)
+
+[/django/django](/django/django)
+
+main
+
+[Branches](/django/django/branches)[Tags](/django/django/tags)
+[/django/django/branches](/django/django/branches)[/django/django/tags](/django/django/tags)
+
+Go to file
+
+CodeOpen more actions menu
+
+## Latest commit
+
+## History
+
+[34,899 Commits](/django/django/commits/main/)
+[/django/django/commits/main/](/django/django/commits/main/)34,899 Commits
+
+## Folders and files
+
+NameNameLast commit message
+Last commit date
+[.github](/django/django/tree/main/.github)
+
+[.github](/django/django/tree/main/.github)
+
+[.tx](/django/django/tree/main/.tx)
+
+[.tx](/django/django/tree/main/.tx)
+
+[django](/django/django/tree/main/django)
+
+[django](/django/django/tree/main/django)
+
+[docs](/django/django/tree/main/docs)
+
+[docs](/django/django/tree/main/docs)
+
+[extras](/django/django/tree/main/extras)
+
+[extras](/django/django/tree/main/extras)
+
+[js_tests](/django/django/tree/main/js_tests)
+
+[js_tests](/django/django/tree/main/js_tests)
+
+[scripts](/django/django/tree/main/scripts)
+
+[scripts](/django/django/tree/main/scripts)
+
+[tests](/django/django/tree/main/tests)
+
+[tests](/django/django/tree/main/tests)
+
+[.editorconfig](/django/django/blob/main/.editorconfig)
+
+[.editorconfig](/django/django/blob/main/.editorconfig)
+
+[.flake8](/django/django/blob/main/.flake8)
+
+[.flake8](/django/django/blob/main/.flake8)
+
+[.git-blame-ignore-revs](/django/django/blob/main/.git-blame-ignore-revs)
+
+[.git-blame-ignore-revs](/django/django/blob/main/.git-blame-ignore-revs)
+
+[.gitattributes](/django/django/blob/main/.gitattributes)
+
+[.gitattributes](/django/django/blob/main/.gitattributes)
+
+[.gitignore](/django/django/blob/main/.gitignore)
+
+[.gitignore](/django/django/blob/main/.gitignore)
+
+[.pre-commit-config.yaml](/django/django/blob/main/.pre-commit-config.yaml)
+
+[.pre-commit-config.yaml](/django/django/blob/main/.pre-commit-config.yaml)
+
+[.readthedocs.yml](/django/django/blob/main/.readthedocs.yml)
+
+[.readthedocs.yml](/django/django/blob/main/.readthedocs.yml)
+
+[AUTHORS](/django/django/blob/main/AUTHORS)
+
+[AUTHORS](/django/django/blob/main/AUTHORS)
+
+[CONTRIBUTING.rst](/django/django/blob/main/CONTRIBUTING.rst)
+
+[CONTRIBUTING.rst](/django/django/blob/main/CONTRIBUTING.rst)
+
+[Gruntfile.js](/django/django/blob/main/Gruntfile.js)
+
+[Gruntfile.js](/django/django/blob/main/Gruntfile.js)
+
+[INSTALL](/django/django/blob/main/INSTALL)
+
+[INSTALL](/django/django/blob/main/INSTALL)
+
+[LICENSE](/django/django/blob/main/LICENSE)
+
+[LICENSE](/django/django/blob/main/LICENSE)
+
+[LICENSE.python](/django/django/blob/main/LICENSE.python)
+
+[LICENSE.python](/django/django/blob/main/LICENSE.python)
+
+[MANIFEST.in](/django/django/blob/main/MANIFEST.in)
+
+[MANIFEST.in](/django/django/blob/main/MANIFEST.in)
+
+[README.rst](/django/django/blob/main/README.rst)
+
+[README.rst](/django/django/blob/main/README.rst)
+
+[biome.json](/django/django/blob/main/biome.json)
+
+[biome.json](/django/django/blob/main/biome.json)
+
+[package.json](/django/django/blob/main/package.json)
+
+[package.json](/django/django/blob/main/package.json)
+
+[pyproject.toml](/django/django/blob/main/pyproject.toml)
+
+[pyproject.toml](/django/django/blob/main/pyproject.toml)
+
+[tox.ini](/django/django/blob/main/tox.ini)
+
+[tox.ini](/django/django/blob/main/tox.ini)
+
+[zizmor.yml](/django/django/blob/main/zizmor.yml)
+
+[zizmor.yml](/django/django/blob/main/zizmor.yml)
+
+View all files
+
+## Repository files navigation
+
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [BSD-3-Clause license](#)
+- [License](#)
+- [Security](#)
+
+Moreitems
+
+# Django
+
+[#django](#django)
+
+Django is a high-level Python web framework that encourages rapid development and clean, pragmatic design. Thanks for checking it out.
+
+All documentation is in the "`docs`" directory and online at[https://docs.djangoproject.com/en/stable/](https://docs.djangoproject.com/en/stable/). If you're just getting started, here's how we recommend you read the docs:
+
+- First, read`docs/intro/install.txt`for instructions on installing Django.
+- Next, work through the tutorials in order (`docs/intro/tutorial01.txt`,`docs/intro/tutorial02.txt`, etc.).
+- If you want to set up an actual deployment server, read`docs/howto/deployment/index.txt`for instructions.
+- You'll probably want to read through the topical guides (in`docs/topics`) next; from there you can jump to the HOWTOs (in`docs/howto`) for specific problems, and check out the reference (`docs/ref`) for gory details.
+- See`docs/README`for instructions on building an HTML version of the docs.
+
+Docs are updated rigorously. If you find any problems in the docs, or think they should be clarified in any way, please take 30 seconds to[fill out a ticket](https://code.djangoproject.com/newticket). You can log in with your GitHub account, or with a DjangoProject account if you have one. Once you log in, a New Ticket button is available next to View Tickets.
+
+To get more help:
+
+- Join the[Django Discord community](https://chat.djangoproject.com).
+- Join the community on the[Django Forum](https://forum.djangoproject.com/).
+
+To contribute to Django:
+
+- Check out[https://docs.djangoproject.com/en/dev/internals/contributing/](https://docs.djangoproject.com/en/dev/internals/contributing/)for information about getting involved.
+
+To run Django's test suite:
+
+- Follow the instructions in the "Unit tests" section of`docs/internals/contributing/writing-code/unit-tests.txt`, published online at[https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests](https://docs.djangoproject.com/en/dev/internals/contributing/writing-code/unit-tests/#running-the-unit-tests)
+
+## Supporting the Development of Django
+
+[#supporting-the-development-of-django](#supporting-the-development-of-django)
+
+Django's development depends on your contributions.
+
+If you depend on Django, remember to support the Django Software Foundation:[https://www.djangoproject.com/fundraising/](https://www.djangoproject.com/fundraising/)
+
+## About
+
+The Web framework for perfectionists with deadlines.
+
+[www.djangoproject.com/](https://www.djangoproject.com/)
+
+### Topics
+
+[apps](/topics/apps)[django](/topics/django)[framework](/topics/framework)[models](/topics/models)[orm](/topics/orm)[python](/topics/python)[templates](/topics/templates)[views](/topics/views)[web](/topics/web)
+
+### Resources
+
+[Readme](#readme-ov-file)
+BSD-3-Clause, License licenses found
+
+### Code of conduct
+
+[Code of conduct](/django/django#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+[Activity](/django/django/activity)
+[Custom properties](/django/django/custom-properties)
+
+### Stars
+
+**89.6k**stars
+
+### Watchers
+
+**2.3k**watching
+
+### Forks
+
+[**34.2k**forks](/django/django/forks)
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fdjango%2Fdjango&report=django+%28user%29)
+
+## Releases
+
+## Sponsor this project
+
+## Packages
+
+## Used by
+
+## Contributors
+
+## Languages
+
+## Footer
+
+[https://github.com](https://github.com)© 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

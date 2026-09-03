@@ -1,0 +1,326 @@
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[/](/)[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router)Appearance settings
+
+- Platform - AI CODE CREATION - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot) - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app) - [MCP RegistryIntegrate external tools](https://github.com/mcp) - DEVELOPER WORKFLOWS - [ActionsAutomate any workflow](https://github.com/features/actions) - [CodespacesInstant dev environments](https://github.com/features/codespaces) - [IssuesPlan and track work](https://github.com/features/issues) - [Code ReviewManage code changes](https://github.com/features/code-review) - [Code QualityEnforce quality at merge](https://github.com/features/code-quality) - APPLICATION SECURITY - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security) - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security) - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection) - EXPLORE - [Why GitHub](https://github.com/why-github) - [Documentation](https://docs.github.com) - [Blog](https://github.blog) - [Changelog](https://github.blog/changelog) - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions - BY COMPANY SIZE - [Enterprises](https://github.com/enterprise) - [Small and medium teams](https://github.com/team) - [Startups](https://github.com/enterprise/startups) - [Nonprofits](https://github.com/solutions/industry/nonprofits) - BY USE CASE - [App Modernization](https://github.com/solutions/use-case/app-modernization) - [DevSecOps](https://github.com/solutions/use-case/devsecops) - [DevOps](https://github.com/solutions/use-case/devops) - [CI/CD](https://github.com/solutions/use-case/ci-cd) - [View all use cases](https://github.com/solutions/use-case) - BY INDUSTRY - [Healthcare](https://github.com/solutions/industry/healthcare) - [Financial services](https://github.com/solutions/industry/financial-services) - [Manufacturing](https://github.com/solutions/industry/manufacturing) - [Government](https://github.com/solutions/industry/government) - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources - EXPLORE BY TOPIC - [AI](https://github.com/resources/articles?topic=ai) - [Software Development](https://github.com/resources/articles?topic=software-development) - [DevOps](https://github.com/resources/articles?topic=devops) - [Security](https://github.com/resources/articles?topic=security) - [View all topics](https://github.com/resources/articles) - EXPLORE BY TYPE - [Customer stories](https://github.com/customer-stories) - [Events & webinars](https://github.com/resources/events) - [Ebooks & reports](https://github.com/resources/whitepapers) - [Business insights](https://github.com/solutions/executive-insights) - [GitHub Skills](https://skills.github.com) - SUPPORT & SERVICES - [Documentation](https://docs.github.com) - [Customer support](https://support.github.com) - [Community forum](https://github.com/orgs/community/discussions) - [Trust center](https://github.com/trust-center) - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source - COMMUNITY - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors) - PROGRAMS - [Security Lab](https://securitylab.github.com) - [Maintainer Community](https://maintainers.github.com) - [GitHub Stars](https://stars.github.com) - [Archive Program](https://archiveprogram.github.com) - REPOSITORIES - [Topics](https://github.com/topics) - [Trending](https://github.com/trending) - [Collections](https://github.com/collections)
+- Enterprise - ENTERPRISE SOLUTIONS - [Enterprise platformAI-powered developer platform](https://github.com/enterprise) - AVAILABLE ADD-ONS - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security) - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business) - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router)
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=remix-run%2Freact-router)Appearance settings
+
+You signed in with another tab or window.Reloadto refresh your session.You signed out in another tab or window.Reloadto refresh your session.You switched accounts on another tab or window.Reloadto refresh your session.Dismiss alert
+
+### Uh oh!
+
+There was an error while loading.Please reload this page.
+
+[remix-run](/remix-run)/**[react-router](/remix-run/react-router)**Public
+
+- ### Uh oh! There was an error while loading.Please reload this page.
+- [Notifications](/login?return_to=%2Fremix-run%2Freact-router)You must be signed in to change notification settings
+- [Fork10.9k](/login?return_to=%2Fremix-run%2Freact-router)
+- [Star56.6k](/login?return_to=%2Fremix-run%2Freact-router)
+
+- [Code](/remix-run/react-router)
+- [Issues103](/remix-run/react-router/issues)
+- [Pull requests70](/remix-run/react-router/pulls)
+- [Discussions](/remix-run/react-router/discussions)
+- [Actions](/remix-run/react-router/actions)
+- [Security and quality22](/remix-run/react-router/security)
+- [Insights](/remix-run/react-router/pulse)
+
+Additional navigation options
+- [Code](/remix-run/react-router)
+- [Issues](/remix-run/react-router/issues)
+- [Pull requests](/remix-run/react-router/pulls)
+- [Discussions](/remix-run/react-router/discussions)
+- [Actions](/remix-run/react-router/actions)
+- [Security and quality](/remix-run/react-router/security)
+- [Insights](/remix-run/react-router/pulse)
+
+[/remix-run/react-router](/remix-run/react-router)
+
+main
+
+[Branches](/remix-run/react-router/branches)[Tags](/remix-run/react-router/tags)
+[/remix-run/react-router/branches](/remix-run/react-router/branches)[/remix-run/react-router/tags](/remix-run/react-router/tags)
+
+Go to file
+
+CodeOpen more actions menu
+
+## Latest commit
+
+## History
+
+[11,195 Commits](/remix-run/react-router/commits/main/)
+[/remix-run/react-router/commits/main/](/remix-run/react-router/commits/main/)11,195 Commits
+
+## Folders and files
+
+NameNameLast commit message
+Last commit date
+[.agents/skills](/remix-run/react-router/tree/main/.agents/skills)
+
+[.agents/skills](/remix-run/react-router/tree/main/.agents/skills)
+
+[.github](/remix-run/react-router/tree/main/.github)
+
+[.github](/remix-run/react-router/tree/main/.github)
+
+[.vscode](/remix-run/react-router/tree/main/.vscode)
+
+[.vscode](/remix-run/react-router/tree/main/.vscode)
+
+[decisions](/remix-run/react-router/tree/main/decisions)
+
+[decisions](/remix-run/react-router/tree/main/decisions)
+
+[docs](/remix-run/react-router/tree/main/docs)
+
+[docs](/remix-run/react-router/tree/main/docs)
+
+[examples](/remix-run/react-router/tree/main/examples)
+
+[examples](/remix-run/react-router/tree/main/examples)
+
+[integration](/remix-run/react-router/tree/main/integration)
+
+[integration](/remix-run/react-router/tree/main/integration)
+
+[jest](/remix-run/react-router/tree/main/jest)
+
+[jest](/remix-run/react-router/tree/main/jest)
+
+[packages](/remix-run/react-router/tree/main/packages)
+
+[packages](/remix-run/react-router/tree/main/packages)
+
+[playground](/remix-run/react-router/tree/main/playground)
+
+[playground](/remix-run/react-router/tree/main/playground)
+
+[scripts](/remix-run/react-router/tree/main/scripts)
+
+[scripts](/remix-run/react-router/tree/main/scripts)
+
+[static](/remix-run/react-router/tree/main/static)
+
+[static](/remix-run/react-router/tree/main/static)
+
+[tutorials/address-book](/remix-run/react-router/tree/main/tutorials/address-book)
+
+[tutorials/address-book](/remix-run/react-router/tree/main/tutorials/address-book)
+
+[.browserslistrc](/remix-run/react-router/blob/main/.browserslistrc)
+
+[.browserslistrc](/remix-run/react-router/blob/main/.browserslistrc)
+
+[.gitattributes](/remix-run/react-router/blob/main/.gitattributes)
+
+[.gitattributes](/remix-run/react-router/blob/main/.gitattributes)
+
+[.gitignore](/remix-run/react-router/blob/main/.gitignore)
+
+[.gitignore](/remix-run/react-router/blob/main/.gitignore)
+
+[.npmrc](/remix-run/react-router/blob/main/.npmrc)
+
+[.npmrc](/remix-run/react-router/blob/main/.npmrc)
+
+[.nvmrc](/remix-run/react-router/blob/main/.nvmrc)
+
+[.nvmrc](/remix-run/react-router/blob/main/.nvmrc)
+
+[.prettierignore](/remix-run/react-router/blob/main/.prettierignore)
+
+[.prettierignore](/remix-run/react-router/blob/main/.prettierignore)
+
+[AGENTS.md](/remix-run/react-router/blob/main/AGENTS.md)
+
+[AGENTS.md](/remix-run/react-router/blob/main/AGENTS.md)
+
+[CHANGELOG.md](/remix-run/react-router/blob/main/CHANGELOG.md)
+
+[CHANGELOG.md](/remix-run/react-router/blob/main/CHANGELOG.md)
+
+[CLAUDE.md](/remix-run/react-router/blob/main/CLAUDE.md)
+
+[CLAUDE.md](/remix-run/react-router/blob/main/CLAUDE.md)
+
+[CODE_OF_CONDUCT.md](/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md)
+
+[CODE_OF_CONDUCT.md](/remix-run/react-router/blob/main/CODE_OF_CONDUCT.md)
+
+[CONTRIBUTING.md](/remix-run/react-router/blob/main/CONTRIBUTING.md)
+
+[CONTRIBUTING.md](/remix-run/react-router/blob/main/CONTRIBUTING.md)
+
+[DEVELOPMENT.md](/remix-run/react-router/blob/main/DEVELOPMENT.md)
+
+[DEVELOPMENT.md](/remix-run/react-router/blob/main/DEVELOPMENT.md)
+
+[GOVERNANCE.md](/remix-run/react-router/blob/main/GOVERNANCE.md)
+
+[GOVERNANCE.md](/remix-run/react-router/blob/main/GOVERNANCE.md)
+
+[LICENSE.md](/remix-run/react-router/blob/main/LICENSE.md)
+
+[LICENSE.md](/remix-run/react-router/blob/main/LICENSE.md)
+
+[README.md](/remix-run/react-router/blob/main/README.md)
+
+[README.md](/remix-run/react-router/blob/main/README.md)
+
+[SECURITY.md](/remix-run/react-router/blob/main/SECURITY.md)
+
+[SECURITY.md](/remix-run/react-router/blob/main/SECURITY.md)
+
+[build.utils.ts](/remix-run/react-router/blob/main/build.utils.ts)
+
+[build.utils.ts](/remix-run/react-router/blob/main/build.utils.ts)
+
+[eslint.config.ts](/remix-run/react-router/blob/main/eslint.config.ts)
+
+[eslint.config.ts](/remix-run/react-router/blob/main/eslint.config.ts)
+
+[package.json](/remix-run/react-router/blob/main/package.json)
+
+[package.json](/remix-run/react-router/blob/main/package.json)
+
+[pnpm-lock.yaml](/remix-run/react-router/blob/main/pnpm-lock.yaml)
+
+[pnpm-lock.yaml](/remix-run/react-router/blob/main/pnpm-lock.yaml)
+
+[pnpm-workspace.yaml](/remix-run/react-router/blob/main/pnpm-workspace.yaml)
+
+[pnpm-workspace.yaml](/remix-run/react-router/blob/main/pnpm-workspace.yaml)
+
+[prettier.config.js](/remix-run/react-router/blob/main/prettier.config.js)
+
+[prettier.config.js](/remix-run/react-router/blob/main/prettier.config.js)
+
+[tsconfig.base.json](/remix-run/react-router/blob/main/tsconfig.base.json)
+
+[tsconfig.base.json](/remix-run/react-router/blob/main/tsconfig.base.json)
+
+[typedoc.mjs](/remix-run/react-router/blob/main/typedoc.mjs)
+
+[typedoc.mjs](/remix-run/react-router/blob/main/typedoc.mjs)
+
+View all files
+
+## Repository files navigation
+
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [MIT license](#)
+- [Security](#)
+
+Moreitems
+
+[![npm package](https://camo.githubusercontent.com/b74bace96f2b6508be60a9758a8899b2a6cfd73c54108f1ad66530fa1226a638/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f762f72656163742d726f757465722e737667)](https://www.npmjs.org/package/react-router)[![build](https://camo.githubusercontent.com/06def92801cb5f3f3fdeb06fe5017dfdba6b5ee76d279808340b8425b206092b/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f616374696f6e732f776f726b666c6f772f7374617475732f72656d69782d72756e2f72656163742d726f757465722f746573742d756e69742e796d6c3f6272616e63683d6d61696e267374796c653d737175617265)](https://github.com/remix-run/react-router/actions/workflows/test-unit.yml)
+
+React Router is a multi-strategy router for React. You can use it maximally as a React framework or minimally as a library with your own architecture.
+
+- [Getting Started - Framework](https://reactrouter.com/start/framework/installation)
+- [Getting Started - Library](https://reactrouter.com/start/library/installation)
+- [Upgrade from v7](https://reactrouter.com/upgrading/v7)
+- [Changelog](https://github.com/remix-run/react-router/blob/main/CHANGELOG.md)
+
+## Packages
+
+[#packages](#packages)
+
+- [`react-router`](/remix-run/react-router/blob/main/packages/react-router)
+- [`create-react-router`](/remix-run/react-router/blob/main/packages/create-react-router)
+- [`@react-router/dev`](/remix-run/react-router/blob/main/packages/react-router-dev)
+- [`@react-router/node`](/remix-run/react-router/blob/main/packages/react-router-node)
+- [`@react-router/serve`](/remix-run/react-router/blob/main/packages/react-router-serve)
+- [`@react-router/express`](/remix-run/react-router/blob/main/packages/react-router-express)
+- [`@react-router/architect`](/remix-run/react-router/blob/main/packages/react-router-architect)
+- [`@react-router/cloudflare`](/remix-run/react-router/blob/main/packages/react-router-cloudflare)
+- [`@react-router/fs-routes`](/remix-run/react-router/blob/main/packages/react-router-fs-routes)
+
+## Previous Versions
+
+[#previous-versions](#previous-versions)
+
+- [v7](https://reactrouter.com/v7)
+- [v6](https://reactrouter.com/v6)
+- [v5](https://v5.reactrouter.com/)
+
+## About
+
+Declarative routing for React
+
+[reactrouter.com](https://reactrouter.com)
+
+### Resources
+
+[Readme](#readme-ov-file)
+[MIT license](#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/remix-run/react-router#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+[Activity](/remix-run/react-router/activity)
+[Custom properties](/remix-run/react-router/custom-properties)
+
+### Stars
+
+**56.6k**stars
+
+### Watchers
+
+**806**watching
+
+### Forks
+
+[**10.9k**forks](/remix-run/react-router/forks)
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fremix-run%2Freact-router&report=remix-run+%28user%29)
+
+## Releases
+
+## Sponsor this project
+
+## Used by
+
+## Contributors
+
+## Languages
+
+## Footer
+
+[https://github.com](https://github.com)© 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.

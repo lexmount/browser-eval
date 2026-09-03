@@ -1,0 +1,49 @@
+---
+title: "JS Rendering Challenge to Learn Web Scraping - ScrapingCourse.com"
+---
+
+[![](https://www.scrapingcourse.com/assets/images/logo.svg)Scraping Course](/)
+
+# JS Rendering
+
+![](https://www.scrapingcourse.com/assets/images/challenge.svg)
+
+## Challenge
+
+Enable JavaScript to see products
+
+[![Chaz Kangeroo Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh01-gray_main.jpg)Chaz Kangeroo Hoodie  
+$52](https://scrapingcourse.com/ecommerce/product/chaz-kangeroo-hoodie)
+
+[![Teton Pullover Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh02-black_main.jpg)Teton Pullover Hoodie  
+$70](https://scrapingcourse.com/ecommerce/product/teton-pullover-hoodie)
+
+[![Bruno Compete Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh03-black_main.jpg)Bruno Compete Hoodie  
+$63](https://scrapingcourse.com/ecommerce/product/bruno-compete-hoodie)
+
+[![Frankie  Sweatshirt](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh04-green_main.jpg)Frankie Sweatshirt  
+$60](https://scrapingcourse.com/ecommerce/product/frankie-sweatshirt)
+
+[![Hollister Backyard Sweatshirt](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh05-white_main.jpg)Hollister Backyard Sweatshirt  
+$52](https://scrapingcourse.com/ecommerce/product/hollister-backyard-sweatshirt)
+
+[![Stark Fundamental Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh06-blue_main.jpg)Stark Fundamental Hoodie  
+$42](https://scrapingcourse.com/ecommerce/product/stark-fundamental-hoodie)
+
+[![Hero Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh07-gray_main.jpg)Hero Hoodie  
+$54](https://scrapingcourse.com/ecommerce/product/hero-hoodie)
+
+[![Oslo Trek Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh08-brown_main.jpg)Oslo Trek Hoodie  
+$42](https://scrapingcourse.com/ecommerce/product/oslo-trek-hoodie)
+
+[![Abominable Hoodie](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh09-blue_main.jpg)Abominable Hoodie  
+$69](https://scrapingcourse.com/ecommerce/product/abominable-hoodie)
+
+[![Mach Street Sweatshirt](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh10-blue_main.jpg)Mach Street Sweatshirt  
+$62](https://scrapingcourse.com/ecommerce/product/mach-street-sweatshirt)
+
+[![Grayson Crewneck Sweatshirt](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh11-white_main.jpg)Grayson Crewneck Sweatshirt  
+$64](https://scrapingcourse.com/ecommerce/product/grayson-crewneck-sweatshirt)
+
+[![Ajax Full-Zip Sweatshirt](https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh12-green_main.jpg)Ajax Full-Zip Sweatshirt  
+$69](https://scrapingcourse.com/ecommerce/product/ajax-full-zip-sweatshirt)

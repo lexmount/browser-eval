@@ -1,0 +1,319 @@
+{
+  "case_id": "dynamic-product-reviews",
+  "valid": true,
+  "errors": [],
+  "classification": "embedded_payload",
+  "coverage": {
+    "initial_visible": {
+      "hits": 0,
+      "total": 10,
+      "coverage": 0.0,
+      "all_present": false,
+      "groups": [
+        {
+          "id": "entry-1-date",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-1-text",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-date",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-2-text",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-date",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-3-text",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-date",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-4-text",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-date",
+          "matched": [],
+          "pass": false
+        },
+        {
+          "id": "entry-5-text",
+          "matched": [],
+          "pass": false
+        }
+      ]
+    },
+    "initial_payload": {
+      "hits": 10,
+      "total": 10,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-date",
+          "matched": [
+            "2022-07-22"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-text",
+          "matched": [
+            "Absolutely delicious! The orange flavor is my favorite."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-date",
+          "matched": [
+            "2022-08-16"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-text",
+          "matched": [
+            "I bought these as a gift, and they were well received. Will definitely purchase again."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-date",
+          "matched": [
+            "2022-09-10"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-text",
+          "matched": [
+            "Nice variety of flavors. The chocolate is rich and smooth."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-date",
+          "matched": [
+            "2022-10-02"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-text",
+          "matched": [
+            "The cherry flavor is amazing. Will be buying more."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-date",
+          "matched": [
+            "2022-11-05"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-text",
+          "matched": [
+            "A bit pricey, but the quality of the chocolate is worth it."
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "rendered": {
+      "hits": 10,
+      "total": 10,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-date",
+          "matched": [
+            "2022-07-22"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-text",
+          "matched": [
+            "Absolutely delicious! The orange flavor is my favorite."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-date",
+          "matched": [
+            "2022-08-16"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-text",
+          "matched": [
+            "I bought these as a gift, and they were well received. Will definitely purchase again."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-date",
+          "matched": [
+            "2022-09-10"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-text",
+          "matched": [
+            "Nice variety of flavors. The chocolate is rich and smooth."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-date",
+          "matched": [
+            "2022-10-02"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-text",
+          "matched": [
+            "The cherry flavor is amazing. Will be buying more."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-date",
+          "matched": [
+            "2022-11-05"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-text",
+          "matched": [
+            "A bit pricey, but the quality of the chocolate is worth it."
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "reference": {
+      "hits": 10,
+      "total": 10,
+      "coverage": 1.0,
+      "all_present": true,
+      "groups": [
+        {
+          "id": "entry-1-date",
+          "matched": [
+            "2022-07-22"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-1-text",
+          "matched": [
+            "Absolutely delicious! The orange flavor is my favorite."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-date",
+          "matched": [
+            "2022-08-16"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-2-text",
+          "matched": [
+            "I bought these as a gift, and they were well received. Will definitely purchase again."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-date",
+          "matched": [
+            "2022-09-10"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-3-text",
+          "matched": [
+            "Nice variety of flavors. The chocolate is rich and smooth."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-date",
+          "matched": [
+            "2022-10-02"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-4-text",
+          "matched": [
+            "The cherry flavor is amazing. Will be buying more."
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-date",
+          "matched": [
+            "2022-11-05"
+          ],
+          "pass": true
+        },
+        {
+          "id": "entry-5-text",
+          "matched": [
+            "A bit pricey, but the quality of the chocolate is worth it."
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "initial_fact_hits": 10,
+  "initial_html_sha256": "f6fcba817d82e366420bc5aacc356abc524129391ed49e05565d68a05123cbba",
+  "rendered_text_sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+  "reference_sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+  "completion": {
+    "condition": "dynamic-product-reviews: 5 nonempty target records with populated text fields; no interaction",
+    "timeout_ms": 45000,
+    "elapsed_ms": 4482,
+    "satisfied": true,
+    "checked_at": "2026-09-03T06:51:03.443Z",
+    "phase": "post-run independent reproduction of pre-run frozen reference"
+  },
+  "js_required_proven": false,
+  "limitations": [
+    "Initial visible content is a static HTML proxy, not computed CSS visibility.",
+    "Payload matching detects literals, not every encoding or external resource.",
+    "Inline payload availability forbids a must-execute-JS conclusion; absence only means these facts were not found in this initial response.",
+    "Fact coverage and declared completion do not prove whole-page completeness."
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-10-justwatch",
+  "url": "https://www.justwatch.com/us/tv-shows",
+  "checked_at": "2026-09-03T10:20:09.797Z",
+  "method": "Independent rendered headings and guide paragraphs",
+  "text": "Discover TV shows and find where to watch online\nWhere to watch TV series online?\nYou can also check out other streaming services to find out what’s available to buy, rent or watch for free.\nWatch series for free",
+  "scope": "Selected stable page headings, explanations or field labels; not full-body ground truth",
+  "stability": "Semantic selection, not proof that the source can never change",
+  "exclusions": [
+    "current list members",
+    "ranks",
+    "prices",
+    "rating values",
+    "personal account information"
+  ],
+  "reference_file": "stable-page.txt"
+}

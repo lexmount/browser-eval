@@ -1,6 +1,6 @@
 import unittest
 
-from browser_harness_eval.accounts import ACCOUNT_REGISTRY, env_template
+from harness.web_fetch.accounts import ACCOUNT_REGISTRY, env_template
 
 
 class AccountRegistryTest(unittest.TestCase):

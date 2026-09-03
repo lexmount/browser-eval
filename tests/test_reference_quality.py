@@ -1,10 +1,22 @@
 import unittest
-from browser_harness_eval.reference_quality import clean_reference_text,audit_reference
-from browser_harness_eval.metrics import normalize_for_match
-from browser_harness_eval.models import execution_id
+from harness.web_fetch.reference_quality import clean_reference_text,audit_reference
+from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
+    def test_inline_breadcrumb_spacing_is_formatting_not_missing_prose(self):
+        variants = ['Settings > AI > Usage', 'Settings>AI>Usage', 'Settings\n>\nAI\n>\nUsage',
+                    '[Settings](https://example.com/settings)>AI > Usage']
+        self.assertEqual(len({normalize_for_match(value) for value in variants}), 1)
+        self.assertEqual(normalize_for_match('管理后台 > AI 使用管理 > AI 使用数据'),
+                         normalize_for_match('[管理后台](https://example.com)>AI 使用管理>AI 使用数据'))
+    def test_breadcrumb_normalization_preserves_semantic_differences(self):
+        for left, right in [('Settings > AI', 'Settings AI'), ('x > 10', 'x < 10'),
+                            ('x > 10', 'x >= 10'), ('x > 10', 'x > 100'),
+                            ('x > -10', 'x > 10'), ('a b', 'ab')]:
+            self.assertNotEqual(normalize_for_match(left), normalize_for_match(right))
+        self.assertNotEqual(normalize_for_match('first\n> second'), normalize_for_match('first second'))
     def test_cleaning_is_narrow_and_idempotent(self):
         raw='不通过 -10.5% C++ a\u200db\n正文\u200b\ufeff'
         clean=clean_reference_text(raw)

@@ -10,18 +10,17 @@ import os
 import unittest
 from pathlib import Path
 
-from browser_harness_eval.config import load_env_file, load_provider_config
-from browser_harness_eval.models import EvalCase
-from browser_harness_eval.providers import build_provider
+from harness.web_fetch.config import load_runtime_env, load_provider_config
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.providers import build_provider
 
 
 @unittest.skipUnless(os.getenv("WEBFETCH_REAL_SMOKE") == "1", "set WEBFETCH_REAL_SMOKE=1 for credentialed network calls")
 class RealProviderSmokeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        env_file = Path(os.getenv("WEBFETCH_SMOKE_ENV_FILE", "~/.env")).expanduser()
-        if env_file.exists():
-            load_env_file(env_file)
+        env_file = os.getenv("WEBFETCH_SMOKE_ENV_FILE")
+        load_runtime_env(Path(env_file) if env_file else None)
         cls.configs = load_provider_config(Path("configs/providers.example.json"))
         cls.case = EvalCase(
             id="real-smoke-example",

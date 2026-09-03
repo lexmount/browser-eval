@@ -64,9 +64,23 @@ function fixLinks(root,page,m){
   const href=a.getAttribute('href');if(/^(https?:|mailto:|data:|blob:)/i.test(href)){a.target='_blank';a.rel='noopener noreferrer';return}
   const dest=resolvePath(href,page);
   if(!m.files[dest.path])return;
-  if(dest.path.endsWith('.html'))a.href=route(dest.path,dest.anchor);
+  if(dest.path.endsWith('.html')&&!a.hasAttribute('download'))a.href=route(dest.path,dest.anchor);
   else{a.href='#';a.dataset.download=dest.path}
  });
+}
+let currentImageUrls=[];
+async function fillImages(root,page,m){
+ const urls=[];
+ try{
+  for(const img of root.querySelectorAll('img[src]')){
+   const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))continue;
+   const {path}=resolvePath(src,page),file=m.files[path];
+   if(!file||!file.mime.startsWith('image/'))throw Error('图片文件不存在：'+path);
+   const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
+   urls.push(url);img.src=url;
+  }
+  return urls;
+ }catch(error){urls.forEach(url=>URL.revokeObjectURL(url));throw error}
 }
 async function fill(pre){
  if(pre.dataset.loaded)return;pre.dataset.loaded='1';pre.textContent='正在加载完整内容…';
@@ -78,18 +92,26 @@ async function fill(pre){
 async function render(){
  savePageState();
  const token=++renderId,params=new URLSearchParams(location.hash.slice(1)),path=params.get('page')||'index.html';
+ let imageUrls=[];
  try{
   const [m,text]=await Promise.all([manifestPromise,textFile(path)]);if(token!==renderId)return;
   if(!path.endsWith('.html'))throw Error('不是报告页面');
   const page=new DOMParser().parseFromString(text,'text/html');
+  imageUrls=await fillImages(page.body,path,m);
+  if(token!==renderId)return;
   document.title=page.title;currentPage=path;fixLinks(page.body,path,m);document.body.innerHTML=page.body.innerHTML;
+  currentImageUrls.forEach(url=>URL.revokeObjectURL(url));currentImageUrls=imageUrls;imageUrls=[];
   window.dispatchEvent(new Event('report-ready'));
   const saved=restorePageState(path);
   document.querySelectorAll('pre[data-file],pre[data-record]').forEach(pre=>{
    const detail=pre.closest('details');if(detail&&!detail.open)detail.addEventListener('toggle',()=>{if(detail.open)fill(pre)});else fill(pre);
   });
   const anchor=params.get('anchor');applyReportAnchor(anchor);if(anchor)document.getElementById(anchor)?.scrollIntoView();else window.scrollTo(saved?.x||0,saved?.y||0);
- }catch(error){document.body.replaceChildren();const p=document.createElement('p');p.textContent=error.message;document.body.append(p)}
+ }catch(error){
+  if(token!==renderId)return;
+  currentImageUrls.forEach(url=>URL.revokeObjectURL(url));currentImageUrls=[];
+  document.body.replaceChildren();const p=document.createElement('p');p.textContent=error.message;document.body.append(p)
+ }finally{imageUrls.forEach(url=>URL.revokeObjectURL(url))}
 }
 async function downloadClick(event){
  const routeLink=event.target.closest('a[href^="#page="]');
@@ -123,10 +145,13 @@ def build():
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
-    idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre>(.*?)</pre>',text,re.S))
+    idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre data-kind="(reference|contract|output|metadata)">(.*?)</pre>',text,re.S))
     assert len(matches)==3,(name,len(matches))
-    replacements=[f'<pre data-file="references/{record["case_id"]}.txt"></pre>',f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',f'<pre data-record="{idx+1}"></pre>']
-    for match,replacement in reversed(list(zip(matches,replacements))):text=text[:match.start()]+replacement+text[match.end():]
+    replacements={'reference':f'<pre data-file="references/{record["case_id"]}.txt"></pre>',
+                  'contract':f'<pre data-file="contracts/{record["case_id"]}.json"></pre>',
+                  'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
+                  'metadata':f'<pre data-record="{idx+1}"></pre>'}
+    for match in reversed(matches):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
@@ -158,6 +183,11 @@ def build():
  for name,digest in original.items():
   assert hashlib.sha256(b''.join(raw_blocks[k] for k in files[name]['parts'])).hexdigest()==digest,name
  for name,text in pages.items():
+  for src in re.findall(r'<img[^>]+src="([^"]+)"',text):
+   src=html.unescape(src);u=urlsplit(src)
+   if u.scheme or u.netloc:continue
+   target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(u.path)))
+   assert target in files and files[target]['mime'].startswith('image/'),(name,src,target)
   for href in re.findall(r'href="([^"]+)"',text):
    href=html.unescape(href);u=urlsplit(href)
    if u.scheme or u.netloc:continue
@@ -171,7 +201,9 @@ def build():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
  print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':True,'all_virtual_links_valid':True}))
- assert total<=50_000_000, 'Published package still above service limit'
+ # Artifact Hub publishes large bundles through staged per-file uploads.
+ # Its documented total limit is 300 MB, not the former local 50 MB budget.
+ assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'
  archive=DEST.parent/'webfetch-sites.zip'
  with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
   for path in sorted(DEST.rglob('*')):

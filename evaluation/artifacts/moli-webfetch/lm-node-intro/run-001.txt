@@ -1,0 +1,190 @@
+[/](/)
+[Learn](/learn)[About](/about)[Download](/en/download)[Blog](/blog)[Docs](/docs/latest/api/)[Contribute](https://github.com/nodejs/node/blob/main/CONTRIBUTING.md)[Courses](https://training.linuxfoundation.org/openjs/)
+Start typing...
+⌘ K
+[https://github.com/nodejs/learn](https://github.com/nodejs/learn)
+
+NavigationIntroduction to Node.jsGetting Started
+- [Introduction to Node.js](/learn/getting-started/introduction-to-nodejs)
+- [How much JavaScript do you need to know to use Node.js?](/learn/getting-started/how-much-javascript-do-you-need-to-know-to-use-nodejs)
+- [Differences between Node.js and the Browser](/learn/getting-started/differences-between-nodejs-and-the-browser)
+- [The V8 JavaScript Engine](/learn/getting-started/the-v8-javascript-engine)
+- [An introduction to the npm package manager](/learn/getting-started/an-introduction-to-the-npm-package-manager)
+- [ECMAScript 2015 (ES6) and beyond](/learn/getting-started/ecmascript-2015-es6-and-beyond)
+- [Debugging Node.js](/learn/getting-started/debugging)
+- [Fetching data with Node.js](/learn/getting-started/fetch)
+- [WebSocket client with Node.js](/learn/getting-started/websocket)
+- [Node.js, the difference between development and production](/learn/getting-started/nodejs-the-difference-between-development-and-production)
+- [Profiling Node.js Applications](/learn/getting-started/profiling)
+- [Node.js with WebAssembly](/learn/getting-started/nodejs-with-webassembly)
+- [Security Best Practices](/learn/getting-started/security-best-practices)
+- [Introduction to Userland Migrations](/learn/getting-started/userland-migrations)
+
+Command Line
+- [Run Node.js scripts from the command line](/learn/command-line/run-nodejs-scripts-from-the-command-line)
+- [How to use the Node.js REPL](/learn/command-line/how-to-use-the-nodejs-repl)
+- [Output to the command line using Node.js](/learn/command-line/output-to-the-command-line-using-nodejs)
+- [Accept input from the command line in Node.js](/learn/command-line/accept-input-from-the-command-line-in-nodejs)
+- [How to read environment variables from Node.js](/learn/command-line/how-to-read-environment-variables-from-nodejs)
+
+HTTP
+- [Anatomy of an HTTP Transaction](/learn/http/anatomy-of-an-http-transaction)
+- [Enterprise Network Configuration](/learn/http/enterprise-network-configuration)
+
+Manipulating Files
+- [Node.js file stats](/learn/manipulating-files/nodejs-file-stats)
+- [Node.js File Paths](/learn/manipulating-files/nodejs-file-paths)
+- [Reading files with Node.js](/learn/manipulating-files/reading-files-with-nodejs)
+- [Writing files with Node.js](/learn/manipulating-files/writing-files-with-nodejs)
+- [Working with file descriptors in Node.js](/learn/manipulating-files/working-with-file-descriptors-in-nodejs)
+- [Working with folders in Node.js](/learn/manipulating-files/working-with-folders-in-nodejs)
+- [How to work with Different Filesystems](/learn/manipulating-files/working-with-different-filesystems)
+
+Asynchronous Work
+- [JavaScript Asynchronous Programming and Callbacks](/learn/asynchronous-work/javascript-asynchronous-programming-and-callbacks)
+- [Asynchronous flow control](/learn/asynchronous-work/asynchronous-flow-control)
+- [Discover Promises in Node.js](/learn/asynchronous-work/discover-promises-in-nodejs)
+- [Discover JavaScript Timers](/learn/asynchronous-work/discover-javascript-timers)
+- [Overview of Blocking vs Non-Blocking](/learn/asynchronous-work/overview-of-blocking-vs-non-blocking)
+- [The Node.js Event Loop](/learn/asynchronous-work/event-loop-timers-and-nexttick)
+- [The Node.js Event Emitter](/learn/asynchronous-work/the-nodejs-event-emitter)
+- [Understanding process.nextTick()](/learn/asynchronous-work/understanding-processnexttick)
+- [Understanding setImmediate()](/learn/asynchronous-work/understanding-setimmediate)
+- [Don't Block the Event Loop](/learn/asynchronous-work/dont-block-the-event-loop)
+
+Concurrency
+- [Comparing Node.js concurrency models](/learn/concurrency/comparing-nodejs-concurrency-models)
+
+TypeScript
+- [Introduction to TypeScript](/learn/typescript/introduction)
+- [Running TypeScript Natively](/learn/typescript/run-natively)
+- [Running TypeScript code using transpilation](/learn/typescript/transpile)
+- [Running TypeScript with a runner](/learn/typescript/run)
+- [Publishing a TypeScript package](/learn/typescript/publishing-a-ts-package)
+
+Modules
+- [How to use streams](/learn/modules/how-to-use-streams)
+- [Backpressuring in Streams](/learn/modules/backpressuring-in-streams)
+- [Publishing a package](/learn/modules/publishing-a-package)
+- [How to publish a Node-API package](/learn/modules/publishing-node-api-modules)
+- [ABI Stability](/learn/modules/abi-stability)
+
+Diagnostics
+- [User Journey](/learn/diagnostics/user-journey)
+- Memory - [Overview](/learn/diagnostics/memory) - [Understanding and Tuning Memory](/learn/diagnostics/memory/understanding-and-tuning-memory) - [Using Heap Profiler](/learn/diagnostics/memory/using-heap-profiler) - [Using Heap Snapshot](/learn/diagnostics/memory/using-heap-snapshot) - [Tracing garbage collection](/learn/diagnostics/memory/using-gc-traces)
+- Live Debugging - [Overview](/learn/diagnostics/live-debugging) - [Using Inspector](/learn/diagnostics/live-debugging/using-inspector)
+- Poor Performance - [Overview](/learn/diagnostics/poor-performance) - [Using Linux Perf](/learn/diagnostics/poor-performance/using-linux-perf)
+- [Flame Graphs](/learn/diagnostics/flame-graphs)
+
+Test Runner
+- [Discovering Node.js's test runner](/learn/test-runner/introduction)
+- [Using Node.js's test runner](/learn/test-runner/using-test-runner)
+- [Mocking in tests](/learn/test-runner/mocking)
+- [Collecting code coverage in Node.js](/learn/test-runner/collecting-code-coverage)
+
+Node-API
+- [What is Node-API?](/learn/node-api)
+- Getting Started - [Overview](/learn/node-api/getting-started) - [Pre-requisites](/learn/node-api/getting-started/prerequisites) - [Tools](/learn/node-api/getting-started/tools) - [Anatomy of a Node-API project](/learn/node-api/getting-started/project-structure) - [Your First Project](/learn/node-api/getting-started/your-first-project) - [Object Wrap](/learn/node-api/getting-started/objectwrap) - [Migrating to Node-API](/learn/node-api/getting-started/migration)
+- Build Tools - [Overview](/learn/node-api/build-tools) - [node-gyp](/learn/node-api/build-tools/node-gyp) - [CMake.js](/learn/node-api/build-tools/cmake-js) - [node-pre-gyp](/learn/node-api/build-tools/node-pre-gyp)
+- Special Topics - [Overview](/learn/node-api/special-topics) - [Context Awareness](/learn/node-api/special-topics/context-awareness) - [Object and Function References](/learn/node-api/special-topics/object-function-refs) - [AsyncWorker](/learn/node-api/special-topics/asyncworker) - [Thread-Safe Functions](/learn/node-api/special-topics/thread-safe-functions)
+
+Userland Migrations
+- [Axios to WHATWG Fetch](/learn/userland-migrations/axios-to-whatwg-fetch)
+- [Chalk to util.styleText()](/learn/userland-migrations/chalk-to-util-styletext)
+- [Correct TypeScript Specifiers](/learn/userland-migrations/correct-ts-specifiers)
+- [Kleur to util.styleText](/learn/userland-migrations/kleur-to-util-styletext)
+- [Mocha to Node.js Test Runner](/learn/userland-migrations/mocha-to-node-test-runner)
+
+On this page
+- [An Example Node.js Application](#an-example-nodejs-application)
+
+# Introduction to Node.js
+
+Node.js is an open-source and cross-platform JavaScript runtime environment. It is a popular tool for almost any kind of project!
+
+Node.js runs the V8 JavaScript engine, the core of Google Chrome, outside of the browser. This allows Node.js to be very performant.
+
+A Node.js app runs in a single process, without creating a new thread for every request. Node.js provides a set of asynchronous I/O primitives in its standard library that prevent JavaScript code from blocking. In addition, libraries in Node.js are generally written using non-blocking paradigms. Accordingly, blocking behavior is the exception rather than the norm in Node.js.
+
+When Node.js performs an I/O operation, like reading from the network, accessing a database or the filesystem, instead of blocking the thread and wasting CPU cycles waiting, Node.js will resume the operations when the response comes back.
+
+This allows Node.js to handle thousands of concurrent connections with a single server without introducing the burden of managing thread concurrency, which could be a significant source of bugs.
+
+Node.js has a unique advantage because millions of frontend developers that write JavaScript for the browser are now able to write the server-side code in addition to the client-side code without the need to learn a completely different language.
+
+In Node.js the new ECMAScript standards can be used without problems, as you don't have to wait for all your users to update their browsers - you are in charge of deciding which ECMAScript version to use by changing the Node.js version, and you can also enable specific experimental features by running Node.js with flags.
+
+## An Example Node.js Application
+
+The most common example Hello World of Node.js is a web server:
+
+CJSESM
+
+```text
+const { createServer } = require('node:http');
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+const server = createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello World');
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+```
+
+JavaScriptCopy to clipboard
+
+To run this snippet, save it as a`server.js`file and run`node server.js`in your terminal. If you use the mjs version of the code, you should save it as a`server.mjs`file and run`node server.mjs`in your terminal.
+
+This code first includes the Node.js[`http`module](https://nodejs.org/api/http.html).
+
+Node.js has a fantastic[standard library](https://nodejs.org/api/), including first-class support for networking.
+
+The`createServer()`method of`http`creates a new HTTP server and returns it.
+
+The server is set to listen on the specified port and host name. When the server is ready, the callback function is called, in this case informing us that the server is running.
+
+Whenever a new request is received, the[`request`event](https://nodejs.org/api/http.html#event-request)is called, providing two objects: a request (an[`http.IncomingMessage`](https://nodejs.org/api/http.html#class-httpincomingmessage)object) and a response (an[`http.ServerResponse`](https://nodejs.org/api/http.html#class-httpserverresponse)object).
+
+Those 2 objects are essential to handle the HTTP call.
+
+The first provides the request details. In this simple example, this is not used, but you could access the request headers and request data.
+
+The second is used to return data to the caller.
+
+In this case with:
+
+```text
+res.statusCode = 200;
+```
+
+we set the`statusCode`property to`200`, to indicate a successful response.
+
+We set the`Content-Type`header:
+
+```text
+res.setHeader('Content-Type', 'text/plain');
+```
+
+and we close the response, adding the content as an argument to`end()`:
+
+```text
+res.end('Hello World');
+```
+
+If you haven't already done so,[download](https://nodejs.org/en/download)Node.js.
+
+Reading Time3 min readAuthors[https://github.com/flaviocopes](https://github.com/flaviocopes)[https://github.com/potch](https://github.com/potch)[https://github.com/MylesBorins](https://github.com/MylesBorins)[https://github.com/RomainLanz](https://github.com/RomainLanz)[https://github.com/virkt25](https://github.com/virkt25)+14
+Contribute[Edit this page](https://github.com/nodejs/learn/edit/main/pages/getting-started/introduction-to-nodejs.md)Table of Contents
+- [An Example Node.js Application](#an-example-nodejs-application)
+
+[https://github.com/nodejs/node](https://github.com/nodejs/node)[https://discord.gg/nodejs](https://discord.gg/nodejs)[https://social.lfx.dev/@nodejs](https://social.lfx.dev/@nodejs)[https://bsky.app/profile/nodejs.org](https://bsky.app/profile/nodejs.org)[https://twitter.com/nodejs](https://twitter.com/nodejs)[https://slack-invite.openjsf.org/](https://slack-invite.openjsf.org/)[https://www.linkedin.com/company/node-js](https://www.linkedin.com/company/node-js)
+
+Copyright[OpenJS Foundation](https://openjsf.org/)and Node.js contributors. All rights reserved. The[OpenJS Foundation](https://openjsf.org/)has registered trademarks and uses trademarks. For a list of trademarks of the[OpenJS Foundation](https://openjsf.org/), please see our[Trademark Policy](https://trademark-policy.openjsf.org/)and[Trademark List](https://trademark-list.openjsf.org/). Trademarks and logos not indicated on the[list of OpenJS Foundation trademarks](https://trademark-list.openjsf.org/)are trademarks™ or registered® trademarks of their respective holders. Use of them does not imply any affiliation with or endorsement by them.
+
+[OpenJS Foundation](https://openjsf.org/)[AI Coding Assistants Policy](https://ai-coding-assistants-policy.openjsf.org/)[Bylaws](https://bylaws.openjsf.org/)[Code of Conduct](https://code-of-conduct.openjsf.org/)[Cookie Policy](https://www.linuxfoundation.org/cookies/)[Privacy Policy](https://privacy-policy.openjsf.org/)[Security Policy](https://github.com/nodejs/node/security/policy)[Terms of Use](https://terms-of-use.openjsf.org/)[Trademark List](https://trademark-list.openjsf.org/)[Trademark Policy](https://trademark-policy.openjsf.org/)

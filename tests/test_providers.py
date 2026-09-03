@@ -1,13 +1,13 @@
 import unittest
 from unittest.mock import patch
 
-from browser_harness_eval.models import EvalCase
-from browser_harness_eval.providers.firecrawl import FirecrawlProvider
-from browser_harness_eval.providers.cloudflare import CloudflareContentProvider, CloudflareMarkdownProvider
-from browser_harness_eval.providers.exa import ExaContentsProvider
-from browser_harness_eval.providers.tavily import TavilyExtractProvider
-from browser_harness_eval.providers.cowagent import CowAgentBuiltinProvider
-from browser_harness_eval.providers.http_client import HttpResponse
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.providers.firecrawl import FirecrawlProvider
+from harness.web_fetch.providers.cloudflare import CloudflareContentProvider, CloudflareMarkdownProvider
+from harness.web_fetch.providers.exa import ExaContentsProvider
+from harness.web_fetch.providers.tavily import TavilyExtractProvider
+from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
+from harness.web_fetch.providers.http_client import HttpResponse
 
 
 class ProviderTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class ProviderTest(unittest.TestCase):
             category="static", expected_any=["Example"],
         )
 
-    @patch("browser_harness_eval.providers.firecrawl.request")
+    @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_rate_limit_is_actionable(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(
             status=429,
@@ -31,20 +31,20 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.error_type, "rate_limit")
         self.assertEqual(result.metadata["retry_after_seconds"], 120)
 
-    @patch("browser_harness_eval.providers.tavily.request")
+    @patch("harness.web_fetch.providers.tavily.request")
     def test_tavily_extract_reads_markdown(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"results":[{"url":"https://example.com","raw_content":"# Example"}]}')
         result = TavilyExtractProvider("tavily", {"api_key": "x"}).fetch(self.case, 1)
         self.assertTrue(result.ok)
         self.assertEqual(result.content, "# Example")
 
-    @patch("browser_harness_eval.providers.exa.request")
+    @patch("harness.web_fetch.providers.exa.request")
     def test_exa_contents_reads_text(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"results":[{"url":"https://example.com","text":"# Example"}],"statuses":[{"status":"success"}]}')
         result = ExaContentsProvider("exa", {"api_key": "x"}).fetch(self.case, 1)
         self.assertTrue(result.ok)
 
-    @patch("browser_harness_eval.providers.cloudflare.request")
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_reads_markdown(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"# Example","meta":{"status":200}}')
         result = CloudflareMarkdownProvider("cf", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)
@@ -56,7 +56,7 @@ class ProviderTest(unittest.TestCase):
         )
         self.assertEqual(provider.min_interval_seconds, 10.5)
 
-    @patch("browser_harness_eval.providers.cloudflare.request")
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_rate_limit_is_classified(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(
             429, "u", {"retry-after": "10"}, b'{"success":false,"errors":[{"message":"Too many requests"}]}'
@@ -65,7 +65,7 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.error_type, "rate_limit")
         self.assertEqual(result.metadata["retry_after"], "10")
 
-    @patch("browser_harness_eval.providers.cloudflare.request")
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_content_reads_rendered_html(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"<html>Example</html>"}')
         result = CloudflareContentProvider("cf-content", {"api_token": "x", "account_id": "a"}).fetch(self.case, 1)

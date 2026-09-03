@@ -3,10 +3,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from browser_harness_eval.models import EvalCase
-from browser_harness_eval.providers.fixture import FixtureProvider
-from browser_harness_eval.report_build import build_report
-from browser_harness_eval.runner import run_evaluation
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.providers.fixture import FixtureProvider
+from harness.web_fetch.report_build import build_report
+from harness.web_fetch.runner import run_evaluation
 
 
 class EndToEndTest(unittest.TestCase):
@@ -30,7 +30,9 @@ class EndToEndTest(unittest.TestCase):
             self.assertIn('供应商请求 ID',attempt)
             self.assertIn(records[1]['run_id'],analysis)
             self.assertIn('开始时间（UTC）',attempt)
-            self.assertEqual(attempt.count('<pre>'),3)
+            self.assertEqual(attempt.count('<pre data-kind='),3)
+            for kind in ('reference', 'output', 'metadata'):
+                self.assertIn(f'<pre data-kind="{kind}">', attempt)
             for removed in ['capabilities','benchmarks','review','execution','market']:
                 self.assertFalse((report.parent/removed).exists())
             for page in report.parent.rglob('*.html'):

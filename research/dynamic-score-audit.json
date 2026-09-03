@@ -1,0 +1,4321 @@
+{
+  "reason": "Complete every observed text field; allow number/review-label whitespace without changing numeric identity",
+  "before": {
+    "cases": [
+      {
+        "id": "dynamic-catalog",
+        "name": "Web Scraper · 客户端商品目录",
+        "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "category": "client_catalog",
+        "track": "dynamic",
+        "task_kind": "body",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-description",
+            "alternatives": [
+              "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+            ]
+          },
+          {
+            "id": "entry-1-price",
+            "alternatives": [
+              "$295.99"
+            ]
+          },
+          {
+            "id": "entry-2-description",
+            "alternatives": [
+              "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+            ]
+          },
+          {
+            "id": "entry-2-price",
+            "alternatives": [
+              "$299"
+            ]
+          },
+          {
+            "id": "entry-3-description",
+            "alternatives": [
+              "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+            ]
+          },
+          {
+            "id": "entry-3-price",
+            "alternatives": [
+              "$299"
+            ]
+          },
+          {
+            "id": "entry-4-description",
+            "alternatives": [
+              "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+            ]
+          },
+          {
+            "id": "entry-4-price",
+            "alternatives": [
+              "$306.99"
+            ]
+          },
+          {
+            "id": "entry-5-description",
+            "alternatives": [
+              "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+            ]
+          },
+          {
+            "id": "entry-5-price",
+            "alternatives": [
+              "$321.94"
+            ]
+          },
+          {
+            "id": "entry-6-description",
+            "alternatives": [
+              "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+            ]
+          },
+          {
+            "id": "entry-6-price",
+            "alternatives": [
+              "$356.49"
+            ]
+          }
+        ],
+        "min_content_chars": 555,
+        "fact_coverage_threshold": 1.0,
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "$295.99\nAsus VivoBook X4\n\nAsus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd\n\n1 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$306.99\nAspire E1-510\n\n15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux\n\n2 reviews\n\n$321.94\nLenovo V110-15IA\n\nLenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home\n\n12 reviews\n\n$356.49\nLenovo V110-15IA\n\nAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd\n\n12 reviews",
+        "task_prompt": "读取初次自动加载完成后的 6 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+        "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+        "source_benchmark": {
+          "capture_scope": "Initial page automatic loading completed; exactly 6 visible entries, no scrolling/clicking/pagination",
+          "expected_entries": 6,
+          "render_evidence": {
+            "scope": "Initial page automatic loading completed; exactly 6 visible entries, no scrolling/clicking/pagination",
+            "rendered_truncated": false,
+            "completion": {
+              "condition": "dynamic-catalog: 6 nonempty target records with populated text fields; no interaction",
+              "timeout_ms": 30000,
+              "elapsed_ms": 3050,
+              "satisfied": true,
+              "checked_at": "2026-09-03T04:35:21.222Z",
+              "phase": "post-run independent reproduction of pre-run frozen reference"
+            }
+          }
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-09-03T04:28:01.199Z",
+          "method": "独立 HTTP 与浏览器可见正文对照",
+          "reference_sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836"
+        },
+        "ground_truth_evidence": [
+          {
+            "source": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+            "supports": "独立观察的全部 6 条记录及其文字字段"
+          }
+        ]
+      },
+      {
+        "id": "dynamic-delayed",
+        "name": "Quotes · 延迟呈现",
+        "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "category": "delayed_render",
+        "track": "dynamic",
+        "task_kind": "body",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-quote",
+            "alternatives": [
+              "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+            ]
+          },
+          {
+            "id": "entry-1-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-2-quote",
+            "alternatives": [
+              "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+            ]
+          },
+          {
+            "id": "entry-2-author",
+            "alternatives": [
+              "J.K. Rowling"
+            ]
+          },
+          {
+            "id": "entry-3-quote",
+            "alternatives": [
+              "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+            ]
+          },
+          {
+            "id": "entry-3-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-4-quote",
+            "alternatives": [
+              "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+            ]
+          },
+          {
+            "id": "entry-4-author",
+            "alternatives": [
+              "Jane Austen"
+            ]
+          },
+          {
+            "id": "entry-5-quote",
+            "alternatives": [
+              "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+            ]
+          },
+          {
+            "id": "entry-5-author",
+            "alternatives": [
+              "Marilyn Monroe"
+            ]
+          },
+          {
+            "id": "entry-6-quote",
+            "alternatives": [
+              "“Try not to become a man of success. Rather become a man of value.”"
+            ]
+          },
+          {
+            "id": "entry-6-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-7-quote",
+            "alternatives": [
+              "“It is better to be hated for what you are than to be loved for what you are not.”"
+            ]
+          },
+          {
+            "id": "entry-7-author",
+            "alternatives": [
+              "André Gide"
+            ]
+          },
+          {
+            "id": "entry-8-quote",
+            "alternatives": [
+              "“I have not failed. I've just found 10,000 ways that won't work.”"
+            ]
+          },
+          {
+            "id": "entry-8-author",
+            "alternatives": [
+              "Thomas A. Edison"
+            ]
+          },
+          {
+            "id": "entry-9-quote",
+            "alternatives": [
+              "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+            ]
+          },
+          {
+            "id": "entry-9-author",
+            "alternatives": [
+              "Eleanor Roosevelt"
+            ]
+          },
+          {
+            "id": "entry-10-quote",
+            "alternatives": [
+              "“A day without sunshine is like, you know, night.”"
+            ]
+          },
+          {
+            "id": "entry-10-author",
+            "alternatives": [
+              "Steve Martin"
+            ]
+          }
+        ],
+        "min_content_chars": 1000,
+        "fact_coverage_threshold": 1.0,
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+        "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+        "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+        "source_benchmark": {
+          "capture_scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+          "expected_entries": 10,
+          "render_evidence": {
+            "scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+            "rendered_truncated": false,
+            "completion": {
+              "condition": "dynamic-delayed: 10 nonempty target records with populated text fields; no interaction",
+              "timeout_ms": 30000,
+              "elapsed_ms": 10598,
+              "satisfied": true,
+              "checked_at": "2026-09-03T04:35:31.820Z",
+              "phase": "post-run independent reproduction of pre-run frozen reference"
+            }
+          }
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-09-03T04:28:05.890Z",
+          "method": "独立 HTTP 与浏览器可见正文对照",
+          "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+        },
+        "ground_truth_evidence": [
+          {
+            "source": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+            "supports": "独立观察的全部 10 条记录及其文字字段"
+          }
+        ]
+      },
+      {
+        "id": "dynamic-products-api",
+        "name": "Scraping Course · 异步商品",
+        "url": "https://www.scrapingcourse.com/javascript-rendering",
+        "category": "async_api",
+        "track": "dynamic",
+        "task_kind": "body",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-name",
+            "alternatives": [
+              "Chaz Kangeroo Hoodie"
+            ]
+          },
+          {
+            "id": "entry-1-price",
+            "alternatives": [
+              "$52"
+            ]
+          },
+          {
+            "id": "entry-2-name",
+            "alternatives": [
+              "Teton Pullover Hoodie"
+            ]
+          },
+          {
+            "id": "entry-2-price",
+            "alternatives": [
+              "$70"
+            ]
+          },
+          {
+            "id": "entry-3-name",
+            "alternatives": [
+              "Bruno Compete Hoodie"
+            ]
+          },
+          {
+            "id": "entry-3-price",
+            "alternatives": [
+              "$63"
+            ]
+          },
+          {
+            "id": "entry-4-name",
+            "alternatives": [
+              "Frankie Sweatshirt"
+            ]
+          },
+          {
+            "id": "entry-4-price",
+            "alternatives": [
+              "$60"
+            ]
+          },
+          {
+            "id": "entry-5-name",
+            "alternatives": [
+              "Hollister Backyard Sweatshirt"
+            ]
+          },
+          {
+            "id": "entry-5-price",
+            "alternatives": [
+              "$52"
+            ]
+          },
+          {
+            "id": "entry-6-name",
+            "alternatives": [
+              "Stark Fundamental Hoodie"
+            ]
+          },
+          {
+            "id": "entry-6-price",
+            "alternatives": [
+              "$42"
+            ]
+          },
+          {
+            "id": "entry-7-name",
+            "alternatives": [
+              "Hero Hoodie"
+            ]
+          },
+          {
+            "id": "entry-7-price",
+            "alternatives": [
+              "$54"
+            ]
+          },
+          {
+            "id": "entry-8-name",
+            "alternatives": [
+              "Oslo Trek Hoodie"
+            ]
+          },
+          {
+            "id": "entry-8-price",
+            "alternatives": [
+              "$42"
+            ]
+          },
+          {
+            "id": "entry-9-name",
+            "alternatives": [
+              "Abominable Hoodie"
+            ]
+          },
+          {
+            "id": "entry-9-price",
+            "alternatives": [
+              "$69"
+            ]
+          },
+          {
+            "id": "entry-10-name",
+            "alternatives": [
+              "Mach Street Sweatshirt"
+            ]
+          },
+          {
+            "id": "entry-10-price",
+            "alternatives": [
+              "$62"
+            ]
+          },
+          {
+            "id": "entry-11-name",
+            "alternatives": [
+              "Grayson Crewneck Sweatshirt"
+            ]
+          },
+          {
+            "id": "entry-11-price",
+            "alternatives": [
+              "$64"
+            ]
+          },
+          {
+            "id": "entry-12-name",
+            "alternatives": [
+              "Ajax Full-Zip Sweatshirt"
+            ]
+          },
+          {
+            "id": "entry-12-price",
+            "alternatives": [
+              "$69"
+            ]
+          }
+        ],
+        "min_content_chars": 223,
+        "fact_coverage_threshold": 1.0,
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "Chaz Kangeroo Hoodie\n$52\n\nTeton Pullover Hoodie\n$70\n\nBruno Compete Hoodie\n$63\n\nFrankie Sweatshirt\n$60\n\nHollister Backyard Sweatshirt\n$52\n\nStark Fundamental Hoodie\n$42\n\nHero Hoodie\n$54\n\nOslo Trek Hoodie\n$42\n\nAbominable Hoodie\n$69\n\nMach Street Sweatshirt\n$62\n\nGrayson Crewneck Sweatshirt\n$64\n\nAjax Full-Zip Sweatshirt\n$69",
+        "task_prompt": "读取初次自动加载完成后的 12 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+        "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+        "source_benchmark": {
+          "capture_scope": "Initial page automatic loading completed; exactly 12 visible entries, no scrolling/clicking/pagination",
+          "expected_entries": 12,
+          "render_evidence": {
+            "scope": "Initial page automatic loading completed; exactly 12 visible entries, no scrolling/clicking/pagination",
+            "rendered_truncated": false,
+            "completion": {
+              "condition": "dynamic-products-api: 12 nonempty target records with populated text fields; no interaction",
+              "timeout_ms": 30000,
+              "elapsed_ms": 4970,
+              "satisfied": true,
+              "checked_at": "2026-09-03T04:35:18.172Z",
+              "phase": "post-run independent reproduction of pre-run frozen reference"
+            }
+          }
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-09-03T04:27:56.472Z",
+          "method": "独立 HTTP 与浏览器可见正文对照",
+          "reference_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c"
+        },
+        "ground_truth_evidence": [
+          {
+            "source": "https://www.scrapingcourse.com/javascript-rendering",
+            "supports": "独立观察的全部 12 条记录及其文字字段"
+          }
+        ]
+      },
+      {
+        "id": "dynamic-quotes-api",
+        "name": "Quotes · 异步引文",
+        "url": "https://quotes.toscrape.com/scroll",
+        "category": "async_api",
+        "track": "dynamic",
+        "task_kind": "body",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "id": "entry-1-quote",
+            "alternatives": [
+              "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+            ]
+          },
+          {
+            "id": "entry-1-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-2-quote",
+            "alternatives": [
+              "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+            ]
+          },
+          {
+            "id": "entry-2-author",
+            "alternatives": [
+              "J.K. Rowling"
+            ]
+          },
+          {
+            "id": "entry-3-quote",
+            "alternatives": [
+              "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+            ]
+          },
+          {
+            "id": "entry-3-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-4-quote",
+            "alternatives": [
+              "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+            ]
+          },
+          {
+            "id": "entry-4-author",
+            "alternatives": [
+              "Jane Austen"
+            ]
+          },
+          {
+            "id": "entry-5-quote",
+            "alternatives": [
+              "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+            ]
+          },
+          {
+            "id": "entry-5-author",
+            "alternatives": [
+              "Marilyn Monroe"
+            ]
+          },
+          {
+            "id": "entry-6-quote",
+            "alternatives": [
+              "“Try not to become a man of success. Rather become a man of value.”"
+            ]
+          },
+          {
+            "id": "entry-6-author",
+            "alternatives": [
+              "Albert Einstein"
+            ]
+          },
+          {
+            "id": "entry-7-quote",
+            "alternatives": [
+              "“It is better to be hated for what you are than to be loved for what you are not.”"
+            ]
+          },
+          {
+            "id": "entry-7-author",
+            "alternatives": [
+              "André Gide"
+            ]
+          },
+          {
+            "id": "entry-8-quote",
+            "alternatives": [
+              "“I have not failed. I've just found 10,000 ways that won't work.”"
+            ]
+          },
+          {
+            "id": "entry-8-author",
+            "alternatives": [
+              "Thomas A. Edison"
+            ]
+          },
+          {
+            "id": "entry-9-quote",
+            "alternatives": [
+              "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+            ]
+          },
+          {
+            "id": "entry-9-author",
+            "alternatives": [
+              "Eleanor Roosevelt"
+            ]
+          },
+          {
+            "id": "entry-10-quote",
+            "alternatives": [
+              "“A day without sunshine is like, you know, night.”"
+            ]
+          },
+          {
+            "id": "entry-10-author",
+            "alternatives": [
+              "Steve Martin"
+            ]
+          }
+        ],
+        "min_content_chars": 1000,
+        "fact_coverage_threshold": 1.0,
+        "forbidden_any": [
+          "Access denied",
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+        "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+        "description": "源站为公开抓取练习站；核对固定练习数据，不代表生产网站分布。",
+        "source_benchmark": {
+          "capture_scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+          "expected_entries": 10,
+          "render_evidence": {
+            "scope": "Initial page automatic loading completed; exactly 10 visible entries, no scrolling/clicking/pagination",
+            "rendered_truncated": false,
+            "completion": {
+              "condition": "dynamic-quotes-api: 10 nonempty target records with populated text fields; no interaction",
+              "timeout_ms": 30000,
+              "elapsed_ms": 3814,
+              "satisfied": true,
+              "checked_at": "2026-09-03T04:35:13.202Z",
+              "phase": "post-run independent reproduction of pre-run frozen reference"
+            }
+          }
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-09-03T04:27:53.297Z",
+          "method": "独立 HTTP 与浏览器可见正文对照",
+          "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+        },
+        "ground_truth_evidence": [
+          {
+            "source": "https://quotes.toscrape.com/scroll",
+            "supports": "独立观察的全部 10 条记录及其文字字段"
+          }
+        ]
+      }
+    ],
+    "records": [
+      {
+        "attempt_id": "langchain-webbase__dynamic-quotes-api__r001",
+        "provider": "langchain-webbase",
+        "provider_type": "langchain_webbase",
+        "case_id": "dynamic-quotes-api",
+        "case_name": "Quotes · 异步引文",
+        "category": "async_api",
+        "url": "https://quotes.toscrape.com/scroll",
+        "run": 1,
+        "started_at": "2026-09-03T04:30:57.180595+00:00",
+        "elapsed_ms": 1403.93,
+        "ok": true,
+        "status_code": null,
+        "final_url": "https://quotes.toscrape.com/scroll",
+        "title": "Quotes to Scrape",
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/langchain-webbase/dynamic-quotes-api/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 20,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": false,
+          "content_chars": 164,
+          "content_sha256": "59c6fdaaf95d54657c7ca733f18ef943a703465094d703b87977b272a77775b3",
+          "unique_line_ratio": 0.8333,
+          "markdown_headings": 0,
+          "markdown_links": 0,
+          "html_tags": 0,
+          "word_precision": 0.25,
+          "word_recall": 0.0159,
+          "word_f1": 0.0299,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "langchain_community.WebBaseLoader",
+          "document_count": 1,
+          "document_metadata": {
+            "source": "https://quotes.toscrape.com/scroll",
+            "title": "Quotes to Scrape",
+            "language": "en"
+          },
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-c39b2cfc7e368ef05301"
+      },
+      {
+        "attempt_id": "langchain-webbase__dynamic-products-api__r001",
+        "provider": "langchain-webbase",
+        "provider_type": "langchain_webbase",
+        "case_id": "dynamic-products-api",
+        "case_name": "Scraping Course · 异步商品",
+        "category": "async_api",
+        "url": "https://www.scrapingcourse.com/javascript-rendering",
+        "run": 1,
+        "started_at": "2026-09-03T04:30:59.088441+00:00",
+        "elapsed_ms": 1485.56,
+        "ok": true,
+        "status_code": null,
+        "final_url": "https://www.scrapingcourse.com/javascript-rendering",
+        "title": "JS Rendering Challenge to Learn Web Scraping - ScrapingCourse.com",
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/langchain-webbase/dynamic-products-api/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-name",
+              "alternatives": [
+                "Chaz Kangeroo Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-name",
+              "alternatives": [
+                "Teton Pullover Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$70"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-name",
+              "alternatives": [
+                "Bruno Compete Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$63"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-name",
+              "alternatives": [
+                "Frankie Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$60"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-name",
+              "alternatives": [
+                "Hollister Backyard Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-name",
+              "alternatives": [
+                "Stark Fundamental Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-name",
+              "alternatives": [
+                "Hero Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-price",
+              "alternatives": [
+                "$54"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-name",
+              "alternatives": [
+                "Oslo Trek Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-name",
+              "alternatives": [
+                "Abominable Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-name",
+              "alternatives": [
+                "Mach Street Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-price",
+              "alternatives": [
+                "$62"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-11-name",
+              "alternatives": [
+                "Grayson Crewneck Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-11-price",
+              "alternatives": [
+                "$64"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-12-name",
+              "alternatives": [
+                "Ajax Full-Zip Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-12-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 24,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 223,
+          "length_pass": true,
+          "content_chars": 361,
+          "content_sha256": "3af003e68b5114f15a2f4787b7b5f3ace4cf25cce53db7839717126f497b78c4",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 0,
+          "markdown_links": 0,
+          "html_tags": 0,
+          "word_precision": 0.0,
+          "word_recall": 0.0,
+          "word_f1": 0.0,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "langchain_community.WebBaseLoader",
+          "document_count": 1,
+          "document_metadata": {
+            "source": "https://www.scrapingcourse.com/javascript-rendering",
+            "title": "JS Rendering Challenge to Learn Web Scraping - ScrapingCourse.com",
+            "language": "en"
+          },
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-5a0c5d6139d0789af645"
+      },
+      {
+        "attempt_id": "langchain-webbase__dynamic-catalog__r001",
+        "provider": "langchain-webbase",
+        "provider_type": "langchain_webbase",
+        "case_id": "dynamic-catalog",
+        "case_name": "Web Scraper · 客户端商品目录",
+        "category": "client_catalog",
+        "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:01.080627+00:00",
+        "elapsed_ms": 1209.47,
+        "ok": true,
+        "status_code": null,
+        "final_url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "title": "Ajax | Web Scraper Test Sites",
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/langchain-webbase/dynamic-catalog/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-description",
+              "alternatives": [
+                "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$295.99"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-description",
+              "alternatives": [
+                "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$306.99"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-description",
+              "alternatives": [
+                "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$321.94"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-description",
+              "alternatives": [
+                "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$356.49"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 12,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 555,
+          "length_pass": true,
+          "content_chars": 1684,
+          "content_sha256": "bf3e84c65a850f1f8745f15e62dc84eb9fbc58d02078d50ea50f05de31171d8e",
+          "unique_line_ratio": 0.8961,
+          "markdown_headings": 0,
+          "markdown_links": 0,
+          "html_tags": 1,
+          "word_precision": 0.0743,
+          "word_recall": 0.078,
+          "word_f1": 0.0761,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "langchain_community.WebBaseLoader",
+          "document_count": 1,
+          "document_metadata": {
+            "source": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+            "title": "Ajax | Web Scraper Test Sites",
+            "description": "Test Web Scraper's features and performance on mock e-commerce sites. Extract product data, prices, and categories in a controlled environment.",
+            "language": "en"
+          },
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-5b617b6b34295b57d8b0"
+      },
+      {
+        "attempt_id": "langchain-webbase__dynamic-delayed__r001",
+        "provider": "langchain-webbase",
+        "provider_type": "langchain_webbase",
+        "case_id": "dynamic-delayed",
+        "case_name": "Quotes · 延迟呈现",
+        "category": "delayed_render",
+        "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:02.797173+00:00",
+        "elapsed_ms": 770.18,
+        "ok": true,
+        "status_code": null,
+        "final_url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "title": "Quotes to Scrape",
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/langchain-webbase/dynamic-delayed/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 20,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": false,
+          "content_chars": 162,
+          "content_sha256": "a88b72f4b5011dfdd597642af816a2e24c8cf6709fc6529b0f0ce86fbee0d1d4",
+          "unique_line_ratio": 0.8333,
+          "markdown_headings": 0,
+          "markdown_links": 0,
+          "html_tags": 0,
+          "word_precision": 0.25,
+          "word_recall": 0.0159,
+          "word_f1": 0.0299,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "langchain_community.WebBaseLoader",
+          "document_count": 1,
+          "document_metadata": {
+            "source": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+            "title": "Quotes to Scrape",
+            "language": "en"
+          },
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-c854c54b8f78a9690a9b"
+      },
+      {
+        "attempt_id": "crawl4ai__dynamic-quotes-api__r001",
+        "provider": "crawl4ai",
+        "provider_type": "crawl4ai",
+        "case_id": "dynamic-quotes-api",
+        "case_name": "Quotes · 异步引文",
+        "category": "async_api",
+        "url": "https://quotes.toscrape.com/scroll",
+        "run": 1,
+        "started_at": "2026-09-03T04:30:57.180697+00:00",
+        "elapsed_ms": 6706.43,
+        "ok": true,
+        "status_code": 200,
+        "final_url": "https://quotes.toscrape.com/scroll",
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/crawl4ai/dynamic-quotes-api/run-001.txt",
+        "metrics": {
+          "content_pass": true,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [
+                "J.K. Rowling"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [
+                "Jane Austen"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [
+                "Marilyn Monroe"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [
+                "Albert Einstein"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [
+                "André Gide"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [
+                "Thomas A. Edison"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [
+                "Eleanor Roosevelt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [
+                "Steve Martin"
+              ],
+              "pass": true
+            }
+          ],
+          "fact_hits": 20,
+          "fact_total": 20,
+          "fact_coverage": 1.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": true,
+          "content_chars": 1523,
+          "content_sha256": "1f91bdb3a90d5e8ba285bbb24563711f3e59a62a154c6e802915336e89d2833c",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 2,
+          "markdown_links": 2,
+          "html_tags": 0,
+          "word_precision": 0.9805,
+          "word_recall": 1.0,
+          "word_f1": 0.9902,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://quotes.toscrape.com/",
+            "https://quotes.toscrape.com/login"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "crawl4ai.AsyncWebCrawler",
+          "images": [],
+          "videos": [],
+          "audios": [],
+          "internal_links": [
+            {
+              "href": "https://quotes.toscrape.com/",
+              "text": "Quotes to Scrape",
+              "title": "",
+              "base_domain": "toscrape.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://quotes.toscrape.com/login",
+              "text": "Login",
+              "title": "",
+              "base_domain": "toscrape.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            }
+          ],
+          "external_links": [],
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-f626182c10564afa6e53"
+      },
+      {
+        "attempt_id": "crawl4ai__dynamic-products-api__r001",
+        "provider": "crawl4ai",
+        "provider_type": "crawl4ai",
+        "case_id": "dynamic-products-api",
+        "case_name": "Scraping Course · 异步商品",
+        "category": "async_api",
+        "url": "https://www.scrapingcourse.com/javascript-rendering",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:04.391498+00:00",
+        "elapsed_ms": 15276.88,
+        "ok": true,
+        "status_code": 200,
+        "final_url": "https://www.scrapingcourse.com/javascript-rendering",
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/crawl4ai/dynamic-products-api/run-001.txt",
+        "metrics": {
+          "content_pass": true,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-name",
+              "alternatives": [
+                "Chaz Kangeroo Hoodie"
+              ],
+              "matched": [
+                "Chaz Kangeroo Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [
+                "$52"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-name",
+              "alternatives": [
+                "Teton Pullover Hoodie"
+              ],
+              "matched": [
+                "Teton Pullover Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$70"
+              ],
+              "matched": [
+                "$70"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-name",
+              "alternatives": [
+                "Bruno Compete Hoodie"
+              ],
+              "matched": [
+                "Bruno Compete Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$63"
+              ],
+              "matched": [
+                "$63"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-name",
+              "alternatives": [
+                "Frankie Sweatshirt"
+              ],
+              "matched": [
+                "Frankie Sweatshirt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$60"
+              ],
+              "matched": [
+                "$60"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-name",
+              "alternatives": [
+                "Hollister Backyard Sweatshirt"
+              ],
+              "matched": [
+                "Hollister Backyard Sweatshirt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [
+                "$52"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-name",
+              "alternatives": [
+                "Stark Fundamental Hoodie"
+              ],
+              "matched": [
+                "Stark Fundamental Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [
+                "$42"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-name",
+              "alternatives": [
+                "Hero Hoodie"
+              ],
+              "matched": [
+                "Hero Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-7-price",
+              "alternatives": [
+                "$54"
+              ],
+              "matched": [
+                "$54"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-name",
+              "alternatives": [
+                "Oslo Trek Hoodie"
+              ],
+              "matched": [
+                "Oslo Trek Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-8-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [
+                "$42"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-name",
+              "alternatives": [
+                "Abominable Hoodie"
+              ],
+              "matched": [
+                "Abominable Hoodie"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-9-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [
+                "$69"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-name",
+              "alternatives": [
+                "Mach Street Sweatshirt"
+              ],
+              "matched": [
+                "Mach Street Sweatshirt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-10-price",
+              "alternatives": [
+                "$62"
+              ],
+              "matched": [
+                "$62"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-11-name",
+              "alternatives": [
+                "Grayson Crewneck Sweatshirt"
+              ],
+              "matched": [
+                "Grayson Crewneck Sweatshirt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-11-price",
+              "alternatives": [
+                "$64"
+              ],
+              "matched": [
+                "$64"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-12-name",
+              "alternatives": [
+                "Ajax Full-Zip Sweatshirt"
+              ],
+              "matched": [
+                "Ajax Full-Zip Sweatshirt"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-12-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [
+                "$69"
+              ],
+              "pass": true
+            }
+          ],
+          "fact_hits": 24,
+          "fact_total": 24,
+          "fact_coverage": 1.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 223,
+          "length_pass": true,
+          "content_chars": 2760,
+          "content_sha256": "f7a9fff95dd104ddf125009021e3903fd33e43c39b376c23b97586180a706e07",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 2,
+          "markdown_links": 13,
+          "html_tags": 0,
+          "word_precision": 0.2447,
+          "word_recall": 1.0,
+          "word_f1": 0.3932,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://scrapingcourse.com/ecommerce/product/abominable-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/ajax-full-zip-sweatshirt",
+            "https://scrapingcourse.com/ecommerce/product/bruno-compete-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/chaz-kangeroo-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/frankie-sweatshirt",
+            "https://scrapingcourse.com/ecommerce/product/grayson-crewneck-sweatshirt",
+            "https://scrapingcourse.com/ecommerce/product/hero-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/hollister-backyard-sweatshirt",
+            "https://scrapingcourse.com/ecommerce/product/mach-street-sweatshirt",
+            "https://scrapingcourse.com/ecommerce/product/oslo-trek-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/stark-fundamental-hoodie",
+            "https://scrapingcourse.com/ecommerce/product/teton-pullover-hoodie",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh01-gray_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh02-black_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh03-black_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh04-green_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh05-white_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh06-blue_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh07-gray_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh08-brown_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh09-blue_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh10-blue_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh11-white_main.jpg",
+            "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh12-green_main.jpg",
+            "https://www.scrapingcourse.com/",
+            "https://www.scrapingcourse.com/assets/images/challenge.svg",
+            "https://www.scrapingcourse.com/assets/images/logo.svg"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "crawl4ai.AsyncWebCrawler",
+          "images": [
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh01-gray_main.jpg",
+              "data": "",
+              "alt": "Chaz Kangeroo Hoodie",
+              "desc": "Chaz Kangeroo Hoodie\n                                    \n                                    $52",
+              "score": 5,
+              "type": "image",
+              "group_id": 2,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh02-black_main.jpg",
+              "data": "",
+              "alt": "Teton Pullover Hoodie",
+              "desc": "Teton Pullover Hoodie\n                                    \n                                    $70",
+              "score": 5,
+              "type": "image",
+              "group_id": 3,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh03-black_main.jpg",
+              "data": "",
+              "alt": "Bruno Compete Hoodie",
+              "desc": "Bruno Compete Hoodie\n                                    \n                                    $63",
+              "score": 5,
+              "type": "image",
+              "group_id": 4,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh04-green_main.jpg",
+              "data": "",
+              "alt": "Frankie  Sweatshirt",
+              "desc": "Frankie  Sweatshirt\n                                    \n                                    $60",
+              "score": 5,
+              "type": "image",
+              "group_id": 5,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh05-white_main.jpg",
+              "data": "",
+              "alt": "Hollister Backyard Sweatshirt",
+              "desc": "Hollister Backyard Sweatshirt\n                                    \n                                    $52",
+              "score": 5,
+              "type": "image",
+              "group_id": 6,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh06-blue_main.jpg",
+              "data": "",
+              "alt": "Stark Fundamental Hoodie",
+              "desc": "Stark Fundamental Hoodie\n                                    \n                                    $42",
+              "score": 4,
+              "type": "image",
+              "group_id": 7,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh07-gray_main.jpg",
+              "data": "",
+              "alt": "Hero Hoodie",
+              "desc": "Hero Hoodie\n                                    \n                                    $54",
+              "score": 4,
+              "type": "image",
+              "group_id": 8,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh08-brown_main.jpg",
+              "data": "",
+              "alt": "Oslo Trek Hoodie",
+              "desc": "Oslo Trek Hoodie\n                                    \n                                    $42",
+              "score": 4,
+              "type": "image",
+              "group_id": 9,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh09-blue_main.jpg",
+              "data": "",
+              "alt": "Abominable Hoodie",
+              "desc": "Abominable Hoodie\n                                    \n                                    $69",
+              "score": 4,
+              "type": "image",
+              "group_id": 10,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh10-blue_main.jpg",
+              "data": "",
+              "alt": "Mach Street Sweatshirt",
+              "desc": "Mach Street Sweatshirt\n                                    \n                                    $62",
+              "score": 4,
+              "type": "image",
+              "group_id": 11,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh11-white_main.jpg",
+              "data": "",
+              "alt": "Grayson Crewneck Sweatshirt",
+              "desc": "Grayson Crewneck Sweatshirt\n                                    \n                                    $64",
+              "score": 4,
+              "type": "image",
+              "group_id": 12,
+              "format": "jpg",
+              "width": null
+            },
+            {
+              "src": "https://scrapingcourse.com/ecommerce/wp-content/uploads/2024/03/mh12-green_main.jpg",
+              "data": "",
+              "alt": "Ajax Full-Zip Sweatshirt",
+              "desc": "Ajax Full-Zip Sweatshirt\n                                    \n                                    $69",
+              "score": 4,
+              "type": "image",
+              "group_id": 13,
+              "format": "jpg",
+              "width": null
+            }
+          ],
+          "videos": [],
+          "audios": [],
+          "internal_links": [
+            {
+              "href": "https://www.scrapingcourse.com/",
+              "text": "Scraping\n                    Course",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/chaz-kangeroo-hoodie",
+              "text": "Chaz Kangeroo Hoodie\n                                    \n                                    $52",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/teton-pullover-hoodie",
+              "text": "Teton Pullover Hoodie\n                                    \n                                    $70",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/bruno-compete-hoodie",
+              "text": "Bruno Compete Hoodie\n                                    \n                                    $63",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/frankie-sweatshirt",
+              "text": "Frankie  Sweatshirt\n                                    \n                                    $60",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/hollister-backyard-sweatshirt",
+              "text": "Hollister Backyard Sweatshirt\n                                    \n                                    $52",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/stark-fundamental-hoodie",
+              "text": "Stark Fundamental Hoodie\n                                    \n                                    $42",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/hero-hoodie",
+              "text": "Hero Hoodie\n                                    \n                                    $54",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/oslo-trek-hoodie",
+              "text": "Oslo Trek Hoodie\n                                    \n                                    $42",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/abominable-hoodie",
+              "text": "Abominable Hoodie\n                                    \n                                    $69",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/mach-street-sweatshirt",
+              "text": "Mach Street Sweatshirt\n                                    \n                                    $62",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/grayson-crewneck-sweatshirt",
+              "text": "Grayson Crewneck Sweatshirt\n                                    \n                                    $64",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://scrapingcourse.com/ecommerce/product/ajax-full-zip-sweatshirt",
+              "text": "Ajax Full-Zip Sweatshirt\n                                    \n                                    $69",
+              "title": "",
+              "base_domain": "scrapingcourse.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            }
+          ],
+          "external_links": [],
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-f72921ab93aa264ffca7"
+      },
+      {
+        "attempt_id": "crawl4ai__dynamic-catalog__r001",
+        "provider": "crawl4ai",
+        "provider_type": "crawl4ai",
+        "case_id": "dynamic-catalog",
+        "case_name": "Web Scraper · 客户端商品目录",
+        "category": "client_catalog",
+        "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:20.180513+00:00",
+        "elapsed_ms": 8206.5,
+        "ok": true,
+        "status_code": 200,
+        "final_url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/crawl4ai/dynamic-catalog/run-001.txt",
+        "metrics": {
+          "content_pass": true,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-description",
+              "alternatives": [
+                "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+              ],
+              "matched": [
+                "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$295.99"
+              ],
+              "matched": [
+                "$295.99"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [
+                "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [
+                "$299"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [
+                "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [
+                "$299"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-description",
+              "alternatives": [
+                "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+              ],
+              "matched": [
+                "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$306.99"
+              ],
+              "matched": [
+                "$306.99"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-description",
+              "alternatives": [
+                "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+              ],
+              "matched": [
+                "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$321.94"
+              ],
+              "matched": [
+                "$321.94"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-description",
+              "alternatives": [
+                "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+              ],
+              "matched": [
+                "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$356.49"
+              ],
+              "matched": [
+                "$356.49"
+              ],
+              "pass": true
+            }
+          ],
+          "fact_hits": 12,
+          "fact_total": 12,
+          "fact_coverage": 1.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 555,
+          "length_pass": true,
+          "content_chars": 3880,
+          "content_sha256": "8e330c500b26038c6e8a6270cdd0718a70930dc2eb1746240bfb86caa2a89027",
+          "unique_line_ratio": 0.8462,
+          "markdown_headings": 18,
+          "markdown_links": 40,
+          "html_tags": 1,
+          "word_precision": 0.59,
+          "word_recall": 1.0,
+          "word_f1": 0.7421,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en",
+            "https://forum.webscraper.io/",
+            "https://lv.linkedin.com/company/web-scraper",
+            "https://status.webscraper.io/",
+            "https://webscraper.io/",
+            "https://webscraper.io/about-us",
+            "https://webscraper.io/blog",
+            "https://webscraper.io/contact",
+            "https://webscraper.io/documentation",
+            "https://webscraper.io/downloads/Web_Scraper_Media_Kit.zip",
+            "https://webscraper.io/extension-privacy-policy",
+            "https://webscraper.io/images/test-sites/e-commerce/items/cart2.png",
+            "https://webscraper.io/img/logo-v2.svg",
+            "https://webscraper.io/privacy-policy",
+            "https://webscraper.io/test-sites",
+            "https://webscraper.io/test-sites/e-commerce/ajax",
+            "https://webscraper.io/test-sites/e-commerce/ajax/computers",
+            "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+            "https://webscraper.io/test-sites/e-commerce/ajax/phones",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/32",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/32 \"Aspire E1-510",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/60",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/60 \"Asus VivoBook X441NA-GA190",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/61",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/61 \"Prestigio SmartBook 133S Dark Grey",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/62",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/62 \"Prestigio SmartBook 133S Gold",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/63",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/63 \"Lenovo V110-15IAP",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/64",
+            "https://webscraper.io/test-sites/e-commerce/ajax/product/64 \"Lenovo V110-15IAP",
+            "https://webscraper.io/tutorials",
+            "https://webscraper.io/web-scraper-extension",
+            "https://www.facebook.com/webscraperio/",
+            "https://youtube.com/@WebScraper/videos"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "crawl4ai.AsyncWebCrawler",
+          "images": [
+            {
+              "src": "/images/test-sites/e-commerce/items/cart2.png",
+              "data": "",
+              "alt": "item",
+              "desc": "Computers / Laptops\n\t117 items\n$295.99Asus VivoBook X4Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd1 reviews$299Prestigio SmartBPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$299Prestigio SmartBPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$306.99Aspire E1-51015.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux2 reviews$321.94Lenovo V110-15IALenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home12 reviews$356.49Lenovo V110-15IAAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd12 reviews\n\t\n\t\t\t\t\t1\n\t\t\t\t\t2\n\t\t\t\t\t3\n\t\t\t\t\t4\n\t\t\t\t\t5\n\t\t\t\t\t6\n\t\t\t\t\t7\n\t\t\t\t\t8\n\t\t\t\t\t9\n\t\t\t\t\t10\n\t\t\t\t\t11\n\t\t\t\t\t12\n\t\t\t\t\t13\n\t\t\t\t\t14\n\t\t\t\t\t15\n\t\t\t\t\t16\n\t\t\t\t\t17\n\t\t\t\t\t18\n\t\t\t\t\t19\n\t\t\t\t\t20\n\t\t\t\n\t\n\t\t< Previous\n\t\tNext >",
+              "score": 3,
+              "type": "image",
+              "group_id": 0,
+              "format": "png",
+              "width": null
+            },
+            {
+              "src": "/images/test-sites/e-commerce/items/cart2.png",
+              "data": "",
+              "alt": "item",
+              "desc": "Computers / Laptops\n\t117 items\n$295.99Asus VivoBook X4Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd1 reviews$299Prestigio SmartBPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$299Prestigio SmartBPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$306.99Aspire E1-51015.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux2 reviews$321.94Lenovo V110-15IALenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home12 reviews$356.49Lenovo V110-15IAAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd12 reviews\n\t\n\t\t\t\t\t1\n\t\t\t\t\t2\n\t\t\t\t\t3\n\t\t\t\t\t4\n\t\t\t\t\t5\n\t\t\t\t\t6\n\t\t\t\t\t7\n\t\t\t\t\t8\n\t\t\t\t\t9\n\t\t\t\t\t10\n\t\t\t\t\t11\n\t\t\t\t\t12\n\t\t\t\t\t13\n\t\t\t\t\t14\n\t\t\t\t\t15\n\t\t\t\t\t16\n\t\t\t\t\t17\n\t\t\t\t\t18\n\t\t\t\t\t19\n\t\t\t\t\t20\n\t\t\t\n\t\n\t\t< Previous\n\t\tNext >",
+              "score": 3,
+              "type": "image",
+              "group_id": 1,
+              "format": "png",
+              "width": null
+            },
+            {
+              "src": "/images/test-sites/e-commerce/items/cart2.png",
+              "data": "",
+              "alt": "item",
+              "desc": "Computers / Laptops\n\t117 items\n$295.99Asus VivoBook X4Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd1 reviews$299Prestigio SmartBPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$299Prestigio SmartBPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$306.99Aspire E1-51015.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux2 reviews$321.94Lenovo V110-15IALenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home12 reviews$356.49Lenovo V110-15IAAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd12 reviews\n\t\n\t\t\t\t\t1\n\t\t\t\t\t2\n\t\t\t\t\t3\n\t\t\t\t\t4\n\t\t\t\t\t5\n\t\t\t\t\t6\n\t\t\t\t\t7\n\t\t\t\t\t8\n\t\t\t\t\t9\n\t\t\t\t\t10\n\t\t\t\t\t11\n\t\t\t\t\t12\n\t\t\t\t\t13\n\t\t\t\t\t14\n\t\t\t\t\t15\n\t\t\t\t\t16\n\t\t\t\t\t17\n\t\t\t\t\t18\n\t\t\t\t\t19\n\t\t\t\t\t20\n\t\t\t\n\t\n\t\t< Previous\n\t\tNext >",
+              "score": 3,
+              "type": "image",
+              "group_id": 2,
+              "format": "png",
+              "width": null
+            },
+            {
+              "src": "/images/test-sites/e-commerce/items/cart2.png",
+              "data": "",
+              "alt": "item",
+              "desc": "Computers / Laptops\n\t117 items\n$295.99Asus VivoBook X4Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd1 reviews$299Prestigio SmartBPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$299Prestigio SmartBPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam9 reviews$306.99Aspire E1-51015.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux2 reviews$321.94Lenovo V110-15IALenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home12 reviews$356.49Lenovo V110-15IAAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd12 reviews\n\t\n\t\t\t\t\t1\n\t\t\t\t\t2\n\t\t\t\t\t3\n\t\t\t\t\t4\n\t\t\t\t\t5\n\t\t\t\t\t6\n\t\t\t\t\t7\n\t\t\t\t\t8\n\t\t\t\t\t9\n\t\t\t\t\t10\n\t\t\t\t\t11\n\t\t\t\t\t12\n\t\t\t\t\t13\n\t\t\t\t\t14\n\t\t\t\t\t15\n\t\t\t\t\t16\n\t\t\t\t\t17\n\t\t\t\t\t18\n\t\t\t\t\t19\n\t\t\t\t\t20\n\t\t\t\n\t\n\t\t< Previous\n\t\tNext >",
+              "score": 3,
+              "type": "image",
+              "group_id": 3,
+              "format": "png",
+              "width": null
+            }
+          ],
+          "videos": [],
+          "audios": [],
+          "internal_links": [
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax",
+              "text": "Home",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/computers",
+              "text": "Computers",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+              "text": "Laptops",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+              "text": "Tablets",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/phones",
+              "text": "Phones",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/60",
+              "text": "Asus VivoBook X4",
+              "title": "Asus VivoBook X441NA-GA190",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/61",
+              "text": "Prestigio SmartB",
+              "title": "Prestigio SmartBook 133S Dark Grey",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/62",
+              "text": "Prestigio SmartB",
+              "title": "Prestigio SmartBook 133S Gold",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/32",
+              "text": "Aspire E1-510",
+              "title": "Aspire E1-510",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/63",
+              "text": "Lenovo V110-15IA",
+              "title": "Lenovo V110-15IAP",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites/e-commerce/ajax/product/64",
+              "text": "Lenovo V110-15IA",
+              "title": "Lenovo V110-15IAP",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/",
+              "text": "",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/web-scraper-extension",
+              "text": "Web Scraper browser extension",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/about-us",
+              "text": "About us",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/contact",
+              "text": "Contacts",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/privacy-policy",
+              "text": "Website Privacy Policy",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/extension-privacy-policy",
+              "text": "Browser Extension Privacy Policy",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/downloads/Web_Scraper_Media_Kit.zip",
+              "text": "Media kit",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/blog",
+              "text": "Blog",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/documentation",
+              "text": "Documentation",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/tutorials",
+              "text": "Video Tutorials",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://webscraper.io/test-sites",
+              "text": "Test Sites",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://forum.webscraper.io/",
+              "text": "Forum",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://status.webscraper.io/",
+              "text": "Status",
+              "title": "",
+              "base_domain": "webscraper.io",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            }
+          ],
+          "external_links": [
+            {
+              "href": "mailto:info@webscraper.io",
+              "text": "info@webscraper.io",
+              "title": "",
+              "base_domain": "",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://www.facebook.com/webscraperio/",
+              "text": "",
+              "title": "",
+              "base_domain": "facebook.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://lv.linkedin.com/company/web-scraper",
+              "text": "",
+              "title": "",
+              "base_domain": "linkedin.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://youtube.com/@WebScraper/videos",
+              "text": "",
+              "title": "",
+              "base_domain": "youtube.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en",
+              "text": "",
+              "title": "",
+              "base_domain": "google.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            }
+          ],
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-2dfe42beec50c5285be2"
+      },
+      {
+        "attempt_id": "crawl4ai__dynamic-delayed__r001",
+        "provider": "crawl4ai",
+        "provider_type": "crawl4ai",
+        "case_id": "dynamic-delayed",
+        "case_name": "Quotes · 延迟呈现",
+        "category": "delayed_render",
+        "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:28.891383+00:00",
+        "elapsed_ms": 2353.39,
+        "ok": true,
+        "status_code": 200,
+        "final_url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/crawl4ai/dynamic-delayed/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 20,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": false,
+          "content_chars": 158,
+          "content_sha256": "30066925922f775cbc294982f933ca003cde7df350505c2908667bb5a21cb4ee",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 1,
+          "markdown_links": 3,
+          "html_tags": 0,
+          "word_precision": 0.2,
+          "word_recall": 0.004,
+          "word_f1": 0.0078,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://quotes.toscrape.com/",
+            "https://quotes.toscrape.com/js-delayed/page/2/",
+            "https://quotes.toscrape.com/login"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "implementation": "crawl4ai.AsyncWebCrawler",
+          "images": [],
+          "videos": [],
+          "audios": [],
+          "internal_links": [
+            {
+              "href": "https://quotes.toscrape.com/",
+              "text": "Quotes to Scrape",
+              "title": "",
+              "base_domain": "toscrape.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://quotes.toscrape.com/login",
+              "text": "Login",
+              "title": "",
+              "base_domain": "toscrape.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            },
+            {
+              "href": "https://quotes.toscrape.com/js-delayed/page/2/",
+              "text": "Next →",
+              "title": "",
+              "base_domain": "toscrape.com",
+              "head_data": null,
+              "head_extraction_status": null,
+              "head_extraction_error": null,
+              "intrinsic_score": 0.0,
+              "contextual_score": null,
+              "total_score": null
+            }
+          ],
+          "external_links": [],
+          "worker_logs": [],
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-e39a6d1818f34183d21e"
+      },
+      {
+        "attempt_id": "moli-webfetch__dynamic-quotes-api__r001",
+        "provider": "moli-webfetch",
+        "provider_type": "moli_webfetch",
+        "case_id": "dynamic-quotes-api",
+        "case_name": "Quotes · 异步引文",
+        "category": "async_api",
+        "url": "https://quotes.toscrape.com/scroll",
+        "run": 1,
+        "started_at": "2026-09-03T04:30:57.180758+00:00",
+        "elapsed_ms": 2762.78,
+        "ok": true,
+        "status_code": null,
+        "final_url": null,
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/moli-webfetch/dynamic-quotes-api/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 20,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": false,
+          "content_chars": 156,
+          "content_sha256": "4ad58acadd0913636e6d335f4b20b4e3afdf2d9a132116c09c0e104f04ce2f6f",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 2,
+          "markdown_links": 2,
+          "html_tags": 0,
+          "word_precision": 0.1667,
+          "word_recall": 0.0079,
+          "word_f1": 0.0152,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://quotes.toscrape.com/login",
+            "https://www.goodreads.com/quotes",
+            "https://www.zyte.com"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "dump": "markdown",
+          "wait_until": "done",
+          "binary": "moli",
+          "block_private_networks": true,
+          "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783",
+          "exit_code": 0,
+          "stderr": "",
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-bea7fd8a39fedc85a244"
+      },
+      {
+        "attempt_id": "moli-webfetch__dynamic-products-api__r001",
+        "provider": "moli-webfetch",
+        "provider_type": "moli_webfetch",
+        "case_id": "dynamic-products-api",
+        "case_name": "Scraping Course · 异步商品",
+        "category": "async_api",
+        "url": "https://www.scrapingcourse.com/javascript-rendering",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:00.450204+00:00",
+        "elapsed_ms": 2254.01,
+        "ok": true,
+        "status_code": null,
+        "final_url": null,
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/moli-webfetch/dynamic-products-api/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-name",
+              "alternatives": [
+                "Chaz Kangeroo Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-name",
+              "alternatives": [
+                "Teton Pullover Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$70"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-name",
+              "alternatives": [
+                "Bruno Compete Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$63"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-name",
+              "alternatives": [
+                "Frankie Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$60"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-name",
+              "alternatives": [
+                "Hollister Backyard Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$52"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-name",
+              "alternatives": [
+                "Stark Fundamental Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-name",
+              "alternatives": [
+                "Hero Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-price",
+              "alternatives": [
+                "$54"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-name",
+              "alternatives": [
+                "Oslo Trek Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-price",
+              "alternatives": [
+                "$42"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-name",
+              "alternatives": [
+                "Abominable Hoodie"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-name",
+              "alternatives": [
+                "Mach Street Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-price",
+              "alternatives": [
+                "$62"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-11-name",
+              "alternatives": [
+                "Grayson Crewneck Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-11-price",
+              "alternatives": [
+                "$64"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-12-name",
+              "alternatives": [
+                "Ajax Full-Zip Sweatshirt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-12-price",
+              "alternatives": [
+                "$69"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 24,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 223,
+          "length_pass": true,
+          "content_chars": 279,
+          "content_sha256": "12192f66b979914377210653b0d5241664f5e2d84a26dba4974e4dcb6d6bf3b5",
+          "unique_line_ratio": 0.3529,
+          "markdown_headings": 2,
+          "markdown_links": 1,
+          "html_tags": 0,
+          "word_precision": 0.0,
+          "word_recall": 0.0,
+          "word_f1": 0.0,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://www.scrapingcourse.com/assets/images/challenge.svg",
+            "https://www.scrapingcourse.com/assets/images/logo.svg"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "dump": "markdown",
+          "wait_until": "done",
+          "binary": "moli",
+          "block_private_networks": true,
+          "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783",
+          "exit_code": 0,
+          "stderr": "",
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-b9b4903a59f0bf974a4f"
+      },
+      {
+        "attempt_id": "moli-webfetch__dynamic-catalog__r001",
+        "provider": "moli-webfetch",
+        "provider_type": "moli_webfetch",
+        "case_id": "dynamic-catalog",
+        "case_name": "Web Scraper · 客户端商品目录",
+        "category": "client_catalog",
+        "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:03.210179+00:00",
+        "elapsed_ms": 4101.65,
+        "ok": true,
+        "status_code": null,
+        "final_url": null,
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/moli-webfetch/dynamic-catalog/run-001.txt",
+        "metrics": {
+          "content_pass": true,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-description",
+              "alternatives": [
+                "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+              ],
+              "matched": [
+                "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-1-price",
+              "alternatives": [
+                "$295.99"
+              ],
+              "matched": [
+                "$295.99"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [
+                "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-2-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [
+                "$299"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-description",
+              "alternatives": [
+                "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "matched": [
+                "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-3-price",
+              "alternatives": [
+                "$299"
+              ],
+              "matched": [
+                "$299"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-description",
+              "alternatives": [
+                "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+              ],
+              "matched": [
+                "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-4-price",
+              "alternatives": [
+                "$306.99"
+              ],
+              "matched": [
+                "$306.99"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-description",
+              "alternatives": [
+                "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+              ],
+              "matched": [
+                "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-5-price",
+              "alternatives": [
+                "$321.94"
+              ],
+              "matched": [
+                "$321.94"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-description",
+              "alternatives": [
+                "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+              ],
+              "matched": [
+                "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+              ],
+              "pass": true
+            },
+            {
+              "id": "entry-6-price",
+              "alternatives": [
+                "$356.49"
+              ],
+              "matched": [
+                "$356.49"
+              ],
+              "pass": true
+            }
+          ],
+          "fact_hits": 12,
+          "fact_total": 12,
+          "fact_coverage": 1.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 555,
+          "length_pass": true,
+          "content_chars": 4417,
+          "content_sha256": "f4a5b6cdd6dfaaa5ea82690373b471d88f2721c76f4202f5aa0378cd5b6b3aae",
+          "unique_line_ratio": 0.8169,
+          "markdown_headings": 18,
+          "markdown_links": 16,
+          "html_tags": 1,
+          "word_precision": 0.4057,
+          "word_recall": 0.9149,
+          "word_f1": 0.5621,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://chromewebstore.google.com/detail/web-scraper/jnhgnonknehpejjnehehllkliplmbmhn?hl=en",
+            "https://cloud.webscraper.io/",
+            "https://cloud.webscraper.io/register?utm_source=cloud-landing&utm_medium=announcement-bar",
+            "https://forum.webscraper.io/",
+            "https://lv.linkedin.com/company/web-scraper",
+            "https://status.webscraper.io/",
+            "https://webscraper.io/",
+            "https://webscraper.io/about-us",
+            "https://webscraper.io/blog",
+            "https://webscraper.io/contact",
+            "https://webscraper.io/documentation",
+            "https://webscraper.io/downloads/Web_Scraper_Media_Kit.zip",
+            "https://webscraper.io/extension-privacy-policy",
+            "https://webscraper.io/images/test-sites/e-commerce/items/cart2.png",
+            "https://webscraper.io/img/logo-v2.svg",
+            "https://webscraper.io/marketplace",
+            "https://webscraper.io/pricing",
+            "https://webscraper.io/privacy-policy",
+            "https://webscraper.io/solutions/competitor-price-monitoring",
+            "https://webscraper.io/solutions/ecommerce-web-scraping",
+            "https://webscraper.io/solutions/lead-generation-web-scraping",
+            "https://webscraper.io/solutions/map-monitoring",
+            "https://webscraper.io/solutions/market-research-web-scraping",
+            "https://webscraper.io/solutions/marketplace-data-scraping",
+            "https://webscraper.io/solutions/real-estate-data-extraction",
+            "https://webscraper.io/solutions/web-data-for-ai-training",
+            "https://webscraper.io/solutions/web-data-for-rag-ai-agents",
+            "https://webscraper.io/test-sites",
+            "https://webscraper.io/test-sites/e-commerce/ajax",
+            "https://webscraper.io/test-sites/e-commerce/ajax/computers",
+            "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+            "https://webscraper.io/test-sites/e-commerce/ajax/phones",
+            "https://webscraper.io/tutorials",
+            "https://webscraper.io/web-scraper-extension",
+            "https://www.facebook.com/webscraperio/",
+            "https://youtube.com/@WebScraper/videos"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "dump": "markdown",
+          "wait_until": "done",
+          "binary": "moli",
+          "block_private_networks": true,
+          "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783",
+          "exit_code": 0,
+          "stderr": "",
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-3353d4fbbfb7366d68a3"
+      },
+      {
+        "attempt_id": "moli-webfetch__dynamic-delayed__r001",
+        "provider": "moli-webfetch",
+        "provider_type": "moli_webfetch",
+        "case_id": "dynamic-delayed",
+        "case_name": "Quotes · 延迟呈现",
+        "category": "delayed_render",
+        "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+        "run": 1,
+        "started_at": "2026-09-03T04:31:07.819214+00:00",
+        "elapsed_ms": 2452.65,
+        "ok": true,
+        "status_code": null,
+        "final_url": null,
+        "title": null,
+        "error_type": null,
+        "error_message": null,
+        "artifact_path": "artifacts/moli-webfetch/dynamic-delayed/run-001.txt",
+        "metrics": {
+          "content_pass": false,
+          "pattern_results": [],
+          "legacy_marker_pass": true,
+          "matched_markers": [],
+          "expected_markers": [],
+          "marker_hits": 0,
+          "marker_total": 0,
+          "marker_recall": 1.0,
+          "fact_results": [
+            {
+              "id": "entry-1-quote",
+              "alternatives": [
+                "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-1-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-quote",
+              "alternatives": [
+                "“It is our choices, Harry, that show what we truly are, far more than our abilities.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-2-author",
+              "alternatives": [
+                "J.K. Rowling"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-quote",
+              "alternatives": [
+                "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-3-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-quote",
+              "alternatives": [
+                "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-4-author",
+              "alternatives": [
+                "Jane Austen"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-quote",
+              "alternatives": [
+                "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-5-author",
+              "alternatives": [
+                "Marilyn Monroe"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-quote",
+              "alternatives": [
+                "“Try not to become a man of success. Rather become a man of value.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-6-author",
+              "alternatives": [
+                "Albert Einstein"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-quote",
+              "alternatives": [
+                "“It is better to be hated for what you are than to be loved for what you are not.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-7-author",
+              "alternatives": [
+                "André Gide"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-quote",
+              "alternatives": [
+                "“I have not failed. I've just found 10,000 ways that won't work.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-8-author",
+              "alternatives": [
+                "Thomas A. Edison"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-quote",
+              "alternatives": [
+                "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-9-author",
+              "alternatives": [
+                "Eleanor Roosevelt"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-quote",
+              "alternatives": [
+                "“A day without sunshine is like, you know, night.”"
+              ],
+              "matched": [],
+              "pass": false
+            },
+            {
+              "id": "entry-10-author",
+              "alternatives": [
+                "Steve Martin"
+              ],
+              "matched": [],
+              "pass": false
+            }
+          ],
+          "fact_hits": 0,
+          "fact_total": 20,
+          "fact_coverage": 0.0,
+          "fact_coverage_threshold": 1.0,
+          "forbidden_hits": [],
+          "reference_term_exemptions": [],
+          "minimum_content_chars": 1000,
+          "length_pass": false,
+          "content_chars": 170,
+          "content_sha256": "681aa576c7e08eafcd7d259967b84de06cda5731ebf98ef157d964af8e3f0cd5",
+          "unique_line_ratio": 1.0,
+          "markdown_headings": 1,
+          "markdown_links": 2,
+          "html_tags": 0,
+          "word_precision": 0.1667,
+          "word_recall": 0.0079,
+          "word_f1": 0.0152,
+          "content_score_applicable": true,
+          "resource_results": [],
+          "resource_hits": 0,
+          "resource_total": 0,
+          "resource_recall": null,
+          "resource_pass": null,
+          "resource_candidate_urls": [
+            "https://quotes.toscrape.com/js-delayed/page/2/",
+            "https://quotes.toscrape.com/login",
+            "https://www.goodreads.com/quotes",
+            "https://www.zyte.com"
+          ],
+          "deadline_overrun": false
+        },
+        "provider_metadata": {
+          "dump": "markdown",
+          "wait_until": "done",
+          "binary": "moli",
+          "block_private_networks": true,
+          "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783",
+          "exit_code": 0,
+          "stderr": "",
+          "configured_min_interval_seconds": 0.0,
+          "client_throttle_wait_ms": 0.0
+        },
+        "run_id": "run-45ea0989bec29e8724b0"
+      }
+    ]
+  },
+  "output_sha256": {
+    "langchain-webbase__dynamic-quotes-api__r001": "59c6fdaaf95d54657c7ca733f18ef943a703465094d703b87977b272a77775b3",
+    "langchain-webbase__dynamic-products-api__r001": "3af003e68b5114f15a2f4787b7b5f3ace4cf25cce53db7839717126f497b78c4",
+    "langchain-webbase__dynamic-catalog__r001": "bf3e84c65a850f1f8745f15e62dc84eb9fbc58d02078d50ea50f05de31171d8e",
+    "langchain-webbase__dynamic-delayed__r001": "a88b72f4b5011dfdd597642af816a2e24c8cf6709fc6529b0f0ce86fbee0d1d4",
+    "crawl4ai__dynamic-quotes-api__r001": "1f91bdb3a90d5e8ba285bbb24563711f3e59a62a154c6e802915336e89d2833c",
+    "crawl4ai__dynamic-products-api__r001": "f7a9fff95dd104ddf125009021e3903fd33e43c39b376c23b97586180a706e07",
+    "crawl4ai__dynamic-catalog__r001": "8e330c500b26038c6e8a6270cdd0718a70930dc2eb1746240bfb86caa2a89027",
+    "crawl4ai__dynamic-delayed__r001": "30066925922f775cbc294982f933ca003cde7df350505c2908667bb5a21cb4ee",
+    "moli-webfetch__dynamic-quotes-api__r001": "4ad58acadd0913636e6d335f4b20b4e3afdf2d9a132116c09c0e104f04ce2f6f",
+    "moli-webfetch__dynamic-products-api__r001": "12192f66b979914377210653b0d5241664f5e2d84a26dba4974e4dcb6d6bf3b5",
+    "moli-webfetch__dynamic-catalog__r001": "f4a5b6cdd6dfaaa5ea82690373b471d88f2721c76f4202f5aa0378cd5b6b3aae",
+    "moli-webfetch__dynamic-delayed__r001": "681aa576c7e08eafcd7d259967b84de06cda5731ebf98ef157d964af8e3f0cd5"
+  },
+  "pass_changes": [],
+  "after_rules_sha256": "24d62838a3939950853c8c240cb01eda8a0211ec7c6fdbaee5e9587caf8d7f85"
+}

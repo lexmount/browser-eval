@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${COWAGENT_REPO:?Set COWAGENT_REPO to a CowAgent checkout}"
+cd "$(dirname "$0")/.."
 export WEBFETCH_REAL_SMOKE=1
-export WEBFETCH_SMOKE_ENV_FILE="${WEBFETCH_SMOKE_ENV_FILE:-$HOME/.env}"
+export WEBFETCH_SMOKE_ENV_FILE="${WEBFETCH_SMOKE_ENV_FILE:-$PWD/.env}"
 
-python3 -m unittest tests.test_real_smoke -v
+python3 -m unittest discover -s tests -p test_real_smoke.py -v

@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-browser-harness-eval = "browser_harness_eval.cli:main"
+browser-harness-eval = "harness.web_fetch.cli:main"
 
 [project.optional-dependencies]
 reference-audit = [
@@ -50,4 +50,4 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["harness*", "browser_harness_eval*"]
+include = ["harness*"]

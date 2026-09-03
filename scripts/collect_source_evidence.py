@@ -19,9 +19,9 @@ import requests
 from bs4 import BeautifulSoup
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from browser_harness_eval.reference_quality import clean_reference_text, audit_reference
-from browser_harness_eval.metrics import normalize_for_match
-from browser_harness_eval.safety import safe_identifier, contained_path, validate_http_url
+from harness.web_fetch.reference_quality import clean_reference_text, audit_reference
+from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.safety import safe_identifier, contained_path, validate_http_url
 
 
 def extract_html(raw: bytes, url: str):

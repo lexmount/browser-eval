@@ -1,7 +1,7 @@
 import statistics
 import unittest
 
-from browser_harness_eval.metrics import percentile
+from harness.web_fetch.metrics import percentile
 
 
 class PercentileTests(unittest.TestCase):

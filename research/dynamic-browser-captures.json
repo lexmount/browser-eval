@@ -1,0 +1,76 @@
+[
+  {
+    "id": "dynamic-quotes-api",
+    "selector": ".quotes .quote",
+    "expected_count": 10,
+    "entries": [
+      "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world",
+      "“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices",
+      "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles",
+      "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor",
+      "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational",
+      "“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value",
+      "“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love",
+      "“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased",
+      "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt",
+      "“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile"
+    ],
+    "rendered_text": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+    "checked_at": "2026-09-03T04:27:53.297Z"
+  },
+  {
+    "id": "dynamic-products-api",
+    "selector": "#product-grid > div",
+    "expected_count": 12,
+    "entries": [
+      "Chaz Kangeroo Hoodie\n$52",
+      "Teton Pullover Hoodie\n$70",
+      "Bruno Compete Hoodie\n$63",
+      "Frankie Sweatshirt\n$60",
+      "Hollister Backyard Sweatshirt\n$52",
+      "Stark Fundamental Hoodie\n$42",
+      "Hero Hoodie\n$54",
+      "Oslo Trek Hoodie\n$42",
+      "Abominable Hoodie\n$69",
+      "Mach Street Sweatshirt\n$62",
+      "Grayson Crewneck Sweatshirt\n$64",
+      "Ajax Full-Zip Sweatshirt\n$69"
+    ],
+    "rendered_text": "Chaz Kangeroo Hoodie\n$52\n\nTeton Pullover Hoodie\n$70\n\nBruno Compete Hoodie\n$63\n\nFrankie Sweatshirt\n$60\n\nHollister Backyard Sweatshirt\n$52\n\nStark Fundamental Hoodie\n$42\n\nHero Hoodie\n$54\n\nOslo Trek Hoodie\n$42\n\nAbominable Hoodie\n$69\n\nMach Street Sweatshirt\n$62\n\nGrayson Crewneck Sweatshirt\n$64\n\nAjax Full-Zip Sweatshirt\n$69",
+    "checked_at": "2026-09-03T04:27:56.472Z"
+  },
+  {
+    "id": "dynamic-catalog",
+    "selector": ".product-wrapper",
+    "expected_count": 6,
+    "entries": [
+      "$295.99\nAsus VivoBook X4\n\nAsus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd\n\n1 reviews",
+      "$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews",
+      "$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews",
+      "$306.99\nAspire E1-510\n\n15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux\n\n2 reviews",
+      "$321.94\nLenovo V110-15IA\n\nLenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home\n\n12 reviews",
+      "$356.49\nLenovo V110-15IA\n\nAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd\n\n12 reviews"
+    ],
+    "rendered_text": "$295.99\nAsus VivoBook X4\n\nAsus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd\n\n1 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$299\nPrestigio SmartB\n\nPrestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam\n\n9 reviews\n\n$306.99\nAspire E1-510\n\n15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux\n\n2 reviews\n\n$321.94\nLenovo V110-15IA\n\nLenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home\n\n12 reviews\n\n$356.49\nLenovo V110-15IA\n\nAsus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd\n\n12 reviews",
+    "checked_at": "2026-09-03T04:28:01.199Z"
+  },
+  {
+    "id": "dynamic-delayed",
+    "selector": ".quote",
+    "expected_count": 10,
+    "entries": [
+      "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world",
+      "“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices",
+      "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles",
+      "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor",
+      "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational",
+      "“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value",
+      "“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love",
+      "“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased",
+      "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt",
+      "“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile"
+    ],
+    "rendered_text": "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world\n\n“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices\n\n“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles\n\n“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor\n\n“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational\n\n“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value\n\n“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love\n\n“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased\n\n“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt\n\n“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile",
+    "checked_at": "2026-09-03T04:28:05.890Z"
+  }
+]

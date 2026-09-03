@@ -1,0 +1,359 @@
+[Skip to content](#start-of-content)
+
+## Navigation Menu
+
+[/](/)[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno)Appearance settings
+
+- Platform - AI CODE CREATION - [GitHub CopilotWrite better code with AI](https://github.com/features/copilot) - [GitHub Copilot appDirect agents from issue to merge](https://github.com/features/ai/github-app) - [MCP RegistryIntegrate external tools](https://github.com/mcp) - DEVELOPER WORKFLOWS - [ActionsAutomate any workflow](https://github.com/features/actions) - [CodespacesInstant dev environments](https://github.com/features/codespaces) - [IssuesPlan and track work](https://github.com/features/issues) - [Code ReviewManage code changes](https://github.com/features/code-review) - [Code QualityEnforce quality at merge](https://github.com/features/code-quality) - APPLICATION SECURITY - [GitHub Advanced SecurityFind and fix vulnerabilities](https://github.com/security/advanced-security) - [Code securitySecure your code as you build](https://github.com/security/advanced-security/code-security) - [Secret protectionStop leaks before they start](https://github.com/security/advanced-security/secret-protection) - EXPLORE - [Why GitHub](https://github.com/why-github) - [Documentation](https://docs.github.com) - [Blog](https://github.blog) - [Changelog](https://github.blog/changelog) - [Marketplace](https://github.com/marketplace) [View all features](https://github.com/features)
+- Solutions - BY COMPANY SIZE - [Enterprises](https://github.com/enterprise) - [Small and medium teams](https://github.com/team) - [Startups](https://github.com/enterprise/startups) - [Nonprofits](https://github.com/solutions/industry/nonprofits) - BY USE CASE - [App Modernization](https://github.com/solutions/use-case/app-modernization) - [DevSecOps](https://github.com/solutions/use-case/devsecops) - [DevOps](https://github.com/solutions/use-case/devops) - [CI/CD](https://github.com/solutions/use-case/ci-cd) - [View all use cases](https://github.com/solutions/use-case) - BY INDUSTRY - [Healthcare](https://github.com/solutions/industry/healthcare) - [Financial services](https://github.com/solutions/industry/financial-services) - [Manufacturing](https://github.com/solutions/industry/manufacturing) - [Government](https://github.com/solutions/industry/government) - [View all industries](https://github.com/solutions/industry) [View all solutions](https://github.com/solutions)
+- Resources - EXPLORE BY TOPIC - [AI](https://github.com/resources/articles?topic=ai) - [Software Development](https://github.com/resources/articles?topic=software-development) - [DevOps](https://github.com/resources/articles?topic=devops) - [Security](https://github.com/resources/articles?topic=security) - [View all topics](https://github.com/resources/articles) - EXPLORE BY TYPE - [Customer stories](https://github.com/customer-stories) - [Events & webinars](https://github.com/resources/events) - [Ebooks & reports](https://github.com/resources/whitepapers) - [Business insights](https://github.com/solutions/executive-insights) - [GitHub Skills](https://skills.github.com) - SUPPORT & SERVICES - [Documentation](https://docs.github.com) - [Customer support](https://support.github.com) - [Community forum](https://github.com/orgs/community/discussions) - [Trust center](https://github.com/trust-center) - [Partners](https://github.com/partners) [View all resources](https://github.com/resources)
+- Open Source - COMMUNITY - [GitHub SponsorsFund open source developers](https://github.com/open-source/sponsors) - PROGRAMS - [Security Lab](https://securitylab.github.com) - [Maintainer Community](https://maintainers.github.com) - [GitHub Stars](https://stars.github.com) - [Archive Program](https://archiveprogram.github.com) - REPOSITORIES - [Topics](https://github.com/topics) - [Trending](https://github.com/trending) - [Collections](https://github.com/collections)
+- Enterprise - ENTERPRISE SOLUTIONS - [Enterprise platformAI-powered developer platform](https://github.com/enterprise) - AVAILABLE ADD-ONS - [GitHub Advanced SecurityEnterprise-grade security features](https://github.com/security/advanced-security) - [Copilot for BusinessEnterprise-grade AI features](https://github.com/features/copilot/copilot-business) - [Premium SupportEnterprise-grade 24/7 support](https://github.com/enterprise/premium-support)
+- [Pricing](https://github.com/pricing)
+
+Search/
+
+[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno)
+[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=denoland%2Fdeno)Appearance settings
+
+You signed in with another tab or window.Reloadto refresh your session.You signed out in another tab or window.Reloadto refresh your session.You switched accounts on another tab or window.Reloadto refresh your session.Dismiss alert
+
+### Uh oh!
+
+There was an error while loading.Please reload this page.
+
+[denoland](/denoland)/**[deno](/denoland/deno)**Public
+
+- [Notifications](/login?return_to=%2Fdenoland%2Fdeno)You must be signed in to change notification settings
+- [Fork6.4k](/login?return_to=%2Fdenoland%2Fdeno)
+- [Star108k](/login?return_to=%2Fdenoland%2Fdeno)
+
+- [Code](/denoland/deno)
+- [Issues1.2k](/denoland/deno/issues)
+- [Pull requests337](/denoland/deno/pulls)
+- [Discussions](/denoland/deno/discussions)
+- [Actions](/denoland/deno/actions)
+- [Wiki](/denoland/deno/wiki)
+- [Security and quality40](/denoland/deno/security)
+- [Insights](/denoland/deno/pulse)
+
+Additional navigation options
+- [Code](/denoland/deno)
+- [Issues](/denoland/deno/issues)
+- [Pull requests](/denoland/deno/pulls)
+- [Discussions](/denoland/deno/discussions)
+- [Actions](/denoland/deno/actions)
+- [Wiki](/denoland/deno/wiki)
+- [Security and quality](/denoland/deno/security)
+- [Insights](/denoland/deno/pulse)
+
+[/denoland/deno](/denoland/deno)
+
+main
+
+[Branches](/denoland/deno/branches)[Tags](/denoland/deno/tags)
+[/denoland/deno/branches](/denoland/deno/branches)[/denoland/deno/tags](/denoland/deno/tags)
+
+Go to file
+
+CodeOpen more actions menu
+
+## Latest commit
+
+## History
+
+[17,342 Commits](/denoland/deno/commits/main/)
+[/denoland/deno/commits/main/](/denoland/deno/commits/main/)17,342 Commits
+
+## Folders and files
+
+NameNameLast commit message
+Last commit date
+[.cargo](/denoland/deno/tree/main/.cargo)
+
+[.cargo](/denoland/deno/tree/main/.cargo)
+
+[.claude/skills](/denoland/deno/tree/main/.claude/skills)
+
+[.claude/skills](/denoland/deno/tree/main/.claude/skills)
+
+[.devcontainer](/denoland/deno/tree/main/.devcontainer)
+
+[.devcontainer](/denoland/deno/tree/main/.devcontainer)
+
+[.github](/denoland/deno/tree/main/.github)
+
+[.github](/denoland/deno/tree/main/.github)
+
+[cli](/denoland/deno/tree/main/cli)
+
+[cli](/denoland/deno/tree/main/cli)
+
+[doc](/denoland/deno/tree/main/doc)
+
+[doc](/denoland/deno/tree/main/doc)
+
+[ext](/denoland/deno/tree/main/ext)
+
+[ext](/denoland/deno/tree/main/ext)
+
+[libs](/denoland/deno/tree/main/libs)
+
+[libs](/denoland/deno/tree/main/libs)
+
+[runtime](/denoland/deno/tree/main/runtime)
+
+[runtime](/denoland/deno/tree/main/runtime)
+
+[tests](/denoland/deno/tree/main/tests)
+
+[tests](/denoland/deno/tree/main/tests)
+
+[tools](/denoland/deno/tree/main/tools)
+
+[tools](/denoland/deno/tree/main/tools)
+
+[.dprint.json](/denoland/deno/blob/main/.dprint.json)
+
+[.dprint.json](/denoland/deno/blob/main/.dprint.json)
+
+[.editorconfig](/denoland/deno/blob/main/.editorconfig)
+
+[.editorconfig](/denoland/deno/blob/main/.editorconfig)
+
+[.gitattributes](/denoland/deno/blob/main/.gitattributes)
+
+[.gitattributes](/denoland/deno/blob/main/.gitattributes)
+
+[.gitignore](/denoland/deno/blob/main/.gitignore)
+
+[.gitignore](/denoland/deno/blob/main/.gitignore)
+
+[.gitmodules](/denoland/deno/blob/main/.gitmodules)
+
+[.gitmodules](/denoland/deno/blob/main/.gitmodules)
+
+[.rustfmt.toml](/denoland/deno/blob/main/.rustfmt.toml)
+
+[.rustfmt.toml](/denoland/deno/blob/main/.rustfmt.toml)
+
+[CLAUDE.md](/denoland/deno/blob/main/CLAUDE.md)
+
+[CLAUDE.md](/denoland/deno/blob/main/CLAUDE.md)
+
+[Cargo.lock](/denoland/deno/blob/main/Cargo.lock)
+
+[Cargo.lock](/denoland/deno/blob/main/Cargo.lock)
+
+[Cargo.toml](/denoland/deno/blob/main/Cargo.toml)
+
+[Cargo.toml](/denoland/deno/blob/main/Cargo.toml)
+
+[LICENSE.md](/denoland/deno/blob/main/LICENSE.md)
+
+[LICENSE.md](/denoland/deno/blob/main/LICENSE.md)
+
+[README.md](/denoland/deno/blob/main/README.md)
+
+[README.md](/denoland/deno/blob/main/README.md)
+
+[Releases.md](/denoland/deno/blob/main/Releases.md)
+
+[Releases.md](/denoland/deno/blob/main/Releases.md)
+
+[flake.lock](/denoland/deno/blob/main/flake.lock)
+
+[flake.lock](/denoland/deno/blob/main/flake.lock)
+
+[flake.nix](/denoland/deno/blob/main/flake.nix)
+
+[flake.nix](/denoland/deno/blob/main/flake.nix)
+
+[import_map.json](/denoland/deno/blob/main/import_map.json)
+
+[import_map.json](/denoland/deno/blob/main/import_map.json)
+
+[rust-toolchain.toml](/denoland/deno/blob/main/rust-toolchain.toml)
+
+[rust-toolchain.toml](/denoland/deno/blob/main/rust-toolchain.toml)
+
+[x](/denoland/deno/blob/main/x)
+
+[x](/denoland/deno/blob/main/x)
+
+View all files
+
+## Repository files navigation
+
+- [README](#)
+- [Code of conduct](#)
+- [Contributing](#)
+- [MIT license](#)
+- [Security](#)
+
+Moreitems
+
+# Deno
+
+[#deno](#deno)
+
+[![](https://camo.githubusercontent.com/69dec5f20b91dd7ebfe556ca431485070b59e95fc904691eea61e6a7e36e3256/68747470733a2f2f696d672e736869656c64732e696f2f6372617465732f762f64656e6f2e737667)](https://crates.io/crates/deno)[![Twitter badge](https://camo.githubusercontent.com/ca4b887411e152b9da8effb7d5ba1246a2f5562b08f090df9cc1de093a694a2d/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f666f6c6c6f772f64656e6f5f6c616e642e7376673f7374796c653d736f6369616c266c6162656c3d466f6c6c6f77)](https://twitter.com/intent/follow?screen_name=deno_land)[![Bluesky badge](https://camo.githubusercontent.com/8200fd070bc6d20fd9ef6cbbb1956108e5b936ac65710f8031b48f916a3691c7/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f466f6c6c6f772d7768697465736d6f6b653f6c6f676f3d626c7565736b79)](https://bsky.app/profile/deno.land)[![Discord badge](https://camo.githubusercontent.com/7f137fd30f0d082ccf1db9eb79d83cea1d1381fac746180afe75a2fff7f95b72/68747470733a2f2f696d672e736869656c64732e696f2f646973636f72642f3638343839383636353134333230363038343f6c6f676f3d646973636f7264267374796c653d736f6369616c)](https://discord.gg/deno)[![YouTube badge](https://camo.githubusercontent.com/364c81f143287abaf2f1a94d1965b049dfbd5c33c1cf9f4a57e6ddfeb4c1fb83/68747470733a2f2f696d672e736869656c64732e696f2f796f75747562652f6368616e6e656c2f73756273637269626572732f554371433247324d2d726734667a673165734b464c4649773f7374796c653d736f6369616c)](https://www.youtube.com/@deno_land)
+
+[![the deno mascot dinosaur standing in the rain](https://camo.githubusercontent.com/1ae09995c55dbb006e9777d66c445b7a26c883b83b8869fe417f7ac4a3610b16/68747470733a2f2f64656e6f2e6c616e642f6c6f676f2e737667)](https://camo.githubusercontent.com/1ae09995c55dbb006e9777d66c445b7a26c883b83b8869fe417f7ac4a3610b16/68747470733a2f2f64656e6f2e6c616e642f6c6f676f2e737667)
+
+[Deno](https://deno.com)([/ˈdiːnoʊ/](https://ipa-reader.com/?text=%CB%88di%CB%90no%CA%8A), pronounced`dee-no`) is a JavaScript, TypeScript, and WebAssembly runtime with secure defaults and a great developer experience. It's built on[V8](https://v8.dev/),[Rust](https://www.rust-lang.org/), and[Tokio](https://tokio.rs/).
+
+Learn more about the Deno runtime[in the documentation](https://docs.deno.com/runtime/manual).
+
+## Installation
+
+[#installation](#installation)
+
+Install the Deno runtime on your system using one of the commands below. Note that there are a number of ways to install Deno - a comprehensive list of installation options can be found[here](https://docs.deno.com/runtime/manual/getting_started/installation).
+
+Shell (Mac, Linux):
+
+```text
+curl -fsSL https://deno.land/install.sh | sh
+```
+
+PowerShell (Windows):
+
+```text
+irm https://deno.land/install.ps1 | iex
+```
+
+[Homebrew](https://formulae.brew.sh/formula/deno)(Mac):
+
+```text
+brew install deno
+```
+
+[Chocolatey](https://community.chocolatey.org/packages/deno)(Windows):
+
+```text
+choco install deno
+```
+
+[WinGet](https://winstall.app/apps/DenoLand.Deno)(Windows):
+
+```text
+winget install --id=DenoLand.Deno
+```
+
+[Scoop](https://scoop.sh/#/apps?q=deno&id=678d8fb557b611df996989c675b1099630a5bbee)(Windows):
+
+```text
+scoop install main/deno
+```
+
+### Build and install from source
+
+[#build-and-install-from-source](#build-and-install-from-source)
+
+Complete instructions for building Deno from source can be found[here](https://github.com/denoland/deno/blob/main/.github/CONTRIBUTING.md#building-from-source).
+
+## Your first Deno program
+
+[#your-first-deno-program](#your-first-deno-program)
+
+Deno can be used for many different applications, but is most commonly used to build web servers. Create a file called`server.ts`and include the following TypeScript code:
+
+```text
+Deno.serve((_req: Request) => {
+  return new Response("Hello, world!");
+});
+```
+
+Run your server with the following command:
+
+```text
+deno run --allow-net server.ts
+```
+
+This should start a local web server on[http://localhost:8000](http://localhost:8000).
+
+Learn more about writing and running Deno programs[in the docs](https://docs.deno.com/runtime/manual).
+
+## Additional resources
+
+[#additional-resources](#additional-resources)
+
+- **[Deno Docs](https://docs.deno.com)**: official guides and reference docs for the Deno runtime,[Deno Deploy](https://deno.com/deploy), and beyond.
+- **[Deno Standard Library](https://jsr.io/@std)**: officially supported common utilities for Deno programs.
+- **[JSR](https://jsr.io/)**: The open-source package registry for modern JavaScript and TypeScript
+- **[Developer Blog](https://deno.com/blog)**: Product updates, tutorials, and more from the Deno team.
+
+## Contributing
+
+[#contributing](#contributing)
+
+We appreciate your help! To contribute, please read our[contributing instructions](/denoland/deno/blob/main/.github/CONTRIBUTING.md).
+
+## About
+
+A modern runtime for JavaScript and TypeScript.
+
+[deno.com](https://deno.com)
+
+### Topics
+
+[deno](/topics/deno)[javascript](/topics/javascript)[rust](/topics/rust)[typescript](/topics/typescript)
+
+### Resources
+
+[Readme](#readme-ov-file)
+[MIT license](#MIT-1-ov-file)
+
+### Code of conduct
+
+[Code of conduct](/denoland/deno#coc-ov-file)
+
+### Contributing
+
+[Contributing](#contributing-ov-file)
+
+### Security policy
+
+[Security policy](#security-ov-file)
+[Activity](/denoland/deno/activity)
+[Custom properties](/denoland/deno/custom-properties)
+
+### Stars
+
+**108.4k**stars
+
+### Watchers
+
+**1.4k**watching
+
+### Forks
+
+[**6.4k**forks](/denoland/deno/forks)
+[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fdenoland%2Fdeno&report=denoland+%28user%29)
+
+## Releases
+
+## Used by
+
+## Contributors
+
+## Languages
+
+## Footer
+
+[https://github.com](https://github.com)© 2026 GitHub, Inc.
+
+### Footer navigation
+
+- [Terms](https://docs.github.com/site-policy/github-terms/github-terms-of-service)
+- [Privacy](https://docs.github.com/site-policy/privacy-policies/github-privacy-statement)
+- [Security](https://github.com/security)
+- [Status](https://www.githubstatus.com/)
+- [Community](https://github.community/)
+- [Docs](https://docs.github.com/)
+- [Contact](https://support.github.com?tags=dotcom-footer)
+- Manage cookies
+- Do not share my personal information
+
+You can’t perform that action at this time.
