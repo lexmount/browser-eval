@@ -93,6 +93,10 @@ node tests/test_report_ui.mjs
 python3 scripts/run_benchmark.py --output runs/webfetch
 # 或仅实测 Moli（当前完整评测集，不调用其他供应商）
 python3 scripts/run_benchmark.py --providers moli-webfetch --output runs/moli-webfetch
+# 仅检查新增动态组配置，不创建输出、不调用接口
+python3 scripts/run_benchmark.py --track dynamic --validate-only
+# 仅补跑指定的托管方法；其余已测记录不受影响
+python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output runs/dynamic-hosted
 ```
 
 使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。

@@ -13,29 +13,48 @@ from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.report_build import build_report
 
 
-def main():
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,default=ROOT/'runs/webfetch')
     parser.add_argument('--env-file',type=Path)
     parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
+    parser.add_argument('--track',help='Run only this task group, such as dynamic; default: all groups')
+    parser.add_argument('--validate-only',action='store_true',help='Check selected configuration without creating files or calling providers')
     parser.add_argument('--workers',type=int,default=11)
-    args=parser.parse_args()
-    if args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')
+    args=parser.parse_args(argv)
+    if args.workers < 1:parser.error('--workers must be positive')
+    if not args.validate_only and args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')
     load_runtime_env(args.env_file)
     dataset,cases=load_dataset(ROOT/'evaluation/dataset.json')
-    paths=[ROOT/'configs/providers.example.json',ROOT/'configs/providers.resources.json']
-    configs=[load_provider_config(p) for p in paths]
+    if args.track:
+        cases=[c for c in cases if c.track==args.track]
+        if not cases:parser.error(f'Unknown or empty task group: {args.track}')
+        dataset={**dataset,'cases':[c for c in dataset['cases'] if c.get('track','web')==args.track]}
     names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted({json.loads(line)['provider'] for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()} | {'moli-webfetch'})
-    for config in configs:
+    if not names or len(names)!=len(set(names)):parser.error('Select nonempty, unique provider names')
+    dataset={**dataset,'coverage_plan':{c.track:sorted(names) for c in cases}}
+    scopes=[]
+    for scope,filename in [('web','providers.example.json'),('resources','providers.resources.json')]:
+        selected=[c for c in cases if (c.track=='web')==(scope=='web')]
+        if selected:
+            path=ROOT/'configs'/filename
+            scopes.append((scope,path,load_provider_config(path),selected))
+    errors=[]
+    for scope,path,config,selected in scopes:
         for name in names:
-            if name not in config:parser.error(f'Unknown provider: {name}')
+            if name not in config:
+                errors.append(f'{scope}/{name}: unknown provider')
+                continue
             missing=build_provider(name,config[name]).validate()
-            if missing:parser.error(f'{name}: missing {", ".join(missing)}')
+            if missing:errors.append(f'{scope}/{name}: missing {", ".join(missing)}')
+    if errors:parser.error('\n'.join(errors))
+    if args.validate_only:
+        print(f'Configuration valid: {len(cases)} tasks × {len(names)} methods; no provider calls made')
+        return
     args.output.mkdir(parents=True)
     def work(name):
         batches=[];records=[]
-        for scope,path,config in zip(['web','resources'],paths,configs):
-            selected=[c for c in cases if (c.track=='web')==(scope=='web')]
+        for scope,path,config,selected in scopes:
             meta={**dataset,'cases':[c for c in dataset['cases'] if (c.get('track','web')=='web')==(scope=='web')]}
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
@@ -51,8 +70,13 @@ def main():
     for name,value in [('dataset.json',dataset),('execution.json',{'batches':batches})]:
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
     (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
-    shutil.copytree(ROOT/'evaluation/sources',args.output/'sources')
-    shutil.copytree(ROOT/'evaluation/list-references',args.output/'list-references')
+    for case in cases:
+        source=ROOT/'evaluation/sources'/case.id
+        if source.exists():shutil.copytree(source,args.output/'sources'/case.id)
+        reference=ROOT/'evaluation/list-references'/(case.id+'.json')
+        if reference.exists():
+            (args.output/'list-references').mkdir(exist_ok=True)
+            shutil.copy2(reference,args.output/'list-references'/reference.name)
     print(build_report(args.output,args.output/'report'))
 
 if __name__=='__main__':main()

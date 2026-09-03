@@ -1,4 +1,5 @@
 from __future__ import annotations
+from urllib.parse import urlsplit
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
@@ -6,6 +7,14 @@ from .http_client import request
 
 
 class FirecrawlProvider(Provider):
+    def validate(self) -> list[str]:
+        # Hosted Scrape requires Bearer auth. A separately configured local or
+        # self-hosted endpoint may intentionally run without an API key.
+        host = urlsplit(str(self.config.get('base_url', 'https://api.firecrawl.dev'))).hostname
+        if host == 'api.firecrawl.dev' and not str(self.config.get('api_key') or '').strip():
+            return ['api_key']
+        return []
+
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
         headers = {}
