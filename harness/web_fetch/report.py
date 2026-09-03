@@ -50,6 +50,10 @@ EXTRA+='''
 .capability-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px;background:var(--panel2);border-radius:12px;margin:18px 0}.capability-legend dt{font-weight:700;font-size:14px}.capability-legend dd{margin:5px 0 0;color:var(--muted);font-size:13px}.capability-matrix{min-width:960px}.capability-matrix td{font-size:13px;min-width:115px}.capability-matrix td:first-child{min-width:36px}.capability-matrix td:nth-child(2){min-width:165px;max-width:180px;overflow-wrap:anywhere}.capability-matrix small{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin-top:5px}.capability-runtime{min-width:960px}.capability-runtime td{font-size:13px;max-width:270px;min-width:150px}.capability-runtime td:first-child{min-width:36px}#capability-views>.tab-bar button{font-size:14px;padding:8px 14px}@media(max-width:700px){.capability-legend{grid-template-columns:1fr}.capability-matrix,.capability-runtime{min-width:900px}}
 '''
 
+EXTRA+='''
+.pricing-table{min-width:940px}.pricing-table th{white-space:normal;line-height:1.5}.pricing-table th:first-child{white-space:nowrap}.pricing-table td{font-size:13px;line-height:1.65;min-width:125px}.pricing-table td:first-child{min-width:36px}.pricing-table td:nth-child(2){min-width:150px}.pricing-table td:last-child{min-width:140px}#method-guide-pricing h3{margin-top:30px}#method-guide-pricing h4{margin-top:0}#method-guide-pricing .worked-example span{flex:1;min-width:200px}@media(max-width:700px){#method-guide-pricing .worked-example{display:block}#method-guide-pricing .worked-example strong{display:block;margin-bottom:8px}}
+'''
+
 def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
@@ -142,7 +146,7 @@ def ranking(records,cases,track,base='',id=None,compact=False):
  def sort_key(item):
   name,rs=item
   return (-sum(succeeded(r,cases[r['case_id']]) for r in rs)/len(rs),name)
- rows=[]
+ rows=[];text_scopes={}
  for name,rs in sorted(groups.items(),key=sort_key):
   n=len(rs);ok=sum(bool(r['ok']) for r in rs);passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   body=[r for r in rs if cases[r['case_id']].get('task_kind','body')=='body'];bodypass=sum(succeeded(r,cases[r['case_id']]) for r in body)
@@ -162,7 +166,8 @@ def ranking(records,cases,track,base='',id=None,compact=False):
     m=r['metrics']; checks=m.get('stable_anchor_results',[]) if cases[r['case_id']].get('acceptance_contract') else m.get('fact_results',[])
     if checks:per_case[r['case_id']].append(sum(bool(x.get('pass')) for x in checks)/len(checks) if r['ok'] else 0)
    coverage=statistics.mean(statistics.mean(v) for v in per_case.values()) if per_case else None
-   values+=cell(pct(coverage)+f' · {len(per_case)}/{len(selected)} 例',coverage if coverage is not None else -1)
+   text_scopes[name]=frozenset(per_case)
+   values+=cell(pct(coverage),coverage if coverage is not None else -1)
   else:
    resources=[r for r in rs if cases[r['case_id']].get('task_kind')=='resource'];files=[r for r in rs if cases[r['case_id']].get('task_kind')=='file']
    values+=cell(rate(passed,n),passed/n)
@@ -183,7 +188,9 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   identity_rules=list(dict.fromkeys(list_rule_description(c) for c in selected.values()
    if c.get('task_kind')=='structure' and not c.get('acceptance_contract')))
   if identity_rules:note+=' '+esc(' '.join(identity_rules))
-  note+=' 文字核对覆盖只衡量各例登记的必需文字组，不等于全文完整度；没有文字核对依据的案例不进入该项均值，覆盖案例数随分数列明。'
+  note+=' 文字核对覆盖只衡量各例登记的必需文字组，不等于全文完整度；没有文字核对依据的案例不进入该项均值。'
+  if text_scopes and len(set(text_scopes.values()))==1:note+=f' 文字核对范围：各方法均为 {len(next(iter(text_scopes.values())))}/{len(selected)} 例。'
+  elif text_scopes:note+=' 各方法文字核对范围不同，详见下方覆盖范围。'
   if track=='challenge':note+=' 列表、固定字段标签与说明共同验收；标题文字质量仅作下方辅助诊断。'
   if track=='dynamic':note+=' 含有已排除易变字段的旧快照文字分仅保留在调用详情，不进入本表全文均值。'
  else:note='任务通过率以全部任务为分母；资源、文件、信息三列各按对应子任务计算。耗时只统计通过项。'
@@ -192,6 +199,8 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   note+=' 各类型按各自任务范围比较，不合并为跨类型总分。'
   if missing:note+=' 未测方法（不计为失败）：'+esc('、'.join(missing))+'。'
  result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None)
+ if text_scopes and len(set(text_scopes.values()))>1:
+  result='<details><summary>文字核对覆盖范围</summary><ul>'+''.join('<li>'+esc(name)+f'：{len(scope)}/{len(selected)} 例；'+esc('、'.join(selected[k]['name'] for k in sorted(scope)) or '无文字核对记录')+'</li>' for name,scope in sorted(text_scopes.items()))+'</ul></details>'+result
  if compact:
   result='<details class="ranking-metric-help"><summary>指标说明 · 通过率、质量与耗时</summary>'+metric_legend(heads)+'</details>'+result
  if title_scope:result+=title_diagnostics(groups,selected,base,id or 'ranking-'+track)
@@ -318,6 +327,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   info=method_info(rs[0]['provider_type'])
   controls=filter_controls([('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
   body=hero(esc(name),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>网站正文使用默认正文输出；资源任务为支持资源返回的 Exa、Tavily、Firecrawl 开启原生资源字段。未开启额外的理解模型或付费后备方法。</p>')
+  price_anchor='pricing-'+name if name in {'firecrawl','tavily','exa','cloudflare-markdown'} else 'method-guide-pricing'
+  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+price_anchor,'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
   body+=section(f'{len(rs)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in rs],'filtered-table'))
   write(out,'providers/'+name+'.html',name,body)
  for r in records:

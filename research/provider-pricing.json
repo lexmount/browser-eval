@@ -1,0 +1,128 @@
+{
+  "checked_at": "2026-09-03",
+  "currency": "USD",
+  "scope": "公开 Web Fetch / Contents / Extract / Scrape / Markdown 报价；不作为历史调用账单",
+  "providers": [
+    {
+      "id": "firecrawl", "label": "Firecrawl · Scrape",
+      "unit": "标准抓取 1 credit / 页",
+      "comparison": "月付满额 $0.749–3.8；年付满额约 $0.599–3.167",
+      "commitment": "Hobby $19/月；年付 $190 起",
+      "discount": "套餐量越大单价越低；年付省 16.7%–20.0%；追加 $1–5/千积分",
+      "headline": "月套餐 + 年付优惠 + $5 批次追加",
+      "scope": "本轮使用云端 Scrape 返回 Markdown、链接与图片地址；下面基础单价按 1 credit/网页换算。当前增强代理不另加积分；模型抽取、PDF 页数、特殊域名及浏览器交互另有规则。",
+      "credits_per_page": 1,
+      "sources": [
+        {"label":"价格与账期明细", "url":"https://www.firecrawl.dev/pricing.md"},
+        {"label":"定价页与扣费 FAQ", "url":"https://www.firecrawl.dev/pricing"},
+        {"label":"详细扣费与结转", "url":"https://docs.firecrawl.dev/billing"},
+        {"label":"增强代理", "url":"https://docs.firecrawl.dev/features/enhanced-mode"},
+        {"label":"PDF 解析", "url":"https://docs.firecrawl.dev/features/parse"}
+      ],
+      "plans": [
+        {"name":"Hobby", "credits_monthly":5000, "monthly_usd":19, "annual_usd":190, "overage":"$5 / 1,000 credits；即 $5/千标准页"},
+        {"name":"Standard", "credits_monthly":100000, "monthly_usd":99, "annual_usd":990, "overage":"$5 / 2,000 credits；即 $2.5/千标准页"},
+        {"name":"Growth", "credits_monthly":500000, "monthly_usd":399, "annual_usd":3990, "overage":"$5 / 2,500 credits；即 $2/千标准页"},
+        {"name":"Scale", "credits_monthly":1000000, "monthly_usd":749, "annual_usd":7190, "overage":"$5 / 5,000 credits；即 $1/千标准页"}
+      ],
+      "rate_headers":["功能", "计费", "边界"],
+      "rates":[
+        ["普通 Scrape / 增强代理", "1 credit/页", "增强代理不额外加价，包含自动增强重试"],
+        ["JSON 模型抽取", "+4 credits/页", "普通网页总计 5；不能按基础单价预算"],
+        ["提示注入检查 / ZDR", "分别 +4 / +1 credits/页", "检查仅用于 JSON：成功共 9；检查执行后失败共 5（不含其他加价）；ZDR 可另叠加"],
+        ["PDF 文字解析", "解析文档标为 1 credit/PDF 页", "账单概览写 +1/页，是否另加基础费存在歧义；10 页不是 1 credit"],
+        ["Interact 浏览器交互", "2–7 credits/分钟，至少 1 分钟", "纯代码 2；使用 prompt 7；不属于本轮 Scrape"],
+        ["X / Twitter", "30 credits/请求；JSON 为 34", "特殊域名走 Grok，非标准页价"]
+      ],
+      "offers":[
+        {"label":"创业公司优惠", "text":"年付套餐积分加倍一年；融资少于 $10M、少于 50 人、成立未满五年，既有客户也可申请。赠送价值上限 $2,500/月、$30,000/年。若满额使用且获批，套餐折算单价再减半，不意味着追加积分也打五折。", "url":"https://www.firecrawl.dev/startups"},
+        {"label":"学生计划", "text":"合资格学生使用学校邮箱申请 10,000 免费积分，用于教育或个人项目；不是已确认的每月赠送。优惠是否可叠加不作假设。", "url":"https://www.firecrawl.dev/student-program"}
+      ],
+      "terms": [
+        ["免费额度", "每月 1,000 credits，无需绑卡；按标准 Scrape 可折算 1,000 页。"],
+        ["年付与用量折扣", "年费一次支付，积分按月列示。官方页面显示 $16/$83/$333/$599 月均价，是取整值；本表用实际年费除以 12。Enterprise 为商务报价，未公布折扣阶梯。"],
+        ["追加与并发", "追加积分每批 $5，可自动续充或手动购买。自动续充可设置月度上限。Hobby/Standard/Growth/Scale 并发分别为 5/25/50/100。"],
+        ["失败扣费", "FAQ 说失败请求不收费，但详细账单文档指出：已处理的源站 403/404 也可能收费；提示注入检查执行后失败收 5 credits。不能把“评测失败”或“源站返回错误”一概当作免费。"],
+        ["额度结转", "月付及年付积分均每月重置；默认不结转。详细文档注明年付 Scale 可结转 1 个月、年付 Enterprise 2 个月；追加积分的有效期未获明确说明。"],
+        ["其他档位", "账单文档还列有 6,500/8,000、130,000/160,000、650,000 等积分档，但所取公开价格表未给出其对应金额，未据额度比例推造价格。"]
+      ]
+    },
+    {
+      "id":"tavily", "label":"Tavily · Extract",
+      "unit":"Basic 1 credit / 5 成功 URL；Advanced 为 2",
+      "comparison":"Basic 按量 $1.6，套餐满额 $1–1.5；Advanced 翻倍",
+      "commitment":"按量 $0.008/credit；月套餐 $30 起",
+      "discount":"积分量大折扣；未找到公开年付优惠",
+      "headline":"按成功 URL 累积扣积分",
+      "scope":"本轮使用 Basic Extract。套餐表按 Basic 满额换算；Advanced 用量相同则积分翻倍、每千页价格翻倍，不能把搜索的一次调用价格套给 Extract。",
+      "credits_per_page":0.2,
+      "sources":[
+        {"label":"积分单价与套餐", "url":"https://docs.tavily.com/documentation/api-credits"},
+        {"label":"Extract 用量说明", "url":"https://docs.tavily.com/documentation/api-reference/endpoint/extract"}
+      ],
+      "plans":[
+        {"name":"Project", "credits_monthly":4000, "monthly_usd":30, "overage":"按量 $0.008/credit"},
+        {"name":"Bootstrap", "credits_monthly":15000, "monthly_usd":100, "overage":"按量 $0.008/credit"},
+        {"name":"Startup", "credits_monthly":38000, "monthly_usd":220, "overage":"按量 $0.008/credit"},
+        {"name":"Growth", "credits_monthly":100000, "monthly_usd":500, "overage":"按量 $0.008/credit"}
+      ],
+      "rate_headers":["模式", "每千成功页积分", "按量每千页", "月套餐满额每千页"],
+      "rates":[["Basic（本轮）", "200", "$1.6", "$1–1.5"],["Advanced", "400", "$3.2", "$2–3"]],
+      "terms":[
+        ["免费额度", "每月 1,000 credits，无需绑卡。若全部用于 Extract，可换算为 5,000 个 Basic 或 2,500 个 Advanced 成功 URL；不是额外赠送的独立页额度。"],
+        ["扣费与批量调用", "失败 URL 不扣费。接口说明尚未累计到 5 个成功 URL 时 usage.credits 可为 0；不能对每次单 URL 调用单独向上取整为 1 credit。未公开跨账期余数的完整结算规则。"],
+        ["优惠与额度边界", "Enterprise 支持自定义价格与用量；公开资料未给出其折扣阶梯、年付优惠或额度结转权益，不假设存在。套餐积分用于其他接口后，可提取的页数会减少。"]
+      ]
+    },
+    {
+      "id":"exa", "label":"Exa · Contents",
+      "unit":"$1 / 千页 / 内容类型",
+      "comparison":"Text $1；Text + Highlights $2；三种内容 $3",
+      "commitment":"按量预付积分；无订阅或最低消费",
+      "discount":"企业量大折扣询价；未公布阶梯或年付折扣",
+      "headline":"正文、摘录、摘要分别计费",
+      "scope":"本轮是给定 URL 的 Contents，text=true，不是 Search。每页每种内容类型单独计费，不能把一次批量请求当成一页；链接和图片地址不等于下载原文件。",
+      "sources":[
+        {"label":"Contents 单价与计费单位", "url":"https://exa.ai/docs/reference/pricing"},
+        {"label":"免费额度与方案", "url":"https://exa.ai/pricing"},
+        {"label":"充值与账单", "url":"https://exa.ai/docs/reference/billing"},
+        {"label":"逐 URL 状态与 costDollars", "url":"https://exa.ai/docs/reference/get-contents"}
+      ],
+      "rate_headers":["返回内容", "每千页价格", "条件"],
+      "rates":[["Text（本轮正文）", "$1", "1 种内容"],["Text + Highlights 或 Summary", "$2", "2 种内容；Summary 不再重复加一遍"],["Text + Highlights + Summary", "$3", "3 种内容"],["Enterprise", "询价", "量大折扣与 SLA；无公开阶梯"]],
+      "terms":[
+        ["免费与充值", "注册赠 $20；Free Tier 每月 $10 credits。只取 Text 时分别可折算 20,000 与 10,000 页，额度与其他 API 共用。自动充值最低每次 $5，不是月订阅最低消费。定价页另列创业与教育申请计划，最高 $1,000 积分；不作为所有客户自动享有的折扣。"],
+        ["失败扣费", "所查普通 API Key 计费文档没有明确的所有失败均免费的承诺；应核验逐 URL 状态与 costDollars。x402 按请求参数计算付款，是不同支付方式，不能套用为本轮的结算规则。"],
+        ["价格范围", "公开定价按内容类型分别收费。泛称“包含内容”的搜索描述不意味着独立 Contents 免费；年付折扣、免费积分结转及本轮 extras 字段的独立加价未获公开确认。"]
+      ]
+    },
+    {
+      "id":"cloudflare-markdown", "label":"Cloudflare · Markdown",
+      "unit":"超额浏览器时间 $0.09/小时",
+      "comparison":"无固定页价；5 秒/页时边际 $0.125/千页",
+      "commitment":"Workers Paid $5/月起，含 10 浏览器小时",
+      "discount":"Free 10 分钟/天；未公开时长量阶折扣",
+      "headline":"按浏览器时间，不按请求数",
+      "scope":"官方现称 Browser Run。本轮 /markdown 属于 Quick Actions，只收浏览器时长费用，不收 Browser Sessions 的并发费用；不是 Workers AI toMarkdown 或 Markdown for Agents。",
+      "sources":[
+        {"label":"Browser Run 定价与取整", "url":"https://developers.cloudflare.com/browser-run/pricing/"},
+        {"label":"Workers 基础月费", "url":"https://developers.cloudflare.com/workers/platform/pricing/"},
+        {"label":"Markdown 接口", "url":"https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/"},
+        {"label":"免费限额", "url":"https://developers.cloudflare.com/browser-run/limits/"}
+      ],
+      "rate_headers":["方案", "包含浏览器用量", "超额计价"],
+      "rates":[["Workers Free", "10 分钟/天", "日额度耗尽后限流，不是可累积的月额度"],["Workers Paid", "10 小时/月；各浏览器方法共用", "$0.09/小时；另有 $5/月 Workers 基础费用"]],
+      "terms":[
+        ["计量", "按 Quick Actions 响应头 X-Browser-Ms-Used 记录浏览器时间，不用客户端 elapsed_ms 替代。月度汇总至小时后四舍五入，半小时向上取整，不对每页单独取整。"],
+        ["失败边界", "价格 FAQ 明确提到 waitForTimeout 错误不收费，未逐一列明所有失败类型；这不表示设置 waitForTimeout 参数的成功请求免费。"],
+        ["折扣与附加成本", "未查到公开年付或 Browser Run 时长量阶折扣。Workers 计算、存储等其他产品用量另算；本表不为 Quick Actions 叠加 Sessions 并发费。"]
+      ]
+    }
+  ],
+  "other_methods":[
+    {"ids":["lexmount-cn","lexmount-global"], "label":"Lexmount CN / Global", "status":"未查到公开价格", "note":"官方 WebFetch 文档标记内测；两个区域分别实测，不能据此推断价格相同。价格未公布不代表免费。", "sources":[{"label":"官方 WebFetch 文档", "url":"https://browser.lexmount.com/en/docs/webfetch"}]},
+    {"ids":["moli-webfetch"], "label":"Moli WebFetch", "status":"本轮本地 CLI；无托管 API 单价", "note":"Moli 可独立运行；本地算力、网络和代理自担。Lexmount 托管浏览器是另一个产品。", "sources":[{"label":"官方项目说明", "url":"https://github.com/lexmount/moli"}]},
+    {"ids":["crawl4ai"], "label":"Crawl4AI", "status":"本轮本地开源库；非云套餐", "note":"计算、浏览器、网络及代理成本自担；商业云服务价格不能当成本轮本地调用的费用。", "sources":[{"label":"官方文档", "url":"https://docs.crawl4ai.com/"}]},
+    {"ids":["cowagent-built-in","openclaw-built-in","deepseek-harness-built-in","langchain-webbase"], "label":"CowAgent / OpenClaw / DeepSeek Harness / LangChain", "status":"本轮内置或本地实现", "note":"没有调用其聊天模型或付费回退 API；不引用模型 token 价格。运行与维护成本不等于零。", "sources":[{"label":"本轮接口与实现", "url":"#method-guide-interfaces"}]}
+  ]
+}

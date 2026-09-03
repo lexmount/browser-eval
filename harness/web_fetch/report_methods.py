@@ -5,6 +5,7 @@ from .methods import method_info
 from .report_components import tabs,cards
 from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
+from .report_pricing import render_pricing
 
 PROFILES={
  'moli-webfetch':('本地 CLI','Moli 一次性 fetch，默认运行网页 JavaScript 并输出 Markdown；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
@@ -68,10 +69,11 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         ('不能推出什么','搜索结果有截断和排序偏差，计数是已核验候选集的下限，不是全网热度排名。0 只表示候选集中未发现符合条件的仓库；官方实现与第三方引用不同，示例、文档及源码命中也不证明生产采用。'),
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
-    body=hero('方法介绍','先了解参评方法，再看开源采用线索与本轮实测。采用热度不代替质量成绩。')
+    body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
     body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
-    body+=section('能力、采用与接口',tabs('method-guide',[
+    body+=section('能力、价格与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
+        ('pricing','价格与计费',render_pricing(out,names,table=table,cell=cell,link=link,esc=esc)),
         ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集，包括搜索结果与登记文件。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),
         ('profiles','方法详情','<p>下表介绍本轮实际调用的实现；方法名称可打开其全部已测案例。各组覆盖数量以执行记录为准，功能范围以本轮配置为准。</p>'+table(['方法','形态','做什么','本轮输出','本轮新鲜度设置','来源'],intro)),
         ('interfaces','接口与示例',render_interfaces(out,records)),

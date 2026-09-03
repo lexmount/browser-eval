@@ -45,6 +45,18 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):
+        a,b=case('a','body'),case('b','body')
+        first,second=record(a),record(b)
+        second['provider']='other'
+        for r in [first,second]:r['metrics']['fact_results']=[{'id':'x','pass':True}]
+        rendered=ranking([first,second],{'a':a,'b':b},'challenge')
+        self.assertIn('各方法文字核对范围不同',rendered)
+        self.assertIn('<summary>文字核对覆盖范围</summary>',rendered)
+        for row in table_cells(rendered,'ranking-challenge'):
+            self.assertEqual(row[7],'100.0%')
+        self.assertNotIn('· 1/2 例',rendered)
+
     def test_four_text_tracks_share_columns_and_text_coverage_semantics(self):
         headers=[]
         for track in ('web','dynamic','challenge','document'):
@@ -53,7 +65,8 @@ class ReportBodyScopeTests(unittest.TestCase):
             r['metrics']['fact_results']=[{'id':'a','pass':True},{'id':'b','pass':False}]
             rendered=ranking([r],{'example':c},track)
             row=table_cells(rendered,'ranking-'+track)[0]
-            self.assertEqual(row[7],'50.0% · 1/1 例')
+            self.assertEqual(row[7],'50.0%')
+            self.assertIn('文字核对范围：各方法均为 1/1 例',rendered)
             self.assertEqual(row[4:7],['80.0%']*3)
             self.assertEqual(row[3],'0.0%')
             headers.append([re.sub(r'<[^>]*>','',h) for h in re.findall(r'<th[^>]*>(.*?)</th>',rendered,re.S)])
