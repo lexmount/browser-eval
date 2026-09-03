@@ -29,6 +29,9 @@ class VisibleText(HTMLParser):
 root=Path(sys.argv[1]);d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
+if d.get('comparison',{}).get('kind')=='headless_html':
+ headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
+ inventory={track:{**group,'providers':list(headless['providers'])} for track,group in inventory.items()}
 assert len({c['id'] for c in d['cases']})==len(d['cases']),'Duplicate dataset case IDs'
 inventory_ids=[cid for group in inventory.values() for cid in group['case_ids']]
 assert len(set(inventory_ids))==len(inventory_ids),'Duplicate inventory case IDs'

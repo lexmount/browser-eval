@@ -29,7 +29,9 @@ class ReportRevisionTests(unittest.TestCase):
  def test_pass_no_failure(self):
   self.assertEqual(failure_category(self.row(metrics={'content_pass':True}),{}),'—')
  def test_all_interfaces(self):
-  self.assertEqual(len(SPECS),12)
+  from harness.web_fetch.report_methods import PROFILES
+  self.assertEqual(set(SPECS),set(PROFILES))
+  self.assertTrue({'kitesurf','lightpanda','obscura','moli','chromium'} <= set(SPECS))
   for s in SPECS.values():
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
  def test_regional_endpoint_distinct(self):

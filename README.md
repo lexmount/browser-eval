@@ -53,6 +53,14 @@ Web Fetch has no legacy top-level package or compatibility imports.
 
 ## Web Fetch 评测
 
+五浏览器 HTML→Markdown 对比已完成 Kitesurf、Lightpanda、Obscura、Moli、Chromium
+各 150 题调用；完整证据保留在执行机器的 `evaluation/headless/`，未随本代码 PR 上传。
+原始网页含 Google API Key 格式字符串，全量证据推送被安全检查拦截；代码 PR 只包含实现、测试和摘要。
+目前一题的独立参考测后核验受阻，正式报告尚未发布，构建器会拒绝未核验生命周期。
+见 [诊断摘要](research/headless-diagnostic-summary.md) 与
+[运行协议](harness/web_fetch/HEADLESS.md)。这组数据不与下面的历史 12 方法混排。
+未导入完整五浏览器证据时，默认构建仍读取仓库原有 `evaluation/` 数据；不能把它当成本次五浏览器结果。
+
 历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 10 个任务、12 种方法的独立补测，覆盖异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档；不与历史组混成总榜。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围，未运行不算失败。
 包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
 

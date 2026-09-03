@@ -8,6 +8,11 @@ from .report_capabilities import render_capabilities
 from .report_pricing import render_pricing
 
 PROFILES={
+ 'kitesurf':('远程浏览器 CDP','公共测试端点，新建上下文取 DOM HTML，再由客户端统一转换 Markdown。','https://developers.cloudflare.com/browser-run/kitesurf/'),
+ 'lightpanda':('本地浏览器 CLI','Lightpanda fetch 输出 DOM HTML，再由统一转换器生成 Markdown。','https://github.com/lightpanda-io/browser'),
+ 'obscura':('本地浏览器 CLI','Obscura 标准模式输出 HTML；本轮不启用 stealth 或备用引擎。','https://github.com/h4ckf0r0day/obscura'),
+ 'moli':('本地浏览器 CLI','Moli fetch 输出 HTML；区别于原报告直接调用其 Markdown 输出。','https://github.com/lexmount/moli'),
+ 'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取 DOM HTML，再由统一转换器生成 Markdown。','https://playwright.dev/python/docs/browsers'),
  'moli-webfetch':('本地 CLI','Moli 一次性 fetch，默认运行网页 JavaScript 并输出 Markdown；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),
  'lexmount-global':('托管 API','Lexmount 国际 API，返回网页主正文与元数据。','https://browser.lexmount.com/en/docs/webfetch'),
@@ -44,7 +49,7 @@ def adoption_counts(data,names):
 def render_methods(out,records,*,hero,section,table,cell,link,esc):
     source=Path(__file__).resolve().parents[2]/'research/provider-adoption.json'
     data=json.loads(source.read_text());names=sorted({r['provider'] for r in records})
-    counts=adoption_counts(data,names)
+    counts=adoption_counts(data,sorted(set(PROFILES)|set(names)))
     dest=out/'adoption';dest.mkdir(exist_ok=True)
     (dest/'evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
     (dest/'counts.json').write_text(json.dumps({'snapshot':data['generated_at'],'scope':'签名命中线索，不是运行调用次数或全网采用量','methods':counts},ensure_ascii=False,indent=2)+'\n')
@@ -54,7 +59,8 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         intro.append(('',cell(link('../providers/'+name+'.html',name))+cell(kind)+cell(desc)+cell(esc(info['output']))+cell(esc(info['freshness']))+cell(link(url,'文档 / 源码 ↗'))))
     for item in counts:
         name=item['provider'];n=item['repository_count'];known=n is not None
-        rows.append(('',cell(link('../providers/'+name+'.html',name))+cell(link('#evidence-'+name,str(n)) if known else '—',n if known else -1)+cell(str(item['file_count']) if known else '—',item['file_count'] if known else -1)))
+        provider_label=link('../providers/'+name+'.html',name) if name in names else link('#interface-'+name,name+'（未纳入本轮）')
+        rows.append(('',cell(provider_label)+cell(link('#evidence-'+name,str(n)) if known else '—',n if known else -1)+cell(str(item['file_count']) if known else '—',item['file_count'] if known else -1)))
         if known:
             evidence_rows=[('',cell(link(r['url'],r['repo']))+cell('<br>'.join(link(m['url'],m['path']) for m in r['matches']))) for r in item['repositories']]
             details+=f'<details id="evidence-{name}"><summary>{esc(name)} · {n} 个仓库</summary>'+table(['仓库','命中文件'],evidence_rows)+'</details>'
@@ -70,7 +76,10 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
-    body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
+    if records and all(r.get('provider_type')=='headless_html' for r in records):
+        body+=section('参评方法',cards([('远程 CDP','Kitesurf 公共测试端点；包含网络传输与远端环境影响。'),('本地 CLI','Lightpanda、Obscura、Moli；每次调用独立进程。'),('本地 CDP','Chromium；每次调用启动新浏览器。五者均取 HTML 后用同一转换器，不调用模型。')]))
+    else:
+        body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、价格与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
         ('pricing','价格与计费',render_pricing(out,names,table=table,cell=cell,link=link,esc=esc)),

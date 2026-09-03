@@ -72,6 +72,21 @@ def build_report(source: Path, output: Path) -> Path:
                 raise ValueError(f'Output integrity failure: {path}')
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(raw, target)
+            meta = r.get('provider_metadata', {})
+            if meta.get('rendered_html_path'):
+                html_source = contained_path(source, meta['rendered_html_path'])
+                if hashlib.sha256(html_source.read_bytes()).hexdigest() != meta.get('rendered_html_sha256'):
+                    raise ValueError('Rendered HTML integrity failure: ' + r['attempt_id'])
+                html_target = contained_path(staging, meta['rendered_html_path'])
+                html_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(html_source, html_target)
+            if meta.get('raw_stdout_path'):
+                binary_source = contained_path(source, meta['raw_stdout_path'])
+                if hashlib.sha256(binary_source.read_bytes()).hexdigest() != meta.get('raw_stdout_sha256'):
+                    raise ValueError('Raw stdout integrity failure: ' + r['attempt_id'])
+                binary_target = contained_path(staging, meta['raw_stdout_path'])
+                binary_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(binary_source, binary_target)
             text=raw.read_text(encoding='utf-8',errors='replace')
             normalize_empty_response(r,text)
             from .title_quality import add_title_quality

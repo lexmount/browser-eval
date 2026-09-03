@@ -56,20 +56,34 @@ SPECS={
  'scripts/oss/crawl4ai_worker.py','本轮使用本地无头 Chrome，媒体单列在返回对象中；这不等于下载或理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
+for engine in ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'):
+ SPECS[engine]=spec(
+  'CDP · '+engine if engine in ('kitesurf','chromium') else 'CLI · '+engine+' fetch --dump html',
+  '公共 Kitesurf CDP；无 API Key' if engine=='kitesurf' else '本地独立浏览器；不加载个人会话',
+  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded；名称相同不保证内部等待实现相同'),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
+  [('content','string','共同 pyhtml2md 1.7.0 转换的 Markdown'),('rendered_html_path','string','原始 DOM HTML 证据路径'),('rendered_html_sha256','string','DOM 证据校验值'),('fetch_html_ms / conversion_ms','number','成功阶段耗时；不等于 CPU 时间'),('browser_stderr','string','浏览器诊断；不进入正文')],
+  {'url':URL,'engine':engine,'timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'pyhtml2md 1.7.0'},
+  'scripts/headless_worker.py',
+  '不点击、不滚动、不补抓资源，不在失败后切换引擎或原生 Markdown。CLI 的 HTTP 状态和最终 URL 未返回时留空；CDP 从导航响应记录。Kitesurf 是远端服务，客户端耗时包含网络和连接开销。')
 
 def render_interfaces(out,records):
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
- names=sorted({r['provider'] for r in records if r['provider'] in SPECS})
+ measured={r['provider'] for r in records}
+ names=sorted(SPECS,key=lambda name:(name not in measured,name))
  body='<p>按本轮实际适配器介绍，不混用完整产品能力。输入示例采用当前配置；输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
-  s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next(r for r in records if r['provider']==name))
-  content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
+  s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  if r:
+   content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
+  else:sample={'measurement':None,'note':'仓库登记接口，未纳入本轮；此处不提供虚构的运行输出。'}
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
-  meta=r.get('provider_metadata',{});sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
-  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'sample':sample,'attempt_id':r['attempt_id']},ensure_ascii=False,indent=2)+'\n')
+  meta=r.get('provider_metadata',{}) if r else {};sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
+  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(name)+'</summary>'
   body+='<p class="interface-endpoint"><code>'+escape(s['entry'])+'</code></p><p class="source-note">'+escape(s['auth'])+'</p>'
-  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+'<h4>调用输入示例</h4>'+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>本轮输出节选 · 统一记录</h4>'+pre(sample)+'</article></div>'
-  body+='<p>'+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · <a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a> · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
+  sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
+  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+'<h4>调用输入示例</h4>'+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
+  measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
+  body+='<p>'+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
  return body
