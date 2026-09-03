@@ -16,8 +16,10 @@ def cards(items):
 
 
 def metric_guide():
-    return cards([
-        ('任务通过率','满足该例全部验收规则的次数 ÷ 全部任务。正文检查长度、核对点和错误标记，<strong>没有 F1 最低分门槛</strong>；资源与列表另按专门规则判断。请求失败计入分母。'),
+    return '<p>网站正文、动态网站正文、热门网站正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。</p>'+cards([
+        ('统一验收流程','接口返回 → 排除空内容与错误页 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。'),
+        ('任务通过率','满足该例全部验收规则的次数 ÷ 全部任务。段落、列表、字段都属于内容要求；<strong>没有 F1 最低分门槛</strong>。请求失败计入分母。'),
+        ('文字核对覆盖','每例命中的必需文字组数 ÷ 登记组数，再按案例取均值。固定标题、说明、字段标签或事实句均可作为核对组；易变名单和价格不固定为答案。没有文字依据的案例不记作满分，覆盖案例数另列。'),
         ('请求成功率','接口正常返回的次数占全部调用的比例。接口返回成功，不代表抓到了目标内容。'),
         ('完整度 · 纯净度 · F1','必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。请求失败计 0；请求成功但任务未通过，仍按实际正文评分，所以 0 次通过不等于 F1 为 0。逐案例计算后取平均；平均 F1 不是平均完整度与平均纯净度的调和平均。'),
         ('均值 · P50 · P95','仅统计该类型任务通过的调用耗时。列表任务与正文任务均按各自声明的规则判定。P50 是中位数；P95 表示约 95% 的通过调用不超过该耗时。'),
@@ -27,6 +29,7 @@ def metric_guide():
 
 
 METRIC_DEFINITIONS={
+ '文字核对覆盖':'每例命中的必需文字组数 ÷ 登记文字组数，再按案例取均值；请求失败计 0。附实际覆盖案例数。事实句、标题或说明均按组匹配；难度不同，不宜跨榜单直接比较。不是全文完整度，空核对集不计为 100%。',
  '请求成功率':'接口正常返回次数 ÷ 全部调用次数；不代表内容正确。',
  '任务通过率':'满足本例全部验收规则的次数 ÷ 全部任务次数；请求失败计入分母。具体规则见上方说明，不设全文 F1 门槛。',
  '正文通过率':'满足声明的正文验收规则的比例，与完整度、纯净度及 F1 分开计算。',
@@ -84,11 +87,11 @@ TRACK_CONTEXT = {
         'boundary': '只测各案例声明的初次自动加载范围，不要求滚动、翻页或点击。执行 JavaScript 不是唯一合格路线，解析内嵌数据或调用公开接口也可。固定演示文字仍核对内容，易变字段不固定旧值。',
     },
     'challenge': {
-        'flow': ['请求目标网站', '识别内容页或受限页', '定位目标列表', '提取标题与详情链接'],
+        'flow': ['请求目标网站', '识别内容页或受限页', '提取稳定说明与栏目', '提取列表与详情链接'],
         'flow_note': '接口正常返回也可能只是登录页或验证页。只有到达目标内容，并满足本例条目要求，才算任务通过。',
-        'meaning': '在有风控、登录限制或复杂内容组织的热门网站上取数。难点是实际拿到目标条目，而不是登录提示、验证页或空页面。本轮具体考题是列表取数，不是整页正文保真。',
-        'example': '知乎热榜：取得至少三条不同的标题与本站详情链接；不要求仍是采集时的前三名。只有登录提示、空标题或重复链接不算完成。',
-        'case_id': 'challenge-04',
+        'meaning': '从有风控、登录限制或复杂内容组织的热门网站提取任务正文：既要取得列表，也要保留登记的栏目、说明或固定字段标签。只返回页面壳、登录提示或几个孤立链接，不足以满足有正文核对项的任务。',
+        'example': 'IMDb：取得至少三部不同影片的名称与详情链接，还须保留榜单标题和“由常规用户投票”的说明；影片名称、名次与评分不固定为旧值。',
+        'case_id': 'challenge-09',
         'boundary': '不向方法提供站点登录凭据，不操作验证码；某一次访问受限不等于网站失效。标题完整度、纯净度和 F1 只衡量返回条目与独立记录名称的文字重合，不测整页正文、榜单召回、实时排名或价格。标题本身也可能被编辑，文字差异不直接改判任务结果。',
     },
     'document': {
@@ -269,9 +272,14 @@ def stable_contract_details(c):
     if schema == 'named_link':
         requirements += '<p>允许域名：'+escape('、'.join(contract.get('hosts',[])))+'；详情路径：<code>'+escape(contract.get('entry_path',''))+'</code>。入口按域名与路径去重。</p>'
     patterns = ''.join('<li><code>'+escape(p)+'</code></li>' for p in contract.get('page_patterns', []))
-    anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+'</li>'
+    anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+('（不能由包含商品条目标题的文字行代替）' if a.get('match_scope')=='non_record_lines' else '')+'</li>'
                       for a in contract.get('stable_text_anchors', []))
+    annotation = c.get('source_benchmark',{}).get('stable_annotation',{})
+    evidence = annotation.get('anchor_evidence')
+    provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
+        '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
     return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements
+            + provenance
             + ('<h3>稳定文本锚点</h3><p>每组至少命中一种允许表达，所有组均须通过。</p><ul>'+anchors+'</ul>' if anchors else '')
             + ('<h3>页面模式</h3><p>以下模式均须匹配。</p><ul>'+patterns+'</ul>' if patterns else ''))
 
@@ -287,12 +295,23 @@ def basis_label(c):
 
 
 def reference_label(c):
+    if c.get('acceptance_contract') and c.get('source_benchmark',{}).get('stable_annotation',{}).get('structural_only_fields') and c.get('ground_truth_main_content'):return '快照文字诊断；含非固定字段'
     if c.get('ground_truth_main_content'):return '完整正文'
     if c.get('task_kind')=='structure':return '列表任务依据；无完整文本参考'
     if c.get('task_kind')=='file':return '原文件'
     if c.get('expected_resources'):return '资源清单'
     if c.get('track')=='video' and c.get('required_facts'):return '文字信息'
     return '未提供完整参考'
+
+
+def comparable_body_reference(c):
+    """Exclude snapshots whose lexical scope still includes nonliteral fields.
+
+    Keep the measured values in attempt details; do not silently use them as
+    invariant text quality or replace them with partial-anchor precision.
+    """
+    return bool(c.get('ground_truth_main_content')) and not bool(
+        c.get('acceptance_contract') and c.get('source_benchmark',{}).get('stable_annotation',{}).get('structural_only_fields'))
 
 
 def reference_status(cases):

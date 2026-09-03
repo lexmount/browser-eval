@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-09",
+  "url": "https://www.imdb.com/chart/top/",
+  "checked_at": "2026-09-03T10:21:46.432Z",
+  "method": "Independent rendered h1, introductory explanation and sort controls",
+  "text": "IMDb Top 250 movies\n\nAs rated by regular IMDb voters.\n\nRanking\nIMDb rating\nRelease date\nNumber of ratings\nAlphabetical\nPopularity\nRuntime",
+  "scope": "Selected stable page headings, explanations or field labels; not full-body ground truth",
+  "stability": "Semantic selection, not proof that the source can never change",
+  "exclusions": [
+    "current list members",
+    "ranks",
+    "prices",
+    "rating values",
+    "personal account information"
+  ],
+  "reference_file": "stable-page.txt"
+}

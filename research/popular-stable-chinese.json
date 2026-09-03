@@ -1,0 +1,83 @@
+{
+  "purpose": "Independent live-browser research; proposed stable visible-text anchors only, not scoring or a frozen reference.",
+  "method": "Read project AGENTS.md and complete Browser skill/documentation; opened four own tabs at exactly the requested URLs. Used rendered DOM, exact-text element inspection and cropped visual checks. No provider outputs, existing references, cookies, credential files, login submissions, CAPTCHA solving or remote mutations used.",
+  "limitations": [
+    "Stability is a proposal based on control/section semantics, not longitudinal proof.",
+    "DOM classes and pixel positions are observation evidence, not durable selectors or acceptance requirements.",
+    "Generic site navigation, login/verification content, footer text, current members, titles, ranks, prices, heat and counts are excluded from proposed body anchors.",
+    "Only task-related text is retained here; no raw page snapshots, account-specific header information, delivery location or tokenized content URLs are retained.",
+    "Browser blockage alone does not invalidate an existing task; these observations do not replace previously supplied independent evidence."
+  ],
+  "sites": [
+    {
+      "site": "JD search",
+      "requested_url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "observed_url": "https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
+      "observed_at": "2026-09-03T10:20:59.041Z",
+      "rechecked_at": "2026-09-03T10:22:02.298Z",
+      "status": "search_filter_body_visible",
+      "location": "Search-result filter area below search/type controls and above product cards; distinct from top navigation and footer.",
+      "proposed_anchors": [
+        {"text": "品牌", "function": "brand-filter section label", "tag": "DIV", "aria_role": null, "class": "_filter-type-label_7xxfi_30", "rect_css_px": {"x": 48, "y": 200, "width": 84, "height": 14}},
+        {"text": "展开筛选", "function": "expand search filters control", "tag": "SPAN", "aria_role": null, "class": "_filter-select-section_1kjnr_23", "rect_css_px": {"x": 1145, "y": 200, "width": 56, "height": 14}},
+        {"text": "综合", "function": "default search-result ordering control", "tag": "SPAN", "aria_role": null, "rect_css_px": {"x": 65, "y": 252.0234375, "width": 28, "height": 15.953125}},
+        {"text": "销量", "function": "search-result sort label, not a sales value", "tag": "SPAN", "aria_role": null, "parent_class": "_sort-tag-inner_3m6t1_24", "rect_css_px": {"x": 151.375, "y": 252.0234375, "width": 28, "height": 15.953125}},
+        {"text": "京东物流", "function": "fulfillment filter label, not a product-card badge", "tag": "SPAN", "aria_role": null, "class": "_filter-select-section_1kjnr_23", "rect_css_px": {"x": 462.75, "y": 253, "width": 56, "height": 14}},
+        {"text": "自营/旗舰", "function": "seller-type filter label", "tag": "SPAN", "aria_role": null, "rect_css_px": {"x": 760.75, "y": 253, "width": 61.359375, "height": 14}}
+      ],
+      "cautions": ["Initial navigation showed only a shell; later read confirmed result filters loaded.", "品牌 occurs twice; use the filter-section occurrence, not an unscoped text hit.", "Additional DOM labels 货到付款 and 仅显示有货 were found, but are not proposed as essential anchors because the cropped visual check did not clearly corroborate their presentation. 货到付款 also occurs in the footer."]
+    },
+    {
+      "site": "Xiaohongshu explore",
+      "requested_url": "https://www.xiaohongshu.com/explore",
+      "observed_url": "https://www.xiaohongshu.com/explore",
+      "observed_at": "2026-09-03T10:21:03.051Z",
+      "rechecked_at": "2026-09-03T10:22:06.386Z",
+      "status": "category_strip_visible_later_login_overlay",
+      "location": "Horizontal content-category strip above the explore feed, to the right of the global sidebar; DIV.channel inside DIV.content-container inside DIV.scroll-container.channel-scroll-container.",
+      "element_role": "Rendered DOM reports generic; no explicit ARIA tab/button role. Function is content-category selection, not global navigation.",
+      "proposed_anchors": [
+        {"text": "穿搭", "rect_css_px": {"x": 419.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "美食", "rect_css_px": {"x": 483.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "彩妆", "rect_css_px": {"x": 547.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "影视", "rect_css_px": {"x": 611.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "职场", "rect_css_px": {"x": 675.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "情感", "rect_css_px": {"x": 739.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "家居", "rect_css_px": {"x": 803.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "游戏", "rect_css_px": {"x": 867.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "旅行", "rect_css_px": {"x": 931.1953125, "y": 88, "width": 64, "height": 40}},
+        {"text": "健身", "rect_css_px": {"x": 995.1953125, "y": 88, "width": 64, "height": 40}}
+      ],
+      "blocking_evidence": {"text": "手机号登录", "tag": "DIV", "class": "title", "rect_css_px": {"x": 795.5, "y": 168, "width": 90, "height": 24}, "interpretation": "Login overlay appeared automatically after initial feed/category render. Cropped screenshot confirms dimmed category text remains visible behind it. No dismissal or login attempted; no claim of unobstructed full-body access."},
+      "cautions": ["Exact-text DOM queries returned duplicate category nodes at identical positions; deduplicate text, do not impose node counts.", "Exclude seasonal 世界杯, generic sidebar 发现/发布/通知/消息, login text, feed entities, likes and footer."]
+    },
+    {
+      "site": "Zhihu hot",
+      "requested_url": "https://www.zhihu.com/hot",
+      "observed_url": "https://www.zhihu.com/signin?next=%2Fhot",
+      "observed_at": "2026-09-03T10:20:09.900Z",
+      "status": "blocked_login_redirect",
+      "blocking_evidence": [
+        {"text": "验证码登录", "role": "button", "location": "main sign-in panel"},
+        {"text": "密码登录", "role": "button", "location": "main sign-in panel"},
+        {"text": "登录/注册", "role": "button", "location": "main sign-in panel"}
+      ],
+      "proposed_anchors": [],
+      "conclusion": "No hot-list body heading/filter/fixed-description verified. Do not infer 热榜 or other body anchors from the requested path, memory or stripped references. Authentication UI is not body evidence."
+    },
+    {
+      "site": "Dianping Shanghai food",
+      "requested_url": "https://www.dianping.com/shanghai/ch10",
+      "observed_url_without_ephemeral_query": "https://verify.meituan.com/v2/app/general_page",
+      "redirect_query_evidence": {"action": "spiderindefence", "theme": "dianping", "origin_url": "https://www.dianping.com/shanghai/ch10", "omission": "Ephemeral requestCode and full callback URL deliberately not retained."},
+      "observed_at": "2026-09-03T10:20:13.881Z",
+      "status": "blocked_captcha_redirect",
+      "blocking_evidence": [
+        {"text": "身份核实", "role": "generic", "location": "verification page body"},
+        {"text": "请拖动下方滑块完成拼图", "role": "generic", "location": "verification challenge instruction"}
+      ],
+      "proposed_anchors": [],
+      "conclusion": "No restaurant-list body heading/filter/fixed-description verified. No challenge interaction or bypass. Verification text is not body evidence."
+    }
+  ]
+}

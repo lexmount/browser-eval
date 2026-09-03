@@ -1,0 +1,17 @@
+{
+  "case_id": "challenge-05",
+  "url": "https://movie.douban.com/top250",
+  "checked_at": "2026-09-03T10:22:04.035Z",
+  "method": "Independent rendered h1 and movie-record field labels",
+  "text": "豆瓣电影 Top 250\n我没看过的\n导演:\n主演:",
+  "scope": "Selected stable page headings, explanations or field labels; not full-body ground truth",
+  "stability": "Semantic selection, not proof that the source can never change",
+  "exclusions": [
+    "current list members",
+    "ranks",
+    "prices",
+    "rating values",
+    "personal account information"
+  ],
+  "reference_file": "stable-page.txt"
+}

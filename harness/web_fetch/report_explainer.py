@@ -163,7 +163,8 @@ def collect_evidence(cases, records):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
 
     def summary(rows):
-        full = [r for r in rows if r['metrics'].get('word_f1') is not None]
+        from .report_components import comparable_body_reference
+        full = [r for r in rows if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
         successes = sum(passed(r) for r in rows)
         post = sum(bool(r['ok']) and not passed(r) for r in rows)
         failures = len(rows) - successes
@@ -563,6 +564,12 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         f'各方法成功集的离线并集为 {len(challenge["union_pass_ids"])}/{challenge["case_count"]}。'
         '这里的通过指任务声明的内容与结构契约，并不认证全部文字与某份实时快照一致。</p>')
     title_records = [r for r in records if cases[r['case_id']].get('track') == 'challenge' and 'title_quality' in r]
+    text_cases = [c for c in cases.values() if c.get('track') == 'challenge' and c.get('acceptance_contract',{}).get('stable_text_anchors')]
+    values['popular_scope'] += (f'<p>其中 {len(text_cases)}/{challenge["case_count"]} 个案例还登记了任务相关的固定文字：'
+        '例如 IMDb 的榜单说明、JustWatch 的观看方式说明，以及商品或餐馆的字段标签。'
+        '这些文字与列表条目共同决定任务是否通过，不能只拿到三个链接就算完成。'
+        '每例命中多少必需文字组，由文字核对覆盖率回答；没有文字依据的案例不计入这项均值。'
+        '少量核对句不是整页参考，因此不能拿它们计算整页纯净度和 F1，否则完整返回的其它正文反而会被当成杂文扣分。</p>')
     if title_records:
         measured = sum(r['title_quality']['scored_titles'] for r in title_records)
         returned = sum(r['title_quality']['returned_titles'] for r in title_records)

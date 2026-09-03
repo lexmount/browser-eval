@@ -1,5 +1,38 @@
 # Web Fetch Harness
 
+## Common text evaluation
+
+Website, dynamic-site, popular-site and document text share `scoring.score_attempt`:
+request eligibility, error-page checks, declared text/record requirements, resource
+checks where applicable, and one authoritative task predicate. Live execution and
+offline rescoring use the same entry point. Case contracts define the differences;
+provider identity never selects a more lenient evaluator.
+
+`content_check_coverage` measures matched required text groups, not body recall.
+All declared groups are required by stable contracts; record count/type/uniqueness
+remain independent requirements. Empty text groups yield null coverage. The report
+shows the number of covered cases and does not equate unequal check difficulty.
+
+Only complete comparable references support body precision, recall and F1. Partial
+headings/labels cannot support precision over a whole output: additional legitimate
+text is unjudged, not noise. Snapshot scores containing explicitly nonliteral fields
+are retained as attempt diagnostics but excluded from invariant body aggregates.
+Returned-title quality is also auxiliary and never substitutes for body scores.
+
+Popular-site stable text is backed by `sources/<case>/stable-page.txt` and capture
+metadata, or the original independently saved `reference.txt`. Binding verifies each
+literal against its evidence and stores its SHA-256 before offline rescoring. Nine
+current popular cases have such groups. Zhihu's retained list reference has no
+stable non-item text; its text coverage remains unmeasured, while its existing list
+result remains visible. Amazon only requires the independently observed shared query
+context because Chinese and English filter-label equivalence has not been captured.
+Do not invent missing context or silently count these cases as fully annotated.
+
+Rule expansion rescoring is labelled offline and preserves original calls, outputs,
+timings and run IDs; it is not a new provider run. Changing list members, order,
+prices or popularity values must not change stable acceptance. Removing required
+stable text, returning an error page or omitting required records must fail.
+
 ## Popular-site title quality
 
 `title_quality.py` computes a supplemental diagnostic during report builds from

@@ -14,9 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .metrics import evaluate_content, evaluate_resources, summarize, task_passed
-from .dynamic_lists import evaluate_dynamic_list
-from .list_verification import verify_list
+from .metrics import summarize, task_passed
+from .scoring import load_list_reference, score_attempt
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
 from .reference_lifecycle import (
@@ -158,44 +157,11 @@ def run_evaluation(
                     artifact = contained_path(output_dir, artifact_rel)
                     artifact.parent.mkdir(parents=True, exist_ok=True)
                     artifact.write_text(result.content, encoding="utf-8", errors="replace")
-                    measured = evaluate_content(
-                        result.content,
-                        case.expected_any,
-                        required_facts=case.required_facts,
-                        forbidden_any=case.forbidden_any,
-                        min_content_chars=case.min_content_chars,
-                        fact_coverage_threshold=case.fact_coverage_threshold,
-                        ground_truth_main_content=case.ground_truth_main_content,
-                        required_patterns=case.required_patterns,
-                        acceptance_contract=case.acceptance_contract,
-                        base_url=case.url,
+                    measured = score_attempt(
+                        case, artifact.read_bytes(), ok=result.ok, metadata=result.metadata,
+                        list_reference=load_list_reference(case, dataset_path.parent),
                     )
-                    measured["content_score_applicable"] = case.content_score_applicable
-                    if case.acceptance_contract:
-                        measured["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
-                            case.acceptance_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-                    if not case.content_score_applicable:
-                        measured["content_pass"] = False
-                    if not result.ok:
-                        measured['content_pass'] = False
-                        if case.acceptance_contract:
-                            measured['stable_task_pass'] = False
-                        if measured['word_f1'] is not None:
-                            measured.update(word_precision=0.0, word_recall=0.0, word_f1=0.0)
-                    measured.update(evaluate_resources(
-                        result.content,
-                        result.metadata,
-                        case.expected_resources,
-                        base_url=case.url,
-                        eligible=result.ok,
-                    ))
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
-                    if not case.acceptance_contract and case.source_benchmark.get('mode')=='dynamic_list_structure':
-                        measured.update(evaluate_dynamic_list(result.content,case.source_benchmark,case.url,result.ok))
-                        if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
-                            reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
-                            measured.update(verify_list(result.content,case.source_benchmark,case.url,reference,result.ok))
-                    measured["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
                     if binding is not None:
                         measured["reference_sha256"] = binding["reference_sha256"]
                     record = AttemptRecord(
@@ -314,49 +280,13 @@ def rescore_evaluation(
         if case is None:
             raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
         artifact = contained_path(run_dir,record["artifact_path"])
-        content = artifact.read_text(encoding="utf-8", errors="replace")
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
-        original_reference_hash = record.get("metrics", {}).get("reference_sha256")
-        record["metrics"] = evaluate_content(
-            content,
-            case.expected_any,
-            required_facts=case.required_facts,
-            forbidden_any=case.forbidden_any,
-            min_content_chars=case.min_content_chars,
-            fact_coverage_threshold=case.fact_coverage_threshold,
-            ground_truth_main_content=case.ground_truth_main_content,
-            required_patterns=case.required_patterns,
-            acceptance_contract=case.acceptance_contract,
-            base_url=case.url,
+        record["metrics"] = score_attempt(
+            case, artifact.read_bytes(), ok=bool(record.get("ok")),
+            metadata=record.get("provider_metadata", {}), previous_metrics=record["metrics"],
+            list_reference=load_list_reference(case, dataset_path.parent),
         )
-        record["metrics"]["content_score_applicable"] = case.content_score_applicable
-        if case.acceptance_contract:
-            record["metrics"]["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
-                case.acceptance_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-        if not case.content_score_applicable:
-            record["metrics"]["content_pass"] = False
-        if not record['ok']:
-            record['metrics']['content_pass'] = False
-            if case.acceptance_contract:
-                record['metrics']['stable_task_pass'] = False
-            if record['metrics']['word_f1'] is not None:
-                record['metrics'].update(word_precision=0.0,word_recall=0.0,word_f1=0.0)
-        record["metrics"].update(evaluate_resources(
-            content,
-            record.get("provider_metadata", {}),
-            case.expected_resources,
-            base_url=case.url,
-            eligible=bool(record.get("ok")),
-        ))
         record["metrics"]["deadline_overrun"] = previous_deadline
-        if not case.acceptance_contract and case.source_benchmark.get('mode')=='dynamic_list_structure':
-            record['metrics'].update(evaluate_dynamic_list(content,case.source_benchmark,case.url,bool(record['ok'])))
-            if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
-                reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
-                record['metrics'].update(verify_list(content,case.source_benchmark,case.url,reference,bool(record['ok'])))
-        record["metrics"]["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
-        if original_reference_hash is not None:
-            record["metrics"]["reference_sha256"] = original_reference_hash
 
     tmp = run_dir / "results.jsonl.tmp"
     tmp.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")

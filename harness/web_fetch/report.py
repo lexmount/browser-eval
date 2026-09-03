@@ -132,10 +132,10 @@ def stable_checks(m):
  return content+table(['条目字段','结构判定','原因'],records)+('<p>任务检查错误：'+esc('；'.join(m['stable_task_errors']))+'</p>' if m.get('stable_task_errors') else '')
 
 def ranking(records,cases,track,base='',id=None,compact=False):
+ from .report_components import comparable_body_reference
  text_track=track in {'web','dynamic','document','challenge'}
  title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
- mixed_text_scope=title_scope and any(c.get('ground_truth_main_content') for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
@@ -146,7 +146,7 @@ def ranking(records,cases,track,base='',id=None,compact=False):
  for name,rs in sorted(groups.items(),key=sort_key):
   n=len(rs);ok=sum(bool(r['ok']) for r in rs);passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   body=[r for r in rs if cases[r['case_id']].get('task_kind','body')=='body'];bodypass=sum(succeeded(r,cases[r['case_id']]) for r in body)
-  full=[r for r in rs if cases[r['case_id']].get('ground_truth_main_content') and r['metrics'].get('word_f1') is not None]
+  full=[r for r in rs if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
   def avg(key):
    per_case=defaultdict(list)
    for r in full:
@@ -156,20 +156,13 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   values=cell(link(base+f'providers/{name}.html',name))+cell(rate(ok,n),ok/n)
   if track in {'web','dynamic','document','challenge'}:
    values+=cell(rate(passed,n),passed/n)
-   if title_scope:
-    if mixed_text_scope:values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
-    measured=[r for r in rs if r.get('title_quality',{}).get('f1') is not None]
-    for key in ['recall','precision','f1']:
-     per_case=defaultdict(list)
-     for r in measured:per_case[r['case_id']].append(r['title_quality'][key])
-     value=statistics.mean(statistics.mean(v) for v in per_case.values()) if per_case else None
-     values+=cell(pct(value),value if value is not None else -1)
-    count=sum(r.get('title_quality',{}).get('scored_titles',0) for r in rs)
-    total=sum(r.get('title_quality',{}).get('returned_titles',0) for r in rs)
-    coverage=f'{count}/{total} · {len({r["case_id"] for r in measured})}/{len(selected)} 例'
-    if not measured:coverage+='（无可评分标题）'
-    values+=cell(coverage,count/total if total else -1)
-   else:values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
+   values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
+   per_case=defaultdict(list)
+   for r in rs:
+    m=r['metrics']; checks=m.get('stable_anchor_results',[]) if cases[r['case_id']].get('acceptance_contract') else m.get('fact_results',[])
+    if checks:per_case[r['case_id']].append(sum(bool(x.get('pass')) for x in checks)/len(checks) if r['ok'] else 0)
+   coverage=statistics.mean(statistics.mean(v) for v in per_case.values()) if per_case else None
+   values+=cell(pct(coverage)+f' · {len(per_case)}/{len(selected)} 例',coverage if coverage is not None else -1)
   else:
    resources=[r for r in rs if cases[r['case_id']].get('task_kind')=='resource'];files=[r for r in rs if cases[r['case_id']].get('task_kind')=='file']
    values+=cell(rate(passed,n),passed/n)
@@ -179,21 +172,20 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   rows.append(('',values))
  heads=['方法','请求成功率']
  if track in {'web','dynamic','document','challenge'}:
-  heads+=['任务通过率']+(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'] if title_scope else ['完整度','纯净度','F1'])
-  if mixed_text_scope:heads[3:3]=['完整度','纯净度','F1']
+  heads+=['任务通过率','完整度','纯净度','F1','文字核对覆盖']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
  heads+=['均值','P50','P95']
  note='请求成功率和任务通过率以全部任务为分母。'
  if text_track:
-  covered=sum(bool(c.get('ground_truth_main_content')) for c in selected.values())
+  covered=sum(comparable_body_reference(c) for c in selected.values())
   note=f'完整参考覆盖 {covered}/{len(selected)}；缺少参考只影响全文指标，不影响任务结果。有参考时，请求失败计 0；请求成功但任务未通过仍按实际正文评分。'
   from .report_components import list_rule_description
   identity_rules=list(dict.fromkeys(list_rule_description(c) for c in selected.values()
    if c.get('task_kind')=='structure' and not c.get('acceptance_contract')))
   if identity_rules:note+=' '+esc(' '.join(identity_rules))
-  if title_scope:
-   note='三项文字指标仅比较返回条目的标题：按详情链接对应独立参考，逐标题计算，再按案例取均值。不固定榜单成员、名次、价格。未知条目及未返回标题不计文字分，覆盖量另列；不同方法覆盖的案例可能不同，不能据此直接比较整页正文质量。任务通过率仍包含全部任务。'
-   if mixed_text_scope:note=f'完整参考覆盖 {covered}/{len(selected)}；全文指标仅覆盖这些案例，与标题指标分列。标题'+note.removeprefix('三项文字')
+  note+=' 文字核对覆盖只衡量各例登记的必需文字组，不等于全文完整度；没有文字核对依据的案例不进入该项均值，覆盖案例数随分数列明。'
+  if track=='challenge':note+=' 列表、固定字段标签与说明共同验收；标题文字质量仅作下方辅助诊断。'
+  if track=='dynamic':note+=' 含有已排除易变字段的旧快照文字分仅保留在调用详情，不进入本表全文均值。'
  else:note='任务通过率以全部任务为分母；资源、文件、信息三列各按对应子任务计算。耗时只统计通过项。'
  if track=='dynamic':
   missing=sorted({r['provider'] for r in records}-set(groups))
@@ -202,8 +194,28 @@ def ranking(records,cases,track,base='',id=None,compact=False):
  result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None)
  if compact:
   result='<details class="ranking-metric-help"><summary>指标说明 · 通过率、质量与耗时</summary>'+metric_legend(heads)+'</details>'+result
+ if title_scope:result+=title_diagnostics(groups,selected,base,id or 'ranking-'+track)
  from .report_components import task_pass_guide
  return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+
+def title_diagnostics(groups,selected,base,identifier):
+ rows=[]
+ for name,rs in sorted(groups.items()):
+  measured=[r for r in rs if r.get('title_quality',{}).get('f1') is not None]
+  values=cell(link(base+f'providers/{name}.html',name))
+  for key in ['recall','precision','f1']:
+   per_case=defaultdict(list)
+   for r in measured:per_case[r['case_id']].append(r['title_quality'][key])
+   value=statistics.mean(statistics.mean(v) for v in per_case.values()) if per_case else None
+   values+=cell(pct(value),value if value is not None else -1)
+  count=sum(r.get('title_quality',{}).get('scored_titles',0) for r in rs)
+  total=sum(r.get('title_quality',{}).get('returned_titles',0) for r in rs)
+  coverage=f'{count}/{total} · {len({r["case_id"] for r in measured})}/{len(selected)} 例'
+  if not measured:coverage+='（无可评分标题）'
+  rows.append(('',values+cell(coverage)))
+ return ('<details class="ranking-metric-help"><summary>辅助诊断 · 返回条目的标题文字质量</summary>'
+  '<p>按详情链接对应独立名称参考，不固定榜单成员和名次。仅统计能对应参考的返回标题；不同方法覆盖的案例可能不同，不能据此直接比较整页正文质量，也不能替代任务验收。</p>'
+  +table(['方法','标题完整度','标题纯净度','标题 F1','标题参考覆盖'],rows,identifier+'-titles',True)+ '</details>')
 
 def filter_controls(options):
  controls=''
@@ -314,6 +326,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   rows=[('',cell(k)+cell(v)) for k,v in [('方法',link('../providers/'+r['provider']+'.html',r['provider'])),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if not c.get('ground_truth_main_content'):
    rows[5]=('',cell('全文完整度 / 纯净度 / F1')+cell('— / — / —（全文指标无完整参考，未评测）'))
+  else:
+   from .report_components import comparable_body_reference
+   if not comparable_body_reference(c):
+    rows[5]=('',cell('快照文字诊断 · 完整度 / 纯净度 / F1')+cell(' / '.join(pct(m.get(k)) for k in ['word_recall','word_precision','word_f1'])+'；参考含不固定取值的字段，仅为历史快照诊断，不进入主表全文均值。'))
+  if 'content_check_total' in m:
+   rows.append(('',cell('文字核对覆盖')+cell(pct(m.get('content_check_coverage'))+f' · {m["content_check_hits"]}/{m["content_check_total"]} 组')))
   title_details=''
   if 'title_quality' in r:
    q=r['title_quality']

@@ -380,6 +380,12 @@ def _parse_records(visible, schema):
 
 def _anchor_matches(anchor, records, visible, schema):
     from .metrics import fact_in_text, normalize_for_match
+    if anchor.get('match_scope') == 'non_record_lines':
+        # A known record label cannot stand in for page context. This is a
+        # conservative text-layout rule, not a claim of recovered DOM ownership.
+        titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
+        visible = '\n'.join(line for line in visible.splitlines()
+            if not any(title in normalize_for_match(line) for title in titles))
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
@@ -416,7 +422,9 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Stable text anchors must be explicitly declared groups")
     ids = set()
     for anchor in anchors:
-        if (not isinstance(anchor, dict) or set(anchor) != {"id", "alternatives"}
+        if (not isinstance(anchor, dict) or not {"id", "alternatives"} <= set(anchor)
+                or set(anchor) - {"id", "alternatives", "match_scope"}
+                or ('match_scope' in anchor and (anchor['match_scope'] != 'non_record_lines' or contract['schema'] != 'named_link'))
                 or not isinstance(anchor.get("id"), str) or not anchor["id"].strip() or anchor["id"] in ids
                 or not isinstance(anchor.get("alternatives"), list) or not anchor["alternatives"]
                 or any(not isinstance(value, str) or not _visible(value).strip() for value in anchor["alternatives"])):
@@ -499,6 +507,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_structure_pass": structure_pass, "stable_content_pass": not content_errors,
             "stable_blocked_page": blocked_page,
             "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,
+            "stable_anchor_hits": sum(r["pass"] for r in anchors),
+            "stable_anchor_total": len(anchors),
+            "stable_anchor_coverage": sum(r["pass"] for r in anchors) / len(anchors) if anchors else None,
+            "stable_text_scope": "declared_text_groups" if anchors else "not_annotated",
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
             "stable_maximum_records": maximum, "stable_task_errors": errors, "stable_records": records,

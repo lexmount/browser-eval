@@ -2,6 +2,28 @@
 import json,re
 
 
+def _stable_failure(metrics):
+    """Describe measured contract errors; never infer a shortfall by default."""
+    errors = metrics.get('stable_task_errors', [])
+    if 'page_identity_mismatch' in errors or any(e.startswith('missing_stable_anchor:') for e in errors):
+        label = '缺少关键信息'
+    elif 'too_many_records' in errors:
+        label = '有效条目过多'
+    elif 'duplicate_records' in errors:
+        label = '条目重复'
+    elif any(e in errors for e in ('incomplete_records', 'invalid_link_output')):
+        label = '字段格式或记录不完整'
+    elif 'too_few_complete_records' in errors:
+        label = '有效条目不足'
+    else:
+        label = '任务规则未满足'
+    counts = f"完整且去重的记录 {metrics.get('stable_unique_record_count','未提供')} 条；至少要求 {metrics.get('stable_minimum_records','未提供')} 条"
+    maximum = metrics.get('stable_maximum_records')
+    if maximum is not None:
+        counts += f"，最多允许 {maximum} 条"
+    return label, '内容核验', counts + '。规则：' + (', '.join(errors) or '未提供具体错误')
+
+
 def diagnose(r,c,raw,source=None):
     try:payload=json.loads(raw)
     except (ValueError,TypeError):payload={}
@@ -66,18 +88,20 @@ def diagnose(r,c,raw,source=None):
             certainty='服务未披露更细原因；不能仅凭该错误归责源站或服务内部'
     elif m.get('forbidden_hits'):
         category,stage,proof=set_result('返回非目标内容','内容核验','命中错误页 / 排除标记：'+', '.join(m['forbidden_hits']))
-    elif c.get('acceptance_contract'):
+    elif m.get('stable_blocked_page') or 'blocked_page' in m.get('stable_task_errors', []):
+        category,stage,proof=set_result('返回非目标内容','内容核验','稳定内容检查命中 blocked_page：返回正文含阻断页标记；记录或链接数量足够也不代表取得目标正文。')
+    elif 'forbidden_content' in m.get('stable_task_errors', []):
+        category,stage,proof=set_result('返回非目标内容','内容核验','稳定内容检查命中 forbidden_content：返回正文含登记的排除标记。')
+    elif 'stable_task_pass' in m:
         if not m.get('stable_task_pass'):
-            errors = m.get('stable_task_errors', [])
-            label = ('稳定文本未命中' if 'page_identity_mismatch' in errors or any(e.startswith('missing_stable_anchor:') for e in errors)
-                     else '条目重复' if 'duplicate_records' in errors
-                     else '字段格式或记录不完整' if 'incomplete_records' in errors
-                     else '有效条目不足')
-            category,stage,proof=set_result(label,'内容核验',
-                f"完整且去重的记录 {m.get('stable_unique_record_count',0)} 条；至少要求 {m.get('stable_minimum_records',0)} 条。规则："+', '.join(errors))
+            category,stage,proof=_stable_failure(m)
     elif c.get('task_kind')=='structure':
-        if not m.get('structure_pass') or m.get('list_field_coverage',0)<1:
-            category,stage,proof=set_result('列表字段不足','内容核验',f"检出 {m.get('named_entry_count',0)} 条具名详情入口；至少需要 3 条")
+        if m.get('named_entry_count',0) < m.get('minimum_entries',3):
+            category,stage,proof=set_result('有效条目不足','内容核验',f"检出 {m.get('named_entry_count',0)} 条具名详情入口；至少需要 {m.get('minimum_entries',3)} 条")
+        elif m.get('list_field_coverage',0)<1:
+            category,stage,proof=set_result('字段格式或记录不完整','内容核验','具名详情入口数量足够，但列表字段未全部满足要求。')
+        elif not m.get('structure_pass'):
+            category,stage,proof=set_result('内容结构不完整','内容核验','具名详情入口数量足够，但结构检查未通过；不能据此认定条目不足。')
         elif not m.get('list_task_pass'):
             restricted=[x for x in m.get('list_checks',[]) if x.get('access_restricted')]
             if restricted:
@@ -93,10 +117,15 @@ def diagnose(r,c,raw,source=None):
         if not m.get('length_pass'):
             category,stage,proof=set_result('正文不足','内容核验','提取正文没有达到本例最低长度要求')
         elif any(not f['pass'] for f in m.get('fact_results',[])):
-            if any(f.get('match_scope')=='entry' for f in m['fact_results']):
+            if any(not f['pass'] and f.get('match_scope')=='entry' for f in m['fact_results']):
                 category,stage,proof=set_result('条目未完整匹配','内容核验','没有匹配到条目的完整字段组合；这不表示每个字段都不存在。见逐项判定。')
             else:
                 category,stage,proof=set_result('缺少关键信息','内容核验','未命中核对点：'+', '.join(f['id'] for f in m['fact_results'] if not f['pass']))
+        elif m.get('legacy_marker_pass') is False:
+            category,stage,proof=set_result('缺少关键信息','内容核验','未命中要求的正文标记：'+', '.join(m.get('expected_markers',[])))
+        elif any(not p['pass'] and p['count'] < p['minimum'] for p in m.get('pattern_results',[])):
+            category,stage,proof=set_result('有效条目不足','内容核验','未满足数量核对点：'+', '.join(
+                f"{p['id']} 检出 {p['count']}，至少需要 {p['minimum']}" for p in m['pattern_results'] if not p['pass']))
         else:category,stage,proof=set_result('内容结构不完整','内容核验','未满足本例字段或数量规则，见逐项判定')
     if not category:return None
     return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty,

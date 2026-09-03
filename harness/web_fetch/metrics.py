@@ -140,7 +140,10 @@ def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
     return round(precision, 4), round(recall, 4), round(f1, 4)
 
 
-def task_passed(ok: bool, metrics: dict, task_kind: str = 'body') -> bool:
+def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
+    # Scored records carry the case kind so dataset-free summaries use the same
+    # predicate as the report. Explicit case context still takes precedence.
+    task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
     if "stable_task_pass" in metrics:
         return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
                     and not metrics.get("stable_blocked_page"))
@@ -298,6 +301,7 @@ def percentile(values: list[float], fraction: float) -> float | None:
 
 
 def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Task-aware summaries using the same predicate as execution and reports."""
     by_provider: dict[str, list[dict[str, Any]]] = defaultdict(list)
     by_case: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in records:
@@ -311,16 +315,14 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
         content_successful_elapsed = [
             float(item["elapsed_ms"])
             for item in items
-            if item["ok"] and item["metrics"]["content_pass"]
+            if task_passed(item["ok"], item["metrics"])
         ]
+        passed = sum(task_passed(item["ok"], item["metrics"]) for item in items)
         provider_summary[provider] = {
             "provider_type": items[0]["provider_type"],
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
-            "content_pass_rate": round(
-                sum(item['ok'] and item["metrics"]["content_pass"] for item in items) / len(items), 4
-            ),
-            "conditional_content_pass_rate": (round(sum(item['ok'] and item['metrics']['content_pass'] for item in items) / sum(item['ok'] for item in items), 4) if any(item['ok'] for item in items) else None),
+            "task_pass_rate": round(passed / len(items), 4),
             "mean_marker_recall": round(
                 statistics.mean(item["metrics"]["marker_recall"] for item in items), 4
             ),
@@ -350,14 +352,13 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     case_summary = {}
     for case_id, items in sorted(by_case.items()):
+        passed = sum(task_passed(item["ok"], item["metrics"]) for item in items)
         case_summary[case_id] = {
             "name": items[0]["case_name"],
             "category": items[0]["category"],
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
-            "content_pass_rate": round(
-                sum(item['ok'] and item["metrics"]["content_pass"] for item in items) / len(items), 4
-            ),
+            "task_pass_rate": round(passed / len(items), 4),
         }
     return {"providers": provider_summary, "cases": case_summary}
 
@@ -372,6 +373,6 @@ def _failure_counts(items: list[dict[str, Any]]) -> dict[str, int]:
     for item in items:
         if not item["ok"]:
             counts[item.get("error_type") or "unknown_transport_failure"] += 1
-        elif not item["metrics"]["content_pass"]:
+        elif not task_passed(item["ok"], item["metrics"]):
             counts["content_validation_failure"] += 1
     return counts

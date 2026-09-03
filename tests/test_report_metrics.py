@@ -7,16 +7,16 @@ def record(ok=True,passed=True):
  return {'provider':'test','provider_type':'fixture','case_id':'c','case_name':'case','category':'test','url':'https://example.com','elapsed_ms':100,'ok':ok,'error_type':None,'metrics':{**evaluate_content('hello world',['hello']), 'content_pass':passed}}
 
 class ReportMetricsTests(unittest.TestCase):
- def test_conditional_and_end_to_end_denominators(self):
+ def test_request_and_task_denominators(self):
   rows=[record() for _ in range(6)]+[record(passed=False) for _ in range(2)]+[record(ok=False,passed=False) for _ in range(2)]
   result=summarize(rows)['providers']['test']
   self.assertEqual(result['transport_success_rate'],.8)
-  self.assertEqual(result['conditional_content_pass_rate'],.75)
-  self.assertEqual(result['content_pass_rate'],.6)
- def test_no_transport_means_conditional_missing(self):
-  self.assertIsNone(summarize([record(ok=False)])['providers']['test']['conditional_content_pass_rate'])
+  self.assertEqual(result['task_pass_rate'],.6)
+  self.assertNotIn('conditional_content_pass_rate',result)
+ def test_no_requests_does_not_create_conditional_metrics(self):
+  self.assertNotIn('conditional_content_pass_rate',summarize([record(ok=False)])['providers']['test'])
  def test_failed_transport_cannot_pass(self):
-  self.assertEqual(summarize([record(ok=False)])['providers']['test']['content_pass_rate'],0)
+  self.assertEqual(summarize([record(ok=False)])['providers']['test']['task_pass_rate'],0)
   self.assertFalse(succeeded(record(ok=False),{'task_kind':'body'}))
  def test_cjk_and_markdown(self):
   self.assertEqual(word_overlap('[你好](https://example.com) 世界','你好 世界'),(1,1,1))

@@ -65,7 +65,7 @@ class TitleQualityTests(unittest.TestCase):
         rendered=ranking([ra,rb],{'body':a,'list':b},'challenge')
         row=table_cells(rendered,'ranking-challenge')[0]
         self.assertEqual(row[4:7],['80.0%']*3)
-        self.assertEqual(row[7:10],['100.0%']*3)
+        self.assertEqual(table_cells(rendered,'ranking-challenge-titles')[0][2:5],['100.0%']*3)
         self.assertIn('完整参考覆盖 1/2',rendered)
 
     def test_attachment_keeps_task_and_fulltext_scores(self):
@@ -90,16 +90,19 @@ class TitleQualityTests(unittest.TestCase):
         self.assertIn('不能据此直接比较整页正文质量',rendered)
         cells=table_cells(rendered,'ranking-challenge')[0]
         self.assertEqual(cells[3],'0.0%')
-        self.assertEqual(cells[4:7],['100.0%']*3)
-        self.assertEqual(cells[7],'1/1 · 1/1 例')
+        self.assertEqual(cells[4:7],['—']*3)
+        diagnostic=table_cells(rendered,'ranking-challenge-titles')[0]
+        self.assertEqual(diagnostic[2:5],['100.0%']*3)
+        self.assertEqual(diagnostic[5],'1/1 · 1/1 例')
+        self.assertIn('<summary>辅助诊断',rendered)
 
     def test_case_macro_average_not_returned_title_pooled_average(self):
         a,b=case('a'),case('b'); ra,rb=record(a),record(b)
         ra['title_quality']=evaluate_titles([output('red')],{'items':[item('red')]})
         rb['title_quality']=evaluate_titles([output('bad'),output('bad','https://movie.douban.com/subject/2')],
                                           {'items':[item('blue'),item('blue','https://movie.douban.com/subject/2')]})
-        row=table_cells(ranking([ra,rb],{'a':a,'b':b},'challenge'),'ranking-challenge')[0]
-        self.assertEqual(row[4:7],['50.0%']*3)
+        row=table_cells(ranking([ra,rb],{'a':a,'b':b},'challenge'),'ranking-challenge-titles')[0]
+        self.assertEqual(row[2:5],['50.0%']*3)
 
     def test_current_public_labels_are_consistent(self):
         from harness.web_fetch.report import TRACKS

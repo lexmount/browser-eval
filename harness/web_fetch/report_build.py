@@ -38,6 +38,15 @@ def build_report(source: Path, output: Path) -> Path:
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
+    for c in cases.values():
+        annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
+        if annotation.get('anchor_evidence_sha256'):
+            from copy import deepcopy
+            from .stable_annotations import bind_annotation_evidence
+            checked=deepcopy(c)
+            bind_annotation_evidence(checked,source)
+            if checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256'] != annotation['anchor_evidence_sha256']:
+                raise ValueError('Stable text evidence changed: '+c['id'])
     for r in records:
         contract = cases[r['case_id']].get('acceptance_contract')
         if contract:
@@ -96,6 +105,9 @@ def build_report(source: Path, output: Path) -> Path:
             for provider, row in providers.items():
                 subset = [r for r in records if r['provider'] == provider and cases[r['case_id']].get('track','web') == track]
                 row['scoring_scope'] = scoring_scope(subset, cases)
+                text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
+                row['text_checked_attempts']=len(text)
+                row['text_checked_cases']=len({r['case_id'] for r in text})
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))

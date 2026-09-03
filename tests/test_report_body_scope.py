@@ -45,6 +45,29 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_four_text_tracks_share_columns_and_text_coverage_semantics(self):
+        headers=[]
+        for track in ('web','dynamic','challenge','document'):
+            c=case('example','body');c['track']=track
+            r=record(c,passed=False)
+            r['metrics']['fact_results']=[{'id':'a','pass':True},{'id':'b','pass':False}]
+            rendered=ranking([r],{'example':c},track)
+            row=table_cells(rendered,'ranking-'+track)[0]
+            self.assertEqual(row[7],'50.0% · 1/1 例')
+            self.assertEqual(row[4:7],['80.0%']*3)
+            self.assertEqual(row[3],'0.0%')
+            headers.append([re.sub(r'<[^>]*>','',h) for h in re.findall(r'<th[^>]*>(.*?)</th>',rendered,re.S)])
+        self.assertTrue(all(h==headers[0] for h in headers))
+
+    def test_nonliteral_snapshot_not_promoted_into_invariant_body_quality(self):
+        c=case('example','body'); c['track']='dynamic'
+        c['acceptance_contract']={'schema':'product','minimum_records':3}
+        c['source_benchmark']={'stable_annotation':{'structural_only_fields':['price']}}
+        r=record(c)
+        row=table_cells(ranking([r],{'example':c},'dynamic'),'ranking-dynamic')[0]
+        self.assertEqual(row[4:7],['—']*3)
+        self.assertEqual(r['metrics']['word_f1'],.8)
+
     def test_current_instruction_does_not_reuse_old_identity_question(self):
         c=case()
         c['task_prompt']='核对返回的前三条名称与详情身份'
@@ -69,7 +92,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(row[2], '100.0%')  # Transport remains measured.
         self.assertEqual(row[3], '100.0%')
         self.assertEqual(row[4:7], ['—'] * 3)
-        self.assertEqual(row[7:], ['100 ms'] * 3)
+        self.assertEqual(row[8:], ['100 ms'] * 3)
         self.assertNotIn('auxiliary',rendered)
         self.assertNotIn('正文未评测',rendered)
         self.assertIn('名称—链接身份核验',rendered)
@@ -81,7 +104,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                            {'body':body, 'list':auxiliary}, 'challenge')
         row = table_cells(rendered, 'ranking-challenge')[0]
         self.assertEqual(row[3:7], ['100.0%', '80.0%', '80.0%', '80.0%'])
-        self.assertEqual(row[7], '460 ms')
+        self.assertEqual(row[8], '460 ms')
         self.assertIn('完整参考覆盖 1/2', rendered)
         self.assertNotIn('ranking-challenge-auxiliary',rendered)
 
@@ -89,7 +112,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         c=case('body','body','web')
         row=table_cells(ranking([record(c,passed=False)], {'body':c}, 'web'),'ranking-web')[0]
         self.assertEqual(row[3:7], ['0.0%', '80.0%', '80.0%', '80.0%'])
-        self.assertEqual(row[7:], ['—']*3)
+        self.assertEqual(row[8:], ['—']*3)
 
     def test_request_failure_zero_and_macro_case_average(self):
         first,second=case('a','body'),case('b','body')
@@ -198,7 +221,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             subset=[r for r in records if r['provider']==row[1] and cases[r['case_id']].get('track')=='challenge']
             passed=[r for r in subset if succeeded(r,cases[r['case_id']])]
             self.assertEqual(row[3],f'{len(passed)/len(subset)*100:.1f}%')
-            self.assertEqual(row[7]=='—',not passed)
+            self.assertEqual(row[8]=='—',not passed)
 
     def test_stable_results_override_legacy_checks_in_details_and_ranking(self):
         from harness.web_fetch.report import reason
@@ -242,7 +265,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         from harness.web_fetch.report import failure_category, failure_filters
         from harness.web_fetch.failure_diagnosis import diagnose
         c=case();c['acceptance_contract']={'version':1,'schema':'product','minimum_records':3}
-        for error,label in [('missing_stable_anchor:heading','稳定文本未命中'),('duplicate_records','条目重复'),
+        for error,label in [('missing_stable_anchor:heading','缺少关键信息'),('duplicate_records','条目重复'),
                             ('incomplete_records','字段格式或记录不完整'),('too_few_complete_records','有效条目不足')]:
             with self.subTest(error=error):
                 r=record(c,passed=False)

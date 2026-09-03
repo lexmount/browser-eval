@@ -51,8 +51,13 @@ class StableAnnotationTests(unittest.TestCase):
             annotated = annotate_case(case)
             self.assertEqual(case, original)
             self.assertEqual(annotate_case(annotated), annotated)
-            for field in ("ground_truth_main_content", "required_facts", "source_verification", "task_prompt"):
+            for field in ("ground_truth_main_content", "required_facts", "source_verification"):
                 self.assertEqual(annotated[field], original[field])
+            if original['track']=='challenge':
+                self.assertEqual(annotated['source_benchmark']['captured_task_prompt'],original['task_prompt'])
+                self.assertEqual(annotated['task_prompt'],annotated['reference_answer'])
+            else:
+                self.assertEqual(annotated['task_prompt'],original['task_prompt'])
             self.assertEqual(annotated["source_benchmark"]["original_metadata"], "preserve")
             self.assertEqual(annotated["source_benchmark"]["snapshot_metric_scope"], SNAPSHOT_METRIC_SCOPE)
             self.assertIsNone(annotated["source_benchmark"]["stable_annotation"]["live_factual_correctness"])
@@ -77,12 +82,13 @@ class StableAnnotationTests(unittest.TestCase):
             self.assertEqual(bool(evidence), bool(annotated["acceptance_contract"]["stable_text_anchors"]))
             if evidence:
                 self.assertTrue((ROOT / "evaluation" / evidence).is_file())
-            reference = normalize_for_match(self.reference(identifier))
+            reference = normalize_for_match((ROOT / 'evaluation' / evidence).read_text()) if evidence else ''
             for anchor in annotate_case(self.case(identifier))["acceptance_contract"]["stable_text_anchors"]:
                 self.assertTrue(any(fact_in_text(reference, normalize_for_match(value)) for value in anchor["alternatives"]),
                                 (identifier, anchor["id"]))
-        self.assertEqual(annotate_case(self.case("challenge-09"))["acceptance_contract"]["stable_text_anchors"], [])
-        self.assertEqual(annotate_case(self.case("challenge-10-justwatch"))["acceptance_contract"]["stable_text_anchors"], [])
+        self.assertEqual(len(annotate_case(self.case("challenge-09"))["acceptance_contract"]["stable_text_anchors"]), 2)
+        self.assertEqual(len(annotate_case(self.case("challenge-10-justwatch"))["acceptance_contract"]["stable_text_anchors"]), 3)
+        self.assertEqual(annotate_case(self.case("challenge-04"))["acceptance_contract"]["stable_text_anchors"], [])
 
     def test_all_ten_independent_dynamic_references_are_positive(self):
         for identifier, rule in CASE_ANNOTATIONS.items():
@@ -177,11 +183,45 @@ class StableAnnotationTests(unittest.TestCase):
             "challenge-10-justwatch": "/us/tv-show/new-{i}"}
         for identifier, path in paths.items():
             rules = CASE_ANNOTATIONS[identifier]["contract"]
-            prefix = "Decorative Candles\n" if identifier == "challenge-01" else ""
+            prefix = '\n'.join(a['alternatives'][0] for a in rules['stable_text_anchors']) + '\n'
             text = prefix + "\n".join(f"[Completely new title {i}](https://{rules['hosts'][0]}{path.format(i=i)})" for i in range(1, 4))
             result = self.score(identifier, text)
             self.assertTrue(result["stable_task_pass"], identifier)
             self.assertFalse(self.score(identifier, text.replace(rules['hosts'][0], "wrong.test"))["stable_task_pass"])
+
+    def test_popular_body_and_list_are_both_required_and_values_can_change(self):
+        identifier = 'challenge-09'
+        anchors = 'IMDb Top 250 movies\nAs rated by regular IMDb voters.\n'
+        links = '\n'.join(f'[{i}. New film {i}](https://www.imdb.com/title/tt{i}) Rating: {i}.2' for i in range(1, 4))
+        complete = self.score(identifier, anchors + links)
+        self.assertTrue(complete['stable_task_pass'])
+        self.assertEqual(complete['stable_anchor_coverage'], 1)
+        structure_only = self.score(identifier, links)
+        self.assertTrue(structure_only['stable_structure_pass'])
+        self.assertFalse(structure_only['stable_content_pass'])
+        self.assertEqual(structure_only['stable_anchor_coverage'], 0)
+        missing_explanation = self.score(identifier, 'IMDb Top 250 movies\n' + links)
+        self.assertFalse(missing_explanation['stable_task_pass'])
+        self.assertEqual(missing_explanation['stable_anchor_coverage'], .5)
+        body_only = self.score(identifier, anchors)
+        self.assertFalse(body_only['stable_task_pass'])
+        self.assertEqual(body_only['stable_anchor_coverage'], 1)
+        changed = anchors + '\n'.join(reversed(links.replace('New film', 'Different film').replace('Rating:', 'Price: $').splitlines()))
+        self.assertTrue(self.score(identifier, changed)['stable_task_pass'])
+        self.assertEqual(self.score(identifier, changed + '\nAdditional legitimate content')['stable_anchor_coverage'], 1)
+
+    def test_unannotated_text_is_not_perfect_text_coverage(self):
+        result = self.score('challenge-04', '')
+        self.assertIsNone(result['stable_anchor_coverage'])
+        self.assertEqual(result['stable_text_scope'], 'not_annotated')
+
+    def test_amazon_product_names_do_not_supply_page_search_context(self):
+        links='\n'.join(f'[Wireless headphones model {i}](https://www.amazon.com/dp/ABCDEFGHI{i})' for i in range(1,4))
+        result=self.score('challenge-07',links)
+        self.assertTrue(result['stable_structure_pass'])
+        self.assertFalse(result['stable_task_pass'])
+        self.assertEqual(result['stable_anchor_coverage'],0)
+        self.assertTrue(self.score('challenge-07','1-16 of over 100,000 results for "headphones"\n'+links)['stable_task_pass'])
 
 
 if __name__ == "__main__":

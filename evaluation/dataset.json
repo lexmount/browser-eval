@@ -7370,7 +7370,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Decorative Candles；Price；Color；Brand。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909679+00:00",
@@ -7378,7 +7378,7 @@
         "reference_sha256": "a9d6fd09bd2cd5a4742b277d791a3b3a9ee508415f4a89229be939dd8193b488",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Decorative Candles；Price；Color；Brand。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7394,10 +7394,10 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
           "stable_fields": [
-            "captured_ui_text"
+            "task_related_page_text"
           ],
           "structural_only_fields": [
             "item_title",
@@ -7407,14 +7407,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": "sources/challenge-01/reference.txt",
+          "anchor_evidence": "sources/challenge-01/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "8a6a057ff2d6ff2934e0aa78aabaefd1827e78a671df73b369104ecacf812839"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7427,9 +7429,27 @@
         "entry_path": "/shop/[^/]+",
         "stable_text_anchors": [
           {
-            "id": "stable-category-1",
+            "id": "page-text-1",
             "alternatives": [
               "Decorative Candles"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "Price"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "Color"
+            ]
+          },
+          {
+            "id": "page-text-4",
+            "alternatives": [
+              "Brand"
             ]
           }
         ]
@@ -7450,7 +7470,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909688+00:00",
@@ -7458,7 +7478,7 @@
         "reference_sha256": "0a7ee47e96e325a1ade74381abf096fb00b11db7397ac37c36213587cf9967ab",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：品牌；综合；销量。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7473,9 +7493,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7484,14 +7506,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-02/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "5e21a4be497e42450e243ca66c77f27f62e5705d7c40b21b1ef051abf4eb7b33"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7501,7 +7525,26 @@
           "item.jd.com"
         ],
         "entry_path": "/\\d+\\.html",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "品牌"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "综合"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "销量"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7519,7 +7562,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：穿搭；美食；彩妆；影视。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909690+00:00",
@@ -7527,7 +7570,7 @@
         "reference_sha256": "abef481e12457a705e0a40515016d86fed7c1a9a7e96bd842f5e33607b743580",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：穿搭；美食；彩妆；影视。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7542,9 +7585,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7553,14 +7598,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-03/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "37b39263f8cbafcf10292486e63a6b8196f5afad4c5f7ff7eda3b120fd035fbb"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7570,7 +7617,32 @@
           "www.xiaohongshu.com"
         ],
         "entry_path": "/explore/[a-fA-F0-9]+",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "穿搭"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "美食"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "彩妆"
+            ]
+          },
+          {
+            "id": "page-text-4",
+            "alternatives": [
+              "影视"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7588,7 +7660,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "restricted",
         "checked_at": "2026-09-02T08:21:56.909692+00:00",
@@ -7596,7 +7668,7 @@
         "reference_sha256": "0a08b0545f773897956a7ebc20f85ae1c0e8c1e4ba2d2db7e7cd6a48c178dd84",
         "note": "页面快照包含 30 条热榜内容；独立浏览器复查停在登录页。参评方法均不提供站点登录凭据。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。本例没有独立的稳定文字核对依据，文字覆盖不计算。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7611,7 +7683,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
           "stable_fields": [],
           "structural_only_fields": [
@@ -7629,7 +7701,8 @@
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
           "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7657,7 +7730,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：豆瓣电影 Top 250；导演:；主演:。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909693+00:00",
@@ -7665,7 +7738,7 @@
         "reference_sha256": "143c0539a965cdd7d57a160361f3a2a5f9eb5fc38ba19e59fc3dfdf4fb1e2b13",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：豆瓣电影 Top 250；导演:；主演:。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7680,9 +7753,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7691,14 +7766,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-05/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "826cf47631a0b012c4c8b6e96ef38914fbe1ccc313f123159952c96b2dd4c2ff"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7708,7 +7785,26 @@
           "movie.douban.com"
         ],
         "entry_path": "/subject/\\d+",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "豆瓣电影 Top 250"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "导演:"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "主演:"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7726,7 +7822,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：人均；推荐菜；条评价。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "restricted",
         "checked_at": "2026-09-02T08:21:56.909694+00:00",
@@ -7734,7 +7830,7 @@
         "reference_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922",
         "note": "页面快照包含 15 家商户；独立浏览器复查遇到验证码。参评方法均不提供站点登录凭据。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：人均；推荐菜；条评价。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7749,9 +7845,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7760,14 +7858,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-06/reference.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Required restaurant-card field labels come from the previously saved independent public-list reference. The labels, not restaurant names, dishes, per-capita prices or review counts, are matched.",
+          "anchor_evidence_sha256": "793cd088544165d29ec87c5dfae60af3f07691cf65a85d7ecc2e2fd249312922"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7777,7 +7877,26 @@
           "www.dianping.com"
         ],
         "entry_path": "/shop/[A-Za-z0-9]+",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "record-label-1",
+            "alternatives": [
+              "人均"
+            ]
+          },
+          {
+            "id": "record-label-2",
+            "alternatives": [
+              "推荐菜"
+            ]
+          },
+          {
+            "id": "record-label-3",
+            "alternatives": [
+              "条评价"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7795,7 +7914,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：headphones。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909696+00:00",
@@ -7803,7 +7922,7 @@
         "reference_sha256": "bd1e790d58882342473b90ab984e8c3469de97b9883a704f94573e5ec8044da9",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：headphones。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7818,9 +7937,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7829,14 +7950,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-07/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only the independently observed search context is a required text group. Lines containing extracted item labels cannot satisfy it. English filter labels are retained as evidence, not mandatory across locales. Product names and commercial values remain nonliteral.",
+          "anchor_evidence_sha256": "7b7c4454ebcfaba9a6c7a8d2fe465e42d0a8e46f9f04d8c6f8e7a55664296d96"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7846,7 +7969,15 @@
           "www.amazon.com"
         ],
         "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "search-context-1",
+            "alternatives": [
+              "headphones"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ]
       }
     },
     {
@@ -7864,7 +7995,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：r/programming；Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909702+00:00",
@@ -7872,7 +8003,7 @@
         "reference_sha256": "082e70963bc8d6d4e8c9ef5324003ff2d65934f5544bc5c0a9cbcfd360f202a5",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：r/programming；Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7888,9 +8019,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7899,14 +8032,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-08/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "3ac21828ead5bdc8b4aea01daae208a24b2b515a469abb97eeadf1d52722e115"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7917,7 +8052,20 @@
           "reddit.com"
         ],
         "entry_path": "/r/programming/comments/[a-z0-9]+(?:/[^/]+)?",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "community-text-1",
+            "alternatives": [
+              "r/programming"
+            ]
+          },
+          {
+            "id": "community-text-2",
+            "alternatives": [
+              "Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow."
+            ]
+          }
+        ]
       }
     },
     {
@@ -7935,7 +8083,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：IMDb Top 250 movies；As rated by regular IMDb voters.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909703+00:00",
@@ -7943,7 +8091,7 @@
         "reference_sha256": "ff5705feed51b20505195ca9f7581a1f68521532c0cdb3dee12462cd1c608e1a",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：IMDb Top 250 movies；As rated by regular IMDb voters.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -7959,9 +8107,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -7970,14 +8120,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-09/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "47132be5dcdcf06d87d17d25d77ef7424e18e8f189b2fb04a44904e5645c7d5f"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -7988,7 +8140,20 @@
           "imdb.com"
         ],
         "entry_path": "/title/tt\\d+",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "IMDb Top 250 movies"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "As rated by regular IMDb voters."
+            ]
+          }
+        ]
       }
     },
     {
@@ -8006,7 +8171,7 @@
         "Prove your humanity",
         "Access Denied"
       ],
-      "reference_answer": "至少 3 个不同条目，各包含有意义的名称/标题及本站详情入口。名称、名次、价格、条目 ID 不预先固定。示例快照不参与正确率或全文 F1。",
+      "reference_answer": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Discover TV shows and find where to watch online；Where to watch TV series online?；You can also check out other streaming services to find out what’s available to buy, rent or watch for free.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "source_verification": {
         "state": "valid",
         "checked_at": "2026-09-02T08:21:56.909705+00:00",
@@ -8014,7 +8179,7 @@
         "reference_sha256": "58f10b60ee4d1beb68f7cb7cda89bfdecd1ef89bdabf74cba3aa1abed60b0094",
         "note": "页面包含具名详情入口。参考快照只说明字段结构，不作为实时条目的固定答案。"
       },
-      "task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。",
+      "task_prompt": "返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。同时保留这些任务相关文字：Discover TV shows and find where to watch online；Where to watch TV series online?；You can also check out other streaming services to find out what’s available to buy, rent or watch for free.。不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。",
       "required_patterns": [],
       "ground_truth_main_content": "",
       "content_score_applicable": false,
@@ -8029,9 +8194,11 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "changing_public_list",
-          "stable_fields": [],
+          "stable_fields": [
+            "task_related_page_text"
+          ],
           "structural_only_fields": [
             "item_title",
             "detail_url",
@@ -8040,14 +8207,16 @@
             "rating",
             "popularity"
           ],
-          "anchor_evidence": null,
+          "anchor_evidence": "sources/challenge-10-justwatch/stable-page.txt",
           "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
           "task_decision_scope": "structure_and_explicit_stable_content",
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
-        }
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed.",
+          "anchor_evidence_sha256": "1b8cd4e8e33d7c4268f09162337d215cbcb0e38342ff3da59601514aec0b260e"
+        },
+        "captured_task_prompt": "取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。"
       },
       "acceptance_contract": {
         "version": 1,
@@ -8057,7 +8226,26 @@
           "www.justwatch.com"
         ],
         "entry_path": "/us/tv-show/[^/]+",
-        "stable_text_anchors": []
+        "stable_text_anchors": [
+          {
+            "id": "page-text-1",
+            "alternatives": [
+              "Discover TV shows and find where to watch online"
+            ]
+          },
+          {
+            "id": "page-text-2",
+            "alternatives": [
+              "Where to watch TV series online?"
+            ]
+          },
+          {
+            "id": "page-text-3",
+            "alternatives": [
+              "You can also check out other streaming services to find out what’s available to buy, rent or watch for free."
+            ]
+          }
+        ]
       }
     },
     {
@@ -8277,7 +8465,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "quote",
@@ -8291,7 +8479,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Asynchronously loaded fixed quote demonstration; preserve all ten quote/author/tag tuples."
+          "note": "Asynchronously loaded fixed quote demonstration; preserve all ten quote/author/tag tuples.",
+          "anchor_evidence_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
         }
       },
       "source_verification": {
@@ -8555,7 +8744,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [],
           "structural_only_fields": [
@@ -8777,7 +8966,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "description"
@@ -8793,7 +8982,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Keep six fixed demo specification texts; changing display title, price or review count does not change this contract."
+          "note": "Keep six fixed demo specification texts; changing display title, price or review count does not change this contract.",
+          "anchor_evidence_sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836"
         }
       },
       "source_verification": {
@@ -9069,7 +9259,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "quote",
@@ -9083,7 +9273,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Delayed rendering of the fixed quote demo, not a live quote ranking."
+          "note": "Delayed rendering of the fixed quote demo, not a live quote ranking.",
+          "anchor_evidence_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
         }
       },
       "source_verification": {
@@ -9443,7 +9634,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "text"
@@ -9457,7 +9648,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "GraphQL loading is not content volatility: retain twenty seeded demo review texts; dates remain typed fields."
+          "note": "GraphQL loading is not content volatility: retain twenty seeded demo review texts; dates remain typed fields.",
+          "anchor_evidence_sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535"
         }
       },
       "source_verification": {
@@ -9997,7 +10189,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [],
           "structural_only_fields": [
@@ -10311,7 +10503,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "name",
@@ -10324,7 +10516,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "PhoneCat tutorial uses fixed historical sample devices; preserve all twenty name/description pairs."
+          "note": "PhoneCat tutorial uses fixed historical sample devices; preserve all twenty name/description pairs.",
+          "anchor_evidence_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1"
         }
       },
       "source_verification": {
@@ -10864,7 +11057,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "method",
@@ -10878,7 +11071,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Preserve the twenty captured Petstore demo operation tuples; no uncaptured Swagger header is required."
+          "note": "Preserve the twenty captured Petstore demo operation tuples; no uncaptured Swagger header is required.",
+          "anchor_evidence_sha256": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054"
         }
       },
       "source_verification": {
@@ -11118,7 +11312,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "text"
@@ -11132,7 +11326,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "Five seeded product-review texts are fixed demonstration content, regardless of embedded-state loading."
+          "note": "Five seeded product-review texts are fixed demonstration content, regardless of embedded-state loading.",
+          "anchor_evidence_sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246"
         }
       },
       "source_verification": {
@@ -11306,7 +11501,7 @@
         "snapshot_metric_scope": "captured_sample_diagnostic",
         "stable_annotation": {
           "registry": "stable_annotations",
-          "version": 1,
+          "version": 2,
           "content_kind": "demonstration_content",
           "stable_fields": [
             "family"
@@ -11318,7 +11513,8 @@
           "word_overlap_scope": "captured_sample_diagnostic",
           "old_fact_scope": "captured_sample_diagnostic",
           "live_factual_correctness": null,
-          "note": "The iframe contains a fixed taxonomy demonstration, not a changing popularity list."
+          "note": "The iframe contains a fixed taxonomy demonstration, not a changing popularity list.",
+          "anchor_evidence_sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca"
         }
       },
       "source_verification": {

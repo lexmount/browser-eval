@@ -17,7 +17,7 @@ from copy import deepcopy
 from .stable_tasks import validate_acceptance_contract
 
 
-REGISTRY_VERSION = 1
+REGISTRY_VERSION = 2
 SNAPSHOT_METRIC_SCOPE = "captured_sample_diagnostic"
 
 
@@ -267,9 +267,10 @@ def _demo(url, schema, count, anchors, stable_fields, structural_fields, note):
                      "stable_text_anchors": anchors}}
 
 
-def _live(url, hosts, path, anchors=()):
+def _live(url, hosts, path, anchors=(), evidence=None):
     return {"url": url, "track": "challenge", "content_kind": "changing_public_list",
-        "stable_fields": ["captured_ui_text"] if anchors else [],
+        "stable_fields": ["task_related_page_text"] if anchors else [],
+        "anchor_evidence": evidence,
         "structural_only_fields": ["item_title", "detail_url", "rank", "price", "rating", "popularity"],
         "note": ("Only explicitly captured stable UI text is literal; item values and ranks are not fixed."
                  if anchors else "No stable non-item heading was retained in the declared source scope; no header is invented."),
@@ -301,20 +302,41 @@ CASE_ANNOTATIONS = {
         ["family"], [], "The iframe contains a fixed taxonomy demonstration, not a changing popularity list."),
     "challenge-01": _live("https://www.anthropologie.com/collection-decorative-candles",
         ["www.anthropologie.com", "www.anthropologie.com.cn"], r"/shop/[^/]+",
-        _anchors(["Decorative Candles"], "stable-category")),
+        _anchors(["Decorative Candles", "Price", "Color", "Brand"], "page-text"),
+        "sources/challenge-01/stable-page.txt"),
     "challenge-02": _live("https://search.jd.com/Search?keyword=%E8%80%B3%E6%9C%BA&enc=utf-8",
-        ["item.jd.com"], r"/\d+\.html"),
+        ["item.jd.com"], r"/\d+\.html", _anchors(["品牌", "综合", "销量"], "page-text"),
+        "sources/challenge-02/stable-page.txt"),
     "challenge-03": _live("https://www.xiaohongshu.com/explore",
-        ["www.xiaohongshu.com"], r"/explore/[a-fA-F0-9]+"),
+        ["www.xiaohongshu.com"], r"/explore/[a-fA-F0-9]+",
+        _anchors(["穿搭", "美食", "彩妆", "影视"], "page-text"), "sources/challenge-03/stable-page.txt"),
     "challenge-04": _live("https://www.zhihu.com/hot", ["www.zhihu.com"], r"/question/\d+"),
-    "challenge-05": _live("https://movie.douban.com/top250", ["movie.douban.com"], r"/subject/\d+"),
-    "challenge-06": _live("https://www.dianping.com/shanghai/ch10", ["www.dianping.com"], r"/shop/[A-Za-z0-9]+"),
-    "challenge-07": _live("https://www.amazon.com/s?k=headphones", ["www.amazon.com"], r"(?:/[^/]+)?/dp/[A-Z0-9]{10}"),
+    "challenge-05": _live("https://movie.douban.com/top250", ["movie.douban.com"], r"/subject/\d+",
+        _anchors(["豆瓣电影 Top 250", "导演:", "主演:"], "page-text"), "sources/challenge-05/stable-page.txt"),
+    "challenge-06": _live("https://www.dianping.com/shanghai/ch10", ["www.dianping.com"], r"/shop/[A-Za-z0-9]+",
+        _anchors(["人均", "推荐菜", "条评价"], "record-label")),
+    "challenge-07": _live("https://www.amazon.com/s?k=headphones", ["www.amazon.com"], r"(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        _anchors(["headphones"], "search-context"), "sources/challenge-07/stable-page.txt"),
     "challenge-08": _live("https://www.reddit.com/r/programming/", ["www.reddit.com", "reddit.com"],
-        r"/r/programming/comments/[a-z0-9]+(?:/[^/]+)?"),
-    "challenge-09": _live("https://www.imdb.com/chart/top/", ["www.imdb.com", "imdb.com"], r"/title/tt\d+"),
-    "challenge-10-justwatch": _live("https://www.justwatch.com/us/tv-shows", ["www.justwatch.com"], r"/us/tv-show/[^/]+"),
+        r"/r/programming/comments/[a-z0-9]+(?:/[^/]+)?",
+        _anchors(["r/programming", "Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow."], "community-text"),
+        "sources/challenge-08/stable-page.txt"),
+    "challenge-09": _live("https://www.imdb.com/chart/top/", ["www.imdb.com", "imdb.com"], r"/title/tt\d+",
+        _anchors(["IMDb Top 250 movies", "As rated by regular IMDb voters."], "page-text"), "sources/challenge-09/stable-page.txt"),
+    "challenge-10-justwatch": _live("https://www.justwatch.com/us/tv-shows", ["www.justwatch.com"], r"/us/tv-show/[^/]+",
+        _anchors(["Discover TV shows and find where to watch online", "Where to watch TV series online?",
+                  "You can also check out other streaming services to find out what’s available to buy, rent or watch for free."], "page-text"),
+        "sources/challenge-10-justwatch/stable-page.txt"),
 }
+
+# Captured language variants are not guessed. The retained Amazon reference is
+# Chinese while the independent current page is English; only shared query text
+# is mandatory until equivalent fixed labels have independent bilingual evidence.
+CASE_ANNOTATIONS['challenge-07']['note'] = ('Only the independently observed search context is a required text group. '
+    'Lines containing extracted item labels cannot satisfy it. English filter labels are retained as evidence, not mandatory across locales. Product names and commercial values remain nonliteral.')
+CASE_ANNOTATIONS['challenge-07']['contract']['stable_text_anchors'][0]['match_scope'] = 'non_record_lines'
+CASE_ANNOTATIONS['challenge-06']['note'] = ('Required restaurant-card field labels come from the previously saved independent public-list reference. '
+    'The labels, not restaurant names, dishes, per-capita prices or review counts, are matched.')
 
 
 def annotate_case(case: dict) -> dict:
@@ -322,7 +344,8 @@ def annotate_case(case: dict) -> dict:
 
     Adds acceptance_contract and source_benchmark.{stable_annotation,
     snapshot_metric_scope}. Does not change references, facts, capture hashes,
-    task kind or any existing diagnostic evidence. No file or network I/O.
+    task kind or any existing diagnostic evidence. Original task wording is
+    retained separately when the displayed acceptance scope expands. No I/O.
     """
     result = deepcopy(case)
     rule = CASE_ANNOTATIONS.get(result.get("id"))
@@ -334,12 +357,20 @@ def annotate_case(case: dict) -> dict:
     validate_acceptance_contract(contract)
     result["acceptance_contract"] = contract
     benchmark = result.setdefault("source_benchmark", {})
+    if rule['track'] == 'challenge':
+        benchmark.setdefault('captured_task_prompt', result.get('task_prompt', ''))
+        labels = '；'.join(' / '.join(a['alternatives']) for a in contract['stable_text_anchors'])
+        answer = '返回至少 3 条不同的具名本站详情入口；字段完整且链接符合登记的域名与路径规则。'
+        answer += ('同时保留这些任务相关文字：' + labels + '。') if labels else '本例没有独立的稳定文字核对依据，文字覆盖不计算。'
+        answer += '不固定条目名称、名次、价格、评分或热度；登录与错误页不能代替目标内容。'
+        result['reference_answer'] = answer
+        result['task_prompt'] = answer
     benchmark["snapshot_metric_scope"] = SNAPSHOT_METRIC_SCOPE
     benchmark["stable_annotation"] = {
         "registry": "stable_annotations", "version": REGISTRY_VERSION,
         "content_kind": rule["content_kind"], "stable_fields": deepcopy(rule["stable_fields"]),
         "structural_only_fields": deepcopy(rule["structural_only_fields"]),
-        "anchor_evidence": (f"sources/{result['id']}/reference.txt"
+        "anchor_evidence": (rule.get("anchor_evidence") or f"sources/{result['id']}/reference.txt"
                             if contract.get("stable_text_anchors") else None),
         "record_requirement": f"At least {contract['minimum_records']} complete unique records; additional legitimate records are allowed.",
         "task_decision_scope": "structure_and_explicit_stable_content",
@@ -347,3 +378,19 @@ def annotate_case(case: dict) -> dict:
         "live_factual_correctness": None, "note": rule["note"],
     }
     return result
+
+
+def bind_annotation_evidence(case, source):
+    """Validate literal groups against their independent evidence before scoring."""
+    import hashlib
+    from .metrics import fact_in_text, normalize_for_match
+    from .safety import contained_path
+    annotation = case.get('source_benchmark', {}).get('stable_annotation')
+    if not annotation or not annotation.get('anchor_evidence'):
+        return
+    raw = contained_path(source, annotation['anchor_evidence']).read_bytes()
+    reference = normalize_for_match(raw.decode('utf-8'))
+    for anchor in case['acceptance_contract'].get('stable_text_anchors', []):
+        if not all(fact_in_text(reference, normalize_for_match(value)) for value in anchor['alternatives']):
+            raise ValueError('Stable text lacks independent evidence: ' + case['id'] + '/' + anchor['id'])
+    annotation['anchor_evidence_sha256'] = hashlib.sha256(raw).hexdigest()

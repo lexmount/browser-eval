@@ -25,7 +25,7 @@ class ContentOwnershipTests(unittest.TestCase):
         for phrase in ['不是文字经常更新','异步取数','客户端组装','嵌入子页','JavaScript 不是唯一','不要求滚动']:
             self.assertIn(phrase,text)
         self.assertIn('不能等同于“纯静态网页”',task_pass_guide('web'))
-        self.assertIn('本轮具体考题是列表取数，不是整页正文保真',task_pass_guide('challenge'))
+        self.assertIn('既要取得列表，也要保留登记的栏目、说明或固定字段标签',task_pass_guide('challenge'))
 
     def test_examples_link_only_when_present_in_dataset(self):
         absent=BeautifulSoup(task_pass_guide('dynamic','../',{}),'html.parser')
