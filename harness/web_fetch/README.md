@@ -1,5 +1,23 @@
 # Web Fetch Harness
 
+## Popular-site title quality
+
+`title_quality.py` computes a supplemental diagnostic during report builds from
+persisted `stable_records` and independent `list-references/<case>.json` evidence.
+It joins each returned entity by detail URL, accepts independently captured name
+aliases, and compares title tokens (CJK characters / other-language words).
+Recall, precision and F1 are averaged within each case, then across covered cases.
+Neither list membership/order nor prices are fixed answers. Unknown identities and
+no returned titles are unmeasured, not zero. The table reports both title and case
+coverage; providers may have different measured subsets. A high conditional title
+score cannot establish retrieval success, freshness, factual correctness or full
+body quality. Edited titles can differ legitimately from the captured names.
+
+The generated `results.jsonl` includes per-title comparisons, source timestamps,
+reference/output/scorer hashes and `offline_title_diagnostic` provenance. Original
+evaluation records, task decisions and `word_*` metrics are unchanged. Full-body
+metrics require a separately scoped, comparable complete reference.
+
 Web Fetch providers, execution, reference checks, scoring and report generation
 live in this package. Browser Use remains independent in `harness/browser_use`.
 
@@ -111,7 +129,7 @@ Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;
 subprocess workers currently receive only URL and timeout, not selectors or
 completion conditions. Metadata above does not change their wait behavior.
 Use a separate dataset and output directory for each measurement cohort.
-`track: dynamic` identifies 动态网页正文. The existing
+`track: dynamic` identifies 动态网站正文. The existing
 `scripts/run_dynamic_tasks.py` performs popular-site list-identity checks,
 not body evaluation. Never repurpose those calls as body measurements.
 Local fixture URLs are unavailable to cloud providers and are blocked by some

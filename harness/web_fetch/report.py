@@ -17,7 +17,7 @@ from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
 
-TRACKS={'web':'网站正文','dynamic':'动态网页正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
+TRACKS={'web':'网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
 function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=`显示 ${count} 条`}
@@ -133,7 +133,9 @@ def stable_checks(m):
 
 def ranking(records,cases,track,base='',id=None,compact=False):
  text_track=track in {'web','dynamic','document','challenge'}
+ title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
+ mixed_text_scope=title_scope and any(c.get('ground_truth_main_content') for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
@@ -154,7 +156,20 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   values=cell(link(base+f'providers/{name}.html',name))+cell(rate(ok,n),ok/n)
   if track in {'web','dynamic','document','challenge'}:
    values+=cell(rate(passed,n),passed/n)
-   values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
+   if title_scope:
+    if mixed_text_scope:values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
+    measured=[r for r in rs if r.get('title_quality',{}).get('f1') is not None]
+    for key in ['recall','precision','f1']:
+     per_case=defaultdict(list)
+     for r in measured:per_case[r['case_id']].append(r['title_quality'][key])
+     value=statistics.mean(statistics.mean(v) for v in per_case.values()) if per_case else None
+     values+=cell(pct(value),value if value is not None else -1)
+    count=sum(r.get('title_quality',{}).get('scored_titles',0) for r in rs)
+    total=sum(r.get('title_quality',{}).get('returned_titles',0) for r in rs)
+    coverage=f'{count}/{total} · {len({r["case_id"] for r in measured})}/{len(selected)} 例'
+    if not measured:coverage+='（无可评分标题）'
+    values+=cell(coverage,count/total if total else -1)
+   else:values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
   else:
    resources=[r for r in rs if cases[r['case_id']].get('task_kind')=='resource'];files=[r for r in rs if cases[r['case_id']].get('task_kind')=='file']
    values+=cell(rate(passed,n),passed/n)
@@ -164,7 +179,8 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   rows.append(('',values))
  heads=['方法','请求成功率']
  if track in {'web','dynamic','document','challenge'}:
-  heads+=['任务通过率','完整度','纯净度','F1']
+  heads+=['任务通过率']+(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'] if title_scope else ['完整度','纯净度','F1'])
+  if mixed_text_scope:heads[3:3]=['完整度','纯净度','F1']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
  heads+=['均值','P50','P95']
  note='请求成功率和任务通过率以全部任务为分母。'
@@ -175,6 +191,9 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   identity_rules=list(dict.fromkeys(list_rule_description(c) for c in selected.values()
    if c.get('task_kind')=='structure' and not c.get('acceptance_contract')))
   if identity_rules:note+=' '+esc(' '.join(identity_rules))
+  if title_scope:
+   note='三项文字指标仅比较返回条目的标题：按详情链接对应独立参考，逐标题计算，再按案例取均值。不固定榜单成员、名次、价格。未知条目及未返回标题不计文字分，覆盖量另列；不同方法覆盖的案例可能不同，不能据此直接比较整页正文质量。任务通过率仍包含全部任务。'
+   if mixed_text_scope:note=f'完整参考覆盖 {covered}/{len(selected)}；全文指标仅覆盖这些案例，与标题指标分列。标题'+note.removeprefix('三项文字')
  else:note='任务通过率以全部任务为分母；资源、文件、信息三列各按对应子任务计算。耗时只统计通过项。'
  if track=='dynamic':
   missing=sorted({r['provider'] for r in records}-set(groups))
@@ -247,7 +266,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   verified=c.get('source_verification',{});state='受限' if verified.get('state')=='restricted' else '有效'
   rows.append((dataset_attrs(c),cell(link(c['id']+'.html',c['name']))+cell(esc(c['category']))+cell(link(c['url'],'源页 ↗'))+cell(link(c['id']+'.html#facts',basis_label(c)))+cell(reference_label(c))+cell(state)+cell(case_rate(bycase[c['id']],c))))
  anchors=''.join(f'<span id="track-{t}"></span>' for t in TRACKS)
- dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；稳定内容与条目结构按登记契约核验，不固定频繁变化的榜单。动态网页正文按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
+ dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；稳定内容与条目结构按登记契约核验，不固定频繁变化的榜单。动态网站正文按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
  for c in cases.values():
@@ -272,7 +291,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   if c.get('track')=='dynamic':
    source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
    observed=sorted({r['provider'] for r in bycase[c['id']]})
-   status_note+='<p class="source-note">动态网页正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
+   status_note+='<p class="source-note">动态网站正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
   body=hero(esc(c['name']),esc(task_instruction(c)))+section('源页与参考',status_note+f'<p>{link(c["url"],c["url"])}</p><details><summary>来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details><p>{link("../references/"+c["id"]+".txt","下载参考")} · {source_record}</p><details><summary>参考正文 / 目标结果</summary><pre>{esc(ref)}</pre></details>')
   body+=section('评分核对点',(table(['核对点','允许表达'],facts) if facts else '')+rules+(table(['资源','允许地址'],resources) if resources else '')+('<p>检查是否返回可核对的原始文件。</p>' if c.get('task_kind')=='file' else ''),'facts')
   if c.get('task_kind')=='structure':
@@ -295,6 +314,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   rows=[('',cell(k)+cell(v)) for k,v in [('方法',link('../providers/'+r['provider']+'.html',r['provider'])),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if not c.get('ground_truth_main_content'):
    rows[5]=('',cell('全文完整度 / 纯净度 / F1')+cell('— / — / —（全文指标无完整参考，未评测）'))
+  title_details=''
+  if 'title_quality' in r:
+   q=r['title_quality']
+   rows.append(('',cell('标题完整度 / 标题纯净度 / 标题 F1')+cell(' / '.join(pct(q[k]) for k in ['recall','precision','f1']))))
+   rows.append(('',cell('标题参考覆盖')+cell(f'{q["scored_titles"]}/{q["returned_titles"]} 条；仅衡量已返回且有独立参考的标题')))
+   checks=[('',cell(esc(x['title']))+cell(esc(x['reference_used'] or '无独立名称参考，未评分'))+cell(link(x['url'],'详情链接'))+cell(' / '.join(pct(x[k]) for k in ['recall','precision','f1']))) for x in q['checks']]
+   title_details='<details><summary>逐条标题对照与来源</summary><p>'+link('../'+q['reference_path'],'独立参考')+' · 采集时间 '+esc(q.get('reference_checked_at'))+'</p>'+table(['返回标题','参考标题','条目身份','完整度 / 纯净度 / F1'],checks,metrics=[])+f'<p>参考 SHA-256：<code class="break">{esc(q["reference_sha256"])}</code></p><p>评分实现 SHA-256：<code class="break">{esc(q["scorer_sha256"])}</code></p></details>'
   if c.get('task_kind')=='structure' and 'stable_task_pass' not in m:
    rows[2]=('',cell('任务结果')+cell(result_label(r,c)))
    if c.get('source_benchmark',{}).get('verification_scope')=='first_three_name_detail_pairs':
@@ -327,6 +353,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    caveat='<p class="source-note">本次任务按稳定内容与条目结构共同判定。全文指标须有完整、可比的参考，不能由条目数量推算。</p>'
   detail_metrics=['请求','结果','耗时','HTTP 状态','输出字符','输出校验值']+(['具名详情入口'] if c.get('task_kind')=='structure' else ['完整度','纯净度','F1'] if c.get('ground_truth_main_content') else [])
   body=hero(esc(c['name']),esc(task_instruction(c)))+section('执行结果',caveat+f'<div class="callout">{esc(reason(r,c))}</div><details><summary>指标说明</summary>'+metric_legend(detail_metrics)+'</details>'+table(['项目','结果'],rows,metrics=[])+f'<p>{link(c["url"],"打开源页 ↗")} · {link("../datasets/"+c["id"]+".html","该案例与全部方法")}</p>')
+  if title_details:body+=section('标题文字质量',metric_legend(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'])+title_details)
   if r.get('diagnosis') and not succeeded(r,c):
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    facts=[('失败分类',d['category']),('发生阶段',d['stage']),('判定依据',d['evidence']),('归因边界',d['certainty'])]

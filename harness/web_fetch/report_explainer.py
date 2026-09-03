@@ -20,7 +20,7 @@ HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '网站正文', 'document': '文档文字', 'image': '图片',
-               'video': '视频', 'challenge': '热门网站正文', 'dynamic': '动态网页正文'}
+               'video': '视频', 'challenge': '热门网站正文', 'dynamic': '动态网站正文'}
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
@@ -306,9 +306,9 @@ def _price_experiment(out, cases, records):
 def _dynamic_section(data, cases):
     scope, total = data['tracks']['dynamic'], data['dynamic']
     if not scope['case_count']:
-        return ('<section id="dynamic-coverage"><h2>动态网页正文：内容何时可以交付</h2>'
+        return ('<section id="dynamic-coverage"><h2>动态网站正文：内容何时可以交付</h2>'
                 '<p>网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
-                '当前输入没有动态网页正文实测，不能把所有网页称为静态任务，'
+                '当前输入没有动态网站正文实测，不能把所有网页称为静态任务，'
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
     routes = {'async_api':'异步接口', 'client_catalog':'客户端目录',
@@ -325,7 +325,7 @@ def _dynamic_section(data, cases):
                      escape(routes.get(case.get('category'),case.get('category','未分类'))),
                      f'{passed}/{count}' if count else '未运行'])
     figure = _table(['任务','内容呈现方式','通过 / 已运行'], rows,
-                    f'动态网页正文：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；分母按每个任务实际运行数计算')
+                    f'动态网站正文：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；分母按每个任务实际运行数计算')
     # Task-specific interpretation is only attached when its evidence cases are present.
     mechanism = ''
     ids = set(scope['case_ids'])
@@ -366,7 +366,7 @@ def _dynamic_section(data, cases):
     if sample:
         stats = scope['providers'][sample['provider']]
         metrics = sample['metrics']
-        mechanism += (f'<p>{escape(PROVIDER_NAMES.get(sample["provider"], sample["provider"]))} 在动态网页正文中通过 '
+        mechanism += (f'<p>{escape(PROVIDER_NAMES.get(sample["provider"], sample["provider"]))} 在动态网站正文中通过 '
             f'{stats["task_pass"]}/{stats["records"]}，平均 F1 却为 {_percent(stats["mean_f1"])}。'
             f'其中{_attempt(sample, cases[sample["case_id"]]["name"])}的 F1 为 {_percent(metrics["word_f1"])}，'
             '但没有满足该例任务规则。'
@@ -377,7 +377,7 @@ def _dynamic_section(data, cases):
                '直接交付脚本文字则没有完成正文契约。' if sample.get('script_payload_observed') else
                '词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。')
             + '</p>')
-    return (f'<section id="dynamic-coverage"><h2>动态网页正文：取到页面之后，还要等什么</h2>'
+    return (f'<section id="dynamic-coverage"><h2>动态网站正文：取到页面之后，还要等什么</h2>'
             f'<p>{scope["case_count"]} 个任务覆盖异步取数、客户端呈现与子文档获取。'
             f'实际运行 {len(providers)} 种方法、{total["records"]} 次调用，'
             f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
@@ -453,7 +453,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
     values['lead'] = (f'同一配置的 Moli，在网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
-        f'在动态网页正文中通过 {dm["task_pass"]}/{dm["records"]}。'
+        f'在动态网站正文中通过 {dm["task_pass"]}/{dm["records"]}。'
         '网页高分为什么没有自然延伸到动态内容？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。'
         if wm and dm else '抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。'
         '这轮实测从这些差异出发，判断哪些方法值得接入，哪些结论还需要试验。')
@@ -562,6 +562,17 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         f'单方法最好通过 {best}/{challenge["case_count"]}，'
         f'各方法成功集的离线并集为 {len(challenge["union_pass_ids"])}/{challenge["case_count"]}。'
         '这里的通过指任务声明的内容与结构契约，并不认证全部文字与某份实时快照一致。</p>')
+    title_records = [r for r in records if cases[r['case_id']].get('track') == 'challenge' and 'title_quality' in r]
+    if title_records:
+        measured = sum(r['title_quality']['scored_titles'] for r in title_records)
+        returned = sum(r['title_quality']['returned_titles'] for r in title_records)
+        values['popular_scope'] += (
+            f'<p>这组另有 {measured}/{returned} 条返回标题能按详情链接对应到独立名称参考，'
+            '据此计算标题完整度、纯净度和 F1。例如一部电影从第三名移到第十名，只要仍返回同一详情链接，'
+            '就比较这部电影的名称，不比较名次，也不要求旧榜单里的电影继续出现。'
+            '只返回电影名称可能取得很高的标题分，却仍不足以完成至少三条结果的任务。'
+            '因此这三个分数须与任务通过率和参考覆盖量一起读，不能当作整页正文质量。'
+            '新条目没有独立名称参考时不计文字分；同一条目的标题也可能改写，重合度只是相对已记录名称的诊断，不认证当前内容真假。</p>')
     missing = challenge['unpassed_ids']
     values['popular_failure'] = (
         '<p>没有任何方法满足任务规则的案例包括：'

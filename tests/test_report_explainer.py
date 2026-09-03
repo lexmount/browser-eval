@@ -130,7 +130,7 @@ class ExplainerTests(unittest.TestCase):
 
     def test_formal_scope_explains_stable_contract_not_freshness_blocking(self):
         page = self.render(self.records)
-        for label in ('网站正文', '动态网页正文', '热门网站正文'):
+        for label in ('网站正文', '动态网站正文', '热门网站正文'):
             self.assertIn(label, page)
         for phrase in ('历史组', '补充组', '补测', '新加入', '另加',
                        '旧身份规则', '旧快照规则', '以实际为准', '兼容旧', '若某记录仍'):

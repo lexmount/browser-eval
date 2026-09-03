@@ -65,6 +65,8 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copy2(raw, target)
             text=raw.read_text(encoding='utf-8',errors='replace')
             normalize_empty_response(r,text)
+            from .title_quality import add_title_quality
+            add_title_quality(r, cases[r['case_id']], source)
             r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
             r['failure_category'] = failure_category(r, cases[r['case_id']])
         for folder in ['sources','list-references','reference-checks']:

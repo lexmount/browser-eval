@@ -113,7 +113,7 @@ def prepare(captures, output, completion_checks):
         prepared.append((capture, case, scope))
     # Validate every supplied capture before any output or HTTP call.
     output.mkdir(parents=True, exist_ok=False)
-    dataset = {'id': 'web-fetch-dynamic-content', 'name': '动态网页正文', 'tool': 'web_fetch', 'cases': []}
+    dataset = {'id': 'web-fetch-dynamic-content', 'name': '动态网站正文', 'tool': 'web_fetch', 'cases': []}
     for capture, case, scope in prepared:
         key, url = case['id'], case['url']
         response = requests.get(url, timeout=(12, 35), headers={'User-Agent': 'Mozilla/5.0 (compatible; WebFetchEvaluation/1.0)'})
