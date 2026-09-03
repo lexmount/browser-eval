@@ -3,11 +3,37 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import Mock, patch
+from urllib.error import HTTPError
 
-from harness.web_fetch.publication import upload_large_archive
+from harness.web_fetch.publication import put_file, upload_large_archive
 
 
 class ArtifactPublisherTests(unittest.TestCase):
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_rate_limit_retries_identical_put(self, sleep):
+        request = Mock(side_effect=[HTTPError('https://hub/file', 429, 'limited', {'Retry-After':'2'}, None), (200,b'ok')])
+        self.assertEqual(put_file(request, '/file', b'bytes'), (200,b'ok'))
+        self.assertEqual(request.call_args_list[0], request.call_args_list[1])
+        sleep.assert_called_once_with(2)
+
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_rate_limit_retry_is_bounded(self, sleep):
+        request = Mock(side_effect=HTTPError('https://hub/file', 429, 'limited', {}, None))
+        with self.assertRaises(HTTPError):
+            put_file(request, '/file', b'bytes')
+        self.assertEqual(request.call_count, 4)
+        self.assertEqual(sleep.call_count, 3)
+
+    @patch('harness.web_fetch.publication.time.sleep')
+    def test_long_wait_and_other_errors_are_not_retried(self, sleep):
+        for code, header in [(429,'300'), (429,'NaN'), (403,'1'), (500,'1')]:
+            request = Mock(side_effect=HTTPError('https://hub/file', code, 'error', {'Retry-After':header}, None))
+            with self.assertRaises(HTTPError):
+                put_file(request, '/file', b'bytes')
+            self.assertEqual(request.call_count, 1)
+        sleep.assert_not_called()
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
