@@ -7,6 +7,7 @@ From the repository root:
 
 ```sh
 python -m harness.web_fetch validate --providers fixture
+python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture
 python -m harness.web_fetch run --providers moli-webfetch --case-ids static-simple
 python scripts/build_report.py
 ```
