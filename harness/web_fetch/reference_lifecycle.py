@@ -59,6 +59,13 @@ def _fresh(value, now: datetime) -> datetime:
 
 
 def requires_fresh_reference(case) -> bool:
+    contract = _get(case, "acceptance_contract", {})
+    if contract:
+        # This mode evaluates invariant rules, not equality with live values.
+        # Validate before choosing it; snapshot-bound runs retain all checks.
+        from .stable_tasks import validate_acceptance_contract
+        validate_acceptance_contract(contract)
+        return False
     # Tiny synthetic fixtures intentionally have no independent verification.
     # Production body cases carry this metadata, including invalid attestations.
     return (_get(case, "track", "web") in {"web", "dynamic", "challenge"}

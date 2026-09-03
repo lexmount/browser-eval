@@ -141,6 +141,9 @@ def word_overlap(predicted: str, reference: str) -> tuple[float, float, float]:
 
 
 def task_passed(ok: bool, metrics: dict, task_kind: str = 'body') -> bool:
+    if "stable_task_pass" in metrics:
+        return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
+                    and not metrics.get("stable_blocked_page"))
     field = {'structure':'list_task_pass', 'resource':'resource_pass', 'file':'raw_file_pass'}.get(task_kind, 'content_pass')
     return bool(ok and metrics.get(field))
 
@@ -195,6 +198,8 @@ def evaluate_content(
     fact_coverage_threshold: float = 1.0,
     ground_truth_main_content: str = "",
     required_patterns: list[dict[str, Any]] | None = None,
+    acceptance_contract: dict[str, Any] | None = None,
+    base_url: str = "",
 ) -> dict[str, Any]:
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
@@ -222,6 +227,9 @@ def evaluate_content(
     reference_folded = normalize_for_match(ground_truth_main_content)
     reference_exemptions = [item for item in (forbidden_any or [])
                             if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
+    if acceptance_contract:
+        # A historical snapshot cannot exempt an explicit stable-mode block rule.
+        reference_exemptions = []
     forbidden = [item for item in (forbidden_any or [])
                  if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
@@ -238,7 +246,7 @@ def evaluate_content(
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
         word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
-    return {
+    result = {
         "content_pass": content_pass,
         "pattern_results": pattern_results,
         "legacy_marker_pass": legacy_pass,
@@ -266,6 +274,16 @@ def evaluate_content(
         "word_recall": word_recall,
         "word_f1": word_f1,
     }
+    if acceptance_contract:
+        from .stable_tasks import evaluate_stable_task
+        result.update(evaluate_stable_task(content, acceptance_contract, base_url))
+        if forbidden:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            result["stable_task_errors"].append("forbidden_content")
+        result["content_pass"] = result["stable_task_pass"]
+        result["content_decision_basis"] = "stable_acceptance_contract"
+    return result
 
 
 def percentile(values: list[float], fraction: float) -> float | None:

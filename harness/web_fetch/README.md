@@ -118,19 +118,47 @@ Local fixture URLs are unavailable to cloud providers and are blocked by some
 private-network guards; compare them locally or deliberately host a public
 fixture. Avoid the answer-replaying `fixture` provider as a rendering baseline.
 
-## Live references and content drift
+## Stable acceptance and text quality
+
+Rendering requirements and value stability are separate axes. Most of the
+dynamic examples are fixed demonstration data delivered after loading; popular
+rankings and catalogs change frequently. Annotate fields, not whole websites:
+
+- Stable document titles, headings and instructions can be explicit
+  `stable_text_anchors` with independently justified equivalent alternatives.
+- Frequently changing names, prices, dates and ranking positions use an
+  `acceptance_contract`: required fields, types, record grouping, minimum count,
+  uniqueness and optional stable page identity. Values are not compared to a
+  previous ranking. Duplicate cards cannot satisfy the minimum.
+- Full-reference word precision, recall and F1 remain separate diagnostics.
+  Historical demonstration snapshots describe their captured sample; they do
+  not certify arbitrary later content. Without a comparable full reference,
+  leave these metrics unavailable while still evaluating the task contract.
+
+`stable_tasks.py` validates the contract before evaluation. Stable tasks do not
+need a fresh live answer or post-call value comparison. Output hashes and rule
+hashes remain integrity/provenance evidence, not tests of truth or freshness.
+Maintain synthetic positive and negative tests: changed volatile values and
+equivalent formatting must not change acceptance; missing stable anchors,
+missing fields, duplicates, wrong types and login-only outputs must fail.
+An explicit rule change can rescore immutable outputs, but must be recorded as
+rescoring rather than a new provider run. A site redesign may still require
+task maintenance; stable rules are not a claim of permanent validity.
+
+## Exact live-snapshot comparisons
 
 Rendering requirements and data freshness are independent. A JavaScript catalog
 may contain stable example data; a server-rendered news page may change every
 minute. No captured answer remains valid indefinitely.
 
-For every new live body measurement with source-verification metadata:
+For new exact live-body comparisons with source-verification metadata and no
+validated stable acceptance contract, the following safeguards still apply:
 
 1. Independently capture the complete declared scope within 30 minutes before
    each provider call. Freeze the text, verification timestamp, SHA-256, task
    scope and fact rules. Derive names and values from this capture, not from
-   provider results or last run's answer. `prepare_dynamic_content.py` rejects
-   stale input captures; the runner checks freshness again before each call.
+   provider results or last run's answer. The runner checks freshness before
+   each exact-snapshot call; stable-contract preparation is a separate mode.
 2. Preserve initial HTTP bytes and visible rendering/completion evidence for
    dynamic cases. Fixed initial-batch sizes are task boundaries, not permission
    to reuse old titles. If a whole-catalog count changes, stop and revise the

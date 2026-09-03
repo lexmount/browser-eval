@@ -167,12 +167,19 @@ def run_evaluation(
                         fact_coverage_threshold=case.fact_coverage_threshold,
                         ground_truth_main_content=case.ground_truth_main_content,
                         required_patterns=case.required_patterns,
+                        acceptance_contract=case.acceptance_contract,
+                        base_url=case.url,
                     )
                     measured["content_score_applicable"] = case.content_score_applicable
+                    if case.acceptance_contract:
+                        measured["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
+                            case.acceptance_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
                     if not case.content_score_applicable:
                         measured["content_pass"] = False
                     if not result.ok:
                         measured['content_pass'] = False
+                        if case.acceptance_contract:
+                            measured['stable_task_pass'] = False
                         if measured['word_f1'] is not None:
                             measured.update(word_precision=0.0, word_recall=0.0, word_f1=0.0)
                     measured.update(evaluate_resources(
@@ -183,7 +190,7 @@ def run_evaluation(
                         eligible=result.ok,
                     ))
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
-                    if case.source_benchmark.get('mode')=='dynamic_list_structure':
+                    if not case.acceptance_contract and case.source_benchmark.get('mode')=='dynamic_list_structure':
                         measured.update(evaluate_dynamic_list(result.content,case.source_benchmark,case.url,result.ok))
                         if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
                             reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
@@ -287,6 +294,9 @@ def rescore_evaluation(
     records = load_records(run_dir)
     for record in records:
         contained_path(run_dir, record["artifact_path"])
+        expected_hash = record.get("metrics", {}).get("content_sha256")
+        if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:
+            raise ValueError("Output integrity failure: " + record["attempt_id"])
     manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
     # Validate the entire batch before touching metrics, datasets or results.
     # Historical records without a binding retain the legacy rescore behavior.
@@ -316,12 +326,19 @@ def rescore_evaluation(
             fact_coverage_threshold=case.fact_coverage_threshold,
             ground_truth_main_content=case.ground_truth_main_content,
             required_patterns=case.required_patterns,
+            acceptance_contract=case.acceptance_contract,
+            base_url=case.url,
         )
         record["metrics"]["content_score_applicable"] = case.content_score_applicable
+        if case.acceptance_contract:
+            record["metrics"]["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
+                case.acceptance_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         if not case.content_score_applicable:
             record["metrics"]["content_pass"] = False
         if not record['ok']:
             record['metrics']['content_pass'] = False
+            if case.acceptance_contract:
+                record['metrics']['stable_task_pass'] = False
             if record['metrics']['word_f1'] is not None:
                 record['metrics'].update(word_precision=0.0,word_recall=0.0,word_f1=0.0)
         record["metrics"].update(evaluate_resources(
@@ -332,7 +349,7 @@ def rescore_evaluation(
             eligible=bool(record.get("ok")),
         ))
         record["metrics"]["deadline_overrun"] = previous_deadline
-        if case.source_benchmark.get('mode')=='dynamic_list_structure':
+        if not case.acceptance_contract and case.source_benchmark.get('mode')=='dynamic_list_structure':
             record['metrics'].update(evaluate_dynamic_list(content,case.source_benchmark,case.url,bool(record['ok'])))
             if case.source_benchmark.get('verification_scope')=='first_three_name_detail_pairs':
                 reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())

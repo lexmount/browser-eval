@@ -30,7 +30,9 @@ class EndToEndTest(unittest.TestCase):
             self.assertIn('供应商请求 ID',attempt)
             self.assertIn(records[1]['run_id'],analysis)
             self.assertIn('开始时间（UTC）',attempt)
-            self.assertEqual(attempt.count('<pre>'),3)
+            self.assertEqual(attempt.count('<pre data-kind='),3)
+            for kind in ('reference', 'output', 'metadata'):
+                self.assertIn(f'<pre data-kind="{kind}">', attempt)
             for removed in ['capabilities','benchmarks','review','execution','market']:
                 self.assertFalse((report.parent/removed).exists())
             for page in report.parent.rglob('*.html'):

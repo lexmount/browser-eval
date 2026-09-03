@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import json
 import re
 import statistics
@@ -24,9 +26,11 @@ class ExplainerTests(unittest.TestCase):
         for record in cls.records:
             normalize_empty_response(record, (ROOT/'evaluation'/record['artifact_path']).read_text())
 
-    def render(self, records):
+    def render(self, records, *, figures=False):
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)
+            if figures:
+                shutil.copytree(ROOT/'harness/web_fetch/assets/methodology', out/'assets/methodology')
             for r in records:
                 if ((r['provider']=='cowagent-built-in' and r['case_id']=='ecommerce-list')
                         or self.cases[r['case_id']].get('track')=='dynamic'):
@@ -68,7 +72,7 @@ class ExplainerTests(unittest.TestCase):
         figure = page.split('id="failure-figure"', 1)[1].split('</figure>', 1)[0]
         for key in ('task_pass', 'post_response_failures', 'request_failures'):
             self.assertIn(f'{stats[key]:,} / {stats["records"]:,}', figure)
-        # Auxiliary list outcomes must not alter the primary body analysis.
+        # Other task families must not alter the website-only analysis.
         rows = json.loads(json.dumps(self.records))
         for row in rows:
             if self.cases[row['case_id']].get('track') == 'challenge':
@@ -76,20 +80,34 @@ class ExplainerTests(unittest.TestCase):
         changed = self.render(rows)
         self.assertEqual(figure, changed.split('id="failure-figure"', 1)[1].split('</figure>', 1)[0])
 
-    def test_popular_body_gap_and_auxiliary_identity_results_are_separate(self):
+    def test_dynamic_headline_and_case_counts_follow_revised_inputs(self):
+        rows = json.loads(json.dumps(self.records))
+        for row in rows:
+            if self.cases[row['case_id']].get('track') == 'dynamic' and row['provider'] == 'moli-webfetch':
+                row['ok'] = False
+        page = self.render(rows)
+        stats = self.evidence['dynamic']
+        dynamic = page.split('id="dynamic-coverage"', 1)[1].split('</section>', 1)[0]
+        self.assertIn(f'{stats["records"]} 次调用', dynamic)
+        self.assertIn(f'{stats["task_pass"]} 次任务通过', dynamic)
+        moli = self.evidence['tracks']['dynamic']['providers']['moli-webfetch']
+        lead = re.search(r'<p class="lead">(.*?)</p>', page, re.S).group(1)
+        self.assertIn(f'{moli["task_pass"]}/{moli["records"]}', lead)
+        for item in stats['cases']:
+            outcome = f'{sum(r["task_pass"] for r in item["results"])}/{len(item["results"])}'
+            self.assertIn(outcome, dynamic)
+
+    def test_popular_contract_results_are_visible_without_overlap_reference(self):
         page = self.render(self.records)
         popular = page.split('id="limits"', 1)[1].split('</section>', 1)[0]
         stats = self.evidence['tracks']['challenge']
-        expected = [k for k in stats['case_ids'] if self.cases[k].get('ground_truth_main_content', '').strip()
-                    and self.cases[k].get('content_score_applicable', True)
-                    and self.cases[k].get('task_kind', 'body') == 'body']
-        self.assertEqual(stats['body_reference_case_ids'], expected)
-        self.assertIn(f'{len(expected)}/{stats["case_count"]}', popular)
-        if not expected:
-            self.assertIn('未评测', popular.split('<details', 1)[0])
-        auxiliary = re.search(r'<details.*?</details>', popular, re.S).group()
-        self.assertIn('列表核验（辅助）', auxiliary)
-        self.assertIn(f'{len(stats["union_pass_ids"])}/{stats["case_count"]}', auxiliary)
+        self.assertNotIn('<details', popular)
+        self.assertIn(f'{stats["summary"]["task_pass"]} 次满足', popular)
+        self.assertIn(f'{len(stats["union_pass_ids"])}/{stats["case_count"]}', popular)
+        self.assertNotIn('均为<strong>未评测', popular)
+        self.assertNotIn('body_reference_case_ids', stats)
+        self.assertIn('文本', popular)
+        self.assertIn('结构', popular)
 
     def test_zero_pass_positive_f1_example_uses_observed_metrics(self):
         page = self.render(self.records)
@@ -110,22 +128,32 @@ class ExplainerTests(unittest.TestCase):
                 row['metrics']['word_f1'] = 0
         self.assertIsNone(collect_evidence(self.cases, rows)['dynamic']['zero_pass_nonzero_f1'])
 
-    def test_formal_scope_and_dated_snapshot_evidence(self):
+    def test_formal_scope_explains_stable_contract_not_freshness_blocking(self):
         page = self.render(self.records)
         for label in ('网站正文', '动态网页正文', '热门网站正文'):
             self.assertIn(label, page)
-        for phrase in ('历史组', '补充组', '补测', '新加入', '另加'):
+        for phrase in ('历史组', '补充组', '补测', '新加入', '另加',
+                       '旧身份规则', '旧快照规则', '以实际为准', '兼容旧', '若某记录仍'):
             self.assertNotIn(phrase, self.export)
         scope = page.split('id="study-scope"', 1)[1].split('</section>', 1)[0]
         for track in self.evidence['tracks'].values():
             if track['time_window']['first_start_utc']:
                 self.assertIn(track['time_window']['first_start_utc'][:10], scope)
-        drift = self.evidence['list_snapshot_difference']
-        self.assertNotEqual(drift['first_titles'], drift['second_titles'])
-        for title in drift['first_titles'] + drift['second_titles']:
-            self.assertIn(title, page)
-        self.assertNotIn('/private/', json.dumps(drift))
-        self.assertTrue(all(len(value) == 64 for value in drift['source_sha256']))
+        self.assertNotIn('list_snapshot_difference', self.evidence)
+        for phrase in ('比较就应暂停', '调用后再次独立观察', '列表核验（辅助）'):
+            self.assertNotIn(phrase, page)
+        for concept in ('数量', '字段', '结构', '事实准确', '数据最新'):
+            self.assertIn(concept, page)
+
+    def test_mixed_contract_keeps_content_checks_and_scoped_text_quality(self):
+        page = self.render(self.records)
+        for concept in ('内容核对点', '栏目', '说明', '参考范围', '局部参考'):
+            self.assertIn(concept, page)
+        self.assertIn('content and structure', self.evidence['tracks']['challenge']['score_scope'])
+        template = (ROOT/'harness/web_fetch/templates/interpretation.html').read_text()
+        for slot in ('annotation_figure', 'validation_figure', 'scoring_figure'):
+            self.assertEqual(template.count('${' + slot + '}'), 1)
+            self.assertNotIn('${' + slot + '}', self.export)
 
     def test_pair_partitions_and_matched_latency(self):
         data = collect_evidence(self.cases, self.records)
@@ -202,11 +230,53 @@ class ExplainerTests(unittest.TestCase):
         article = lambda html: re.search(r'<article\b.*?</article>',html,re.S).group()
         self.assertEqual(article(page),article(self.export))
         self.assertIn(f'<style>{STYLE}</style>',self.export)
-        self.assertNotRegex(self.export,r'<(?:script|link|iframe|img)\b')
+        self.assertNotRegex(self.export,r'<(?:script|link|iframe)\b')
+        for img in re.findall(r'<img\b[^>]*>', self.export):
+            self.assertRegex(img, r'src="data:image/[^\"]+"')
+            self.assertRegex(img, r'alt="[^\"]+"')
         self.assertIn('@media print',self.export)
         self.assertIn('@media(max-width:600px)',self.export)
         self.assertIn('href="article.html" download=',page)
         self.assertNotIn('href="article.html"',self.export)
+
+    def test_three_real_figures_use_assets_online_and_identical_embedded_bytes_offline(self):
+        page = self.render(self.records, figures=True)
+        images = re.findall(r'<img\b[^>]*>', page)
+        embedded = re.findall(r'<img\b[^>]*>', self.export)
+        self.assertEqual(len(images), 3)
+        self.assertEqual(len(embedded), 3)
+        for name in ('annotation', 'validation', 'scoring'):
+            asset = f'../assets/methodology/{name}.png'
+            original = (ROOT/'harness/web_fetch/assets/methodology'/f'{name}.png').read_bytes()
+            uri = 'data:image/png;base64,' + base64.b64encode(original).decode('ascii')
+            self.assertIn(f'src="{asset}"', page)
+            self.assertIn(f'href="{asset}" download="{name}.png"', page)
+            self.assertNotIn(asset, self.export)
+            self.assertIn(f'src="{uri}"', self.export)
+            self.assertIn(f'href="{uri}" download="{name}.png"', self.export)
+            info = next(row for row in self.evidence['methodology_figures'] if row['path'].endswith(f'/{name}.png'))
+            self.assertTrue(info['available'])
+            self.assertEqual(info['sha256'], hashlib.sha256(original).hexdigest())
+            self.assertEqual(info['bytes'], len(original))
+            # Normalize only serialization differences; all authored text stays identical.
+            self.export = self.export.replace(uri, asset)
+        article = lambda html: re.search(r'<article\b.*?</article>', html, re.S).group()
+        self.assertEqual(article(page), article(self.export))
+        for img in images + embedded:
+            self.assertRegex(img, r'alt="[^\"]+"')
+            self.assertIn('max-width:100%;height:auto', img)
+        self.assertIn('.editorial-figure,.editorial-table tr{break-inside:avoid}', STYLE)
+        self.assertEqual(len(re.findall(r'<figure id="methodology-[^\"]+"', page)), 3)
+        for figure in re.findall(r'<figure id="methodology-[^\"]+".*?</figure>', page, re.S):
+            self.assertIn('<figcaption>', figure)
+            self.assertNotRegex(figure, r'<a\b[^>]*>\s*<img')
+            self.assertIn('position:absolute;inset:0', figure)
+
+    def test_missing_figures_are_reported_without_broken_image_placeholders(self):
+        page = self.render(self.records)
+        self.assertEqual(len(self.evidence['methodology_figures']), 3)
+        self.assertFalse(any(row['available'] for row in self.evidence['methodology_figures']))
+        self.assertNotIn('<img', page)
 
     def test_public_links_are_html_hub_routes_and_downloads_are_local(self):
         page = self.render(self.records)

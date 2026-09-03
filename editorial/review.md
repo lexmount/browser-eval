@@ -1,5 +1,102 @@
 # Private editorial review
 
+## Final canonical numerical and editorial sign-off (2026-09-03)
+
+Main explicitly confirmed the completed mixed-contract rescore at `2026-09-03T08:43:47.868940+00:00`. This section supersedes the provisional 21/120 dynamic observation and waiting notes below. Independently read the canonical dataset/results, normalized empty responses as the report does, and rebuilt the article. No old-rule compatibility or migration prose appears in the public body. The only final explanatory addition states that the dynamic F1 example compares saved sample text and does not certify live factual accuracy.
+
+### Verified claims
+
+| Claim | Canonical calculation and article treatment |
+|---|---|
+| Dynamic coverage and result | 10 cases × 12 methods = 120 calls; 109 normal responses; **29 task passes**, 80 normal-response failures. Every displayed figure derives from the inputs. |
+| Opening contrast | Moli **95/100** website-body passes versus **2/10** dynamic-body passes. Retains the concrete engineering question, not a dataset abstract. |
+| Dynamic mechanisms | Crawl4AI 9/10, Cloudflare 8/10, Firecrawl 7/10, Moli 2/10; offline union 9/10, with delayed quotes unpassed. The article's per-case table and delayed-page outcome recompute from records, not this ledger. |
+| Popular websites | **21/120** task passes, 90 normal responses; best method 5/10, offline union 6/10. JD, Zhihu, Dianping and Amazon remain without a task pass. These are the declared mixed mechanical contracts; no claim that card counts certify factual accuracy, freshness or whole-page identity. |
+| Task result change | Compared all canonical attempts against repository HEAD: exactly `moli-webfetch__challenge-03__r001` changes false → true. |
+| Website failure partition | 989 passes, 165 normal-response failures, 46 request failures among 1,200 calls; 165/211 = 78.2% of failures occur after a normal response. No other task family enters this figure. |
+| Rank reversal | Cloudflare 99/100, mean F1 0.61553; Exa 83/100, mean F1 0.833931. Means remain computed, not pinned to a prior rounded number. |
+| Low-F1 passing case | CowAgent CSS2.1: F1 0.1691, recall 0.9975, precision 0.0924. The high-recall/noise interpretation still holds. |
+| Cow/Moli decision analysis | Shared successful cases 92, offline pass union 100/100. Moli-only rescues remain javascript-spa, lm-feishu-help and web-retail-returns. Matched medians remain 1511.83 ms and 3030.52 ms. No production fallback or cost guarantee. |
+| Zero task passes, nonzero overlap | Lexmount CN 0/10 dynamic passes, mean F1 0.09008; delayed quote output F1 0.6648. Script-payload observation remains backed by saved bytes. No request-failed record has positive F1 in these canonical inputs, consistent with the scoring illustration. |
+| File acceptance and initial audit | 36 original-file records, all missing raw_file_pass, no verified file pass. Input-bound initial-reference audit still reconstructs 98/100 website references; neither observation supports a blanket product-capability claim. |
+
+Independently verified **all 1,800** original call metadata records and raw-output hashes against HEAD; **all 240** selected record contract hashes match the canonical cases and scoring provenance. No raw output was modified. Main's subsequent `anchor_evidence: null` metadata-only adjustment and source-fingerprint refresh do not change the numerical conclusions; the renderer binds evidence to whichever canonical files the final build supplies, without public iteration commentary.
+
+### Completed validation and ownership
+
+- 24 explainer tests pass on the approved canonical inputs, retaining the price intervention, extractor probe, data-dependent figures, formal-current prose checks and all three real PNG embedding tests.
+- Both JavaScript test files pass, including packaged-image loading and standalone HTML downloads.
+- An isolated final build at `/var/folders/0w/4fjd1k3d2kb7bhyx2r8wgz2h0000gn/T/editorial-canonical-final-aiktinwh/report` passes report integrity and link checks: **150 tasks / 1,800 records / 12 providers / 1,972 HTML pages**, zero broken local links. All three article images are present and the generated lead reflects 95/100 versus 2/10.
+- Template, renderer and generated article contain none of the old-identity/old-snapshot/as-actually-used compatibility phrases. Original source-fingerprint and reference-scope limits remain because they constrain interpretation, not describe an iteration.
+- Page-level desktop/narrow/print visual checks remain explicitly unverified by this editor because browser discovery found no connected browser. The private UI sheet records this; markup/byte tests are not represented as screenshots.
+
+Only the four assigned files were edited by this editor. Main/Erdos retain report app, scoring, provenance migration, asset-copy pipeline, final rebuild and publication ownership. No provider calls, publish or commit.
+
+## Formal-current-report and independent UI review queue (2026-09-03)
+
+Re-read the current AGENTS and full editorial/Humanizer instructions. Reviewed the authored template and renderer prose: no “old identity/snapshot rules”, “actual records take precedence” compatibility paragraph remains in these sources. Added regression exclusions for those process-note forms. Retain original-source fingerprint limitations, per-track call dates, scoped-reference limitations and the offline-union boundary because they constrain real claims, not software migration history. The twenty canonical mixed-contract cases and their rescore are main-owned; numeric sign-off is waiting for the explicit data-ready handoff, not inferred from an intermediate file change.
+
+### Independent UI review sheet
+
+| Check | Acceptance | Evidence/status |
+|---|---|---|
+| Desktop article | Headline wraps deliberately; figures stay in reading width; captions sit beside the relevant argument | Browser runtime returned no available browsers; no screenshot-based sign-off |
+| Narrow article (390px) | No page-level horizontal overflow; wide data tables scroll internally; images retain aspect ratio; originals remain reachable | Responsive markup tested; visual QA pending |
+| Three explanatory figures | Annotation distinguishes stable text and mutable fields; validation separates source and output; scoring separates task pass and P/R/F1 | Actual PNGs personally inspected; embedded bytes/hash tests pass |
+| Figure original-file action | Click/keyboard downloads original PNG; packaged loader progress does not remove the picture | Overlay avoids loader child replacement; deployed interaction pending |
+| Standalone/offline | All three images load without assets/CDN/JS; prose equals integrated article after URL normalization | Automated byte/body tests pass |
+| Print/A4 | Images and captions not clipped; tables readable; no app navigation | Existing print CSS checked; print rendering pending |
+| Current prose | No legacy-rule compatibility notes, correction diary or unsupported universal accuracy/freshness claim | Canonical isolated build checked; no forbidden process phrases |
+| Quantitative argument | Recompute dynamic denominator/pass count, Moli lead, popular best/union/common failures, zero-pass/F1 example; verify website-only evidence separately | Confirmed after data-ready: dynamic29/120, popular21/120; ledger above |
+| Anchors/evidence | `rules`, `limits`, `example`, all figure anchors and absolute evidence routes work; HTML export downloads | Semantic and JS tests pass; isolated 1,972-page link check has zero broken local links |
+
+This sheet is deliberately private. Pending means not yet verified, not passed from code inspection alone. A fresh standalone article with the actual three PNGs was generated in a temporary QA directory. Browser skill setup and its prescribed discovery check found no connected browsers, so page-level layout/interaction/print remain pending. Twenty-four explainer tests pass, including the revised-input dynamic-number regression. No report app, dataset, scorer, provider invocation or publication is owned by this editor.
+
+## Three methodology PNGs: article delivery (2026-09-03)
+
+Read the local editorial/HTML references and Humanizer fully before this delivery change. Personally inspected all three actual source PNGs; their content matches the requested annotation / independent validation / separate scoring explanations. Added captions and alt text at the three existing article slots. Erdos owns source-asset copying and methodology-page insertion; sent him the exact staging paths and requirement to copy before generate. Did not edit the method page, report_build, loader or shared CSS.
+
+The integrated article uses ordinary `../assets/methodology/*.png` sources and original-file downloads. The standalone HTML uses base64 of those same PNG bytes for both image and download link; no asset directory is required offline. Only image URL serialization differs between the two bodies, with otherwise identical prose, captions and markup. Clicking the picture obtains the original PNG via download because browsers block top-level data-URI navigation. PNG dimensions, byte counts and SHA-256 are recorded in interpretation-evidence; missing assets are explicitly marked unavailable without broken placeholders.
+
+Images scale to the available width with intrinsic aspect ratio, and inherit the existing print figure break-avoid rule. The download link is an accessible transparent overlay, with the image outside the anchor: the packaged loader replaces download-anchor text during progress, which would otherwise destroy a nested image. This avoids any loader change and was communicated to Erdos for the method page too. Image text correctness was inspected; narrow/print page-level visual QA remains main-owned.
+
+Tests use the three actual source images to check online paths, embedded byte identity, offline original-file downloads, captions/alt, responsive sizing, evidence hashes and article-body equality after normalizing image URLs. Missing assets are covered separately. Validation: final 23 explainer tests and scoped diff checks passed, including the loader-safe overlay. No generation, provider calls, score edits, publishing or commit.
+
+## Mixed content/structure contract and figure handoff (2026-09-03)
+
+The latest clarification preserves content assessment: stable page titles, section labels and explanatory text remain explicit checkpoints alongside quantity, field-type and structural requirements. Frequently changing item names/prices are not fixed literals. Scoped full-text diagnostics remain useful where the reference scope is declared, without implying that counts certify accuracy or freshness. Read AGENTS, the editorial skill, both references and Humanizer in full again; changed the article's either/or framing into this mixed design. Numeric conclusions still await main's canonical rescore; this editor has not changed metrics or outputs.
+
+Three empty template substitution slots are ready for main's generated figures. They currently render nothing, introduce no broken image or visible drafting placeholder, and preserve identical integrated/export bodies. Main owns generation, assets and insertion. No ImageGen call was made by this editor because the explicit allocation leaves that work to main.
+
+| Slot | Position / purpose | Suggested self-contained figure |
+|---|---|---|
+| `annotation_figure` | Introduction, after defining the contract | An illustrative page with stable title/section/explanation highlighted as content checkpoints; repeated cards annotated for count, nonempty fields, typed price and detail URL; mutable names/prices marked “not fixed literal answers.” Show a legend and the resulting two sets of rules. Label schematic content as illustrative, not a real scored output. |
+| `validation_figure` | Immediately after the dynamic-content section | Empty placeholder cards versus populated cards. Both can satisfy the DOM count, only populated fields satisfy completion. Show stable content checkpoints and per-item field checks feeding the declared task contract; failure branches retain a specific missing-check reason. Do not imply JS is the only retrieval path or that nonempty fields prove factual accuracy. |
+| `scoring_figure` | Quality section, after defining pass versus overlap | One saved output feeding two separate evaluations: declared content+structure checks produce task pass/fail; a clearly bounded reference feeds precision/recall/F1. Missing reference leaves overlap unavailable, without erasing the rule result; no F1 threshold arrow into task pass. Do not bake pending benchmark numbers into the generated image. |
+
+Insertion guidance: use a real figure/figcaption and meaningful alt text, keep labels legible at narrow width, and retain all conclusions in prose. Embed raster bytes in the standalone body (data URI) so the export remains self-contained. Existing numeric charts stay computed HTML, not generated bitmap scores. The standalone test now permits embedded images with alt text while continuing to reject scripts, iframes, external style dependencies and nonembedded image sources. Detailed review/production instructions belong here, not in exported HTML comments.
+
+Validation: 21 explainer tests and scoped `git diff --check` pass. Mixed-content wording, all three no-op figure slots, original price/probe evidence and standalone delivery invariants are covered. This validates the editorial renderer against the currently saved inputs, not the pending rescore or images that main has yet to insert.
+
+## Stable-contract article: structural pass (2026-09-03)
+
+This entry supersedes the freshness-blocking and popular-result suppression decisions below. The latest user direction explicitly changes the measurement question to stable quantities, field types and structure, without a freshness pause. The AGENTS rules read at this turn's start still described the preceding reference-lifecycle policy; the newer explicit task takes precedence. This editor does not change that policy file, the scorer or the runner.
+
+Personally re-read AGENTS, the complete benchmark-editorial skill, both local references and Humanizer before editing. Re-read Humanizer in two untruncated ranges after the combined output was truncated. Used the editorial skill to separate a task contract from a diagnostic rather than treating lack of full-text evidence as lack of every possible measurement. Used Humanizer to remove the correction narrative, shorten repeated limitations and keep the formal article focused on the engineering choice.
+
+Ownership remains exactly report_explainer.py, templates/interpretation.html, tests/test_report_explainer.py and this private review. Main owns invariant-contract scoring, dataset/metric rewrites, report-app components, execution and final numerical approval. No raw outputs, scores, datasets, environment files or other owners' edits were changed by this editor. No network/provider calls, publish or commit.
+
+Applied changes:
+
+- Restore popular-site task totals, best-method coverage and offline union to the visible article body. They derive from `task_passed` on builder-supplied records. Remove the blanket unmeasured-body statement, reference-coverage gate and auxiliary-only presentation; do not relabel mechanical completeness as factual/full-text accuracy.
+- Remove JustWatch snapshot-difference computation and its public justification for blocking. Remove pre/post-reference freshness enforcement from the article. Its formal methods still retain actual input-derived call dates and the limits of cross-family comparisons.
+- Explain that changing list values do not make a quantity/field/structure question unstable. Missing text references do not erase mechanical task outcomes; text overlap remains optional and is never silently assigned zero when missing.
+- Preserve the empty-card case: quantity alone accepts blank placeholders, so content fields must be checked too. Explicitly distinguish field completeness from factual accuracy, freshness and whole-page completeness; no AI judge is introduced.
+- Keep the fixed Books to Scrape price intervention as a scoped fixed-content example, not a proposed exact-price gate for live catalogs. Preserve the price and extractor-probe tests, ranking reversal, noise case, failure overlap and media contract reasoning.
+- Remove fact-hit wording from the dynamic zero-pass/nonzero-F1 example because future invariant scoring must be interpreted using its own diagnostic fields. The example remains input-selected, without a constant provider score or pass count.
+
+Validation at this structural handoff: 20 explainer tests pass on the currently saved inputs. Popular-result visibility and no-freshness-blocking tests replace the obsolete suppression/snapshot tests; website-only aggregation, article/export identity, links, escaping, price intervention and probe reproducibility remain covered. These are rendering tests, not certification of the pending invariant rescore. Final dynamic/popular numeric interpretation is deliberately pending main's new canonical data and metric API. No final score claims are approved by this entry.
+
 ## Current formal article and reference-time boundary (2026-09-03)
 
 This section supersedes the dated cohort descriptions below for the current article. Ownership is limited to `harness/web_fetch/report_explainer.py`, `harness/web_fetch/templates/interpretation.html`, `tests/test_report_explainer.py`, and this private review. Main owns report/scoring components, reference-lifecycle enforcement and publication; the reference auditor owns source investigations. No score, saved output, dataset, runner, environment, style or report-app file was edited by this editor. No network/provider calls, publication or commit.

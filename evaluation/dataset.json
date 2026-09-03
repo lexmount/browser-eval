@@ -7390,7 +7390,49 @@
         ],
         "entry_path": "/shop/[^/]+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [
+            "captured_ui_text"
+          ],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": "sources/challenge-01/reference.txt",
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Only explicitly captured stable UI text is literal; item values and ranks are not fixed."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.anthropologie.com",
+          "www.anthropologie.com.cn"
+        ],
+        "entry_path": "/shop/[^/]+",
+        "stable_text_anchors": [
+          {
+            "id": "stable-category-1",
+            "alternatives": [
+              "Decorative Candles"
+            ]
+          }
+        ]
       }
     },
     {
@@ -7427,7 +7469,39 @@
         ],
         "entry_path": "/\\d+\\.html",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "item.jd.com"
+        ],
+        "entry_path": "/\\d+\\.html",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7464,7 +7538,39 @@
         ],
         "entry_path": "/explore/[a-fA-F0-9]+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.xiaohongshu.com"
+        ],
+        "entry_path": "/explore/[a-fA-F0-9]+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7501,7 +7607,39 @@
         ],
         "entry_path": "/question/\\d+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.zhihu.com"
+        ],
+        "entry_path": "/question/\\d+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7538,7 +7676,39 @@
         ],
         "entry_path": "/subject/\\d+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "movie.douban.com"
+        ],
+        "entry_path": "/subject/\\d+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7575,7 +7745,39 @@
         ],
         "entry_path": "/shop/[A-Za-z0-9]+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.dianping.com"
+        ],
+        "entry_path": "/shop/[A-Za-z0-9]+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7612,7 +7814,39 @@
         ],
         "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.amazon.com"
+        ],
+        "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7650,7 +7884,40 @@
         ],
         "entry_path": "/r/programming/comments/[a-z0-9]+(?:/[^/]+)?",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.reddit.com",
+          "reddit.com"
+        ],
+        "entry_path": "/r/programming/comments/[a-z0-9]+(?:/[^/]+)?",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7688,7 +7955,40 @@
         ],
         "entry_path": "/title/tt\\d+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.imdb.com",
+          "imdb.com"
+        ],
+        "entry_path": "/title/tt\\d+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7725,7 +8025,39 @@
         ],
         "entry_path": "/us/tv-show/[^/]+",
         "minimum_entries": 3,
-        "verification_scope": "first_three_name_detail_pairs"
+        "verification_scope": "first_three_name_detail_pairs",
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "changing_public_list",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "item_title",
+            "detail_url",
+            "rank",
+            "price",
+            "rating",
+            "popularity"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 3 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "No stable non-item heading was retained in the declared source scope; no header is invented."
+        }
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 3,
+        "hosts": [
+          "www.justwatch.com"
+        ],
+        "entry_path": "/us/tv-show/[^/]+",
+        "stable_text_anchors": []
       }
     },
     {
@@ -7941,6 +8273,25 @@
             "checked_at": "2026-09-03T04:35:13.202Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "quote",
+            "author",
+            "tags"
+          ],
+          "structural_only_fields": [],
+          "anchor_evidence": "sources/dynamic-quotes-api/reference.txt",
+          "record_requirement": "At least 10 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Asynchronously loaded fixed quote demonstration; preserve all ten quote/author/tag tuples."
         }
       },
       "source_verification": {
@@ -7954,7 +8305,74 @@
           "source": "https://quotes.toscrape.com/scroll",
           "supports": "独立观察的全部 10 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "quote",
+        "minimum_records": 10,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-quote-1",
+            "alternatives": [
+              "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world"
+            ]
+          },
+          {
+            "id": "fixed-quote-2",
+            "alternatives": [
+              "“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices"
+            ]
+          },
+          {
+            "id": "fixed-quote-3",
+            "alternatives": [
+              "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles"
+            ]
+          },
+          {
+            "id": "fixed-quote-4",
+            "alternatives": [
+              "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor"
+            ]
+          },
+          {
+            "id": "fixed-quote-5",
+            "alternatives": [
+              "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational"
+            ]
+          },
+          {
+            "id": "fixed-quote-6",
+            "alternatives": [
+              "“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value"
+            ]
+          },
+          {
+            "id": "fixed-quote-7",
+            "alternatives": [
+              "“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love"
+            ]
+          },
+          {
+            "id": "fixed-quote-8",
+            "alternatives": [
+              "“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased"
+            ]
+          },
+          {
+            "id": "fixed-quote-9",
+            "alternatives": [
+              "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt"
+            ]
+          },
+          {
+            "id": "fixed-quote-10",
+            "alternatives": [
+              "“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-products-api",
@@ -8133,6 +8551,24 @@
             "checked_at": "2026-09-03T04:35:18.172Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "name",
+            "price"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 12 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Demo catalog; no non-item header exists in the scoped reference. Names and prices are deliberately nonliteral, not asserted to be live-changing."
         }
       },
       "source_verification": {
@@ -8146,7 +8582,13 @@
           "source": "https://www.scrapingcourse.com/javascript-rendering",
           "supports": "独立观察的全部 12 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "product",
+        "minimum_records": 12,
+        "stable_text_anchors": []
+      }
     },
     {
       "id": "dynamic-catalog",
@@ -8331,6 +8773,27 @@
             "checked_at": "2026-09-03T04:35:21.222Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "description"
+          ],
+          "structural_only_fields": [
+            "title",
+            "price",
+            "reviews"
+          ],
+          "anchor_evidence": "sources/dynamic-catalog/reference.txt",
+          "record_requirement": "At least 6 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Keep six fixed demo specification texts; changing display title, price or review count does not change this contract."
         }
       },
       "source_verification": {
@@ -8344,7 +8807,50 @@
           "source": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
           "supports": "独立观察的全部 6 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "catalog_product",
+        "minimum_records": 6,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-catalog-description-1",
+            "alternatives": [
+              "Asus VivoBook X441NA-GA190 Chocolate Black, 14\", Celeron N3450, 4GB, 128GB SSD, Endless OS, ENG kbd"
+            ]
+          },
+          {
+            "id": "fixed-catalog-description-2",
+            "alternatives": [
+              "Prestigio SmartBook 133S Dark Grey, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+            ]
+          },
+          {
+            "id": "fixed-catalog-description-3",
+            "alternatives": [
+              "Prestigio SmartBook 133S Gold, 13.3\" FHD IPS, Celeron N3350 1.1GHz, 4GB, 32GB, Windows 10 Pro + Office 365 1 gadam"
+            ]
+          },
+          {
+            "id": "fixed-catalog-description-4",
+            "alternatives": [
+              "15.6\", Pentium N3520 2.16GHz, 4GB, 500GB, Linux"
+            ]
+          },
+          {
+            "id": "fixed-catalog-description-5",
+            "alternatives": [
+              "Lenovo V110-15IAP, 15.6\" HD, Celeron N3350 1.1GHz, 4GB, 128GB SSD, Windows 10 Home"
+            ]
+          },
+          {
+            "id": "fixed-catalog-description-6",
+            "alternatives": [
+              "Asus VivoBook 15 X540NA-GQ008T Chocolate Black, 15.6\" HD, Pentium N4200, 4GB, 500GB, Windows 10 Home, En kbd"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-delayed",
@@ -8559,6 +9065,25 @@
             "checked_at": "2026-09-03T04:35:31.820Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "quote",
+            "author",
+            "tags"
+          ],
+          "structural_only_fields": [],
+          "anchor_evidence": "sources/dynamic-delayed/reference.txt",
+          "record_requirement": "At least 10 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Delayed rendering of the fixed quote demo, not a live quote ranking."
         }
       },
       "source_verification": {
@@ -8572,7 +9097,74 @@
           "source": "https://quotes.toscrape.com/js-delayed/?delay=3000",
           "supports": "独立观察的全部 10 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "quote",
+        "minimum_records": 10,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-quote-1",
+            "alternatives": [
+              "“The world as we have created it is a process of our thinking. It cannot be changed without changing our thinking.”\nby Albert Einstein\nTags: change deep-thoughts thinking world"
+            ]
+          },
+          {
+            "id": "fixed-quote-2",
+            "alternatives": [
+              "“It is our choices, Harry, that show what we truly are, far more than our abilities.”\nby J.K. Rowling\nTags: abilities choices"
+            ]
+          },
+          {
+            "id": "fixed-quote-3",
+            "alternatives": [
+              "“There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.”\nby Albert Einstein\nTags: inspirational life live miracle miracles"
+            ]
+          },
+          {
+            "id": "fixed-quote-4",
+            "alternatives": [
+              "“The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.”\nby Jane Austen\nTags: aliteracy books classic humor"
+            ]
+          },
+          {
+            "id": "fixed-quote-5",
+            "alternatives": [
+              "“Imperfection is beauty, madness is genius and it's better to be absolutely ridiculous than absolutely boring.”\nby Marilyn Monroe\nTags: be-yourself inspirational"
+            ]
+          },
+          {
+            "id": "fixed-quote-6",
+            "alternatives": [
+              "“Try not to become a man of success. Rather become a man of value.”\nby Albert Einstein\nTags: adulthood success value"
+            ]
+          },
+          {
+            "id": "fixed-quote-7",
+            "alternatives": [
+              "“It is better to be hated for what you are than to be loved for what you are not.”\nby André Gide\nTags: life love"
+            ]
+          },
+          {
+            "id": "fixed-quote-8",
+            "alternatives": [
+              "“I have not failed. I've just found 10,000 ways that won't work.”\nby Thomas A. Edison\nTags: edison failure inspirational paraphrased"
+            ]
+          },
+          {
+            "id": "fixed-quote-9",
+            "alternatives": [
+              "“A woman is like a tea bag; you never know how strong it is until it's in hot water.”\nby Eleanor Roosevelt\nTags: misattributed-eleanor-roosevelt"
+            ]
+          },
+          {
+            "id": "fixed-quote-10",
+            "alternatives": [
+              "“A day without sunshine is like, you know, night.”\nby Steve Martin\nTags: humor obvious simile"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-reviews-graphql",
@@ -8847,6 +9439,25 @@
             "checked_at": "2026-09-03T06:49:04.320Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "text"
+          ],
+          "structural_only_fields": [
+            "date"
+          ],
+          "anchor_evidence": "sources/dynamic-reviews-graphql/reference.txt",
+          "record_requirement": "At least 20 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "GraphQL loading is not content volatility: retain twenty seeded demo review texts; dates remain typed fields."
         }
       },
       "source_verification": {
@@ -8860,7 +9471,134 @@
           "source": "https://web-scraping.dev/reviews",
           "supports": "独立观察的全部 20 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "review",
+        "minimum_records": 20,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-demo-review-1",
+            "alternatives": [
+              "Unique flavor and great energy boost. It's the perfect gamer's drink!"
+            ]
+          },
+          {
+            "id": "fixed-demo-review-2",
+            "alternatives": [
+              "Good flavor and keeps me energized. The bottle design is really fun."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-3",
+            "alternatives": [
+              "Excellent energy drink for gamers. The tropical flavor is refreshing."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-4",
+            "alternatives": [
+              "It’s fun, tastes good, and the energy boost is helpful during intense gaming sessions."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-5",
+            "alternatives": [
+              "The best sneakers I've bought in a long time. Stylish, comfortable and the leather quality is top-notch."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-6",
+            "alternatives": [
+              "The cherry cola flavor is a win. Keeps me energized and focused."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-7",
+            "alternatives": [
+              "These shoes are a hit with my twins. They love the lights and they seem to be quite durable."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-8",
+            "alternatives": [
+              "Excellent boots for outdoor adventures. They offer great support and are very comfortable."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-9",
+            "alternatives": [
+              "Nice design and good quality, but a bit too tight for me. Otherwise, it's a pretty cool beanie."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-10",
+            "alternatives": [
+              "Really enjoyed the citrus flavor and the energy boost it gives."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-11",
+            "alternatives": [
+              "Great concept, but the sizing is a bit off. Order a size larger."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-12",
+            "alternatives": [
+              "Delicious chocolates, and the box is pretty substantial. It'd make a nice gift."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-13",
+            "alternatives": [
+              "The boots are durable, but the laces could be better quality."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-14",
+            "alternatives": [
+              "This potion is a game changer. Love the energy boost and the flavor."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-15",
+            "alternatives": [
+              "Light, comfortable, and nice design. I'm buying another pair."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-16",
+            "alternatives": [
+              "Highly recommend! These shoes are great for evening walks. Kids love them!"
+            ]
+          },
+          {
+            "id": "fixed-demo-review-17",
+            "alternatives": [
+              "It's like a health potion for gamers! The energy boost is spot on."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-18",
+            "alternatives": [
+              "Really helps me focus during intense gaming marathons. The teal color is a nice touch."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-19",
+            "alternatives": [
+              "The shoes are nice but they didn't fit me well. I had to exchange for a larger size."
+            ]
+          },
+          {
+            "id": "fixed-demo-review-20",
+            "alternatives": [
+              "Great taste, and the energy kick is awesome. Feels just like a strength potion."
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-react-cart",
@@ -9255,6 +9993,26 @@
             "checked_at": "2026-09-03T06:49:08.312Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [],
+          "structural_only_fields": [
+            "name",
+            "price",
+            "financing",
+            "shipping"
+          ],
+          "anchor_evidence": null,
+          "record_requirement": "At least 16 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Demo shopping cart; item commercial values are nonliteral by task policy. Optional shipping/financing must be well-formed when present."
         }
       },
       "source_verification": {
@@ -9268,7 +10026,13 @@
           "source": "https://react-shopping-cart-67954.firebaseapp.com/",
           "supports": "独立观察的全部 16 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "product",
+        "minimum_records": 16,
+        "stable_text_anchors": []
+      }
     },
     {
       "id": "dynamic-angular-phones",
@@ -9543,6 +10307,24 @@
             "checked_at": "2026-09-03T06:49:29.581Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "name",
+            "description"
+          ],
+          "structural_only_fields": [],
+          "anchor_evidence": "sources/dynamic-angular-phones/reference.txt",
+          "record_requirement": "At least 20 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "PhoneCat tutorial uses fixed historical sample devices; preserve all twenty name/description pairs."
         }
       },
       "source_verification": {
@@ -9556,7 +10338,134 @@
           "source": "https://angular.github.io/angular-phonecat/step-12/app/",
           "supports": "独立观察的全部 20 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "name_description",
+        "minimum_records": 20,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-phone-1",
+            "alternatives": [
+              "Motorola XOOM™ with Wi-Fi\nThe Next, Next Generation Experience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb)."
+            ]
+          },
+          {
+            "id": "fixed-phone-2",
+            "alternatives": [
+              "MOTOROLA XOOM™\nThe Next, Next Generation Experience the future with MOTOROLA XOOM, the world's first tablet powered by Android 3.0 (Honeycomb)."
+            ]
+          },
+          {
+            "id": "fixed-phone-3",
+            "alternatives": [
+              "MOTOROLA ATRIX™ 4G\nMOTOROLA ATRIX 4G the world's most powerful smartphone."
+            ]
+          },
+          {
+            "id": "fixed-phone-4",
+            "alternatives": [
+              "Dell Streak 7\nIntroducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around."
+            ]
+          },
+          {
+            "id": "fixed-phone-5",
+            "alternatives": [
+              "Samsung Gem™\nThe Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price."
+            ]
+          },
+          {
+            "id": "fixed-phone-6",
+            "alternatives": [
+              "Dell Venue\nThe Dell Venue; Your Personal Express Lane to Everything"
+            ]
+          },
+          {
+            "id": "fixed-phone-7",
+            "alternatives": [
+              "Nexus S\nFast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet."
+            ]
+          },
+          {
+            "id": "fixed-phone-8",
+            "alternatives": [
+              "LG Axis\nAndroid Powered, Google Maps Navigation, 5 Customizable Home Screens"
+            ]
+          },
+          {
+            "id": "fixed-phone-9",
+            "alternatives": [
+              "Samsung Galaxy Tab™\nFeel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility."
+            ]
+          },
+          {
+            "id": "fixed-phone-10",
+            "alternatives": [
+              "Samsung Showcase™ a Galaxy S™ phone\nThe Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors"
+            ]
+          },
+          {
+            "id": "fixed-phone-11",
+            "alternatives": [
+              "DROID™ 2 Global by Motorola\nThe first smartphone with a 1.2 GHz processor and global capabilities."
+            ]
+          },
+          {
+            "id": "fixed-phone-12",
+            "alternatives": [
+              "DROID™ Pro by Motorola\nThe next generation of DOES."
+            ]
+          },
+          {
+            "id": "fixed-phone-13",
+            "alternatives": [
+              "MOTOROLA BRAVO™ with MOTOBLUR™\nAn experience to cheer about."
+            ]
+          },
+          {
+            "id": "fixed-phone-14",
+            "alternatives": [
+              "Motorola DEFY™ with MOTOBLUR™\nAre you ready for everything life throws your way?"
+            ]
+          },
+          {
+            "id": "fixed-phone-15",
+            "alternatives": [
+              "T-Mobile myTouch 4G\nThe T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi."
+            ]
+          },
+          {
+            "id": "fixed-phone-16",
+            "alternatives": [
+              "Samsung Mesmerize™ a Galaxy S™ phone\nThe Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors"
+            ]
+          },
+          {
+            "id": "fixed-phone-17",
+            "alternatives": [
+              "SANYO ZIO\nThe Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value."
+            ]
+          },
+          {
+            "id": "fixed-phone-18",
+            "alternatives": [
+              "Samsung Transform™\nThe Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”."
+            ]
+          },
+          {
+            "id": "fixed-phone-19",
+            "alternatives": [
+              "T-Mobile G2\nThe T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible."
+            ]
+          },
+          {
+            "id": "fixed-phone-20",
+            "alternatives": [
+              "Motorola CHARM™ with MOTOBLUR™\nMotorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service."
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-swagger",
@@ -9951,6 +10860,25 @@
             "checked_at": "2026-09-03T06:50:58.961Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "method",
+            "path",
+            "summary"
+          ],
+          "structural_only_fields": [],
+          "anchor_evidence": "sources/dynamic-swagger/reference.txt",
+          "record_requirement": "At least 20 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Preserve the twenty captured Petstore demo operation tuples; no uncaptured Swagger header is required."
         }
       },
       "source_verification": {
@@ -9964,7 +10892,134 @@
           "source": "https://petstore.swagger.io/",
           "supports": "独立观察的全部 20 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "api_operation",
+        "minimum_records": 20,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-operation-1",
+            "alternatives": [
+              "POST\n/pet/{petId}/uploadImage\nuploads an image"
+            ]
+          },
+          {
+            "id": "fixed-operation-2",
+            "alternatives": [
+              "POST\n/pet\nAdd a new pet to the store"
+            ]
+          },
+          {
+            "id": "fixed-operation-3",
+            "alternatives": [
+              "PUT\n/pet\nUpdate an existing pet"
+            ]
+          },
+          {
+            "id": "fixed-operation-4",
+            "alternatives": [
+              "GET\n/pet/findByStatus\nFinds Pets by status"
+            ]
+          },
+          {
+            "id": "fixed-operation-5",
+            "alternatives": [
+              "GET\n/pet/findByTags\nFinds Pets by tags"
+            ]
+          },
+          {
+            "id": "fixed-operation-6",
+            "alternatives": [
+              "GET\n/pet/{petId}\nFind pet by ID"
+            ]
+          },
+          {
+            "id": "fixed-operation-7",
+            "alternatives": [
+              "POST\n/pet/{petId}\nUpdates a pet in the store with form data"
+            ]
+          },
+          {
+            "id": "fixed-operation-8",
+            "alternatives": [
+              "DELETE\n/pet/{petId}\nDeletes a pet"
+            ]
+          },
+          {
+            "id": "fixed-operation-9",
+            "alternatives": [
+              "GET\n/store/inventory\nReturns pet inventories by status"
+            ]
+          },
+          {
+            "id": "fixed-operation-10",
+            "alternatives": [
+              "POST\n/store/order\nPlace an order for a pet"
+            ]
+          },
+          {
+            "id": "fixed-operation-11",
+            "alternatives": [
+              "GET\n/store/order/{orderId}\nFind purchase order by ID"
+            ]
+          },
+          {
+            "id": "fixed-operation-12",
+            "alternatives": [
+              "DELETE\n/store/order/{orderId}\nDelete purchase order by ID"
+            ]
+          },
+          {
+            "id": "fixed-operation-13",
+            "alternatives": [
+              "POST\n/user/createWithList\nCreates list of users with given input array"
+            ]
+          },
+          {
+            "id": "fixed-operation-14",
+            "alternatives": [
+              "GET\n/user/{username}\nGet user by user name"
+            ]
+          },
+          {
+            "id": "fixed-operation-15",
+            "alternatives": [
+              "PUT\n/user/{username}\nUpdated user"
+            ]
+          },
+          {
+            "id": "fixed-operation-16",
+            "alternatives": [
+              "DELETE\n/user/{username}\nDelete user"
+            ]
+          },
+          {
+            "id": "fixed-operation-17",
+            "alternatives": [
+              "GET\n/user/login\nLogs user into the system"
+            ]
+          },
+          {
+            "id": "fixed-operation-18",
+            "alternatives": [
+              "GET\n/user/logout\nLogs out current logged in user session"
+            ]
+          },
+          {
+            "id": "fixed-operation-19",
+            "alternatives": [
+              "POST\n/user/createWithArray\nCreates list of users with given input array"
+            ]
+          },
+          {
+            "id": "fixed-operation-20",
+            "alternatives": [
+              "POST\n/user\nCreate user"
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-product-reviews",
@@ -10059,6 +11114,25 @@
             "checked_at": "2026-09-03T06:51:03.443Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "text"
+          ],
+          "structural_only_fields": [
+            "date"
+          ],
+          "anchor_evidence": "sources/dynamic-product-reviews/reference.txt",
+          "record_requirement": "At least 5 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "Five seeded product-review texts are fixed demonstration content, regardless of embedded-state loading."
         }
       },
       "source_verification": {
@@ -10072,7 +11146,44 @@
           "source": "https://web-scraping.dev/product/1",
           "supports": "独立观察的全部 5 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "review",
+        "minimum_records": 5,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-product-review-1",
+            "alternatives": [
+              "Absolutely delicious! The orange flavor is my favorite."
+            ]
+          },
+          {
+            "id": "fixed-product-review-2",
+            "alternatives": [
+              "I bought these as a gift, and they were well received. Will definitely purchase again."
+            ]
+          },
+          {
+            "id": "fixed-product-review-3",
+            "alternatives": [
+              "Nice variety of flavors. The chocolate is rich and smooth."
+            ]
+          },
+          {
+            "id": "fixed-product-review-4",
+            "alternatives": [
+              "The cherry flavor is amazing. Will be buying more."
+            ]
+          },
+          {
+            "id": "fixed-product-review-5",
+            "alternatives": [
+              "A bit pricey, but the quality of the chocolate is worth it."
+            ]
+          }
+        ]
+      }
     },
     {
       "id": "dynamic-iframe",
@@ -10191,6 +11302,23 @@
             "checked_at": "2026-09-03T06:51:06.618Z",
             "phase": "post-run independent reproduction of pre-run frozen reference"
           }
+        },
+        "snapshot_metric_scope": "captured_sample_diagnostic",
+        "stable_annotation": {
+          "registry": "stable_annotations",
+          "version": 1,
+          "content_kind": "demonstration_content",
+          "stable_fields": [
+            "family"
+          ],
+          "structural_only_fields": [],
+          "anchor_evidence": "sources/dynamic-iframe/reference.txt",
+          "record_requirement": "At least 14 complete unique records; additional legitimate records are allowed.",
+          "task_decision_scope": "structure_and_explicit_stable_content",
+          "word_overlap_scope": "captured_sample_diagnostic",
+          "old_fact_scope": "captured_sample_diagnostic",
+          "live_factual_correctness": null,
+          "note": "The iframe contains a fixed taxonomy demonstration, not a changing popularity list."
         }
       },
       "source_verification": {
@@ -10204,7 +11332,98 @@
           "source": "https://www.scrapethissite.com/pages/frames/",
           "supports": "独立观察的全部 14 条记录及其文字字段"
         }
-      ]
+      ],
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "taxonomy_family",
+        "minimum_records": 14,
+        "stable_text_anchors": [
+          {
+            "id": "fixed-family-1",
+            "alternatives": [
+              "Carettochelyidae"
+            ]
+          },
+          {
+            "id": "fixed-family-2",
+            "alternatives": [
+              "Cheloniidae"
+            ]
+          },
+          {
+            "id": "fixed-family-3",
+            "alternatives": [
+              "Chelydridae"
+            ]
+          },
+          {
+            "id": "fixed-family-4",
+            "alternatives": [
+              "Dermatemydidae"
+            ]
+          },
+          {
+            "id": "fixed-family-5",
+            "alternatives": [
+              "Dermochelyidae"
+            ]
+          },
+          {
+            "id": "fixed-family-6",
+            "alternatives": [
+              "Emydidae"
+            ]
+          },
+          {
+            "id": "fixed-family-7",
+            "alternatives": [
+              "Geoemydidae"
+            ]
+          },
+          {
+            "id": "fixed-family-8",
+            "alternatives": [
+              "Kinosternidae"
+            ]
+          },
+          {
+            "id": "fixed-family-9",
+            "alternatives": [
+              "Platysternidae"
+            ]
+          },
+          {
+            "id": "fixed-family-10",
+            "alternatives": [
+              "Testudinidae"
+            ]
+          },
+          {
+            "id": "fixed-family-11",
+            "alternatives": [
+              "Trionychidae"
+            ]
+          },
+          {
+            "id": "fixed-family-12",
+            "alternatives": [
+              "Chelidae"
+            ]
+          },
+          {
+            "id": "fixed-family-13",
+            "alternatives": [
+              "Pelomedusidae"
+            ]
+          },
+          {
+            "id": "fixed-family-14",
+            "alternatives": [
+              "Podocnemididae"
+            ]
+          }
+        ]
+      }
     }
   ],
   "coverage_plan": {

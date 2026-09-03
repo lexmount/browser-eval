@@ -1,4 +1,5 @@
 """One authored article; all figures use the report builder's normalized inputs."""
+import base64
 import hashlib
 import json
 import statistics
@@ -26,6 +27,52 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区'}
+
+METHODOLOGY_FIGURES = (
+    ('annotation', '混合标注：稳定文字、易变字段与全文参考',
+     '页面中稳定标题、栏目与说明作为内容核对点；变化条目检查数量、字段类型和结构；全文参考单独声明范围。',
+     '稳定文字仍做内容核对，易变值不固定为答案；参考文本的范围决定质量指标能解释什么。'),
+    ('validation', '校验：独立来源、正反样例与原始输出',
+     '独立来源支撑任务标注，完整字段与空占位作为结构校验的正反样例；保存原始输出及其哈希供复核。',
+     '来源独立、规则有正反样例、输出可按哈希追溯，是不同的证据要求；哈希本身不证明内容正确。'),
+    ('scoring', '计分：任务验收与文本重合分别计算',
+     '内容与结构检查产生任务通过或失败；有明确范围的参考另算纯净度、完整度与 F1。零通过仍可能有词语重合。',
+     '任务验收与全文 P/R/F1 回答不同问题。未通过不抹去已测得的词语重合，缺少参考也不把 F1 记为零。'),
+)
+
+
+def _methodology_figures(out):
+    """Use build-copied assets online and the same bytes in the offline export."""
+    online, embedded, evidence = {}, {}, []
+    for index, (name, title, alt, caption) in enumerate(METHODOLOGY_FIGURES, 1):
+        slot = name + '_figure'
+        online[slot] = embedded[slot] = ''
+        relative = f'assets/methodology/{name}.png'
+        path = contained_path(out, relative)
+        info = {'path': relative, 'available': path.is_file()}
+        evidence.append(info)
+        if not info['available']:
+            continue
+        raw = path.read_bytes()
+        if len(raw) < 24 or raw[:8] != b'\x89PNG\r\n\x1a\n' or raw[12:16] != b'IHDR':
+            raise ValueError(f'Expected a PNG methodology figure: {relative}')
+        width, height = (int.from_bytes(raw[start:start + 4], 'big') for start in (16, 20))
+        if not width or not height:
+            raise ValueError(f'Invalid PNG dimensions: {relative}')
+        info.update(sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw), width=width, height=height)
+        data_uri = 'data:image/png;base64,' + base64.b64encode(raw).decode('ascii')
+        for target, uri in ((online, '../' + relative), (embedded, data_uri)):
+            # Download also works for data URIs, whose top-level navigation browsers block.
+            target[slot] = (
+                f'<figure id="methodology-{name}-figure" class="editorial-figure">'
+                '<div style="position:relative">'
+                f'<img src="{uri}" alt="{escape(alt, quote=True)}" width="{width}" height="{height}" '
+                'style="display:block;width:100%;max-width:100%;height:auto;object-fit:contain" />'
+                # The packaged downloader replaces anchor text while loading; keep the image outside it.
+                f'<a href="{uri}" download="{name}.png" aria-label="获取原图：{escape(title, quote=True)}" '
+                'style="position:absolute;inset:0;display:block"></a></div>'
+                f'<figcaption>图 {index} · {escape(title)}。{escape(caption)} 点击图像获取原图。</figcaption></figure>')
+    return online, embedded, evidence
 
 
 def evidence_url(path):
@@ -104,25 +151,6 @@ def _bound_initial_audit(cases):
             'scope': 'frozen reference recoverability from saved initial HTML, not DOM visibility or JS necessity'}
 
 
-def _list_snapshot_difference(cases):
-    """Bind the dated example to saved, independent list snapshots; publish no paths."""
-    key = 'challenge-10-justwatch'
-    paths = [ROOT / 'evaluation/sources' / key / name for name in ('evidence.json', 'items.json')]
-    paths.append(ROOT / 'evaluation/list-references' / (key + '.json'))
-    if key not in cases or not all(p.exists() for p in paths):
-        return None
-    first, items, second = [json.loads(p.read_text()) for p in paths]
-    if not all(x.get('url') == cases[key]['url'] for x in (first, second)):
-        return None
-    before, after = ([x['title'] for x in rows[:3]] for rows in (items, second['items']))
-    if before == after:
-        return None
-    return {'case_id': key, 'first_checked_at': first['checked_at'],
-            'second_checked_at': second['checked_at'], 'first_titles': before, 'second_titles': after,
-            'source_sha256': [hashlib.sha256(p.read_bytes()).hexdigest() for p in paths],
-            'scope': 'different observed list heads; cause and call-span stability not established'}
-
-
 def collect_evidence(cases, records):
     """Do not rescore or normalize: the report builder owns that boundary."""
     for key in cases:
@@ -187,12 +215,8 @@ def collect_evidence(cases, records):
     result['dynamic']['zero_pass_nonzero_f1'] = (
         {k: zero_sample[k] for k in ('case_id', 'provider', 'attempt_id', 'metrics')}
         if zero_sample else None)
-    challenge_ids = result['tracks']['challenge']['case_ids']
-    result['tracks']['challenge']['body_reference_case_ids'] = [k for k in challenge_ids
-        if cases[k].get('ground_truth_main_content', '').strip()
-        and cases[k].get('content_score_applicable', True)
-        and cases[k].get('task_kind', 'body') == 'body']
-    result['tracks']['challenge']['score_scope'] = 'list identity verification; not full-body evaluation'
+    result['tracks']['challenge']['score_scope'] = (
+        'case-declared stable content and structure checks; scope-bound text overlap is a separate diagnostic')
 
     cow = [r for r in historical if r['provider'] == 'cowagent-built-in'
            and cases[r['case_id']].get('track', 'web') == 'web']
@@ -345,12 +369,13 @@ def _dynamic_section(data, cases):
         mechanism += (f'<p>{escape(PROVIDER_NAMES.get(sample["provider"], sample["provider"]))} 在动态网页正文中通过 '
             f'{stats["task_pass"]}/{stats["records"]}，平均 F1 却为 {_percent(stats["mean_f1"])}。'
             f'其中{_attempt(sample, cases[sample["case_id"]]["name"])}的 F1 为 {_percent(metrics["word_f1"])}，'
-            f'内容核对点仅命中 {metrics.get("fact_hits", 0)}/{metrics.get("fact_total", 0)}。'
+            '但没有满足该例任务规则。'
             '零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。'
+            '这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。'
             + ('这份输出仍有 <code>setTimeout</code>、JSON 字段和转义字符；脚本载荷里的词语也进入 F1 的重合计算，'
                '但尚未成为任务要求的逐条名言、作者与标签。解析载荷并正确组织条目可能是一条取数路径，'
                '直接交付脚本文字则没有完成正文契约。' if sample.get('script_payload_observed') else
-               '词频相似度允许部分内容得分，任务规则则要求交付完整的指定字段；二者应保留各自的含义。')
+               '词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。')
             + '</p>')
     return (f'<section id="dynamic-coverage"><h2>动态网页正文：取到页面之后，还要等什么</h2>'
             f'<p>{scope["case_count"]} 个任务覆盖异步取数、客户端呈现与子文档获取。'
@@ -359,14 +384,15 @@ def _dynamic_section(data, cases):
             '任务难度、源站状态和调用日期没有与网站正文任务构成受控对照；两类结果分别比较。</p>'
             + figure + mechanism
             + '<p>动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；'
-              '每日变动的榜单也可能直接写在 HTML 中。前者检验取数路径和完成条件，后者还要求确认答案属于哪个时刻。'
-              '因此，完成这些练习站任务并不能证明实时榜单或价格采集同样可靠。</p>'
+              '每日变动的榜单也可能直接写在 HTML 中。任务可以要求一定数量的完整条目、非空名称和指定类型的字段，'
+              '不必锁定今天的名字或价格；稳定的标题、栏目和说明仍保留内容核对。'
+              '页面内容变化，不妨碍用同一份内容与结构契约验收。</p>'
             + '<p>对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，'
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
 
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
-    """Dashboard entry point; standalone export shares its exact authored article body."""
+    """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)
@@ -381,6 +407,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     t, total = data['tracks']['web']['summary'], data['totals']
     tracks, web = data['tracks'], data['tracks']['web']
     values = {'title': escape(TITLE), 'cases': str(data['case_count']),
+              'annotation_figure': '', 'validation_figure': '', 'scoring_figure': '',
               'providers': str(data['provider_count']), 'records': f'{total["records"]:,}',
               'web_records': f'{t["records"]:,}', 'web_providers': str(t['provider_count']),
               'request_ok': f'{t["request_ok"]:,}', 'task_pass': f'{t["task_pass"]:,}',
@@ -422,7 +449,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     values['scope_dates'] = _table(['任务范围', '任务数', '实际方法数', '调用开始时间（UTC）'], [
         (TRACK_NAMES[k], str(v['case_count']), str(len(v['providers'])), escape(_window_text(v['time_window'])))
         for k, v in tracks.items() if v['case_count']],
-        '样本与时间范围：各类任务分别验收，不把列表辅助核验计入正文排名')
+        '样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
     values['lead'] = (f'同一配置的 Moli，在网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
@@ -529,39 +556,20 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
             '它们揭示的是当前提取路径的缺口，不能作为浏览器执行能力的独立证据。</p>')
     challenge = tracks['challenge']
     best = max((v['task_pass'] for v in challenge['providers'].values()), default=0)
-    values.update(challenge_cases=str(challenge['case_count']), challenge_best=str(best),
-                  challenge_union=str(len(challenge['union_pass_ids'])),
-                  challenge_unpassed='、'.join(_link('datasets/' + k + '.html', cases[k]['name'])
-                                             for k in challenge['unpassed_ids']) or '无',
-                  challenge_missing_count=str(len(challenge['unpassed_ids'])))
-    full = challenge['body_reference_case_ids']
     values['popular_scope'] = (
-        f'<p>热门网站正文覆盖 {challenge["case_count"]} 个任务、{challenge["summary"]["records"]} 次调用，'
-        f'具备正文评分参考的任务为 {len(full)}/{challenge["case_count"]}。'
-        + ('正文通过率、F1、纯净度和完整度均为<strong>未评测</strong>，不是零分。'
-           if not full else '正文结论只能覆盖有完整参考且声明适用正文评分的任务。')
-        + '现有快照包含标题、摘要或条目卡片，不能自动充当整页正文参考。'
-          '要判断一个抓取接口能否交付这些站点的正文，当前证据还不够。</p>')
-    values['popular_auxiliary'] = (
-        '<details class="editorial-probe"><summary>列表核验（辅助）：已有记录能说明什么</summary>'
-        f'<p>按前三条名称与详情身份核验，单方法最好通过 {best}/{challenge["case_count"]}，'
-        f'成功集离线并集为 {len(challenge["union_pass_ids"])}/{challenge["case_count"]}。'
-        '这些是列表身份核验结果，不是热门网站正文通过率，也不证明整页无遗漏。'
-        '它们保留在辅助证据中，不进入本文的网站正文失败分解或正文方法比较。</p></details>')
-    drift = data['list_snapshot_difference'] = _list_snapshot_difference(cases)
-    values['reference_drift'] = ''
-    if drift:
-        def stamp(value):
-            return datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M')
-        values['reference_drift'] = (
-            f'<p>{_link("datasets/" + drift["case_id"] + ".html", "JustWatch 美区剧集目录")}说明了参考时效性的影响。'
-            f'{stamp(drift["first_checked_at"])} UTC 的快照以 '
-            f'{escape("、".join(drift["first_titles"]))} 开头；'
-            f'{stamp(drift["second_checked_at"])} UTC 的独立采集以 '
-            f'{escape("、".join(drift["second_titles"]))} 开头。'
-            '两个观察时刻的列表已不相同，原因可能涉及内容更新或会话条件；仅凭这些快照无法确定。'
-            '若把其中一次抄成跨时段的固定全文答案，另一次有效页面也可能被错判为遗漏或多余内容。'
-            '两份快照都不能证明整个调用时间窗内的正文保持不变。</p>')
+        f'<p>热门网站正文的 {challenge["case_count"]} 个任务有 {challenge["summary"]["records"]} 次调用，'
+        f'其中 {challenge["summary"]["task_pass"]} 次满足各例任务规则。'
+        f'单方法最好通过 {best}/{challenge["case_count"]}，'
+        f'各方法成功集的离线并集为 {len(challenge["union_pass_ids"])}/{challenge["case_count"]}。'
+        '这里的通过指任务声明的内容与结构契约，并不认证全部文字与某份实时快照一致。</p>')
+    missing = challenge['unpassed_ids']
+    values['popular_failure'] = (
+        '<p>没有任何方法满足任务规则的案例包括：'
+        + '、'.join(_link('datasets/' + k + '.html', cases[k]['name']) for k in missing)
+        + '。这些共同缺口使单纯增加后备方法的收益存疑；应先查实际输出缺少哪些字段、'
+          '是否只有加载占位，或是否收到拦截页面。登录、地区和访问限制本身不使任务无效，'
+          '它们可能就是目标业务需要处理的条件。</p>' if missing else
+        '<p>成功集并集覆盖了全部案例，仍需验证线上能否识别缺项并触发后备；离线覆盖不能直接当作服务保证。</p>')
     catalog = {r['case_id']: r for r in records if r['provider'] == 'cowagent-built-in'
                and r['case_id'] in {'ecommerce-list', 'image-03'}}
     values['media_case'] = '<p>同一网页的正文与媒体地址是两种交付目标；文字保留完整，地址仍可能丢失。</p>'
@@ -573,7 +581,10 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
             f'{_attempt(catalog["image-03"], "商品封面地址任务")}{states["image-03"]}。'
             '书名和价格留在文本里，不能保证封面地址也交付了。'
             '下游需要分别验收文字和资源地址，才能发现这种交付差异。</p>')
-    body = Template(TEMPLATE.read_text()).substitute(values)
+    online_figures, embedded_figures, data['methodology_figures'] = _methodology_figures(out)
+    template = Template(TEMPLATE.read_text())
+    body = template.substitute(values | online_figures)
+    standalone_body = template.substitute(values | embedded_figures)
     contained_path(out, 'guide').mkdir(parents=True, exist_ok=True)
     if probe:
         contained_path(out, 'guide/cowagent-text-probe.json').write_text(
@@ -584,7 +595,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<title>{escape(TITLE)}</title><style>{STYLE}</style></head>'
-        f'<body class="standalone-article"><main class="wrap essay">{body}</main></body></html>')
+        f'<body class="standalone-article"><main class="wrap essay">{standalone_body}</main></body></html>')
     downloads = ('<aside id="evidence" class="editorial-downloads" aria-label="文章与证据下载">'
         '<h2>文章与证据下载</h2><p>'
         '<a href="article.html" download="web-fetch-article.html">下载独立 HTML</a> · '

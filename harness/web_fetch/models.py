@@ -35,6 +35,7 @@ class EvalCase:
     required_patterns: list[dict[str, Any]] = field(default_factory=list)
     source_verification: dict[str, Any] = field(default_factory=dict)
     task_kind: str = "body"
+    acceptance_contract: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

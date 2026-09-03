@@ -66,6 +66,15 @@ def diagnose(r,c,raw,source=None):
             certainty='服务未披露更细原因；不能仅凭该错误归责源站或服务内部'
     elif m.get('forbidden_hits'):
         category,stage,proof=set_result('返回非目标内容','内容核验','命中错误页 / 排除标记：'+', '.join(m['forbidden_hits']))
+    elif c.get('acceptance_contract'):
+        if not m.get('stable_task_pass'):
+            errors = m.get('stable_task_errors', [])
+            label = ('稳定文本未命中' if 'page_identity_mismatch' in errors or any(e.startswith('missing_stable_anchor:') for e in errors)
+                     else '条目重复' if 'duplicate_records' in errors
+                     else '字段格式或记录不完整' if 'incomplete_records' in errors
+                     else '有效条目不足')
+            category,stage,proof=set_result(label,'内容核验',
+                f"完整且去重的记录 {m.get('stable_unique_record_count',0)} 条；至少要求 {m.get('stable_minimum_records',0)} 条。规则："+', '.join(errors))
     elif c.get('task_kind')=='structure':
         if not m.get('structure_pass') or m.get('list_field_coverage',0)<1:
             category,stage,proof=set_result('列表字段不足','内容核验',f"检出 {m.get('named_entry_count',0)} 条具名详情入口；至少需要 3 条")

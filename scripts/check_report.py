@@ -17,6 +17,15 @@ class Tables(HTMLParser):
  def handle_endtag(self,tag):
   if tag=='th':self.in_th=False
 
+class VisibleText(HTMLParser):
+ def __init__(self):super().__init__();self.skip=0;self.parts=[]
+ def handle_starttag(self,tag,attrs):
+  if tag in {'pre','script','style'}:self.skip+=1
+ def handle_endtag(self,tag):
+  if tag in {'pre','script','style'}:self.skip=max(0,self.skip-1)
+ def handle_data(self,text):
+  if not self.skip:self.parts.append(text)
+
 root=Path(sys.argv[1]);d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
@@ -45,13 +54,14 @@ for c in d['cases']:
   assert (root/'references'/f"{c['id']}.txt").read_bytes()==expected,c['id']
  assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
 for p in root.rglob('*.html'):
- text=p.read_text();visible=re.sub(r'<pre>.*?</pre>','',text,flags=re.S)
+ text=p.read_text();reader=VisibleText();reader.feed(text);visible=' '.join(reader.parts)
  for banned in ['人工复核','人工检查','HIL','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2']:
   assert banned not in visible,(p,banned)
  parser=Tables();parser.feed(text);assert all(h=='序号' for h in parser.headers),(p,parser.headers)
  if p.parent.name=='attempts':
   record=next(r for r in rs if r['attempt_id']==p.stem)
-  heading='列表辅助目标（非完整正文参考）' if case_by_id[record['case_id']].get('task_kind')=='structure' else '完整参考 / 目标结果'
+  case=case_by_id[record['case_id']]
+  heading='稳定任务契约' if case.get('acceptance_contract') and 'stable_task_pass' in record['metrics'] else '列表任务规则 / 参考依据' if case.get('task_kind')=='structure' else '完整参考 / 目标结果'
   assert text.count('<h3>'+heading+'</h3>')==1,p
   assert text.count('<h3>本次完整输出</h3>')==1,p
 execution=json.loads((root/'execution.json').read_text())['batches']

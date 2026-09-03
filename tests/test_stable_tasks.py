@@ -1,0 +1,320 @@
+"""Value-invariant structural tests; all inputs synthetic, no provider/network."""
+from copy import deepcopy
+import unittest
+
+from harness.web_fetch.metrics import evaluate_content, task_passed
+from harness.web_fetch.models import EvalCase
+from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
+
+
+def contract(schema, count=2, **extra):
+    return {"version": 1, "schema": schema, "minimum_records": count, "maximum_records": count, **extra}
+
+
+class StableTaskTests(unittest.TestCase):
+    def check(self, text, schema="product", count=2, **extra):
+        return evaluate_stable_task(text, contract(schema, count, **extra), "https://example.test/catalog")
+
+    def test_product_titles_prices_order_and_markdown_are_not_ground_truth(self):
+        for text in ("Alpha shirt\n$12.50\n\nBeta shirt\n$8",
+                     "## New coat\n\nPrice: €99.25\n\n## 最新名称\nPrice: USD 300",
+                     "[Renamed second](/product/2) $1,000.00\n[Renamed first](/product/1) $0.00"):
+            with self.subTest(text=text):
+                self.assertTrue(self.check(text)["stable_task_pass"])
+
+    def test_duplicate_cards_cannot_meet_count_or_change_price_to_fake_uniqueness(self):
+        for text in ("Same coat\n$10\n\nSame coat\n$10", "Same coat\n$10\n\nSame coat\n$99"):
+            result = self.check(text)
+            self.assertFalse(result["stable_task_pass"])
+            self.assertEqual(result["stable_unique_record_count"], 1)
+            self.assertIn("duplicate_records", result["stable_task_errors"])
+
+    def test_number_count_alone_or_columns_are_not_complete_product_cards(self):
+        for text in ("2 products", "Alpha\nBeta\n$10\n$20", "$10\n$20", "Alpha\n\nBeta", "",
+                     "Alpha\n-$10\nBeta\n$20", "Alpha\n$-10\nBeta\n$20", "Alpha\n$10garbage\nBeta\n$20"):
+            with self.subTest(text=text):
+                self.assertFalse(self.check(text)["stable_task_pass"])
+
+    def test_missing_card_cannot_borrow_another_card_fields(self):
+        for text in ("Alpha\nBeta\n$10", "Alpha\n$10\nBeta", "Alpha\n$10\nBeta\nPrice:"):
+            self.assertFalse(self.check(text)["stable_task_pass"])
+
+    def test_optional_financing_and_shipping_are_typed_if_present(self):
+        good = "Alpha\n$10\nor 4 x$2.50\nFree shipping\n\nBeta\n$12"
+        self.assertTrue(self.check(good)["stable_task_pass"])
+        for bad in (good.replace("4 x$2.50", "0 x$2.50"), good.replace("4 x$2.50", "many payments"),
+                    good.replace("Free shipping", "Shipping: unknown")):
+            self.assertFalse(self.check(bad)["stable_task_pass"])
+
+    def test_catalog_requires_price_description_and_integer_review_count_per_card(self):
+        text = "$10\nSame model\nBlue machine\n3 reviews\n\n$20\nSame model\nRed machine\n0 reviews"
+        self.assertTrue(self.check(text, "catalog_product")["stable_task_pass"])
+        self.assertTrue(self.check(text.replace("$10", "$900").replace("Blue machine", "New device description"),
+                                   "catalog_product")["stable_task_pass"])
+        for bad in (text.replace("3 reviews", ""), text.replace("Blue machine", ""),
+                    text.replace("3 reviews", "three reviews"), text.replace("Red machine", "Blue machine")):
+            self.assertFalse(self.check(bad, "catalog_product")["stable_task_pass"])
+
+    def test_quote_author_and_tags_are_owned_not_separate_counts(self):
+        text = "“A completely new idea.”\nby New Author\nTags: nature future\n\n“Another thought.”\nby Second Author\nTags: science"
+        self.assertTrue(self.check(text, "quote")["stable_task_pass"])
+        for bad in (text.replace("by New Author", ""), text.replace("Tags: nature future", "Tags:"),
+                    text.replace("by New Author", "by")):
+            self.assertFalse(self.check(bad, "quote")["stable_task_pass"])
+        mixed = '“First thought.”\n“Second thought.”\nby First Author\nby Second Author\nTags: first\nTags: second'
+        self.assertFalse(self.check(mixed, "quote")["stable_task_pass"])
+
+    def test_reviews_allow_new_dates_but_require_valid_dates_and_owned_text(self):
+        for text in ("2026-08-31\nNew review of the product\n\n2026-09-01\nAnother review of it",
+                     "2027-01-01 A different opinion\n2027-01-01 A second opinion"):
+            self.assertTrue(self.check(text, "review")["stable_task_pass"])
+        for text in ("2026-02-30 Bad calendar date\n2026-09-01 Valid review text",
+                     "2026-09-01\n2026-09-02\nOnly one review text",
+                     "2026-09-01 Repeat review\n2026-09-01 Repeat review"):
+            self.assertFalse(self.check(text, "review")["stable_task_pass"])
+
+    def test_name_description_requires_owned_blocks_not_arbitrary_line_pairing(self):
+        self.assertTrue(self.check("New phone\nNew phone has a brighter display.\n\nOther phone\nIt has a different camera.",
+                                   "name_description")["stable_task_pass"])
+        self.assertFalse(self.check("First name\nSecond name\nFirst description\nSecond description", "name_description")["stable_task_pass"])
+        self.assertFalse(self.check("New phone\nNew phone\n\nOther phone\nOther phone", "name_description")["stable_task_pass"])
+        markdown = "# Phone catalog\n\n## Phone Alpha\n\nA new generation display.\n\n## Phone Beta\n\nA more compact device."
+        self.assertTrue(self.check(markdown, "name_description")["stable_task_pass"])
+        self.assertFalse(self.check(markdown.replace("A new generation display.", ""), "name_description")["stable_task_pass"])
+
+    def test_api_operation_types_and_method_path_identity(self):
+        text = "GET\n/new/{id}\nRead a new object\n\nPOST /new Create a new object"
+        self.assertTrue(self.check(text, "api_operation")["stable_task_pass"])
+        for bad in (text.replace("GET", "FETCH"), text.replace("/new/{id}", "https://wrong.test/new"),
+                    text.replace("Read a new object", ""), "GET /new First summary\nGET /new Different summary"):
+            self.assertFalse(self.check(bad, "api_operation")["stable_task_pass"])
+
+    def test_operation_group_headings_and_footer_do_not_extend_summary(self):
+        anchors = [{"id": "read", "alternatives": ["GET\n/new/{id}\nRead a new object"]},
+                   {"id": "create", "alternatives": ["POST\n/new\nCreate a new object"]}]
+        for text in ("### First group\nOverview of first group\nGET\n/new/{id}\nRead a new object\n"
+                     "### Second group\nOverview of second group\nPOST /new Create a new object\n"
+                     "#### Models\nModelOne\nModelTwo",
+                     "### GET /new/{id}\nRead a new object\n### POST /new\nCreate a new object\n"
+                     "## Unrelated appendix\nAppendix text"):
+            result = self.check(text, "api_operation", stable_text_anchors=anchors)
+            self.assertTrue(result["stable_task_pass"], result)
+            self.assertEqual([r["fields"]["summary"] for r in result["stable_records"]],
+                             ["Read a new object", "Create a new object"])
+
+    def test_operation_summary_cannot_be_borrowed_from_next_group_or_footer(self):
+        anchors = [{"id": "read", "alternatives": ["GET\n/new/{id}\nRead a new object"]}]
+        for text in ("GET /new/{id}\n### Next group\nRead a new object\nPOST /new Create a new object",
+                     "GET /new/{id}\n### POST /new\nRead a new object\nCreate a new object",
+                     "GET /new/{id} Wrong summary\nPOST /new Create a new object\n"
+                     "#### Footer\nRead a new object"):
+            result = self.check(text, "api_operation", stable_text_anchors=anchors)
+            self.assertFalse(result["stable_task_pass"])
+            self.assertFalse(result["stable_content_pass"])
+        swapped = "### First\nGET /new/{id} Create a new object\n### Second\nPOST /new Read a new object"
+        result = self.check(swapped, "api_operation", stable_text_anchors=anchors)
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+
+    def test_operation_summary_soft_wrap_stays_inside_its_record(self):
+        anchors = [{"id": "read", "alternatives": ["GET\n/new/{id}\nRead a new object"]}]
+        result = self.check("## Group\nGET /new/{id}\nRead a new\nobject\n## Next\nPOST /new Create an object",
+                            "api_operation", stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+
+    def test_taxonomy_uses_field_type_not_current_family_literals(self):
+        self.assertTrue(self.check("## Testidae\n\n**Changedidae**", "taxonomy_family")["stable_task_pass"])
+        self.assertFalse(self.check("Navigation\nHome\nAbout\nContact", "taxonomy_family")["stable_task_pass"])
+        self.assertFalse(self.check("Testidae\nTestidae", "taxonomy_family")["stable_task_pass"])
+
+    def test_markdown_tables_have_owned_typed_fields_and_empty_cells_fail(self):
+        text = "| Name | Price |\n| --- | --- |\n| Alpha | $10 |\n| Beta | $20 |"
+        self.assertTrue(self.check(text)["stable_task_pass"])
+        self.assertFalse(self.check(text.replace("Beta | $20", "Beta |"))["stable_task_pass"])
+        self.assertFalse(self.check(text.replace("Beta | $20", "Beta | twenty"))["stable_task_pass"])
+        self.assertFalse(self.check(text.replace("Beta | $20", "Alpha | $20"))["stable_task_pass"])
+
+    def test_all_other_schemas_accept_typed_markdown_tables(self):
+        rows = {
+            "quote": ("Quote | Author | Tags", "One idea | Someone | life", "Another idea | Someone Else | work"),
+            "review": ("Date | Text", "2026-01-01 | New opinion", "2026-01-02 | Different opinion"),
+            "catalog_product": ("Title | Price | Description | Reviews", "A model | $10 | Blue device | 4", "A model | $20 | Red device | 3"),
+            "name_description": ("Name | Description", "Phone Alpha | Blue screen device", "Phone Beta | Green screen device"),
+            "api_operation": ("Method | Path | Summary", "GET | /one | Read object", "POST | /two | Create object"),
+            "taxonomy_family": ("Family", "Newidae", "Otheridae"),
+        }
+        for schema, (header, first, second) in rows.items():
+            text = f"| {header} |\n| " + " | ".join("---" for _ in header.split("|")) + f" |\n| {first} |\n| {second} |"
+            with self.subTest(schema=schema):
+                self.assertTrue(self.check(text, schema)["stable_task_pass"])
+
+    def test_named_links_deduplicate_identity_and_reject_wrong_site(self):
+        rules = {"hosts": ["example.test"], "entry_path": r"/item/\d+"}
+        text = "[New title](/item/91)\n[Different title](/item/92)"
+        self.assertTrue(self.check(text, "named_link", **rules)["stable_task_pass"])
+        for bad in (text.replace("/item/92", "/item/91?x=2"), text.replace("/item/", "https://evil.test/item/"),
+                    text.replace("New title", "Details"), text.replace("/item/", "/category/")):
+            self.assertFalse(self.check(bad, "named_link", **rules)["stable_task_pass"])
+        plain = "First title\nhttps://example.test/item/1\nSecond title\nhttps://example.test/item/2"
+        self.assertTrue(self.check(plain, "named_link", **rules)["stable_task_pass"])
+        self.assertFalse(self.check("[Bad URL](https://[invalid/item/1)", "named_link", **rules)["stable_task_pass"])
+
+    def test_wrong_page_identity_and_eligible_gates(self):
+        text = "Alpha\n$10\n\nBeta\n$20"
+        rules = contract("product", page_patterns=[r"^Product catalog$"])
+        self.assertFalse(evaluate_stable_task("Other page\n" + text, rules)["stable_task_pass"])
+        self.assertTrue(evaluate_stable_task("Product catalog\n" + text, rules)["stable_task_pass"])
+        self.assertFalse(evaluate_stable_task("Product catalog\n" + text, rules, eligible=False)["stable_task_pass"])
+
+    def test_strict_contract_validation_before_snapshot_exemption(self):
+        for value in ({}, None, {"version": True, "schema": "product", "minimum_records": 2},
+                      contract("invented"), contract(["product"]), contract("product", count=0), contract("product", count=True),
+                      contract("product", maximum_records=1), contract("product", page_patterns=["["]),
+                      contract("product", typo=True), contract("named_link"),
+                      contract("named_link", hosts=["evil.test/path"], entry_path="/item/.+")):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_acceptance_contract(value)
+
+    def test_contract_metrics_decision_is_independent_of_frozen_literal_metrics(self):
+        rules = contract("product")
+        before = deepcopy(rules)
+        result = evaluate_content("Alpha\n$10\n\nBeta\n$20", ["Old name"], required_facts=[
+            {"id": "frozen", "alternatives": ["Old title $50"]}], min_content_chars=10000,
+            ground_truth_main_content="Old title $50", acceptance_contract=rules)
+        self.assertTrue(result["content_pass"])
+        self.assertEqual(result["fact_coverage"], 0)
+        self.assertIsNotNone(result["word_f1"])
+        self.assertTrue(task_passed(True, result, "structure"))
+        self.assertFalse(task_passed(False, result))
+        self.assertEqual(rules, before)
+        self.assertIsNone(result["factual_correctness"])
+
+    def test_frozen_fixture_scoring_remains_unchanged_without_contract(self):
+        result = evaluate_content("Old title", ["Old title"], ground_truth_main_content="Old title")
+        self.assertTrue(result["content_pass"])
+        self.assertEqual(result["word_f1"], 1.0)
+        self.assertNotIn("stable_task_pass", result)
+        self.assertEqual(EvalCase("case", "name", "https://example.test", "fixture", []).acceptance_contract, {})
+
+    def test_stable_text_and_structure_are_separate_from_word_overlap(self):
+        rules = contract("product", stable_text_anchors=[
+            {"id": "section", "alternatives": ["Product catalog", "Available products"]},
+            {"id": "explanation", "alternatives": ["Prices include tax"]}])
+        text = "# Available products\nPrices include tax\n\nNew coat\n$19\n\nNew scarf\n$99"
+        result = evaluate_content(text, ["Old title"], required_facts=[{"id": "old", "alternatives": ["Old price"]}],
+                                  ground_truth_main_content="Old title Old price", acceptance_contract=rules)
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertTrue(result["stable_content_pass"])
+        self.assertTrue(result["content_pass"])
+        self.assertLess(result["word_f1"], 1.0)
+        missing = evaluate_stable_task(text.replace("Prices include tax", "Different explanation"), rules)
+        self.assertTrue(missing["stable_structure_pass"])
+        self.assertFalse(missing["stable_content_pass"])
+        self.assertFalse(missing["stable_task_pass"])
+        self.assertEqual(missing["stable_anchor_results"][1]["matched"], [])
+        incomplete = evaluate_stable_task(text.replace("$99", ""), rules)
+        self.assertFalse(incomplete["stable_structure_pass"])
+        self.assertTrue(incomplete["stable_content_pass"])
+        self.assertFalse(incomplete["stable_task_pass"])
+
+    def test_anchor_validation_and_numeric_boundaries(self):
+        for anchors in ([{"id": "empty", "alternatives": []}],
+                        [{"id": "empty", "alternatives": ["**"]}],
+                        [{"id": "same", "alternatives": ["A"]}, {"id": "same", "alternatives": ["B"]}],
+                        "Product catalog"):
+            with self.assertRaises(ValueError):
+                validate_acceptance_contract(contract("product", stable_text_anchors=anchors))
+        result = self.check("Page 100\nAlpha\n$10\nBeta\n$20", stable_text_anchors=[
+            {"id": "page", "alternatives": ["Page 10"]}])
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+
+    def test_block_pages_with_complete_cards_never_pass(self):
+        cards = "Alpha\n$10\n\nBeta\n$20"
+        for heading in ("# Access denied", "403 Forbidden", "Verify you are human", "Just a moment..."):
+            result = self.check(heading + "\n" + cards)
+            self.assertTrue(result["stable_structure_pass"])
+            self.assertFalse(result["stable_content_pass"])
+            self.assertFalse(result["stable_task_pass"])
+            self.assertTrue(result["stable_blocked_page"])
+
+    def test_explicit_forbidden_rule_survives_stable_override_and_reference_exemptions(self):
+        text = "Custom access failure\nAlpha\n$10\n\nBeta\n$20"
+        result = evaluate_content(text, [], forbidden_any=["Custom access failure"],
+                                  ground_truth_main_content=text, acceptance_contract=contract("product"))
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+        self.assertFalse(result["content_pass"])
+        self.assertFalse(task_passed(True, result))
+        self.assertEqual(result["reference_term_exemptions"], [])
+        self.assertEqual(result["word_f1"], 1.0)
+        self.assertFalse(task_passed(True, {**result, "stable_task_pass": True}))
+        self.assertFalse(task_passed(False, {"stable_task_pass": True}))
+
+    def test_block_page_words_in_explanatory_prose_are_not_automatically_block_pages(self):
+        text = "This catalog explains why an access denied message can occur.\nAlpha\n$10\n\nBeta\n$20"
+        self.assertTrue(self.check(text)["stable_task_pass"])
+
+    def test_same_schema_wrong_page_requires_explicit_stable_identity(self):
+        text = "Unrelated store\nNew coat\n$10\n\nAnother coat\n$20"
+        result = self.check(text, stable_text_anchors=[{"id": "page", "alternatives": ["Intended catalog"]}])
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+        self.assertFalse(result["stable_task_pass"])
+
+    def test_multiline_product_links_images_and_hard_breaks(self):
+        for hard_break in ("  \n", "\\\n", "\\\\\n"):
+            text = (f"[![Photo](/image(1).png)New winter coat{hard_break}€123.45](/product/new(1))\n"
+                    f"[![Photo](/image2.png)Different boots{hard_break}USD 250](/product/new2)")
+            with self.subTest(hard_break=hard_break):
+                result = self.check(text)
+                self.assertTrue(result["stable_task_pass"], result)
+                self.assertEqual(result["stable_records"][0]["fields"]["name"], "New winter coat")
+        self.assertFalse(self.check(text.replace("USD 250", "USD -250"))["stable_task_pass"])
+        self.assertFalse(self.check(text.replace("Different boots", "New winter coat"))["stable_task_pass"])
+
+    def test_explicit_product_links_cannot_borrow_other_link_fields(self):
+        for text in ("[Alpha\n](/a)\n[\n$10](/b)\n[Beta\n$20](/c)",
+                     "[![Alpha](/photo)\n$10](/a)\n[Beta\n$20](/b)",
+                     "[Alpha\n$10](/a)\n[Beta\n](/b)"):
+            self.assertFalse(self.check(text)["stable_task_pass"], text)
+
+    def test_bullet_description_cards_with_inline_linked_titles(self):
+        for text in ("- [![Picture](/img)](/a) [New phone](/a) A brighter display.\n"
+                     "- [![Picture](/img2)](/b) [Other phone](/b) A different camera.",
+                     "  * [New phone](/a)\nA brighter display.\n  * [Other phone](/b)\nA different camera.",
+                     "1. New phone\nA brighter display.\n2. Other phone\nA different camera."):
+            result = self.check(text, "name_description")
+            self.assertTrue(result["stable_task_pass"], result)
+            self.assertEqual(result["stable_records"][0]["fields"],
+                             {"name": "New phone", "description": "A brighter display."})
+        for text in ("- [New phone](/a)\n- [Other phone](/b) A different camera.",
+                     "- [New phone](/a) A brighter display.\n- [New phone](/b) A different camera.",
+                     "- [New phone](/a)\n- [Other phone](/b) A brighter display. A different camera."):
+            self.assertFalse(self.check(text, "name_description")["stable_task_pass"])
+
+    def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
+        anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]
+        texts = ('“An independent thought.”by [Some Author](/author) [(about)](/about)\n'
+                 'Tags: [first](/tag/1)[second](/tag/2)\n##### Loading...',
+                 '| Quote | Author | Tags |\n| --- | --- | --- |\n'
+                 '| An independent thought. | Some Author | first second |')
+        for text in texts:
+            self.assertTrue(self.check(text, "quote", 1, stable_text_anchors=anchors)["stable_task_pass"])
+        for text in ('“An independent thought.”by Some Author\nTags: firstsecond',
+                     '“An independent thought.”by Wrong Author\nTags: first second'):
+            result = self.check(text, "quote", 1, stable_text_anchors=anchors)
+            self.assertTrue(result["stable_structure_pass"])
+            self.assertFalse(result["stable_content_pass"])
+
+    def test_tuple_anchor_cannot_match_unowned_footer_or_other_record(self):
+        anchors = [{"id": "fixed", "alternatives": ["New phone\nA brighter display."]}]
+        text = ("New phone A brighter display.\n\n"
+                "- [New phone](/a) A different camera.\n- [Other phone](/b) A brighter display.")
+        result = self.check(text, "name_description", stable_text_anchors=anchors)
+        self.assertTrue(result["stable_structure_pass"])
+        self.assertFalse(result["stable_content_pass"])
+
+
+if __name__ == "__main__":
+    unittest.main()

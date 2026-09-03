@@ -10,6 +10,23 @@ from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 
 
+def scoring_scope(records, cases):
+    scopes = {'stable_contract' if 'stable_task_pass' in r['metrics'] else
+              'list_identity' if cases[r['case_id']].get('task_kind') == 'structure' else
+              cases[r['case_id']].get('task_kind', 'body') for r in records}
+    return next(iter(scopes)) if len(scopes) == 1 else 'mixed'
+
+
+def copy_methodology_assets(output, assets=None):
+    assets = assets or Path(__file__).parent/'assets/methodology'
+    for name in ('annotation.png', 'validation.png', 'scoring.png'):
+        source = assets/name
+        if source.is_file():
+            target = output/'assets/methodology'/name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+
+
 def build_report(source: Path, output: Path) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
@@ -21,6 +38,14 @@ def build_report(source: Path, output: Path) -> Path:
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
+    for r in records:
+        contract = cases[r['case_id']].get('acceptance_contract')
+        if contract:
+            from .stable_tasks import validate_acceptance_contract
+            validate_acceptance_contract(contract)
+            expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('acceptance_contract_sha256') != expected:
+                raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
     diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
     source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:
@@ -63,12 +88,16 @@ def build_report(source: Path, output: Path) -> Path:
                       and cases[r['case_id']].get('track') == 'challenge']
             body = [r for r in subset if cases[r['case_id']].get('task_kind', 'body') == 'body'
                     and cases[r['case_id']].get('ground_truth_main_content')]
-            row['scoring_scope'] = 'body' if len(body) == len(subset) else 'list_identity_auxiliary' if not body else 'mixed'
             row['body_evaluated_attempts'] = len(body)
             row['body_task_pass'] = sum(succeeded(r, cases[r['case_id']]) for r in body) if body else None
+        for track, providers in summary.items():
+            for provider, row in providers.items():
+                subset = [r for r in records if r['provider'] == provider and cases[r['case_id']].get('track','web') == track]
+                row['scoring_scope'] = scoring_scope(subset, cases)
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+        copy_methodology_assets(staging)
         generate(staging,dataset,records,manifests)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.

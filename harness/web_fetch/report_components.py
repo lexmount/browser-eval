@@ -19,21 +19,18 @@ def metric_guide():
     return cards([
         ('任务通过率','满足该例全部验收规则的次数 ÷ 全部任务。正文检查长度、核对点和错误标记，<strong>没有 F1 最低分门槛</strong>；资源与列表另按专门规则判断。请求失败计入分母。'),
         ('请求成功率','接口正常返回的次数占全部调用的比例。接口返回成功，不代表抓到了目标内容。'),
-        ('完整度 · 纯净度 · F1','必须有完整参考。请求失败计 0；请求成功但任务未通过，仍按实际正文评分，所以 0 次通过不等于 F1 为 0。逐案例计算后取平均；平均 F1 不是平均完整度与平均纯净度的调和平均。'),
-        ('均值 · P50 · P95','正文表仅统计正文通过的耗时；列表辅助表仅统计列表核验通过的辅助耗时，两者不混合。P50 是中位数；P95 表示约 95% 的通过调用不超过该耗时。'),
+        ('完整度 · 纯净度 · F1','必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。请求失败计 0；请求成功但任务未通过，仍按实际正文评分，所以 0 次通过不等于 F1 为 0。逐案例计算后取平均；平均 F1 不是平均完整度与平均纯净度的调和平均。'),
+        ('均值 · P50 · P95','仅统计该类型任务通过的调用耗时。列表任务与正文任务均按各自声明的规则判定。P50 是中位数；P95 表示约 95% 的通过调用不超过该耗时。'),
         ('资源 · 文件 · 信息','资源命中率：资源任务中找齐指定入口的比例；文件取得率：原文件任务中有已验证通过记录的比例（本轮字节验收未接通）；信息通过率：信息任务中通过文字核对的比例。'),
-        ('列表辅助核验','返回至少 3 条具名详情入口，并独立确认前三条名称对应其详情页。列表核验率单独展示，不代表正文通过率、整页召回、当前排名或价格正确。仅有列表依据时正文未评测。'),
+        ('稳定任务契约','同时核对登记的稳定内容锚点（稳定标题、栏目、说明）与字段结构、数量、唯一性及类型，不是只检查数量。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不要求与旧快照取值相同。通过不证明这些变化值的事实准确性或实时性。'),
     ])+'<div class="worked-example"><strong>举例</strong><span>10 个任务</span><span>8 次请求成功 → 请求成功率 80%</span><span>6 次任务通过 → 任务通过率 60%</span></div>'
 
 
 METRIC_DEFINITIONS={
  '请求成功率':'接口正常返回次数 ÷ 全部调用次数；不代表内容正确。',
  '任务通过率':'满足本例全部验收规则的次数 ÷ 全部任务次数；请求失败计入分母。具体规则见上方说明，不设全文 F1 门槛。',
-    '正文通过率':'可评测正文的全部任务中，满足全部正文规则的比例；请求失败计入分母，列表辅助核验不计入。未评测显示 —，不等于 0。',
- '列表核验率':'列表辅助任务中，前三条名称与详情身份均获独立证实的比例；不是正文通过率。',
- '辅助耗时均值':'仅列表核验通过的调用耗时均值，单位毫秒；不并入正文耗时。',
- '辅助 P50':'列表核验通过的调用耗时中位数，单位毫秒。',
- '辅助 P95':'列表核验通过的调用耗时第 95 百分位数，单位毫秒。',
+ '正文通过率':'满足声明的正文验收规则的比例，与完整度、纯净度及 F1 分开计算。',
+ '列表核验率':'列表任务中同时满足稳定内容锚点、字段结构、类型、数量及唯一性要求的比例。',
  '结构达标率':'动态列表中取得至少 3 个具名详情入口的任务比例；不判事实正确性。',
  '完整度':'参考正文中有多少被取回；越高越少遗漏。',
  '纯净度':'返回文字中有多少属于参考正文；越高越少杂文。',
@@ -46,8 +43,8 @@ METRIC_DEFINITIONS={
  'P95':'通过耗时从小到大排序，取第 ⌈95% × 样本数⌉ 个值，单位毫秒。',
  '耗时':'本次调用从发起到结束的时间，包含失败调用，单位毫秒。',
  '运行 ID':'按执行记录及开始时间生成的稳定本地标识，重测可区分；供应商请求 ID 另见详情。',
- '达标率':'按案例任务类型标注。列表辅助核验率不代表正文达标；该类案例同时标注正文未评测。',
- '结果':'按预设任务规则分为通过或失败；列表任务明确标注列表辅助结果及正文未评测。',
+ '达标率':'该案例中按已登记任务规则判为通过的调用比例；不因缺少全文参考而隐藏任务结果。',
+ '结果':'按已登记任务规则分为通过或失败；任务通过不等于事实准确性、实时性或整页完整性得到证明。',
  '失败分类':'先按失败环节区分请求失败、请求成功但任务失败，再按失败类别细分原因。“访问被拒绝”不等于网站失效。',
  '命中仓库数':'样本内出现该方法签名的去重仓库数；同一仓库只计一次。',
  '命中文件数':'样本内命中的去重仓库与文件组合数；不是调用次数。',
@@ -68,12 +65,12 @@ def metric_legend(headers):
 
 def task_pass_guide(track, base=''):
     rules = {
-        'dynamic': '独立浏览器观察固定初次加载的记录范围；逐条核对全部文字字段并检查最低长度。HTTP 页面壳不通过；解析内嵌数据或公开 API 也可通过，不限定必须执行 JavaScript。',
+        'dynamic': '核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。',
         'web': '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。',
         'document': '文档正文采用与网页相同的文字验收规则：请求、最低长度、全部核对点及错误页检查满足；不是只拿到下载链接。F1 另算，不作为通过门槛。',
         'image': '含图页面须在实际返回值中找齐指定图片地址；直接 PNG 须有文件验收证据。当前原文件字节验收链路未完整接通，其结果不能用于判断产品是否支持下载。',
         'video': '按案例区分：找齐播放入口、核对标题与发布者，或取得原文件证据。链接不等于文件，均不测画面理解；原文件字节验收链路当前未完整接通。',
-        'challenge': '正文任务按独立完整参考与正文规则判定。仅有列表依据的任务不评测正文：至少 3 个具名详情入口且前三条名称与详情身份有独立证据，结果单列为列表辅助核验，不核对当天名单、名次或价格。',
+        'challenge': '请求成功，取得至少 3 条具名详情链接，字段完整、类型正确、条目不重复，链接符合目标站点规则；有独立内容证据的稳定标题、栏目、说明还须命中。频繁变化的名单和价格不固定旧值。通过表示满足上述取数要求，不证明变化值真实或最新。',
     }
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
     return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p><a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></div>'
@@ -89,8 +86,8 @@ def examples():
         ]),
         ('dynamic','动态网页正文',[
             ('任务','读取各案例声明的初次加载范围。例如 GraphQL 首批 20 条评论、React 目录 16 个商品、Swagger 的 20 条接口摘要，或 iframe 中的 14 个分类名称。各案例独立评分。'),
-            ('标准答案','先保存初始 HTTP 字节与独立浏览器可见正文，确认记录字段加载齐全，再冻结逐条核对点。初始空卡片不算已加载内容。'),
-            ('怎么测','按条目匹配完整字段组合，不能借用其他商品的相同价格或其他接口的方法；支持常见 Markdown 排版，不做语义改写判定。另检查最低长度并计算全文指标；解析公开接口也允许通过。'),
+            ('任务契约','独立观察初次加载范围，登记稳定内容锚点（稳定标题、栏目、说明）及条目数量与字段结构，例如商品名称、数值价格、可见分期字段。仅频繁变化的条目标题、价格不设为永久答案，稳定内容仍核对。'),
+            ('怎么测','核对稳定内容锚点，并检查各条目的字段归属、数量、唯一性与类型；支持声明的字段顺序和常见排版。完整、可比的文本参考可用于独立重合诊断，不等于变化值的事实准确性或实时性判定。'),
             ('怎样算通过','请求成功且本例全部正文规则通过。限定首批记录，不暗含滚动、翻页或点击操作；未测方法不计为失败。'),
         ]),
         ('document','文档正文',[
@@ -112,10 +109,10 @@ def examples():
             ('怎样算通过','完成指定任务；找到播放地址不等于拿到视频，更不等于能识别画面或字幕。<a href="../datasets/video-01.html">查看视频参考与结果 →</a>'),
         ]),
         ('challenge','热门网站正文',[
-            ('任务','正文评测需要完整独立参考。JustWatch 等仅有列表依据的案例，现有结果是列表辅助核验：取得至少 3 个不同条目的名称和详情入口，不代表正文质量。'),
-            ('标准答案','独立页面与已保存的公开列表字段提供名称—详情链接对应关系；新条目使用新证据，不要求返回旧快照里的固定名单。'),
-            ('结构怎么测','至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；不固定名称、名次、价格或条目 ID。'),
-            ('列表辅助怎样算通过','返回顺序中的前三个不同条目都能独立核实名称与详情身份。未证实不算辅助通过，也不认定为内容错误。正文未评测，完整度、纯净度和 F1 显示 —。<a href="../datasets/challenge-10-justwatch.html">查看参考与实测 →</a>'),
+            ('任务','以 JustWatch 为例取得声明数量的不同剧集及名称、详情入口；任务结果与耗时进入热门网站主表。缺少完整参考只影响全文指标，不隐藏任务结果。'),
+            ('核对依据','独立页面提供稳定内容锚点与条目结构要求：剧集名称和本站详情入口，不固定当天的剧集名单。'),
+            ('结构怎么测','至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；频繁变化的条目名称、名次、价格或 ID 不固定为旧快照取值，不免除登记的稳定内容核对。'),
+            ('怎样算通过','稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。<a href="../datasets/challenge-10-justwatch.html">查看参考与实测 →</a>'),
         ]),
     ]
     order = ['web', 'dynamic', 'challenge', 'document', 'image', 'video']
@@ -123,18 +120,95 @@ def examples():
     return tabs('task-examples',[(k,l,cards(c)) for k,l,c in items])
 
 
-def body_reference_protocol():
+def task_contract_guide():
     return cards([
-        ('新采集的 live-body 正文协议','每次调用前 30 分钟内，独立采集声明范围内的完整正文；记录 URL、会话条件、范围、完成条件和时间。调用绑定 reference SHA-256、scope 与 rules，不从参评输出生成参考。'),
-        ('同范围复查与评分状态','调用结束后 30 分钟内按同一范围和条件独立复查。证据缺失、过期或内容漂移时暂停正文评分，保留调用与原始输出；不将参考问题记为 provider 失败。'),
-        ('适用边界','该协议用于新采集数据，不表示已有 1,800 次调用全部满足。30 分钟只是操作窗口；前后内容相同也不能证明中间未发生变化。历史结果按其实际保留的证据与评分范围解释，不用新参考替代旧调用的依据。'),
+        ('任务契约','按声明范围同时核对稳定内容锚点（稳定标题、栏目、说明）和条目数量、必需字段、唯一性和字段类型，不是只检查数量。频繁变化的名单、条目标题、价格和名次只按声明的结构、类型与数量核验，不固定旧快照取值；这不等于证明这些变化值真实或最新。'),
+        ('结果与规则绑定','任务结果对应已登记的内容锚点、字段要求与数量范围；保留原始输出及评分规则，便于逐项复核。'),
+        ('完整性与模式','原始输出哈希和证据完整性检查保留。已验证的 stable_contract 按数据不变量验收，不依赖快照时效；exact_snapshot 模式仍可按其协议检查参考。两种模式不能混用，也不声称所有调用满足同一采集窗口。'),
+        ('全文诊断独立','完整度、纯净度与 F1 必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。缺少完整、可比的参考显示 —（全文指标未评测），任务通过率和耗时仍保留。稳定内容锚点仍用于任务验收；文本重合不证明变化值的事实准确性或实时性，名单变化本身不使稳定任务契约过期。'),
     ])
 
 
+def list_rule_description(c):
+    if c.get('acceptance_contract'):
+        return stable_rule_description(c)
+    contract = c.get('source_benchmark', {})
+    minimum = contract.get('minimum_entries', 3)
+    if contract.get('verification_scope') == 'first_three_name_detail_pairs':
+        return f'本例按名称—链接身份核验：至少 {minimum} 个具名详情入口，返回的前 {minimum} 条须有独立内容证据；不要求当天固定名单、排序或价格。未证实不等于内容错误。'
+    return f'本例按登记的稳定内容锚点及字段／数量规则核验，至少 {minimum} 个不同的具名详情入口；稳定标题、栏目、说明按登记内容核对，频繁变化的条目标题和价格只核对声明的结构与类型。通过不证明变化值的事实准确性或实时性。'
+
+
+
+SCHEMA_LABELS = {
+    'quote':'引文列表', 'product':'商品列表', 'catalog_product':'商品目录',
+    'review':'评论列表', 'name_description':'名称与说明', 'api_operation':'接口摘要',
+    'taxonomy_family':'科名列表', 'named_link':'具名详情入口',
+}
+FIELD_REQUIREMENTS = {
+    'quote':('引文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
+    'author':('作者','至少 2 个字符，含文字，不能是占位内容。'),
+    'tags':('标签','非空文字，至少 2 个字符，不能是占位内容。'),
+    'name':('名称','至少 2 个字符，含文字，不能只是网址、金额或占位内容。'),
+    'title':('标题','具名文字，至少 2 个字符；不能只是网址或导航按钮。'),
+    'price':('价格','带货币标记的非负金额，最多 2 位小数；支持 $、£、€、¥ 或 USD、EUR、GBP、CNY。'),
+    'description':('说明','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
+    'reviews':('评论数','非负整数，可带 review / reviews 标签。'),
+    'date':('日期','有效的 YYYY-MM-DD 日历日期。'),
+    'text':('评论正文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
+    'method':('请求方法','GET、POST、PUT、PATCH、DELETE、HEAD、OPTIONS、TRACE 或 CONNECT。'),
+    'path':('接口路径','以单个 / 开头的接口路径，允许路径参数；不是完整网址。'),
+    'summary':('接口说明','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
+    'family':('科名','英文字母组成且以 idae 结尾。'),
+    'url':('详情链接','HTTP(S) 链接，符合本例允许的域名与详情路径；不得含用户名或密码。'),
+}
+
+
+def task_instruction(c):
+    contract = c.get('acceptance_contract')
+    if not contract:
+        return c.get('task_prompt', '')
+    from .stable_tasks import SCHEMA_FIELDS
+    fields = '、'.join(FIELD_REQUIREMENTS[f][0] for f in SCHEMA_FIELDS[contract['schema']])
+    instruction = f'取得至少 {contract["minimum_records"]} 条完整、不重复的记录，每条包含{fields}。'
+    if contract.get('stable_text_anchors') or contract.get('page_patterns'):
+        instruction += '同时核对下方列明的稳定文字与页面要求。'
+    return instruction + '变化字段按声明的格式核验，不固定旧值。'
+
+
+def stable_rule_description(c):
+    contract = c['acceptance_contract']
+    maximum = contract.get('maximum_records')
+    limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
+    return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
+            '按登记的稳定文本锚点与页面模式核对稳定标题、栏目、说明，同时检查条目字段归属、类型、完整性和唯一性。'
+            '频繁变化的名单和价格不固定旧快照取值；通过不证明这些变化值真实或最新。')
+
+
+def stable_contract_details(c):
+    from .stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
+    contract = c['acceptance_contract']
+    schema = contract['schema']
+    fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])
+    unique = '＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema])
+    requirements = '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>'
+    if schema == 'name_description':
+        requirements += '<p>说明不能仅重复名称。</p>'
+    if schema in {'product','catalog_product'}:
+        requirements += '<p>如返回分期或运费字段，分期须为正整数期数及货币金额；运费须为免费或货币金额。</p>'
+    if schema == 'named_link':
+        requirements += '<p>允许域名：'+escape('、'.join(contract.get('hosts',[])))+'；详情路径：<code>'+escape(contract.get('entry_path',''))+'</code>。入口按域名与路径去重。</p>'
+    patterns = ''.join('<li><code>'+escape(p)+'</code></li>' for p in contract.get('page_patterns', []))
+    anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+'</li>'
+                      for a in contract.get('stable_text_anchors', []))
+    return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements
+            + ('<h3>稳定文本锚点</h3><p>每组至少命中一种允许表达，所有组均须通过。</p><ul>'+anchors+'</ul>' if anchors else '')
+            + ('<h3>页面模式</h3><p>以下模式均须匹配。</p><ul>'+patterns+'</ul>' if patterns else ''))
 
 
 def basis_label(c):
-    if c.get('task_kind')=='structure':return '列表辅助：名称＋详情核验'
+    if c.get('acceptance_contract'):return '稳定内容＋字段结构契约'
+    if c.get('task_kind')=='structure':return '名称＋详情身份核验' if c.get('source_benchmark',{}).get('verification_scope')=='first_three_name_detail_pairs' else '登记内容＋字段规则'
     if c.get('task_kind')=='file':return '原文件'
     resources=c.get('expected_resources',[])
     if resources:return f'资源 · {len(resources)} 项'
@@ -143,8 +217,8 @@ def basis_label(c):
 
 
 def reference_label(c):
-    if c.get('task_kind')=='structure':return '独立条目证据；正文未评测'
     if c.get('ground_truth_main_content'):return '完整正文'
+    if c.get('task_kind')=='structure':return '列表任务依据；无完整文本参考'
     if c.get('task_kind')=='file':return '原文件'
     if c.get('expected_resources'):return '资源清单'
     if c.get('track')=='video' and c.get('required_facts'):return '文字信息'
@@ -152,13 +226,13 @@ def reference_label(c):
 
 
 def reference_status(cases):
-    full=sum(c.get('task_kind','body')=='body' and c.get('content_score_applicable',True) and bool(c.get('ground_truth_main_content')) for c in cases)
+    full=sum(bool(c.get('ground_truth_main_content')) for c in cases)
     dynamic=sum(c.get('task_kind')=='structure' for c in cases)
     overview=cards([
-        (f'{full} 例完整参考','网页与文档按完整参考正文计算全文指标；图片和视频按资源、文件或文字信息核对。'),
-        (f'{dynamic} 例列表辅助核验','固定字段与前三条身份核验要求，不固定名单；列表核验率单独比较，不进入正文通过率与全文指标。'),
+        (f'{full} 例完整参考','全文指标须有完整、可比的参考正文；图片和视频按资源、文件或文字信息核对。'),
+        (f'{dynamic} 例列表任务','按登记的稳定内容锚点、字段、类型、数量及唯一性验收；任务通过率与耗时进入对应主表，不固定当天名单。'),
         ('快照范围','知乎 30 条热榜、大众点评 15 家商户、JustWatch 40 部剧集。仅公开列表字段，账号信息与原始登录页面不发布。'),
-        ('动态核验边界','确认名称与详情身份，不验证条目实时名次或整页完整度。旧快照之外的条目必须有独立新证据；没有证据的条目不当作内容错误。'),
+        ('动态核验边界','稳定标题、栏目、说明按登记内容核对；频繁变化的名单和价格只按声明的字段结构、类型、数量及唯一性核验，不证明变化值的事实准确性与实时性。完整参考缺失不影响任务结果展示。'),
     ])
     links=[f'<a href="{c["id"]}.html">{escape(c["name"])}</a>' for c in cases if c['id'] in {'challenge-04','challenge-06','challenge-10-justwatch'}]
     return overview+('<details><summary>参考示例</summary><p>'+' · '.join(links)+'</p><p>来源快照与独立访问的条件见各案例。访问受限与网站失效分开判断。</p></details>' if links else '')
