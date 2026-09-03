@@ -109,11 +109,45 @@ python -B -m unittest discover -s tests -p 'test_render_evidence.py'
 Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;
 subprocess workers currently receive only URL and timeout, not selectors or
 completion conditions. Metadata above does not change their wait behavior.
-Use a separate dataset and output directory for the new cohort; the existing
-`scripts/run_dynamic_tasks.py` means challenge-list reruns and overwrites
-canonical evidence. A new `track` value also needs explicit report support
-(`TRACKS`/contracts), otherwise use a separate dataset with an existing `web`
-track until that support is added. Do not mix scores into the existing cohort.
+Use a separate dataset and output directory for each measurement cohort.
+`track: dynamic` identifies 动态网页正文. The existing
+`scripts/run_dynamic_tasks.py` performs popular-site list-identity checks,
+not body evaluation. Never repurpose those calls as body measurements.
 Local fixture URLs are unavailable to cloud providers and are blocked by some
 private-network guards; compare them locally or deliberately host a public
 fixture. Avoid the answer-replaying `fixture` provider as a rendering baseline.
+
+## Live references and content drift
+
+Rendering requirements and data freshness are independent. A JavaScript catalog
+may contain stable example data; a server-rendered news page may change every
+minute. No captured answer remains valid indefinitely.
+
+For every new live body measurement with source-verification metadata:
+
+1. Independently capture the complete declared scope within 30 minutes before
+   each provider call. Freeze the text, verification timestamp, SHA-256, task
+   scope and fact rules. Derive names and values from this capture, not from
+   provider results or last run's answer. `prepare_dynamic_content.py` rejects
+   stale input captures; the runner checks freshness again before each call.
+2. Preserve initial HTTP bytes and visible rendering/completion evidence for
+   dynamic cases. Fixed initial-batch sizes are task boundaries, not permission
+   to reuse old titles. If a whole-catalog count changes, stop and revise the
+   declared scope with independent evidence; never silently shorten the answer
+   to make a provider pass.
+3. After the last relevant call, independently recapture the same complete
+   scope within 30 minutes. Submit the observation to
+   `scripts/finalize_reference_checks.py --run-dir RUN --observations FILE`.
+   The JSON observation contains `case_id`, `independent: true`, `checked_at`,
+   `content_text`, the exact `scope_identity` from the manifest binding, and
+   `completion: {satisfied, elapsed_ms, timeout_ms}`. These fields attest to
+   retained independent observations; copying candidate output is prohibited.
+4. Publish new guarded runs only after the postcheck is verified. Missing,
+   expired or changed references suspend the measurement; they are not provider
+   failures. Keep raw outputs and the failed check, and schedule a fresh cohort.
+
+Use short batches when the full provider suite exceeds the time window. The
+30-minute window is a conservative operational limit, not proof that a site
+cannot change within it. Matching pre/post captures bounds observed drift but
+cannot rule out an unobserved intermediate change. Historical runs lacking this
+protocol remain dated observations and cannot be certified retroactively.

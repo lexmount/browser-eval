@@ -19,6 +19,10 @@ from .dynamic_lists import evaluate_dynamic_list
 from .list_verification import verify_list
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
+from .reference_lifecycle import (
+    ReferenceLifecycleError, check_case_reference_binding,
+    check_case_reference_fresh, preflight_reference_checks,
+)
 from .safety import contained_path, safe_identifier
 
 
@@ -62,6 +66,7 @@ def run_evaluation(
         safe_identifier(case.id)
     for filename in ['artifacts', 'manifest.json', 'dataset.json', 'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
+    reference_checks = preflight_reference_checks(cases, dataset_path)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
@@ -100,6 +105,8 @@ def run_evaluation(
         },
         "provider_config_source": str(provider_config_path.resolve()),
     }
+    if reference_checks is not None:
+        manifest["reference_checks"] = reference_checks
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -128,6 +135,10 @@ def run_evaluation(
                             throttle_wait_ms = round(remaining * 1000, 2)
                             time.sleep(remaining)
                     attempt_id = f"{provider.name}__{case.id}__r{run_number:03d}"
+                    binding = reference_checks["cases"].get(case.id) if reference_checks else None
+                    # Outside provider exception handling: expired references
+                    # stop measurement, never create a supplier failure record.
+                    check_case_reference_fresh(case, dataset_path, binding)
                     begin = time.perf_counter()
                     started = utc_now()
                     try:
@@ -141,6 +152,7 @@ def run_evaluation(
                             error_message=error_message,
                         )
                     elapsed_ms = round((time.perf_counter() - begin) * 1000, 2)
+                    finished = utc_now()
                     previous_request_completed = time.monotonic()
                     artifact_rel = Path("artifacts") / provider.name / case.id / f"run-{run_number:03d}.txt"
                     artifact = contained_path(output_dir, artifact_rel)
@@ -177,6 +189,8 @@ def run_evaluation(
                             reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
                             measured.update(verify_list(result.content,case.source_benchmark,case.url,reference,result.ok))
                     measured["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+                    if binding is not None:
+                        measured["reference_sha256"] = binding["reference_sha256"]
                     record = AttemptRecord(
                         attempt_id=attempt_id,
                         provider=provider.name,
@@ -202,6 +216,7 @@ def run_evaluation(
                             "client_throttle_wait_ms": throttle_wait_ms,
                         },
                     ).to_dict()
+                    record["completed_at"] = finished
                     from .models import execution_id
                     record['run_id'] = execution_id(record)
                     passed = task_passed(record['ok'],record['metrics'],case.task_kind)
@@ -219,8 +234,17 @@ def run_evaluation(
                         time.sleep(delay)
 
         workers = min(provider_concurrency, max(1, len(providers)))
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
-            list(executor.map(run_provider, providers))
+        try:
+            with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
+                list(executor.map(run_provider, providers))
+        except ReferenceLifecycleError as error:
+            if reference_checks is not None:
+                reference_checks.update(status=error.status, callcheck_error=str(error))
+                manifest.update(completed_at=utc_now(), attempt_count=len(records),
+                                attempt_ids=[record["attempt_id"] for record in records])
+                (output_dir / "manifest.json").write_text(
+                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            raise
 
     provider_order = {provider.name: index for index, provider in enumerate(providers)}
     case_order = {case.id: index for index, case in enumerate(cases)}
@@ -262,12 +286,27 @@ def rescore_evaluation(
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
+        contained_path(run_dir, record["artifact_path"])
+    manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
+    # Validate the entire batch before touching metrics, datasets or results.
+    # Historical records without a binding retain the legacy rescore behavior.
+    bindings = manifest.get("reference_checks", {}).get("cases", {})
+    for record in records:
+        if "reference_sha256" in record.get("metrics", {}) or record["case_id"] in bindings:
+            binding = bindings.get(record["case_id"])
+            case = case_by_id.get(record["case_id"])
+            if (binding is None or case is None
+                    or record.get("metrics", {}).get("reference_sha256") != binding["reference_sha256"]):
+                raise ReferenceLifecycleError("Rescore has no matching original reference binding")
+            check_case_reference_binding(case, binding)
+    for record in records:
         case = case_by_id.get(record["case_id"])
         if case is None:
             raise ValueError(f"run contains case absent from dataset: {record['case_id']}")
         artifact = contained_path(run_dir,record["artifact_path"])
         content = artifact.read_text(encoding="utf-8", errors="replace")
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
+        original_reference_hash = record.get("metrics", {}).get("reference_sha256")
         record["metrics"] = evaluate_content(
             content,
             case.expected_any,
@@ -299,6 +338,8 @@ def rescore_evaluation(
                 reference=json.loads((dataset_path.parent/'list-references'/f'{case.id}.json').read_text())
                 record['metrics'].update(verify_list(content,case.source_benchmark,case.url,reference,bool(record['ok'])))
         record["metrics"]["content_sha256"] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        if original_reference_hash is not None:
+            record["metrics"]["reference_sha256"] = original_reference_hash
 
     tmp = run_dir / "results.jsonl.tmp"
     tmp.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")

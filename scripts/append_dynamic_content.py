@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 
 
 def frozen_case(case):
@@ -56,6 +57,7 @@ def measured_batches(measured, records, reference_cases, previous, execution):
         batches = [json.loads((measured/'manifest.json').read_text())]
     if not isinstance(batches, list) or not batches:
         raise ValueError('Invalid or empty supplement execution batches')
+    require_verified_reference_checks(batches, cases=reference_cases, records=records, source=measured)
     by_attempt = {r['attempt_id']: r for r in records}
     if (len(by_attempt) != len(records)
             or by_attempt.keys() & {r['attempt_id'] for r in previous}):
@@ -173,6 +175,7 @@ def append(source, reference, measured, checks):
     if not isinstance(execution.get('batches'), list):
         raise ValueError('Invalid execution batches')
     batches, providers = measured_batches(measured, records, reference_cases, previous, execution)
+    guarded_ids = {cid for b in batches for cid in b.get('reference_checks', {}).get('cases', {})}
     coverage_plan = dataset.setdefault('coverage_plan', {})
     planned = coverage_plan.get('dynamic')
     if planned is not None:
@@ -191,11 +194,14 @@ def append(source, reference, measured, checks):
         rendered = evidence_files[Path('rendered.txt')].decode('utf-8')
         if '\n\n'.join(check['entries']) != rendered or not check['satisfied']:
             raise ValueError('Completion recheck differs from pre-run frozen evidence')
+        original_render_evidence = c['source_benchmark'].get('render_evidence')
         c['source_benchmark']['render_evidence'] = {
             'scope':c['source_benchmark']['capture_scope'], 'rendered_truncated':False,
             'completion':{'condition':f"{check['id']}: {len(check['entries'])} nonempty target records with populated text fields; no interaction",
                 'timeout_ms':check['timeout_ms'], 'elapsed_ms':check['elapsed_ms'], 'satisfied':True,
                 'checked_at':check['checked_at'], 'phase':'post-run independent reproduction of pre-run frozen reference'}}
+        if c['id'] in guarded_ids:
+            c['source_benchmark']['render_evidence'] = original_render_evidence
         audit = validate_render_reference(c,evidence_files[Path('initial.html.txt')],rendered)
         if not audit['valid']:raise ValueError(audit['errors'])
         evidence = json.loads(evidence_files[Path('evidence.json')])
@@ -246,6 +252,16 @@ def append(source, reference, measured, checks):
     committed = False
     try:
         shutil.copytree(source, staged)
+        for batch in batches:
+            if 'reference_checks' not in batch:
+                continue
+            relative = batch['reference_checks']['postcheck']['evidence_path']
+            raw = contained_path(measured, relative).read_bytes()
+            target = contained_path(staged, relative)
+            if target.exists() and target.read_bytes() != raw:
+                raise ValueError('Reference postcheck evidence collision')
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
         for c in supplement['cases']:
             target = staged/'sources'/c['id']
             if not target.exists():

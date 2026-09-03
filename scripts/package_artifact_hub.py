@@ -171,7 +171,9 @@ def build():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
  print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':True,'all_virtual_links_valid':True}))
- assert total<=50_000_000, 'Published package still above service limit'
+ # Artifact Hub publishes large bundles through staged per-file uploads.
+ # Its documented total limit is 300 MB, not the former local 50 MB budget.
+ assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'
  archive=DEST.parent/'webfetch-sites.zip'
  with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
   for path in sorted(DEST.rglob('*')):

@@ -10,6 +10,7 @@ from harness.web_fetch.metrics import evaluate_content
 from harness.web_fetch.models import execution_id
 from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.reference_lifecycle import check_case_reference_binding, ReferenceLifecycleError
 
 
 def rescore(source, case_ids=None):
@@ -18,6 +19,21 @@ def rescore(source, case_ids=None):
     records = [json.loads(line) for line in path.read_text().splitlines()]
     validate_report_ids(dataset, records)
     cases = {c['id']: c for c in dataset['cases']}
+    execution = contained_path(source, 'execution.json')
+    batches = (json.loads(execution.read_text())['batches'] if execution.exists()
+               else [json.loads(contained_path(source, 'manifest.json').read_text())])
+    for record in records:
+        reference_hash = record.get('metrics', {}).get('reference_sha256')
+        owners = [b for b in batches if record['attempt_id'] in b.get('attempt_ids', [])]
+        bound = any(record['case_id'] in b.get('reference_checks', {}).get('cases', {}) for b in owners)
+        if reference_hash is None and not bound:
+            continue
+        if len(owners) != 1:
+            raise ReferenceLifecycleError('Bound record requires one original execution batch')
+        binding = owners[0].get('reference_checks', {}).get('cases', {}).get(record['case_id'])
+        if not binding or binding.get('reference_sha256') != reference_hash:
+            raise ReferenceLifecycleError('Bound record has no matching original reference')
+        check_case_reference_binding(cases[record['case_id']], binding)
     changes = []
     keys = ['required_facts', 'forbidden_any', 'min_content_chars',
             'fact_coverage_threshold', 'ground_truth_main_content', 'required_patterns']

@@ -14,8 +14,8 @@ for path in out.rglob('*.html'):
     for table in soup.select('table.ranking'):
         headers=table.select('thead th')
         sort=int(table['data-col'])
-        expected='命中仓库数' if path.parent.name=='adoption' else '任务通过率'
-        assert expected in headers[sort].get_text(),(path,sort)
+        expected=['命中仓库数'] if path.parent.name=='adoption' else ['任务通过率','正文通过率']
+        assert any(label in headers[sort].get_text() for label in expected),(path,sort)
         assert table.parent.find_previous_sibling('div',class_='metric-help'),path
     track=soup.select_one('select[data-filter="track"]')
     if track:assert track.select('option')[0]['value']=='',path

@@ -145,9 +145,11 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     from harness.web_fetch.providers import build_provider
     from harness.web_fetch.render_evidence import validate_render_reference
     from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.reference_lifecycle import preflight_reference_checks
 
     raw = dataset_path.read_bytes()
     dataset = selected_dataset(json.loads(raw), track)
+    preflight_reference_checks(dataset["cases"], dataset_path)
     case_ids = {case["id"] for case in dataset["cases"]}
     config = resolved_config(json.loads((ROOT / "configs/providers.resources.json").read_text()), output, runtime_paths)
     write_json(output / "dataset.json", dataset)
@@ -167,6 +169,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     write_json(output / "reference-validation.json", audits)
     paths = [runtime_paths.node, Path(sys.executable), ROOT / "scripts/run_local_dynamic_builtins.py",
              ROOT / "configs/providers.resources.json", ROOT / "harness/web_fetch/runner.py",
+             ROOT / "harness/web_fetch/reference_lifecycle.py",
              ROOT / "harness/web_fetch/metrics.py", ROOT / "harness/web_fetch/providers/cowagent.py",
              ROOT / "harness/web_fetch/providers/subprocess_jsonl.py",
              ROOT / "scripts/oss/openclaw_webfetch_worker.mts",
@@ -267,6 +270,9 @@ def main() -> int:
         if args.runtime_tmp is None:
             raise ValueError("Isolated child requires its allocated temporary directory")
         return run_child(output, runtime_paths, args.track, args.runtime_tmp, dataset_path)
+    from harness.web_fetch.reference_lifecycle import preflight_reference_checks
+    selected = selected_dataset(json.loads(dataset_path.read_bytes()), args.track)
+    preflight_reference_checks(selected["cases"], dataset_path)
     output.mkdir(parents=True, exist_ok=False)
     for folder in ("openclaw-home", "openclaw-state", "cowagent-data", "cowagent-workspace"):
         (output / "runtime" / folder).mkdir(parents=True)

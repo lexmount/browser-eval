@@ -62,6 +62,71 @@ class ExplainerTests(unittest.TestCase):
         self.assertNotEqual(self.evidence['input']['records_sha256'], before['input']['records_sha256'])
         self.assertNotIn('static-simple', self.evidence['cow_moli']['both_pass_ids'])
 
+    def test_opening_failure_partition_only_counts_website_body(self):
+        page = self.render(self.records)
+        stats = self.evidence['tracks']['web']['summary']
+        figure = page.split('id="failure-figure"', 1)[1].split('</figure>', 1)[0]
+        for key in ('task_pass', 'post_response_failures', 'request_failures'):
+            self.assertIn(f'{stats[key]:,} / {stats["records"]:,}', figure)
+        # Auxiliary list outcomes must not alter the primary body analysis.
+        rows = json.loads(json.dumps(self.records))
+        for row in rows:
+            if self.cases[row['case_id']].get('track') == 'challenge':
+                row['ok'] = False
+        changed = self.render(rows)
+        self.assertEqual(figure, changed.split('id="failure-figure"', 1)[1].split('</figure>', 1)[0])
+
+    def test_popular_body_gap_and_auxiliary_identity_results_are_separate(self):
+        page = self.render(self.records)
+        popular = page.split('id="limits"', 1)[1].split('</section>', 1)[0]
+        stats = self.evidence['tracks']['challenge']
+        expected = [k for k in stats['case_ids'] if self.cases[k].get('ground_truth_main_content', '').strip()
+                    and self.cases[k].get('content_score_applicable', True)
+                    and self.cases[k].get('task_kind', 'body') == 'body']
+        self.assertEqual(stats['body_reference_case_ids'], expected)
+        self.assertIn(f'{len(expected)}/{stats["case_count"]}', popular)
+        if not expected:
+            self.assertIn('未评测', popular.split('<details', 1)[0])
+        auxiliary = re.search(r'<details.*?</details>', popular, re.S).group()
+        self.assertIn('列表核验（辅助）', auxiliary)
+        self.assertIn(f'{len(stats["union_pass_ids"])}/{stats["case_count"]}', auxiliary)
+
+    def test_zero_pass_positive_f1_example_uses_observed_metrics(self):
+        page = self.render(self.records)
+        sample = self.evidence['dynamic']['zero_pass_nonzero_f1']
+        self.assertIsNotNone(sample)
+        provider = self.evidence['tracks']['dynamic']['providers'][sample['provider']]
+        self.assertEqual(provider['task_pass'], 0)
+        self.assertGreater(sample['metrics']['word_f1'], 0)
+        record = next(r for r in self.records if r['attempt_id'] == sample['attempt_id'])
+        self.assertEqual(sample['metrics'], record['metrics'])
+        dynamic = page.split('id="dynamic-coverage"', 1)[1].split('</section>', 1)[0]
+        self.assertIn(sample['attempt_id'], dynamic)
+        self.assertIn(f'{sample["metrics"]["word_f1"]:.1%}', dynamic)
+        # If no positive-overlap failures remain, do not fabricate the example.
+        rows = json.loads(json.dumps(self.records))
+        for row in rows:
+            if self.cases[row['case_id']].get('track') == 'dynamic':
+                row['metrics']['word_f1'] = 0
+        self.assertIsNone(collect_evidence(self.cases, rows)['dynamic']['zero_pass_nonzero_f1'])
+
+    def test_formal_scope_and_dated_snapshot_evidence(self):
+        page = self.render(self.records)
+        for label in ('网站正文', '动态网页正文', '热门网站正文'):
+            self.assertIn(label, page)
+        for phrase in ('历史组', '补充组', '补测', '新加入', '另加'):
+            self.assertNotIn(phrase, self.export)
+        scope = page.split('id="study-scope"', 1)[1].split('</section>', 1)[0]
+        for track in self.evidence['tracks'].values():
+            if track['time_window']['first_start_utc']:
+                self.assertIn(track['time_window']['first_start_utc'][:10], scope)
+        drift = self.evidence['list_snapshot_difference']
+        self.assertNotEqual(drift['first_titles'], drift['second_titles'])
+        for title in drift['first_titles'] + drift['second_titles']:
+            self.assertIn(title, page)
+        self.assertNotIn('/private/', json.dumps(drift))
+        self.assertTrue(all(len(value) == 64 for value in drift['source_sha256']))
+
     def test_pair_partitions_and_matched_latency(self):
         data = collect_evidence(self.cases, self.records)
         pair = data['cow_moli']

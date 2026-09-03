@@ -63,7 +63,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
         official='、'.join(link(m['url'],control['repo']) for m in control['matches'])
         details+=f'<p class="source-note">{esc(control["provider"])} 官方实现：{official}。'+('已纳入上述样本。' if control['included_in_count'] else '源码已核验；该官方仓库不符合当前星数 / 活跃度筛选条件，单列来源，不计入采用样本。')+'</p>'
     scope=cards([
-        ('检索样本',f'{data["generated_at"][:10]} 核验：{len(data["signatures"])} 个签名，纳入 {len(data["included"])} 个仓库。以每签名前 {data["per_signature_cap"]} 条搜索结果发现候选，并保留历史已发现的专用签名文件；统一刷新默认分支并逐文件核验。要求 stars ≥ {data["minimum_stars"]:,}、近 7 天活跃且未归档。'),
+        ('检索样本',f'{data["generated_at"][:10]} 核验：{len(data["signatures"])} 个签名，纳入 {len(data["included"])} 个仓库。候选集包括每签名前 {data["per_signature_cap"]} 条搜索结果和已登记的专用签名文件；按默认分支逐文件核验。要求 stars ≥ {data["minimum_stars"]:,}、近 7 天活跃且未归档。'),
         ('计数规则','同一方法在同一仓库命中多处，仓库数只加 1；同一文件命中多个签名，文件数只加 1。保留样本中的官方仓库、示例、文档和 fork，不冒充独立生产用户。'),
         ('不能推出什么','搜索结果有截断和排序偏差，计数是已核验候选集的下限，不是全网热度排名。0 只表示候选集中未发现符合条件的仓库；官方实现与第三方引用不同，示例、文档及源码命中也不证明生产采用。'),
         ('方法归属规则','逐一读取命中的 Git 文件并校验内容。通用 web_fetch 和同名函数不能证明归属；Exa 要求 Contents 端点或 SDK 导入及 get_contents。内置方法也包括源码复制与官方仓库，不能冒充第三方集成。'),
@@ -72,7 +72,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
     body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、采用与接口',tabs('method-guide',[
         ('capabilities','官方能力',render_capabilities(out,names,table=table,cell=cell,link=link)),
-        ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集；历史已发现的引用不会因搜索排序变化被丢弃。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),
+        ('adoption','采用统计',f'<p>{data["generated_at"][:10]} 核验的公开源码候选集，包括搜索结果与登记文件。计数是已核验下限，不是全网采用量；点击数字查看仓库与文件。</p>'+stats+details),
         ('profiles','方法详情','<p>下表介绍本轮实际调用的实现；方法名称可打开其全部已测案例。各组覆盖数量以执行记录为准，功能范围以本轮配置为准。</p>'+table(['方法','形态','做什么','本轮输出','本轮新鲜度设置','来源'],intro)),
         ('interfaces','接口与示例',render_interfaces(out,records)),
         ('scope','统计口径',scope),

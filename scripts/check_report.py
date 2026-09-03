@@ -50,7 +50,9 @@ for p in root.rglob('*.html'):
   assert banned not in visible,(p,banned)
  parser=Tables();parser.feed(text);assert all(h=='序号' for h in parser.headers),(p,parser.headers)
  if p.parent.name=='attempts':
-  assert text.count('<h3>完整参考 / 目标结果</h3>')==1,p
+  record=next(r for r in rs if r['attempt_id']==p.stem)
+  heading='列表辅助目标（非完整正文参考）' if case_by_id[record['case_id']].get('task_kind')=='structure' else '完整参考 / 目标结果'
+  assert text.count('<h3>'+heading+'</h3>')==1,p
   assert text.count('<h3>本次完整输出</h3>')==1,p
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)

@@ -7,6 +7,7 @@ from pathlib import Path
 from .report import generate, succeeded, failure_category, TRACKS
 from .failure_diagnosis import diagnose, normalize_empty_response
 from .safety import contained_path, validate_report_ids
+from .reference_lifecycle import require_verified_reference_checks
 
 
 def build_report(source: Path, output: Path) -> Path:
@@ -26,6 +27,7 @@ def build_report(source: Path, output: Path) -> Path:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
+    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source)
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:
@@ -40,7 +42,7 @@ def build_report(source: Path, output: Path) -> Path:
             normalize_empty_response(r,text)
             r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
             r['failure_category'] = failure_category(r, cases[r['case_id']])
-        for folder in ['sources','list-references']:
+        for folder in ['sources','list-references','reference-checks']:
             tree=contained_path(source,folder)
             if tree.exists():
                 for child in tree.rglob('*'):
@@ -50,10 +52,20 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copytree(source/'sources', staging/'sources')
         if (source/'list-references').exists():
             shutil.copytree(source/'list-references',staging/'list-references')
+        if (source/'reference-checks').exists():
+            shutil.copytree(source/'reference-checks', staging/'reference-checks')
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
                    for t in TRACKS}
+        for provider, row in summary.get('challenge', {}).items():
+            subset = [r for r in records if r['provider'] == provider
+                      and cases[r['case_id']].get('track') == 'challenge']
+            body = [r for r in subset if cases[r['case_id']].get('task_kind', 'body') == 'body'
+                    and cases[r['case_id']].get('ground_truth_main_content')]
+            row['scoring_scope'] = 'body' if len(body) == len(subset) else 'list_identity_auxiliary' if not body else 'mixed'
+            row['body_evaluated_attempts'] = len(body)
+            row['body_task_pass'] = sum(succeeded(r, cases[r['case_id']]) for r in body) if body else None
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))

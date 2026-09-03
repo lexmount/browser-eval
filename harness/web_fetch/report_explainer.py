@@ -18,8 +18,8 @@ TITLE = '网页抓取成功之后，内容离可用还有多远'
 HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
-TRACK_NAMES = {'web': '网页正文', 'document': '文档文字', 'image': '图片',
-               'video': '视频', 'challenge': '复杂热门网站', 'dynamic': '动态内容补充实验'}
+TRACK_NAMES = {'web': '网站正文', 'document': '文档文字', 'image': '图片',
+               'video': '视频', 'challenge': '热门网站正文', 'dynamic': '动态网页正文'}
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
@@ -55,6 +55,12 @@ def _percent(value):
 def _digest(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True,
                                     separators=(',', ':')).encode()).hexdigest()
+
+
+def _window_text(window):
+    return (' 至 '.join(datetime.fromisoformat(window[k]).strftime('%Y-%m-%d %H:%M:%S')
+                       for k in ('first_start_utc', 'last_start_utc')) + ' UTC'
+            if window['first_start_utc'] else '未提供调用时间')
 
 
 def _bound_initial_audit(cases):
@@ -96,6 +102,25 @@ def _bound_initial_audit(cases):
             'web_case_count': len(rows), 'exact_reconstructions':
             sum(r['exact_reconstruction'] is True for r in rows),
             'scope': 'frozen reference recoverability from saved initial HTML, not DOM visibility or JS necessity'}
+
+
+def _list_snapshot_difference(cases):
+    """Bind the dated example to saved, independent list snapshots; publish no paths."""
+    key = 'challenge-10-justwatch'
+    paths = [ROOT / 'evaluation/sources' / key / name for name in ('evidence.json', 'items.json')]
+    paths.append(ROOT / 'evaluation/list-references' / (key + '.json'))
+    if key not in cases or not all(p.exists() for p in paths):
+        return None
+    first, items, second = [json.loads(p.read_text()) for p in paths]
+    if not all(x.get('url') == cases[key]['url'] for x in (first, second)):
+        return None
+    before, after = ([x['title'] for x in rows[:3]] for rows in (items, second['items']))
+    if before == after:
+        return None
+    return {'case_id': key, 'first_checked_at': first['checked_at'],
+            'second_checked_at': second['checked_at'], 'first_titles': before, 'second_titles': after,
+            'source_sha256': [hashlib.sha256(p.read_bytes()).hexdigest() for p in paths],
+            'scope': 'different observed list heads; cause and call-span stability not established'}
 
 
 def collect_evidence(cases, records):
@@ -147,6 +172,7 @@ def collect_evidence(cases, records):
                       if any(r['provider'] == p for r in rows)}
         success = sorted({r['case_id'] for r in rows if passed(r)})
         result['tracks'][track] = {'case_ids': ids, 'case_count': len(ids),
+                                   'summary': summary(rows), 'time_window': window(rows),
                                    'providers': byprovider, 'union_pass_ids': success,
                                    'unpassed_ids': sorted(set(ids) - set(success))}
     result['dynamic']['cases'] = [
@@ -154,6 +180,19 @@ def collect_evidence(cases, records):
                                     'request_ok': bool(r['ok']), 'task_pass': passed(r)}
                                    for r in dynamic if r['case_id'] == k]}
         for k in result['tracks']['dynamic']['case_ids']]
+    zero_sample = max((r for r in dynamic
+                       if result['tracks']['dynamic']['providers'][r['provider']]['task_pass'] == 0
+                       and (r['metrics'].get('word_f1') or 0) > 0),
+                      key=lambda r: r['metrics']['word_f1'], default=None)
+    result['dynamic']['zero_pass_nonzero_f1'] = (
+        {k: zero_sample[k] for k in ('case_id', 'provider', 'attempt_id', 'metrics')}
+        if zero_sample else None)
+    challenge_ids = result['tracks']['challenge']['case_ids']
+    result['tracks']['challenge']['body_reference_case_ids'] = [k for k in challenge_ids
+        if cases[k].get('ground_truth_main_content', '').strip()
+        and cases[k].get('content_score_applicable', True)
+        and cases[k].get('task_kind', 'body') == 'body']
+    result['tracks']['challenge']['score_scope'] = 'list identity verification; not full-body evaluation'
 
     cow = [r for r in historical if r['provider'] == 'cowagent-built-in'
            and cases[r['case_id']].get('track', 'web') == 'web']
@@ -243,9 +282,9 @@ def _price_experiment(out, cases, records):
 def _dynamic_section(data, cases):
     scope, total = data['tracks']['dynamic'], data['dynamic']
     if not scope['case_count']:
-        return ('<section id="dynamic-coverage"><h2>动态内容的覆盖还需要单独验证</h2>'
-                '<p>网页组的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
-                '当前输入没有独立动态内容补充实验，不能把所有网页称为静态任务，'
+        return ('<section id="dynamic-coverage"><h2>动态网页正文：内容何时可以交付</h2>'
+                '<p>网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
+                '当前输入没有动态网页正文实测，不能把所有网页称为静态任务，'
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
     routes = {'async_api':'异步接口', 'client_catalog':'客户端目录',
@@ -262,12 +301,12 @@ def _dynamic_section(data, cases):
                      escape(routes.get(case.get('category'),case.get('category','未分类'))),
                      f'{passed}/{count}' if count else '未运行'])
     figure = _table(['任务','内容呈现方式','通过 / 已运行'], rows,
-                    f'独立补充组：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；分母按每个任务实际运行数计算')
+                    f'动态网页正文：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；分母按每个任务实际运行数计算')
     # Task-specific interpretation is only attached when its evidence cases are present.
     mechanism = ''
     ids = set(scope['case_ids'])
     if {'dynamic-quotes-api', 'dynamic-products-api'} <= ids:
-        mechanism += ('<p>补充组把初始 HTML 中缺少目标内容的任务单独列出。Quotes to Scrape 的 '
+        mechanism += ('<p>Quotes to Scrape 的 '
             '<code>/scroll</code> 名言列表与 ScrapingCourse 的 JavaScript 商品页，经独立 GET 和浏览器核对，'
             '目标条目未出现在初始 HTML 中。它们要求在首次加载后交付指定范围的名言或商品。'
             '这支持“单靠初始 HTML 不够”，但不支持“必须执行 JavaScript”：'
@@ -290,21 +329,38 @@ def _dynamic_section(data, cases):
     if 'dynamic-products-api' in ids:
         expected = cases['dynamic-products-api'].get('source_benchmark', {}).get('expected_entries')
         count = f'{expected} 个' if isinstance(expected, int) else '指定数量的'
-        mechanism += (f'<p>商品页的参考采集还遇到了一个会制造假完成的细节：初始页面已有 {count}占位卡片，'
-            '但卡片文字为空。只等 DOM 数量达标，会把空占位当成加载完成。独立复核改用“数量达标且必需字段非空”，'
-            '在有上限的等待内取得目标条目，并与运行前冻结参考核对。'
+        mechanism += (f'<p>商品页还有一个会制造假完成的细节：初始页面已有 {count}占位卡片，'
+            '但卡片文字为空。只等 DOM 数量达标，会把空占位当成加载完成。参考采集要求“数量达标且必需字段非空”，'
+            '在有上限的等待内取得目标条目，并由独立观察核对完整范围。'
             '数量与字段要同时满足，才能把“布局已经出现”与“内容可以交付”区分开。</p>')
     if {'dynamic-iframe','dynamic-swagger','dynamic-product-reviews'} <= ids:
         mechanism += ('<p>动态取数也不只涉及脚本等待。Swagger 页要把外部接口规范变成可读目录；'
             '商品评论已经放在内嵌 JSON 中，页面稍后才把它显示出来；龟类目录位于另一个 iframe 文档，'
             '沿着父页给出的地址继续获取即可，不需要 JavaScript。它们都说明初始页面的文字抽取不等于内容交付，'
             '但所需的补救路径并不相同。这组样本来自公开练习站和应用示例，适合检验机制，不能代表生产网站的分布。</p>')
-    return (f'<section id="dynamic-coverage"><h2>动态内容补测，让网页高分遇到新的边界</h2>'
-            f'<p>历史网页组保持不变，另加 {scope["case_count"]} 个动态内容任务。'
-            f'补充组实际有 {len(providers)} 种方法、{total["records"]} 条调用，'
+    sample = total.get('zero_pass_nonzero_f1')
+    if sample:
+        stats = scope['providers'][sample['provider']]
+        metrics = sample['metrics']
+        mechanism += (f'<p>{escape(PROVIDER_NAMES.get(sample["provider"], sample["provider"]))} 在动态网页正文中通过 '
+            f'{stats["task_pass"]}/{stats["records"]}，平均 F1 却为 {_percent(stats["mean_f1"])}。'
+            f'其中{_attempt(sample, cases[sample["case_id"]]["name"])}的 F1 为 {_percent(metrics["word_f1"])}，'
+            f'内容核对点仅命中 {metrics.get("fact_hits", 0)}/{metrics.get("fact_total", 0)}。'
+            '零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。'
+            + ('这份输出仍有 <code>setTimeout</code>、JSON 字段和转义字符；脚本载荷里的词语也进入 F1 的重合计算，'
+               '但尚未成为任务要求的逐条名言、作者与标签。解析载荷并正确组织条目可能是一条取数路径，'
+               '直接交付脚本文字则没有完成正文契约。' if sample.get('script_payload_observed') else
+               '词频相似度允许部分内容得分，任务规则则要求交付完整的指定字段；二者应保留各自的含义。')
+            + '</p>')
+    return (f'<section id="dynamic-coverage"><h2>动态网页正文：取到页面之后，还要等什么</h2>'
+            f'<p>{scope["case_count"]} 个任务覆盖异步取数、客户端呈现与子文档获取。'
+            f'实际运行 {len(providers)} 种方法、{total["records"]} 次调用，'
             f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
-            '各方法的运行时间见原始记录。历史任务没有在这一批重跑；两组分开排名，不能拼成同批次的新总榜。</p>'
+            '任务难度、源站状态和调用日期没有与网站正文任务构成受控对照；两类结果分别比较。</p>'
             + figure + mechanism
+            + '<p>动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；'
+              '每日变动的榜单也可能直接写在 HTML 中。前者检验取数路径和完成条件，后者还要求确认答案属于哪个时刻。'
+              '因此，完成这些练习站任务并不能证明实时榜单或价格采集同样可靠。</p>'
             + '<p>对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，'
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
@@ -322,12 +378,11 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
             if artifact.exists() and 'Loading...' in artifact.read_text():
                 data['dynamic']['loading_attempts'].append(
                     {'case_id': r['case_id'], 'attempt_id': r['attempt_id']})
-    t, total = data['historical'], data['totals']
+    t, total = data['tracks']['web']['summary'], data['totals']
     tracks, web = data['tracks'], data['tracks']['web']
     values = {'title': escape(TITLE), 'cases': str(data['case_count']),
               'providers': str(data['provider_count']), 'records': f'{total["records"]:,}',
-              'historical_cases': str(t['case_count']), 'historical_records': f'{t["records"]:,}',
-              'historical_providers': str(t['provider_count']),
+              'web_records': f'{t["records"]:,}', 'web_providers': str(t['provider_count']),
               'request_ok': f'{t["request_ok"]:,}', 'task_pass': f'{t["task_pass"]:,}',
               'failures': str(t['failures']), 'post_response': str(t['post_response_failures']),
               'post_response_share': _percent(t['post_response_failure_share']),
@@ -345,46 +400,51 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
               'raw_file_records': str(data['raw_file']['records']),
               'raw_file_missing': str(data['raw_file']['missing_raw_file_pass']),
               'raw_file_verified': str(data['raw_file']['verified_pass']),
-              'dynamic_section': _dynamic_section(data, cases)}
+              'dynamic_section': ''}
+    sample = data['dynamic']['zero_pass_nonzero_f1']
+    if sample:
+        record = next(r for r in records if r['attempt_id'] == sample['attempt_id'])
+        artifact = contained_path(out, record['artifact_path'])
+        raw = artifact.read_text() if artifact.exists() else ''
+        sample['script_payload_observed'] = (sample['case_id'] == 'dynamic-delayed'
+            and 'setTimeout' in raw and '\\u201c' in raw and '"tags"' in raw)
+    values['dynamic_section'] = _dynamic_section(data, cases)
     audit = data['initial_reference_audit']
     values['initial_audit'] = (
-        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：网页组 {audit["web_case_count"]} 例中，'
+        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：网站正文 {audit["web_case_count"]} 例中，'
         f'{audit["exact_reconstructions"]} 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。'
         '这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。'
         '嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。'
         + _link('guide/interpretation-evidence.json', '逐例审计摘要与校验值') + '保留了核查依据。</p>'
         if audit else '<p>当前输入没有与案例及参考校验值完整匹配的初始源文档审计，'
         '不能汇总动态内容依赖比例。类别标签既不能证明正文已经在初始 HTML 中，也不能证明必须执行 JavaScript。</p>')
-    window = data['historical_time_window']
-    values['time_window'] = (' 至 '.join(datetime.fromisoformat(window[k]).strftime('%Y-%m-%d %H:%M:%S')
-                            for k in ('first_start_utc', 'last_start_utc')) + ' UTC'
-                            if window['first_start_utc'] else '未提供调用时间')
-    dynamic = data['dynamic']
+    values['time_window'] = _window_text(web['time_window'])
+    values['scope_dates'] = _table(['任务范围', '任务数', '实际方法数', '调用开始时间（UTC）'], [
+        (TRACK_NAMES[k], str(v['case_count']), str(len(v['providers'])), escape(_window_text(v['time_window'])))
+        for k, v in tracks.items() if v['case_count']],
+        '样本与时间范围：各类任务分别验收，不把列表辅助核验计入正文排名')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
-    values['lead'] = (f'同一配置的 Moli，在网页正文组通过 {wm["task_pass"]}/{wm["records"]}，'
-        f'在新加入的动态内容任务上通过 {dm["task_pass"]}/{dm["records"]}。'
-        '网页高分为什么没有自然延伸到新任务？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。'
+    values['lead'] = (f'同一配置的 Moli，在网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
+        f'在动态网页正文中通过 {dm["task_pass"]}/{dm["records"]}。'
+        '网页高分为什么没有自然延伸到动态内容？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。'
         if wm and dm else '抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。'
         '这轮实测从这些差异出发，判断哪些方法值得接入，哪些结论还需要试验。')
     values['dateline'] = (datetime.fromisoformat(data['time_window']['last_start_utc']).strftime('%Y-%m-%d')
                           if data['time_window']['last_start_utc'] else '调用日期未提供')
-    values['supplement_note'] = (f'另有动态内容补充组 {tracks["dynamic"]["case_count"]} 例、'
-        f'{dynamic["provider_count"]} 种已运行方法、{dynamic["records"]} 条记录，单独分析。'
-        if tracks['dynamic']['case_count'] else '当前输入未包含独立动态内容补充组。')
     failure_rows = [('任务通过', t['task_pass']), ('正常返回但任务未通过', t['post_response_failures']),
                     ('请求失败', t['request_failures'])]
     values['failure_figure'] = '<figure class="editorial-figure" id="failure-figure"><div class="editorial-bars">' + ''.join(
         f'<div class="editorial-bar-row"><span>{label}</span><span class="editorial-bar-track" aria-hidden="true">'
         f'<i style="width:{count / max(t["records"], 1) * 100:.4f}%"></i></span>'
         f'<b>{count:,} / {t["records"]:,}</b></div>' for label, count in failure_rows
-    ) + f'</div><figcaption>历史组互斥状态分解；调用开始时间 {values["time_window"]}。不混入动态补测，正常返回不等于源站 HTTP 200。</figcaption></figure>'
+    ) + f'</div><figcaption>网站正文调用的互斥状态分解；{values["time_window"]}。正常返回不等于源站 HTTP 200。</figcaption></figure>'
     selected = ['cloudflare-markdown', 'exa', 'cowagent-built-in']
-    values['quality_figure'] = _table(['网页方法', '任务通过 / 调用', '平均 F1', 'F1 样本数'], [
+    values['quality_figure'] = _table(['方法', '任务通过 / 调用', '平均 F1', 'F1 样本数'], [
         (_link('providers/' + p + '.html', PROVIDER_NAMES[p]), f'{s["task_pass"]}/{s["records"]}',
          f'{s["mean_f1"]:.4f}' if s['mean_f1'] is not None else '未测', str(s['f1_records']))
         for p in selected if (s := web['providers'].get(p))],
-        '用于比较排名逆转与提取机制的方法：同一网页组，F1 为有指标记录的逐例算术平均')
+        '用于比较排名逆转与提取机制的方法：同一网站正文范围，F1 为有指标记录的逐例算术平均')
     cf, exa = (web['providers'].get(p) for p in ('cloudflare-markdown', 'exa'))
     values['rank_reversal'] = '<p>当前输入不足以比较 Cloudflare Markdown 与 Exa。</p>'
     if cf and exa:
@@ -416,13 +476,13 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
                   'video_url_preserved': '视频 URL（src）'}
         values['probe_figure'] = _table(['合成输入中的信息', '提取后'], [
             (label, '保留' if probe['observations'][key] else '未保留') for key, label in labels.items()],
-            '离线机制实验：直接执行纯文本提取函数，没有联网或新增榜单调用')
+            '离线机制实验：纯文本提取函数对合成 HTML 的输出，不计入方法排名')
         values['probe_figure'] += ('<details class="editorial-probe"><summary>核对合成输入与实际输出</summary>'
             f'<h3>输入 HTML</h3><pre>{escape(probe["fixture"])}</pre>'
             f'<h3>实际输出</h3><pre>{escape(probe["output"])}</pre><p>'
             + _link('guide/cowagent-text-probe.json', '实验代码、观察结果与源码 SHA-256') + '</p></details>')
     cow = web['providers'].get('cowagent-built-in')
-    values['cow_result'] = (f'<p>CowAgent 在网页组请求成功 {cow["request_ok"]}/{cow["records"]}，'
+    values['cow_result'] = (f'<p>CowAgent 在网站正文中请求成功 {cow["request_ok"]}/{cow["records"]}，'
         f'任务通过 {cow["task_pass"]}/{cow["records"]}。一个以 HTTP 取页、再去除标签的实现，'
         '在这批网页上已能满足大部分关键内容规则。这使它值得作为正文入口的基线，'
         '但还不足以解释全部成功来自哪里。</p>' if cow else '<p>当前输入没有 CowAgent 网页记录。</p>')
@@ -474,6 +534,34 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
                   challenge_unpassed='、'.join(_link('datasets/' + k + '.html', cases[k]['name'])
                                              for k in challenge['unpassed_ids']) or '无',
                   challenge_missing_count=str(len(challenge['unpassed_ids'])))
+    full = challenge['body_reference_case_ids']
+    values['popular_scope'] = (
+        f'<p>热门网站正文覆盖 {challenge["case_count"]} 个任务、{challenge["summary"]["records"]} 次调用，'
+        f'具备正文评分参考的任务为 {len(full)}/{challenge["case_count"]}。'
+        + ('正文通过率、F1、纯净度和完整度均为<strong>未评测</strong>，不是零分。'
+           if not full else '正文结论只能覆盖有完整参考且声明适用正文评分的任务。')
+        + '现有快照包含标题、摘要或条目卡片，不能自动充当整页正文参考。'
+          '要判断一个抓取接口能否交付这些站点的正文，当前证据还不够。</p>')
+    values['popular_auxiliary'] = (
+        '<details class="editorial-probe"><summary>列表核验（辅助）：已有记录能说明什么</summary>'
+        f'<p>按前三条名称与详情身份核验，单方法最好通过 {best}/{challenge["case_count"]}，'
+        f'成功集离线并集为 {len(challenge["union_pass_ids"])}/{challenge["case_count"]}。'
+        '这些是列表身份核验结果，不是热门网站正文通过率，也不证明整页无遗漏。'
+        '它们保留在辅助证据中，不进入本文的网站正文失败分解或正文方法比较。</p></details>')
+    drift = data['list_snapshot_difference'] = _list_snapshot_difference(cases)
+    values['reference_drift'] = ''
+    if drift:
+        def stamp(value):
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M')
+        values['reference_drift'] = (
+            f'<p>{_link("datasets/" + drift["case_id"] + ".html", "JustWatch 美区剧集目录")}说明了参考时效性的影响。'
+            f'{stamp(drift["first_checked_at"])} UTC 的快照以 '
+            f'{escape("、".join(drift["first_titles"]))} 开头；'
+            f'{stamp(drift["second_checked_at"])} UTC 的独立采集以 '
+            f'{escape("、".join(drift["second_titles"]))} 开头。'
+            '两个观察时刻的列表已不相同，原因可能涉及内容更新或会话条件；仅凭这些快照无法确定。'
+            '若把其中一次抄成跨时段的固定全文答案，另一次有效页面也可能被错判为遗漏或多余内容。'
+            '两份快照都不能证明整个调用时间窗内的正文保持不变。</p>')
     catalog = {r['case_id']: r for r in records if r['provider'] == 'cowagent-built-in'
                and r['case_id'] in {'ecommerce-list', 'image-03'}}
     values['media_case'] = '<p>同一网页的正文与媒体地址是两种交付目标；文字保留完整，地址仍可能丢失。</p>'

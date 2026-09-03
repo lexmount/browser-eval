@@ -18,6 +18,7 @@ from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.dynamic_reference import entry_facts
+from harness.web_fetch.reference_lifecycle import timestamp, MAX_REFERENCE_AGE_SECONDS
 
 SPECS = {
     'dynamic-quotes-api': ('Quotes · 异步引文', 'https://quotes.toscrape.com/scroll', 'async_api', 10),
@@ -43,8 +44,20 @@ SCOPES = {
 
 
 def prepare(captures, output, completion_checks):
+    # A saved capture is evidence of its own time, never a reusable live answer.
+    now = datetime.now(timezone.utc)
+    if not captures or len({c['id'] for c in captures}) != len(captures):
+        raise ValueError('Require nonempty, unique independent captures')
+    for capture in captures:
+        matches = [c for c in completion_checks if c['id'] == capture['id']]
+        if len(matches) != 1:
+            raise ValueError('Require one completion check per captured case')
+        for observation in (capture, matches[0]):
+            age = (now - timestamp(observation.get('checked_at'))).total_seconds()
+            if not 0 <= age <= MAX_REFERENCE_AGE_SECONDS:
+                raise ValueError('Capture is future-dated or stale; independently recapture before a live run')
     output.mkdir(parents=True, exist_ok=False)
-    dataset = {'id': 'web-fetch-dynamic-content', 'name': '动态内容独立补测', 'tool': 'web_fetch', 'cases': []}
+    dataset = {'id': 'web-fetch-dynamic-content', 'name': '动态网页正文', 'tool': 'web_fetch', 'cases': []}
     for capture in captures:
         key = capture['id']
         name, url, category, count = SPECS[key]
