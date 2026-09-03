@@ -30,6 +30,8 @@ STYLE += r"""
 .publication-article .editorial-table th{position:static;white-space:normal;font-weight:650;font-size:12px}
 .editorial-table th,.editorial-table td{padding:10px 9px;overflow-wrap:anywhere}
 .editorial-table td:first-child,.editorial-table th:first-child{width:3em;color:var(--muted)}
+#dynamic-coverage .editorial-table td:nth-child(n+3){white-space:nowrap}
+#dynamic-coverage .editorial-table td:nth-child(2){min-width:120px;overflow-wrap:normal}
 .editorial-figure{margin:30px 0;padding:22px 0;border-top:2px solid var(--line);border-bottom:1px solid var(--line)}
 .editorial-bar-row{display:grid;grid-template-columns:12em minmax(0,1fr) 8em;align-items:center;gap:14px;font-size:13px;margin:14px 0;line-height:1.5}
 .editorial-bar-row b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}

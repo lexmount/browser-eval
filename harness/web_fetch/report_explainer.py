@@ -249,14 +249,13 @@ def _dynamic_section(data, cases):
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
     rows = []
-    for item in total['cases']:
-        byprovider = {r['provider']: r for r in item['results']}
-        row = [_link('datasets/' + item['case_id'] + '.html', cases[item['case_id']]['name'])]
-        for p in providers:
-            r = byprovider.get(p)
+    for p in providers:
+        row = [_link('providers/' + p + '.html', PROVIDER_NAMES.get(p, p))]
+        for item in total['cases']:
+            r = next((r for r in item['results'] if r['provider'] == p), None)
             row.append(_attempt(r, '通过' if r['task_pass'] else '未通过') if r else '未运行')
         rows.append(row)
-    figure = _table(['动态内容任务'] + [PROVIDER_NAMES.get(p, p) for p in providers], rows,
+    figure = _table(['方法'] + [cases[item['case_id']]['name'] for item in total['cases']], rows,
                     f'独立补充组：{scope["case_count"]} 个任务、{len(providers)} 种已运行方法；未运行不算失败')
     # Task-specific interpretation is only attached when its evidence cases are present.
     mechanism = ''

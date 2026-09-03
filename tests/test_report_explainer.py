@@ -93,7 +93,7 @@ class ExplainerTests(unittest.TestCase):
         page = self.render(rows)
         dynamic = page.split('id="dynamic-coverage"',1)[1].split('</section>',1)[0]
         self.assertEqual(dynamic.count('<thead>'),1)
-        self.assertNotIn('<th scope="col">Crawl4AI</th>',dynamic)
+        self.assertNotIn('>Crawl4AI</a>',dynamic)
 
     def test_dynamic_figure_accepts_six_methods_without_changing_historical_cohort(self):
         historical = [r for r in self.records if self.cases[r['case_id']].get('track') != 'dynamic']
@@ -106,7 +106,8 @@ class ExplainerTests(unittest.TestCase):
         self.assertEqual(data['historical'],collect_evidence(self.cases,historical)['historical'])
         figure = _dynamic_section(data,self.cases)
         for i in range(6):
-            self.assertIn(f'<th scope="col">fixture-method-{i}</th>',figure)
+            self.assertIn(f'>fixture-method-{i}</a>',figure)
+        self.assertEqual(figure.count('<th scope="col">'), 6)  # Number, method, four tasks.
 
     def test_article_keeps_argument_evidence_without_reprinting_all_rankings(self):
         page = self.render(self.records)
