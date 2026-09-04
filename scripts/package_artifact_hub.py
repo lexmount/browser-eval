@@ -169,6 +169,7 @@ def build():
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    privacy_href=(HUB+'#page=guide/index.html' if name=='guide/article.html' else '../' * (len(path.relative_to(SOURCE).parts)-1)+'publication-privacy.json')
+   privacy_href=html.escape(privacy_href,quote=True)
    notice='<aside class="source-note">接口账号使用占位符；第三方原始 HTML 中匹配到的密钥值已脱敏。本地原件保留，评分与测量不变。原始哈希与发布副本哈希可能不同，详见 <a href="'+privacy_href+'">在线报告的发布脱敏清单</a>。脱敏文件不适用于逐字节复算原始证据哈希。</aside>'
    text=re.sub(r'(<body\b[^>]*>)',lambda match:match[0]+notice,text,count=1)
    data=text.encode();pages[name]=text

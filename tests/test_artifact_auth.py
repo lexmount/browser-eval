@@ -43,6 +43,10 @@ class ArtifactAuthTests(unittest.TestCase):
             path.symlink_to(Path(directory) / 'other')
             with self.assertRaises(ValueError):
                 save_token('ahp_test_fixture', path)
+            path.unlink()
+            path.mkdir()
+            with self.assertRaises(ValueError):
+                save_token('ahp_test_fixture', path)
 
 
 if __name__ == '__main__':

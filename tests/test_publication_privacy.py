@@ -1,6 +1,7 @@
 import hashlib
 import gzip
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -57,17 +58,22 @@ class PublicationPrivacyTests(unittest.TestCase):
             source = root / 'reports/webfetch'
             (source / 'assets').mkdir(parents=True)
             (source / 'sources/case').mkdir(parents=True)
+            (source / 'guide').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text('')
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
             (source / 'results.jsonl').write_text('')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
+            (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
             raw = b'<script>key="' + key + b'"</script>'
             raw_path = source / 'sources/case/source.html.txt'
             raw_path.write_bytes(raw)
-            subprocess.run([sys.executable, str(root / 'scripts/package_artifact_hub.py')], check=True, capture_output=True)
+            malicious = 'https://example.test/" onmouseover="alert(1)'
+            env = {**os.environ, 'WEBFETCH_REPORT_PUBLIC_URL': malicious}
+            subprocess.run([sys.executable, str(root / 'scripts/package_artifact_hub.py')], check=True,
+                           capture_output=True, env=env)
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
@@ -85,6 +91,9 @@ class PublicationPrivacyTests(unittest.TestCase):
                 privacy = json.loads(unpack('publication-privacy.json'))
                 self.assertEqual(len(privacy['files']), 1)
                 self.assertIn(b'publication-privacy.json', unpack('index.html'))
+                article = unpack('guide/article.html')
+                self.assertNotIn(malicious.encode(), article)
+                self.assertIn(b'&quot; onmouseover=&quot;', article)
                 self.assertEqual(unpack('results.jsonl'), b'')
                 self.assertNotIn('.generated-report', manifest['files'])
 
