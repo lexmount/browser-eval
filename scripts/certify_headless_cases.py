@@ -17,6 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.reference_lifecycle import finalize_reference_checks
 from harness.web_fetch.safety import safe_identifier
+from harness.web_fetch.record_io import read_completed_records
 
 
 def certify_case(run, output, case, records, observation):
@@ -78,10 +79,7 @@ def main():
             observations=json.loads(args.observations.read_text())
         except (FileNotFoundError,json.JSONDecodeError):
             time.sleep(1);continue
-        records=[]
-        for line in (args.run_dir/'results.jsonl').read_text().splitlines():
-            try:records.append(json.loads(line))
-            except json.JSONDecodeError:pass
+        records=read_completed_records(args.run_dir/'results.jsonl')
         for observation in observations:
             cid=observation['case_id']
             if (args.output/cid).exists():continue

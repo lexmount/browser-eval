@@ -10,9 +10,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.providers.headless import cli_command
+from harness.web_fetch.safety import validate_http_url
 
 
 def fetch(request):
+    # Match the provider boundary; this validates URL syntax, not network isolation.
+    validate_http_url(request['url'])
     import pyhtml2md
     engine, timeout = request['engine'], request['timeout']
     start = time.monotonic()
