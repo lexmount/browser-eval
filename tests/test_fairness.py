@@ -2,6 +2,8 @@ import hashlib
 import json
 import time
 import unittest
+import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 from harness.web_fetch.body_coverage import body_requirements
@@ -18,6 +20,34 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FairnessTests(unittest.TestCase):
+    def test_live_conversion_is_consumed_once_and_equals_offline(self):
+        from harness.web_fetch.response_input import answer_input
+        case={'url':'https://example.com','expected_any':['Answer']}
+        c=EvalCase('x','x',case['url'],'test',['Answer'])
+        with patch('harness.web_fetch.call_boundary.answer_input', wraps=answer_input) as convert:
+            result=prepare_answer(ProviderResult(True,'Answer'),c)
+        self.assertEqual(convert.call_count,1)
+        with patch('harness.web_fetch.response_input.answer_input',side_effect=AssertionError('duplicate conversion')):
+            live=score_attempt(case,b'Answer',ok=True,prepared_answer=result.prepared_answer)
+        self.assertEqual(live,score_attempt(case,b'Answer',ok=True))
+
+    def test_file_runner_persists_bytes_with_relative_output_path(self):
+        from harness.web_fetch.runner import run_evaluation
+        from harness.web_fetch.providers.http import HttpProvider
+        from harness.web_fetch.providers.http_client import HttpResponse
+        raw=b'\x89PNG\r\n\x1a\n'+b'payload'*10
+        c=EvalCase('file','file','https://example.com/file','image',[],task_kind='file',
+                   source_verification={'file_sha256':hashlib.sha256(raw).hexdigest()})
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as directory:
+            relative=Path(directory).relative_to(Path.cwd())/'output'
+            with patch('harness.web_fetch.providers.http.request',return_value=HttpResponse(200,c.url,{'content-type':'image/png'},raw)):
+                records,_=run_evaluation(output_dir=relative,dataset_meta={'cases':[]},dataset_path=Path('fixture.json'),
+                    cases=[c],providers=[HttpProvider('http',{})],provider_config_path=Path('fixture-config.json'),runs=1,timeout=1,delay=0)
+            r=records[0]
+            self.assertTrue(task_passed(r['ok'],r['metrics']))
+            file=r['provider_metadata']['file_evaluation']['files'][0]
+            self.assertEqual((relative/file['artifact_path']).read_bytes(),raw)
+
     def test_explicit_links_equal_markdown_not_arbitrary_metadata(self):
         contract = {'version': 1, 'schema': 'named_link', 'minimum_records': 3,
                     'hosts': ['example.com'], 'entry_path': '/item/\\d+'}

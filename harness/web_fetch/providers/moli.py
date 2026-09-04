@@ -11,6 +11,7 @@ import signal
 import subprocess
 import tempfile
 import time
+import threading
 
 from ..models import EvalCase, ProviderResult
 from ..safety import validate_http_url
@@ -18,6 +19,17 @@ from .base import Provider
 
 
 class MoliWebFetchProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self._process_lock = threading.Lock()
+        self._cancel_requested = False
+        self._active_process = None
+
+    def begin_call(self):
+        with self._process_lock:
+            self._cancel_requested = False
+            self._active_process = None
+
     def _resolve_binary(self) -> str | None:
         return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
 
@@ -105,7 +117,10 @@ class MoliWebFetchProvider(Provider):
                     stderr=diagnostic,
                     start_new_session=os.name == "posix",
                 )
-                self._active_process = process
+                with self._process_lock:
+                    self._active_process = process
+                    if self._cancel_requested:
+                        self._kill(process)
             except OSError as error:
                 return ProviderResult(
                     False,
@@ -186,7 +201,14 @@ class MoliWebFetchProvider(Provider):
         )
 
     def cancel(self) -> None:
-        process = getattr(self, '_active_process', None)
+        # Remember cancellation during Popen without blocking the deadline
+        # thread on process creation. The launching thread kills a late child.
+        with self._process_lock:
+            self._cancel_requested = True
+            self._kill(self._active_process)
+
+    @staticmethod
+    def _kill(process):
         if process is not None and process.poll() is None:
             try:
                 if os.name == 'posix':

@@ -14,6 +14,22 @@ from harness.web_fetch.report_methods import PROFILES
 
 @unittest.skipUnless(os.name == "posix", "executable fixture uses POSIX shebang")
 class MoliTests(unittest.TestCase):
+    def test_cancellation_between_popen_and_handle_registration_is_latched(self):
+        import subprocess
+        provider=self.provider('import time\ntime.sleep(20)')
+        original=subprocess.Popen
+        children=[]
+        def launch(*args,**kwargs):
+            process=original(*args,**kwargs)
+            children.append(process)
+            provider.cancel()  # Real child exists but fetch has not received its handle.
+            return process
+        provider.begin_call()
+        with patch('harness.web_fetch.providers.moli.subprocess.Popen',side_effect=launch):
+            result=provider.fetch(self.case,1)
+        self.assertFalse(result.ok)
+        self.assertIsNotNone(children[0].poll())
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

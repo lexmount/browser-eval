@@ -27,6 +27,9 @@ class Provider(ABC):
     def cancel(self) -> None:
         """Best-effort cancellation; non-cancellable calls are quarantined."""
 
+    def begin_call(self) -> None:
+        """Reset cancellation state before the timed worker can start."""
+
 
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")

@@ -10,7 +10,7 @@ from .response_input import answer_input
 
 def prepare_answer(result, case):
     # This required representation conversion is inside the measured call.
-    answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
+    result.prepared_answer = answer_input(result.content.encode('utf-8', errors='replace'), result.metadata,
                  ok=result.ok, status_code=result.status_code)
     if case.task_kind == 'file':
         files = []
@@ -40,6 +40,7 @@ def fetch_with_deadline(provider, case, timeout):
     unexecuted. It does not silently run concurrent abandoned paid requests.
     """
     output = queue.Queue(maxsize=1)
+    provider.begin_call()
     begin = time.perf_counter()
     def work():
         try:

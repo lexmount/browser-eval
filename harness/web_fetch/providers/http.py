@@ -55,9 +55,15 @@ class HttpProvider(Provider):
             case.url,
             timeout=timeout,
             max_bytes=int(self.config.get("max_bytes", 10_000_000)),
-            headers={"Accept": "text/html,text/plain,application/xhtml+xml"},
+            headers={"Accept": "*/*" if case.task_kind == 'file' else "text/html,text/plain,application/xhtml+xml"},
         )
         content_type = response.headers.get("content-type", "")
+        if case.task_kind == 'file':
+            ok = 200 <= response.status < 300
+            return ProviderResult(ok, '', status_code=response.status, final_url=response.url,
+                error_type=None if ok else 'http_error',
+                metadata={'content_type':content_type,'bytes':len(response.body)},
+                files=[{'data':response.body}] if ok else [])
         raw = response.text()
         title = None
         content = raw

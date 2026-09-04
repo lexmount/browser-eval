@@ -60,6 +60,7 @@ def run_evaluation(
     delay: float,
     provider_concurrency: int = 1,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    output_dir = output_dir.resolve()
     if provider_concurrency < 1:
         raise ValueError("provider_concurrency must be at least 1")
     if not math.isfinite(timeout) or timeout <= 0:
@@ -177,6 +178,7 @@ def run_evaluation(
                         case, artifact.read_bytes(), ok=result.ok, metadata=result.metadata,
                         list_reference=load_list_reference(case, dataset_path.parent),
                         status_code=result.status_code,
+                        prepared_answer=result.prepared_answer,
                     )
                     measured["deadline_overrun"] = elapsed_ms > timeout * 1000
                     measured['deadline_budget_ms'] = timeout * 1000

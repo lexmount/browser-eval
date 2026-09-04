@@ -68,9 +68,12 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None):
  head='<th>序号</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
  body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
+EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
+
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
  nav=[('index.html','首页'),('guide/index.html','报告解读'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('adoption/index.html','方法介绍'),('environment/index.html','环境'),('reproduce/index.html','复现'),('accounts/index.html','账号')]
+ nav.insert(2,('changes/index.html','变更记录'))
  page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
@@ -191,7 +194,7 @@ def ranking(records,cases,track,base='',id=None,compact=False):
  if track in {'web','dynamic','document','challenge'}:
   heads+=['任务通过率','完整度','纯净度','F1','文字核对覆盖']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
- heads+=['均值','P50','P95','验收覆盖','案例覆盖']
+ heads+=['均值','P50','P95','已判分/已调用','已执行/总案例']
  note='请求成功率和任务通过率以全部任务为分母。'
  if text_track:
   covered=sum(comparable_body_reference(c) for c in selected.values())
@@ -206,7 +209,9 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   if track=='challenge':note+=' 列表、固定字段标签与说明共同验收；标题文字质量仅作下方辅助诊断。'
   if track=='dynamic':note+=' 含有已排除易变字段的旧快照文字分仅保留在调用详情，不进入本表全文均值。'
  else:note='任务通过率以有验收证据的任务为分母；原文件历史记录缺少字节验收时显示未测，不计为失败。资源、文件、信息三列各按已测子任务计算。'
- note+=' 验收覆盖为已测/已调用；未测不进入任务通过率和失败数。均值、P50、P95 仅统计各方法自身通过项，样本可能不同，不能直接视为同题速度排名。'
+ note+=' 已判分/已调用：能判通过或失败的次数/调用次数；已执行/总案例：调用过的不同案例数/本类案例数。两者都不是通过率或正文完整度。未测不进入通过率和失败数。均值、P50、P95 仅统计各方法自身通过项，不能直接视为同题速度排名。'
+ unmeasured=sorted({r['case_id'] for rs in groups.values() for r in rs if not measured(r,cases[r['case_id']])})
+ if unmeasured:note+=' 缺少验收证据的案例：'+'、'.join(link(base+'datasets/'+key+'.html',cases[key]['name']) for key in unmeasured)+'。'+link(base+'changes/index.html#file-gap','为什么未测、补测进展 →')
  if track=='dynamic':
   missing=sorted({r['provider'] for r in records}-set(groups))
   note+=' 各类型按各自任务范围比较，不合并为跨类型总分。'
@@ -442,6 +447,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  controls=filter_controls([('provider','方法',[(n,n) for n in names]),('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
  write(out,'analysis/index.html','结果分析',hero('结果分析','按方法、任务结果、失败环节和失败类别筛选；完整输出见案例详情。')+section('执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',r['provider']))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
  write_support(out,records,manifests)
+ from .report_changes import render_changes
+ render_changes(out,cases,records)
  return out/'index.html'
 
 def write_support(out,records,manifests):

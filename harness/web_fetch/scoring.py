@@ -59,6 +59,7 @@ def score_attempt(
     previous_metrics: dict[str, Any] | None = None,
     list_reference: dict | None = None,
     status_code: int | None = None,
+    prepared_answer: tuple | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
@@ -71,7 +72,10 @@ def score_attempt(
     """
     case = _case_dict(case)
     from .response_input import answer_input
-    content, links, ok, status_basis = answer_input(artifact, metadata, ok=ok, status_code=status_code)
+    # Live callers forward the conversion completed inside the timed boundary.
+    # Offline callers reconstruct it from immutable evidence by the same function.
+    content, links, ok, status_basis = (prepared_answer if prepared_answer is not None else
+        answer_input(artifact, metadata, ok=ok, status_code=status_code))
     result = {key: value for key, value in (previous_metrics or {}).items()
               if key not in _CONDITIONAL_FIELDS and not key.startswith(("stable_", "list_"))}
     keys = ("required_facts", "forbidden_any", "min_content_chars",

@@ -50,6 +50,7 @@ class ProviderResult:
     error_message: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     files: list[dict[str, Any]] = field(default_factory=list)
+    prepared_answer: tuple | None = None
 
 
 @dataclass

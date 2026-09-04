@@ -1,5 +1,27 @@
 # Web Fetch Harness
 
+## Report revisions and file-delivery controls
+
+`research/report-changes.json` drives the public, collapsible `changes/index.html`.
+Record each substantive release's issue, change, score effect, evidence and limits.
+Keep the measured dataset/results untouched for presentation-only revisions.
+
+The ranking columns `已判分/已调用` and `已执行/总案例` are evidence and execution
+coverage, not success rates or text completeness. Missing historical file bytes
+cannot be reconstructed from a URL. A new independent HTTP control can exercise
+the real byte pipeline without pretending to be a supplier rerun:
+
+```bash
+python -B scripts/check_file_delivery.py --output runs/file-control
+```
+
+This writes three fresh call records, returned binaries and their target-hash
+checks, and a supplier configuration preflight. It does not overwrite historical
+records or fill any of the twelve suppliers' 36 missing observations. Supplier
+reruns need their runtime/credentials and a supported byte-returning adapter;
+text/links alone are not a file deliverable. The published control snapshot lives
+in `research/file-delivery-check/` separately from `evaluation/`.
+
 ## Common text evaluation
 
 Website, dynamic-site, popular-site and document text share `scoring.score_attempt`:

@@ -1,0 +1,8 @@
+{
+  "providers": {
+    "http-byte-control": {
+      "type": "http",
+      "max_bytes": 20000000
+    }
+  }
+}
