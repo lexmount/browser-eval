@@ -13,15 +13,18 @@ from harness.web_fetch.report import cell, link, table, succeeded, measured
 from harness.web_fetch.report_explainer import HUB, _bound_initial_audit, _dynamic_section, collect_evidence, render_explainer
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
+from harness.web_fetch.storage import current_evidence_dir
 
 ROOT = Path(__file__).resolve().parents[1]
+EVIDENCE = current_evidence_dir()
 
 
+@unittest.skipUnless((EVIDENCE/'results.jsonl').is_file(), 'requires persisted benchmark evidence')
 class ExplainerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.cases = {c['id']: c for c in json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']}
-        cls.records = [json.loads(line) for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()]
+        cls.cases = {c['id']: c for c in json.loads((EVIDENCE/'dataset.json').read_text())['cases']}
+        cls.records = [json.loads(line) for line in (EVIDENCE/'results.jsonl').read_text().splitlines()]
 
     def render(self, records, *, figures=False):
         with tempfile.TemporaryDirectory() as folder:
@@ -33,7 +36,7 @@ class ExplainerTests(unittest.TestCase):
                         or self.cases[r['case_id']].get('track')=='dynamic'):
                     target = out/r['artifact_path']
                     target.parent.mkdir(parents=True,exist_ok=True)
-                    shutil.copy2(ROOT/'evaluation'/r['artifact_path'],target)
+                    shutil.copy2(EVIDENCE/r['artifact_path'],target)
             page = render_explainer(out,self.cases,records,table=table,cell=cell,link=link)
             self.export = (out/'guide/article.html').read_text()
             self.evidence = json.loads((out/'guide/interpretation-evidence.json').read_text())
@@ -321,7 +324,7 @@ class ExplainerTests(unittest.TestCase):
     def test_actual_price_counterfactual_does_not_touch_evidence(self):
         c = self.cases['ecommerce-list']
         r = next(r for r in self.records if r['case_id']==c['id'] and r['provider']=='cowagent-built-in')
-        path = ROOT/'evaluation'/r['artifact_path'];before = path.read_bytes()
+        path = EVIDENCE/r['artifact_path'];before = path.read_bytes()
         kwargs = {'ok': r['ok'], 'status_code': r.get('status_code'), 'metadata': r.get('provider_metadata', {})}
         original = score_attempt(c, before, **kwargs)
         changed = score_attempt(c, before.decode().replace('51.77','999.99').encode(), **kwargs)

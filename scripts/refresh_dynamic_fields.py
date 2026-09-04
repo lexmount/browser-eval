@@ -9,6 +9,8 @@ sys.path.insert(0,str(ROOT))
 from harness.web_fetch.dynamic_reference import entry_facts
 from harness.web_fetch.render_evidence import validate_render_reference
 from scripts.rescore_content import rescore
+from harness.web_fetch.storage import current_evidence_dir
+from harness.web_fetch.storage import research_evidence_dir
 
 
 def refresh(source, captures, audit_path):
@@ -42,4 +44,4 @@ def refresh(source, captures, audit_path):
 
 
 if __name__=='__main__':
-    refresh(ROOT/'evaluation',json.loads((ROOT/'research/dynamic-browser-captures.json').read_text()),ROOT/'research/dynamic-score-audit.json')
+    refresh(current_evidence_dir(),json.loads((ROOT/'research/dynamic-browser-captures.json').read_text()),research_evidence_dir()/'dynamic-score-audit.json')

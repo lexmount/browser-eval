@@ -6,7 +6,7 @@
 - `report_build.py` checks output hashes, stages selected evidence, then calls the sole renderer `report.py`. It replaces only a marked generated directory.
 - `scripts/build_report.py` builds `reports/webfetch/` directly from `evaluation/`. There is no older-report dependency or compatibility renderer.
 
-`evaluation/execution.json` associates the selected attempts with their actual runtime parameters and timestamps. Measurements retain original content hashes. `sources/` contains publishable reference evidence; signed-in raw HTML and private account information are excluded.
+The persistent evidence bundle's `execution.json` associates selected attempts with their actual runtime parameters and timestamps. Measurements retain original content hashes. Git's `evaluation/sources/` contains publishable reference evidence; signed-in raw HTML and private account information are excluded.
 
 Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
 

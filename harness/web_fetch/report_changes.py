@@ -25,6 +25,8 @@ def release_details(release, table, cell, esc):
 
 def render_changes(out, cases, records):
     from .report import hero, section, table, cell, esc, link, write
+    from .storage import research_evidence_dir
+    evidence_root=research_evidence_dir()
     data=json.loads((ROOT/'research/report-changes.json').read_text())
     shutil.copy2(ROOT/'research/report-changes.json',out/'report-changes.json')
     latest,*older=data['releases']
@@ -42,7 +44,7 @@ def render_changes(out, cases, records):
             grouped[row['provider']][1]+=row['task_pass']
         rows=[('',cell(esc(p))+cell(str(n))+cell(str(passed))+cell(str(n-passed))) for p,(n,passed) in sorted(grouped.items())]
         for name in ['file-provider-rerun','file-provider-rerun-native','file-provider-rerun-crawl-http','file-provider-rerun-crawl-final']:
-            shutil.copytree(ROOT/'research'/name,out/name)
+            shutil.copytree(evidence_root/name,out/name)
         total=sum(v[0] for v in grouped.values());passed=sum(v[1] for v in grouped.values())
         body+=section('本版结果影响',
             '<div class="guide-grid"><article class="guide-card"><h3>文件任务</h3><p>'+str(total)+' 次计划调用全部完成判定：'+str(passed)+' 次通过、'+str(total-passed)+' 次未通过、0 次未测。未通过保留为真实结果，不删除案例。</p></article>'
@@ -54,7 +56,7 @@ def render_changes(out, cases, records):
                 ('file-provider-rerun-crawl-http/results.jsonl','Crawl4AI 原生路径验证'),('file-provider-rerun-crawl-final/results.jsonl','Crawl4AI 最终调用')])
             +'</p><p>累计 48 次调用包含适配验证与复测；榜单固定选入最终配置对应的 36 次，不按最好或最快结果挑选。成功文件可在对应调用页下载并核对格式、字节数与 SHA-256。</p></details>', 'file-gap')
 
-    diagnostic=ROOT/'research/file-delivery-check'
+    diagnostic=evidence_root/'file-delivery-check'
     if (diagnostic/'scope.json').exists():
         shutil.copytree(diagnostic,out/'file-delivery-check')
         scope=json.loads((diagnostic/'scope.json').read_text())

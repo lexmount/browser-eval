@@ -1,4 +1,0 @@
-Error500
-# Error loading page
-
-An unexpected error occurred. Please[contact support](mailto:support@mintlify.com)to get help.

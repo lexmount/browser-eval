@@ -2,6 +2,14 @@
 
 ## Report revisions and file-delivery controls
 
+Measured outputs are persistent local data, not source files. The current evidence
+bundle lives at `~/.browser-eval/evidence/current/` by default; set
+`WEB_FETCH_EVIDENCE_DIR` to use another explicit bundle. Raw research reruns live
+under `~/.browser-eval/evidence/research/`; use
+`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains the frozen dataset,
+annotations and independent source evidence, but ignores provider artifacts,
+results, execution manifests, selection receipts and internal audit notes.
+
 `research/report-changes.json` drives the public, collapsible `changes/index.html`.
 Record each substantive release's issue, change, score effect, evidence and limits.
 Keep the measured dataset/results untouched for presentation-only revisions.
@@ -14,15 +22,15 @@ file bytes cannot be reconstructed from a URL. An independent HTTP control can
 exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
-python -B scripts/check_file_delivery.py --output runs/file-control
+python -B scripts/check_file_delivery.py --output ~/.browser-eval/evidence/research/file-delivery-check
 ```
 
 This writes three fresh call records, returned binaries and their target-hash
 checks, and a supplier configuration preflight. It does not overwrite historical
-records or fill any of the twelve suppliers' 36 missing observations. Supplier
-reruns need their runtime/credentials and a supported byte-returning adapter;
-text/links alone are not a file deliverable. The published control snapshot lives
-in `research/file-delivery-check/` separately from `evaluation/`.
+records or fill any provider observation. Provider reruns need their
+runtime/credentials and a supported byte-returning adapter; text/links alone are
+not a file deliverable. Persist the control under
+`~/.browser-eval/evidence/research/file-delivery-check/`.
 
 ## Common text evaluation
 
@@ -75,7 +83,7 @@ The three result filters remain pass/fail/all; unmeasured rows appear in all.
 changes without reading provider outputs. `scripts/rescore_content.py` rescales
 all applicable records through the shared scorer without supplier calls.
 `scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
-and revised scores in `evaluation/scoring-revisions.json`, checking original
+and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
 output hashes, identities and timing. Historical hard deadlines and timing
 overhead cannot be retroactively certified. Conditional successful-task latency
 and same-task common-success latency are separate, explicitly scoped tables.

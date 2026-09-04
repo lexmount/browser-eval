@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/private/tmp/browser-harness-eval/browser_harness_eval/runner.py", line 125, in run_provider
-    result = provider.fetch(case, timeout)
-  File "/private/tmp/browser-harness-eval/browser_harness_eval/providers/subprocess_jsonl.py", line 93, in fetch
-    raise TimeoutError(f"worker timed out after {timeout + 5:.1f}s")
-TimeoutError: worker timed out after 50.0s

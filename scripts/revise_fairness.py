@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 from correct_evaluation_contracts import correct
 from rescore_content import rescore
 from harness.web_fetch.metrics import task_passed, task_measured
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def run(source, baseline_ref=None):
@@ -61,4 +62,4 @@ def run(source, baseline_ref=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--baseline-ref', help='Explicit local git revision containing the original measured records')
-    run(ROOT/'evaluation', parser.parse_args().baseline_ref)
+    run(current_evidence_dir(), parser.parse_args().baseline_ref)

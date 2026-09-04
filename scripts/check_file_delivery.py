@@ -10,6 +10,7 @@ sys.path.insert(0,str(ROOT))
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
     dataset,cases=load_dataset(ROOT/'evaluation/dataset.json')
     cases=[c for c in cases if c.task_kind=='file']
     config=load_provider_config(ROOT/'configs/providers.resources.json')
-    names=sorted({json.loads(line)['provider'] for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()})
+    names=sorted({json.loads(line)['provider'] for line in (current_evidence_dir()/'results.jsonl').read_text().splitlines()})
     readiness=[]
     for name in names:
         setting=config[name]

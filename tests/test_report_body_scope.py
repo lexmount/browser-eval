@@ -222,9 +222,12 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('task-contracts',(out/'methodology/index.html').read_text())
 
     def test_current_canonical_challenge_has_zero_body_coverage(self):
+        from harness.web_fetch.storage import current_evidence_dir
         root=Path(__file__).resolve().parents[1]
-        cases={c['id']:c for c in json.loads((root/'evaluation/dataset.json').read_text())['cases']}
-        records=[json.loads(s) for s in (root/'evaluation/results.jsonl').read_text().splitlines()]
+        evidence=current_evidence_dir()
+        if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
+        cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text())['cases']}
+        records=[json.loads(s) for s in (evidence/'results.jsonl').read_text().splitlines()]
         rendered=ranking(records,cases,'challenge')
         self.assertIn('完整参考覆盖 0/10',rendered)
         rows=table_cells(rendered,'ranking-challenge')

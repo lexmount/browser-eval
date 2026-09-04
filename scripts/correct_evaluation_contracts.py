@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 from collect_source_evidence import extract_html
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_quality import clean_reference_text
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def correct(source):
@@ -48,4 +49,4 @@ def correct(source):
 
 
 if __name__ == '__main__':
-    correct(ROOT / 'evaluation')
+    correct(current_evidence_dir())

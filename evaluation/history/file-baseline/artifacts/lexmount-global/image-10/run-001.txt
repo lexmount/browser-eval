@@ -1,4 +1,0 @@
-This page family is a raw image endpoint, not a normal HTML document. The URL /image/png on httpbin returns PNG binary content directly. In HTML snapshots, the body may contain decoded or garbled binary markers such as PNG, IHDR, IDAT, and IEND rather than readable prose. There is no article, listing, or interactive page content to extract here. The primary information is that this endpoint serves a PNG image at the canonical URL shown below.
-Endpoint: https://httpbin.org/image/png
-Content type hint: image/png
-Body snapshot note: binary image payload detected.

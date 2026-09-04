@@ -87,4 +87,5 @@ def rescore(source, case_ids=None):
 
 
 if __name__ == '__main__':
-    print(json.dumps(rescore(Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'evaluation'), ensure_ascii=False, indent=2))
+    from harness.web_fetch.storage import current_evidence_dir
+    print(json.dumps(rescore(Path(sys.argv[1]) if len(sys.argv)>1 else current_evidence_dir()), ensure_ascii=False, indent=2))

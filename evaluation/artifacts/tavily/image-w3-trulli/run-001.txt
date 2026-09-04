@@ -1,5 +1,0 @@
-[Get your own website](https://www.w3schools.com/spaces/)
-
-[❯Run Code Ctrl+Alt+R](javascript:void(0); "Run Code") [Save Code Ctrl+Alt+A](javascript:void(0); "Save") [Change Orientation Ctrl+Alt+O](javascript:void(0); "Change Orientaton") [Change Theme Ctrl+Alt+D](javascript:void(0); "Change Theme") [![](/images/spaces-icon-tryit.svg)Go to Spaces Ctrl+Alt+P](https://spaces.w3schools.com "Go to Spaces")
-
- 

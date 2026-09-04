@@ -20,6 +20,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.web_fetch.storage import data_home
 
 NAMES = ("cowagent-built-in", "openclaw-built-in", "deepseek-harness-built-in")
 
@@ -264,8 +265,9 @@ def main() -> int:
     dataset_path = args.dataset.resolve()
     runtime_paths = RuntimePaths(args.cowagent_repo.resolve(), args.openclaw_repo.resolve(),
                                  args.deepseek_repo.resolve(), args.node.resolve())
-    if not output.is_relative_to(ROOT / "runs") or output == ROOT / "runs":
-        raise ValueError("Output must be a fresh subdirectory of this project's runs/")
+    run_root=(data_home()/"runs").resolve()
+    if not output.is_relative_to(run_root) or output == run_root:
+        raise ValueError(f"Output must be a fresh subdirectory of {run_root}")
     if args.isolated_child:
         if args.runtime_tmp is None:
             raise ValueError("Isolated child requires its allocated temporary directory")

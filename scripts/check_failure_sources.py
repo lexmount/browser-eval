@@ -25,8 +25,9 @@ def check(case):
     return item
 
 if __name__=='__main__':
+    from harness.web_fetch.storage import current_evidence_dir
     d=json.loads((ROOT/'evaluation/dataset.json').read_text())
-    failed={json.loads(l)['case_id'] for l in (ROOT/'evaluation/results.jsonl').read_text().splitlines() if not json.loads(l)['ok']}
+    failed={json.loads(l)['case_id'] for l in (current_evidence_dir()/'results.jsonl').read_text().splitlines() if not json.loads(l)['ok']}
     with ThreadPoolExecutor(max_workers=8) as pool:rows=list(pool.map(check,[c for c in d['cases'] if c['id'] in failed]))
     OUT.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
     print('Checked',len(rows),'failed-request sources')

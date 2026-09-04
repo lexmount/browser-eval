@@ -1,1 +1,0 @@
-{"success":false,"errors":[{"code":6000,"message":"The execution context was destroyed, most likely because of a navigation or page reload. Check gotoOptions/waitForSelector/waitForTimeout options.","detail":"Execution context was destroyed, most likely because of a navigation."}]}

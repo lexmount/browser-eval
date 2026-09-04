@@ -1,1 +1,0 @@
-This URL is a direct MP4 media file, not an HTML article page. The captured response appears to contain binary video container data rather than readable page content. File name: flower.mp4. Likely media label: Flower. Path family: /media/cc0-videos/. Use the URL itself as the canonical media resource.
