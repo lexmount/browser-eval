@@ -15,6 +15,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from scripts.collect_source_evidence import capture
 from harness.web_fetch.reference_lifecycle import scope_identity
+from harness.web_fetch.record_io import read_completed_records
 
 
 def main():
@@ -48,10 +49,7 @@ def main():
     with ThreadPoolExecutor(max_workers=4) as pool:
         while len(done)<len(cases):
             if time.monotonic()-started>args.timeout:raise TimeoutError('Post-call observation deadline')
-            records=[]
-            for line in (args.run_dir/'results.jsonl').read_text().splitlines():
-                try:records.append(json.loads(line))
-                except json.JSONDecodeError:pass  # a writer may be flushing the final line
+            records=read_completed_records(args.run_dir/'results.jsonl')
             for cid,case in cases.items():
                 relevant=[r for r in records if r['case_id']==cid]
                 expected=set(dataset['coverage_plan']['web'])

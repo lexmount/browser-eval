@@ -56,7 +56,8 @@ def main():
         dataset_path=args.dataset, cases=cases, providers=providers,
         provider_config_path=args.config, runs=1, timeout=args.timeout,
         delay=.5, provider_concurrency=args.workers)
-    assert len(records) == len(cases)*len(providers)
+    if len(records) != len(cases)*len(providers):
+        raise ValueError('Incomplete benchmark call count')
     for folder in ('sources', 'list-references'):
         if (args.dataset.parent/folder).exists():
             shutil.copytree(args.dataset.parent/folder, args.output/folder)
