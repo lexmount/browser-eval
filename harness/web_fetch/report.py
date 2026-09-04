@@ -70,11 +70,13 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None):
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
 
+_RELIABILITY_BANNER=''
+
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
  nav=[('index.html','首页'),('guide/index.html','报告解读'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('adoption/index.html','方法介绍'),('environment/index.html','环境'),('reproduce/index.html','复现'),('accounts/index.html','账号')]
  nav.insert(2,('changes/index.html','变更记录'))
- page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 def succeeded(r,c):
@@ -101,7 +103,7 @@ def overview_card(records,cases,track,label,names):
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
  winners='、'.join(n for n in names if rates.get(n)==maximum) if maximum else '本轮无通过任务' if rates else '暂无调用记录'
- return f'<div class="card"><div class="eyebrow">{len(selected)} 例 · 已测 {len({r["provider"] for r in rs})}/{len(names)} 种方法</div><h3>{link("#home-rankings-"+track,label)}</h3><p>{esc(winners)}</p><p>最高任务通过率 <b>{pct(maximum)}</b></p></div>'
+ return f'<div class="card"><div class="eyebrow">{len(selected)} 例 · {len({r["provider"] for r in rs})}/{len(names)} 种方法完整判分</div><h3>{link("#home-rankings-"+track,label)}</h3><p>最高分方法：{esc(winners)}</p><p>最高任务通过率 <b>{pct(maximum)}</b></p></div>'
 
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
@@ -187,14 +189,13 @@ def ranking(records,cases,track,base='',id=None,compact=False):
     subset=[r for r in subset if measured(r,cases[r['case_id']])]
     values+=cell(rate(total,len(subset)),total/len(subset) if subset else -1)
   values+=cell(ms(statistics.mean(times)) if times else '—',statistics.mean(times) if times else -1)+cell(ms(percentile(times,.5)),percentile(times,.5) or -1)+cell(ms(percentile(times,.95)),percentile(times,.95) or -1)
-  values+=cell(f'{n}/{len(rs)}',n/len(rs))
-  values+=cell(f'{len({r["case_id"] for r in rs})}/{len(selected)}')
+  values+=cell(f'{n}/{len(selected)}',n/len(selected) if selected else -1)
   rows.append(('',values))
  heads=['方法','请求成功率']
  if track in {'web','dynamic','document','challenge'}:
   heads+=['任务通过率','完整度','纯净度','F1','文字核对覆盖']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
- heads+=['均值','P50','P95','已判分/已调用','已执行/总案例']
+ heads+=['均值','P50','P95','判分完整性']
  note='请求成功率和任务通过率以全部任务为分母。'
  if text_track:
   covered=sum(comparable_body_reference(c) for c in selected.values())
@@ -208,8 +209,8 @@ def ranking(records,cases,track,base='',id=None,compact=False):
   elif text_scopes:note+=' 各方法文字核对范围不同，详见下方覆盖范围。'
   if track=='challenge':note+=' 列表、固定字段标签与说明共同验收；标题文字质量仅作下方辅助诊断。'
   if track=='dynamic':note+=' 含有已排除易变字段的旧快照文字分仅保留在调用详情，不进入本表全文均值。'
- else:note='任务通过率以有验收证据的任务为分母；原文件历史记录缺少字节验收时显示未测，不计为失败。资源、文件、信息三列各按已测子任务计算。'
- note+=' 已判分/已调用：能判通过或失败的次数/调用次数；已执行/总案例：调用过的不同案例数/本类案例数。两者都不是通过率或正文完整度。未测不进入通过率和失败数。均值、P50、P95 仅统计各方法自身通过项，不能直接视为同题速度排名。'
+ else:note='直接文件必须有字节验收才能判分；任何缺失都会使整份报告标为不可靠。资源、文件、信息三列分别按对应任务计算。'
+ note+=' 判分完整性是已有明确判定的调用数/计划调用数，不是通过率；任何方法未满即表示整份报告不完整，禁止发布。均值、P50、P95 仅统计各方法自身通过项，不能直接视为同题速度排名。'
  unmeasured=sorted({r['case_id'] for rs in groups.values() for r in rs if not measured(r,cases[r['case_id']])})
  if unmeasured:note+=' 缺少验收证据的案例：'+'、'.join(link(base+'datasets/'+key+'.html',cases[key]['name']) for key in unmeasured)+'。'+link(base+'changes/index.html#file-gap','为什么未测、补测进展 →')
  if track=='dynamic':
@@ -289,6 +290,13 @@ def attempt_row(r,c,base='../'):
  return case_attrs(r,c),values
 
 def generate(out:Path,dataset:dict,records:list,manifests:list):
+ global _RELIABILITY_BANNER
+ from .reliability import assess_reliability
+ reliability=assess_reliability(dataset,records)
+ if reliability['complete']:
+  _RELIABILITY_BANNER=''
+ else:
+  _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>报告不可靠：评测未完整</strong><span>'+esc('；'.join(reliability['errors']))+'。本页排名不得用于结论或发布。</span></div>'
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -313,8 +321,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   selected=[c for c in cases.values() if c.get('track','web')==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
+ home+=section('六类任务概览','<p class="callout success"><b>完整性检查通过：</b>计划中的 '+str(reliability['expected_calls'])+' 次调用均已执行并完成判定。</p><p class="source-note">每张卡片列出本类最高任务通过率及获得该分数的方法；并列时全部列出。任务要求不同，不能跨类别比较高低。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('实测结果','<p class="ranking-orientation">按任务选榜，不合并跨类型总分。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
- home+='<div class="wrap"><details class="home-overview"><summary>各类结果概览 · 样本与最高通过率</summary><p class="source-note">不同榜单的任务要求不同，最高通过率不能直接作跨榜能力比较。</p><div class="grid">'+cards+'</div></details></div>'
  write(out,'index.html','首页',home+'</div>')
  controls=filter_controls([('track','类型',list(TRACKS.items())),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
@@ -465,7 +473,7 @@ def write_support(out,records,manifests):
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
- methodology+=section('共同输入与调用预算','<p>所有方法进入同一个评分入口。正文、HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写请求或任务结果。</p><p>计时覆盖调用、下载、渲染、本地解析和必要输入转换。每次使用一个端到端预算；超时内容不再接收。无法取消的本地调用会隔离该方法，剩余未执行案例列为未运行，不继续并发堆积请求。历史记录仅按登记耗时与预算重新判断交付资格，不补认证当时存在硬截止。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续区域逐区检查 80% 词语计数覆盖。它是内容覆盖下限，不保证词序、归属或语义；全文 F1 独立保留实际值。文件任务缺少字节验收时为未测，资源 URL 不等于文件。</p>')
+ methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口。正文、HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写请求或任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到可统一裁判的最终答案”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或加工，也必须完成后才停表。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续区域逐区检查 80% 词语计数覆盖。它是内容覆盖下限，不保证词序、归属或语义；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'scoring-revisions.json').exists():
   methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。其他历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','逐调用的原评分、新评分及规则校验值')+'记录离线修订，不把新规则伪装成原调用时的运行配置。</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')

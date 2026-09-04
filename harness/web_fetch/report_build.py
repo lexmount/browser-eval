@@ -8,6 +8,7 @@ from .report import generate, succeeded, measured, failure_category, TRACKS
 from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
+from .reliability import assess_reliability
 
 
 def scoring_scope(records, cases):
@@ -118,6 +119,8 @@ def build_report(source: Path, output: Path) -> Path:
                 row['text_checked_cases']=len({r['case_id'] for r in text})
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+        reliability=assess_reliability(dataset,records)
+        (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
         (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=True)+'\n' for r in records))
         copy_methodology_assets(staging)
         if (source/'scoring-revisions.json').is_file():

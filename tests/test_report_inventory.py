@@ -36,8 +36,12 @@ class ReportInventoryTests(unittest.TestCase):
             root/'dataset.json': json.dumps(self.dataset),
             root/'results.jsonl': '\n'.join(json.dumps(r) for r in self.records),
             root/'execution.json': json.dumps({'batches': [{'attempt_ids': [r['attempt_id'] for r in self.records]}]}),
+            root/'index.html': '六类任务概览 最高分方法： 判分完整性 实测结果',
+            root/'methodology/index.html': '计入耗时 不计入耗时 供应商上报的服务端耗时只作附加证据 形成可送入统一评分器的最终答案',
             ROOT/'configs/evaluation-inventory.json': json.dumps(self.inventory),
         }
+        from harness.web_fetch.reliability import assess_reliability
+        files[root/'reliability.json'] = json.dumps(assess_reliability(self.dataset,self.records))
         read_text, read_bytes, rglob = Path.read_text, Path.read_bytes, Path.rglob
 
         def text(path, *args, **kwargs):

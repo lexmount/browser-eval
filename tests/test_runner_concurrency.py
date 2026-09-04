@@ -6,7 +6,7 @@ from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
 
 
 class BarrierProvider(Provider):
@@ -49,10 +49,12 @@ class RunnerConcurrencyTest(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as directory:
                 run_dir = Path(directory)
-                records, _ = run_evaluation(output_dir=run_dir,
-                    dataset_meta={'id':'fixture','cases':[]}, dataset_path=Path('dataset.json'),
-                    cases=cases, providers=[Unstoppable('slow', {})],
-                    provider_config_path=Path('providers.json'), runs=2, timeout=.02, delay=0)
+                with self.assertRaisesRegex(IncompleteEvaluationError, '1/4 attempts'):
+                    run_evaluation(output_dir=run_dir,
+                        dataset_meta={'id':'fixture','cases':[]}, dataset_path=Path('dataset.json'),
+                        cases=cases, providers=[Unstoppable('slow', {})],
+                        provider_config_path=Path('providers.json'), runs=2, timeout=.02, delay=0)
+                records = [json.loads(line) for line in (run_dir/'results.jsonl').read_text().splitlines()]
                 self.assertEqual(calls, ['case-0'])
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0]['error_type'], 'timeout')

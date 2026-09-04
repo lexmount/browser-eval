@@ -6,10 +6,12 @@
 Record each substantive release's issue, change, score effect, evidence and limits.
 Keep the measured dataset/results untouched for presentation-only revisions.
 
-The ranking columns `已判分/已调用` and `已执行/总案例` are evidence and execution
-coverage, not success rates or text completeness. Missing historical file bytes
-cannot be reconstructed from a URL. A new independent HTTP control can exercise
-the real byte pipeline without pretending to be a supplier rerun:
+The ranking column `判分完整性` is judged calls divided by planned calls, not a
+success rate or text-completeness score. Every planned provider/case pair must
+exist exactly once and be judged. Any missing, duplicate or unjudged pair marks
+the report unreliable; validation and packaging reject it. Missing historical
+file bytes cannot be reconstructed from a URL. An independent HTTP control can
+exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
 python -B scripts/check_file_delivery.py --output runs/file-control
@@ -55,10 +57,11 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 Late answers cannot pass. A common daemon boundary stops accepting output at the
 deadline and requests cancellation. An adapter that cannot cancel is quarantined:
-remaining calls on it are recorded as unexecuted, not fabricated failures. This
-avoids overlapping abandoned requests. The harness does not claim to forcibly
-terminate arbitrary in-process Python work. Native subprocess adapters cancel
-their processes; cleanup is never extra answer budget.
+remaining calls on it are recorded as unexecuted, not fabricated failures, and
+the run exits with an incomplete-evaluation error. This avoids overlapping
+abandoned requests while preventing a partial run from being treated as a
+finished benchmark. Native subprocess adapters cancel their processes; cleanup
+is never extra answer budget.
 
 New file evaluations accept `ProviderResult.files` entries containing actual
 `data: bytes`, retain separate binary artifacts and verify signature, length,

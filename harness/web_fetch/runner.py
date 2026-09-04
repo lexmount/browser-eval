@@ -28,6 +28,10 @@ from .call_boundary import fetch_with_deadline
 from .response_input import apply_request_status
 
 
+class IncompleteEvaluationError(RuntimeError):
+    """The saved run is inspectable, but it is not a complete benchmark."""
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -268,6 +272,12 @@ def run_evaluation(
     (output_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    expected_attempts = len(cases) * len(providers) * runs
+    if len(records) != expected_attempts or manifest["unexecuted"]:
+        raise IncompleteEvaluationError(
+            f"Evaluation incomplete: {len(records)}/{expected_attempts} attempts finished; "
+            f"evidence retained at {output_dir}"
+        )
     return records, summary
 
 
