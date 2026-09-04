@@ -54,12 +54,10 @@ Web Fetch has no legacy top-level package or compatibility imports.
 ## Web Fetch 评测
 
 五浏览器 HTML→Markdown 对比已完成 Kitesurf、Lightpanda、Obscura、Moli、Chromium
-各 150 题调用；完整证据保留在执行机器的 `evaluation/headless/`，未随本代码 PR 上传。
-原始网页含 Google API Key 格式字符串，全量证据推送被安全检查拦截；代码 PR 只包含实现、测试和摘要。
-目前一题的独立参考测后核验受阻，正式报告尚未发布，构建器会拒绝未核验生命周期。
+各 150 题调用；证据在 `evaluation/headless/`。目前一题的独立参考测后核验受阻，
+正式报告尚未发布，构建器会拒绝未核验生命周期。
 见 [诊断摘要](research/headless-diagnostic-summary.md) 与
 [运行协议](harness/web_fetch/HEADLESS.md)。这组数据不与下面的历史 12 方法混排。
-未导入完整五浏览器证据时，默认构建仍读取仓库原有 `evaluation/` 数据；不能把它当成本次五浏览器结果。
 
 历史主测为 140 个任务 × 12 种方法：网页正文 100 个，文档、图片、视频、复杂热门网站各 10 个。动态内容另有 10 个任务、12 种方法的独立补测，覆盖异步接口、前端应用、内嵌数据、延迟呈现和 iframe 子文档；不与历史组混成总榜。`evaluation/dataset.json` 的 `coverage_plan` 显式规定每组参评范围，未运行不算失败。
 包含 Moli 1.1.1 的完整 140 条调用；保留原有 11 种方法的测量输出与成绩，各批次执行时间见报告环境页。
@@ -124,11 +122,14 @@ python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lex
 ## 发布
 
 ```bash
+export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/bWkRP157EtF6
+python3 scripts/build_report.py
 python3 scripts/package_artifact_hub.py
-python3 scripts/publish_artifact_hub.py --update --expected-version <当前服务端版本标识>
+python3 scripts/verify_artifact_hub.py --slug bWkRP157EtF6
+python3 scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Hub 发布令牌默认保存在 `~/.config/artifact-hub/token`（权限 0600），供同一用户的工作区复用；仓库 `.env` 或显式环境变量中的 `ARTIFACT_HUB_TOKEN` 可覆盖它。其他评测密钥仍只读取仓库配置。使用既有 Artifact Hub 站点和分享地址；服务端版本标识仅用于并发更新保护，不是报告代码版本。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Hub 发布令牌默认保存在 `~/.config/artifact-hub/token`（权限 0600），供同一用户的工作区复用；仓库 `.env` 或显式环境变量中的 `ARTIFACT_HUB_TOKEN` 可覆盖它。其他评测密钥仍只读取仓库配置。五浏览器报告使用独立站点 `bWkRP157EtF6`，不覆盖原报告 `UeZE1vfcEOrM`。构建和打包须使用同一公开地址环境变量；独立回执中的 slug 决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

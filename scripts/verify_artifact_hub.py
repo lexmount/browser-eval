@@ -7,6 +7,7 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
+from urllib.parse import quote
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -17,9 +18,10 @@ from harness.web_fetch.config import load_runtime_env
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-archive',type=Path)
+    parser.add_argument('--slug',default='UeZE1vfcEOrM')
     args=parser.parse_args()
     load_runtime_env()
-    request=urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/sites/UeZE1vfcEOrM/export',
+    request=urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/sites/'+quote(args.slug,safe='')+'/export',
         headers={'Authorization':'Bearer '+load_token()})
     (ROOT/'publish').mkdir(exist_ok=True)
     with urllib.request.urlopen(request,timeout=180) as response:

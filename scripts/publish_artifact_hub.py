@@ -13,7 +13,8 @@ from harness.web_fetch.config import load_runtime_env
 load_runtime_env()
 from harness.web_fetch.artifact_auth import load_token
 token=load_token()
-receipt=ROOT/'publish/artifact-hub-receipt.json'
+receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
+         else ROOT/'publish/artifact-hub-receipt.json')
 updating='--update' in sys.argv
 expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
 if updating:assert receipt.exists() and expected and expected.startswith('ver_')

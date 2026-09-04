@@ -17,7 +17,7 @@ from .safety import contained_path, safe_identifier
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五种浏览器取同一批网页：速度、正文与交付边界'
-HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
+from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '网站正文', 'document': '文档文字', 'image': '图片',
