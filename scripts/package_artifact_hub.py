@@ -21,7 +21,9 @@ from urllib.parse import urlsplit, unquote
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import project_file
+from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
+(ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
 LOADER=r'''
@@ -164,7 +166,8 @@ def build():
     for match in reversed(matches):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
-   notice='<aside class="source-note">接口账号使用占位符；第三方原始 HTML 中匹配到的密钥值已脱敏。本地原件保留，评分与测量不变。原始哈希与发布副本哈希可能不同，详见 <a href="'+('../' * (len(path.relative_to(SOURCE).parts)-1))+'publication-privacy.json">发布脱敏清单</a>。脱敏文件不适用于逐字节复算原始证据哈希。</aside>'
+   privacy_href=(HUB+'#page=guide/index.html' if name=='guide/article.html' else '../' * (len(path.relative_to(SOURCE).parts)-1)+'publication-privacy.json')
+   notice='<aside class="source-note">接口账号使用占位符；第三方原始 HTML 中匹配到的密钥值已脱敏。本地原件保留，评分与测量不变。原始哈希与发布副本哈希可能不同，详见 <a href="'+privacy_href+'">在线报告的发布脱敏清单</a>。脱敏文件不适用于逐字节复算原始证据哈希。</aside>'
    text=re.sub(r'(<body\b[^>]*>)',lambda match:match[0]+notice,text,count=1)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()

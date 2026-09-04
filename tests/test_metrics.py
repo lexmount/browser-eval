@@ -57,6 +57,10 @@ class MetricsTest(unittest.TestCase):
             required_facts=[{"id": "normalized", "alternatives": ["A\nB — it’s ready"]}],
         )
         self.assertTrue(result["content_pass"])
+        self.assertNotEqual(
+            normalize_for_match('"enum": [\n  "option 1",\n  "option 2"\n],'),
+            normalize_for_match('"enum":["option 1","option 2"],'),
+        )
     def test_content_metrics_are_deterministic(self) -> None:
         result = evaluate_content("# Title\n[Link](https://example.com) Alpha", ["Alpha", "Beta"])
         self.assertTrue(result["content_pass"])

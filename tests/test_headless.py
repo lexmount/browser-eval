@@ -25,6 +25,16 @@ class HeadlessTests(unittest.TestCase):
         self.assertEqual(normalize_for_match('left'+' '*100_000+'right'), 'left right')
         self.assertEqual(normalize_for_match('中'+' '*100_000+'文'), '中文')
 
+    def test_visible_link_titles_and_markdown_escapes_do_not_change_facts(self):
+        from harness.web_fetch.metrics import fact_in_text, normalize_for_match
+        actual = '请[联系客服](zh-CN\n"en-US")或前往后台；deep\\-thoughts'
+        expected = '请联系客服或前往后台；deep-thoughts'
+        self.assertEqual(normalize_for_match(actual), normalize_for_match(expected))
+        self.assertFalse(fact_in_text(normalize_for_match('interface forasynchronously executing'),
+                                     normalize_for_match('interface for asynchronously executing')))
+        self.assertFalse(fact_in_text(normalize_for_match('interface for synchronously executing'),
+                                     normalize_for_match('interface for asynchronously executing')))
+
     def test_command_time_units_and_shared_html_contract(self):
         for engine in ('moli', 'obscura', 'lightpanda'):
             command = cli_command(engine, '/binary', 'https://example.com/', 1.5)
@@ -32,6 +42,16 @@ class HeadlessTests(unittest.TestCase):
             self.assertEqual(command[-1], 'https://example.com/')
             flag = '--timeout' if engine != 'lightpanda' else '--http-timeout'
             self.assertEqual(command[command.index(flag)+1], '2' if engine == 'obscura' else '1500')
+
+    def test_native_markdown_commands_keep_each_cli_readiness_contract(self):
+        moli = cli_command('moli', '/moli', 'https://example.com/', 1.5, 'markdown')
+        lightpanda = cli_command('lightpanda', '/lp', 'https://example.com/', 1.5, 'markdown')
+        obscura = cli_command('obscura', '/obscura', 'https://example.com/', 1.5, 'markdown')
+        self.assertEqual(moli[:6], ['/moli','fetch','--dump','markdown','--wait-until','done'])
+        self.assertEqual(cli_command('moli','/moli','https://example.com/',1.5,'markdown','networkidle')[5],
+                         'networkidle')
+        self.assertIn('--terminate-ms', lightpanda)
+        self.assertNotIn('--wait-until', obscura)
 
     def test_unknown_cli_rejected(self):
         with self.assertRaises(ValueError):

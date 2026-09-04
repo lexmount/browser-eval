@@ -16,27 +16,34 @@ from harness.web_fetch.safety import validate_http_url
 def fetch(request):
     # Match the provider boundary; this validates URL syntax, not network isolation.
     validate_http_url(request['url'])
-    import pyhtml2md
     engine, timeout = request['engine'], request['timeout']
+    output_mode = request.get('output_mode', 'html')
     start = time.monotonic()
-    meta = {'extractor_version': version('pyhtml2md')}
+    meta = {}
     html = ''
     try:
         if engine in ('moli', 'obscura', 'lightpanda'):
-            command = cli_command(engine, request['binary'], request['url'], timeout)
+            command = cli_command(engine, request['binary'], request['url'], timeout, output_mode,
+                                  request.get('wait_until'))
             result = subprocess.run(command, capture_output=True, timeout=timeout)
             meta.update(browser_exit_code=result.returncode,
                         browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
             try:
-                html = result.stdout.decode('utf-8')
+                browser_output = result.stdout.decode('utf-8')
             except UnicodeDecodeError:
                 meta['_raw_stdout_b64'] = base64.b64encode(result.stdout).decode('ascii')
                 meta['raw_stdout_sha256'] = hashlib.sha256(result.stdout).hexdigest()
                 return dict(ok=False, content='', html='', error_type='non_utf8_response',
                     error_message='HTML adapter received non-UTF-8 bytes; preserved without conversion', metadata=meta)
             if result.returncode:
-                return dict(ok=False, content='', html=html, error_type='browser_exit',
+                return dict(ok=False, content='', html='', error_type='browser_exit',
                             error_message=meta['browser_stderr'] or str(result.returncode), metadata=meta)
+            if output_mode == 'markdown':
+                meta['native_markdown_ms'] = round((time.monotonic()-start)*1000, 2)
+                return dict(ok=bool(browser_output.strip()), content=browser_output, html='',
+                            status_code=None, final_url=None, metadata=meta,
+                            error_type=None if browser_output.strip() else 'empty_response')
+            html = browser_output
             status = None
             final_url = None
         else:
@@ -52,7 +59,7 @@ def fetch(request):
                     meta['browser_version'] = browser.version
                     context = browser.new_context()
                     page = context.new_page()
-                    response = page.goto(request['url'], wait_until='domcontentloaded',
+                    response = page.goto(request['url'], wait_until=request.get('wait_until') or 'domcontentloaded',
                         timeout=max(1, (timeout-(time.monotonic()-start))*1000))
                     # Avoid Playwright's XMLSerializer helper, which is not
                     # implemented by every CDP engine. Same expression for both.
@@ -62,6 +69,8 @@ def fetch(request):
                 finally:
                     browser.close()
         meta['fetch_html_ms'] = round((time.monotonic()-start)*1000, 2)
+        import pyhtml2md
+        meta['extractor_version'] = version('pyhtml2md')
         convert_start = time.monotonic()
         content = pyhtml2md.convert(html)
         meta['conversion_ms'] = round((time.monotonic()-convert_start)*1000, 2)

@@ -27,7 +27,7 @@ class Provider(ABC):
 
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")
-    if provider_type == "headless_html":
+    if provider_type in {"headless_html", "headless_markdown"}:
         from .headless import HeadlessProvider
         return HeadlessProvider(name, config)
     if provider_type == "moli_webfetch":

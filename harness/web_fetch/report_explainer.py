@@ -17,7 +17,7 @@ from .safety import contained_path, safe_identifier
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五种浏览器取同一批网页：速度、正文与交付边界'
-HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
+from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '网站正文', 'document': '文档文字', 'image': '图片',
@@ -474,7 +474,7 @@ def _render_headless(out, cases, records):
     summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
     dynamic_summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
-        'time_window':escape(' 至 '.join(data['time_window'])),'overview':overview,
+        'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
         'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
         'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
     template=Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())

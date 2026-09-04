@@ -90,14 +90,25 @@ def _unwrap_links(text, schema):
             output.append(text[i])
             i += 1
             continue
-        label = "" if image else _unwrap_links(text[start + 1:end], None).strip()
-        if label:
+        raw_label = text[start + 1:end]
+        label = "" if image else _unwrap_links(raw_label, None).strip()
+        image_only = image or (not label and raw_label.lstrip().startswith("!["))
+        if image_only and schema == "name_description":
             prefix = "".join(output).rsplit("\n", 1)[-1]
+            if re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix):
+                output.append(_CARD_BOUNDARY)
+        if label:
+            rendered = "".join(output)
+            prefix = rendered.rsplit("\n", 1)[-1]
             if schema in {"product", "catalog_product"} and "\n" in text[start + 1:end]:
                 label = f"\n{_CARD_BOUNDARY}\n{label}\n{_CARD_BOUNDARY}\n"
-            elif schema == "name_description" and re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix):
+            elif schema == "name_description" and (re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix)
+                    or re.fullmatch(rf"\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*", prefix)
+                    or re.search(rf"(?m)^\s*(?:[-*+]|\d+[.)])\s*(?:{_CARD_BOUNDARY})?\s*\n\s*$", rendered)):
                 # A bullet's linked title owns the following prose, even when
-                # both share one physical line. Image-only links are ignored.
+                # both share one physical line. Some converters put an
+                # image-only bullet on the previous line; that orphan bullet
+                # still marks the following visible title as the card owner.
                 label += "\n"
             output.append(label + " ")
         i = close + 1
@@ -109,6 +120,16 @@ def _visible(text, schema=None):
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
+    if schema == "name_description":
+        # Image-only card links intentionally contribute no visible title.
+        # Remove their now-empty bullet line so blank-delimited card parsing
+        # sees the following visible title and description as one record.
+        text = re.sub(r"(?m)^\s*(?:[-*+]|\d+[.)])\s*$", "", text)
+        text = re.sub(rf"(?m)^\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*$",
+                      f"\n{_CARD_BOUNDARY}\n", text)
+        text = "\n".join(line if line.strip() == _CARD_BOUNDARY
+                         else line.replace(_CARD_BOUNDARY, "")
+                         for line in text.splitlines())
     text = re.sub(r"\*\*|__|`", "", text)
     # Preserve newlines: flattening them would let one card borrow another's fields.
     return text.replace("\r\n", "\n")
@@ -257,12 +278,14 @@ def _quotes(lines):
         parts = [line]
         j = i + 1
         while j < len(lines) and not re.match(r'[“"‘]|quote\s*:', lines[j], re.I):
+            if (len(parts) > 1 and re.match(
+                    r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b)',
+                    lines[j], re.I)):
+                break
             parts.append(lines[j])
             j += 1
-            if re.match(r"tags\s*:", parts[-1], re.I):
-                break  # Footer/navigation text does not belong to this field.
         text = " ".join(parts)
-        match = re.fullmatch(r'(?:quote\s*:\s*)?[“"‘]?(.*?)[”"’]?\s*(?:by\s+|author\s*:\s*)(.+?)\s+tags\s*:\s*(.+)', text, re.I)
+        match = re.fullmatch(r'(?:quote\s*:\s*)?[“"‘]?(.*?)[”"’]?\s*(?:by\s*|author\s*:\s*)(.+?)\s*tags\s*:\s*(.+)', text, re.I)
         fields = {"quote": match[1].strip('“”"‘’ '), "author": match[2], "tags": match[3]} if match else {}
         if fields:
             fields["author"] = re.sub(r"\s*\(about\)\s*$", "", fields["author"], flags=re.I)
@@ -316,6 +339,18 @@ def _operations(lines):
 
 def _descriptions(text):
     records = []
+    if _CARD_BOUNDARY in text:
+        # A marker comes from an image-only bullet immediately before the
+        # visible linked title. It is a stronger ownership boundary than blank
+        # lines, which may legitimately occur inside a card description.
+        for block in text.split(_CARD_BOUNDARY)[1:]:
+            lines = [_line(line) for line in block.splitlines() if line.strip()]
+            if len(lines) < 2:
+                continue
+            records.append(_record({"name": _field(lines[0], "name"),
+                "description": " ".join(_field(line, "description") for line in lines[1:])},
+                "name_description"))
+        return records
     bullets = list(re.finditer(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", text))
     if bullets:
         for index, bullet in enumerate(bullets):
@@ -395,9 +430,16 @@ def _anchor_matches(anchor, records, visible, schema):
     if owned:
         # Structured anchors compare complete owned fields, not a flattened
         # document substring. Table columns and Markdown links are equivalent.
+        def field_matches(record, fields, field):
+            actual = normalize_for_match(record["fields"][field]).strip('“”"‘’ ')
+            expected = normalize_for_match(fields[field]).strip('“”"‘’ ')
+            # Name/description converters commonly omit whitespace at inline
+            # DOM boundaries. Other schemas (notably quote tags) require exact
+            # field serialization so two adjacent values cannot be conflated.
+            return (actual.replace(" ", "") == expected.replace(" ", "")
+                    if schema == "name_description" else actual == expected)
         return [value for value, fields in owned if any(record["valid"] and all(
-            normalize_for_match(record["fields"][field]).strip('“”"‘’ ') ==
-            normalize_for_match(fields[field]).strip('“”"‘’ ')
+            field_matches(record, fields, field)
             for field in SCHEMA_FIELDS[schema]) for record in records)]
     folded = normalize_for_match(visible)
     return [value for value in anchor["alternatives"] if fact_in_text(folded, normalize_for_match(_visible(value)))]
@@ -491,8 +533,14 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]
     unique = {tuple(_key(r["fields"][field]) for field in UNIQUE_FIELDS[schema]) for r in complete}
-    if len(complete) != len(records):
+    record_warnings = []
+    if len(complete) != len(records) and maximum is not None:
         errors.append("incomplete_records")
+    elif len(complete) != len(records):
+        # An at-least-N contract must not fail because unrelated script/UI text
+        # happens to resemble the start of a record. Keep the parse noise
+        # visible, while requiring N complete unique records independently.
+        record_warnings.append("ignored_incomplete_candidates")
     if len(unique) != len(complete):
         errors.append("duplicate_records")
     if len(unique) < minimum:
@@ -514,5 +562,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
             "stable_maximum_records": maximum, "stable_task_errors": errors, "stable_records": records,
+            "stable_record_warnings": record_warnings,
             "factual_correctness": None,
             "stable_verification_scope": "Mechanical field/group/count checks; source fidelity and factual values are not verified"}

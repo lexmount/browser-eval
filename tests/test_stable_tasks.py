@@ -293,6 +293,27 @@ class StableTaskTests(unittest.TestCase):
                      "- [New phone](/a)\n- [Other phone](/b) A brighter display. A different camera."):
             self.assertFalse(self.check(text, "name_description")["stable_task_pass"])
 
+    def test_image_bullet_then_linked_description_card(self):
+        text = ("- [![New phone](/img)](/phone)\n"
+                "[New phone](/phone) A brighter display.\n\n"
+                "- [![Other phone](/img2)](/other)\n"
+                "[Other phone](/other) A different camera.")
+        result = self.check(text, "name_description")
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_complete_record_count"], 2)
+
+    def test_image_bullet_card_can_contain_blank_line_and_glued_inline_boundary(self):
+        text = ("- [![New phone](/img)](/phone)\n"
+                "[New phone](/phone) First sentence\n\nSecond sentence.\n\n"
+                "- [![Other phone](/img2)](/other)\n"
+                "[Other phone](/other) A brighterdisplay.")
+        anchors = [
+            {"id": "new", "alternatives": ["New phone\nFirst sentence Second sentence."]},
+            {"id": "other", "alternatives": ["Other phone\nA brighter display."]},
+        ]
+        result = self.check(text, "name_description", stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+
     def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
         anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]
         texts = ('“An independent thought.”by [Some Author](/author) [(about)](/about)\n'
@@ -306,6 +327,23 @@ class StableTaskTests(unittest.TestCase):
             result = self.check(text, "quote", 1, stable_text_anchors=anchors)
             self.assertTrue(result["stable_structure_pass"])
             self.assertFalse(result["stable_content_pass"])
+
+    def test_quote_tags_can_span_native_markdown_link_lines(self):
+        anchors = [{"id": "fixed", "alternatives": [
+            '“An independent thought.”\nby Some Author\nTags: first second']}]
+        text = ('“An independent thought.”by Some Author\nTags: [first]()\n[second]()\n'
+                '##### Loading...\nQuotes by: Example')
+        result = self.check(text, "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_records"][0]["fields"]["tags"], "first second")
+
+    def test_minimum_only_contract_ignores_unrelated_incomplete_candidate(self):
+        rules = {"version": 1, "schema": "quote", "minimum_records": 1}
+        text = ('" + template[\'quote\'] + " by " + template[\'author\'] + "\n'
+                '“A real quote.” by Real Author Tags: one two')
+        result = evaluate_stable_task(text, rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertIn("ignored_incomplete_candidates", result["stable_record_warnings"])
 
     def test_tuple_anchor_cannot_match_unowned_footer_or_other_record(self):
         anchors = [{"id": "fixed", "alternatives": ["New phone\nA brighter display."]}]

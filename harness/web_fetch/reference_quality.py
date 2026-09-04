@@ -8,15 +8,20 @@ def clean_reference_text(text: str) -> str:
 
 
 def visible_markdown_links(text: str) -> str:
-    """Keep labels and adjacent link boundaries, consuming balanced destinations."""
+    """Keep labels and adjacent link boundaries, consuming balanced destinations.
+
+    Browser Markdown serializers sometimes wrap a generated destination or its
+    title onto the next line.  The visible label is still page text, so layout
+    newlines inside a bounded, balanced destination must not turn it into a
+    false negative.
+    """
     result=[];start=0;previous_label=''
     for match in re.finditer(r'!?\[([^\]\n]*)\]\(',text):
         if match.start()<start:continue
         end=match.end();depth=1
-        while end<len(text) and depth:
+        while end<len(text) and depth and end-match.end() <= 2048:
             char=text[end]
             if char=='\\':end+=2;continue
-            if char=='\n':break
             if char=='(':depth+=1
             elif char==')':depth-=1
             end+=1

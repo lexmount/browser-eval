@@ -10,8 +10,8 @@ sys.path.insert(0,str(root))
 from harness.web_fetch.config import load_runtime_env
 load_runtime_env()
 receipt=json.loads((root/'publish/artifact-hub-receipt.json').read_text())
-token=os.getenv('ARTIFACT_HUB_TOKEN','').strip()
-if not token.startswith('ahp_'):raise SystemExit('Set ARTIFACT_HUB_TOKEN in the repository .env or environment')
+from harness.web_fetch.artifact_auth import load_token
+token=load_token()
 request=urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/sites/'+receipt['slug'],
     data=json.dumps({'title':'Web Fetch 评测'}).encode(),method='PATCH',
     headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})

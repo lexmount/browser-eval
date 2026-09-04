@@ -297,6 +297,147 @@
     {
       "schema_version": 1,
       "tool": "web_fetch",
+      "started_at": "2026-09-04T04:28:15.436428+00:00",
+      "dataset": {
+        "id": "web-fetch-headless-browsers",
+        "name": "五种浏览器 Web Fetch 对比",
+        "source": "evaluation/headless/dataset.json (assembled frozen cases)",
+        "case_count": 1
+      },
+      "providers": [
+        {
+          "name": "kitesurf",
+          "type": "headless_html",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "lightpanda",
+          "type": "headless_html",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "obscura",
+          "type": "headless_html",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "moli",
+          "type": "headless_html",
+          "min_interval_seconds": 0.0
+        },
+        {
+          "name": "chromium",
+          "type": "headless_html",
+          "min_interval_seconds": 0.0
+        }
+      ],
+      "parameters": {
+        "runs": 1,
+        "timeout": 45.0,
+        "delay": 0.5,
+        "provider_concurrency": 1,
+        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+      },
+      "environment": {
+        "python": "3.13.3",
+        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
+      },
+      "provider_config_source": "configs/providers.headless.json",
+      "reference_checks": {
+        "schema_version": 1,
+        "status": "verified",
+        "preflight_checked_at": "2026-09-04T04:28:15.434698+00:00",
+        "max_age_seconds": 1800,
+        "cases": {
+          "web-retail-returns": {
+            "reference_sha256": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
+            "expected_normalized_sha256": "6aed5f37d80d79690390b7f04d95e217b460c6d0ed9bae54c54edc7e1839dfd0",
+            "checked_at": "2026-09-04T04:27:24.248Z",
+            "scope_identity": {
+              "case_id": "web-retail-returns",
+              "url": "https://www.anthropologie.com/help/returns-exchanges",
+              "track": "web",
+              "task_kind": "body",
+              "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+              "reference_scope": null,
+              "selector": ".c-pwa-content-page",
+              "source_benchmark": {},
+              "render_scope": null,
+              "evaluation_contract": {
+                "expected_any": [],
+                "required_facts": [
+                  {
+                    "id": "online-returns",
+                    "alternatives": [
+                      "Returning & Exchanging Online Orders"
+                    ]
+                  },
+                  {
+                    "id": "store-returns",
+                    "alternatives": [
+                      "In-store purchases must be returned to a store location"
+                    ]
+                  },
+                  {
+                    "id": "furniture-returns",
+                    "alternatives": [
+                      "Returning Furniture"
+                    ]
+                  }
+                ],
+                "required_patterns": [],
+                "forbidden_any": [
+                  "Please enable JS and disable any ad blocker"
+                ],
+                "min_content_chars": 500,
+                "fact_coverage_threshold": 1.0,
+                "content_score_applicable": true,
+                "expected_resources": [],
+                "reference_answer": ""
+              }
+            },
+            "source_verification": {
+              "state": "valid",
+              "checked_at": "2026-09-04T04:27:24.248Z",
+              "method": "Independent visible browser DOM; complete declared scope",
+              "http_status": 403,
+              "note": "已独立核对任务目标；正文、资源地址或原文件的评分依据见本例记录。",
+              "reference_sha256": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
+              "selector": ".c-pwa-content-page"
+            }
+          }
+        },
+        "postcheck": {
+          "checked_at": "2026-09-04T04:29:45.899001+00:00",
+          "status": "verified",
+          "evidence_path": "reference-checks/observations-5238c0c21862341dba055c49ca8ee7729a7755775e926c532c81972696c26959.json",
+          "evidence_sha256": "5238c0c21862341dba055c49ca8ee7729a7755775e926c532c81972696c26959",
+          "results_sha256": "20dfecba7d5c140d938a1ffc4d1e6ebed0193de034209fb849c049c36fde3372",
+          "dataset_sha256": "5cfe89196aa3ba858296aba614a95e17acf0431a0eb89a70178d3aa2388e025f",
+          "cases": {
+            "web-retail-returns": {
+              "status": "verified",
+              "checked_at": "2026-09-04T04:29:12.090Z",
+              "latest_call_finished_at": "2026-09-04T04:28:35.441463+00:00",
+              "content_sha256": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
+              "normalized_sha256": "6aed5f37d80d79690390b7f04d95e217b460c6d0ed9bae54c54edc7e1839dfd0"
+            }
+          }
+        }
+      },
+      "completed_at": "2026-09-04T04:28:35.949965+00:00",
+      "attempt_count": 5,
+      "attempt_ids": [
+        "kitesurf__web-retail-returns__r001",
+        "lightpanda__web-retail-returns__r001",
+        "obscura__web-retail-returns__r001",
+        "moli__web-retail-returns__r001",
+        "chromium__web-retail-returns__r001"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "tool": "web_fetch",
       "started_at": "2026-09-03T14:16:55.649216+00:00",
       "dataset": {
         "id": "web-fetch-headless-browsers",
@@ -1668,151 +1809,6 @@
         "kind": "completed-case-from-live-preflight",
         "source_manifest_sha256": "b1ee0e187feb32a9c7a2541d241f3fa8508e08958f659e9f40b729599f978ff7",
         "created_at": "2026-09-03T14:33:03.815245+00:00",
-        "original_attempt_ids_preserved": true,
-        "source_manifest_retained_in_local_run": true
-      }
-    },
-    {
-      "schema_version": 1,
-      "tool": "web_fetch",
-      "started_at": "2026-09-03T14:16:55.649216+00:00",
-      "dataset": {
-        "id": "web-fetch-headless-browsers",
-        "name": "五种浏览器 Web Fetch 对比",
-        "source": "evaluation/headless/dataset.json (assembled frozen cases)",
-        "case_count": 1
-      },
-      "providers": [
-        {
-          "name": "kitesurf",
-          "type": "headless_html",
-          "min_interval_seconds": 0.0
-        },
-        {
-          "name": "lightpanda",
-          "type": "headless_html",
-          "min_interval_seconds": 0.0
-        },
-        {
-          "name": "obscura",
-          "type": "headless_html",
-          "min_interval_seconds": 0.0
-        },
-        {
-          "name": "moli",
-          "type": "headless_html",
-          "min_interval_seconds": 0.0
-        },
-        {
-          "name": "chromium",
-          "type": "headless_html",
-          "min_interval_seconds": 0.0
-        }
-      ],
-      "parameters": {
-        "runs": 1,
-        "timeout": 45,
-        "delay": 0.5,
-        "provider_concurrency": 5,
-        "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
-      },
-      "environment": {
-        "python": "3.13.3",
-        "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O"
-      },
-      "provider_config_source": "configs/providers.headless.json",
-      "reference_checks": {
-        "schema_version": 1,
-        "status": "reference_unverified",
-        "preflight_checked_at": "2026-09-03T14:16:55.226690+00:00",
-        "max_age_seconds": 1800,
-        "cases": {
-          "web-retail-returns": {
-            "reference_sha256": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
-            "expected_normalized_sha256": "6aed5f37d80d79690390b7f04d95e217b460c6d0ed9bae54c54edc7e1839dfd0",
-            "checked_at": "2026-09-03T14:10:38.511Z",
-            "scope_identity": {
-              "case_id": "web-retail-returns",
-              "url": "https://www.anthropologie.com/help/returns-exchanges",
-              "track": "web",
-              "task_kind": "body",
-              "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
-              "reference_scope": null,
-              "selector": ".c-pwa-content-page (visible body, collapsed questions)",
-              "source_benchmark": {},
-              "render_scope": null,
-              "evaluation_contract": {
-                "expected_any": [],
-                "required_facts": [
-                  {
-                    "id": "online-returns",
-                    "alternatives": [
-                      "Returning & Exchanging Online Orders"
-                    ]
-                  },
-                  {
-                    "id": "store-returns",
-                    "alternatives": [
-                      "In-store purchases must be returned to a store location"
-                    ]
-                  },
-                  {
-                    "id": "furniture-returns",
-                    "alternatives": [
-                      "Returning Furniture"
-                    ]
-                  }
-                ],
-                "required_patterns": [],
-                "forbidden_any": [
-                  "Please enable JS and disable any ad blocker"
-                ],
-                "min_content_chars": 500,
-                "fact_coverage_threshold": 1.0,
-                "content_score_applicable": true,
-                "expected_resources": [],
-                "reference_answer": ""
-              }
-            },
-            "source_verification": {
-              "state": "valid",
-              "checked_at": "2026-09-03T14:10:38.511Z",
-              "method": "Independent visible browser DOM; complete declared scope",
-              "http_status": 403,
-              "note": "已独立核对任务目标；正文、资源地址或原文件的评分依据见本例记录。",
-              "reference_sha256": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
-              "selector": ".c-pwa-content-page (visible body, collapsed questions)"
-            }
-          }
-        },
-        "postcheck": {
-          "checked_at": "2026-09-03T14:33:03.531390+00:00",
-          "status": "reference_unverified",
-          "evidence_path": "reference-checks/observations-27196dd4a5694c8090691a3ed500cdf302937b9a63ec55b690e9f83465ef48e3.json",
-          "evidence_sha256": "27196dd4a5694c8090691a3ed500cdf302937b9a63ec55b690e9f83465ef48e3",
-          "results_sha256": "fb102a5d596c4a13b7af03fdd1be1af1a525fd0d31af0960590f23e89a50451a",
-          "dataset_sha256": "18e75ac98c6ed56fe436cfb25662c4ada42e5bb50c2b58ffa1263875d02f65de",
-          "cases": {
-            "web-retail-returns": {
-              "status": "reference_unverified",
-              "error": "Independent completion was not satisfied"
-            }
-          }
-        }
-      },
-      "attempt_count": 5,
-      "attempt_ids": [
-        "chromium__web-retail-returns__r001",
-        "lightpanda__web-retail-returns__r001",
-        "moli__web-retail-returns__r001",
-        "kitesurf__web-retail-returns__r001",
-        "obscura__web-retail-returns__r001"
-      ],
-      "completed_at": "2026-09-03T14:19:32.905042+00:00",
-      "projection": {
-        "kind": "completed-case-from-live-preflight",
-        "source_manifest_sha256": "b1ee0e187feb32a9c7a2541d241f3fa8508e08958f659e9f40b729599f978ff7",
-        "created_at": "2026-09-03T14:33:03.530290+00:00",
         "original_attempt_ids_preserved": true,
         "source_manifest_retained_in_local_run": true
       }

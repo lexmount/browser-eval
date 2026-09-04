@@ -18,6 +18,7 @@ def main():
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--browser-observations', type=Path)
     p.add_argument('--case-ids', help='Freeze a fresh short cohort, preserving task definitions')
+    p.add_argument('--exclude-case-ids', help='Comma-separated cases to omit when a fresh independent reference is unavailable')
     args = p.parse_args()
     if args.output.exists():
         p.error('Destination exists')
@@ -26,6 +27,11 @@ def main():
         wanted=set(args.case_ids.split(','))
         dataset['cases']=[c for c in dataset['cases'] if c['id'] in wanted]
         if len(dataset['cases'])!=len(wanted):p.error('Unknown case ID')
+    if args.exclude_case_ids:
+        excluded = set(args.exclude_case_ids.split(','))
+        known = {c['id'] for c in dataset['cases']}
+        if excluded - known:p.error('Unknown excluded case ID')
+        dataset['cases'] = [c for c in dataset['cases'] if c['id'] not in excluded]
     observations = json.loads(args.browser_observations.read_text()) if args.browser_observations else {}
     audit = {r['case_id']: r for r in json.loads((args.captures/'audit.json').read_text())}
     changes = []

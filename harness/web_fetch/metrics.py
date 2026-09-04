@@ -159,6 +159,9 @@ def normalize_for_match(value: str) -> str:
     normalized = clean_reference_text(normalized)
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
+    # Native Markdown emitters may escape punctuation in visible text. These
+    # escapes are presentation syntax, not part of the page's wording.
+    normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
@@ -181,7 +184,7 @@ def normalize_for_match(value: str) -> str:
 
 
 def fact_in_text(text: str, fact: str) -> bool:
-    """Exact normalized fact; do not accept a fragment of a different number."""
+    """Match an explicitly registered normalized fact without fuzzy semantics."""
     if not fact:
         return False
     left = r'(?<![0-9.+\-])' if fact[0].isdigit() or fact[0] in '$£€¥' else ''

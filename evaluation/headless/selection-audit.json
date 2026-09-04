@@ -106,5 +106,41 @@
         "elapsed_ms": 3704.6
       }
     ]
+  },
+  {
+    "case_id": "web-retail-returns",
+    "selection_reason": "fresh complete matched cohort after failed reference certificate; no score-based selection",
+    "excluded_attempts": [
+      {
+        "attempt_id": "kitesurf__web-retail-returns__r001",
+        "run_id": "run-06dc559647dcf1380b09",
+        "started_at": "2026-09-03T14:19:10.453674+00:00",
+        "elapsed_ms": 6101.82
+      },
+      {
+        "attempt_id": "lightpanda__web-retail-returns__r001",
+        "run_id": "run-aa153e465d460fd09565",
+        "started_at": "2026-09-03T14:18:10.847445+00:00",
+        "elapsed_ms": 1811.21
+      },
+      {
+        "attempt_id": "obscura__web-retail-returns__r001",
+        "run_id": "run-881ae1d7b53e341a1c64",
+        "started_at": "2026-09-03T14:19:31.448450+00:00",
+        "elapsed_ms": 1456.58
+      },
+      {
+        "attempt_id": "moli__web-retail-returns__r001",
+        "run_id": "run-f57d45a086a54bfc83d4",
+        "started_at": "2026-09-03T14:18:01.989221+00:00",
+        "elapsed_ms": 11390.91
+      },
+      {
+        "attempt_id": "chromium__web-retail-returns__r001",
+        "run_id": "run-5aeca310af41be70aaf2",
+        "started_at": "2026-09-03T14:18:09.889632+00:00",
+        "elapsed_ms": 1914.97
+      }
+    ]
   }
 ]
