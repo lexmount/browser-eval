@@ -123,7 +123,7 @@ def reason(r,c):
  if c.get('task_kind')=='structure':
   from .report_components import list_rule_description
   return f"检出 {r['metrics'].get('named_entry_count',0)} 个具名详情入口。"+list_rule_description(c)
- if c.get('task_kind')=='file':return '没有返回可核对的原始文件；文字或重复输入地址不算文件。'
+ if c.get('task_kind')=='file':return '已返回原始文件，格式特征、长度及目标 SHA-256 校验通过。' if succeeded(r,c) else '没有返回可核对的原始文件；文字或重复输入地址不算文件。'
  if c.get('task_kind')=='resource':
   missing=[x['id'] for x in r['metrics'].get('resource_results',[]) if not x['pass']]
   return '已找到目标资源。' if not missing else '未找到目标资源：'+', '.join(missing)
@@ -379,6 +379,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    from .report_components import comparable_body_reference
    if not comparable_body_reference(c):
     rows[5]=('',cell('快照文字诊断 · 完整度 / 纯净度 / F1')+cell(' / '.join(pct(m.get(k)) for k in ['word_recall','word_precision','word_f1'])+'；参考含不固定取值的字段，仅为历史快照诊断，不进入主表全文均值。'))
+  if r.get('status_code') is None:
+   rows[3]=('',cell('HTTP 状态')+cell('—（接口未提供）'))
+  if c.get('task_kind')=='file':
+   rows[6]=('',cell('文本输出字符')+cell(f'{len(output):,}（文件字节另列）'))
+   rows[7]=('',cell('文本输出校验值')+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
   if 'content_check_total' in m:
    rows.append(('',cell('文字核对覆盖')+cell(pct(m.get('content_check_coverage'))+f' · {m["content_check_hits"]}/{m["content_check_total"]} 组')))
   rows[2]=('',cell('任务结果')+cell(result_label(r,c)))
