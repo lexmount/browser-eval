@@ -1,7 +1,8 @@
-"""Lossless, lazy-loaded Artifact Hub publication of the validated report.
+"""Lazy-loaded Artifact Hub publication with explicit supplemental HTML redaction.
 
 The original report is untouched. Repeated reference/output HTML is reconstructed
-from the same source files; downloads are byte-identical. Hub injects a root base.
+from the same source files. Scored outputs remain byte-identical; supplemental
+HTML may be redacted with separate original/published hashes. Hub injects a root base.
 """
 import gzip
 import hashlib
@@ -18,6 +19,8 @@ from pathlib import Path
 from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.publication_privacy import project_file
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 
@@ -132,7 +135,8 @@ def build():
  (DEST/'data').mkdir(exist_ok=True)
  records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
  by_attempt={r['attempt_id']:(i,r) for i,r in enumerate(records)}
- files={};blocks={};raw_blocks={};original={};pages={}
+ scored_paths={r['artifact_path'] for r in records}
+ files={};blocks={};raw_blocks={};original={};pages={};redactions=[]
  def add(path,data):
   parts=[]
   for start in range(0,len(data),65536):
@@ -142,6 +146,12 @@ def build():
  for path in sorted(SOURCE.rglob('*')):
   if not path.is_file():continue
   name=path.relative_to(SOURCE).as_posix();data=path.read_bytes()
+  if name=='.generated-report':continue
+  if path.is_symlink():raise ValueError('Publication source must not contain symlinks: '+name)
+  data,redaction=project_file(name,data)
+  if redaction:
+   if name in scored_paths:raise ValueError('Scored output requires credential review: '+name)
+   redactions.append(redaction)
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
@@ -154,9 +164,16 @@ def build():
     for match in reversed(matches):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
+   notice='<aside class="source-note">接口账号使用占位符；第三方原始 HTML 中匹配到的密钥值已脱敏。本地原件保留，评分与测量不变。原始哈希与发布副本哈希可能不同，详见 <a href="'+('../' * (len(path.relative_to(SOURCE).parts)-1))+'publication-privacy.json">发布脱敏清单</a>。脱敏文件不适用于逐字节复算原始证据哈希。</aside>'
+   text=re.sub(r'(<body\b[^>]*>)',lambda match:match[0]+notice,text,count=1)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
   add(name,data)
+ privacy={'schema_version':1,'scope':'supplemental_raw_html_only',
+          'scored_outputs_unchanged':True,'original_evidence_preserved_locally':True,
+          'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
+          'files':redactions}
+ add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
  # Pack raw blocks together then gzip, keeping requests small and all bytes intact.
  batch=bytearray();batch_keys=[];index=0
  def flush():
@@ -200,7 +217,7 @@ def build():
   for key,b in blocks.items():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
- print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':True,'all_virtual_links_valid':True}))
+ print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':not redactions,'redacted_supplemental_files':len(redactions),'scored_outputs_unchanged':True,'all_virtual_links_valid':True}))
  # Artifact Hub publishes large bundles through staged per-file uploads.
  # Its documented total limit is 300 MB, not the former local 50 MB budget.
  assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'
