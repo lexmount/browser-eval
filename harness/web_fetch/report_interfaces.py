@@ -4,6 +4,17 @@ from html import escape
 from .safety import contained_path
 
 URL='https://example.com/'
+HEADLESS_ACCESS={
+ 'kitesurf':{
+  'account':'本轮公共 Playground CDP 未使用账号或 API Key；账户级 Browser Run 接入另需 Cloudflare 账号。',
+  'configuration':'本轮配置 KITESURF_CDP_ENDPOINT。账户级接入使用 <ACCOUNT_ID> 和 <API_TOKEN>，不属于本轮实测路径。',
+  'links':[('公共 Playground','https://kitesurf.cloudflare.app/'),('账户级接入与令牌说明','https://developers.cloudflare.com/browser-run/kitesurf/')],
+ },
+ 'lightpanda':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
+ 'obscura':{'account':'本轮本地标准模式不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
+ 'moli':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','links':[('官方项目与安装说明','https://github.com/lexmount/moli')]},
+ 'chromium':{'account':'本轮独立本地浏览器不需要 Google 账号或 API Key，不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
+}
 def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
@@ -74,14 +85,17 @@ def render_interfaces(out,records):
  body='<p>按本轮实际适配器介绍，不混用完整产品能力。输入示例采用当前配置；输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  access=HEADLESS_ACCESS.get(name)
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
   else:sample={'measurement':None,'note':'仓库登记接口，未纳入本轮；此处不提供虚构的运行输出。'}
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
   meta=r.get('provider_metadata',{}) if r else {};sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
-  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
+  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'access':access,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(name)+'</summary>'
   body+='<p class="interface-endpoint"><code>'+escape(s['entry'])+'</code></p><p class="source-note">'+escape(s['auth'])+'</p>'
+  if access:
+   body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">官方说明核验：2026-09-04。只列账号要求、获取入口与占位符，不公开真实凭据。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
   body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+'<h4>调用输入示例</h4>'+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
