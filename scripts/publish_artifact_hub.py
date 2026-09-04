@@ -30,6 +30,8 @@ if receipt.exists():
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if not receipt.exists() or updating:
  archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
+ from scripts.check_publication_bundle import check
+ check(archive,ROOT/'reports/webfetch')
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
  for key,value in [('mode','zip'),('title','Web Fetch 评测')]:

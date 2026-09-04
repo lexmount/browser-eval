@@ -474,7 +474,7 @@ def _render_headless(out, cases, records):
     summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
     dynamic_summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
-        'time_window':escape(' 至 '.join(data['time_window'])),'overview':overview,
+        'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
         'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
         'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
     template=Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())

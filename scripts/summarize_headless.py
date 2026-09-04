@@ -39,9 +39,9 @@ def main():
         '- Wikipedia 一题中，本地三次成功调用取 HTML 约 2—3 秒，统一转换约 40 秒。不能把这部分耗时全归给浏览器，也不能猜测另外两次超时的阶段分布。',
         '- 本轮没有启用 PDF/Office 解析、媒体理解或专用下载，相关任务结果只约束当前 HTML 适配器。','',
         '## 保留的审计边界','',
-        '三个封存时间边界失败的题目已做新五方短批次并完成独立前后核验；明确替换整个匹配批次，不按成绩挑选。此前输出和失败证书在 diagnostics/replaced-cases/ 中。',
-        '退货说明页的独立测后核验遇到人机验证。正式报告构建器仍拒绝该未核验生命周期，未放宽发布门槛。',
-        'Artifact Hub 尚无本仓库发布令牌，因此没有更新现有公开链接。','']
+        '参考验证失败后的替换覆盖完整五方短批次，不按成绩挑选。此前输出和失败证书在 diagnostics/replaced-cases/ 中，替换范围见 selection-audit.json。',
+        ('仍有未验证参考：'+ '、'.join(sorted(blocked))+'；正式报告构建器拒绝这些生命周期。' if blocked else '所有精确正文参考已完成独立前后核验；稳定契约不套用实时快照有效期。'),
+        '本文仅描述本地测量证据；线上发布状态需以 Artifact Hub 的实际版本和校验回执为准。','']
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text('\n'.join(text))
     print(args.output)

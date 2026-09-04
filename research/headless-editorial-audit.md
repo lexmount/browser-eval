@@ -1,7 +1,8 @@
 # Headless comparison: private editorial and measurement audit
 
 This file is not a report page and must not be copied to the publication bundle.
-Publication remains blocked until every new exact-body lifecycle is verified.
+All exact-body lifecycles are now verified, including the fresh retail cohort
+on 2026-09-04. Publication still requires final package and remote verification.
 
 ## Question and evidence ledger
 
@@ -63,6 +64,17 @@ limit. The ending identifies three different implementation decisions rather
 than announcing a universal winner.
 
 The online and standalone presentations share one authored template and inline
-standalone CSS. Final data-bound review, visual desktop/narrow/print QA and
-publication sign-off must wait for complete verified evidence. Unit tests alone
-do not certify editorial or visual quality.
+standalone CSS. Final data-bound review confirmed the 150/750 denominators,
+web passes 89/83/89/90/70 (Chromium/Kitesurf/Lightpanda/Moli/Obscura), unchanged
+dynamic counts and paired latency cohorts. Fresh retail pre/post observations
+matched the original 1378-character reference and all five new calls completed.
+The original failed certificate and calls remain diagnostic evidence.
+
+Desktop and 390-pixel UI checks show readable prose and horizontal table
+scrolling within containers (document width 390, table container 362, table
+content 480). Print CSS removes navigation and permits tables to fit the page;
+standalone HTML has inline styles and no script dependency. Date display was
+shortened to seconds without changing original timestamps. Wording changed
+only the encyclopedia time range punctuation; no claim or measured score changed.
+The public package adds a separate redaction manifest for supplemental HTML,
+with original and published hashes. Raw measured originals remain local.
