@@ -9,6 +9,14 @@ sys.path.insert(0,str(ROOT))
 from harness.web_fetch.report_explainer import headless_evidence, TRACK_NAMES
 
 
+def paired_latency_row(pair):
+    def milliseconds(value):
+        return '—' if value is None else f'{value:.2f}'
+    return (f'| {pair["provider"]} | {len(pair["both_pass_ids"])} | '
+            f'{milliseconds(pair["provider_p50_ms"])} | '
+            f'{milliseconds(pair["chromium_p50_ms"])} |')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source',type=Path)
@@ -32,7 +40,7 @@ def main():
         '## 普通网页共同通过样本的配对耗时','',
         '| 相对 Chromium | 共同通过题数 | 本方法 P50 ms | Chromium P50 ms |','|---|---:|---:|---:|']
     for pair in evidence['pairs']:
-        text.append(f'| {pair["provider"]} | {len(pair["both_pass_ids"])} | {pair["provider_p50_ms"]:.2f} | {pair["chromium_p50_ms"]:.2f} |')
+        text.append(paired_latency_row(pair))
     text+=['','每行两侧是相同 URL 集合，不同行样本可能不同。包含客户端、启动、取 HTML 与统一转换开销；Kitesurf 是远程公共 CDP，其余为本地。未隔离资源，不能视为纯引擎性能或成本比较。','',
         '## 已核对的解释','',
         '- 动态任务排序改变：Kitesurf 6/10、Obscura 5/10，Chromium 和 Lightpanda 各 1/10，Moli 0/10。统一等待名称并不代表相同的页面完成状态。',
