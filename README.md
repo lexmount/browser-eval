@@ -128,7 +128,7 @@ python3 scripts/package_artifact_hub.py
 python3 scripts/publish_artifact_hub.py --update --expected-version <当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。发布令牌 `ARTIFACT_HUB_TOKEN` 也只从仓库 `.env` 或显式环境变量取得。使用既有 Artifact Hub 站点和分享地址；服务端版本标识仅用于并发更新保护，不是报告代码版本。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Hub 发布令牌默认保存在 `~/.config/artifact-hub/token`（权限 0600），供同一用户的工作区复用；仓库 `.env` 或显式环境变量中的 `ARTIFACT_HUB_TOKEN` 可覆盖它。其他评测密钥仍只读取仓库配置。使用既有 Artifact Hub 站点和分享地址；服务端版本标识仅用于并发更新保护，不是报告代码版本。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

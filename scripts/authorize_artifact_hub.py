@@ -1,20 +1,31 @@
-"""Poll an explicitly requested device authorization; keep its token repo-local."""
+"""Authorize Artifact Hub and save its token in the user-scoped credential file."""
 import argparse
 import json
 import os
 from pathlib import Path
 import time
 import urllib.request
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.web_fetch.artifact_auth import save_token
+from harness.web_fetch.config import load_runtime_env
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--device-code', required=True)
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--device-code')
+    action.add_argument('--persist-existing', action='store_true')
     parser.add_argument('--timeout', type=int, default=540)
+    parser.add_argument('--replace-existing', action='store_true', help='Explicitly back up and replace a different user token')
     args = parser.parse_args()
-    destination = Path(__file__).resolve().parents[1]/'.env'
-    if destination.exists() and 'ARTIFACT_HUB_TOKEN=' in destination.read_text():
-        parser.error('Repository already has a token; will not overwrite it')
+    if args.persist_existing:
+        load_runtime_env()
+        backup=save_token(os.environ.get('ARTIFACT_HUB_TOKEN', '').strip(),replace_existing=args.replace_existing)
+        if backup:print('Previous credential backed up:',backup)
+        print('Existing authorization saved to the user credential file; token not displayed.')
+        return
     deadline = time.monotonic() + args.timeout
     while time.monotonic() < deadline:
         request = urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/device/poll',
@@ -24,12 +35,8 @@ def main():
             result = json.load(response)
         if result.get('status') == 'approved':
             token = result['token']
-            if not token.startswith('ahp_') or any(c.isspace() for c in token):
-                raise ValueError('Unexpected token format')
-            descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-            with os.fdopen(descriptor, 'a') as stream:
-                stream.write('\nARTIFACT_HUB_TOKEN=' + token + '\n')
-            os.chmod(destination, 0o600)
+            backup=save_token(token,replace_existing=args.replace_existing)
+            if backup:print('Previous credential backed up:',backup)
             print('Authorized:', result.get('user', {}).get('email', '(identity unavailable)'), flush=True)
             return
         if result.get('status') != 'pending':

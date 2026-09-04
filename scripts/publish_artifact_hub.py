@@ -11,8 +11,8 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.config import load_runtime_env
 load_runtime_env()
-token=os.getenv('ARTIFACT_HUB_TOKEN','').strip()
-if not token.startswith('ahp_'):raise SystemExit('Set ARTIFACT_HUB_TOKEN in the repository .env or environment')
+from harness.web_fetch.artifact_auth import load_token
+token=load_token()
 receipt=ROOT/'publish/artifact-hub-receipt.json'
 updating='--update' in sys.argv
 expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
