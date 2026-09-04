@@ -15,6 +15,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+      - run: npm ci
       - run: python -m pip install -e '.[test,browser-use-eval,reference-audit,headless-eval]'
       - run: python -m unittest discover -s tests -v
       - run: python -m pytest tests/browser_use -q
