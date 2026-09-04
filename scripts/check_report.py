@@ -64,6 +64,8 @@ for p in root.rglob('*.html'):
   heading='稳定任务契约' if case.get('acceptance_contract') and 'stable_task_pass' in record['metrics'] else '列表任务规则 / 参考依据' if case.get('task_kind')=='structure' else '完整参考 / 目标结果'
   assert text.count('<h3>'+heading+'</h3>')==1,p
   assert text.count('<h3>本次完整输出</h3>')==1,p
+  for delivered in record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[]):
+   assert '../'+delivered['artifact_path'] in text and delivered['sha256'] in text,p
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
 print(f'PASS: {len(d["cases"])} tasks / {len(rs)} records / {len(names)} providers; {len(list(root.rglob("*.html")))} HTML pages; reference integrity, all numbered tables, no workflow leftovers.')
