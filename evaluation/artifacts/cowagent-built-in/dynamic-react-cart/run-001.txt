@@ -1,4 +1,0 @@
-Title: Typescript React Shopping cart
-
-Content:
-Typescript React Shopping cartYou need to enable JavaScript to run this app.

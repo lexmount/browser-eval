@@ -9,6 +9,7 @@ from harness.web_fetch.metrics import fact_in_text, normalize_for_match
 
 
 ROOT = Path(__file__).resolve().parents[1]
+from harness.web_fetch.storage import current_evidence_dir
 
 
 class DynamicEntryMatchingTests(unittest.TestCase):
@@ -130,15 +131,17 @@ class DynamicEntryMatchingTests(unittest.TestCase):
         Compare with the injected normalization contract, not stale stored scores.
         Missing facts (including pending currency normalization) cannot pass here.
         """
-        cases = {c['id']: c for c in json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']
+        evidence=current_evidence_dir()
+        if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
+        cases = {c['id']: c for c in json.loads((evidence/'dataset.json').read_text())['cases']
                  if c.get('track') == 'dynamic'}
         checked = 0
-        for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines():
+        for line in (evidence/'results.jsonl').read_text().splitlines():
             record = json.loads(line)
             if record['case_id'] not in cases or not record['ok']:
                 continue
             facts = cases[record['case_id']]['required_facts']
-            raw = (ROOT/'evaluation'/record['artifact_path']).read_text()
+            raw = (evidence/record['artifact_path']).read_text()
             folded = normalize_for_match(raw)
             if not all(any(fact_in_text(folded, normalize_for_match(a)) for a in f['alternatives']) for f in facts):
                 continue

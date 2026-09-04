@@ -11,6 +11,7 @@ from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_accept
 
 
 ROOT = Path(__file__).resolve().parents[1]
+from harness.web_fetch.storage import current_evidence_dir
 
 
 class StableAnnotationTests(unittest.TestCase):
@@ -101,6 +102,8 @@ class StableAnnotationTests(unittest.TestCase):
     def test_saved_markdown_layout_regressions_against_independent_contracts(self):
         # Outputs supply layout examples only; every fixed value still comes
         # from the independently reviewed registry, not from these artifacts.
+        evidence=current_evidence_dir()
+        if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         layouts = {
             "dynamic-quotes-api": ("crawl4ai", "tavily", "cloudflare-markdown"),
             "dynamic-products-api": ("crawl4ai", "firecrawl", "cloudflare-markdown"),
@@ -109,16 +112,18 @@ class StableAnnotationTests(unittest.TestCase):
         }
         for identifier, sources in layouts.items():
             for source in sources:
-                path = ROOT / "evaluation/artifacts" / source / identifier / "run-001.txt"
+                path = evidence / "artifacts" / source / identifier / "run-001.txt"
                 result = self.score(identifier, path.read_text())
                 self.assertTrue(result["stable_task_pass"], (identifier, source, result["stable_task_errors"]))
                 self.assertEqual(result["stable_unique_record_count"], CASE_ANNOTATIONS[identifier]["contract"]["minimum_records"])
 
     def test_lost_tag_boundaries_and_empty_shells_still_fail(self):
+        evidence=current_evidence_dir()
+        if not (evidence/'artifacts').is_dir():self.skipTest('requires persisted benchmark evidence')
         for source, identifier in (("firecrawl", "dynamic-quotes-api"),
                                    ("tavily", "dynamic-products-api"),
                                    ("tavily", "dynamic-angular-phones")):
-            path = ROOT / "evaluation/artifacts" / source / identifier / "run-001.txt"
+            path = evidence / "artifacts" / source / identifier / "run-001.txt"
             result = self.score(identifier, path.read_text())
             self.assertFalse(result["stable_task_pass"], (source, identifier))
             if identifier == "dynamic-quotes-api":

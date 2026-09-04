@@ -1,6 +1,8 @@
 import json,unittest
 from copy import deepcopy
-from harness.web_fetch.failure_diagnosis import diagnose,normalize_empty_response
+from harness.web_fetch.failure_diagnosis import diagnose
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.response_input import apply_request_status
 from harness.web_fetch.metrics import evaluate_content
 from harness.web_fetch.stable_tasks import evaluate_stable_task
 
@@ -11,7 +13,8 @@ class FailureDiagnosisTests(unittest.TestCase):
   self.assertEqual(d['category'],'源站拒绝该次访问')
  def test_empty_api_success_is_extraction_failure(self):
   r=self.record(provider='cloudflare-markdown',status_code=200);raw='{"success":true,"result":""}'
-  normalize_empty_response(r,raw);self.assertTrue(r['ok']);self.assertEqual(diagnose(r,{},raw)['category'],'正文提取为空')
+  r['metrics']=score_attempt({'url':'https://example.com'},raw.encode(),ok=False,status_code=200)
+  apply_request_status(r);self.assertTrue(r['ok']);self.assertEqual(diagnose(r,{},raw)['category'],'正文提取为空')
  def test_unknown_remote_internals_remain_unknown(self):
   d=diagnose(self.record(error_type='CRAWL_UNKNOWN_ERROR'),{},'')
   self.assertEqual(d['category'],'服务取页失败');self.assertIn('未披露',d['certainty'])

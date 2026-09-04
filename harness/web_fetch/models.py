@@ -36,6 +36,7 @@ class EvalCase:
     source_verification: dict[str, Any] = field(default_factory=dict)
     task_kind: str = "body"
     acceptance_contract: dict[str, Any] = field(default_factory=dict)
+    body_requirements: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -48,6 +49,8 @@ class ProviderResult:
     error_type: str | None = None
     error_message: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    files: list[dict[str, Any]] = field(default_factory=list)
+    prepared_answer: tuple | None = None
 
 
 @dataclass

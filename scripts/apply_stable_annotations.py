@@ -14,6 +14,7 @@ from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.stable_annotations import annotate_case, bind_annotation_evidence, CASE_ANNOTATIONS
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from scripts.rescore_content import rescore
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def apply(source: Path):
@@ -87,4 +88,4 @@ def apply(source: Path):
 
 
 if __name__ == '__main__':
-    print(json.dumps(apply(ROOT/'evaluation'), ensure_ascii=False, indent=2))
+    print(json.dumps(apply(current_evidence_dir()), ensure_ascii=False, indent=2))

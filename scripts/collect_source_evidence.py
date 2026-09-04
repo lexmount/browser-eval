@@ -30,7 +30,7 @@ def extract_html(raw: bytes, url: str):
     resources = []
     for node in soup.select('img[src], video[src], video source[src], iframe[src], embed[src], object[data]'):
         resources.append({'tag': node.name, 'url': urljoin(url, node.get('src') or node.get('data')), 'alt': node.get('alt', '')})
-    selectors = ['article.markdown-body', '#mw-content-text .mw-parser-output', '[itemprop="articleBody"]', '.heraAdit-renderContainer', '#mainContent', '#main-content', 'main', '[role=main]', '.document .body', 'article', 'body']
+    selectors = ['article.markdown-body', 'article#docs-content', '#mw-content-text .mw-parser-output', '[itemprop="articleBody"]', '.heraAdit-renderContainer', '#mainContent', '#main-content', 'main', '[role=main]', '.document .body', 'article', 'body']
     host = urlsplit(url).hostname or ''
     if host=='www.feishu.cn' or host=='feishu.cn':
         # Parse the site's explicit article payload as JSON, never execute script.
@@ -67,7 +67,7 @@ def extract_html(raw: bytes, url: str):
     elif host.endswith('w3schools.com'):
         selectors = ['#main', 'body']
     selector, root = next(((s, soup.select_one(s)) for s in selectors if soup.select_one(s)), ('body', soup))
-    for node in root.select('script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,.toc,.vector-toc,.sidebar,.sphinxsidebar'):
+    for node in root.select('script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,.vector-toc,.sidebar,.sphinxsidebar'):
         node.decompose()
     text = '\n'.join(line.strip() for line in root.get_text('\n').splitlines() if line.strip())
     return title, text, selector, resources

@@ -1,1 +1,0 @@
-{"results":[],"failed_results":[{"url":"https://www.scrapingcourse.com/javascript-rendering","error":"Error fetching content"}],"response_time":0.83,"request_id":"46018fb2-0841-4b73-ae51-8b051d1e2910"}

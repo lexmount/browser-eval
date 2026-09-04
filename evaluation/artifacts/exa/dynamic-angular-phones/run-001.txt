@@ -1,1 +1,0 @@
-{"requestId":"5a1fe71c6255e58570d7c8911b933e12","results":[],"statuses":[{"id":"https://angular.github.io/angular-phonecat/step-12/app/","status":"error","error":{"httpStatusCode":500,"tag":"CRAWL_UNKNOWN_ERROR"}}],"costDollars":{"total":0},"searchTime":1619.549420000054}

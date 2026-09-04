@@ -1,7 +1,0 @@
-[ ![京东](https://misc.360buyimg.com/lib/img/e/logo-201305-b.png) ](https://www.jd.com/)
-[登录页面，改进建议](https://wj-dongjian.jd.com/q/61a05143f2ec2b00b35e40a6)
-个人用户登录
-企业用户登录
-依据《网络安全法》，为保障您的账户安全和正常使用，请尽快完成手机号验证！ 新版[《京东隐私政策》](https://about.jd.com/privacy/)已上线，将更有利于保护您的个人隐私。
-[ 关于我们 ](https://about.jd.com/) | [ 联系我们 ](https://www.jd.com/contact/) | [ 人才招聘 ](https://zhaopin.jd.com/) | [ 商家入驻 ](https://lai.jd.com/) | [ 广告服务 ](https://jzt.jd.com/) | [ 手机京东 ](https://app.jd.com/) | [ 友情链接 ](https://club.jd.com/links.aspx) | [ 销售联盟 ](https://union.jd.com/index) | [ 京东社区 ](https://pro.jd.com/mall/active/3WA2zN8wkwc9fL9TxAJXHh5Nj79u/index.html) | [ 京东公益 ](https://gongyi.jd.com)
-Copyright © 2004-2026 京东JD.com 版权所有 

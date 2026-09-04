@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scripts.collect_source_evidence import extract_html
-from harness.web_fetch.metrics import evaluate_content
+from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier
 
@@ -27,12 +27,7 @@ def sha256(raw: bytes) -> str:
 
 
 def _score(case: dict, text: str) -> dict:
-    measured = evaluate_content(text, case.get("expected_any", []), **{
-        key: case[key] for key in (
-            "required_facts", "forbidden_any", "min_content_chars", "fact_coverage_threshold",
-            "ground_truth_main_content", "required_patterns",
-        ) if key in case
-    })
+    measured = score_attempt(case, text.encode('utf-8'), ok=True)
     return {key: measured[key] for key in (
         "content_pass", "fact_hits", "fact_total", "fact_coverage", "word_f1",
     )}

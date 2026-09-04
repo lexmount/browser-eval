@@ -1,1 +1,0 @@
-{"requestId":"0469d24584114c5132449964a21cce28","results":[],"statuses":[{"id":"https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html","status":"error","error":{"httpStatusCode":504,"tag":"CRAWL_LIVECRAWL_TIMEOUT"}}],"costDollars":{"total":0},"searchTime":10016.57978400006}

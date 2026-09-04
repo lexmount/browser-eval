@@ -13,7 +13,6 @@ from unittest.mock import Mock, patch
 
 from harness.web_fetch.metrics import summarize, task_passed
 from harness.web_fetch.models import EvalCase, ProviderResult
-from harness.web_fetch.failure_diagnosis import normalize_empty_response
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.http_client import HttpResponse
 from harness.web_fetch import runner
@@ -178,14 +177,15 @@ class ScoringTests(unittest.TestCase):
         rows.append({**rows[0], "case_id": "failed", "ok": False, "error_type": "timeout"})
         result = summarize(rows)
         provider = result["providers"]["p"]
-        self.assertEqual(provider["task_pass_rate"], round(3 / 7, 4))
+        self.assertEqual(provider["task_pass_rate"], round(3 / 6, 4))
+        self.assertEqual(provider['task_unmeasured_attempts'], 1)
         self.assertNotIn("content_pass_rate", provider)
         self.assertNotIn("conditional_content_pass_rate", provider)
         for field in ("mean_content_ms", "p50_ms", "p95_ms"):
             self.assertEqual(provider[field], 10)
-        self.assertEqual(provider["failure_types"], {"content_validation_failure": 3, "timeout": 1})
+        self.assertEqual(provider["failure_types"], {"content_validation_failure": 2, "timeout": 1})
         for i, (_, _, passed) in enumerate(examples):
-            self.assertEqual(result["cases"][str(i)]["task_pass_rate"], float(passed))
+            self.assertEqual(result["cases"][str(i)]["task_pass_rate"], None if i == 5 else float(passed))
         # Explicit case context remains authoritative over stored summary hints.
         self.assertFalse(task_passed(True, rows[1]["metrics"], "body"))
 
@@ -194,7 +194,8 @@ class ScoringTests(unittest.TestCase):
         root = Path(scoring.__file__).parent
         expected = hashlib.sha256(b"\0".join((root / name).read_bytes() for name in (
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
-            "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py"))).hexdigest()
+            "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
+            "response_input.py", "body_coverage.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 
@@ -323,7 +324,7 @@ class ScoringPipelineTests(unittest.TestCase):
                 self.assertEqual(audit[key], value)
             self.assertEqual(audit["mode"], "offline_rescore")
             self.assertEqual(audit["scored_at"], now.isoformat())
-            self.assertEqual(audit["request_status_basis"], "original_record_ok")
+            self.assertEqual(audit["request_status_basis"], "shared_normalization_with_original_adapter_status_retained")
             self.assertEqual(audit["input_results_sha256"], hashlib.sha256(before_bytes).hexdigest())
             self.assertEqual(audit["dataset_sha256"], hashlib.sha256(original_dataset).hexdigest())
             expected_source_hash = hashlib.sha256(b'\0'.join([
@@ -350,15 +351,11 @@ class ScoringPipelineTests(unittest.TestCase):
         row = json.loads((self.run / "results.jsonl").read_text().splitlines()[0])
         for key in original[0]:
             self.assertEqual(row[key], original[0][key], key)
-        self.assertFalse(row["ok"])
-        self.assertEqual(row["scoring"]["request_status_basis"], "original_record_ok")
-        # The existing report-only compatibility view intentionally differs;
-        # demonstrate it without changing canonical records or scoring inputs.
-        view = deepcopy(row)
-        normalize_empty_response(view, raw)
-        self.assertTrue(view["ok"])
-        self.assertIsNone(view["error_type"])
-        self.assertFalse(row["ok"])
+        self.assertTrue(row["ok"])
+        self.assertFalse(row['raw_request_status']['ok'])
+        self.assertEqual(row['raw_request_status']['error_message'], 'Historical error')
+        self.assertEqual(row["scoring"]["request_status_basis"], "shared_normalization_with_original_adapter_status_retained")
+        self.assertIsNone(row['error_type'])
 
     def test_script_rebuilds_diagnosis_from_saved_nested_error_payload(self):
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(
@@ -403,12 +400,12 @@ class ScoringPipelineTests(unittest.TestCase):
                                                      dataset_path=self.path, cases=self.cases)
         file_row = next(r for r in rescored if r["case_id"] == "file")
         self.assertEqual(file_row, original)
-        self.assertEqual(summary["cases"]["file"]["task_pass_rate"], 1)
+        self.assertEqual(summary["cases"]["file"]["task_pass_rate"], 0)
         rescore_content.rescore(self.run, case_ids={"file"})
         script_rows = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
         file_row = next(r for r in script_rows if r["case_id"] == "file")
         self.assertEqual(file_row["metrics"], original["metrics"])
-        self.assertEqual(summarize(script_rows)["cases"]["file"]["task_pass_rate"], 1)
+        self.assertEqual(summarize(script_rows)["cases"]["file"]["task_pass_rate"], 0)
 
     def test_both_rescores_reject_modified_output_without_writing_results(self):
         records, _ = self.live()

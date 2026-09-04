@@ -1,5 +1,0 @@
-#  [Quotes to Scrape](https://quotes.toscrape.com/)
-[Login](https://quotes.toscrape.com/login)
-  * [Next →](https://quotes.toscrape.com/js-delayed/page/2/)
-
-

@@ -297,5 +297,6 @@ def append(source, reference, measured, checks):
 
 
 if __name__=='__main__':
-    append(ROOT/'evaluation',ROOT/'runs/dynamic-content-reference',ROOT/'runs/dynamic-content-measured',
+    from harness.web_fetch.storage import current_evidence_dir,data_home
+    append(current_evidence_dir(),data_home()/'runs/dynamic-content-reference',data_home()/'runs/dynamic-content-measured',
            json.loads((ROOT/'research/dynamic-completion-checks.json').read_text()))

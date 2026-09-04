@@ -1,4 +1,0 @@
-Title: Swagger UI
-
-Content:
-Swagger UI

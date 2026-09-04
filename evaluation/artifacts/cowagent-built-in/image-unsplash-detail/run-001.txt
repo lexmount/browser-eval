@@ -1,1 +1,0 @@
-Error: HTTP 403 for URL: https://unsplash.com/photos/green-leaf-plants-mSK5nNsAsLY

@@ -24,7 +24,6 @@ class BenchmarkSelectionTests(unittest.TestCase):
         (self.root/'evaluation').mkdir()
         (self.root/'configs').mkdir()
         (self.root/'evaluation/dataset.json').write_text(json.dumps(self.dataset))
-        (self.root/'evaluation/results.jsonl').write_text('{"provider":"fixture-one"}\n')
         for case in cases:
             source = self.root/'evaluation/sources'/case['id']
             source.mkdir(parents=True)

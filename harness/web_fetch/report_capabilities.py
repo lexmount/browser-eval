@@ -134,21 +134,21 @@ CAPABILITIES = {
   'tested': '只调用 load 读取正文；没有额外 soup 解析、PDF loader 或浏览器渲染。',
  },
  'crawl4ai': {
-  'scope': 'AsyncWebCrawler.arun', 'sources': ['c4-media', 'c4-pdf', 'c4-download', 'c4-config'],
+  'scope': '正文 AsyncWebCrawler；文件 AsyncHTTPCrawlerStrategy', 'sources': ['c4-media', 'c4-pdf', 'c4-download', 'c4-config'],
   'web': c('支持', '渲染 HTML → Markdown'), 'document': c('需配置', 'PDF 专用策略'),
   'image': c('仅链接', 'media.images + 元数据'), 'av': c('仅链接', 'media.videos / audios'),
-  'file': c('需配置', '浏览器下载并返回路径'), 'js': c('支持', '浏览器 + JS 动作'),
+  'file': c('需配置', '原生 HTTP 文件策略或浏览器下载'), 'js': c('支持', '浏览器 + JS 动作'),
   'input': '网页 URL；远程或本地 PDF 需专用策略。',
   'structure': '可选 CSS/JSON 或 LLM 提取策略；media/links 是结构化资源信息。',
   'access': '可配置持久会话、Cookie 和页面动作；并非保证突破每个站点限制。',
-  'notes': 'PDF 需 PDFCrawlerStrategy + PDFContentScrapingStrategy，可选提取并保存内嵌图片，默认不含扫描件 OCR。文件下载需 accept_downloads 并触发下载，downloaded_files 返回本地路径；网页截图和打印 PDF 是新生成的文件，不是目标原文件。',
-  'tested': '本轮通用浏览器策略、无缓存；未启用专用 PDF 策略、下载配置、截图或 LLM 提取。媒体字段不代表内容理解。',
+  'notes': 'PDF 需 PDFCrawlerStrategy + PDFContentScrapingStrategy，可选提取并保存内嵌图片，默认不含扫描件 OCR。浏览器下载需 accept_downloads 并触发下载；原生 HTTP 文件策略直接将非 HTML 响应保存到 downloaded_files。网页截图和打印 PDF 是新生成的文件，不是目标原文件。',
+  'tested': '正文使用原通用浏览器策略、无缓存；文件补测在调用前选择原生 HTTP 文件策略，读取 downloaded_files 并统一校验。未启用专用 PDF 策略、截图或 LLM 提取；媒体字段不代表内容理解。',
  },
 }
 SOURCES['moli'] = ('Moli · WebFetch skill', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/SKILL.md')
 SOURCES['moli-recipes'] = ('Moli · 输出与接口边界', 'https://github.com/lexmount/moli/blob/91ad8c5fd4e50663323569401ec07704380ce52c/skills/moli-webfetch/references/fetch-recipes.md')
 CAPABILITIES['moli-webfetch'] = {
- 'scope':'moli fetch；评测使用 --dump markdown', 'sources':['moli','moli-recipes'],
+ 'scope':'moli fetch；正文 markdown，原文件 html 字节输出', 'sources':['moli','moli-recipes'],
  'web':c('支持','JS 渲染网页 → Markdown / HTML'),
  'document':c('未声明','未声明 PDF / Office 正文解析'),
  'image':c('有限支持','页面引用；JSON HTML / eval 可取地址'),
@@ -159,7 +159,7 @@ CAPABILITIES['moli-webfetch'] = {
  'structure':'JSON 返回最终 URL、状态、标题、响应头、重定向链和 HTML；--eval 可返回 DOM 字段。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；非 HTML 响应不支持 Markdown。',
- 'tested':'适配器仅使用 Markdown + done + 私网屏蔽；无 layout、额外资源加载或 eval，无格式回退。只有实际执行记录参与榜单。',
+ 'tested':'正文使用 Markdown，文件任务预先选择 html 原始字节模式；done + 私网屏蔽，无 layout、额外资源加载或 eval，无失败后格式回退。只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 

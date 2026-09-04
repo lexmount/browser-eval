@@ -7,16 +7,17 @@ from harness.web_fetch.config import load_dataset,load_provider_config,load_runt
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.list_verification import verify_list
+from harness.web_fetch.storage import current_evidence_dir,data_home
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--env-file',type=Path)
     args=parser.parse_args()
     load_runtime_env(args.env_file)
-    out=ROOT/'runs/dynamic'
+    out=data_home()/'runs/dynamic'
     if out.exists() and any(out.iterdir()):raise ValueError('Measured output already exists')
     out.mkdir(parents=True,exist_ok=True)
-    source=ROOT/'evaluation';dataset,cases=load_dataset(source/'dataset.json')
+    source=current_evidence_dir();dataset,cases=load_dataset(source/'dataset.json')
     selected=[replace(c,task_prompt='取得至少三个不同条目的名称和本站详情链接；核对返回的前三条名称与详情身份，不要求固定排名、价格或某一批条目。',source_benchmark={**c.source_benchmark,'verification_scope':'first_three_name_detail_pairs'}) for c in cases if c.task_kind=='structure']
     for row in dataset['cases']:
         if row.get('task_kind')=='structure':

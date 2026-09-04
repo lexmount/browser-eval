@@ -1,1 +1,0 @@
-The pytest framework makes it easy to write small tests, yet scales to support complex functional testing Repository stats: stars 14.5k, forks 3.3k, issues 680, pull requests 129. README excerpt: The pytest framework makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries.

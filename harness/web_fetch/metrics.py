@@ -12,11 +12,11 @@ from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
 
 METRIC_DEFINITIONS = {
     "transport_success": "供应商完成请求，并将响应判为请求成功；它不代表正文正确。",
-    "content_pass": "机器内容初判：显著标记、最小长度、全部事实组和反向错误标记四道确定性规则均通过。",
+    "content_pass": "机器内容判定：显著标记、最小长度、事实组、错误页排除及案例声明的正文覆盖要求均通过；稳定内容与结构契约另由统一任务谓词合并。",
     "marker_recall": "命中的显著标记数除以该案例登记的显著标记总数。",
-    "elapsed_ms": "客户端墙钟耗时，包含网络与供应商处理时间。",
+    "elapsed_ms": "客户端调用至最终内容及必要转换完成的墙钟耗时，包含网络、远端处理和本地提取；离线评分与持久化不计入。历史耗时保持原值，不补算未测开销。",
     "mean_content_ms": "仅对程序判断通过的调用计算平均耗时；失败、空壳和超时不进入该均值。",
-    "deadline_overrun": "实际墙钟耗时超过配置的 timeout；socket timeout 不被假定为严格截止时间。",
+    "deadline_overrun": "实际墙钟耗时超过调用预算，不计为按时完成；新调用由统一截止边界约束，历史记录仅据原始耗时判断，不追认硬截止执行。",
     "content_chars": "持久化供应商输出的 Unicode 字符数。",
     "markdown_headings": "输出中的 Markdown 标题行数量。",
     "markdown_links": "输出中目标为 HTTP(S) 的 Markdown 链接数量。",
@@ -83,7 +83,8 @@ def evaluate_resources(
     Only URLs explicitly returned in content or structured metadata are eligible.
     The request URL and provider final_url are deliberately excluded.
     """
-    candidates = _metadata_resource_urls(metadata) if eligible else []
+    answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
+    candidates = _metadata_resource_urls(answer_fields) if eligible else []
     if eligible:
         candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
         candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
@@ -144,11 +145,18 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
+    if not task_measured(metrics, task_kind) or metrics.get('deadline_overrun'):
+        return False
     if "stable_task_pass" in metrics:
         return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
                     and not metrics.get("stable_blocked_page"))
     field = {'structure':'list_task_pass', 'resource':'resource_pass', 'file':'raw_file_pass'}.get(task_kind, 'content_pass')
     return bool(ok and metrics.get(field))
+
+
+def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
+    kind = task_kind or metrics.get('task_kind', 'body')
+    return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
 
 def normalize_for_match(value: str) -> str:
@@ -203,6 +211,8 @@ def evaluate_content(
     required_patterns: list[dict[str, Any]] | None = None,
     acceptance_contract: dict[str, Any] | None = None,
     base_url: str = "",
+    named_links: list[dict] | None = None,
+    body_requirements: dict | None = None,
 ) -> dict[str, Any]:
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
@@ -246,10 +256,14 @@ def evaluate_content(
         count = len(set(re.findall(rule['pattern'], content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
+    from .body_coverage import evaluate_body_requirements
+    body_checks = evaluate_body_requirements(content, body_requirements or {})
+    content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
         word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
     result = {
+        **body_checks,
         "content_pass": content_pass,
         "pattern_results": pattern_results,
         "legacy_marker_pass": legacy_pass,
@@ -279,7 +293,7 @@ def evaluate_content(
     }
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(content, acceptance_contract, base_url))
+        result.update(evaluate_stable_task(content, acceptance_contract, base_url, links=named_links))
         if forbidden:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -310,6 +324,7 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     provider_summary = {}
     for provider, items in sorted(by_provider.items()):
+        evaluated = [item for item in items if task_measured(item['metrics'])]
         elapsed = [float(item["elapsed_ms"]) for item in items]
         transport_successful_elapsed = [float(item["elapsed_ms"]) for item in items if item["ok"]]
         content_successful_elapsed = [
@@ -322,7 +337,9 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "provider_type": items[0]["provider_type"],
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
-            "task_pass_rate": round(passed / len(items), 4),
+            "task_evaluated_attempts": len(evaluated),
+            "task_unmeasured_attempts": len(items) - len(evaluated),
+            "task_pass_rate": round(passed / len(evaluated), 4) if evaluated else None,
             "mean_marker_recall": round(
                 statistics.mean(item["metrics"]["marker_recall"] for item in items), 4
             ),
@@ -352,13 +369,16 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
 
     case_summary = {}
     for case_id, items in sorted(by_case.items()):
+        evaluated = [item for item in items if task_measured(item['metrics'])]
         passed = sum(task_passed(item["ok"], item["metrics"]) for item in items)
         case_summary[case_id] = {
             "name": items[0]["case_name"],
             "category": items[0]["category"],
             "attempts": len(items),
             "transport_success_rate": round(sum(item["ok"] for item in items) / len(items), 4),
-            "task_pass_rate": round(passed / len(items), 4),
+            "task_evaluated_attempts": len(evaluated),
+            "task_unmeasured_attempts": len(items) - len(evaluated),
+            "task_pass_rate": round(passed / len(evaluated), 4) if evaluated else None,
         }
     return {"providers": provider_summary, "cases": case_summary}
 
@@ -371,6 +391,8 @@ def _mean_present(values: Any) -> float | None:
 def _failure_counts(items: list[dict[str, Any]]) -> dict[str, int]:
     counts: dict[str, int] = defaultdict(int)
     for item in items:
+        if not task_measured(item['metrics']):
+            continue
         if not item["ok"]:
             counts[item.get("error_type") or "unknown_transport_failure"] += 1
         elif not task_passed(item["ok"], item["metrics"]):

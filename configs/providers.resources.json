@@ -21,7 +21,7 @@
     "cowagent-built-in": {
       "type": "cowagent_builtin",
       "repo_path": "${COWAGENT_REPO}",
-      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-runs/cowagent-workspace}"
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}"
     },
     "lexmount-global": {
       "type": "lexmount",

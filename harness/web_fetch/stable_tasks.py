@@ -192,6 +192,7 @@ def _table_records(lines, schema):
 
 def _products(lines, schema):
     records = []
+    claimed_shipping = set()
     i = 0
     while i < len(lines):
         current = _field(lines[i], "price")
@@ -238,9 +239,14 @@ def _products(lines, schema):
                 end += 1
             fields["description"] = " ".join(description)
         else:
-            while end < len(lines) and re.match(r"(?:or\s|financing\s*:|free shipping|shipping\s*:)", lines[end], re.I):
+            if i and i-1 not in claimed_shipping and re.fullmatch(r'free shipping|shipping\s*:\s*free', lines[i-1], re.I):
+                fields['shipping'] = lines[i-1]
+                claimed_shipping.add(i-1)
+            while end < len(lines) and re.match(r"(?:or(?=\s|\d)|financing\s*:|free shipping|shipping\s*:)", lines[end], re.I):
                 field = "shipping" if "shipping" in lines[end].casefold() else "financing"
-                fields[field] = _field(lines[end], field) if field == "financing" else lines[end]
+                fields[field] = re.sub(r'^or(?=\d)', 'or ', _field(lines[end], field)) if field == "financing" else lines[end]
+                if field == 'shipping':
+                    claimed_shipping.add(end)
                 end += 1
         records.append(_record(fields, schema))
         i = end
@@ -409,8 +415,11 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "field_minimum_records"}:
         raise ValueError("Unknown stable acceptance contract fields")
+    field_counts = contract.get('field_minimum_records', {})
+    if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
+        raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
     if type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
@@ -446,7 +455,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -470,7 +479,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     errors = []
     if schema == "named_link":
         try:
-            entries = extract_named_entries(content, contract, base_url)
+            entries = extract_named_entries(content, contract, base_url, links)
         except ValueError:
             # Malformed returned URLs are output validation failures, not
             # malformed contracts and not exceptions that abort a whole run.
@@ -491,6 +500,13 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]
     unique = {tuple(_key(r["fields"][field]) for field in UNIQUE_FIELDS[schema]) for r in complete}
+    field_checks = []
+    for field, count in contract.get('field_minimum_records', {}).items():
+        identities = {tuple(_key(r['fields'][key]) for key in UNIQUE_FIELDS[schema])
+                      for r in complete if _valid_field(field, r['fields'].get(field))}
+        field_checks.append({'field': field, 'count': len(identities), 'minimum': count, 'pass': len(identities) >= count})
+        if len(identities) < count:
+            errors.append('missing_required_field:' + field)
     if len(complete) != len(records):
         errors.append("incomplete_records")
     if len(unique) != len(complete):
@@ -504,6 +520,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if not eligible:
         errors.append("request_ineligible")
     return {"stable_task_pass": not errors, "stable_task_schema": schema,
+            "stable_field_results": field_checks,
             "stable_structure_pass": structure_pass, "stable_content_pass": not content_errors,
             "stable_blocked_page": blocked_page,
             "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,

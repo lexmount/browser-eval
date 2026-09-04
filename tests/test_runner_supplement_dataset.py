@@ -55,6 +55,7 @@ class SupplementDatasetTests(unittest.TestCase):
         self.addCleanup(stack.close)
         stack.enter_context(patch.object(benchmark, "ROOT", self.root))
         stack.enter_context(patch.object(local, "ROOT", self.root))
+        stack.enter_context(patch.dict(os.environ, {"BROWSER_EVAL_DATA_HOME": str(self.root)}))
         self.env_loader = stack.enter_context(patch.object(benchmark, "load_runtime_env"))
         self.report = stack.enter_context(patch.object(benchmark, "build_report"))
         self.measure = stack.enter_context(patch.object(benchmark, "run_evaluation",
@@ -159,10 +160,10 @@ class SupplementDatasetTests(unittest.TestCase):
         self.assertFalse(self.output.exists())
 
     def test_benchmark_defaults_remain_canonical(self):
+        self.payload["coverage_plan"] = {"dynamic": list(local.NAMES)}
         self.write(self.root / "evaluation/dataset.json", self.payload)
-        self.write(self.root / "evaluation/results.jsonl", {"provider": "tavily"})
         benchmark.main(["--validate-only"])
-        self.assertEqual(self.provider.validate.call_count, 2)  # tavily plus default moli
+        self.assertEqual(self.provider.validate.call_count, 3)
         self.env_loader.assert_called_once_with(None)
         self.measure.assert_not_called()
 
@@ -201,7 +202,7 @@ class SupplementDatasetTests(unittest.TestCase):
         self.assertEqual(child.call_args.args[-1], self.root / "evaluation/dataset.json")
         self.assertFalse(self.output.exists())
 
-    def test_local_output_must_stay_in_project_runs(self):
+    def test_local_output_must_stay_in_persistent_runs(self):
         self.output = self.root / "outside-run"
         with patch.object(local.subprocess, "run") as child, self.assertRaises(ValueError):
             self.local_main("--dataset", str(self.dataset_path))

@@ -1,9 +1,0 @@
-身份核实
-请拖动下方滑块完成拼图
-加载中
-恭喜你，验证成功
-验证失败，请重新操作
-dc7b97257ca5469c8762bf95d84210c7
-去反馈
-![refresh](https://s3plus.meituan.net/yoda-resources/common/refresh.svg)
-© 2003-2021 dianping.com, All Rights Reserved.

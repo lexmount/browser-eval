@@ -33,9 +33,9 @@ def name_matches(title,reference):
     return a==b or (len(b)>=5 and a.startswith(b+' '))
 
 
-def verify_list(content,contract,url,reference,eligible=True):
+def verify_list(content,contract,url,reference,eligible=True,links=None):
     entries=[];seen=set()
-    for item in extract_named_entries(content,contract,url):
+    for item in extract_named_entries(content,contract,url,links):
         key=identity(item['url'])
         if key not in seen:entries.append(item);seen.add(key)
     required=contract['minimum_entries'];selected=entries[:required]

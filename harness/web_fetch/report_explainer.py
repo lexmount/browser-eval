@@ -10,7 +10,8 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote
 
-from .metrics import evaluate_content, task_passed
+from .metrics import task_passed
+from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
 
@@ -152,7 +153,7 @@ def _bound_initial_audit(cases):
 
 
 def collect_evidence(cases, records):
-    """Do not rescore or normalize: the report builder owns that boundary."""
+    """Read persisted shared scores; presentation never normalizes or rescores."""
     for key in cases:
         safe_identifier(key)
     for r in records:
@@ -163,16 +164,19 @@ def collect_evidence(cases, records):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
 
     def summary(rows):
+        from .metrics import task_measured
+        evaluated = [r for r in rows if task_measured(r['metrics'], cases[r['case_id']].get('task_kind'))]
         from .report_components import comparable_body_reference
         full = [r for r in rows if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
         successes = sum(passed(r) for r in rows)
-        post = sum(bool(r['ok']) and not passed(r) for r in rows)
-        failures = len(rows) - successes
+        post = sum(bool(r['ok']) and not passed(r) for r in evaluated)
+        failures = len(evaluated) - successes
         return {'records': len(rows), 'provider_count': len({r['provider'] for r in rows}),
                 'case_count': len({r['case_id'] for r in rows}),
                 'request_ok': sum(bool(r['ok']) for r in rows), 'task_pass': successes,
                 'failures': failures, 'post_response_failures': post,
-                'request_failures': sum(not r['ok'] for r in rows),
+                'request_failures': sum(not r['ok'] for r in evaluated),
+                'task_evaluated': len(evaluated), 'task_unmeasured': len(rows)-len(evaluated),
                 'post_response_failure_share': post / failures if failures else None,
                 'f1_records': len(full), 'mean_f1': _mean(r['metrics']['word_f1'] for r in full),
                 'attempt_ids': [r['attempt_id'] for r in rows]}
@@ -188,7 +192,7 @@ def collect_evidence(cases, records):
     dynamic = [r for r in records if cases[r['case_id']].get('track') == 'dynamic']
     result = {'schema_version': 1,
               'input': {'cases_sha256': _digest(cases), 'records_sha256': _digest(records),
-                        'records_state': 'report-builder normalized; no editorial rescoring'},
+                        'records_state': 'persisted shared normalization and scoring; no editorial rescoring'},
               'totals': summary(records), 'case_count': len(cases),
               'provider_count': len(providers), 'tracks': {},
               'historical': summary(historical), 'dynamic': summary(dynamic),
@@ -275,12 +279,12 @@ def _price_experiment(out, cases, records):
         return None, '<p>当前输入未包含书目页的 CowAgent 执行记录，无法核算价格反事实。</p>'
     case = cases[sample['case_id']]
     raw = contained_path(out, sample['artifact_path']).read_text()
-    kwargs = {key: case[key] for key in ('required_facts', 'forbidden_any', 'min_content_chars',
-              'fact_coverage_threshold', 'ground_truth_main_content', 'required_patterns') if key in case}
+    kwargs = {'ok': sample['ok'], 'status_code': sample.get('status_code'),
+              'metadata': sample.get('provider_metadata', {})}
     # Declared experimental intervention, not a benchmark statistic.
     before, after = '51.77', '999.99'
-    original = evaluate_content(raw, case['expected_any'], **kwargs)
-    altered = evaluate_content(raw.replace(before, after), case['expected_any'], **kwargs)
+    original = score_attempt(case, raw.encode(), **kwargs)
+    altered = score_attempt(case, raw.replace(before, after).encode(), **kwargs)
     fact = next((f for f in altered['fact_results'] if f['id'] == 'first-price'), None)
     data = {'attempt_id': sample['attempt_id'], 'source_sha256': hashlib.sha256(raw.encode()).hexdigest(),
             'replace_from': before, 'replace_to': after, 'replacements': raw.count(before),
@@ -297,7 +301,7 @@ def _price_experiment(out, cases, records):
             + '<details class="editorial-probe"><summary>核对本例的书名、价格与库存规则</summary>'
             + _table(['核对点', '可接受表达', '实际命中'], rows, '书目页：规则实际检查了什么') + '</details>'
             + f'<p>在这份输出的内存副本中，把 <code>{before}</code> 换成 <code>{after}</code>，'
-            f'再运行同一个 <code>evaluate_content</code>。原文正文规则{state(original["content_pass"])}；'
+            f'再运行统一的 <code>score_attempt</code>。原文正文规则{state(original["content_pass"])}；'
             f'替换后长度规则{state(altered["length_pass"])}，价格核对点{state(fact["pass"] if fact else False)}，'
             f'正文规则{state(altered["content_pass"])}。请求状态没有改变，但内容验收改变了。'
             '这个离线反事实只改副本，不改实测记录、不进入排名。</p>')
@@ -489,8 +493,13 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         values['low_f1_case'] = (f'<p>CowAgent 已通过网页中 F1 最低的是 '
             f'{_attempt(low, cases[low["case_id"]]["name"])}：完整度 {_percent(low["word_recall"])}，'
             f'纯净度 {_percent(low["word_precision"])}，F1 {_percent(low["word_f1"])}。'
-            '几乎找齐参考词语，却同时返回了大量参考范围以外的文字。按这份参考选取正文的任务，'
-            '关键点保住了，阅读和索引负担仍然存在。</p>')
+            '这些指标描述输出与该例参考的重合程度。参考外文字可能是导航，也可能是有用的目录或附录，'
+            '仅凭低纯净度不能认定它们全是噪声，应先核对任务的正文范围。</p>')
+    css = next((r for r in records if r['provider']=='cowagent-built-in' and r['case_id']=='live-024-cascading-style-sheets-level-2-r'), None)
+    values['scope_case'] = (f'<p>CSS 2.1 标准是一个具体例子：文档目录属于本例要求保留的正文，'
+        f'CowAgent 这次输出相对完整范围的 F1 为 {_percent(css["metrics"]["word_f1"])}。'
+        '若参考剔除长目录，保留目录的方法会被大量扣分；这样的分差反映参考范围不一致，'
+        '不能用来证明方法提取了大量噪声。'+_attempt(css, '原始输出与当前参考')+'</p>') if css else ''
     data['price_counterfactual'], values['price_case'] = _price_experiment(out, cases, records)
     probe_path = ROOT / 'research/cowagent-text-probe.json'
     probe = json.loads(probe_path.read_text()) if probe_path.exists() else None

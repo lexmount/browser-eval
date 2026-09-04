@@ -1,6 +1,0 @@
-Error: Web fetch extraction failed: Readability, provider fallback, and basic HTML cleanup returned no content.
-    at fetchWebPayload (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:904:19)
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async runWebFetch (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:767:19)
-    at async Object.execute (/private/tmp/openclaw-eval/src/agents/tools/web-fetch.ts:1041:24)
-    at async <anonymous> (/private/tmp/browser-harness-eval/scripts/oss/openclaw_webfetch_worker.mts:33:17)
