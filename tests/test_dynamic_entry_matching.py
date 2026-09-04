@@ -53,6 +53,14 @@ class DynamicEntryMatchingTests(unittest.TestCase):
         self.assertTrue(hits['entry-2-method'])
         self.assertFalse(self.hits(text.replace('/user', '/user/login'), facts)['entry-3-path'])
 
+    def test_native_markdown_link_can_adjoin_method_path_and_summary(self):
+        facts = entry_facts('dynamic-swagger', [
+            'POST\n/pet\nAdd a new pet to the store',
+            'GET\n/pet/{petId}\nFind pet by ID'])
+        self.assert_complete(
+            'POST[/pet](#/pet/addPet)Add a new pet to the store\n'
+            'GET[/pet/{petId}](#/pet/getPetById)Find pet by ID', facts)
+
     def test_overlapping_titles_do_not_invent_missing_record(self):
         facts = entry_facts('dynamic-react-cart', [
             'Blue T-Shirt\n$10', 'Marine Blue T-shirt\n$10'])

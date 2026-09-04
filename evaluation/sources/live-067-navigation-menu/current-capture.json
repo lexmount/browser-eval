@@ -1,0 +1,158 @@
+{
+  "case_id": "live-067-navigation-menu",
+  "url": "https://github.com/infiniflow/ragflow",
+  "checked_at": "2026-09-04T07:45:38.786045+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/infiniflow/ragflow"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/infiniflow/ragflow",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 527997,
+  "sha256": "a8d778089c5fd44074fcf1844c824b3b8add98b034fa1e788cade3c7d621619e",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'self'; child-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com github.githubassets.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net productionresultssa1.blob.core.windows.net productionresultssa2.blob.core.windows.net productionresultssa3.blob.core.windows.net productionresultssa4.blob.core.windows.net productionresultssa5.blob.core.windows.net productionresultssa6.blob.core.windows.net productionresultssa7.blob.core.windows.net productionresultssa8.blob.core.windows.net productionresultssa9.blob.core.windows.net productionresultssa10.blob.core.windows.net productionresultssa11.blob.core.windows.net productionresultssa12.blob.core.windows.net productionresultssa13.blob.core.windows.net productionresultssa14.blob.core.windows.net productionresultssa15.blob.core.windows.net productionresultssa16.blob.core.windows.net productionresultssa17.blob.core.windows.net productionresultssa18.blob.core.windows.net productionresultssa19.blob.core.windows.net github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com wss://alive-staging.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com wss://production-copilot-host.webpubsub.azure.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com release-assets.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com repository-images.githubusercontent.com marketplace-screenshots.githubusercontent.com copilotprodattachments.blob.core.windows.net/github-production-copilot-attachments/ github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com explore-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com secured-user-images.githubusercontent.com private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "GitHub - infiniflow/ragflow: RAGFlow is a leading open-source Retrieval-Augmented Generation (RAG) engine that fuses cutting-edge RAG with Agent capabilities to create a superior context layer for LLMs · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/infiniflow/ragflow/main/web/src/assets/logo-with-text.svg",
+      "alt": "ragflow logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/5c0caf5ced5e85c6f7980d1551aabee006d055bb853baaad9ce9e0f10bfb57bc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f456e676c6973682d444245444641",
+      "alt": "README in English"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/9bb50c9cf659024406659a9f9c1a9b09f394f05e6bffb238129fb82bf1750e59/68747470733a2f2f696d672e736869656c64732e696f2f62616467652fe7ae80e4bd93e4b8ade696872d444645304535",
+      "alt": "简体中文版自述文件"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/ba37b7979c04919d8552fce0f4a0aa306c15891406b935fd2a70996d396ceff9/68747470733a2f2f696d672e736869656c64732e696f2f62616467652fe7b981e9ab94e4b8ade696872d444645304535",
+      "alt": "繁體版中文自述文件"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/0b76d9a2057efad8b6a1a4497e345efeba4f10c946faef344dca3d723b643128/68747470733a2f2f696d672e736869656c64732e696f2f62616467652fe697a5e69cace8aa9e2d444645304535",
+      "alt": "日本語のREADME"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/cdf3e3d23cdf8cef98c2a7235e99edefe69d0c4c0c8deb659fcf8c28d9a9c532/68747470733a2f2f696d672e736869656c64732e696f2f62616467652fed959ceab5adec96b42d444645304535",
+      "alt": "한국어"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/e76eb715af358b137100b5f651dc98909f92600f9809a2e530d8d745f94b4ba9/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4672616ec3a76169732d444645304535",
+      "alt": "README en Français"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/59e6536b48def2948702890423c4a4cc0dccf1444d80c6536ec808d4439d4b60/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f42616861736120496e646f6e657369612d444645304535",
+      "alt": "Bahasa Indonesia"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/de9c9a8163f0dc7f291f73e2a6d6a585b0e3dd8340ede332f21a4e44fa928320/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f506f7274756775c3aa732842726173696c292d444645304535",
+      "alt": "Português(Brasil)"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/3445c0810f3f6343b4eb80dbfedd0a12dfcb76b8750ca86c8d2e5b8453935340/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4172616269632d444645304535",
+      "alt": "README in Arabic"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/4b73aa4c53948a12205c1b2b741fea849ed0194a70c56529f0a692c5f59fd95c/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f54c3bc726bc3a7652d444645304535",
+      "alt": "Türkçe README"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/ee02e7db154a60456c6d901b5197285f54a9361529285c3a7f1e72bf5170c33d/68747470733a2f2f696d672e736869656c64732e696f2f62616467652fd0a0d183d181d181d0bad0b8d0b92d444645304535",
+      "alt": "Русская версия README"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/57f1d22b0baf26c27f421a62a2d38859d47a1fff30b98f5fbb68f2c95e09ff5f/68747470733a2f2f696d672e736869656c64732e696f2f747769747465722f666f6c6c6f772f696e66696e69666c6f773f6c6f676f3d5826636f6c6f723d253230253233663566356635",
+      "alt": "follow on X(Twitter)"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/677e74dbe37025f78efaae0a12f7c1bbbbdb857439457ad6ccc2170c9a1f2103/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4765742d537461727465642d346536623939",
+      "alt": "Static Badge"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/7920ce8617918dd377b349e129598a0dcadd7019618fccabfee984946bfab5d3/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f7261772e67697468756275736572636f6e74656e742e636f6d2f696e66696e69666c6f772f726167666c6f772d73746174732f6d61696e2f6261646765732f646f636b65722d70756c6c732e6a736f6e267374796c653d666c61742d737175617265266c6f676f3d646f636b6572266c6f676f436f6c6f723d7768697465",
+      "alt": "docker pull infiniflow/ragflow:v0.27.1"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/3fd28cc4cca55cb2b58911835bcadaa5e91147bb0d537ba20b3715f19c00c485/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f762f72656c656173652f696e66696e69666c6f772f726167666c6f773f636f6c6f723d626c7565266c6162656c3d4c617465737425323052656c65617365",
+      "alt": "Latest Release"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/6b58253ba6743f6bf0d276208aa116826b139e2ab3edd8baa990c41a558d90b0/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4c6963656e73652d4170616368652d2d322e302d6666666666663f6c6162656c436f6c6f723d64346561663726636f6c6f723d326536636334",
+      "alt": "license"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/0f5ae213ac378635adeb5d7f13cef055ad2f7d9a47b36de7b1c67dbe09f609ca/68747470733a2f2f6465657077696b692e636f6d2f62616467652e737667",
+      "alt": "Ask DeepWiki"
+    },
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/ragflow-octoverse.png",
+      "alt": "RAGFlow in the GitHub Octoverse"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/a6e05fb93088900f5d0a2895e9ab9f80c694c6e40caeed8a94685e67f44cc07b/68747470733a2f2f7472656e6473686966742e696f2f6170692f62616467652f7265706f7369746f726965732f39303634",
+      "alt": "infiniflow%2Fragflow | Trendshift"
+    },
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/chunking.gif",
+      "alt": "Chunking demonstration"
+    },
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/infiniflow/ragflow-docs/refs/heads/image/image/agentic-dark.gif",
+      "alt": "Agentic workflow demonstration"
+    },
+    {
+      "tag": "img",
+      "url": "https://private-user-images.githubusercontent.com/12318111/371996934-18c9707e-b8aa-4caf-a154-037089c105ba.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODg1MDgyNDAsIm5iZiI6MTc4ODUwNzk0MCwicGF0aCI6Ii8xMjMxODExMS8zNzE5OTY5MzQtMThjOTcwN2UtYjhhYS00Y2FmLWExNTQtMDM3MDg5YzEwNWJhLmdpZj9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA5MDQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwOTA0VDA3NDU0MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTM2MzllMThjY2ZhN2E3NDkwMGMyYjIxYWQyOGYwODZiNWQ5YzU4N2RjMjYxYjQwNzkxN2ZlMTU3NWJhNTBjZjImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRmdpZiJ9.Y0Acg2EpMEIHIUBL20xXogCswYq-4Y6X_tRFfbczRC0",
+      "alt": "RAGFlow feature updates"
+    },
+    {
+      "tag": "img",
+      "url": "https://private-user-images.githubusercontent.com/33142505/501857358-31b0dd6f-ca4f-445a-9457-70cb44a381b2.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODg1MDgyNDAsIm5iZiI6MTc4ODUwNzk0MCwicGF0aCI6Ii8zMzE0MjUwNS81MDE4NTczNTgtMzFiMGRkNmYtY2E0Zi00NDVhLTk0NTctNzBjYjQ0YTM4MWIyLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA5MDQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwOTA0VDA3NDU0MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWJjNjllNzE1ODI0ZDRlOWM4NWQ5YjRkYTBhZWIyMGIyZGEyOTRmZjAyMDJjYjgxMWM4ZDgyYzQ1ZmMyYmVkOGQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.qITCosBQCOh6iEFg5ekfGLKhk9XW0wZwSNm0ks6mz1Q",
+      "alt": "RAGFlow system architecture"
+    },
+    {
+      "tag": "img",
+      "url": "https://private-user-images.githubusercontent.com/93570324/371018995-0daf462c-a24d-4496-a66f-92533534e187.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODg1MDgyNDAsIm5iZiI6MTc4ODUwNzk0MCwicGF0aCI6Ii85MzU3MDMyNC8zNzEwMTg5OTUtMGRhZjQ2MmMtYTI0ZC00NDk2LWE2NmYtOTI1MzM1MzRlMTg3LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjA5MDQlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYwOTA0VDA3NDU0MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVkZjZmN2YzYWU4YTM2ZDllMDAxMjUyNDkzYzE5M2MwMmRkY2M5ZGQwOGUwNDgzODM0ZGEzOGUwZDVkMDY0ODcmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.WXFSMMyP79dXDBgvan_sPb4O2s0bFB4NXkCBujjajMw",
+      "alt": "RAGFlow web interface"
+    }
+  ],
+  "extracted_sha256": "4540b07163c5265252e7fc6dff08f8c3504592c29da6806ad552298509218786",
+  "reference_sha256": "4540b07163c5265252e7fc6dff08f8c3504592c29da6806ad552298509218786",
+  "text_chars": 10251,
+  "excerpt": "Cloud\n|\nDocumentation\n|\nRoadmap\n|\nDiscord\n📕 Table of Contents\n💡\nWhat is RAGFlow?\n🎮\nGet Started\n🔥\nLatest Updates\n🌟\nKey Features\n🔎\nSystem Architecture\n🎬\nSelf-Hosting\n🔧\nConfigurations\n🔧\nBuild a Docker Image\n🔨\nLaunch Service from Source for Development\n📚\nDocumentation\n📜\nRoadmap\n🏄\nCommunity\n🙌\nContributing\n💡 What is RAGFlow?\nRAGFlow\nis a leading open-source Retrieval-Augmented Generation (\nRAG\n) engine that fuses cutting-edge RAG with Agent capabilities to create a superior context layer for LLMs. It offers a streamlined RAG workflow adaptable to enterprises of any scale. Powered by a converged\ncontext engine\nand pre-built agent templates, RAGFlow enables developers to transform complex data into high-fidelity, production-ready AI systems with exceptional efficiency and precision.\n🎮 Get Started\n",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

@@ -10,7 +10,6 @@ browser-harness-eval = "harness.web_fetch.cli:main"
 
 [project.optional-dependencies]
 headless-eval = [
-  "pyhtml2md==1.7.0",
   "playwright==1.58.0",
 ]
 reference-audit = [

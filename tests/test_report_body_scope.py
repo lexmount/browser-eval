@@ -228,6 +228,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
         cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text())['cases']}
         records=[json.loads(s) for s in (evidence/'results.jsonl').read_text().splitlines()]
+        if len({r['provider'] for r in records}) != 12:
+            self.skipTest('requires persisted 12-provider general benchmark evidence')
         rendered=ranking(records,cases,'challenge')
         self.assertIn('完整参考覆盖 0/10',rendered)
         rows=table_cells(rendered,'ranking-challenge')

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "scope": "Every one of the 750 stored five-browser calls was reviewed against its saved output, reference answer, task contract and per-check result; review was not limited to failures.",
+  "reviewed_calls": 750,
+  "reviewed_states": ["pass", "fail"],
+  "historical_rule_corrections": {
+    "total": 44,
+    "false_negatives": 43,
+    "false_positives": 1,
+    "false_negative_groups": [
+      {"kind": "multiline_markdown_links", "count": 3},
+      {"kind": "documentation_inline_whitespace_and_explicit_alternatives", "count": 35},
+      {"kind": "dynamic_script_candidates", "count": 2},
+      {"kind": "angular_image_only_bullets", "count": 2},
+      {"kind": "native_markdown_api_links", "count": 1, "attempt_id": "moli__dynamic-swagger__r001"}
+    ],
+    "false_positive_groups": [
+      {
+        "kind": "incomplete_repository_body",
+        "count": 1,
+        "attempt_id": "kitesurf__live-067-navigation-menu__r001",
+        "reason": "The output contained a shell/title and about one tenth of the RAGFlow README, not the declared complete README scope."
+      }
+    ],
+    "highlighted_run": {
+      "run_id": "run-f4e6f2ee641e8baa9e3d",
+      "attempt_id": "moli__lm-feishu-help__r001",
+      "old_result": "fail",
+      "reviewed_result": "pass",
+      "reference_recall": 1.0,
+      "required_facts_present": 3,
+      "required_facts_total": 3,
+      "cause": "A visible sentence split across a multiline Markdown link was not normalized as one sentence by the old rule."
+    }
+  },
+  "latest_main_impact": {
+    "old_passes_corrected_to_fail": 7,
+    "confirmed_causes": [
+      "Moli JavaScript quotes: author/tag fields concatenated",
+      "Moli HTML table: required headers absent",
+      "Lightpanda Node README: middle section absent",
+      "Kitesurf MDN History API and Cache pages: required tail sections absent",
+      "Kitesurf Ruff README: partial Unable to load page response",
+      "Moli Prettier README: downstream section absent"
+    ],
+    "rerun": "The changed Django tutorial reference was independently frozen and rerun for all five methods; Moli returned browser_exit. Other calls were retained only under exact reference-byte and evaluation-scope equivalence."
+  },
+  "final_validation": {
+    "selected_calls": 750,
+    "unique_calls": 750,
+    "task_count": 150,
+    "provider_count": 5,
+    "rescore_matches_persisted_metrics": true,
+    "reference_publication_blockers": []
+  },
+  "limits": "Manual review validates the declared references and task contracts. It does not establish factual freshness for volatile values outside those contracts or statistical repeatability from one call per URL."
+}

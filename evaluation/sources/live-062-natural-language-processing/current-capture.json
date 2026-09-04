@@ -1,0 +1,127 @@
+{
+  "case_id": "live-062-natural-language-processing",
+  "url": "https://en.wikipedia.org/wiki/Natural_language_processing",
+  "checked_at": "2026-09-04T07:45:37.522406+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://en.wikipedia.org/wiki/Natural_language_processing"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://en.wikipedia.org/wiki/Natural_language_processing",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 463676,
+  "sha256": "f59fcb18c31539c16e0dd933a0e484e323e8a73c697d42e28e6307eb6d8e423f",
+  "response_headers": {
+    "Content-Security-Policy": "script-src 'unsafe-eval' blob: 'self' meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org 'unsafe-inline' auth.wikimedia.org; default-src 'self' data: blob: upload.wikimedia.org https://commons.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org en.wikibooks.org en.wikinews.org en.wikiquote.org en.wikisource.org en.wikiversity.org en.wikivoyage.org en.wiktionary.org www.mediawiki.org commons.wikimedia.org foundation.wikimedia.org incubator.wikimedia.org species.wikimedia.org wikimania.wikimedia.org www.wikidata.org www.wikifunctions.org auth.wikimedia.org; style-src 'self' data: blob: upload.wikimedia.org https://commons.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org 'unsafe-inline'; object-src 'none'; report-uri /w/api.php?action=cspreport&format=json; report-to csp-report-to-endpoint",
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "title": "Natural language processing - Wikipedia",
+  "selector": "#mw-content-text .mw-parser-output",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/static/images/icons/enwiki-25.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-wordmark-en-25.svg",
+      "alt": "Wikipedia"
+    },
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-tagline-en-25.svg",
+      "alt": "The Free Encyclopedia"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/en/thumb/b/b4/Ambox_important.svg/40px-Ambox_important.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/en/thumb/9/99/Question_book-new.svg/60px-Question_book-new.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "icon"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Crystal_Clear_app_kedit.svg/40px-Crystal_Clear_app_kedit.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "icon"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Ambox_rewrite.svg/40px-Ambox_rewrite.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/AST_Document.svg/250px-AST_Document.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hebrew_stop_words_word_cloud.png/250px-Hebrew_stop_words_word_cloud.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Eustagger_euskal_lematizatzailearen_adibidea.png/250px-Eustagger_euskal_lematizatzailearen_adibidea.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Entity_Linking_-_Example_of_pipeline.png/250px-Entity_Linking_-_Example_of_pipeline.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Use_of_Firefox%27_%27Translate_selection_to_English%27_machine_translation_on_Commons_talk_meta_pages_02.png/250px-Use_of_Firefox%27_%27Translate_selection_to_English%27_machine_translation_on_Commons_talk_meta_pages_02.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://wikimedia.org/api/rest_v1/media/math/render/svg/43ccadd794a4b84e20d1209997a463342e0dfbfe",
+      "alt": "{\\displaystyle {RMM(token_{N})}={PMM(token_{N})}\\times {\\frac {1}{2d}}\\left(\\sum _{i=-d}^{d}{((PMM(token_{N})}\\times {PF(token_{N-i},token_{N},token_{N+i}))_{i}}\\right)}"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/en/thumb/4/4a/Commons-logo.svg/20px-Commons-logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Wikimedia Commons logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/Globe_of_letters.svg/20px-Globe_of_letters.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "icon"
+    },
+    {
+      "tag": "img",
+      "url": "https://upload.wikimedia.org/wikipedia/en/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+      "alt": "Edit this at Wikidata"
+    },
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/wiki/Special:CentralAutoLogin/start?useformat=desktop&type=1x1&usesul3=1",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/static/images/footer/wikimedia.svg",
+      "alt": "Wikimedia Foundation"
+    },
+    {
+      "tag": "img",
+      "url": "https://en.wikipedia.org/w/resources/assets/mediawiki_compact.svg",
+      "alt": "Powered by MediaWiki"
+    }
+  ],
+  "extracted_sha256": "5003b67f51d745d5ff1906cef01db9a22a1f0da8fa36692bfb45beb4d8f83bb1",
+  "reference_sha256": "5003b67f51d745d5ff1906cef01db9a22a1f0da8fa36692bfb45beb4d8f83bb1",
+  "text_chars": 49938,
+  "excerpt": "Processing of natural language by a computer\nThis article has multiple issues.\nPlease help\nimprove it\nor discuss these issues on the\ntalk page\n.\n(\nLearn how and when to remove these messages\n)\nThis article\nneeds\nmore citations\n.\nPlease help\nimprove this article\nby\nadding citations to reliable sources\n. Unsourced material may be challenged and\nremoved\n.\nFind sources:\n\"Natural language processing\"\n–\nnews\n·\nnewspapers\n·\nbooks\n·\nscholar\n·\nJSTOR\n(\nMay 2024\n)\n(\nLearn how and when to remove this message\n)\nThis article\nmay need to be rewritten to comply with Wikipedia's\nquality standards\n.\nRelevant discussion may be found on the\ntalk page\n.\nYou can help\n. The talk page may contain suggestions.\n(\nJuly 2025\n)\nThis article\nmay be in need of reorganization to comply with Wikipedia's\nlayout guidelines\n",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

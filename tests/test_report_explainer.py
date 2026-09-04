@@ -19,7 +19,15 @@ ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = current_evidence_dir()
 
 
-@unittest.skipUnless((EVIDENCE/'results.jsonl').is_file(), 'requires persisted benchmark evidence')
+def _is_general_report_evidence():
+    path = EVIDENCE / 'results.jsonl'
+    if not path.is_file():
+        return False
+    providers = {json.loads(line)['provider'] for line in path.read_text().splitlines() if line.strip()}
+    return 'cowagent-built-in' in providers and 'moli-webfetch' in providers
+
+
+@unittest.skipUnless(_is_general_report_evidence(), 'requires persisted general benchmark evidence')
 class ExplainerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

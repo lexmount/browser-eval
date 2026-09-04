@@ -2,4 +2,4 @@
 import os
 
 HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
-       'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM').rstrip('/')
+       'https://artifact-hub.dev.lexmount.net/api/preview/bWkRP157EtF6').rstrip('/')

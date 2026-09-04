@@ -1,0 +1,88 @@
+{
+  "case_id": "live-065-navigation-menu",
+  "url": "https://github.com/huggingface/datasets",
+  "checked_at": "2026-09-04T07:45:37.901298+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/huggingface/datasets"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/huggingface/datasets",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 420675,
+  "sha256": "594964242f6469fe5f92e1c53a9f4b979000be5a1923d80752f9b1b6c39a54a9",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'self'; child-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com github.githubassets.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net productionresultssa1.blob.core.windows.net productionresultssa2.blob.core.windows.net productionresultssa3.blob.core.windows.net productionresultssa4.blob.core.windows.net productionresultssa5.blob.core.windows.net productionresultssa6.blob.core.windows.net productionresultssa7.blob.core.windows.net productionresultssa8.blob.core.windows.net productionresultssa9.blob.core.windows.net productionresultssa10.blob.core.windows.net productionresultssa11.blob.core.windows.net productionresultssa12.blob.core.windows.net productionresultssa13.blob.core.windows.net productionresultssa14.blob.core.windows.net productionresultssa15.blob.core.windows.net productionresultssa16.blob.core.windows.net productionresultssa17.blob.core.windows.net productionresultssa18.blob.core.windows.net productionresultssa19.blob.core.windows.net github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com wss://alive-staging.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com wss://production-copilot-host.webpubsub.azure.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com release-assets.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com repository-images.githubusercontent.com marketplace-screenshots.githubusercontent.com copilotprodattachments.blob.core.windows.net/github-production-copilot-attachments/ github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com explore-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com secured-user-images.githubusercontent.com private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "GitHub - huggingface/datasets: 🤗 The largest hub of ready-to-use datasets for AI models with fast, easy-to-use and efficient data manipulation tools · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/2d26ab74629e93bb6ffd0033b3d3f24036b3f95c7d2b804ef83a4fd02a108714/68747470733a2f2f68756767696e67666163652e636f2f64617461736574732f68756767696e67666163652f646f63756d656e746174696f6e2d696d616765732f7261772f6d61696e2f64617461736574732d6c6f676f2d6c696768742e737667",
+      "alt": "Hugging Face Datasets Library"
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/huggingface/datasets/actions/workflows/ci.yml/badge.svg?branch=main",
+      "alt": "Build"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/a4dc7f07b0858130ffed06d1c2ff3357f48e76f3dd8d1c9ceef7bbf6e8add1d8/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6963656e73652f68756767696e67666163652f64617461736574732e7376673f636f6c6f723d626c7565",
+      "alt": "GitHub"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fb1cfc01138e48cff84780d99e0e58e9fdb4d6c22d5fd8fcdcde91d151ab0835/68747470733a2f2f696d672e736869656c64732e696f2f776562736974652f687474702f68756767696e67666163652e636f2f646f63732f64617461736574732f696e6465782e68746d6c2e7376673f646f776e5f636f6c6f723d72656426646f776e5f6d6573736167653d6f66666c696e652675705f6d6573736167653d6f6e6c696e65",
+      "alt": "Documentation"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/ac5153fe3c4c4a530909c7bdf5a93512d2b0032897508af8a6153b4b66fedfaf/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f72656c656173652f68756767696e67666163652f64617461736574732e737667",
+      "alt": "GitHub release"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/25e8d45b87f6e1405d7781d73de37cbf138aa17d6419c4cedddc7fc4b9f0c23b/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f68756767696e67666163652e636f2f6170692f736869656c64732f646174617365747326636f6c6f723d627269676874677265656e",
+      "alt": "Number of datasets"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/29a162993634c8b29ac484c10c05c2db4be4e6ea7a916cf5c130711e91d26364/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d322e302d3462616161612e737667",
+      "alt": "Contributor Covenant"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/10cbb8cf258af5432a984277c262e1871a06d8a6071938e3b876d99ae2a024bf/68747470733a2f2f7a656e6f646f2e6f72672f62616467652f3235303231333238362e737667",
+      "alt": "DOI"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/25e8d45b87f6e1405d7781d73de37cbf138aa17d6419c4cedddc7fc4b9f0c23b/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f68756767696e67666163652e636f2f6170692f736869656c64732f646174617365747326636f6c6f723d627269676874677265656e",
+      "alt": "number of datasets"
+    },
+    {
+      "tag": "img",
+      "url": "https://raw.githubusercontent.com/huggingface/datasets/main/docs/source/imgs/course_banner.png",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/25e8d45b87f6e1405d7781d73de37cbf138aa17d6419c4cedddc7fc4b9f0c23b/68747470733a2f2f696d672e736869656c64732e696f2f656e64706f696e743f75726c3d68747470733a2f2f68756767696e67666163652e636f2f6170692f736869656c64732f646174617365747326636f6c6f723d627269676874677265656e",
+      "alt": "number of datasets"
+    }
+  ],
+  "extracted_sha256": "54488abd3239ef898a2357ba9208d292357d012658e6d84a02a60f5caeec01c3",
+  "reference_sha256": "54488abd3239ef898a2357ba9208d292357d012658e6d84a02a60f5caeec01c3",
+  "text_chars": 10412,
+  "excerpt": "🤗 Datasets is a lightweight library providing\ntwo\nmain features:\none-line dataloaders for many public datasets\n: one-liners to download and pre-process any of the\nmajor public datasets (image datasets, audio datasets, text datasets in 467 languages and dialects, 3D medical images, video datasets, agent traces, etc.) provided on the\nHuggingFace Datasets Hub\n. With a simple command like\nsquad_dataset = load_dataset(\"rajpurkar/squad\")\n, get any of these datasets ready to use in a dataloader for training/evaluating a ML model (Numpy/Pandas/PyTorch/TensorFlow/JAX/Polars),\nefficient data pre-processing\n: simple, fast and reproducible data pre-processing for the public datasets as well as your own local datasets in CSV, JSON, JSONL, Parquet, HDF5, XML, text, PNG, JPEG, WAV, MP3, PDF, NIfTI, and m",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

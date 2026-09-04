@@ -1,0 +1,40 @@
+{
+  "case_id": "live-040-documentation-overview",
+  "url": "https://curl.se/docs/",
+  "checked_at": "2026-09-04T07:45:34.675923+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://curl.se/docs/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://curl.se/docs/",
+  "mime": "text/html",
+  "bytes": 8507,
+  "sha256": "e7ae0135882c0911eb952a7ccfeb7119899ceeee654ab68f5a4868d315bf0072",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "upgrade-insecure-requests; default-src 'none'; base-uri 'none'; img-src 'self'; style-src 'unsafe-inline' 'self'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';",
+    "Content-Type": "text/html"
+  },
+  "title": "curl - Documentation Overview",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://curl.se/logo/curl-white-symbol.svg",
+      "alt": ""
+    }
+  ],
+  "extracted_sha256": "f9a1c4348fd86bc8579275b434ca0310dc6a2c651ba1f1f8f8818866d77abe5b",
+  "reference_sha256": "f9a1c4348fd86bc8579275b434ca0310dc6a2c651ba1f1f8f8818866d77abe5b",
+  "text_chars": 1500,
+  "excerpt": "curl\n/\nDocumentation Overview\nDocumentation Overview\nThe main documentation is sub divided into several categories. Each category\nholds a number of documentation pages.\nThe book: Everything curl\nThis is a detailed and totally free book,\navailable\nonline\n(and as a PDF as\na link from there) that explains everything there is to know about curl,\nlibcurl and the associated project.\nLearn how to use curl. How to use libcurl. How to build them from source or\nperhaps how the curl project accepts contributions. There is something for\neveryone in this, from the casual first-time users to the experienced\nlibcurl hackers.\nPresentations on Video\nWe have a large selection of\nvideo presentations\ngathered about various areas in curl and related technologies.\ncurl tool documentation\nComparison Table\n,\ncurl",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

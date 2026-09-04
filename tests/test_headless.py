@@ -66,7 +66,7 @@ class HeadlessTests(unittest.TestCase):
             self.assertTrue(result['ok'])
             self.assertIn('Example', result['content'])
             self.assertIn('<h1>', result['html'])
-            self.assertEqual(result['metadata']['extractor_version'], '1.7.0')
+            self.assertEqual(result['metadata']['extractor_version'], '2.0.0')
         with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=1, stdout=b'<h1>Partial</h1>', stderr=b'failure')):
             result = fetch(request)

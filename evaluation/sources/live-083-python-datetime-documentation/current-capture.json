@@ -1,0 +1,51 @@
+{
+  "case_id": "live-083-python-datetime-documentation",
+  "url": "https://docs.python.org/3/library/datetime.html",
+  "checked_at": "2026-09-04T07:45:41.263786+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/datetime.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/datetime.html",
+  "mime": "text/html",
+  "bytes": 422679,
+  "sha256": "1b04e2354834ddcc6083f50bb9569b928977eb56e66e85284e4e65ab36710d0a",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "datetime — Basic date and time types — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_images/datetime-inheritance.svg",
+      "alt": "timedelta, tzinfo, time, and date inherit from object; timezone inherits from tzinfo; and datetime inherits from date."
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "b956d8852f21f2434461eea529f3e2ae853c996ef777a1c722921e113b8263ae",
+  "reference_sha256": "b956d8852f21f2434461eea529f3e2ae853c996ef777a1c722921e113b8263ae",
+  "text_chars": 90762,
+  "excerpt": "datetime\n— Basic date and time types\n¶\nSource code:\nLib/datetime.py\nThe\ndatetime\nmodule supplies classes for manipulating dates and times.\nWhile date and time arithmetic is supported, the focus of the implementation is\non efficient attribute extraction for output formatting and manipulation.\nTip\nSkip to\nthe format codes\n.\nSee also\nModule\ncalendar\nGeneral calendar related functions.\nModule\ntime\nTime access and conversions.\nModule\nzoneinfo\nConcrete time zones representing the IANA time zone database.\nPackage\ndateutil\nThird-party library with expanded time zone and parsing support.\nPackage\nDateType\nThird-party library that introduces distinct static types to for example,\nallow\nstatic type checkers\nto differentiate between naive and aware datetimes.\nAware and naive objects\n¶\nDate and time obje",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

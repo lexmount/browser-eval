@@ -97,8 +97,19 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                         value = match.group(f'f{index}')
                         # Check the actual surrounding characters, not an isolated
                         # captured number, so numeric/sign boundaries stay intact.
-                        if (value[0].isalnum() and start and folded[start-1].isalnum()
-                                or value[-1].isalnum() and end < len(folded) and folded[end].isalnum()):
+                        left_joined = value[0].isalnum() and start and folded[start-1].isalnum()
+                        right_joined = value[-1].isalnum() and end < len(folded) and folded[end].isalnum()
+                        # Native Markdown can emit METHOD[/path](target)Summary.
+                        # Link normalization removes the destination and leaves
+                        # `/pathsummary` with no whitespace. For a path, an
+                        # adjacent word is therefore the next field; a slash or
+                        # opening route parameter still proves a longer path and
+                        # must not satisfy a shorter one such as /pet.
+                        if field == 'path':
+                            right_joined = end < len(folded) and folded[end] in '/{'
+                        elif field == 'summary' and index and order[index - 1] == 'path':
+                            left_joined = False
+                        if left_joined or right_joined:
                             break
                         if field in {'name', 'title', 'quote', 'text', 'family'} and any(
                                 a <= start and end <= b and (a < start or end < b) for a, b in anchors):

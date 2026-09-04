@@ -1,80 +1,70 @@
 # Headless comparison: private editorial and measurement audit
 
 This file is not a report page and must not be copied to the publication bundle.
-All exact-body lifecycles are now verified, including the fresh retail cohort
-on 2026-09-04. Publication still requires final package and remote verification.
+The public article contains only the formal method, evidence and result changes.
 
-## Question and evidence ledger
+## Evidence status
 
-| Claim / decision | Evidence and calculation | Limit / competing explanation |
+- Canonical bundle: 150 tasks × five methods = 750 unique selected calls.
+- Offline verification reproduces every persisted score; all available exact-body
+  pre/post certificates, hashes, task rules and call identities pass.
+- Two live full-text references are explicitly unavailable. Their stable fact
+  checks remain active while word precision/recall/F1 remain unmeasured.
+- Final ordinary-web passes: Chromium 98, Kitesurf 85, Lightpanda 91, Moli 93,
+  Obscura 91. No cross-family total score is published.
+- Final dynamic passes: Chromium 8, Kitesurf 7, Lightpanda 5, Moli 7, Obscura 7.
+
+## Method decision
+
+Kitesurf uses the Cloudflare account Browser Run `/markdown` endpoint. Lightpanda,
+Obscura and Moli use their local native Markdown CLI output. Chromium/CDP has no
+native Markdown output; Reader Mode emits selected HTML and does not satisfy the
+full task scope. The measured Chromium route is Playwright 1.58 + Chromium 152,
+full rendered DOM, then node-html-markdown 2.0.0.
+
+The converter selection used the same retained Chromium DOM cohort. Web task
+passes were node-html-markdown 98/100, pyhtml2md 97/100, Xberg 92/100, Turndown
+58/100 and Defuddle 47/100. Node conversion across 148 DOMs was about 18.2 s in
+total versus about 139.9 s for pyhtml2md. The final Chromium figures come from a
+fresh full rerun with the selected converter, not from the offline probe.
+
+## Fairness ledger
+
+| Claim | Evidence | Limit |
 |---|---|---|
-| Compare delivery before interpreting speed | Existing 150 case definitions; `score_attempt`, `task_passed`; `headless_evidence` computes per-family counts | Six families have different output contracts; no combined browser score |
-| Compare latency on identical passed URLs | `pairs[].both_pass_ids`; median of each provider's elapsed time on precisely that set | Each pair has its own denominator; one call per URL; network and machine contention not isolated |
-| Whole-HTML conversion can dominate this path | `english-encyclopedia`, Moli/Lightpanda/Chromium phase metadata; fetch 1869.41/2475.25/2853.32 ms, conversion 40633.69/40662.87/40803.63 ms | A real three-call example, not attribution for all failures. Obscura/Kitesurf timeout phase breakdown unavailable |
-| Lifecycle event is not business completion | `dynamic-delayed`: requires 10 initial quotes; `dynamic-iframe`: requires 14 names in child document; worker uses DOMContentLoaded plus top-level outerHTML | Does not prove absence of JavaScript support; wait semantics and additional engine-internal settling can differ |
-| Dynamic-task ranking differs from ordinary-web ranking | Final dynamic passes: Kitesurf 6/10, Obscura 5/10, Chromium/Lightpanda 1/10, Moli 0/10. Inspected `dynamic-products-api` Moli and Kitesurf stored Markdown: empty cards/templates versus actual products | Both outputs contain the same "Enable JavaScript" prompt, so that phrase alone is not evidence of JS being disabled. Waiting, settling and script compatibility were not isolated |
-| Same format does not mean same body scope | Worker converts entire returned DOM; retained raw HTML and Markdown; word P/R/F1 separately computed | Noise may include useful out-of-reference material; overlap is not factual correctness |
-| Fallback choice depends on unique passes | `pairs[].provider_only`, `chromium_only`, union | Offline set union is not an executed fallback service, trigger quality or expected production latency |
-| File contract is separate from HTML rendering | CLI non-UTF-8 output retained as binary; document/image/video task rules unchanged | Current adapter does not enable product-native file parsing, media understanding or downloads; cannot infer those capabilities from failures |
+| Compare delivery before speed | Shared URL, task and `score_attempt`; per-family pass counts | Not a general browser-engine ranking |
+| Pair latency on identical successful URLs | `headless_evidence().pairs[].both_pass_ids` | Different pair rows can still have different URL sets |
+| Preserve fastest product route | Four native Markdown paths; Chromium fallback only | Internals and readiness conditions intentionally differ |
+| Treat Kitesurf as remote | Account API metadata and `browser_ms_used` retained | Client elapsed includes network/queue; not same-hardware engine time |
+| Keep task quality separate | Task pass plus word precision/recall/F1 | Overlap is not semantic or freshness verification |
+| Keep file contracts separate | No added parser/OCR/downloader in this cohort | Failures do not prove the product lacks optional capabilities |
 
-## Corrections and rejected evidence
+## Result audit
 
-- Initial diagnostic runs in `runs/headless-web` and `runs/headless-nonweb`
-  suffered GIL blocking from quadratic whitespace normalization. They were
-  stopped and labelled invalid timing measurements. The final run began after
-  an equivalent linear regex correction, tested across 16,807 short inputs and
-  large whitespace runs. No score threshold was changed.
-- Pre-call references were independently frozen. Five changed ordinary-page
-  bodies were refreshed from independent source captures, never provider output.
-  Stable contracts were not refreshed to current ranking names or prices.
-- The live final run was partitioned by completed matched case for prompt
-  postcheck certification, retaining its actual preflight bindings and calls.
-- Three first-pass projections (`live-060-database`, `live-061-version-control`,
-  `live-062-natural-language-processing`) failed on assembly end bounds. The
-  runner starts its monotonic clock before recording wall-clock start, so
-  start+elapsed can slightly exceed the recorded wall-clock finish. No call
-  timestamps or failed certificates were edited. Three fresh five-provider
-  cohorts were independently prefrozen, executed and postchecked successfully;
-  replacement choice was caused by certificate failure, not scores.
-- `web-retail-returns` precheck observed the complete article; postcheck hit a
-  human-verification page. Its reference failure is not a provider failure. Keep
-  the original output and scoring diagnostics, do not certify by repeated
-  postcheck attempts, and require a fresh complete cohort after independent
-  reference access is restored.
+Every old selected call was checked against its stored output, reference and
+per-check decision, not only the failed rows. The focused rule audit corrected
+43 false negatives and one false positive. The highlighted
+`run-f4e6f2ee641e8baa9e3d` is a false negative: all three Feishu facts exist and
+reference recall is 1.0; the old visible-text rule broke a sentence across a
+multiline Markdown link. The one false positive was Kitesurf's incomplete
+RAGFlow README response. The final additional false negative was Moli's complete
+Swagger catalog: its native `METHOD[/path](target)Summary` layout had removed the
+field gaps during visible-link normalization; the provider output itself was complete.
 
-## Editorial / Humanizer passes
+After main was synchronized, seven old passes were independently confirmed as
+failures due to missing table headers, absent README regions, field
+concatenation or a partial error page. The changed Django reference was
+independently frozen and rerun for all five methods; Moli returned browser_exit.
+Other physical batches remain selected only when reference bytes and evaluation
+scope are identical, while retaining their own strict capture binding.
 
-The drafted article is an argument about the HTML delivery chain, not a tour of
-dashboard tabs. It uses the actual encyclopedia call to distinguish fetch from
-conversion, then connects the same extraction boundary to dynamic and file
-tasks. All six task families are represented. Matched-task latency and unique
-pass sets provide decision-relevant analysis beyond ranking totals.
+## Editorial and visual pass
 
-Factual pass: no CPU/RSS or cost-efficiency claim; Kitesurf public remote
-deployment is named where latency is interpreted; no general engine-JS claim
-from missing delayed records; no unmeasured timeout phase attribution; no
-equating structure with truth or freshness. Unknown body/title evidence remains
-unmeasured. Task outcomes and overlap remain independent.
-
-Humanizer pass: removed promotional framing and generic superiority claims;
-kept concrete numbers with denominators and a concrete mechanism; no author
-anecdotes, staged questions, invented quotations or instruction chatter in the
-authored body. Necessary boundary explanations remain beside the claims they
-limit. The ending identifies three different implementation decisions rather
-than announcing a universal winner.
-
-The online and standalone presentations share one authored template and inline
-standalone CSS. Final data-bound review confirmed the 150/750 denominators,
-web passes 89/83/89/90/70 (Chromium/Kitesurf/Lightpanda/Moli/Obscura), unchanged
-dynamic counts and paired latency cohorts. Fresh retail pre/post observations
-matched the original 1378-character reference and all five new calls completed.
-The original failed certificate and calls remain diagnostic evidence.
-
-Desktop and 390-pixel UI checks show readable prose and horizontal table
-scrolling within containers (document width 390, table container 362, table
-content 480). Print CSS removes navigation and permits tables to fit the page;
-standalone HTML has inline styles and no script dependency. Date display was
-shortened to seconds without changing original timestamps. Wording changed
-only the encyclopedia time range punctuation; no claim or measured score changed.
-The public package adds a separate redaction manifest for supplemental HTML,
-with original and published hashes. Raw measured originals remain local.
+The article states the result first, then explains method routes, Kitesurf's
+current non-open-source status, matched latency, dynamic delivery and the audit.
+Promotional claims, a universal winner, invented engine internals and user work
+logs are excluded. Desktop 1600×1200 and mobile 390×1100 screenshots confirm
+readable hierarchy; the mobile task ID is visible above the fold and wide tables
+remain within their scroll container. Automated validation covers 916 HTML
+pages, zero broken local links, report filters/sorting, packaged navigation and
+all 750 result records.

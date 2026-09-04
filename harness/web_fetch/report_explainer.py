@@ -397,8 +397,12 @@ def _dynamic_section(data, cases):
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
 
+def _is_headless_comparison(records):
+    return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+
+
 def article_title(records):
-    return HEADLESS_TITLE if records and all(r.get('provider_type') == 'headless_html' for r in records) else TITLE
+    return HEADLESS_TITLE if _is_headless_comparison(records) else TITLE
 
 
 def headless_evidence(cases, records):
@@ -406,10 +410,19 @@ def headless_evidence(cases, records):
     names = sorted({r['provider'] for r in records})
     def passed(r):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
+    audit_path = ROOT / 'research/headless-result-audit.json'
+    audit = json.loads(audit_path.read_text()) if audit_path.is_file() else None
+    if audit and (audit.get('reviewed_calls') != len(records)
+                  or audit.get('final_validation', {}).get('task_count') != len(cases)
+                  or audit.get('final_validation', {}).get('provider_count') != len(names)):
+        audit = None
+    selection_path = ROOT / 'research/chromium-markdown-selection.json'
+    selection = json.loads(selection_path.read_text()) if selection_path.is_file() else None
     data = {'providers': names, 'cases': len(cases), 'attempts': len(records), 'tracks': {},
             'time_window': [min(r['started_at'] for r in records), max(r.get('completed_at',r['started_at']) for r in records)],
-            'method': 'one URL, fresh browser, DOMContentLoaded, whole DOM HTML, pyhtml2md 1.7.0',
-            'pairs': [], 'runtime': {}, 'encyclopedia': [], 'quality': {}}
+            'method': 'one URL, fresh process/context, provider-fastest Markdown path, 45s end-to-end deadline',
+            'pairs': [], 'runtime': {}, 'encyclopedia': [], 'quality': {},
+            'independent_result_audit': audit, 'chromium_markdown_selection': selection}
     for name in names:
         meta = next(r['provider_metadata'] for r in records if r['provider']==name)
         data['runtime'][name] = {k:v for k,v in meta.items() if k in ('binary_sha256','browser_version','worker_sha256','extractor_version','playwright_version','deployment','wait_until')}
@@ -420,6 +433,8 @@ def headless_evidence(cases, records):
             meta=r.get('provider_metadata',{})
             data['encyclopedia'].append({'provider':r['provider'],'attempt_id':r['attempt_id'],
                 'ok':r['ok'],'elapsed_ms':r['elapsed_ms'],
+                'extractor':meta.get('extractor'),'deployment':meta.get('deployment'),
+                'native_markdown_ms':meta.get('native_markdown_ms'),'browser_ms_used':meta.get('browser_ms_used'),
                 'fetch_html_ms':meta.get('fetch_html_ms'),'conversion_ms':meta.get('conversion_ms')})
     for track in TRACK_NAMES:
         ids = {c['id'] for c in cases.values() if c.get('track','web')==track}
@@ -461,16 +476,16 @@ def _render_headless(out, cases, records):
         for name in data['providers']], '任务通过数 / 实际调用数。六类任务不合成总分；未执行不记为失败。')
     pairs = _table(['浏览器 vs Chromium','共同通过网页','本方法 P50 ms','Chromium P50 ms','仅本方法通过','仅 Chromium 通过'],[
         (escape(p['provider']),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
-        for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取 HTML 与转换开销。')
+        for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取页与形成 Markdown 的全部开销。')
     latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
         (escape(name),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
         for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
     dynamic = _table(['任务',*data['providers']], [
         (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
         for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
-    stages=_table(['浏览器','本次请求','取 HTML ms','转换 ms','端到端 ms'],[
-        (_link('attempts/'+r['attempt_id']+'.html',r['provider']), '成功' if r['ok'] else '未成功',num(r['fetch_html_ms']),num(r['conversion_ms']),num(r['elapsed_ms']))
-        for r in data['encyclopedia']], 'Wikipedia 单页实测。取 HTML 阶段包括浏览器生命周期及传输；进程超时未返回分段数据时记为 —，不猜测耗时分布。')
+    stages=_table(['浏览器','实际路径','本次请求','原生 Markdown ms','取 HTML ms','转换 ms','服务端浏览器 ms','端到端 ms'],[
+        (_link('attempts/'+r['attempt_id']+'.html',r['provider']),escape(r.get('extractor') or '—'),'成功' if r['ok'] else '未成功',num(r['native_markdown_ms']),num(r['fetch_html_ms']),num(r['conversion_ms']),num(float(r['browser_ms_used'])) if r.get('browser_ms_used') else '—',num(r['elapsed_ms']))
+        for r in data['encyclopedia']], 'Wikipedia 单页实测。原生路径不会虚构 HTML/转换拆分；Cloudflare 的 browser_ms_used 是服务端计费诊断，不等于客户端端到端耗时；超时缺少阶段数据时记为 —。')
     quality=_table(['浏览器','有全文指标的网页调用','纯净度','完整度','F1'],[
         (escape(n),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
         for n,r in data['quality'].items()], '逐次词级指标的算术平均，包含已测失败调用；未通过任务不会把已有重合归零。完整度与纯净度均受已声明参考范围约束。')
@@ -493,7 +508,7 @@ def _render_headless(out, cases, records):
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
-    if records and all(r.get('provider_type') == 'headless_html' for r in records):
+    if _is_headless_comparison(records):
         return _render_headless(out,cases,records)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)

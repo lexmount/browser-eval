@@ -1,4 +1,0 @@
-png (100×100)
-==============
-
-![](https://httpbin.org/image/png)

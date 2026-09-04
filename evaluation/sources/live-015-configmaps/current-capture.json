@@ -1,0 +1,41 @@
+{
+  "case_id": "live-015-configmaps",
+  "url": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "checked_at": "2026-09-04T07:45:32.334066+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://kubernetes.io/docs/concepts/configuration/configmap/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://kubernetes.io/docs/concepts/configuration/configmap/",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 536146,
+  "sha256": "5e4ffe413c82c1657efe63cfc08aa755bcd3ed57fa6e93c7810bd1ad4ec3d8b5",
+  "response_headers": {
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "title": "ConfigMaps | Kubernetes",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://kubernetes.io/images/copycode.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://kubernetes.io/images/copycode.svg",
+      "alt": ""
+    }
+  ],
+  "extracted_sha256": "90cf50e7cefb4625f510ca8dec2595025fff16316b9cc1de74fa72f3bbf509f4",
+  "reference_sha256": "90cf50e7cefb4625f510ca8dec2595025fff16316b9cc1de74fa72f3bbf509f4",
+  "text_chars": 12944,
+  "excerpt": "ConfigMaps\nA ConfigMap is an API object used to store non-confidential data in key-value pairs.\nPods\ncan consume ConfigMaps as\nenvironment variables, command-line arguments, or as configuration files in a\nvolume\n.\nA ConfigMap allows you to decouple environment-specific configuration from your\ncontainer images\n, so that your applications are easily portable.\nCaution:\nConfigMap does not provide secrecy or encryption.\nIf the data you want to store are confidential, use a\nSecret\nrather than a ConfigMap,\nor use additional (third party) tools to keep your data private.\nMotivation\nUse a ConfigMap for setting configuration data separately from application code.\nFor example, imagine that you are developing an application that you can run on your\nown computer (for development) and in the cloud (to h",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

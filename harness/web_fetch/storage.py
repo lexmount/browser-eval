@@ -1,6 +1,7 @@
 """Persistent locations for measured evidence that must not live in Git."""
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -54,8 +55,21 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
         expected = canonical / relative
         actual = evidence / relative
         if expected.is_file():
-            if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
+            if not actual.is_file():
                 raise ValueError(f"Persistent evidence differs from canonical input: {relative}")
+            expected_dataset = json.loads(expected.read_text())
+            actual_dataset = json.loads(actual.read_text())
+            # Cases and shared scoring configuration are canonical. A measured
+            # cohort owns its display identity, provider coverage plan and
+            # comparison metadata; forcing those into the general dataset would
+            # make one report configuration overwrite another.
+            for key in ("schema_version", "tool", "dynamic_scoring", "cases"):
+                if actual_dataset.get(key) != expected_dataset.get(key):
+                    raise ValueError(f"Persistent evidence differs from canonical input: {relative} ({key})")
+            allowed_run_fields = {"id", "name", "coverage_plan", "comparison"}
+            unexpected = set(actual_dataset) - set(expected_dataset) - allowed_run_fields
+            if unexpected:
+                raise ValueError(f"Persistent evidence has unknown dataset fields: {sorted(unexpected)}")
             continue
         expected_files = {
             path.relative_to(expected): path.read_bytes()

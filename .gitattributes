@@ -6,3 +6,4 @@ reports/**/artifacts/** -diff
 evaluation/headless/artifacts/** -diff -text -whitespace
 evaluation/headless/sources/** -diff -text -whitespace
 evaluation/headless/diagnostics/**/artifacts/** -diff -text -whitespace
+evaluation/sources/** -diff -text -whitespace

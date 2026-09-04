@@ -13,7 +13,10 @@ from harness.web_fetch.models import execution_id
 from harness.web_fetch.response_input import apply_request_status
 from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
-from harness.web_fetch.reference_lifecycle import check_case_reference_binding, ReferenceLifecycleError
+from harness.web_fetch.reference_lifecycle import (
+    check_case_equivalent_reference_binding, check_case_reference_binding,
+    requires_fresh_reference, ReferenceLifecycleError,
+)
 
 
 def rescore(source, case_ids=None):
@@ -32,14 +35,20 @@ def rescore(source, case_ids=None):
         reference_hash = record.get('metrics', {}).get('reference_sha256')
         owners = [b for b in batches if record['attempt_id'] in b.get('attempt_ids', [])]
         bound = any(record['case_id'] in b.get('reference_checks', {}).get('cases', {}) for b in owners)
-        if reference_hash is None and not bound:
-            continue
+        if not bound:
+            if reference_hash is None or not requires_fresh_reference(cases[record['case_id']]):
+                continue
+            raise ReferenceLifecycleError(record['attempt_id']+': fresh reference record has no original binding')
         if len(owners) != 1:
-            raise ReferenceLifecycleError('Bound record requires one original execution batch')
+            raise ReferenceLifecycleError(record['attempt_id']+': bound record requires one original execution batch')
         binding = owners[0].get('reference_checks', {}).get('cases', {}).get(record['case_id'])
         if not binding or binding.get('reference_sha256') != reference_hash:
-            raise ReferenceLifecycleError('Bound record has no matching original reference')
-        check_case_reference_binding(cases[record['case_id']], binding)
+            raise ReferenceLifecycleError(record['attempt_id']+': bound record has no matching original reference')
+        checker = (check_case_equivalent_reference_binding
+                   if dataset.get('comparison', {}).get('reference_binding_mode') ==
+                   'equivalent_reference_bytes_with_independent_batch_captures'
+                   else check_case_reference_binding)
+        checker(cases[record['case_id']], binding)
     if not any(case_ids is None or r['case_id'] in case_ids for r in records):
         return []
     # One offline scoring batch, never a new provider invocation. Include this
@@ -81,7 +90,9 @@ def rescore(source, case_ids=None):
     temporary = contained_path(source, 'results.jsonl.tmp')
     if path.read_bytes() != original_results or dataset_path.read_bytes() != dataset_bytes:
         raise ValueError('Scoring inputs changed during rescoring')
-    temporary.write_text(''.join(json.dumps(r, ensure_ascii=False)+'\n' for r in records))
+    # JSON Lines readers split on physical line boundaries. Escaping Unicode
+    # line/paragraph separators keeps one attempt on exactly one line too.
+    temporary.write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
     temporary.replace(path)
     return changes
 

@@ -56,7 +56,7 @@ def verify_public_files(slug, expected_archive):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-archive',type=Path)
-    parser.add_argument('--slug',default='UeZE1vfcEOrM')
+    parser.add_argument('--slug',default='bWkRP157EtF6')
     parser.add_argument('--public-files',action='store_true',help='Verify individual served files when ZIP export is unavailable')
     args=parser.parse_args()
     load_runtime_env()

@@ -1,0 +1,39 @@
+{
+  "case_id": "live-024-cascading-style-sheets-level-2-r",
+  "url": "https://www.w3.org/TR/CSS2/",
+  "checked_at": "2026-09-04T08:41:55.144410+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.w3.org/TR/CSS2/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.w3.org/TR/CSS2/",
+  "mime": "text/html; charset=iso-8859-1",
+  "bytes": 127147,
+  "sha256": "1e43327015ed94d3e6a3bb5b3948dc5e56f54ed76cfd2ef4918ad8f8ca86c5dd",
+  "response_headers": {
+    "Content-Security-Policy": "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests",
+    "Content-Type": "text/html; charset=iso-8859-1"
+  },
+  "title": "Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://www.w3.org/Icons/w3c_home",
+      "alt": "W3C"
+    }
+  ],
+  "extracted_sha256": "5f326b8ed12b5e559079908f1ddb97faa2ed6072948032f5cee40eab63726059",
+  "reference_sha256": "5f326b8ed12b5e559079908f1ddb97faa2ed6072948032f5cee40eab63726059",
+  "text_chars": 43166,
+  "excerpt": "next\ncontents\nproperties\nindex\nCascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification\nW3C Recommendation 07 June 2011, edited in place 12 April 2016 to point to new work, edited in place 07 December 2021 to correct markup.\nThis version:\nhttp://www.w3.org/TR/2011/REC-CSS2-20110607\nLatest version:\nhttp://www.w3.org/TR/CSS2\nPrevious versions:\nhttp://www.w3.org/TR/2011/PR-CSS2-20110412\nhttp://www.w3.org/TR/2008/REC-CSS2-20080411/\nLatest editor's draft:\nhttp://dev.w3.org/csswg/css2/\nEditors:\nBert Bos\n<\nbert @w3.org\n>\nTantek Çelik\n<\ntantek @cs.stanford.edu\n>\nIan Hickson\n<\nian @hixie.ch\n>\nHåkon\nWium\nLie\n<\nhowcome @opera.com\n>\nPlease refer to the\nerrata\nfor this document.\nThis document is also available in these non-normative formats:\nplain text\n,\ngzip'ed tar file\n,\nzip file\n,\ngzip'ed P",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

@@ -1,6 +1,7 @@
 """Assemble exact headless measurements, never selecting retries by score."""
 import argparse
 from copy import deepcopy
+from datetime import datetime, timedelta
 import hashlib
 import json
 from pathlib import Path
@@ -30,15 +31,61 @@ def public_manifest(manifest):
     return result
 
 
-def assemble(run, certificates, replacements, output, retain_unverified=False):
+def _without_reference(case):
+    value=deepcopy(case)
+    value.pop('source_verification',None);value.pop('ground_truth_main_content',None)
+    return value
+
+
+def _prune_shadowed_batch_attempts(batches, records):
+    """Keep an attempt ID only in the batch whose time bounds contain the selected call.
+
+    Attempt IDs are stable provider/case identities and can recur in a deliberate
+    implementation rerun. Time bounds disambiguate the selected physical call.
+    """
+    by_id={r['attempt_id']:r for r in records}
+    result=[]
+    for batch in batches:
+        start=datetime.fromisoformat(batch['started_at'])
+        end=datetime.fromisoformat(batch['completed_at'])+timedelta(milliseconds=.01)
+        kept=[]
+        for attempt_id in batch.get('attempt_ids',[]):
+            record=by_id.get(attempt_id)
+            if not record:
+                continue
+            began=datetime.fromisoformat(record['started_at'])
+            finished=max(began+timedelta(milliseconds=record['elapsed_ms']),
+                datetime.fromisoformat(record.get('completed_at',record['started_at'])))
+            if start<=began<=finished<=end:
+                kept.append(attempt_id)
+        if not kept:
+            continue
+        batch={**batch,'attempt_ids':kept,'attempt_count':len(kept)}
+        batch.setdefault('projection',{})['shadowed_attempt_ids_pruned']=True
+        result.append(batch)
+    return result
+
+
+def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
+             canonical_dataset=None, retain_unverified=False):
+    additions = additions or []
+    provider_replacements = provider_replacements or []
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     dataset=json.loads((run/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
+    canonical=(json.loads(canonical_dataset.read_text()) if canonical_dataset else None)
+    canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
     original=read_records(run)
     expected={(c['id'],p) for c in cases.values() for p in dataset['coverage_plan'][c.get('track','web')]}
     if len(original)!=len(expected) or {(r['case_id'],r['provider']) for r in original}!=expected:
         raise ValueError('Original run has incomplete coverage')
+    assembled_input=not (run/'manifest.json').exists() and (run/'execution.json').exists()
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
+    if assembled_input:
+        prior_batches=json.loads((run/'execution.json').read_text())['batches']
+        require_verified_reference_checks(prior_batches,cases=dataset,records=original,source=run)
+        batches.extend(public_manifest(batch) for batch in prior_batches)
+        evidence.append(run)
     for root in replacements:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
@@ -47,47 +94,106 @@ def assemble(run, certificates, replacements, output, retain_unverified=False):
         for case in new_dataset['cases']:
             cid=case['id']
             if cid not in cases or cid in replacement_cases:raise ValueError('Unknown/duplicate replacement case')
-            before,after=deepcopy(cases[cid]),deepcopy(case)
-            for value in (before,after):
-                value.pop('source_verification',None);value.pop('ground_truth_main_content',None)
-            if before!=after:raise ValueError('Replacement changed task rules: '+cid)
+            before,after=_without_reference(cases[cid]),_without_reference(case)
+            if canonical:
+                for key in ('id','url','track','task_kind'):
+                    if case.get(key)!=canonical_cases[cid].get(key):
+                        raise ValueError(f'Replacement changed canonical {key}: '+cid)
+            elif before!=after:
+                raise ValueError('Replacement changed task rules without a canonical dataset: '+cid)
             replacement_cases[cid]=(case,root)
-            audit.append({'case_id':cid,'selection_reason':'fresh complete matched cohort after failed reference certificate; no score-based selection',
+            audit.append({'case_id':cid,'selection_reason':('canonical task/reference correction with a complete matched cohort; no score-based selection'
+                if before!=after else 'fresh complete matched cohort after failed reference certificate; no score-based selection'),
                 'excluded_attempts':[{k:r[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')} for r in original if r['case_id']==cid]})
         batches.append(public_manifest(manifest));evidence.append(root)
         selected.extend((r,root) for r in rows)
     for cid,case in cases.items():
         if cid in replacement_cases:continue
         rows=[r for r in original if r['case_id']==cid]
-        if requires_fresh_reference(case):
+        if requires_fresh_reference(canonical_cases.get(cid,case)) and not assembled_input:
             cert=certificates/cid
             manifest=json.loads((cert/'manifest.json').read_text())
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
                 raise ValueError('Certificate records differ from original call records: '+cid)
             batches.append(public_manifest(manifest));evidence.append(cert)
         selected.extend((r,run) for r in rows)
-    stable=[r for r in original if not requires_fresh_reference(cases[r['case_id']]) and r['case_id'] not in replacement_cases]
-    if stable:
+    stable=[r for r in original if not requires_fresh_reference(canonical_cases.get(r['case_id'],cases[r['case_id']])) and r['case_id'] not in replacement_cases]
+    if stable and not assembled_input:
         manifest=json.loads((run/'manifest.json').read_text())
         manifest.pop('reference_checks',None)  # only non-snapshot cases in this projection
         manifest.update(attempt_count=len(stable),attempt_ids=[r['attempt_id'] for r in stable])
         manifest['dataset']['case_count']=len({r['case_id'] for r in stable})
         manifest['projection']={'kind':'non-snapshot-cases-only','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
         batches.append(public_manifest(manifest))
+    for root in additions:
+        new_dataset=json.loads((root/'dataset.json').read_text())
+        rows=read_records(root)
+        manifest=json.loads((root/'manifest.json').read_text())
+        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        incoming={c['id']:c for c in new_dataset['cases']}
+        if set(incoming)&set(cases):raise ValueError('Addition overlaps existing cases')
+        planned={(c['id'],p) for c in incoming.values() for p in new_dataset['coverage_plan'][c.get('track','web')]}
+        if {(r['case_id'],r['provider']) for r in rows}!=planned:raise ValueError('Addition has incomplete coverage')
+        for cid,case in incoming.items():
+            if canonical and _without_reference(case)!=_without_reference(canonical_cases[cid]):
+                raise ValueError('Addition differs from canonical task rules: '+cid)
+            cases[cid]=case
+            dataset['coverage_plan'].setdefault(case.get('track','web'),new_dataset['coverage_plan'][case.get('track','web')])
+        expected|=planned
+        selected.extend((r,root) for r in rows)
+        batches.append(public_manifest(manifest));evidence.append(root)
+        audit.extend({'case_id':cid,'selection_reason':'missing case completed as a full five-method addition; no score-based selection','excluded_attempts':[]} for cid in incoming)
+    pair_replacements = {}
+    for root in provider_replacements:
+        new_dataset=json.loads((root/'dataset.json').read_text())
+        rows=read_records(root)
+        manifest=json.loads((root/'manifest.json').read_text())
+        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        incoming={c['id']:c for c in new_dataset['cases']}
+        for row in rows:
+            key=(row['case_id'],row['provider'])
+            if key not in expected or key in pair_replacements:
+                raise ValueError('Unknown/duplicate provider replacement: '+row['case_id']+'/'+row['provider'])
+            case=incoming[row['case_id']]
+            comparison=canonical_cases.get(row['case_id'],cases[row['case_id']])
+            if _without_reference(case)!=_without_reference(comparison):
+                raise ValueError('Provider replacement changed task rules: '+row['case_id'])
+            if requires_fresh_reference(comparison):
+                if case.get('ground_truth_main_content')!=comparison.get('ground_truth_main_content'):
+                    raise ValueError('Provider replacement used different reference bytes: '+row['case_id'])
+                if (case.get('source_verification',{}).get('reference_sha256') !=
+                        comparison.get('source_verification',{}).get('reference_sha256')):
+                    raise ValueError('Provider replacement reference hash differs: '+row['case_id'])
+            pair_replacements[key]=(row,root)
+            old=next(r for r,_ in selected if (r['case_id'],r['provider'])==key)
+            audit.append({'case_id':row['case_id'],'provider':row['provider'],
+                'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
+                'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
+        batches.append(public_manifest(manifest));evidence.append(root)
     dataset['cases']=[replacement_cases.get(cid,(case,None))[0] for cid,case in cases.items()]
+    if canonical:
+        if set(canonical_cases)!=set(cases):raise ValueError('Assembled case inventory differs from canonical dataset')
+        dataset['cases']=[deepcopy(case) for case in canonical['cases']]
+    if pair_replacements:
+        selected=[pair_replacements.get((r['case_id'],r['provider']),(r,root)) for r,root in selected]
     records=[r for r,_ in selected]
+    batches=_prune_shadowed_batch_attempts(batches,records)
     validate_report_ids(dataset,records)
     if len(records)!=len(expected) or {(r['case_id'],r['provider']) for r in records}!=expected:
         raise ValueError('Assembled coverage differs from the complete cohort')
+    if provider_replacements:
+        dataset['comparison']['reference_binding_mode']='equivalent_reference_bytes_with_independent_batch_captures'
     failed=[cid for batch in batches for cid,row in batch.get('reference_checks',{}).get('postcheck',{}).get('cases',{}).items() if row['status']!='verified']
     dataset['comparison']['publication_state']='blocked_reference_checks' if failed else 'verified'
     dataset['comparison']['unverified_reference_cases']=sorted(set(failed))
     if not retain_unverified:
-        require_verified_reference_checks(batches,cases=dataset,records=records)
+        require_verified_reference_checks(batches,cases=dataset,records=records,
+            equivalent_capture_bindings=bool(provider_replacements))
     output.mkdir(parents=True)
+    source_root=canonical_dataset.parent if canonical_dataset else run
     for folder in ('sources','list-references'):
-        shutil.copytree(run/folder,output/folder)
-    for cid,(_,root) in replacement_cases.items():
+        shutil.copytree(source_root/folder,output/folder)
+    for cid,(_,root) in replacement_cases.items() if not canonical else []:
         # This is a newly created assembly tree, not previously measured output.
         target=output/'sources'/cid
         shutil.copytree(root/'sources'/cid,target,dirs_exist_ok=True)
@@ -108,10 +214,20 @@ def assemble(run, certificates, replacements, output, retain_unverified=False):
     for cid in replacement_cases:
         target=output/'diagnostics'/'replaced-cases'/cid;target.mkdir(parents=True)
         rows=[r for r in original if r['case_id']==cid]
-        (target/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in rows))
-        rejected=public_manifest(json.loads((certificates/cid/'manifest.json').read_text()))
+        # JSONL readers split on Unicode line separators too. Binary/image
+        # diagnostics can contain NEL/U+2028, so keep every record ASCII-safe.
+        (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
+        certificate=certificates/cid
+        if certificate.exists():
+            rejected=public_manifest(json.loads((certificate/'manifest.json').read_text()))
+        else:
+            rejected=public_manifest(json.loads((run/'manifest.json').read_text()))
+            rejected.pop('reference_checks',None)
+            rejected.update(attempt_count=len(rows),attempt_ids=[r['attempt_id'] for r in rows])
+            rejected['projection']={'kind':'replaced-non-snapshot-case','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
         (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
-        shutil.copytree(certificates/cid/'reference-checks',target/'reference-checks')
+        if (certificate/'reference-checks').exists():
+            shutil.copytree(certificate/'reference-checks',target/'reference-checks')
         for row in rows:
             meta=row.get('provider_metadata',{})
             for relative in filter(None,[row['artifact_path'],meta.get('rendered_html_path'),meta.get('raw_stdout_path')]):
@@ -119,8 +235,9 @@ def assemble(run, certificates, replacements, output, retain_unverified=False):
                 shutil.copy2(contained_path(run,relative),dest)
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
-    (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
-    if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output)
+    (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
+    if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
+        equivalent_capture_bindings=bool(provider_replacements))
     print('Assembled',len(records),'calls; publication:',dataset['comparison']['publication_state'],'unverified:',failed)
 
 
@@ -129,7 +246,12 @@ if __name__=='__main__':
     parser.add_argument('--run-dir',type=Path,required=True)
     parser.add_argument('--certificates',type=Path,required=True)
     parser.add_argument('--replacements',type=Path,nargs='*',default=[])
+    parser.add_argument('--additions',type=Path,nargs='*',default=[])
+    parser.add_argument('--provider-replacements',type=Path,nargs='*',default=[])
+    parser.add_argument('--canonical-dataset',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--retain-unverified',action='store_true',help='Retain a blocked diagnostic cohort; the report builder will still reject it')
     args=parser.parse_args()
-    assemble(args.run_dir,args.certificates,args.replacements,args.output,args.retain_unverified)
+    assemble(args.run_dir,args.certificates,args.replacements,args.output,
+        additions=args.additions,provider_replacements=args.provider_replacements,
+        canonical_dataset=args.canonical_dataset,retain_unverified=args.retain_unverified)

@@ -1,0 +1,56 @@
+{
+  "case_id": "live-028-getting-started-with-rails",
+  "url": "https://guides.rubyonrails.org/getting_started.html",
+  "checked_at": "2026-09-04T07:45:33.867866+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://guides.rubyonrails.org/getting_started.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://guides.rubyonrails.org/getting_started.html",
+  "mime": "text/html",
+  "bytes": 266005,
+  "sha256": "811cd8abb3488a0816375e1206091621b9e4001d0ffc286aa592b10806cda3a5",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "Getting Started with Rails — Ruby on Rails Guides",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://guides.rubyonrails.org/images/icon_book-close-bookmark-1.svg",
+      "alt": "Chapter Icon"
+    },
+    {
+      "tag": "img",
+      "url": "https://guides.rubyonrails.org/images/getting_started/mvc_architecture_light.jpg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://guides.rubyonrails.org/images/getting_started/rails_welcome.png",
+      "alt": "Rails welcome page"
+    },
+    {
+      "tag": "img",
+      "url": "https://guides.rubyonrails.org/images/getting_started/routing_light.jpg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://guides.rubyonrails.org/images/getting_started/background_jobs_light.jpg",
+      "alt": ""
+    }
+  ],
+  "extracted_sha256": "c72ff3e594f1240bfb74c7f80b1ab4d371d8a924850ca1dac58d81d8fe1872be",
+  "reference_sha256": "c72ff3e594f1240bfb74c7f80b1ab4d371d8a924850ca1dac58d81d8fe1872be",
+  "text_chars": 91465,
+  "excerpt": "Getting Started with Rails\nThis guide covers getting up and running with Ruby on Rails.\nAfter reading this guide, you will know:\nHow to install Rails, create a new Rails application, and connect your\napplication to a database.\nThe general layout of a Rails application.\nThe basic principles of MVC (Model, View, Controller) and RESTful design.\nHow to quickly generate the starting pieces of a Rails application.\nHow to deploy your app to production using Kamal.\n1.\nIntroduction\nWelcome to Ruby on Rails! In this guide, we'll walk through the core concepts of\nbuilding web applications with Rails. You don't need any experience with Rails\nto follow along with this guide.\nRails is a web framework built for the Ruby programming language. Rails takes\nadvantage of many features of Ruby so we\nstrongly\nr",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

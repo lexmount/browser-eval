@@ -3,6 +3,7 @@ import json
 import base64
 import hashlib
 import subprocess
+import shutil
 import sys
 import time
 from importlib.metadata import version
@@ -69,10 +70,20 @@ def fetch(request):
                 finally:
                     browser.close()
         meta['fetch_html_ms'] = round((time.monotonic()-start)*1000, 2)
-        import pyhtml2md
-        meta['extractor_version'] = version('pyhtml2md')
+        converter = Path(__file__).with_name('html_to_markdown.mjs')
+        package = Path(__file__).resolve().parents[1] / 'node_modules/node-html-markdown/package.json'
+        meta['extractor_version'] = json.loads(package.read_text())['version']
+        meta['converter_sha256'] = hashlib.sha256(converter.read_bytes()).hexdigest()
+        meta['node_version'] = subprocess.run(
+            [shutil.which('node') or 'node', '--version'], capture_output=True, text=True,
+            check=True, timeout=5).stdout.strip()
         convert_start = time.monotonic()
-        content = pyhtml2md.convert(html)
+        converted = subprocess.run(
+            [shutil.which('node') or 'node', str(converter)], input=html.encode(),
+            capture_output=True, timeout=max(.001, timeout-(time.monotonic()-start)))
+        if converted.returncode:
+            raise RuntimeError(converted.stderr.decode('utf-8', 'replace')[:4000])
+        content = converted.stdout.decode('utf-8')
         meta['conversion_ms'] = round((time.monotonic()-convert_start)*1000, 2)
         ok = bool(html.strip())
         return dict(ok=ok, content=content, html=html, status_code=status,

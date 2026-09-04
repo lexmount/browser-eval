@@ -1,0 +1,11 @@
+{
+  "name": "browser-eval-web-fetch",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "node-html-markdown": "2.0.0"
+  }
+}

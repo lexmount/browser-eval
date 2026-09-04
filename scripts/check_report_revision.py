@@ -7,8 +7,8 @@ out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
 for path in out.rglob('*.html'):
     soup=BeautifulSoup(path.read_text(),'html.parser')
     if path==out/'index.html':
-        overview=soup.select_one('.home-overview')
-        assert overview and not overview.has_attr('open'),path
+        overview=soup.select_one('.home-overview, #overview')
+        assert overview and (overview.name!='details' or not overview.has_attr('open')),path
         panels=soup.select('#home-rankings > [role="tabpanel"]')
         assert sum(not p.has_attr('hidden') for p in panels)==1,path
         for panel in panels:

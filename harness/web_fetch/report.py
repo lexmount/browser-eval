@@ -357,7 +357,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
    observed=sorted({r['provider'] for r in bycase[c['id']]})
    status_note+='<p class="source-note">动态网站正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
-  body=hero(esc(c['name']),esc(task_instruction(c)))+section('源页与参考',status_note+f'<p>{link(c["url"],c["url"])}</p><details><summary>来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details><p>{link("../references/"+c["id"]+".txt","下载参考")} · {source_record}</p><details><summary>参考正文 / 目标结果</summary><pre>{esc(ref)}</pre></details>')
+  body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('源页与参考',status_note+f'<p>{link(c["url"],c["url"])}</p><details><summary>来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details><p>{link("../references/"+c["id"]+".txt","下载参考")} · {source_record}</p><details><summary>参考正文 / 目标结果</summary><pre>{esc(ref)}</pre></details>')
   body+=section('评分核对点',(table(['核对点','允许表达'],facts) if facts else '')+rules+(table(['资源','允许地址'],resources) if resources else '')+('<p>检查是否返回可核对的原始文件。</p>' if c.get('task_kind')=='file' else ''),'facts')
   if c.get('task_kind')=='structure':
    example=out/'sources'/c['id']/'items.json'
@@ -474,7 +474,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  return out/'index.html'
 
 def write_support(out,records,manifests):
- headless=bool(records) and all(r.get('provider_type')=='headless_html' for r in records)
+ headless=bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
@@ -489,12 +489,12 @@ def write_support(out,records,manifests):
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考，但执行批次并非同时发生。时间和运行环境见环境页；实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种浏览器每次使用新进程或新上下文，取 HTML 后由 pyhtml2md 1.7.0 转换；45 秒端到端预算，方法之间最多五路并行。')
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种方法每次使用新进程或新上下文；Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura、Moli 走本地 CLI 原生 Markdown，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。统一 45 秒端到端预算，方法之间最多五路并行。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','运行参数')])
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>python3 scripts/build_report.py</pre><p>输出目录：reports/webfetch/。重新实测使用 scripts/run_benchmark.py，正文配置为 configs/providers.example.json，资源配置为 configs/providers.resources.json。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
-  reproduce='<p>在评测仓库中执行；读取 evaluation/headless/ 的冻结证据，不重新调用浏览器。</p><pre>python3 scripts/build_report.py</pre><p>唯一输出目录为 reports/webfetch/。重新测量使用 scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。过期的精确参考不能直接用于新一轮调用。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
+  reproduce='<p>在评测仓库中执行；默认读取用户目录下的持久化冻结证据，不重新调用浏览器。</p><pre>python3 scripts/build_report.py --evidence ~/.browser-eval/evidence/current</pre><p>唯一输出目录为 reports/webfetch/。重新测量使用 scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。过期的精确参考不能直接用于新一轮调用。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
  write(out,'reproduce/index.html','复现',hero('数据与复现','使用冻结的任务、评分结果与原始输出生成报告。')+section('数据下载','<p>'+downloads+'</p>')+section('重建报告',reproduce))
  rows=[]
  for i,m in enumerate(manifests):
@@ -507,7 +507,10 @@ def write_support(out,records,manifests):
  errors=Counter((r['provider'],r.get('error_type') or 'unknown') for r in records if not r['ok'])
  errorrows=[('',cell(esc(n))+cell(esc(t))+cell(str(count))) for (n,t),count in sorted(errors.items())]
  write(out,'environment/index.html','环境',hero('执行环境','各组使用的运行环境、时间与请求参数。')+section('测试条件',f'<p>共纳入 {len(records):,} 次调用。任务范围与方法配置以保存的数据为准；不向参评方法提供网站登录凭据，不操作验证码。稳定内容锚点与字段结构、类型、数量及唯一性按声明范围验收，不固定频繁变化的名单和价格。任务通过不证明变化值的事实准确性或实时性。</p>')+section('运行参数',table(['参数','值'],rows))+section('请求失败统计',table(['方法','故障分类','次数'],errorrows)))
- accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in ACCOUNT_REGISTRY]
- write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
+ accounts=[a for a in ACCOUNT_REGISTRY if not headless or a['id']=='cloudflare-browser-rendering']
+ accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
+ account_intro=('Kitesurf 需要下列 Cloudflare 账号权限；Lightpanda、Obscura、Moli 与 Chromium 的本地路线不需要供应商账号或 API Key。'
+                if headless else '只列官方入口和环境变量名称，不保存实际凭据。')
+ write(out,'accounts/index.html','账号',hero('账号与凭据',account_intro)+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc))

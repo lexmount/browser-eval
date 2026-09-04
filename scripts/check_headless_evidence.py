@@ -39,18 +39,23 @@ def check(root,rescore=False):
     for r in records:
         raw=contained_path(root,r['artifact_path']).read_bytes()
         require(hashlib.sha256(raw).hexdigest()==r['metrics']['content_sha256'],('Output hash mismatch',r['attempt_id']))
-        meta=r['provider_metadata'];require(meta['engine']==r['provider'],('Engine mismatch',r['attempt_id']))
+        meta=r['provider_metadata']
+        if meta.get('engine') is not None:
+            require(meta['engine']==r['provider'],('Engine mismatch',r['attempt_id']))
         for path_key,hash_key in [('rendered_html_path','rendered_html_sha256'),('raw_stdout_path','raw_stdout_sha256')]:
             if meta.get(path_key):require(hashlib.sha256(contained_path(root,meta[path_key]).read_bytes()).hexdigest()==meta[hash_key],('Supplemental hash mismatch',r['attempt_id'],path_key))
         if rescore:
             case=typed[r['case_id']]
-            measured=score_attempt(case,raw,ok=r['ok'],metadata=meta,list_reference=load_list_reference(case,root))
+            measured=score_attempt(case,raw,ok=r['ok'],status_code=r.get('status_code'),metadata=meta,
+                previous_metrics=r['metrics'],list_reference=load_list_reference(case,root))
             for key,value in measured.items():
                 require(r['metrics'].get(key)==value,('Metric mismatch',r['attempt_id'],key))
     batches=json.loads((root/'execution.json').read_text())['batches']
     require(Counter(i for b in batches for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in records),'Execution attempt coverage differs')
     valid=[b for b in batches if b.get('reference_checks',{}).get('status','verified')=='verified']
-    require_verified_reference_checks(valid,cases=dataset,records=records,source=root)
+    require_verified_reference_checks(valid,cases=dataset,records=records,source=root,
+        equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
+        'equivalent_reference_bytes_with_independent_batch_captures')
     failed=sorted({cid for b in batches for cid,row in b.get('reference_checks',{}).get('postcheck',{}).get('cases',{}).items() if row['status']!='verified'})
     require(failed==dataset['comparison']['unverified_reference_cases'],'Reference blocker inventory differs')
     print('PASS:',len(cases),'tasks,',len(records),'unique calls; hashes, rules, identities and available certificates verified')

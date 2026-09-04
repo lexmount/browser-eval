@@ -1,0 +1,36 @@
+{
+  "case_id": "live-052-objects-in-kubernetes",
+  "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/",
+  "checked_at": "2026-09-04T07:45:36.292296+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/",
+  "mime": "text/html; charset=UTF-8",
+  "bytes": 511836,
+  "sha256": "fb1e3529611bb3e95665f53091abc9087647b6a2c79fc80cb927461abf2ed09f",
+  "response_headers": {
+    "Content-Type": "text/html; charset=UTF-8"
+  },
+  "title": "Objects In Kubernetes | Kubernetes",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://kubernetes.io/images/copycode.svg",
+      "alt": ""
+    }
+  ],
+  "extracted_sha256": "820f24aa9d8f475ed9a4fcacc18d7f3d72fdbc961876180b291d0c49d68a3fd3",
+  "reference_sha256": "820f24aa9d8f475ed9a4fcacc18d7f3d72fdbc961876180b291d0c49d68a3fd3",
+  "text_chars": 7888,
+  "excerpt": "Objects In Kubernetes\nKubernetes objects are persistent entities in the Kubernetes system. Kubernetes uses these entities to represent the state of your cluster. Learn about the Kubernetes object model and how to work with these objects.\nThis page explains how Kubernetes objects are represented in the Kubernetes API, and how you can\nexpress them in\n.yaml\nformat.\nUnderstanding Kubernetes objects\nKubernetes objects\nare persistent entities in the Kubernetes system. Kubernetes uses these\nentities to represent the state of your cluster. Specifically, they can describe:\nWhat containerized applications are running (and on which nodes)\nThe resources available to those applications\nThe policies around how those applications behave, such as restart policies, upgrades, and fault-tolerance\nA Kubernete",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

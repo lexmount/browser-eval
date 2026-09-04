@@ -93,6 +93,26 @@ def scope_identity(case) -> dict[str, Any]:
     })
 
 
+def evaluation_scope_identity(case) -> dict[str, Any]:
+    """Return the scoring scope, excluding capture-procedure wording.
+
+    ``source_verification.selector`` documents how one independent observer
+    bounded its capture.  Distinct observers may describe the same scoring
+    scope differently, so assembled equivalent-reference batches compare the
+    contract, URL, reference scope and rendered scope while preserving the
+    exact selector in each batch's strict binding and postcheck.
+    """
+    identity = scope_identity(case)
+    identity.pop("selector", None)
+    return identity
+
+
+def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
+    identity = deepcopy(binding.get("scope_identity", {}))
+    identity.pop("selector", None)
+    return identity
+
+
 def _completion(completion) -> None:
     if not isinstance(completion, dict) or completion.get("satisfied") is not True:
         raise ReferenceLifecycleError("Independent completion was not satisfied")
@@ -201,6 +221,20 @@ def check_case_reference_binding(case, binding: dict) -> None:
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
         raise ReferenceLifecycleError("Rescore requires the original frozen reference and capture binding", "reference_changed")
+
+
+def check_case_equivalent_reference_binding(case, binding: dict) -> None:
+    """Allow distinct independent captures only when reference bytes and scope are identical."""
+    reference = _get(case, "ground_truth_main_content", "")
+    verification = _get(case, "source_verification", {})
+    if (sha256(reference) != binding.get("reference_sha256")
+            or sha256(normalize_for_match(reference)) != binding.get("expected_normalized_sha256")
+            or evaluation_scope_identity(case) != _binding_evaluation_scope_identity(binding)
+            or verification.get("reference_sha256") != binding.get("reference_sha256")
+            or ("render_evidence" in binding and
+                (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
+        raise ReferenceLifecycleError(
+            "Assembled batch differs in reference bytes or evaluation scope", "reference_changed")
 
 
 def _selected_records(batch, records):
@@ -365,7 +399,8 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
             "batches": outcomes, "evidence_path": evidence_rel, "evidence_sha256": sha256(raw)}
 
 
-def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None) -> None:
+def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None,
+                                      equivalent_capture_bindings=False) -> None:
     """Fail closed for explicit live lifecycles; leave historical batches readable.
 
     Call before report/append writes. The minimum call validates certificate
@@ -455,7 +490,10 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                 if case_map is not None:
                     if identifier not in case_map:
                         raise ReferenceLifecycleError("Certificate case absent from dataset")
-                    check_case_reference_binding(case_map[identifier], binding)
+                    if equivalent_capture_bindings:
+                        check_case_equivalent_reference_binding(case_map[identifier], binding)
+                    else:
+                        check_case_reference_binding(case_map[identifier], binding)
                 relevant = [r for r in selected if r["case_id"] == identifier] if selected is not None else None
                 if relevant is not None:
                     if not relevant:
@@ -470,7 +508,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                         if record.get("completed_at") is not None:
                             finish = max(finish, timestamp(record["completed_at"]))
                         latest = finish if latest is None else max(latest, finish)
-                    if latest != finished_at:
+                    if ((not equivalent_capture_bindings and latest != finished_at)
+                            or (equivalent_capture_bindings and latest > finished_at)):
                         raise ReferenceLifecycleError("Certificate does not follow the latest relevant call")
                 if observations is not None:
                     observation = observations[identifier]

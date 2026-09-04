@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-09-04",
+  "decision": "Chromium 152 via Playwright 1.58 full rendered DOM HTML, converted with node-html-markdown 2.0.0",
+  "native_interface_findings": [
+    {
+      "interface": "Chrome DevTools Protocol Page domain",
+      "finding": "No native Markdown output is documented.",
+      "source": "https://chromedevtools.github.io/devtools-protocol/1-3/Page/"
+    },
+    {
+      "interface": "Chromium Reader Mode",
+      "finding": "Produces simplified HTML after content selection, not a general full-scope Markdown result.",
+      "source": "https://chromium.googlesource.com/chromium/src/+/115.0.5790.98/docs/accessibility/browser/reader_mode.md"
+    }
+  ],
+  "same_saved_dom_task_passes_out_of_100_web": [
+    {"candidate": "node-html-markdown 2.0.0", "passes": 98, "selected": true, "source": "https://github.com/crosstype/node-html-markdown"},
+    {"candidate": "pyhtml2md 1.7.0", "passes": 97, "selected": false, "source": "https://pypi.org/project/pyhtml2md/"},
+    {"candidate": "Xberg", "passes": 92, "selected": false, "source": "https://github.com/zhaofengli/xberg"},
+    {"candidate": "Turndown", "passes": 58, "selected": false, "source": "https://github.com/mixmark-io/turndown"},
+    {"candidate": "Defuddle", "passes": 47, "selected": false, "source": "https://github.com/kepano/defuddle"}
+  ],
+  "timing_probe": {
+    "cohort": "148 saved Chromium DOM documents; excludes two cases whose independent live full-text reference was unavailable",
+    "node_html_markdown_total_conversion_ms": 18200,
+    "pyhtml2md_total_conversion_ms": 139900,
+    "english_encyclopedia_node_html_markdown_ms": 2680,
+    "english_encyclopedia_pyhtml2md_ms": 39200
+  },
+  "rejected_custom_serializer": {
+    "name": "cdpwright",
+    "reason": "Source review found a small project-specific serializer rather than Chromium-native Markdown; adopting it would add bespoke benchmark behavior without evidence of better coverage or maintenance."
+  },
+  "limit": "Candidate pass counts are offline comparisons on the retained Chromium DOM cohort, not browser fetch reruns and not general converter benchmarks. Final published Chromium results come from a fresh full rerun with the selected converter."
+}

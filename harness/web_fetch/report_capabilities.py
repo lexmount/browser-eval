@@ -170,16 +170,22 @@ for engine,url in {
  'chromium':'https://developer.chrome.com/docs/automation-and-testing/headless',
 }.items():
  SOURCES['headless-'+engine]=(engine+' · 官方文档（2026-09-03 核对）',url)
+ native = engine != 'chromium'
+ route = ('Cloudflare 账户级 /markdown 原生输出' if engine == 'kitesurf' else
+          engine+' fetch --dump markdown 原生输出' if native else
+          'Chromium DOM HTML + node-html-markdown 2.0.0')
  CAPABILITIES[engine]={
-  'scope':'本轮 HTML + pyhtml2md 文本适配器', 'sources':['headless-'+engine],
-  'web':c('支持','DOM HTML 转 Markdown'), 'document':c('未声明','本轮适配器没有 PDF / Office 解析器，不据此推断产品能力'),
+  'scope':route, 'sources':['headless-'+engine],
+  'web':c('支持','原生 Markdown' if native else '渲染 DOM 转 Markdown'), 'document':c('未声明','本轮适配器没有 PDF / Office 解析器，不据此推断产品能力'),
   'image':c('仅链接','取决于 DOM 与转换器保留'), 'av':c('未声明','本轮没有媒体解析，不据此推断产品能力'),
   'file':c('未声明','本轮异常二进制输出仅保留证据'), 'js':c('支持','兼容范围看逐例结果'),
   'input':'给定公开 HTTP(S) URL；不登录、不点击、不滚动。',
   'structure':'统一 Markdown；不要求引擎按评分答案生成结构。',
-  'access':'每次新会话；Kitesurf 使用远端公共 CDP，其余为本地进程。',
+  'access':'每次新会话；Kitesurf 使用 Cloudflare 账号版远程 Browser Run API，其余为本地进程。',
   'notes':'这里只声明本轮调用模式。没有启用文档解析、截图、下载、OCR 等模式，不能从本轮失败推断产品没有这些能力。',
-  'tested':'DOMContentLoaded；45 秒外层预算；HTML 后统一转换，不使用各浏览器原生 Markdown。',
+  'tested':('networkidle2；45 秒客户端预算；直接使用账户级 /markdown。' if engine == 'kitesurf' else
+            'CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。' if native else
+            'DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。'),
  }
 
 def render_capabilities(out, names, *, table, cell, link):

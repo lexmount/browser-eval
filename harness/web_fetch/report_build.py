@@ -64,7 +64,9 @@ def build_report(source: Path, output: Path) -> Path:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source)
+    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
+        equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
+        'equivalent_reference_bytes_with_independent_batch_captures')
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:

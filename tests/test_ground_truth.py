@@ -17,6 +17,12 @@ class GroundTruthTest(unittest.TestCase):
         for c in data['cases']:
             self.assertTrue(c['task_prompt'],c['id'])
             if c['track'] in {'web','dynamic','document'}:
+                if c['source_verification'].get('state') == 'unavailable':
+                    self.assertEqual(c['ground_truth_main_content'],'',c['id'])
+                    self.assertIsNone(c['source_verification']['reference_sha256'])
+                    self.assertTrue(c['required_facts'],c['id'])
+                    self.assertNotIn('body_requirements',c)
+                    continue
                 self.assertTrue(c['ground_truth_main_content'],c['id'])
                 self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
                 if c['track']=='dynamic':

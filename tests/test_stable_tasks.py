@@ -89,6 +89,12 @@ class StableTaskTests(unittest.TestCase):
                     text.replace("Read a new object", ""), "GET /new First summary\nGET /new Different summary"):
             self.assertFalse(self.check(bad, "api_operation")["stable_task_pass"])
 
+    def test_api_operation_native_markdown_link_layout(self):
+        text = ('POST[/pet](#/pet/addPet)Add a new pet to the store\n'
+                'GET[/pet/{petId}](#/pet/getPetById)Find pet by ID')
+        result = self.check(text, 'api_operation')
+        self.assertTrue(result['stable_task_pass'], result['stable_task_errors'])
+
     def test_operation_group_headings_and_footer_do_not_extend_summary(self):
         anchors = [{"id": "read", "alternatives": ["GET\n/new/{id}\nRead a new object"]},
                    {"id": "create", "alternatives": ["POST\n/new\nCreate a new object"]}]

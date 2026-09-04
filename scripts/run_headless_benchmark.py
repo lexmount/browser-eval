@@ -51,7 +51,7 @@ def main():
                'comparison': {'kind': 'headless_markdown', 'timeout_seconds': args.timeout,
                    'source_dataset_sha256': hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
                    'adapter_input_sha256': hashlib.sha256((ROOT/'scripts/headless_worker.py').read_bytes()).hexdigest(),
-                   'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via pyhtml2md 1.7.0',
+                   'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; Chromium whole-DOM HTML via node-html-markdown 2.0.0',
                    'concurrency': args.workers, 'runs_per_case': 1}}
     records, _ = run_evaluation(output_dir=args.output, dataset_meta=dataset,
         dataset_path=args.dataset, cases=cases, providers=providers,

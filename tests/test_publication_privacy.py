@@ -60,6 +60,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text('')
             (source / '.generated-report').write_text('local marker')
+            (source / 'reliability.json').write_text('{"complete":true}')
             (source / 'results.jsonl').write_text('')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             key = b'AIzaSy' + b'x' * 33

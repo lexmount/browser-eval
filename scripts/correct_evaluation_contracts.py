@@ -49,4 +49,7 @@ def correct(source):
 
 
 if __name__ == '__main__':
-    correct(current_evidence_dir())
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source', type=Path, default=current_evidence_dir())
+    correct(parser.parse_args().source)

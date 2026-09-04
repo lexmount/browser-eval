@@ -1,4 +1,0 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta id="zh-zse-ck" charset="UTF-8" content="NMLclQDzEwfl2GgsiLk8xMBNVyZj7QBVmlNffE/C2UMe4jR0DaUIh4bUpJ4C+SLUUb8bdF4+jFwRh4D3z/9GxA4P76zd7hArIprRSuryh0DdGGU4iObic+i0Ndng+EJv"></head><body><div style="color:#535861;opacity: 0.1;display: flex;justify-content: center;">知乎，让每一次点击都充满意义 —— 欢迎来到知乎，发现问题背后的世界。</div><script data-assets-tracker-config="{&quot;appName&quot;:&quot;zse_ck&quot;,&quot;trackJSRuntimeError&quot;:true}" crossorigin="" src="https://static.zhihu.com/zse-ck/v4/6ea9d5b4ef3e8fd8a5a042328f16aa389c08fba6f306c00c54619c3ee5d4ac28.js"></script>
-
-</body></html>

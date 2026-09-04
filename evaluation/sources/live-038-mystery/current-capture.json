@@ -1,0 +1,131 @@
+{
+  "case_id": "live-038-mystery",
+  "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+  "checked_at": "2026-09-04T07:45:34.537108+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+  "mime": "text/html",
+  "bytes": 50388,
+  "sha256": "ff899bea5c8806ecd24542d7a195899ad46eeb9a12d4fbfc79a9ed6be9faf2a2",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "Mystery | \n     Books to Scrape - Sandbox",
+  "selector": ".col-sm-8.col-md-9",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/32/51/3251cf3a3412f53f339e42cac2134093.jpg",
+      "alt": "Sharp Objects"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/23/85/238570a1c284e730dbc737a7e631ae2b.jpg",
+      "alt": "In a Dark, Dark Wood"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/89/b8/89b850edb01851a91f64ba114b96acb6.jpg",
+      "alt": "The Past Never Ends"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/11/aa/11aaad48b5f15e262456ca65294084da.jpg",
+      "alt": "A Murder in Time"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/29/fe/29fe70b1b2e5a9ba61d4bd331255e19e.jpg",
+      "alt": "The Murder of Roger Ackroyd (Hercule Poirot #4)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/37/f1/37f118b4a56d866e1e8b563759d6966c.jpg",
+      "alt": "The Last Mile (Amos Decker #2)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/44/9e/449ed681142bc336646abee754e96639.jpg",
+      "alt": "That Darkness (Gardiner and Renner #1)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/3c/91/3c91d97266bd6dda322089695fb46daf.jpg",
+      "alt": "Tastes Like Fear (DI Marnie Rome #3)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/e8/c0/e8c0ba15066bab950ae161fd60949b9a.jpg",
+      "alt": "A Time of Torment (Charlie Parker #14)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/8f/a4/8fa41d6caa10e427356b8a590eb4d96b.jpg",
+      "alt": "A Study in Scarlet (Sherlock Holmes #1)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/23/52/2352718971d5e166fa9541a5a7d716fa.jpg",
+      "alt": "Poisonous (Max Revere Novels #3)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/c3/8d/c38d65cd155b67ca025f0655bd1bb095.jpg",
+      "alt": "Murder at the 42nd Street Library (Raymond Ambler #1)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/8b/bc/8bbc5ab4c3784b4d9b93eb0fd1fb6fd6.jpg",
+      "alt": "Most Wanted"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/57/07/5707c3d5d4fd44d943d51730ba7d429a.jpg",
+      "alt": "Hide Away (Eve Duncan #20)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/d5/81/d58157866ea8f015a8e4c55b23b8c96f.jpg",
+      "alt": "Boar Island (Anna Pigeon #19)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/fd/71/fd71fb07247bf911505a351c0670c6dc.jpg",
+      "alt": "The Widow"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/90/0b/900bd2e60d56b6480a4e8eb2dddb46d6.jpg",
+      "alt": "Playing with Fire"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/c7/ab/c7abb5e32bd37118a87523dcee0a70a6.jpg",
+      "alt": "What Happened on Beale Street (Secrets of the South Mysteries #2)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/95/d7/95d7541679fcbd579b8a4f2b47231aaf.jpg",
+      "alt": "The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries #1)"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/57/31/5731a5d46c2c1e88977eb5e6d1337a2e.jpg",
+      "alt": "Delivering the Truth (Quaker Midwife Mystery #1)"
+    }
+  ],
+  "extracted_sha256": "6ba12faca73e0ee0e5ead5aa2d315ab44f3b845b7bac96f5a5acf1a409a5f4e4",
+  "reference_sha256": "6ba12faca73e0ee0e5ead5aa2d315ab44f3b845b7bac96f5a5acf1a409a5f4e4",
+  "text_chars": 1249,
+  "excerpt": "Mystery\n32\nresults - showing\n1\nto\n20\n.\nWarning!\nThis is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.\nSharp Objects\n£47.82\nIn stock\nAdd to basket\nIn a Dark, Dark ...\n£19.63\nIn stock\nAdd to basket\nThe Past Never Ends\n£56.50\nIn stock\nAdd to basket\nA Murder in Time\n£16.64\nIn stock\nAdd to basket\nThe Murder of Roger ...\n£44.10\nIn stock\nAdd to basket\nThe Last Mile (Amos ...\n£54.21\nIn stock\nAdd to basket\nThat Darkness (Gardiner and ...\n£13.92\nIn stock\nAdd to basket\nTastes Like Fear (DI ...\n£10.69\nIn stock\nAdd to basket\nA Time of Torment ...\n£48.35\nIn stock\nAdd to basket\nA Study in Scarlet ...\n£16.73\nIn stock\nAdd to basket\nPoisonous (Max Revere Novels ...\n£26.80\nIn stock\nAdd to basket\nMurder at the 42nd ...\n£54.36\nIn stock\nAdd to",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

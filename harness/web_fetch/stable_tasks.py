@@ -322,7 +322,9 @@ def _reviews(lines):
 def _operations(lines):
     records, i = [], 0
     while i < len(lines):
-        match = re.match(rf"(?:method\s*:\s*)?({_METHOD})(?:\s+(.+))?$", lines[i])
+        # Some native Markdown serializers emit METHOD[/path](target)Summary;
+        # visible-link normalization leaves METHOD/path Summary without a gap.
+        match = re.match(rf"(?:method\s*:\s*)?({_METHOD})(?:(?:\s+|(?=/))(.+))?$", lines[i])
         if not match:
             i += 1
             continue

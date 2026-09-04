@@ -135,7 +135,10 @@ class UnifiedTextFailureTests(unittest.TestCase):
             self.assertIn('至少需要 5 条', result['evidence'])
 
     def test_duplicate_and_incomplete_records_keep_distinct_labels(self):
-        contract = dict(version=1, schema='product', minimum_records=2)
+        # A finite scope makes a malformed table row a required record. An
+        # open-ended at-least-N contract intentionally treats extra incomplete
+        # candidates as parse noise and reports only a complete-record shortfall.
+        contract = dict(version=1, schema='product', minimum_records=2, maximum_records=2)
         for content, expected, error in (
             ('Alpha\n$10\n\nAlpha\n$10', '条目重复', 'duplicate_records'),
             ('| Name | Price |\n| --- | --- |\n| Alpha | $10 |\n| Beta | invalid |',

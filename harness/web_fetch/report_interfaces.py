@@ -6,9 +6,9 @@ from .safety import contained_path
 URL='https://example.com/'
 HEADLESS_ACCESS={
  'kitesurf':{
-  'account':'本轮公共 Playground CDP 未使用账号或 API Key；账户级 Browser Run 接入另需 Cloudflare 账号。',
-  'configuration':'本轮配置 KITESURF_CDP_ENDPOINT。账户级接入使用 <ACCOUNT_ID> 和 <API_TOKEN>，不属于本轮实测路径。',
-  'links':[('公共 Playground','https://kitesurf.cloudflare.app/'),('账户级接入与令牌说明','https://developers.cloudflare.com/browser-run/kitesurf/')],
+  'account':'需要开通 Browser Rendering / Browser Run 的 Cloudflare 账号及 API Token。',
+  'configuration':'在仓库本地 .env 配置 <ACCOUNT_ID> 与 <API_TOKEN>；报告和示例只保留占位符。',
+  'links':[('Cloudflare 控制台','https://dash.cloudflare.com/'),('Kitesurf 接入说明','https://developers.cloudflare.com/browser-run/kitesurf/'),('Markdown 端点','https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/')],
  },
  'lightpanda':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
  'obscura':{'account':'本轮本地标准模式不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
@@ -67,22 +67,32 @@ SPECS={
  'scripts/oss/crawl4ai_worker.py','正文使用本地无头 Chrome；文件任务在调用前选择原生 AsyncHTTPCrawlerStrategy.crawl(url, config)，读取其 downloaded_files 并统一验收字节。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
-for engine in ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'):
+SPECS['kitesurf']=spec(
+ 'POST …/browser-rendering/markdown?browser=kitesurf','Authorization: Bearer <API_TOKEN>',
+ [('url','string','唯一任务输入'),('gotoOptions.waitUntil','string','networkidle2'),('browser','query','kitesurf'),('timeout','seconds','45 秒客户端端到端截止')],
+ [('result','string','Cloudflare 原生 Markdown → content'),('success / errors','boolean / array','接口状态与错误'),('browser_ms_used','number-like','服务端浏览器计费时间；不等于客户端耗时')],
+ {'url':URL,'gotoOptions':{'waitUntil':'networkidle2'}},'harness/web_fetch/providers/cloudflare.py',
+ '账号版 Browser Run 原生 Markdown 路径。客户端耗时包含公网往返、远端排队与执行；browser_ms_used 仅作附加诊断。')
+for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),('moli','done')):
  SPECS[engine]=spec(
-  'CDP · '+engine if engine in ('kitesurf','chromium') else 'CLI · '+engine+' fetch --dump html',
-  '公共 Kitesurf CDP；无 API Key' if engine=='kitesurf' else '本地独立浏览器；不加载个人会话',
-  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded；名称相同不保证内部等待实现相同'),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
-  [('content','string','共同 pyhtml2md 1.7.0 转换的 Markdown'),('rendered_html_path','string','原始 DOM HTML 证据路径'),('rendered_html_sha256','string','DOM 证据校验值'),('fetch_html_ms / conversion_ms','number','成功阶段耗时；不等于 CPU 时间'),('browser_stderr','string','浏览器诊断；不进入正文')],
-  {'url':URL,'engine':engine,'timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'pyhtml2md 1.7.0'},
-  'scripts/headless_worker.py',
-  '不点击、不滚动、不补抓资源，不在失败后切换引擎或原生 Markdown。CLI 的 HTTP 状态和最终 URL 未返回时留空；CDP 从导航响应记录。Kitesurf 是远端服务，客户端耗时包含网络和连接开销。')
+  'CLI · '+engine+' fetch --dump markdown','本地独立浏览器；不需要供应商 API Key',
+  [('URL','string','唯一任务输入'),('--dump','string','markdown'),('wait_until','string',wait),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
+  [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
+  {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
+  '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
+SPECS['chromium']=spec(
+ 'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
+ [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
+ [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
+ {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'scripts/headless_worker.py',
+ 'Chromium/CDP 没有原生 Markdown 输出，因此取完整渲染 DOM 后转换；转换计入端到端耗时，HTML 与转换器版本、哈希均保留。')
 
 def render_interfaces(out,records):
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
  names=sorted(SPECS,key=lambda name:(name not in measured,name))
- body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置以环境页保存证据为准。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
+ body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置以环境页保存证据为准。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符；未列出的账号版或托管接口不属于本轮实测路径。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
   access=HEADLESS_ACCESS.get(name)

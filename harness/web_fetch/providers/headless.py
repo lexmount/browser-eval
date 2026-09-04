@@ -71,10 +71,16 @@ class HeadlessProvider(Provider):
         self._resolved_binary = binary
         if engine == 'kitesurf' and self.type == 'headless_markdown':
             errors.extend(name for name in ('api_token', 'account_id') if not self.config.get(name))
-        dependencies = ('pyhtml2md', 'playwright') if engine in {'chromium'} or self.type == 'headless_html' else ()
+        dependencies = ('playwright',) if engine in {'chromium'} or self.type == 'headless_html' else ()
         for dependency in dependencies:
             if importlib.util.find_spec(dependency) is None:
                 errors.append(dependency)
+        if engine == 'chromium' or self.type == 'headless_html':
+            if not shutil.which('node'):
+                errors.append('node')
+            package = Path(__file__).resolve().parents[3] / 'node_modules/node-html-markdown/package.json'
+            if not package.is_file():
+                errors.append('node-html-markdown')
         return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
@@ -92,7 +98,7 @@ class HeadlessProvider(Provider):
                       else 'domcontentloaded')
         extractor = ('cloudflare_native_markdown' if engine == 'kitesurf' and output_mode == 'markdown'
                      else f'{engine}_native_markdown' if output_mode == 'markdown' and engine != 'chromium'
-                     else 'pyhtml2md')
+                     else 'node-html-markdown')
         metadata = {'engine': engine, 'wait_until': wait_until,
                     'extractor': extractor, 'output_contract': 'markdown',
                     'session': 'fresh per call',
