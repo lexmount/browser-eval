@@ -9,6 +9,7 @@ from .failure_diagnosis import diagnose
 from .safety import contained_path, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
+from .storage import require_selection_history
 
 
 def scoring_scope(records, cases):
@@ -35,6 +36,7 @@ def build_report(source: Path, output: Path) -> Path:
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)

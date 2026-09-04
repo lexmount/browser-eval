@@ -9,6 +9,7 @@ from harness.web_fetch.storage import (
     data_home,
     require_canonical_inputs,
     require_evidence,
+    require_selection_history,
     research_evidence_dir,
 )
 
@@ -50,6 +51,18 @@ class StorageTests(unittest.TestCase):
             (evidence / "sources/case/reference.txt").write_bytes(b"changed")
             with self.assertRaisesRegex(ValueError, "sources"):
                 require_canonical_inputs(evidence, canonical)
+
+    def test_rerun_selection_requires_complete_baseline(self):
+        with tempfile.TemporaryDirectory() as folder:
+            evidence = Path(folder)
+            (evidence / "file-rerun-selection.json").write_text("{}")
+            with self.assertRaisesRegex(ValueError, "historical baseline"):
+                require_selection_history(evidence)
+            baseline = evidence / "history/file-baseline"
+            (baseline / "artifacts").mkdir(parents=True)
+            (baseline / "results.jsonl").write_text("")
+            (baseline / "execution.json").write_text("{}")
+            require_selection_history(evidence)
 
 
 if __name__ == "__main__":

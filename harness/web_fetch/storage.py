@@ -30,7 +30,22 @@ def require_evidence(path: Path | None = None) -> Path:
             f"Persistent benchmark evidence is incomplete at {result}: missing {', '.join(missing)}. "
             "Set WEB_FETCH_EVIDENCE_DIR to an explicit evidence bundle if needed."
         )
+    require_selection_history(result)
     return result
+
+
+def require_selection_history(evidence: Path) -> None:
+    """A rerun selection is invalid without the baseline it compares against."""
+    if not (evidence / "file-rerun-selection.json").is_file():
+        return
+    baseline = evidence / "history/file-baseline"
+    required = [baseline / "results.jsonl", baseline / "execution.json", baseline / "artifacts"]
+    missing = [path.relative_to(evidence).as_posix() for path in required if not path.exists()]
+    if missing:
+        raise ValueError(
+            "File rerun selection requires complete historical baseline evidence: "
+            + ", ".join(missing)
+        )
 
 
 def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
