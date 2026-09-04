@@ -73,11 +73,12 @@ class MoliWebFetchProvider(Provider):
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
+        dump = "html" if case.task_kind == "file" else "markdown"
         command = [
             binary,
             "fetch",
             "--dump",
-            "markdown",
+            dump,
             "--wait-until",
             wait,
             "--timeout",
@@ -88,7 +89,7 @@ class MoliWebFetchProvider(Provider):
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
         metadata = {
-            "dump": "markdown",
+            "dump": dump,
             "wait_until": wait,
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
@@ -179,6 +180,12 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli stdout exceeds max_bytes",
                 metadata=metadata,
             )
+        if case.task_kind == "file":
+            ok = process.returncode == 0 and bool(raw)
+            return ProviderResult(ok, "", files=[{"data": raw}] if raw else [],
+                error_type=None if ok else "tool_error",
+                error_message=None if ok else stderr or "Moli returned no file bytes",
+                metadata=metadata)
         try:
             content = raw.decode("utf-8")
         except UnicodeDecodeError:

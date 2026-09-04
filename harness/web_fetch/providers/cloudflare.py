@@ -36,6 +36,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=None if ok else ("authentication" if response.status in (401, 403) else ("rate_limit" if response.status == 429 else "api_error")),
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
             metadata={
+                **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": meta.get("status"),
                 "empty_content": ok and not content,
                 "content_type": (meta.get("headers") or {}).get("content-type"),

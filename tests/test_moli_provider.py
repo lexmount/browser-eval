@@ -56,6 +56,15 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.final_url)
         self.assertEqual(len(result.metadata["binary_sha256"]), 64)
 
+    def test_file_task_preserves_binary_stdout(self):
+        from dataclasses import replace
+        provider = self.provider('import sys\nassert sys.argv[3] == "html"\nsys.stdout.buffer.write(b"\\x89PNG\\r\\n\\x1a\\n" + b"x"*40)')
+        result = provider.fetch(replace(self.case, task_kind="file"), 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.files[0]["data"], b"\x89PNG\r\n\x1a\n" + b"x"*40)
+        self.assertEqual(result.content, "")
+        self.assertEqual(result.metadata["dump"], "html")
+
     def test_failure_empty_binary_and_oversized_output(self):
         for script, config, expected in [
             ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),

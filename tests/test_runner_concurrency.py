@@ -20,6 +20,19 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_jsonl_escapes_unicode_line_separators_without_changing_output(self):
+        value = 'before\u0085middle\u2028after\u2029end'
+        class TextProvider(Provider):
+            def fetch(self,case,timeout):return ProviderResult(True,value,metadata={'raw_response':value})
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            records,_=run_evaluation(output_dir=root,dataset_meta={'id':'test'},dataset_path=Path('dataset.json'),
+                cases=[EvalCase('case','Case','https://example.com','static',[])],providers=[TextProvider('text',{})],
+                provider_config_path=Path('providers.json'),runs=1,timeout=2,delay=0)
+            self.assertEqual(len((root/'results.jsonl').read_text().splitlines()),1)
+            self.assertEqual(json.loads((root/'results.jsonl').read_text())['provider_metadata']['raw_response'],value)
+            self.assertEqual((root/records[0]['artifact_path']).read_text(),value)
+
     def test_unstoppable_timeout_is_quarantined_not_counted_as_remaining_failures(self):
         release = threading.Event()
         finished = threading.Event()

@@ -1,0 +1,371 @@
+{
+  "date": "2026-09-04",
+  "scope": "Replace exactly 36 missing-evidence file calls in the current view; preserve historical calls separately. Latest adapter-corrected calls selected, not best scores.",
+  "historical_records": "history/file-baseline/results.jsonl",
+  "executed_calls": 42,
+  "selected_calls": 36,
+  "passed": 3,
+  "failed": 33,
+  "records": [
+    {
+      "provider": "lexmount-global",
+      "case_id": "image-10",
+      "old_run_id": "run-5819681392555f3e314b",
+      "new_run_id": "run-8c4b946be7bfb6759c6d",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "71409b1c5761527cd31bce98bb5c21d54a064087cd349dca842b0ad8afad72d5",
+      "new_content_sha256": "71409b1c5761527cd31bce98bb5c21d54a064087cd349dca842b0ad8afad72d5"
+    },
+    {
+      "provider": "lexmount-global",
+      "case_id": "video-05",
+      "old_run_id": "run-06c4bbda6611d6a268c2",
+      "new_run_id": "run-eeb0fb003c0b461cfeb5",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "1c2f0dbea05dda80d37a3835c6bb1cdcf03e59c4e0067db89e6030808fef6de8",
+      "new_content_sha256": "68e59ddd3e200a27f2565ef958e145e98f699f8c5c16bc4a974acdec30d59218"
+    },
+    {
+      "provider": "lexmount-global",
+      "case_id": "video-08",
+      "old_run_id": "run-1df9f080ae897482ae32",
+      "new_run_id": "run-85d78b1898dfc53d4c54",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "4d966f2e683595a782eb56ca6a75e561e17f73eb4089a96dffa7f1da8d4b1005",
+      "new_content_sha256": "4d966f2e683595a782eb56ca6a75e561e17f73eb4089a96dffa7f1da8d4b1005"
+    },
+    {
+      "provider": "lexmount-cn",
+      "case_id": "image-10",
+      "old_run_id": "run-4c12cd19366bc48b64a3",
+      "new_run_id": "run-e3628385b9d1054f72d7",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "7688154cbafa01c70ecb654fca6d1a754464c696e31008f1adb7389334af1a3c",
+      "new_content_sha256": "7688154cbafa01c70ecb654fca6d1a754464c696e31008f1adb7389334af1a3c"
+    },
+    {
+      "provider": "lexmount-cn",
+      "case_id": "video-05",
+      "old_run_id": "run-62172bb49f6e0f79c7b1",
+      "new_run_id": "run-704c67b53a8f434e5a69",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "68e59ddd3e200a27f2565ef958e145e98f699f8c5c16bc4a974acdec30d59218",
+      "new_content_sha256": "14b10586eb5940b45d898697ce93db76160324048ace42eba38b23a720c53aa8"
+    },
+    {
+      "provider": "lexmount-cn",
+      "case_id": "video-08",
+      "old_run_id": "run-db156328d3755a103d71",
+      "new_run_id": "run-1d3e2c73c6904c5e70fd",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "69c5202a70935410a5cb62299dea801ca25d0d11d0e804951b1d8fa412314c02",
+      "new_content_sha256": "69c5202a70935410a5cb62299dea801ca25d0d11d0e804951b1d8fa412314c02"
+    },
+    {
+      "provider": "firecrawl",
+      "case_id": "image-10",
+      "old_run_id": "run-aa04a3951de274e3225d",
+      "new_run_id": "run-3be1d70737b1de78f543",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "e9051205a3e9aca73735e5485a092a7a9e44906ed4d5a78970a39b0dca683bd8",
+      "new_content_sha256": "7fa7c0b9b7ee39183aa9c6238de4f47761feacae3eb0cbd562433ffc8a9eec89"
+    },
+    {
+      "provider": "firecrawl",
+      "case_id": "video-05",
+      "old_run_id": "run-fd5ad1baa51969737b0d",
+      "new_run_id": "run-b5a13dd4c550c157a000",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "4a2cc86a7f1c9e03b770936612e3cf5c13e75bfa08b1f958b7be33eef0d1998b",
+      "new_content_sha256": "f2abf502881e120164b24523dba195f787fa73832913fa442d039edc15529ac8"
+    },
+    {
+      "provider": "firecrawl",
+      "case_id": "video-08",
+      "old_run_id": "run-4adbf58f266c8eafe89c",
+      "new_run_id": "run-c7ca43efe940b79e9986",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "2836e54200eb47459840e4cd859ae20ba55dea6996bfd254cf711da7353e5e3e",
+      "new_content_sha256": "e20ea109a7b0a708b56c31568dd6af1693a72560b15a39848e6b8e7f2374fe22"
+    },
+    {
+      "provider": "tavily",
+      "case_id": "image-10",
+      "old_run_id": "run-e3418dd52764e56e1506",
+      "new_run_id": "run-58aa03f26714f2d836ad",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "4f91d498a89ba54333b81b911b0c483a2b744cca9f4dfc58b42aceab1a62d534",
+      "new_content_sha256": "37ab6691adc66de29a50ea8adb9418a2d0fe0fb3aa04528e21a3dbdffd0799fb"
+    },
+    {
+      "provider": "tavily",
+      "case_id": "video-05",
+      "old_run_id": "run-3673d6347151aa12e97f",
+      "new_run_id": "run-eb93a2ef16f64165b252",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "835ef85bdb0492427a77744c71b00156896fb6ebcd37164248da28b4b40859fc",
+      "new_content_sha256": "835ef85bdb0492427a77744c71b00156896fb6ebcd37164248da28b4b40859fc"
+    },
+    {
+      "provider": "tavily",
+      "case_id": "video-08",
+      "old_run_id": "run-e04c5e075bc5063ff589",
+      "new_run_id": "run-537c9ce4ca4b451cbf9d",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "476d1e3ad314ae477c8f00771027944cdc3ae0366944bb2c7a8a3058ac547d92",
+      "new_content_sha256": "476d1e3ad314ae477c8f00771027944cdc3ae0366944bb2c7a8a3058ac547d92"
+    },
+    {
+      "provider": "exa",
+      "case_id": "image-10",
+      "old_run_id": "run-3e5ee0de7c98f20c4a1a",
+      "new_run_id": "run-5363c8169718893afbe7",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "247d0238ff12da5a7feca1f5a5bc8877d151039feac9df592b5d2c877cb62082",
+      "new_content_sha256": "fee2dd14ca962ca33be669d2d60470d56e19d9d1c0ceb0a5e305485fb05c2e13"
+    },
+    {
+      "provider": "exa",
+      "case_id": "video-05",
+      "old_run_id": "run-fc5a1d2578f11dcd6546",
+      "new_run_id": "run-2733e502088247c9d637",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "36aed945ebbc1178c38f0cc76bd5b82330e17c1f34aeb047eeb859b979226825",
+      "new_content_sha256": "843889bdff34c9dcf4aa8daba57ac543f3f226aa184f77e7a72b55646f6becb5"
+    },
+    {
+      "provider": "exa",
+      "case_id": "video-08",
+      "old_run_id": "run-ae40cfc4f7a4ce9635a5",
+      "new_run_id": "run-85cdd1f9f58a3505e797",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "adca45252773e26adf4ba38ee80db89fa23eaf2d9f4876d0812f9f64a039fb3d",
+      "new_content_sha256": "4ca810c6f744270b6cce2058ebb46837a788214313f7af314ceb91909489b3ae"
+    },
+    {
+      "provider": "cloudflare-markdown",
+      "case_id": "image-10",
+      "old_run_id": "run-cfc27adbc540b1f2f700",
+      "new_run_id": "run-59c33c1b40e60f89c73e",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "08395a4d61c50c5fea7b8df8f1225d46a9ffdace1029bc2eff8f2baa7686b75f",
+      "new_content_sha256": "08395a4d61c50c5fea7b8df8f1225d46a9ffdace1029bc2eff8f2baa7686b75f"
+    },
+    {
+      "provider": "cloudflare-markdown",
+      "case_id": "video-05",
+      "old_run_id": "run-a87fb4501a7b4de4ac4f",
+      "new_run_id": "run-5b97a860bfd6480a9b68",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "334e76f109d7be6413cecd3ca38d9602565352a2f9bdfd4d5d02505e2fe700d2",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "cloudflare-markdown",
+      "case_id": "video-08",
+      "old_run_id": "run-c46416c73d1ffce83891",
+      "new_run_id": "run-6ee77a774391ac7b4f95",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "507d02304661456f9728ce53c423b1c51614d5be536dc08efc907c558b7ed9a8",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "openclaw-built-in",
+      "case_id": "image-10",
+      "old_run_id": "run-1a65b27294c2de38891b",
+      "new_run_id": "run-0473f731315dbdeea8db",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "2b895ab5345baa7e8059778c05d63876b65e06bf1b11d055eb128894a147e1b3",
+      "new_content_sha256": "758f652c1338f729288cb3999fd001f58407d8c92b95d10338ff9686dee99238"
+    },
+    {
+      "provider": "openclaw-built-in",
+      "case_id": "video-05",
+      "old_run_id": "run-414eea0a13fe33e068c7",
+      "new_run_id": "run-bc2444bdb18593559248",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "b4dd6181dea84c117e77ba328a47af8f7d489154d11a93e3fa87b97ec2959d6d",
+      "new_content_sha256": "5e8f3cb977ce5da8182d02bfe969adfa0aa273c1c6d01fcd308e57063ad1e020"
+    },
+    {
+      "provider": "openclaw-built-in",
+      "case_id": "video-08",
+      "old_run_id": "run-ebf4333a7f7251b938ed",
+      "new_run_id": "run-b1f639cff11bd46a1664",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "fda40b9b25df7479ea8526d546c596a0c4e3c57dbf9cefdcfd91106844038e0b",
+      "new_content_sha256": "d382af7a09c3525fe6e7fca48b815c3b8747ed4812e75b00afd1edd4fbb6ef26"
+    },
+    {
+      "provider": "deepseek-harness-built-in",
+      "case_id": "image-10",
+      "old_run_id": "run-f25a52f00e2fc4fab1a3",
+      "new_run_id": "run-59ef8852f6b1c7571ea7",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "6f55dac768f268c1a083fda5e430f6562ca017a93d3d54ce8644c14fb2a5f874",
+      "new_content_sha256": "6f55dac768f268c1a083fda5e430f6562ca017a93d3d54ce8644c14fb2a5f874"
+    },
+    {
+      "provider": "deepseek-harness-built-in",
+      "case_id": "video-05",
+      "old_run_id": "run-108e0f39b0f32a6f5c38",
+      "new_run_id": "run-9d43f79bf91bce99e04a",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "8e3f489786a9784df911cc8b4f93b2d2fd56073f122ef478f67a3e2d5b5a8176",
+      "new_content_sha256": "8e3f489786a9784df911cc8b4f93b2d2fd56073f122ef478f67a3e2d5b5a8176"
+    },
+    {
+      "provider": "deepseek-harness-built-in",
+      "case_id": "video-08",
+      "old_run_id": "run-047a000f4965b507fa7f",
+      "new_run_id": "run-b14ce9615002b8bab429",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "53a2d82f6c76bd90360275764596628cd771a61e38d900406fe16a71826f3f57",
+      "new_content_sha256": "53a2d82f6c76bd90360275764596628cd771a61e38d900406fe16a71826f3f57"
+    },
+    {
+      "provider": "langchain-webbase",
+      "case_id": "image-10",
+      "old_run_id": "run-645cd912daf5adac6fdf",
+      "new_run_id": "run-dfaa7223d2fb4a9a0b4d",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "053d9354b159b9de50c5f55865087566c64847b6f5153ea663e4a3de13df56ae",
+      "new_content_sha256": "053d9354b159b9de50c5f55865087566c64847b6f5153ea663e4a3de13df56ae"
+    },
+    {
+      "provider": "langchain-webbase",
+      "case_id": "video-05",
+      "old_run_id": "run-859014a295e426198d1e",
+      "new_run_id": "run-e2cc0221b5cfc16a88ab",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "e58f22ed49e221352e497063ec2f05bff8fdb57ae1e8656907357a46ba660077",
+      "new_content_sha256": "e58f22ed49e221352e497063ec2f05bff8fdb57ae1e8656907357a46ba660077"
+    },
+    {
+      "provider": "langchain-webbase",
+      "case_id": "video-08",
+      "old_run_id": "run-6072d6c202e545f6f439",
+      "new_run_id": "run-dc98673068ed1e384040",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "083609d65d65abf2c10e90987631204f2b17def3ba8fa0b1608cca16a56af3be",
+      "new_content_sha256": "083609d65d65abf2c10e90987631204f2b17def3ba8fa0b1608cca16a56af3be"
+    },
+    {
+      "provider": "crawl4ai",
+      "case_id": "image-10",
+      "old_run_id": "run-ed6749c6d6ecd19f970b",
+      "new_run_id": "run-dcf1ae7afa3bb0f760b6",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": false,
+      "old_content_sha256": "8d07f5cbc7983377e42980d0394b264f3fe9d93e6448708f242e3ab6696cf483",
+      "new_content_sha256": "8d07f5cbc7983377e42980d0394b264f3fe9d93e6448708f242e3ab6696cf483"
+    },
+    {
+      "provider": "crawl4ai",
+      "case_id": "video-05",
+      "old_run_id": "run-77cb4fc9f27279cfd056",
+      "new_run_id": "run-606eaaa3bede496c5a18",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": false,
+      "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "crawl4ai",
+      "case_id": "video-08",
+      "old_run_id": "run-d8f066af3ee6841c1d0b",
+      "new_run_id": "run-504534efc8ebbbb435e6",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": false,
+      "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "cowagent-built-in",
+      "case_id": "image-10",
+      "old_run_id": "run-3a4e59b9396eae9d91c0",
+      "new_run_id": "run-7df8dea2d8d99871047a",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "0be276ba6e834ee24c9806469b06bd0236161ef0daa477ae13b3bc4c51c29ec7",
+      "new_content_sha256": "0be276ba6e834ee24c9806469b06bd0236161ef0daa477ae13b3bc4c51c29ec7"
+    },
+    {
+      "provider": "cowagent-built-in",
+      "case_id": "video-05",
+      "old_run_id": "run-96b83a3947431a2ed2c1",
+      "new_run_id": "run-45c349e4c9e07f85a423",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "ef847f18ccbbe3a6f6dc76c8ca286d3fb98c24543d6109aef3220553273fc4f1",
+      "new_content_sha256": "ef847f18ccbbe3a6f6dc76c8ca286d3fb98c24543d6109aef3220553273fc4f1"
+    },
+    {
+      "provider": "cowagent-built-in",
+      "case_id": "video-08",
+      "old_run_id": "run-b2c634b2cfa16febae34",
+      "new_run_id": "run-4be5780e3d75212f8e4a",
+      "source_batch": "file-provider-rerun",
+      "task_pass": false,
+      "old_content_sha256": "c686e4c6a359edc322bbdc52c3e732ef45e1335b42d1a69a5bab3886d5893b32",
+      "new_content_sha256": "c686e4c6a359edc322bbdc52c3e732ef45e1335b42d1a69a5bab3886d5893b32"
+    },
+    {
+      "provider": "moli-webfetch",
+      "case_id": "image-10",
+      "old_run_id": "run-ff745ed50833b9b5deed",
+      "new_run_id": "run-3590e49a86754d37dded",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": true,
+      "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "moli-webfetch",
+      "case_id": "video-05",
+      "old_run_id": "run-ec87a074809d4f9a7bb0",
+      "new_run_id": "run-9e9ff907ccc99977a906",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": true,
+      "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "provider": "moli-webfetch",
+      "case_id": "video-08",
+      "old_run_id": "run-3567df6fb737bc8227d0",
+      "new_run_id": "run-1f3c14053f4220e804cf",
+      "source_batch": "file-provider-rerun-native",
+      "task_pass": true,
+      "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

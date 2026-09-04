@@ -40,5 +40,5 @@ class ExaContentsProvider(Provider):
             title=result.get("title"),
             error_type=None if ok else ("authentication" if response.status in (401, 403) else error.get("tag", "api_error")),
             error_message=None if ok else (error.get("tag") or payload.get("error") or f"HTTP {response.status}"),
-            metadata={"request_id": payload.get("requestId"), "url_status": status, "cost_dollars": payload.get("costDollars"), "extras": result.get("extras") or {}},
+            metadata={**({"raw_response": response.text()} if case.task_kind == "file" else {}), "request_id": payload.get("requestId"), "url_status": status, "cost_dollars": payload.get("costDollars"), "extras": result.get("extras") or {}},
         )

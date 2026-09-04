@@ -7,6 +7,15 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 
 
+def first_correction(history, releases):
+    release=next(r for r in releases if r['id']=='2026-09-03-fairness-correction')
+    digest=release['scoring_revision_input_sha256']
+    matches=[r for r in history if r.get('input_results_sha256')==digest]
+    if len(matches)!=1:
+        raise ValueError('First correction must bind to exactly one scoring revision')
+    return matches[0]
+
+
 def render_changes(out, cases, records):
     from .report import hero, section, table, cell, esc, link, write
     data=json.loads((ROOT/'research/report-changes.json').read_text())
@@ -20,7 +29,7 @@ def render_changes(out, cases, records):
     revision=out/'scoring-revisions.json'
     if revision.exists():
         grouped=defaultdict(lambda:[0,0,0,0,0])
-        for row in json.loads(revision.read_text())[0]['records']:
+        for row in first_correction(json.loads(revision.read_text()),data['releases'])['records']:
             name=row['attempt_id'].split('__',1)[0]; totals=grouped[name]
             totals[0]+=bool(row['before']['task_pass']);totals[1]+=bool(row['after']['task_pass'])
             totals[2]+=row['before']['task_pass']!=row['after']['task_pass']
@@ -29,7 +38,7 @@ def render_changes(out, cases, records):
         body+=section('首次纠正对成绩的影响','<p>下面汇总六类任务的判定变化数，仅用于核对修订，不是跨类型总排名。通过数不含未测；不同指标的改变可能重叠，不能把各修复的影响简单相加。</p><details><summary>逐方法：纠正前后通过数、判定变化与缺测数</summary>'+table(['方法','原通过数','纠正后通过数','判定改变','改为未测'],rows,metrics=[])+'</details><p>'+link('../scoring-revisions.json','下载逐调用的前后分数与规则哈希')+'</p>')
     missing=[r for r in records if cases[r['case_id']].get('task_kind')=='file' and not isinstance(r['metrics'].get('raw_file_pass'),bool)]
     ids=sorted({r['case_id'] for r in missing})
-    body+=section('原文件任务：为什么还有缺测？','<p>历史记录缺失的是文件字节证据，不是源文件不存在。文本或一个 URL 不能证明已经收到目标文件；删除案例、把缺测改失败、拿另一种方法的下载冒充原方法，都不会补完评测。</p><p>缺测 '+str(len(missing))+' 条，涉及 '+str(len(ids))+' 个案例：'+ '、'.join(link('../datasets/'+key+'.html',cases[key]['name']) for key in ids)+'。这些历史记录保留，真实补测必须另存时间、配置、原始字节与耗时。</p>', 'file-gap')
+    body+=section('文件任务的证据状态','<p>历史记录缺失的是文件字节证据，不是源文件不存在。文本或一个 URL 不能证明已经收到目标文件；删除案例、把缺测改失败、拿另一种方法的下载冒充原方法，都不会补完评测。</p><p>当前选入榜单的文件调用缺测 '+str(len(missing))+' 条。'+ ('涉及案例：'+'、'.join(link('../datasets/'+key+'.html',cases[key]['name']) for key in ids) if ids else '本次已通过真实接口补测完成判分；未通过不等于未执行。')+'</p>', 'file-gap')
     diagnostic=ROOT/'research/file-delivery-check'
     if (diagnostic/'scope.json').exists():
         shutil.copytree(diagnostic,out/'file-delivery-check')
@@ -41,7 +50,16 @@ def render_changes(out, cases, records):
             f=files[0] if files else {}
             rows.append(('',cell(esc(r['case_name']))+cell(str(r['status_code']))+cell(str(f.get('bytes','—')))+cell('匹配' if f.get('pass') else '未匹配')+cell(str(r['elapsed_ms'])+' ms')+cell(link('../file-delivery-check/'+f['artifact_path'],'原始文件') if f.get('artifact_path') else '—')))
         body+=section('真实字节对照验证','<p>单独运行 HTTP 下载 → 字节获取 → 格式特征/长度/SHA-256 验收。'+str(scope['control_pass'])+'/'+str(scope['control_calls'])+' 次匹配独立保存的目标哈希。此对照不是十二种参评方法之一，不加入它们的成绩；只能证明本次公共文件与字节链路的状况，不能倒推历史成功。</p><details><summary>查看对照的文件大小、耗时与原始证据</summary>'+table(['案例','HTTP','字节数','目标哈希','端到端耗时','证据'],rows,metrics=[])+'<p>'+link('../file-delivery-check/results.jsonl','对照调用记录')+'</p></details>')
-        ready=[('',cell(esc(x['provider']))+cell(esc('、'.join(x['missing_configuration']) or '基础配置检查无缺项'))+cell('字节输出适配未接通；未执行补测')) for x in scope['supplier_readiness']]
-        body+=section('十二种方法的补测状态','<p>计划 36 次供应商补测，当前已执行 '+str(scope['executed_supplier_calls'])+' 次。以下是本次环境预检，不代表产品能力判断。发布账号只用于上传报告，不提供供应商调用权限。</p><details><summary>展开方法、配置缺项与字节输出缺口</summary>'+table(['方法','本次配置预检','补测状态'],ready,metrics=[])+'</details>')
+    selection=out/'file-rerun-selection.json'
+    if selection.exists():
+        selected=json.loads(selection.read_text())
+        grouped=defaultdict(lambda:[0,0])
+        for r in selected['records']:
+            grouped[r['provider']][0]+=1
+            grouped[r['provider']][1]+=r['task_pass']
+        rows=[('',cell(esc(p))+cell(str(n))+cell(str(passed))+cell(str(n-passed))) for p,(n,passed) in sorted(grouped.items())]
+        for name in ['file-provider-rerun','file-provider-rerun-native']:
+            shutil.copytree(ROOT/'research'/name,out/name)
+        body+=section('十二种方法：文件补测已完成','<p>2026-09-04 共执行 42 次实际接口调用：首次 36 次，修复 Moli/Crawl4AI 原生文件适配后再测 6 次。按修正后的配置选入 36 次，不挑最高分。结果为 3 次通过、33 次未通过，0 次缺测。</p><p>Moli 的 PNG、WebM、MP4 字节均匹配独立目标 SHA-256。其他结果包括不支持的内容类型、仅返回文本/地址、源站或抓取错误、45 秒超时。结论限定于本轮接口、配置与时间预算，不代表产品所有功能。</p><details><summary>逐方法的已测、通过和未通过数量</summary>'+table(['方法','已测','通过','未通过'],rows,metrics=[])+'</details><details><summary>运行证据、历史记录及选取规则</summary><p>'+link('../file-rerun-selection.json','逐调用的新旧运行 ID 与选择清单')+' · '+link('../history/file-baseline/results.jsonl','36 条历史缺测记录')+' · '+link('../file-provider-rerun/results.jsonl','首次 36 次接口响应')+' · '+link('../file-provider-rerun-native/results.jsonl','适配修正后的 6 次调用')+'</p><p>历史字节、文本、调用时间不修改。当前视图以新文件调用替换对应的历史缺测项，仍为 150 个案例、1,800 条选定调用；不是同一时刻的全量重跑。原始文件已在具体案例的调用证据中提供。</p></details>')
     body+=section('历史范围与证据','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载变更记录')+' · '+link('https://github.com/lexmount/browser-eval/pull/4','对应修复 PR')+'</p>')
     write(out,'changes/index.html','报告变更记录','<div class="change-log">'+body+'</div>')

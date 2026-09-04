@@ -458,7 +458,7 @@ def write_support(out,records,manifests):
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入与调用预算','<p>所有方法进入同一个评分入口。正文、HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写请求或任务结果。</p><p>计时覆盖调用、下载、渲染、本地解析和必要输入转换。每次使用一个端到端预算；超时内容不再接收。无法取消的本地调用会隔离该方法，剩余未执行案例列为未运行，不继续并发堆积请求。历史记录仅按登记耗时与预算重新判断交付资格，不补认证当时存在硬截止。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续区域逐区检查 80% 词语计数覆盖。它是内容覆盖下限，不保证词序、归属或语义；全文 F1 独立保留实际值。文件任务缺少字节验收时为未测，资源 URL 不等于文件。</p>')
  if (out/'scoring-revisions.json').exists():
-  methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；没有发起新的供应商请求。独立源快照、原始输出哈希、调用标识和计时保留。'+link('../scoring-revisions.json','逐调用的原评分、新评分及规则校验值')+'记录正文范围、输入归一化、字段覆盖、时间预算和未测处理的修订，不把新规则伪装成原调用时的运行配置。</p>')
+  methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。其他历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','逐调用的原评分、新评分及规则校验值')+'记录离线修订，不把新规则伪装成原调用时的运行配置。</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
  figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
  if figures:methodology+=section('方法图解',figures)

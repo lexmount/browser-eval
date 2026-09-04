@@ -1,0 +1,38 @@
+{
+  "scope": "Runtime provenance for the 2026-09-04 file supplement. dataset.json is the complete 150-case source snapshot; only image-10, video-05, video-08 were selected. Configuration template uses credential placeholders; credentials are excluded.",
+  "source_config": "configs/providers.resources.json",
+  "selected_cases": [
+    "image-10",
+    "video-05",
+    "video-08"
+  ],
+  "timeout_seconds": 45,
+  "provider_concurrency": 4,
+  "repositories": {
+    "cowagent-built-in": {
+      "commit": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
+      "dirty": false
+    },
+    "openclaw-built-in": {
+      "commit": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
+      "dirty": false
+    },
+    "deepseek-harness-built-in": {
+      "commit": "dd6322d604e00eec1ba5e0c8541159906a21094a",
+      "dirty": true
+    }
+  },
+  "packages": {
+    "crawl4ai": "0.9.3",
+    "langchain-community": "0.3.30",
+    "requests": "2.34.2",
+    "beautifulsoup4": "4.15.0"
+  },
+  "selection": "First batch supplies 30 calls; adapter-corrected native batch supplies Moli and Crawl4AI six calls. All first-batch diagnostics retained; not best-of selection.",
+  "native_sources": {
+    "cowagent": "312a582a412a4e3af1b92eb3b98c7ed8bf0dc4935fc20db8d444936ccbcd84cb",
+    "openclaw": "bcb2f4d2fd86aa54f12eda2ce3b2421762b7493c07bd0db879897fd376034a86",
+    "deepseek-worker": "ba5ae452bdd5dd727e23c1320dbc9c8cd9544dfb45a92efaa390c074da824ba4",
+    "moli-v1.1.1": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783"
+  }
+}

@@ -221,7 +221,7 @@ def run_evaluation(
                     state = "PASS" if passed else "FAIL"
                     with result_lock:
                         records.append(record)
-                        results_file.write(json.dumps(record, ensure_ascii=False) + "\n")
+                        results_file.write(json.dumps(record, ensure_ascii=True) + "\n")
                         results_file.flush()
                         print(
                             f"{state:4} {provider.name:14} {case.id:24} "
@@ -254,7 +254,7 @@ def run_evaluation(
     case_order = {case.id: index for index, case in enumerate(cases)}
     records.sort(key=lambda item: (provider_order[item["provider"]], item["run"], case_order[item["case_id"]]))
     results_path.write_text(
-        "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records),
+        "".join(json.dumps(record, ensure_ascii=True) + "\n" for record in records),
         encoding="utf-8",
     )
 
@@ -322,7 +322,7 @@ def rescore_evaluation(
         record["metrics"]["deadline_overrun"] = previous_deadline
 
     tmp = run_dir / "results.jsonl.tmp"
-    tmp.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")
+    tmp.write_text("".join(json.dumps(record, ensure_ascii=True) + "\n" for record in records), encoding="utf-8")
     tmp.replace(run_dir / "results.jsonl")
     summary = summarize(records)
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

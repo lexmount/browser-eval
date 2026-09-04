@@ -4,16 +4,22 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+import base64
+import tempfile
+from pathlib import Path
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 
 
 async def main() -> None:
+    download_dir = tempfile.TemporaryDirectory(prefix="webfetch-crawl-downloads-")
     browser_config = BrowserConfig(
         browser_type="chromium",
         chrome_channel="chrome",
         headless=True,
         verbose=False,
+        accept_downloads=True,
+        downloads_path=download_dir.name,
     )
     async with AsyncWebCrawler(config=browser_config) as crawler:
         while True:
@@ -33,9 +39,16 @@ async def main() -> None:
                 )
                 result = await crawler.arun(url=request["url"], config=run_config)
                 markdown = result.markdown.raw_markdown if result.markdown else ""
+                files = []
+                for filename in result.downloaded_files or []:
+                    path = Path(filename).resolve()
+                    if not path.is_relative_to(Path(download_dir.name).resolve()) or path.stat().st_size > 20000000:
+                        raise ValueError("Invalid or oversized downloaded file")
+                    files.append({"base64": base64.b64encode(path.read_bytes()).decode("ascii")})
                 output = {
                     "ok": bool(result.success),
                     "content": markdown,
+                    "files": files,
                     "status_code": result.status_code,
                     "final_url": result.url,
                     "error_type": None if result.success else "crawl_error",
@@ -62,4 +75,3 @@ async def main() -> None:
 
 
 asyncio.run(main())
-

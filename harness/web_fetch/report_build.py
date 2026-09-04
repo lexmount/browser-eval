@@ -118,10 +118,13 @@ def build_report(source: Path, output: Path) -> Path:
                 row['text_checked_cases']=len({r['case_id'] for r in text})
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=True)+'\n' for r in records))
         copy_methodology_assets(staging)
         if (source/'scoring-revisions.json').is_file():
             shutil.copy2(source/'scoring-revisions.json', staging/'scoring-revisions.json')
+        if (source/'file-rerun-selection.json').is_file():
+            shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
+            shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
         generate(staging,dataset,records,manifests)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.

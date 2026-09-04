@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import base64
 import os
 import queue
 import shlex
@@ -112,8 +113,15 @@ class SubprocessJsonlProvider(Provider):
                 continue
             payload = candidate
         ok = bool(payload.get("ok"))
+        files = []
+        for item in payload.get("files") or []:
+            raw = base64.b64decode(item["base64"], validate=True)
+            if len(raw) > int(self.config.get("max_bytes", 20000000)):
+                raise ValueError("worker file exceeds max_bytes")
+            files.append({"data": raw})
         return ProviderResult(
             ok=ok,
+            files=files,
             content=str(payload.get("content") or ""),
             status_code=payload.get("status_code"),
             final_url=payload.get("final_url") or case.url,

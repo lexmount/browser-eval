@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "runtime_source_sha256": "1dcacc26892bb613b44a5729b8b47243014ab413a99d4b81ba241f20d351f51e",
+  "provider_config_sha256": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+  "dataset_sha256": "782e78ca069ca4e0638cd9a21e4cf6f178e93804c41d90c527a740d1ae87c70d",
+  "unexecuted": [],
+  "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
+  "tool": "web_fetch",
+  "started_at": "2026-09-04T05:24:25.645061+00:00",
+  "dataset": {
+    "id": "webfetch",
+    "name": "Web Fetch 评测",
+    "source": "/Users/lianglinkai/.codex/worktrees/f85d/browser-eval/evaluation/dataset.json",
+    "case_count": 3
+  },
+  "providers": [
+    {
+      "name": "cloudflare-markdown",
+      "type": "cloudflare_markdown",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "cowagent-built-in",
+      "type": "cowagent_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "crawl4ai",
+      "type": "crawl4ai",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "deepseek-harness-built-in",
+      "type": "deepseek_harness_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "exa",
+      "type": "exa_contents",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "firecrawl",
+      "type": "firecrawl",
+      "min_interval_seconds": 6.1
+    },
+    {
+      "name": "langchain-webbase",
+      "type": "langchain_webbase",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-cn",
+      "type": "lexmount_cn",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "lexmount-global",
+      "type": "lexmount",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "moli-webfetch",
+      "type": "moli_webfetch",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "openclaw-built-in",
+      "type": "openclaw_builtin",
+      "min_interval_seconds": 0.0
+    },
+    {
+      "name": "tavily",
+      "type": "tavily_extract",
+      "min_interval_seconds": 0.0
+    }
+  ],
+  "parameters": {
+    "runs": 1,
+    "timeout": 45,
+    "delay": 0,
+    "provider_concurrency": 4,
+    "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+  },
+  "environment": {
+    "python": "3.13.3",
+    "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O",
+    "hostname": "8yg55-7.local"
+  },
+  "provider_config_source": "/Users/lianglinkai/.codex/worktrees/f85d/browser-eval/configs/providers.resources.json",
+  "completed_at": "2026-09-04T05:26:03.898257+00:00",
+  "attempt_count": 36,
+  "attempt_ids": [
+    "cloudflare-markdown__image-10__r001",
+    "cloudflare-markdown__video-05__r001",
+    "cloudflare-markdown__video-08__r001",
+    "cowagent-built-in__image-10__r001",
+    "cowagent-built-in__video-05__r001",
+    "cowagent-built-in__video-08__r001",
+    "crawl4ai__image-10__r001",
+    "crawl4ai__video-05__r001",
+    "crawl4ai__video-08__r001",
+    "deepseek-harness-built-in__image-10__r001",
+    "deepseek-harness-built-in__video-05__r001",
+    "deepseek-harness-built-in__video-08__r001",
+    "exa__image-10__r001",
+    "exa__video-05__r001",
+    "exa__video-08__r001",
+    "firecrawl__image-10__r001",
+    "firecrawl__video-05__r001",
+    "firecrawl__video-08__r001",
+    "langchain-webbase__image-10__r001",
+    "langchain-webbase__video-05__r001",
+    "langchain-webbase__video-08__r001",
+    "lexmount-cn__image-10__r001",
+    "lexmount-cn__video-05__r001",
+    "lexmount-cn__video-08__r001",
+    "lexmount-global__image-10__r001",
+    "lexmount-global__video-05__r001",
+    "lexmount-global__video-08__r001",
+    "moli-webfetch__image-10__r001",
+    "moli-webfetch__video-05__r001",
+    "moli-webfetch__video-08__r001",
+    "openclaw-built-in__image-10__r001",
+    "openclaw-built-in__video-05__r001",
+    "openclaw-built-in__video-08__r001",
+    "tavily__image-10__r001",
+    "tavily__video-05__r001",
+    "tavily__video-08__r001"
+  ]
+}

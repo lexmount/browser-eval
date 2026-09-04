@@ -6,6 +6,14 @@ from harness.web_fetch.report_changes import render_changes
 from harness.web_fetch.report import ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_first_correction_is_identity_bound_not_latest(self):
+        from harness.web_fetch.report_changes import first_correction
+        releases=[{'id':'2026-09-03-fairness-correction','scoring_revision_input_sha256':'first'}]
+        original={'input_results_sha256':'first','records':[]}
+        later={'input_results_sha256':'later','records':[1]}
+        self.assertEqual(first_correction([later,original],releases),original)
+        self.assertEqual(first_correction([original,later],releases),original)
+        with self.assertRaises(ValueError):first_correction([later],releases)
     def test_release_history_has_collapsed_details_and_explicit_gaps(self):
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)
