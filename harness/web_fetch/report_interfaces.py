@@ -53,7 +53,7 @@ SPECS={
  [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','networkidle'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
  [('result.success','boolean','爬取是否成功'),('result.markdown.raw_markdown','string','Markdown → content'),('result.media','dict','images、videos、audios'),('result.links','dict','internal / external'),('result.status_code / error_message','number / string','源站状态或失败信息')],
  'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="networkidle",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
- 'scripts/oss/crawl4ai_worker.py','本轮使用本地无头 Chrome，媒体单列在返回对象中；这不等于下载或理解媒体。'),
+ 'scripts/oss/crawl4ai_worker.py','正文使用本地无头 Chrome；文件任务在调用前选择原生 AsyncHTTPCrawlerStrategy.crawl(url, config)，读取其 downloaded_files 并统一验收字节。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
 

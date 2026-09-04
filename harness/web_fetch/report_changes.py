@@ -58,8 +58,12 @@ def render_changes(out, cases, records):
             grouped[r['provider']][0]+=1
             grouped[r['provider']][1]+=r['task_pass']
         rows=[('',cell(esc(p))+cell(str(n))+cell(str(passed))+cell(str(n-passed))) for p,(n,passed) in sorted(grouped.items())]
-        for name in ['file-provider-rerun','file-provider-rerun-native']:
+        for name in ['file-provider-rerun','file-provider-rerun-native','file-provider-rerun-crawl-http','file-provider-rerun-crawl-final']:
             shutil.copytree(ROOT/'research'/name,out/name)
-        body+=section('十二种方法：文件补测已完成','<p>2026-09-04 共执行 42 次实际接口调用：首次 36 次，修复 Moli/Crawl4AI 原生文件适配后再测 6 次。按修正后的配置选入 36 次，不挑最高分。结果为 3 次通过、33 次未通过，0 次缺测。</p><p>Moli 的 PNG、WebM、MP4 字节均匹配独立目标 SHA-256。其他结果包括不支持的内容类型、仅返回文本/地址、源站或抓取错误、45 秒超时。结论限定于本轮接口、配置与时间预算，不代表产品所有功能。</p><details><summary>逐方法的已测、通过和未通过数量</summary>'+table(['方法','已测','通过','未通过'],rows,metrics=[])+'</details><details><summary>运行证据、历史记录及选取规则</summary><p>'+link('../file-rerun-selection.json','逐调用的新旧运行 ID 与选择清单')+' · '+link('../history/file-baseline/results.jsonl','36 条历史缺测记录')+' · '+link('../file-provider-rerun/results.jsonl','首次 36 次接口响应')+' · '+link('../file-provider-rerun-native/results.jsonl','适配修正后的 6 次调用')+'</p><p>历史字节、文本、调用时间不修改。当前视图以新文件调用替换对应的历史缺测项，仍为 150 个案例、1,800 条选定调用；不是同一时刻的全量重跑。原始文件已在具体案例的调用证据中提供。</p></details>')
+        total=sum(v[0] for v in grouped.values()); passed=sum(v[1] for v in grouped.values())
+        summary=f'<p>2026-09-04 累计执行 {selected["executed_calls"]} 次真实接口调用，按登记的原生文件配置选入 {total} 次：{passed} 次通过、{total-passed} 次未通过，0 次缺测。首次 36 次、适配修正后的 6 次，以及 Crawl4AI 原生文件路径验证 3 次、去除无用浏览器启动后重测 3 次均另存，未按最高分挑选。</p>'
+        summary+='<p>Moli 与 Crawl4AI 的 PNG、WebM、MP4 均匹配独立目标 SHA-256。Crawl4AI 正文仍用浏览器，文件预先选择原生 HTTP 策略；不是浏览器失败后的兜底。其他结果包括类型拒绝、仅返回文本/地址、抓取错误。结论限定于本轮接口、配置与预算，不代表产品所有功能。</p>'
+        evidence=' · '.join(link('../'+path,label) for path,label in [('file-rerun-selection.json','新旧运行 ID 与选择清单'),('history/file-baseline/results.jsonl','36 条历史缺测记录'),('file-provider-rerun/results.jsonl','首次 36 次接口响应'),('file-provider-rerun-native/results.jsonl','适配修正后的 6 次调用'),('file-provider-rerun-crawl-http/results.jsonl','Crawl4AI 原生文件路径验证'),('file-provider-rerun-crawl-final/results.jsonl','Crawl4AI 最终 3 次文件调用')])
+        body+=section('十二种方法：文件补测已完成',summary+'<details><summary>逐方法的已测、通过和未通过数量</summary>'+table(['方法','已测','通过','未通过'],rows,metrics=[])+'</details><details><summary>运行证据、历史记录及选取规则</summary><p>'+evidence+'</p><p>历史字节、文本、调用时间不修改。当前视图仍为 150 个案例、1,800 条选定调用；不是同一时刻的全量重跑。原始文件在具体案例的调用证据中提供。</p></details>')
     body+=section('历史范围与证据','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载变更记录')+' · '+link('https://github.com/lexmount/browser-eval/pull/4','对应修复 PR')+'</p>')
     write(out,'changes/index.html','报告变更记录','<div class="change-log">'+body+'</div>')

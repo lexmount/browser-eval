@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "runtime_source_sha256": "23c401d01aa18dd87ccaf41fb863d3d497ee144e49dfeeb6d08b12c12ec2e915",
+  "provider_config_sha256": "ebb22d245e6c005ee87a8f48516b006a6445281847ee636a2ccee2e7ad3b2e87",
+  "dataset_sha256": "782e78ca069ca4e0638cd9a21e4cf6f178e93804c41d90c527a740d1ae87c70d",
+  "unexecuted": [],
+  "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
+  "tool": "web_fetch",
+  "started_at": "2026-09-04T05:46:52.464366+00:00",
+  "dataset": {
+    "id": "webfetch",
+    "name": "Web Fetch 评测",
+    "source": "/Users/lianglinkai/.codex/worktrees/f85d/browser-eval/evaluation/dataset.json",
+    "case_count": 3
+  },
+  "providers": [
+    {
+      "name": "crawl4ai",
+      "type": "crawl4ai",
+      "min_interval_seconds": 0.0
+    }
+  ],
+  "parameters": {
+    "runs": 1,
+    "timeout": 45,
+    "delay": 0,
+    "provider_concurrency": 1,
+    "concurrency_scope": "providers_parallel_cases_sequential_per_provider"
+  },
+  "environment": {
+    "python": "3.13.3",
+    "platform": "macOS-15.4.1-arm64-arm-64bit-Mach-O",
+    "hostname": "8yg55-7.local"
+  },
+  "provider_config_source": "/Users/lianglinkai/.codex/worktrees/f85d/browser-eval/configs/providers.resources.json",
+  "completed_at": "2026-09-04T05:46:56.792872+00:00",
+  "attempt_count": 3,
+  "attempt_ids": [
+    "crawl4ai__image-10__r001",
+    "crawl4ai__video-05__r001",
+    "crawl4ai__video-08__r001"
+  ]
+}

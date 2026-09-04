@@ -1,11 +1,11 @@
 {
   "date": "2026-09-04",
-  "scope": "Replace exactly 36 missing-evidence file calls in the current view; preserve historical calls separately. Latest adapter-corrected calls selected, not best scores.",
+  "scope": "File-specific native interfaces selected before calls: Moli raw dump, Crawl4AI HTTP file strategy. Replaces 36 historical missing-evidence calls; browser diagnostics preserved, not best-of scoring.",
   "historical_records": "history/file-baseline/results.jsonl",
-  "executed_calls": 42,
+  "executed_calls": 48,
   "selected_calls": 36,
-  "passed": 3,
-  "failed": 33,
+  "passed": 6,
+  "failed": 30,
   "records": [
     {
       "provider": "lexmount-global",
@@ -281,19 +281,19 @@
       "provider": "crawl4ai",
       "case_id": "image-10",
       "old_run_id": "run-ed6749c6d6ecd19f970b",
-      "new_run_id": "run-dcf1ae7afa3bb0f760b6",
-      "source_batch": "file-provider-rerun-native",
-      "task_pass": false,
+      "new_run_id": "run-c62b2d014783c47794cb",
+      "source_batch": "file-provider-rerun-crawl-final",
+      "task_pass": true,
       "old_content_sha256": "8d07f5cbc7983377e42980d0394b264f3fe9d93e6448708f242e3ab6696cf483",
-      "new_content_sha256": "8d07f5cbc7983377e42980d0394b264f3fe9d93e6448708f242e3ab6696cf483"
+      "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "provider": "crawl4ai",
       "case_id": "video-05",
       "old_run_id": "run-77cb4fc9f27279cfd056",
-      "new_run_id": "run-606eaaa3bede496c5a18",
-      "source_batch": "file-provider-rerun-native",
-      "task_pass": false,
+      "new_run_id": "run-6ccbdc5bef097551e741",
+      "source_batch": "file-provider-rerun-crawl-final",
+      "task_pass": true,
       "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
@@ -301,9 +301,9 @@
       "provider": "crawl4ai",
       "case_id": "video-08",
       "old_run_id": "run-d8f066af3ee6841c1d0b",
-      "new_run_id": "run-504534efc8ebbbb435e6",
-      "source_batch": "file-provider-rerun-native",
-      "task_pass": false,
+      "new_run_id": "run-1729a5ac107a8fafd2fa",
+      "source_batch": "file-provider-rerun-crawl-final",
+      "task_pass": true,
       "old_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "new_content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },

@@ -7,8 +7,33 @@ import sys
 import base64
 import tempfile
 from pathlib import Path
+from contextlib import AsyncExitStack
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
+from crawl4ai.async_configs import HTTPCrawlerConfig
+
+
+def encode_downloads(paths, directory):
+    files = []
+    for filename in paths or []:
+        path = Path(filename).resolve()
+        if not path.is_relative_to(Path(directory).resolve()) or path.stat().st_size > 20000000:
+            raise ValueError("Invalid or oversized downloaded file")
+        files.append({"base64": base64.b64encode(path.read_bytes()).decode("ascii")})
+    return files
+
+
+async def fetch_file(request, directory):
+    # Native library file strategy, selected before the call; no fallback request.
+    async with AsyncHTTPCrawlerStrategy(browser_config=HTTPCrawlerConfig(downloads_path=directory)) as crawler:
+        result = await crawler.crawl(request['url'], config=CrawlerRunConfig(
+            page_timeout=int(request['timeout_seconds'] * 1000)))
+    return {'ok': 200 <= result.status_code < 300, 'content': result.html or '',
+        'status_code': result.status_code, 'final_url': result.redirected_url or request['url'],
+        'files': encode_downloads(result.downloaded_files, directory),
+        'metadata': {'implementation': 'crawl4ai.AsyncHTTPCrawlerStrategy',
+                     'output_contract': 'native_downloaded_files', 'strategy_selected_before_call': True}}
 
 
 async def main() -> None:
@@ -21,7 +46,9 @@ async def main() -> None:
         accept_downloads=True,
         downloads_path=download_dir.name,
     )
-    async with AsyncWebCrawler(config=browser_config) as crawler:
+    crawler = None
+    async with AsyncExitStack() as stack:
+        stack.enter_context(download_dir)
         while True:
             line = await asyncio.to_thread(sys.stdin.readline)
             if not line:
@@ -30,6 +57,12 @@ async def main() -> None:
                 continue
             request = json.loads(line)
             try:
+                if request.get('task_kind') == 'file':
+                    output = await fetch_file(request, download_dir.name)
+                    print(json.dumps(output, ensure_ascii=True), flush=True)
+                    continue
+                if crawler is None:
+                    crawler = await stack.enter_async_context(AsyncWebCrawler(config=browser_config))
                 run_config = CrawlerRunConfig(
                     cache_mode=CacheMode.BYPASS,
                     page_timeout=int(request["timeout_seconds"] * 1000),
@@ -39,12 +72,7 @@ async def main() -> None:
                 )
                 result = await crawler.arun(url=request["url"], config=run_config)
                 markdown = result.markdown.raw_markdown if result.markdown else ""
-                files = []
-                for filename in result.downloaded_files or []:
-                    path = Path(filename).resolve()
-                    if not path.is_relative_to(Path(download_dir.name).resolve()) or path.stat().st_size > 20000000:
-                        raise ValueError("Invalid or oversized downloaded file")
-                    files.append({"base64": base64.b64encode(path.read_bytes()).decode("ascii")})
+                files = encode_downloads(result.downloaded_files, download_dir.name)
                 output = {
                     "ok": bool(result.success),
                     "content": markdown,
@@ -74,4 +102,5 @@ async def main() -> None:
             print(json.dumps(output, ensure_ascii=False), flush=True)
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())

@@ -80,7 +80,7 @@ class SubprocessJsonlProvider(Provider):
         deadline = time.monotonic() + timeout
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
-        request = {"url": case.url, "timeout_seconds": timeout}
+        request = {"url": case.url, "timeout_seconds": timeout, "task_kind": case.task_kind}
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 
