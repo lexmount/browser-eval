@@ -1,4 +1,0 @@
-身份核实
-Meituan verification page (spider defense).
-Original target URL: https://www.dianping.com/shanghai/ch10
-©美团网 meituan.com 京ICP证070791号 京公网安备 11000002002052号

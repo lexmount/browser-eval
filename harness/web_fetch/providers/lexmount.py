@@ -49,6 +49,7 @@ class LexmountProvider(Provider):
             error_type=None if ok else ("authentication" if response.status == 401 else "api_error"),
             error_message=None if ok else (message or f"HTTP {response.status}"),
             metadata={
+                **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "request_id": payload.get("request_id"),
                 "engine": result.get("engine"),
                 "upstream_status": result.get("status_code") or error.get("upstream_status_code"),

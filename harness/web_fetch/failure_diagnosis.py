@@ -25,6 +25,9 @@ def _stable_failure(metrics):
 
 
 def diagnose(r,c,raw,source=None):
+    from .metrics import task_measured
+    if not task_measured(r['metrics'], c.get('task_kind')):
+        return None
     try:payload=json.loads(raw)
     except (ValueError,TypeError):payload={}
     if not isinstance(payload,dict):payload={}
@@ -37,7 +40,9 @@ def diagnose(r,c,raw,source=None):
     upstream=nested.get('upstream_status_code') or meta.get('upstream_status')
     category=None;stage='';proof='';certainty='直接返回依据'
     def set_result(label,where,evidence):return label,where,evidence
-    if meta.get('empty_content'):
+    if m.get('deadline_overrun'):
+        category,stage,proof=set_result('超过端到端预算','调用截止时间','实际耗时超过该调用登记的预算；保留原始内容及计时，但不计为按时交付。')
+    elif meta.get('empty_content'):
         category,stage,proof=set_result('正文提取为空','内容提取','接口成功，但返回 result 为空；响应类型：'+str(meta.get('content_type') or '未提供'))
     elif not r['ok']:
         if any(x in low for x in ['unsupported_content_type','unexpected_content_type','unsupported_file','file type that firecrawl cannot process']):
@@ -114,7 +119,9 @@ def diagnose(r,c,raw,source=None):
         missing=[x.get('id','') for x in m.get('resource_results',[]) if not x['pass']]
         category,stage,proof=set_result('缺少目标资源','资源核验','未命中资源：'+', '.join(missing))
     elif c.get('task_kind','body')=='body' and not m.get('content_pass'):
-        if not m.get('length_pass'):
+        if m.get('body_coverage_pass') is False:
+            category,stage,proof=set_result('正文范围不完整','内容核验','未满足分区正文覆盖要求：'+', '.join(x['id'] for x in m.get('body_region_results',[]) if not x['pass']))
+        elif not m.get('length_pass'):
             category,stage,proof=set_result('正文不足','内容核验','提取正文没有达到本例最低长度要求')
         elif any(not f['pass'] for f in m.get('fact_results',[])):
             if any(not f['pass'] and f.get('match_scope')=='entry' for f in m['fact_results']):
@@ -130,13 +137,3 @@ def diagnose(r,c,raw,source=None):
     if not category:return None
     return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty,
             'independent_source_check':source,'source_check_boundary':'独立复查与调用的时间、网络、会话不同；一次拒绝不能证明网站失效。'}
-
-
-def normalize_empty_response(r,raw):
-    """Correct an API-success/empty-extraction conflation, retaining raw evidence."""
-    if r['provider']!='cloudflare-markdown' or r['ok']:return
-    try:p=json.loads(raw)
-    except ValueError:return
-    if isinstance(p,dict) and p.get('success') is True and p.get('result')=='' and r.get('status_code')==200:
-        r['provider_metadata'].update(empty_content=True,content_type=(p.get('meta',{}).get('headers') or {}).get('content-type'),request_normalization='HTTP 200 + success=true：请求成功；result 为空：任务失败。原始响应保留。')
-        r.update(ok=True,error_type=None,error_message=None)

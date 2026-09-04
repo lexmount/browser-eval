@@ -4,9 +4,10 @@ from collections import Counter
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from harness.web_fetch.list_verification import verify_list
+from harness.web_fetch.storage import current_evidence_dir
 
 def main():
-    source=ROOT/'evaluation';dataset=json.loads((source/'dataset.json').read_text());cases={c['id']:c for c in dataset['cases']}
+    source=current_evidence_dir();dataset=json.loads((source/'dataset.json').read_text());cases={c['id']:c for c in dataset['cases']}
     details=json.loads((source/'list-references/details.json').read_text())
     access_details=json.loads((source/'list-references/xiaohongshu-details.json').read_text())
     details.extend(x for x in access_details if x.get('title'))

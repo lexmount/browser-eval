@@ -291,7 +291,7 @@ CASE_ANNOTATIONS = {
     "dynamic-reviews-graphql": _demo("https://web-scraping.dev/reviews", "review", 20, _REVIEWS,
         ["text"], ["date"], "GraphQL loading is not content volatility: retain twenty seeded demo review texts; dates remain typed fields."),
     "dynamic-react-cart": _demo("https://react-shopping-cart-67954.firebaseapp.com/", "product", 16, [],
-        [], ["name", "price", "financing", "shipping"], "Demo shopping cart; item commercial values are nonliteral by task policy. Optional shipping/financing must be well-formed when present."),
+        [], ["name", "price", "financing", "shipping"], "Sixteen-product demo scope: at least fifteen financing fields and thirteen shipping fields on complete distinct records, independently captured in the reference. Values, titles and ordering remain nonliteral; not every product offers both."),
     "dynamic-angular-phones": _demo("https://angular.github.io/angular-phonecat/step-12/app/", "name_description", 20, _PHONES,
         ["name", "description"], [], "PhoneCat tutorial uses fixed historical sample devices; preserve all twenty name/description pairs."),
     "dynamic-swagger": _demo("https://petstore.swagger.io/", "api_operation", 20, _OPERATIONS,
@@ -337,6 +337,9 @@ CASE_ANNOTATIONS['challenge-07']['note'] = ('Only the independently observed sea
 CASE_ANNOTATIONS['challenge-07']['contract']['stable_text_anchors'][0]['match_scope'] = 'non_record_lines'
 CASE_ANNOTATIONS['challenge-06']['note'] = ('Required restaurant-card field labels come from the previously saved independent public-list reference. '
     'The labels, not restaurant names, dishes, per-capita prices or review counts, are matched.')
+
+
+CASE_ANNOTATIONS['dynamic-react-cart']['contract']['field_minimum_records'] = {'financing': 15, 'shipping': 13}
 
 
 def annotate_case(case: dict) -> dict:

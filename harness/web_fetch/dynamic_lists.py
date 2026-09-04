@@ -22,11 +22,16 @@ class Links(HTMLParser):
             self.items.append((self.current[0],''.join(self.current[1])));self.current=None
 
 
-def extract_named_entries(content,contract,base_url):
+def extract_named_entries(content,contract,base_url,links=None):
     parser=Links();parser.feed(content)
-    items=list(parser.items)
+    from .response_input import safe_named_links
+    items=list(parser.items) + safe_named_links(links, base_url)
     # Resolve image labels before parsing the surrounding link, not afterwards.
     markdown=re.sub(r'!\[([^]]*)\]\([^)]*\)',r'\1',content)
+    # A single soft break is legal inside an inline link label. Blank lines
+    # remain block boundaries and must not join unrelated cards.
+    markdown=re.sub(r'\[([^\[\]]*\n[^\[\]]*)\]\((https?://[^\s)]+|/[^\s)]+)\)',
+        lambda m: m[0] if re.search(r'\n\s*\n', m[1]) else '['+re.sub(r'\s+', ' ', m[1])+']('+m[2]+')', markdown)
     for line in markdown.splitlines():
         for match in re.finditer(r'\[([^\n]+?)\]\((https?://[^\s)]+|/[^\s)]+)\)',line):
             # Prose recommendations are not list entries. Allow headings, bullets
@@ -53,8 +58,8 @@ def extract_named_entries(content,contract,base_url):
     return list(candidates.values())
 
 
-def evaluate_dynamic_list(content,contract,base_url,eligible=True):
-    candidates=extract_named_entries(content,contract,base_url)
+def evaluate_dynamic_list(content,contract,base_url,eligible=True,links=None):
+    candidates=extract_named_entries(content,contract,base_url,links)
     enough=len(candidates)>=contract.get('minimum_entries',3)
     return {'structure_pass':bool(eligible and enough),'named_entry_count':len(candidates),
             'minimum_entries':contract.get('minimum_entries',3),'factual_correctness':None,

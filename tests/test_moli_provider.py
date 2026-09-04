@@ -14,6 +14,22 @@ from harness.web_fetch.report_methods import PROFILES
 
 @unittest.skipUnless(os.name == "posix", "executable fixture uses POSIX shebang")
 class MoliTests(unittest.TestCase):
+    def test_cancellation_between_popen_and_handle_registration_is_latched(self):
+        import subprocess
+        provider=self.provider('import time\ntime.sleep(20)')
+        original=subprocess.Popen
+        children=[]
+        def launch(*args,**kwargs):
+            process=original(*args,**kwargs)
+            children.append(process)
+            provider.cancel()  # Real child exists but fetch has not received its handle.
+            return process
+        provider.begin_call()
+        with patch('harness.web_fetch.providers.moli.subprocess.Popen',side_effect=launch):
+            result=provider.fetch(self.case,1)
+        self.assertFalse(result.ok)
+        self.assertIsNotNone(children[0].poll())
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
@@ -31,6 +47,7 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             'import sys\nassert sys.argv[1:]==["fetch","--dump","markdown","--wait-until","done","--timeout","2000","--block-private-networks","https://example.com/?a=1&b=2"]\nprint("# Example Domain")\nprint("diagnostic only",file=sys.stderr)\n'
         )
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case, 2)
         self.assertTrue(result.ok)
         self.assertEqual(result.content, "# Example Domain\n")
@@ -38,6 +55,15 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.status_code)
         self.assertIsNone(result.final_url)
         self.assertEqual(len(result.metadata["binary_sha256"]), 64)
+
+    def test_file_task_preserves_binary_stdout(self):
+        from dataclasses import replace
+        provider = self.provider('import sys\nassert sys.argv[3] == "html"\nsys.stdout.buffer.write(b"\\x89PNG\\r\\n\\x1a\\n" + b"x"*40)')
+        result = provider.fetch(replace(self.case, task_kind="file"), 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.files[0]["data"], b"\x89PNG\r\n\x1a\n" + b"x"*40)
+        self.assertEqual(result.content, "")
+        self.assertEqual(result.metadata["dump"], "html")
 
     def test_failure_empty_binary_and_oversized_output(self):
         for script, config, expected in [
@@ -85,8 +111,10 @@ class MoliTests(unittest.TestCase):
 
     def test_binary_replacement_updates_audit_hash(self):
         provider = self.provider('print("first")')
+        provider.validate()
         first = provider.fetch(self.case, 2)
         self.provider('print("second")')  # Replace the executable at the same path.
+        provider.validate()  # Revalidate the changed runtime before measuring.
         second = provider.fetch(self.case, 2)
         self.assertEqual(second.content, "second\n")
         self.assertNotEqual(first.metadata["binary_sha256"], second.metadata["binary_sha256"])
@@ -99,7 +127,7 @@ class MoliTests(unittest.TestCase):
         with patch(
             "harness.web_fetch.providers.moli.open", side_effect=FileNotFoundError("removed")
         ):
-            self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+            self.assertIn('binary (unreadable)', provider.validate())
         with patch(
             "harness.web_fetch.providers.moli.subprocess.Popen",
             side_effect=PermissionError("not executable"),

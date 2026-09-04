@@ -1,5 +1,0 @@
-# Making sure you're not a bot!
-
-Protected by[BotStopper](https://anubis.techaro.lol/docs/admin/botstopper)From[Techaro](https://techaro.lol). Made with ❤️ in 🇨🇦.
-
-Unsplash |[Help Center](https://help.unsplash.com/)|[support@unsplash.com](mailto:support@unsplash.com)--[Imprint](/.within.website/x/cmd/anubis/api/imprint)

@@ -105,7 +105,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertEqual(row[2], '100.0%')  # Transport remains measured.
         self.assertEqual(row[3], '100.0%')
         self.assertEqual(row[4:7], ['—'] * 3)
-        self.assertEqual(row[8:], ['100 ms'] * 3)
+        self.assertEqual(row[8:11], ['100 ms'] * 3)
+        self.assertEqual(row[11], '10/10')
         self.assertNotIn('auxiliary',rendered)
         self.assertNotIn('正文未评测',rendered)
         self.assertIn('名称—链接身份核验',rendered)
@@ -125,7 +126,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         c=case('body','body','web')
         row=table_cells(ranking([record(c,passed=False)], {'body':c}, 'web'),'ranking-web')[0]
         self.assertEqual(row[3:7], ['0.0%', '80.0%', '80.0%', '80.0%'])
-        self.assertEqual(row[8:], ['—']*3)
+        self.assertEqual(row[8:11], ['—']*3)
+        self.assertEqual(row[11], '1/1')
 
     def test_request_failure_zero_and_macro_case_average(self):
         first,second=case('a','body'),case('b','body')
@@ -220,9 +222,12 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('task-contracts',(out/'methodology/index.html').read_text())
 
     def test_current_canonical_challenge_has_zero_body_coverage(self):
+        from harness.web_fetch.storage import current_evidence_dir
         root=Path(__file__).resolve().parents[1]
-        cases={c['id']:c for c in json.loads((root/'evaluation/dataset.json').read_text())['cases']}
-        records=[json.loads(s) for s in (root/'evaluation/results.jsonl').read_text().splitlines()]
+        evidence=current_evidence_dir()
+        if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
+        cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text())['cases']}
+        records=[json.loads(s) for s in (evidence/'results.jsonl').read_text().splitlines()]
         rendered=ranking(records,cases,'challenge')
         self.assertIn('完整参考覆盖 0/10',rendered)
         rows=table_cells(rendered,'ranking-challenge')

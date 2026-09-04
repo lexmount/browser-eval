@@ -19,6 +19,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
     Path(__file__).with_name(name).read_bytes() for name in (
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
+        "response_input.py", "body_coverage.py",
     )
 )).hexdigest()
 
@@ -57,25 +58,37 @@ def score_attempt(
     metadata: dict[str, Any] | None = None,
     previous_metrics: dict[str, Any] | None = None,
     list_reference: dict | None = None,
+    status_code: int | None = None,
+    prepared_answer: tuple | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
     Callers own integrity checks, reference lifecycle, clocks and persistence.
-    Request status is not normalized or rewritten here: report-build's legacy
-    empty-response correction is a separate view, not a historical migration.
+    API envelopes and explicit answer links use the same normalization for every
+    caller. Original adapter status is retained by persistence, not overwritten
+    in the report renderer.
     Previous non-text
     evidence is preserved; the caller must have validated its artifact binding.
     """
     case = _case_dict(case)
-    content = artifact.decode("utf-8", errors="replace")
+    from .response_input import answer_input
+    # Live callers forward the conversion completed inside the timed boundary.
+    # Offline callers reconstruct it from immutable evidence by the same function.
+    content, links, ok, status_basis = (prepared_answer if prepared_answer is not None else
+        answer_input(artifact, metadata, ok=ok, status_code=status_code))
     result = {key: value for key, value in (previous_metrics or {}).items()
               if key not in _CONDITIONAL_FIELDS and not key.startswith(("stable_", "list_"))}
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
-            "acceptance_contract")
+            "acceptance_contract", "body_requirements")
     result.update(evaluate_content(content, case.get("expected_any", []),
-        base_url=case["url"], **{key: case[key] for key in keys if key in case}))
+        base_url=case["url"], named_links=links, **{key: case[key] for key in keys if key in case}))
+    result.update(request_ok=ok, request_status_basis=status_basis,
+                  normalized_named_link_count=len(links))
     result["task_kind"] = case.get("task_kind", "body")
+    file_evaluation = (metadata or {}).get('file_evaluation')
+    if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and 'raw_file_pass' not in result:
+        result['raw_file_pass'] = bool(file_evaluation.get('pass'))
     result["content_score_applicable"] = case.get("content_score_applicable", True)
     contract = case.get("acceptance_contract")
     if contract:
@@ -99,11 +112,11 @@ def score_attempt(
                                     base_url=case["url"], eligible=ok))
     benchmark = case.get("source_benchmark", {})
     if not contract and benchmark.get("mode") == "dynamic_list_structure":
-        result.update(evaluate_dynamic_list(content, benchmark, case["url"], ok))
+        result.update(evaluate_dynamic_list(content, benchmark, case["url"], ok, links))
         if benchmark.get("verification_scope") == "first_three_name_detail_pairs":
             if list_reference is None:
                 raise ValueError("Legacy list scoring requires independent list reference")
-            result.update(verify_list(content, benchmark, case["url"], list_reference, ok))
+            result.update(verify_list(content, benchmark, case["url"], list_reference, ok, links))
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
     result["scoring_source_sha256"] = SCORING_SOURCE_SHA256
     return result

@@ -1,1 +1,0 @@
-{"requestId":"7f4cf3a10fc06783a5c081aa94a0327d","results":[],"statuses":[{"id":"https://www.reddit.com/r/programming/","status":"error","error":{"httpStatusCode":403,"tag":"SOURCE_NOT_AVAILABLE"}}],"costDollars":{"total":0},"searchTime":0.7502859998494387}

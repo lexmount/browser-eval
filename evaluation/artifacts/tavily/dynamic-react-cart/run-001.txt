@@ -1,1 +1,0 @@
-{"results":[],"failed_results":[{"url":"https://react-shopping-cart-67954.firebaseapp.com/","error":"Failed to fetch url"}],"response_time":0.49,"request_id":"01785840-7bb5-4f57-b3f0-4997e0eebfca"}

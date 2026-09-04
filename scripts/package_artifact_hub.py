@@ -133,6 +133,8 @@ document.addEventListener('click',downloadClick);
 '''
 
 def build():
+ reliability=json.loads((SOURCE/'reliability.json').read_text())
+ assert reliability.get('complete') is True, 'Refusing to package an incomplete or unjudged benchmark report'
  DEST.mkdir(parents=True,exist_ok=True)
  (DEST/'data').mkdir(exist_ok=True)
  records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]

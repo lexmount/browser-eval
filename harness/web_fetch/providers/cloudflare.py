@@ -41,6 +41,7 @@ class CloudflareMarkdownProvider(Provider):
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
             metadata={
                 "browser": self.config.get("browser"),
+                **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": meta.get("status"),
                 "empty_content": ok and not content,
                 "content_type": (meta.get("headers") or {}).get("content-type"),

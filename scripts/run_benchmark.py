@@ -11,12 +11,13 @@ from harness.web_fetch.config import load_dataset,load_provider_config,load_runt
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.report_build import build_report
+from harness.web_fetch.storage import data_home
 
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset',type=Path,default=ROOT/'evaluation/dataset.json',help='Frozen dataset JSON; sources and list-references are resolved beside it')
-    parser.add_argument('--output',type=Path,default=ROOT/'runs/webfetch')
+    parser.add_argument('--output',type=Path,default=data_home()/'runs/webfetch')
     parser.add_argument('--env-file',type=Path)
     parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
     parser.add_argument('--track',help='Run only this task group, such as dynamic; default: all groups')
@@ -31,7 +32,11 @@ def main(argv=None):
         cases=[c for c in cases if c.track==args.track]
         if not cases:parser.error(f'Unknown or empty task group: {args.track}')
         dataset={**dataset,'cases':[c for c in dataset['cases'] if c.get('track','web')==args.track]}
-    names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted({json.loads(line)['provider'] for line in (ROOT/'evaluation/results.jsonl').read_text().splitlines()} | {'moli-webfetch'})
+    selected_tracks={case.track for case in cases}
+    planned={name for track in selected_tracks for name in dataset.get('coverage_plan',{}).get(track,[])}
+    names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted(planned)
+    if not args.providers and not names:
+        parser.error('Dataset has no provider coverage plan; pass --providers explicitly')
     if not names or len(names)!=len(set(names)):parser.error('Select nonempty, unique provider names')
     dataset={**dataset,'coverage_plan':{c.track:sorted(names) for c in cases}}
     scopes=[]

@@ -21,7 +21,8 @@ class CowAgentBuiltinProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         root = Path(str(self.config["repo_path"])).expanduser().resolve()
-        workspace = Path(str(self.config.get("workspace", "runs/cowagent-workspace"))).expanduser().resolve()
+        from ..storage import data_home
+        workspace = Path(str(self.config.get("workspace", data_home()/"runs/cowagent-workspace"))).expanduser().resolve()
         workspace.mkdir(parents=True, exist_ok=True)
         root_text = str(root)
         if root_text not in sys.path:

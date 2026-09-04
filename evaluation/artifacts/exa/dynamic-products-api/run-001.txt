@@ -1,5 +1,0 @@
-JS Rendering Challenge to Learn Web Scraping - ScrapingCourse.com
-
-## Challenge
-
- Enable JavaScript to see products

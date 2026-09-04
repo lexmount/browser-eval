@@ -11,6 +11,7 @@ import signal
 import subprocess
 import tempfile
 import time
+import threading
 
 from ..models import EvalCase, ProviderResult
 from ..safety import validate_http_url
@@ -18,6 +19,17 @@ from .base import Provider
 
 
 class MoliWebFetchProvider(Provider):
+    def __init__(self, name, config):
+        super().__init__(name, config)
+        self._process_lock = threading.Lock()
+        self._cancel_requested = False
+        self._active_process = None
+
+    def begin_call(self):
+        with self._process_lock:
+            self._cancel_requested = False
+            self._active_process = None
+
     def _resolve_binary(self) -> str | None:
         return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
 
@@ -38,7 +50,17 @@ class MoliWebFetchProvider(Provider):
         return errors
 
     def validate(self) -> list[str]:
-        return self._configuration_errors(self._resolve_binary())
+        binary = self._resolve_binary()
+        errors = self._configuration_errors(binary)
+        if not errors:
+            try:
+                with open(binary, 'rb') as source:
+                    self._binary_sha256 = hashlib.file_digest(source, 'sha256').hexdigest()
+                stat = Path(binary).stat()
+                self._binary_identity = (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+            except OSError:
+                errors.append('binary (unreadable)')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         validate_http_url(case.url)
@@ -51,11 +73,12 @@ class MoliWebFetchProvider(Provider):
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
+        dump = "html" if case.task_kind == "file" else "markdown"
         command = [
             binary,
             "fetch",
             "--dump",
-            "markdown",
+            dump,
             "--wait-until",
             wait,
             "--timeout",
@@ -66,14 +89,17 @@ class MoliWebFetchProvider(Provider):
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
         metadata = {
-            "dump": "markdown",
+            "dump": dump,
             "wait_until": wait,
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }
         try:
-            with open(binary, "rb") as source:
-                metadata["binary_sha256"] = hashlib.file_digest(source, "sha256").hexdigest()
+            if hasattr(self, '_binary_identity'):
+                stat = Path(binary).stat()
+                if (binary, stat.st_ino, stat.st_size, stat.st_mtime_ns) != self._binary_identity:
+                    return ProviderResult(False, '', error_type='configuration', error_message='Moli binary changed; validate runtime before measurement')
+            metadata['binary_sha256'] = getattr(self, '_binary_sha256', None)
         except OSError as error:
             return ProviderResult(
                 False,
@@ -92,6 +118,10 @@ class MoliWebFetchProvider(Provider):
                     stderr=diagnostic,
                     start_new_session=os.name == "posix",
                 )
+                with self._process_lock:
+                    self._active_process = process
+                    if self._cancel_requested:
+                        self._kill(process)
             except OSError as error:
                 return ProviderResult(
                     False,
@@ -150,6 +180,12 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli stdout exceeds max_bytes",
                 metadata=metadata,
             )
+        if case.task_kind == "file":
+            ok = process.returncode == 0 and bool(raw)
+            return ProviderResult(ok, "", files=[{"data": raw}] if raw else [],
+                error_type=None if ok else "tool_error",
+                error_message=None if ok else stderr or "Moli returned no file bytes",
+                metadata=metadata)
         try:
             content = raw.decode("utf-8")
         except UnicodeDecodeError:
@@ -170,3 +206,21 @@ class MoliWebFetchProvider(Provider):
             error_message=None if ok else stderr or "Moli returned no usable output",
             metadata=metadata,
         )
+
+    def cancel(self) -> None:
+        # Remember cancellation during Popen without blocking the deadline
+        # thread on process creation. The launching thread kills a late child.
+        with self._process_lock:
+            self._cancel_requested = True
+            self._kill(self._active_process)
+
+    @staticmethod
+    def _kill(process):
+        if process is not None and process.poll() is None:
+            try:
+                if os.name == 'posix':
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass

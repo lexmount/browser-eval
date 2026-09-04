@@ -54,6 +54,7 @@ class FirecrawlProvider(Provider):
             error_type=None if ok else ("rate_limit" if rate_limited else "api_error"),
             error_message=None if ok else error_message,
             metadata={
+                **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": metadata.get("statusCode"),
                 "cache_state": metadata.get("cacheState"),
                 "proxy_used": metadata.get("proxyUsed"),

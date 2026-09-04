@@ -22,23 +22,23 @@ SPECS={
  [('URL','string · 必填','公开 HTTP(S) 页面'),('--wait-until','string','done；可配置 networkidle / domstable 等'),('--timeout','number','毫秒；与外层进程截止时间使用同一预算'),('--block-private-networks','flag','默认启用，阻止私网地址')],
  [('stdout','UTF-8 string','原样保存 Markdown → content'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 且正文非空表示工具执行成功，任务另按规则判定'),('status_code / final_url','未提供','Markdown 模式没有这些字段，不伪造 HTTP 200 或最终 URL')],
  'moli fetch --dump markdown --wait-until done --timeout 45000 --block-private-networks "https://example.com/"',
- 'harness/web_fetch/providers/moli.py','固定 Markdown 模式；不在失败时切换格式或供应商。JSON、截图与 PDF 是官方其他输出模式，不算本适配器的执行结果。'),
+ 'harness/web_fetch/providers/moli.py','正文用 Markdown；文件任务预先选择 --dump html，官方 CLI 对非 HTML 响应原样输出字节，保存后用统一文件规则验收。不是失败后的切换或额外下载；JSON、截图与 PDF 不在本轮范围。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
  {'extract':{'url':URL}},'harness/web_fetch/providers/lexmount.py','本轮为实时提取。中国区与国际区分开调用、分开计分。'),
  'firecrawl':spec('POST https://api.firecrawl.dev/v2/scrape','Authorization: Bearer <API_KEY>',
- [('url','string · 必填','目标网页或文档'),('formats','array','本轮请求 markdown、links、images'),('maxAge','number','本轮 0，不复用旧缓存')],
+ [('url','string · 必填','目标网页或文档'),('formats','array','正文配置为 markdown；资源配置为 markdown、links、images'),('maxAge','number','本轮 0，不复用旧缓存')],
  [('success','boolean','接口成功标记'),('data.markdown','string','正文 → content'),('data.links / images','array','资源 → provider_metadata'),('data.metadata','object','标题、源 URL、源站状态、积分等'),('error / reason','string','错误或额度原因')],
- {'url':URL,'formats':['markdown','links','images'],'maxAge':0},'harness/web_fetch/providers/firecrawl.py','本轮每次响应后冷却 6.1 秒；冷却不计入单次请求耗时。'),
+ {'url':URL,'formats':['markdown'],'maxAge':0},'harness/web_fetch/providers/firecrawl.py','本轮每次响应后冷却 6.1 秒；冷却不计入单次请求耗时，不代表无速率限制的吞吐量。'),
  'tavily':spec('POST https://api.tavily.com/extract','Authorization: Bearer <API_KEY>',
- [('urls','array · 必填','接口接受网址数组；本轮每次只放一个'),('extract_depth','string','本轮 basic'),('format','string','本轮 markdown'),('include_images','boolean','本轮 true，额外返回图片地址')],
+ [('urls','array · 必填','接口接受网址数组；本轮每次只放一个'),('extract_depth','string','本轮 basic'),('format','string','本轮 markdown'),('include_images','boolean','正文配置 false；资源配置 true，额外返回图片地址')],
  [('results[].raw_content','string','提取正文 → content'),('results[].url','string','结果 URL'),('results[].images / images','array','结果条目或响应顶层的图片地址'),('failed_results','array','未成功提取的网址及原因'),('response_time','number','服务端耗时')],
- {'urls':[URL],'extract_depth':'basic','format':'markdown','include_images':True},'harness/web_fetch/providers/tavily.py','HTTP 200 但没有 raw_content 仍按请求失败记录。'),
+ {'urls':[URL],'extract_depth':'basic','format':'markdown','include_images':False},'harness/web_fetch/providers/tavily.py','HTTP 200 但没有 raw_content 仍按适配器请求失败记录；原始状态与规范化依据分开保留。'),
  'exa':spec('POST https://api.exa.ai/contents','x-api-key: <API_KEY>',
- [('urls','array · 必填','本轮每次一个目标 URL，不调用搜索'),('text','boolean','本轮 true，要求正文'),('maxAgeHours','number','本轮 0'),('extras','object','本轮 links:20、imageLinks:20')],
+ [('urls','array · 必填','本轮每次一个目标 URL，不调用搜索'),('text','boolean','本轮 true，要求正文'),('maxAgeHours','number','本轮 0'),('extras','object','正文配置不传；资源配置 links:20、imageLinks:20')],
  [('results[].text','string','正文 → content'),('results[].title / url','string','标题与结果网址'),('results[].extras','object','额外链接和图片'),('statuses[]','array','逐网址的成功状态或错误'),('costDollars','object','费用信息')],
- {'urls':[URL],'text':True,'maxAgeHours':0,'extras':{'links':20,'imageLinks':20}},'harness/web_fetch/providers/exa.py','没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功。'),
+ {'urls':[URL],'text':True,'maxAgeHours':0},'harness/web_fetch/providers/exa.py','没有正文或逐网址状态失败，不能仅凭 HTTP 200 判成功。'),
  'cloudflare-markdown':spec('POST https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/browser-rendering/markdown','Authorization: Bearer <API_TOKEN>',
  [('url','string · 必填','目标页面'),('gotoOptions.waitUntil','string','本轮 networkidle2，等待页面网络活动趋于空闲')],
  [('success','boolean','接口是否成功'),('result','string','Markdown 正文 → content'),('errors[]','array','接口错误代码与信息'),('meta','object · 若提供','最终 URL、标题、源站状态等')],
@@ -64,7 +64,7 @@ SPECS={
  [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','networkidle'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
  [('result.success','boolean','爬取是否成功'),('result.markdown.raw_markdown','string','Markdown → content'),('result.media','dict','images、videos、audios'),('result.links','dict','internal / external'),('result.status_code / error_message','number / string','源站状态或失败信息')],
  'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="networkidle",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
- 'scripts/oss/crawl4ai_worker.py','本轮使用本地无头 Chrome，媒体单列在返回对象中；这不等于下载或理解媒体。'),
+ 'scripts/oss/crawl4ai_worker.py','正文使用本地无头 Chrome；文件任务在调用前选择原生 AsyncHTTPCrawlerStrategy.crawl(url, config)，读取其 downloaded_files 并统一验收字节。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
 for engine in ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium'):
@@ -82,7 +82,7 @@ def render_interfaces(out,records):
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
  names=sorted(SPECS,key=lambda name:(name not in measured,name))
- body='<p>按本轮实际适配器介绍，不混用完整产品能力。输入示例采用当前配置；输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
+ body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置以环境页保存证据为准。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
   access=HEADLESS_ACCESS.get(name)

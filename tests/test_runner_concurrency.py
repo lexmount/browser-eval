@@ -6,7 +6,7 @@ from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
 
 
 class BarrierProvider(Provider):
@@ -20,6 +20,53 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_jsonl_escapes_unicode_line_separators_without_changing_output(self):
+        value = 'before\u0085middle\u2028after\u2029end'
+        class TextProvider(Provider):
+            def fetch(self,case,timeout):return ProviderResult(True,value,metadata={'raw_response':value})
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            records,_=run_evaluation(output_dir=root,dataset_meta={'id':'test'},dataset_path=Path('dataset.json'),
+                cases=[EvalCase('case','Case','https://example.com','static',[])],providers=[TextProvider('text',{})],
+                provider_config_path=Path('providers.json'),runs=1,timeout=2,delay=0)
+            self.assertEqual(len((root/'results.jsonl').read_text().splitlines()),1)
+            self.assertEqual(json.loads((root/'results.jsonl').read_text())['provider_metadata']['raw_response'],value)
+            self.assertEqual((root/records[0]['artifact_path']).read_text(),value)
+
+    def test_unstoppable_timeout_is_quarantined_not_counted_as_remaining_failures(self):
+        release = threading.Event()
+        finished = threading.Event()
+        calls = []
+
+        class Unstoppable(Provider):
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                release.wait(2)
+                finished.set()
+                return ProviderResult(True, 'late answer')
+
+        cases = [EvalCase(f'case-{i}', 'Case', 'https://example.com', 'static', []) for i in range(2)]
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                run_dir = Path(directory)
+                with self.assertRaisesRegex(IncompleteEvaluationError, '1/4 attempts'):
+                    run_evaluation(output_dir=run_dir,
+                        dataset_meta={'id':'fixture','cases':[]}, dataset_path=Path('dataset.json'),
+                        cases=cases, providers=[Unstoppable('slow', {})],
+                        provider_config_path=Path('providers.json'), runs=2, timeout=.02, delay=0)
+                records = [json.loads(line) for line in (run_dir/'results.jsonl').read_text().splitlines()]
+                self.assertEqual(calls, ['case-0'])
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0]['error_type'], 'timeout')
+                self.assertFalse(records[0]['ok'])
+                self.assertEqual((run_dir/records[0]['artifact_path']).read_text(), '')
+                manifest = json.loads((run_dir/'manifest.json').read_text())
+                self.assertEqual(manifest['unexecuted'][0]['provider'], 'slow')
+                self.assertEqual(manifest['attempt_count'], 1)
+        finally:
+            release.set()
+            finished.wait(2)
+
     def test_providers_overlap_but_results_remain_deterministic(self) -> None:
         barrier = threading.Barrier(2)
         providers = [BarrierProvider("first", barrier), BarrierProvider("second", barrier)]

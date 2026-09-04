@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.models import execution_id
+from harness.web_fetch.response_input import apply_request_status
 from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.reference_lifecycle import check_case_reference_binding, ReferenceLifecycleError
@@ -53,7 +54,7 @@ def rescore(source, case_ids=None):
         ])).hexdigest(),
         'dataset_sha256': hashlib.sha256(dataset_bytes).hexdigest(),
         'input_results_sha256': hashlib.sha256(original_results).hexdigest(),
-        'request_status_basis': 'original_record_ok',
+        'request_status_basis': 'shared_normalization_with_original_adapter_status_retained',
     }
     changes = []
     for r in records:
@@ -64,13 +65,13 @@ def rescore(source, case_ids=None):
         if hashlib.sha256(raw).hexdigest() != r['metrics']['content_sha256']:
             raise ValueError('Output integrity failure: ' + r['attempt_id'])
         before = succeeded(r, c)
-        r['metrics'] = score_attempt(c, raw, ok=bool(r['ok']),
+        # Status and artifact normalization are shared with live execution.
+        r['metrics'] = score_attempt(c, raw, ok=bool(r['ok']), status_code=r.get('status_code'),
             metadata=r.get('provider_metadata', {}), previous_metrics=r['metrics'],
             list_reference=load_list_reference(c, source))
+        apply_request_status(r)
         if 'run_id' not in r:
             r['run_id'] = execution_id(r)
-        # Do not apply report-build's historical empty-response normalization:
-        # it rewrites ok/error fields. This rescore preserves original call facts.
         r['diagnosis'] = diagnose(r, c, raw.decode('utf-8', errors='replace'))
         r['failure_category'] = failure_category(r, c)
         r['scoring'] = {**r.get('scoring', {}), **audit}
@@ -86,4 +87,5 @@ def rescore(source, case_ids=None):
 
 
 if __name__ == '__main__':
-    print(json.dumps(rescore(Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'evaluation'), ensure_ascii=False, indent=2))
+    from harness.web_fetch.storage import current_evidence_dir
+    print(json.dumps(rescore(Path(sys.argv[1]) if len(sys.argv)>1 else current_evidence_dir()), ensure_ascii=False, indent=2))

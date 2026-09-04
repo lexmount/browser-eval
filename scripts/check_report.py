@@ -6,6 +6,8 @@ import sys
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from harness.web_fetch.reliability import require_reliable
 
 class Tables(HTMLParser):
  def __init__(self):super().__init__();self.in_th=False;self.first=False;self.headers=[]
@@ -45,6 +47,9 @@ assert {(r['provider'],r['case_id']) for r in rs}==expected_pairs
 assert len({r['attempt_id'] for r in rs})==expected
 assert len({(r['provider'],r['case_id']) for r in rs})==expected
 case_by_id={c['id']:c for c in d['cases']}
+reliability=require_reliable(d,rs)
+saved_reliability=json.loads((root/'reliability.json').read_text())
+assert saved_reliability==reliability,'Saved reliability status differs from report evidence'
 for r in rs:
  p=root/r['artifact_path'];assert hashlib.sha256(p.read_bytes()).hexdigest()==r['metrics']['content_sha256'],p
  if not r['ok']:assert not r['metrics']['content_pass']
@@ -58,7 +63,7 @@ for c in d['cases']:
  assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
 for p in root.rglob('*.html'):
  text=p.read_text();reader=VisibleText();reader.feed(text);visible=' '.join(reader.parts)
- for banned in ['人工复核','人工检查','HIL','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2']:
+ for banned in ['人工复核','人工检查','HIL','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2','已执行/总案例','已判分/已调用']:
   assert banned not in visible,(p,banned)
  parser=Tables();parser.feed(text);assert all(h=='序号' for h in parser.headers),(p,parser.headers)
  if p.parent.name=='attempts':
@@ -67,6 +72,14 @@ for p in root.rglob('*.html'):
   heading='稳定任务契约' if case.get('acceptance_contract') and 'stable_task_pass' in record['metrics'] else '列表任务规则 / 参考依据' if case.get('task_kind')=='structure' else '完整参考 / 目标结果'
   assert text.count('<h3>'+heading+'</h3>')==1,p
   assert text.count('<h3>本次完整输出</h3>')==1,p
+  for delivered in record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[]):
+   assert '../'+delivered['artifact_path'] in text and delivered['sha256'] in text,p
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
+home=(root/'index.html').read_text()
+assert home.index('六类任务概览') < home.index('实测结果'),'Task overview must precede detailed rankings'
+assert '最高分方法：' in home and '判分完整性' in home
+methodology=(root/'methodology/index.html').read_text()
+for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:
+ assert phrase in methodology,phrase
 print(f'PASS: {len(d["cases"])} tasks / {len(rs)} records / {len(names)} providers; {len(list(root.rglob("*.html")))} HTML pages; reference integrity, all numbered tables, no workflow leftovers.')

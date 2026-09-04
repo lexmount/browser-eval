@@ -8,6 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.evidence import add_provider_run
+from harness.web_fetch.storage import current_evidence_dir
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -21,6 +22,6 @@ if __name__ == "__main__":
     implementation = json.loads(args.implementation.read_text()) if args.implementation else None
     print(
         "Added",
-        add_provider_run(ROOT / "evaluation", args.run_dir, args.provider, implementation, track=args.track),
+        add_provider_run(current_evidence_dir(), args.run_dir, args.provider, implementation, track=args.track),
         "records",
     )
