@@ -1,0 +1,64 @@
+{
+  "case_id": "lm-pnpm-install",
+  "independent": true,
+  "checked_at": "2026-09-07T05:35:22.477236+00:00",
+  "content_text": "IntroductionInstallation\nVersion: 12.x\nInstallation\nPrerequisites​\n\npnpm 12 is a native executable and does not require Node.js after it is installed. Installing it through npm requires Node.js 22.13 or newer.\n\npnpm 12 is the current release line — the latest tag on npm points at it, so the commands below install pnpm 12 without naming a version.\n\nUsing pnpm​\n\nIf you already have pnpm v11.10.0 or newer, update directly to pnpm 12:\n\npnpm self-update\n\n\nInside a project that pins pnpm through the packageManager field, self-update only updates that pin instead of installing pnpm globally.\n\nUsing a standalone script​\n\nYou may install pnpm even if you don't have Node.js installed, using the following scripts.\n\nOn Windows​\nWARNING\n\nSometimes, Windows Defender may block our executable if you install pnpm this way.\n\nDue to this issue, we currently recommend installing pnpm using npm on Windows.\n\nUsing PowerShell:\n\nInvoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression\n\n\nOn Windows, Microsoft Defender can significantly slow down installation of packages. You can add pnpm to Microsoft Defender's list of excluded folders in a PowerShell window with administrator rights by executing:\n\nAdd-MpPreference -ExclusionPath $(pnpm store path)\n\nOn POSIX systems​\ncurl -fsSL https://get.pnpm.io/install.sh | sh -\n\n\nIf you don't have curl installed, you would like to use wget:\n\nwget -qO- https://get.pnpm.io/install.sh | sh -\n\nTIP\n\nYou may use the pnpm runtime command then to install Node.js.\n\nIn a Docker container​\n# bash\n\nwget -qO- https://get.pnpm.io/install.sh | env ENV=\"$HOME/.bashrc\" SHELL=\"$(which bash)\" bash -\n\n# sh\n\nwget -qO- https://get.pnpm.io/install.sh | env ENV=\"$HOME/.shrc\" SHELL=\"$(which sh)\" sh -\n\n# dash\n\nwget -qO- https://get.pnpm.io/install.sh | env ENV=\"$HOME/.dashrc\" SHELL=\"$(which dash)\" dash -\n\nInstalling a specific version​\n\nPrior to running the install script, you may optionally set an env variable PNPM_VERSION to install a specific version of pnpm:\n\ncurl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=<version> sh -\n\nUsing npm​\nnpx get-pnpm\n\n\nNode.js 22.13 or newer is needed to run this installer, but not to run pnpm afterwards.\n\nTIP\n\nDo you wanna use pnpm on CI servers? See: Continuous Integration.\n\nCompatibility​\n\nHere is a list of past pnpm versions with respective Node.js version support.\n\nNode.js\tpnpm 8\tpnpm 9\tpnpm 10\tpnpm 11\tpnpm 12\nNode.js 14\t❌\t❌\t❌\t❌\t❌\nNode.js 16\t✔️\t❌\t❌\t❌\t❌\nNode.js 18\t✔️\t✔️\t✔️\t❌\t✔️\nNode.js 20\t✔️\t✔️\t✔️\t❌\t✔️\nNode.js 22\t✔️\t✔️\t✔️\t✔️\t✔️\nNode.js 24\t✔️\t✔️\t✔️\t✔️\t✔️\nNode.js 26\t✔️\t✔️\t✔️\t✔️\t✔️\n\npnpm 12 only needs Node.js when it is installed from npm; the version installed by the standalone script runs without Node.js.\n\nTroubleshooting​\n\nIf pnpm is broken and you cannot fix it by reinstalling, you might need to remove it manually from the PATH.\n\nLet's assume you have the following error when running pnpm install:\n\nC:\\src>pnpm install\n\ninternal/modules/cjs/loader.js:883\n\n  throw err;\n\n  ^\n\n\n\n\n\n\n\nError: Cannot find module 'C:\\Users\\Bence\\AppData\\Roaming\\npm\\pnpm-global\\4\\node_modules\\pnpm\\bin\\pnpm.js'\n\n←[90m    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:880:15)←[39m\n\n←[90m    at Function.Module._load (internal/modules/cjs/loader.js:725:27)←[39m\n\n←[90m    at Function.executeUserEntryPoint [as runMain] (internal/modules/run_main.js:72:12)←[39m\n\n←[90m    at internal/main/run_main_module.js:17:47←[39m {\n\n  code: ←[32m'MODULE_NOT_FOUND'←[39m,\n\n  requireStack: []\n\n}\n\n\nFirst, try to find the location of pnpm by running: which pnpm. If you're on Windows, run where.exe pnpm.*. You'll get the location of the pnpm command, for instance:\n\n$ which pnpm\n\n/c/Program Files/nodejs/pnpm\n\n\nNow that you know where the pnpm CLI is, open that directory and remove any pnpm-related files (pnpm.cmd, pnpx.cmd, pnpm, etc). Once done, install pnpm again and it should work as expected.\n\nUpdating pnpm​\n\nTo update pnpm, run the self-update command:\n\npnpm self-update\n\nUninstalling pnpm​\n\nIf you need to remove the pnpm CLI from your system and any files it has written to your disk, see Uninstalling pnpm.\n\nEdit this page\nPrevious\nFeature Comparison\nNext\npnpm CLI\nPrerequisites\nUsing pnpm\nUsing a standalone script\nOn Windows\nOn POSIX systems\nIn a Docker container\nInstalling a specific version\nUsing npm\nCompatibility\nTroubleshooting\nUpdating pnpm\nUninstalling pnpm",
+  "selector": "main",
+  "observation_method": "visible_inner_text",
+  "observed_records": 1,
+  "scope_identity": {
+    "case_id": "lm-pnpm-install",
+    "url": "https://pnpm.io/installation",
+    "track": "web",
+    "task_kind": "body",
+    "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
+    "reference_scope": null,
+    "selector": "main",
+    "source_benchmark": {},
+    "render_scope": null,
+    "evaluation_contract": {
+      "expected_any": [],
+      "required_facts": [
+        {
+          "id": "marker-1",
+          "alternatives": [
+            "pnpm"
+          ]
+        },
+        {
+          "id": "marker-2",
+          "alternatives": [
+            "Node.js"
+          ]
+        },
+        {
+          "id": "marker-3",
+          "alternatives": [
+            "Prerequisites"
+          ]
+        }
+      ],
+      "required_patterns": [],
+      "forbidden_any": [
+        "Access denied",
+        "CAPTCHA",
+        "Page not found"
+      ],
+      "min_content_chars": 300,
+      "fact_coverage_threshold": 1.0,
+      "content_score_applicable": true,
+      "expected_resources": [],
+      "reference_answer": ""
+    }
+  },
+  "observer": {
+    "browser": "Chromium",
+    "binary": "explicit",
+    "dns_override": false
+  },
+  "completion": {
+    "satisfied": true,
+    "elapsed_ms": 4339.605625000331,
+    "timeout_ms": 45000
+  }
+}

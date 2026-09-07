@@ -1,7 +1,7 @@
 {
   "case_id": "lm-python-tutorial",
   "url": "https://docs.python.org/3/tutorial/index.html",
-  "checked_at": "2026-09-04T07:45:29.194632+00:00",
+  "checked_at": "2026-09-07T03:56:33.834512+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/tutorial/index.html",
   "mime": "text/html",
   "bytes": 36953,
-  "sha256": "1d84a4abc775ffd544af595905cb58e31122b632628b6bf4af13c63cdc8772bf",
+  "sha256": "a062f00b869b7117885a3e049b2e36ffb2238db8d584f9dae982d6ba1f040b68",
   "response_headers": {
     "Content-Type": "text/html"
   },

@@ -1,7 +1,7 @@
 {
   "case_id": "live-035-part-i-tutorial",
   "url": "https://www.postgresql.org/docs/current/tutorial.html",
-  "checked_at": "2026-09-04T09:22:12.169348+00:00",
+  "checked_at": "2026-09-07T03:56:42.966531+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

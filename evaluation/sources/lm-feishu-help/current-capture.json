@@ -1,7 +1,7 @@
 {
   "case_id": "lm-feishu-help",
   "url": "https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据",
-  "checked_at": "2026-09-04T07:45:29.193987+00:00",
+  "checked_at": "2026-09-07T03:56:33.830452+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://www.feishu.cn/hc/zh-CN/articles/485770964672-%E7%AE%A1%E7%90%86%E5%91%98%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A-ai-%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE",
   "mime": "text/html; charset=utf-8",
   "bytes": 521688,
-  "sha256": "7ecc1a03e12b4673bde0a829ee1933fb5123387b9c8bc3ad745681f35672329d",
+  "sha256": "12fcc1ddc78f765c412d7e58ab392051766d55fad0554736225b81ec93b0a12b",
   "response_headers": {
     "Content-Type": "text/html; charset=utf-8"
   },

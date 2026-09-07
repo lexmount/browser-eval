@@ -1,7 +1,7 @@
 {
   "case_id": "live-049-functools-higher-order-functions",
   "url": "https://docs.python.org/3/library/functools.html",
-  "checked_at": "2026-09-04T07:45:35.918892+00:00",
+  "checked_at": "2026-09-07T03:56:45.300827+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/functools.html",
   "mime": "text/html",
   "bytes": 116433,
-  "sha256": "65fc7ef73da8ff71c11880646933fc8e21c6e5f97f0c53cd6e820441c502995e",
+  "sha256": "8607832bbc12ec2ca3e99cc9686ca4bce8b20dffe58fdb8edb40f08f31dd12f7",
   "response_headers": {
     "Content-Type": "text/html"
   },

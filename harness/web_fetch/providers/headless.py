@@ -83,6 +83,51 @@ class HeadlessProvider(Provider):
                 errors.append('node-html-markdown')
         return errors
 
+    def implementation_identity(self, *, refresh=False):
+        """Snapshot the implementation without exposing paths or credentials."""
+        if not refresh and hasattr(self, '_implementation_identity'):
+            return dict(self._implementation_identity)
+        engine = self.config['engine']
+        if engine == 'kitesurf':
+            identity = {
+                'identity_source': 'provider product and endpoint observed before calls; hosted backend version is not exposed',
+                'engine': engine,
+                'deployment': 'Cloudflare Browser Run account API',
+                'endpoint': 'Browser Rendering /markdown with browser=kitesurf',
+                'binary_sha256': None,
+                'reported_version': None,
+            }
+            self._implementation_identity = identity
+            return dict(identity)
+        binary = getattr(self, '_resolved_binary', None) or _resolve_binary(
+            engine, self.config.get('binary'))
+        if not binary:
+            raise ValueError(self.name + ': executable is unavailable')
+        with open(binary, 'rb') as stream:
+            digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+        reported = None
+        probe_error = None
+        try:
+            version = subprocess.run([binary, '--version'], capture_output=True, text=True,
+                                     timeout=5, check=False)
+            candidate = (version.stdout or version.stderr).strip()[:200]
+            if version.returncode == 0 and candidate:
+                reported = candidate
+            else:
+                probe_error = f'exit {version.returncode}'
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            probe_error = type(exc).__name__
+        identity = {
+            'identity_source': 'executable bytes observed outside the timed calls',
+            'engine': engine,
+            'deployment': 'local process',
+            'binary_sha256': digest,
+            'reported_version': reported,
+            'version_probe_error': probe_error,
+        }
+        self._implementation_identity = identity
+        return dict(identity)
+
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
@@ -115,8 +160,12 @@ class HeadlessProvider(Provider):
                 'deployment': 'Cloudflare Browser Run account API'}
             return result
         if binary:
-            with open(binary, 'rb') as stream:
-                metadata['binary_sha256'] = hashlib.file_digest(stream, 'sha256').hexdigest()
+            identity = self.implementation_identity()
+            metadata['binary_sha256'] = identity['binary_sha256']
+            if identity['reported_version']:
+                metadata['browser_version'] = identity['reported_version']
+            if identity['version_probe_error']:
+                metadata['browser_version_probe_error'] = identity['version_probe_error']
         request = {'engine': engine, 'binary': binary, 'url': case.url,
                    'timeout': timeout, 'output_mode': output_mode,
                    'wait_until': 'networkidle' if case.track == 'dynamic' else None,

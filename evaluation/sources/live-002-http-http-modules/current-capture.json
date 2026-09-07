@@ -1,7 +1,7 @@
 {
   "case_id": "live-002-http-http-modules",
   "url": "https://docs.python.org/3/library/http.html",
-  "checked_at": "2026-09-04T07:45:30.259626+00:00",
+  "checked_at": "2026-09-07T03:56:35.309504+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/http.html",
   "mime": "text/html",
   "bytes": 63440,
-  "sha256": "bb0468303d4d2a10139ffb8e1bc9b811b22fef64bbabc64826ac7e1845fd2d73",
+  "sha256": "d5fe34abfcf505c9913354258798d1f4afdee712999b881fe8f60f31b6fec423",
   "response_headers": {
     "Content-Type": "text/html"
   },

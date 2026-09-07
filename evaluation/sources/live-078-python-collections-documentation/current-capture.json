@@ -1,7 +1,7 @@
 {
   "case_id": "live-078-python-collections-documentation",
   "url": "https://docs.python.org/3/library/collections.html",
-  "checked_at": "2026-09-04T07:45:39.977008+00:00",
+  "checked_at": "2026-09-07T03:56:51.424905+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/collections.html",
   "mime": "text/html",
   "bytes": 207624,
-  "sha256": "06fe0fb0154a36dfaf43bdef245700345094be85c25894e27bec40841d51dc63",
+  "sha256": "2caa1eb74869b33d15e7ccd3edc89245a1854a31d08de25b201fb51757d39c0a",
   "response_headers": {
     "Content-Type": "text/html"
   },

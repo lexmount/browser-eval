@@ -16,6 +16,24 @@ def first_correction(history, releases):
     return matches[0]
 
 
+def require_revision_release_bindings(history, releases):
+    """Every bundled revision receipt must name exactly one public release.
+
+    Older releases may refer to receipts retained by an earlier report bundle;
+    absence from the current bundle is not evidence that they never existed.
+    """
+    for receipt in history:
+        digest = receipt.get('input_results_sha256')
+        matches = []
+        for release in releases:
+            declared = release.get('scoring_revision_input_sha256')
+            declared = declared if isinstance(declared, list) else [declared]
+            if digest in declared:
+                matches.append(release)
+        if len(matches) != 1:
+            raise ValueError('Each bundled scoring revision must bind to exactly one release')
+
+
 def release_details(release, table, cell, esc):
     rows=[('',cell(esc(a))+cell(esc(b))+cell(esc(c))+cell(esc(d))) for a,b,c,d in release['changes']]
     return ('<details><summary>查看修正依据、影响与边界</summary>'
@@ -72,6 +90,6 @@ def render_changes(out, cases, records):
 
     revision=out/'scoring-revisions.json'
     if revision.exists():
-        first_correction(json.loads(revision.read_text()),data['releases'])
+        require_revision_release_bindings(json.loads(revision.read_text()),data['releases'])
     body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/pull/4','对应修复 PR')+'</p>')
     write(out,'changes/index.html','报告版本说明','<div class="change-log">'+body+'</div>')

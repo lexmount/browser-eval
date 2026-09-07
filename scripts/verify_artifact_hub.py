@@ -3,13 +3,15 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import socket
 import sys
 import tempfile
+import time
 import urllib.request
 import zipfile
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -33,16 +35,20 @@ def verify_public_files(slug, expected_archive):
         # HTML preview injects runtime markup, so compare original source via metadata.
         if name.endswith('.html'):raise ValueError('Additional HTML requires original-source export')
         url=base+'/api/preview/'+quote(slug,safe='')+'/'+quote(name,safe='/')
-        for attempt in range(2):
+        for attempt in range(3):
             try:
-                with urllib.request.urlopen(url,timeout=90) as response:
+                with urllib.request.urlopen(url,timeout=180) as response:
                     digest=hashlib.sha256()
                     while chunk:=response.read(1024*1024):digest.update(chunk)
                 return name,digest.hexdigest()
             except HTTPError as error:
-                if error.code<500 or attempt:raise
+                retryable=error.code>=500
                 error.close()
-    with ThreadPoolExecutor(max_workers=4) as pool:
+                if not retryable or attempt==2:raise
+            except (URLError,TimeoutError,socket.timeout):
+                if attempt==2:raise
+            time.sleep(2**attempt)
+    with ThreadPoolExecutor(max_workers=2) as pool:
         actual={}
         for name,sha in pool.map(digest,wanted):
             actual[name]=sha

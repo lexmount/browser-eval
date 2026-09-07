@@ -1,7 +1,7 @@
 {
   "case_id": "live-073-python-json-documentation",
   "url": "https://docs.python.org/3/library/json.html",
-  "checked_at": "2026-09-04T07:45:39.753229+00:00",
+  "checked_at": "2026-09-07T03:56:50.380551+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/json.html",
   "mime": "text/html",
   "bytes": 111909,
-  "sha256": "29d084b1218aa21a97cb15c3a26747b87d5126a22c9a4cfd8efb37f94b68f445",
+  "sha256": "2562f3cfd3633ce875db1daee8818beba5cebdac89a0e4453972e9e0bd722ff2",
   "response_headers": {
     "Content-Type": "text/html"
   },

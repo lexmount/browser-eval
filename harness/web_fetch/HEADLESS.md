@@ -1,4 +1,4 @@
-# Five-browser fastest-Markdown comparison
+# Browser fastest-Markdown comparison
 
 The cohort reuses all 150 registered Web Fetch task IDs: 100 web cases and 10
 each for document, image, video, challenge and dynamic delivery. Every method
@@ -14,7 +14,8 @@ fastest documented or built-in route.
 | Kitesurf | Cloudflare account Browser Run | `POST /browser-rendering/markdown?browser=kitesurf` |
 | Lightpanda | local CLI | `fetch --dump markdown` |
 | Obscura | local CLI, standard mode | `fetch --dump markdown` |
-| Moli | local CLI | `fetch --dump markdown` |
+| Moli 1.1.1 | local CLI | `fetch --dump markdown` |
+| Moli 1.1.3 | local CLI | `fetch --dump markdown` |
 | Chromium | local Playwright/CDP | rendered DOM HTML → `node-html-markdown` 2.0.0 |
 
 Chromium and CDP do not expose a native Markdown result. Chromium Reader Mode
@@ -66,11 +67,21 @@ Browser Run access (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). The report
 lists official registration and token pages and variable names only. It never
 copies a real key into HTML, source control or examples.
 
-Local binary paths use `MOLI_BINARY`, `LIGHTPANDA_BINARY`, `OBSCURA_BINARY` and
-`CHROMIUM_BINARY`. Binaries are not committed; measured binary hashes and
+Local binary paths use `MOLI_BINARY`, `MOLI_1_1_3_BINARY`, `LIGHTPANDA_BINARY`,
+`OBSCURA_BINARY` and `CHROMIUM_BINARY`. Binaries are not committed; measured binary hashes and
 versions are retained in call evidence. Install JavaScript dependencies with
 `npm install` and the Python benchmark dependencies in a repository-local
 environment.
+
+Every local call is bound to the batch executable SHA-256. The runner captures
+that identity before and after the timed calls, writes it into the execution
+manifest and rejects any binary or reported-version change. Identity probing
+is outside the latency boundary. A mutable release label or
+configured path is never treated as an identity. If a CLI exposes no version
+or immutable commit (for example a moving nightly asset), the SHA-256 remains
+the exact executable identity and the missing source revision stays explicit.
+A version recovered later by matching a retained executable to an official
+archive is labelled post-hoc; it is not rewritten as run-time provenance.
 
 ## Run and preserve evidence
 
@@ -83,6 +94,7 @@ python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN
 python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5
 python scripts/postcheck_headless.py --run-dir RUN --captures POST --browser-observations POST.json
 python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
+python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
 
 A failed or incomplete evidence directory is immutable. A reference failure
@@ -94,6 +106,23 @@ certified. Equivalent independent captures may be assembled only when reference
 bytes, normalized hash, URL, task contract, reference scope and rendered scope
 are identical; each physical batch retains its exact capture selector and
 postcheck.
+
+Do not rerun the whole matrix merely because code changed. Use the smallest
+scope that preserves a valid comparison: presentation-only changes rebuild the
+report; scoring-only changes rescore immutable outputs; one changed reference
+reruns that case for every method; one implementation change reruns all cases
+for that method; a timing-boundary change reruns the all-method speed cohort.
+A full matrix rerun is required only when a global task input, call boundary or
+shared implementation dependency changes. The assembly manifest must retain
+which physical calls were replaced and why.
+
+Result verification is a separate publication gate after assembly. A strong
+agent reads every saved output and compares it with the task, frozen standard
+answer or stable contract without trusting the machine verdict. Every selected
+attempt, including machine passes, must receive a verdict. Disagreements require
+an explicit adjudication; unresolved rows block report generation. The review
+file is cryptographically bound to the exact dataset and results files, so a
+new session cannot silently reuse an audit after outputs or rules change.
 
 Measured outputs live outside Git under `~/.browser-eval/evidence/`. Git retains
 the canonical dataset, source annotations, adapters and report implementation.

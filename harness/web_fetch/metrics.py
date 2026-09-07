@@ -35,6 +35,9 @@ URL_KEYS = {"url", "href", "src", "link"}
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
     value = value.strip().strip("<>\"'")
+    # Markdown serializers may escape punctuation inside literal HTML or URL
+    # text.  Those backslashes are presentation syntax, not URL bytes.
+    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', value)
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
     try:
@@ -183,6 +186,10 @@ def normalize_for_match(value: str) -> str:
     # or English word boundaries. Fold layout newlines on both sides first:
     # plain-text DOM extraction may put every menu label on a separate line.
     normalized = re.sub(r"\s+", " ", normalized).strip()
+    # A serializer may leave layout whitespace before sentence punctuation at
+    # an inline-link boundary. Never bridge a digit to punctuation: doing so
+    # could turn ``$10 .90`` into a different valid monetary value.
+    normalized = re.sub(r"(?<!\d)\s+([,.;:!?])", r"\1", normalized)
     # Inline styling often separates a currency symbol from its amount.
     # Normalize only currency/financing syntax, never digit or decimal boundaries.
     normalized = re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', normalized)
@@ -295,6 +302,12 @@ def evaluate_content(
         "word_precision": word_precision,
         "word_recall": word_recall,
         "word_f1": word_f1,
+        # Keep ``reference_sha256`` as the immutable run-time capture binding.
+        # This separate hash says which reference bytes produced these derived
+        # text metrics after an audited offline correction.
+        "scored_reference_sha256": (hashlib.sha256(
+            ground_truth_main_content.encode("utf-8")).hexdigest()
+            if ground_truth_main_content else None),
     }
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task

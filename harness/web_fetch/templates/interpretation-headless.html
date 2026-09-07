@@ -1,69 +1,58 @@
 <article class="essay-body publication-article" aria-labelledby="article-title">
   <header class="essay-head">
-    <p class="eyebrow">Web Fetch · 五种浏览器实测</p>
+    <p class="eyebrow">Web Fetch · 浏览器路线实测</p>
     <h1 id="article-title">${title}</h1>
-    <p class="lead">这轮对齐的是 URL、Markdown 交付、150 个任务、验收规则和 45 秒客户端截止时间，不是强迫五种方法使用同一内部实现。Kitesurf、Lightpanda、Obscura、Moli 走各自最快的原生 Markdown 接口；Chromium 没有原生 Markdown，才走完整渲染 DOM 加成熟转换器。</p>
-    <p class="source-note">${cases} 个任务 · ${attempts} 次唯一调用 · 调用时间 ${time_window}（UTC）</p>
+    <p class="lead">同一 URL、同一 Markdown 输出契约、同一任务集与验收规则；每种方法使用本轮可获得的最快正式路径，而不是强迫内部实现一致。</p>
+    <p class="source-note">${cases} 个任务 · ${providers} 种方法 · ${attempts} 次纳入结果 · ${time_window}（UTC）</p>
   </header>
 
   <section id="result">
-    <h2>先看交付结果：Chromium 的网页覆盖最高，Moli 的共同通过网页最快</h2>
-    <p>普通网页通过数为：${web_summary}。这是“当前调用链能否交付任务所需 Markdown”的结果，不是浏览器内核的综合排名。六类任务要求不同，报告不把它们合成一个总分。</p>
+    <h2>先看任务是否交付</h2>
+    <p>普通网页通过数：${web_summary}。六类任务要求不同，不合成总分，也不跨类别比较高低。</p>
     ${overview}
-    <p>Chromium 在普通网页上通过 98/100；另外两题返回了内容，但没有交付指定的 NOAA breadcrumb 正文和 Anthropologie 退货政策正文，因此仍判失败。Moli 为 93/100；它在同步 main 后重跑的 Django 教程页发生真实 browser exit，不能沿用旧批次的通过结果。</p>
   </section>
 
   <section id="routes">
-    <h2>“各显神通”比统一转换器更接近真实选型</h2>
-    <p>Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown?browser=kitesurf</code>；Lightpanda、Obscura、Moli 使用本地 CLI 的 <code>fetch --dump markdown</code>。这四条路径直接交付 Markdown。Chromium 152 由 Playwright 1.58 取得完整渲染 DOM，再用 <code>node-html-markdown 2.0.0</code> 转换；五种方法都不调用模型。</p>
-    <p>Chromium/CDP 的 Page 接口没有 Markdown 输出。Reader Mode 生成的是简化 HTML，并且会主动选择正文范围，不适合作为覆盖全部任务的通用 Markdown 接口。候选转换器在同一批已保存 DOM 上复评分：node-html-markdown 得到 98/100 的普通网页验收结果，Xberg 92/100，Turndown 58/100，Defuddle 47/100；旧 pyhtml2md 路线为 97/100，且大页转换明显更慢。最终选择 node-html-markdown，是因为它在这批输入上同时给出更好的交付结果和更短的转换时间，而不是因为所有方法必须经过它。</p>
+    <h2>方法各走最快的 Markdown 路径</h2>
+    <p>Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown</code>；Lightpanda、Obscura 与两个 Moli 版本使用本地原生 Markdown；Chromium 没有原生 Markdown，取完整渲染 DOM 后转换。所有路线最终进入同一个任务裁判。</p>
+    ${runtime}
     ${stages}
-    <p>英文百科页给出了实际分段：Chromium 取 DOM 约 8.14 秒、转换约 2.47 秒、端到端约 10.70 秒；Moli 与 Lightpanda 的原生 Markdown 分别约 4.74 秒和 5.78 秒。Kitesurf 本次未成功，服务端浏览器用时约 32.82 秒；Obscura 超过客户端截止。单页只能说明这次调用，不能外推稳定吞吐。</p>
-  </section>
-
-  <section id="kitesurf">
-    <h2>Kitesurf 目前不能按开源本地浏览器来测</h2>
-    <p>截至本轮核对，Kitesurf 是 Cloudflare Browser Run 中的托管预览；Cloudflare 公开表达了未来开源意向，但尚未发布可供本地部署的源码或独立发行物。因此本报告测试当前可获得的账号版 <code>/markdown</code>，不把未来计划写成现有能力，也不伪造“本地 Kitesurf”成绩。</p>
-    <p>复现只需要列出 Cloudflare 账号、Browser Rendering / Browser Run 权限、账号 ID 和 API Token 的官方获取入口。真实值只从仓库本地、被忽略的 <code>.env</code> 读取；HTML、接口示例和 Git 中都只有变量名与占位符。</p>
   </section>
 
   <section id="fairness">
-    <h2>公平边界：输入输出对齐，不代表部署与等待机制相同</h2>
-    <p>Kitesurf 运行在 Cloudflare 远端，耗时包含公网往返、远端排队和执行；其余四种方法在本机运行，包含本地进程启动和资源竞争。Kitesurf 使用 <code>networkidle2</code>，Chromium 使用 <code>domcontentloaded</code>，三种 CLI 使用各自内建完成条件。把这些差异抹成同一个标签不会使内部实现相同，只会隐藏真实产品路径。</p>
-    <p>因此本报告能比较“从这台客户端提交同一 URL，到拿到满足同一任务规则的 Markdown，需要多久”；不能比较同机纯内核 CPU/RSS、网络剥离后的执行速度、长期吞吐或生产 SLA。每个 URL 每种方法仅一次调用，也没有置信区间。</p>
+    <h2>公平边界在输入、输出和裁判，不在内部形态</h2>
+    <p>远端 Kitesurf 包含公网往返、排队与远端执行；本地方法包含进程启动和本机资源竞争。不同批次的耗时不直接排名；速度结论只使用同一时间窗口、双方共同通过的样本。它衡量客户端拿到合格 Markdown 的时间，不是纯内核 CPU、长期吞吐或 SLA。</p>
+    <div class="table-wrap"><table><thead><tr><th>序号</th><th>可能偏差</th><th>引入位置</th><th>本报告处理</th></tr></thead><tbody>
+      <tr><td>1</td><td>原生 Markdown 与二次转换</td><td>输出形成阶段</td><td>允许最快正式路径；统一最终 Markdown 与裁判</td></tr>
+      <tr><td>2</td><td>远端网络、排队与本地资源</td><td>调用与执行阶段</td><td>全部计入端到端时间；仅同窗共同成功样本排名</td></tr>
+      <tr><td>3</td><td>冷启动、缓存与会话复用</td><td>进程或浏览器生命周期</td><td>每次新进程或新上下文，不复用个人会话</td></tr>
+      <tr><td>4</td><td>完成条件不同</td><td>动态页面等待阶段</td><td>各自正式接口完成后，再用同一任务契约验收</td></tr>
+      <tr><td>5</td><td>版本与远端服务漂移</td><td>二进制或托管后端</td><td>计时外记录批次前后版本与 SHA-256，身份变化直接失败；每次调用绑定该身份。事后恢复与运行时记录分开披露，nightly 无法映射 commit 时不猜测</td></tr>
+    </tbody></table></div>
     ${pairs}
     ${latency}
-    <p>每行配对只取双方共同通过的普通网页，避免用“快速失败”赢得速度。不同配对的 URL 集合仍可能不同，所以行与行之间也不能只看一个中位数下结论。</p>
   </section>
 
   <section id="quality">
-    <h2>任务通过与正文质量分开看</h2>
+    <h2>任务通过和文字重合分开看</h2>
     ${quality}
-    <p>完整度检查参考范围内的文字是否取回，纯净度检查输出中的参考文字占比，F1 综合两者。它们是词级诊断，不证明逐句语义或实时事实。任务通过也不等于全文干净；任务失败时已经取回的有效文字不会被强制归零。没有完整参考的题保持“未测”，不写成 0 或 100%。</p>
+    <p>完整度、纯净度与 F1 是参考范围内的词级诊断，不证明逐句语义或实时事实。任务未通过时，已取回的有效文字也不会被强制记为零；没有完整参考的题显示未测。</p>
   </section>
 
   <section id="dynamic">
-    <h2>动态页说明“何时交付”本身就是方法能力</h2>
-    <p>动态任务通过数为：${dynamic_summary}。异步接口、延迟渲染、内嵌状态、客户端路由和 iframe 需要不同的完成条件；看到 DOMContentLoaded、卡片骨架或“Enable JavaScript”提示都不足以单独判定正文已经可交付。</p>
+    <h2>动态页还要判断何时可以交付</h2>
+    <p>动态任务通过数：${dynamic_summary}。允许浏览器渲染、读取页面内嵌状态或使用页面公开数据接口；不允许为单题追加特例、失败后切换实现，或把另一个抓取器的结果算给当前方法。</p>
     ${dynamic}
-    <p>这组任务允许浏览器渲染、读取内嵌状态或调用页面公开使用的数据接口，只要输入仍是登记 URL，输出满足同一契约。它不规定 JavaScript 是唯一正确路径。相反，专门为答案追加 selector、失败后换模式，或把另一个抓取器的结果算给当前方法，都会引入方法偏置。</p>
   </section>
 
   <section id="audit">
-    <h2>逐条复核修正了 43 个历史误判</h2>
-    <p>复核范围覆盖旧批次 750 条调用，不只查看失败项：逐条对照保存输出、标准答案、任务契约与评分细项，再用统一评分路径重算。共修正 42 个假阴性和 1 个假阳性。假阴性主要来自 Markdown 多行链接、文档排版空白、动态页脚本候选与图片列表表达；假阳性是 Kitesurf 在 RAGFlow 页面只返回 shell、标题及约一成 README，却被旧规则放行。</p>
-    <p><code>run-f4e6f2ee641e8baa9e3d</code> 属于已确认的假阴性：Moli 的飞书帮助页输出包含全部三个必需事实，正文完整度为 100%，旧规则因可见句子跨 Markdown 链接换行而漏判。修订的是统一可见文本规范化与任务契约，不是针对 Moli 的特例。</p>
-    <p>同步最新 main 后，另有 7 个“旧通过”被纠正为失败或需要重跑，原因包括表头缺失、README 中段或尾段缺失、字段粘连和局部错误页。受参考正文变化影响的 Django 教程对五种方法全部重跑；其余结果只有在参考字节、任务契约和独立采集范围完全等价时才复用。当前 750 条记录再次离线复评分，分数与保存结果一致。</p>
-  </section>
-
-  <section id="delivery">
-    <h2>文档和媒体成绩只约束当前 Markdown 路线</h2>
-    <p>PDF、Office、图片和视频任务不等于普通正文抓取。当前五条路径没有额外接入 PDF/Office 解析、OCR、媒体理解或通用下载器；找到资源 URL 也不等于取得原文件。相关成绩描述这次 Markdown 接口的交付边界，不能反推产品不存在其他可选能力。</p>
+    <h2>结果核验是发布门禁</h2>
+    <p>${review_summary}</p>
+    <p>核验对象是每次保存的完整输出、任务要求、标准答案或稳定契约；成功项与失败项全部检查。模型意见不是最终真理：与自动判定不一致的条目必须单独裁定，存在未裁定项时构建会失败。</p>
   </section>
 
   <section id="protocol">
-    <h2>可复验范围</h2>
-    <p>150 题 × 5 种方法全部执行，共 750 次唯一调用。每次新进程或新会话，不复用个人登录状态，不启用 Obscura stealth，不按失败分数重试或切换实现。精确正文参考在调用前由独立来源冻结，并在调用后按同一范围核验；稳定契约检查长期不变的文字与记录形状，不把每日变化的排名和价格冻结成永久答案。</p>
-    <p>报告保存任务 ID、原始输出、哈希、运行 ID、方法版本、参数、分阶段计时与参考来源。两处现场参考无法独立取得时，浏览器调用照常保存并按稳定事实判定，但不伪造实时全文质量结论。完整证据可以从任务页和逐次调用页逐项核对。</p>
+    <h2>如何复验</h2>
+    <p>报告保存任务 ID、原始输出、哈希、运行 ID、方法版本或版本缺口、参数、计时与参考来源。正文分区页直接展示每段标准答案、最低要求、实际命中数和缺失词。环境、批次、代码与命令集中在“环境与复现”，不在多页重复。</p>
   </section>
 </article>

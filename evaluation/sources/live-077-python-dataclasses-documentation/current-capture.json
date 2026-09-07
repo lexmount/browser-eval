@@ -1,7 +1,7 @@
 {
   "case_id": "live-077-python-dataclasses-documentation",
   "url": "https://docs.python.org/3/library/dataclasses.html",
-  "checked_at": "2026-09-04T08:32:32.369879+00:00",
+  "checked_at": "2026-09-07T03:56:50.654825+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/dataclasses.html",
   "mime": "text/html",
   "bytes": 132314,
-  "sha256": "f8dab6860baa3c28279acbdc7e59d062605dc09b52213ecbce98ce5390d59afc",
+  "sha256": "27c093759ab497fcbbb93cb5fbae362f26d317a7e5d8ef8129ab9b3da380f4cd",
   "response_headers": {
     "Content-Type": "text/html"
   },

@@ -59,11 +59,25 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'assets').mkdir(parents=True)
             (source / 'sources/case').mkdir(parents=True)
             (source / 'guide').mkdir(parents=True)
+            (source / 'attempts').mkdir(parents=True)
+            (source / 'references').mkdir(parents=True)
+            (source / 'artifacts/browser/case').mkdir(parents=True)
             (source / 'assets/style.css').write_text('body {color:black}')
             (source / 'assets/report.js').write_text('')
             (source / '.generated-report').write_text('local marker')
             (source / 'reliability.json').write_text('{"complete":true}')
-            (source / 'results.jsonl').write_text('')
+            record = {'attempt_id': 'browser__case__r001', 'case_id': 'case',
+                      'artifact_path': 'artifacts/browser/case/run-001.txt',
+                      'provider_metadata': {}}
+            results = json.dumps(record) + '\n'
+            (source / 'results.jsonl').write_text(results)
+            (source / 'references/case.txt').write_text('complete reference')
+            (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
+            (source / 'attempts/browser__case__r001.html').write_text(
+                '<html><body><pre data-kind="reference">complete reference</pre>'
+                '<pre data-kind="output">actual output</pre>'
+                '<pre data-kind="reference">derived body region</pre>'
+                '<pre data-kind="metadata">{}</pre></body></html>')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
@@ -94,7 +108,11 @@ class PublicationPrivacyTests(unittest.TestCase):
                 article = unpack('guide/article.html')
                 self.assertNotIn(malicious.encode(), article)
                 self.assertIn(b'&quot; onmouseover=&quot;', article)
-                self.assertEqual(unpack('results.jsonl'), b'')
+                self.assertEqual(unpack('results.jsonl'), results.encode())
+                attempt = unpack('attempts/browser__case__r001.html')
+                self.assertEqual(attempt.count(b'data-file="references/case.txt"'), 1)
+                self.assertIn(b'derived body region', attempt)
+                self.assertNotIn(b'>actual output</pre>', attempt)
                 self.assertNotIn('.generated-report', manifest['files'])
 
 

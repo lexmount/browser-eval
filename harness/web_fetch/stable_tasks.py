@@ -120,6 +120,9 @@ def _visible(text, schema=None):
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
+    # CommonMark punctuation escapes preserve the same visible characters.
+    # Remove them before date/field parsing (for example ``2023\-05\-18``).
+    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', text)
     if schema == "name_description":
         # Image-only card links intentionally contribute no visible title.
         # Remove their now-empty bullet line so blank-delimited card parsing

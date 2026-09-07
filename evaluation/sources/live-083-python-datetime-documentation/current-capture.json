@@ -1,7 +1,7 @@
 {
   "case_id": "live-083-python-datetime-documentation",
   "url": "https://docs.python.org/3/library/datetime.html",
-  "checked_at": "2026-09-04T07:45:41.263786+00:00",
+  "checked_at": "2026-09-07T03:56:51.943022+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/datetime.html",
   "mime": "text/html",
   "bytes": 422679,
-  "sha256": "1b04e2354834ddcc6083f50bb9569b928977eb56e66e85284e4e65ab36710d0a",
+  "sha256": "548e0649924168334eb1443113445dd3a22a45abf45f1f2804975b1573a99f08",
   "response_headers": {
     "Content-Type": "text/html"
   },

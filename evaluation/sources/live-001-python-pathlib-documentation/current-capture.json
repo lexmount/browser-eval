@@ -1,7 +1,7 @@
 {
   "case_id": "live-001-python-pathlib-documentation",
   "url": "https://docs.python.org/3/library/pathlib.html",
-  "checked_at": "2026-09-04T07:45:30.141424+00:00",
+  "checked_at": "2026-09-07T03:56:35.171202+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/pathlib.html",
   "mime": "text/html",
   "bytes": 266954,
-  "sha256": "bfdab8ccf549b4e657544f3c2fb1ff7b6f497ea930ba2363b117b2b79c35c429",
+  "sha256": "7dba05990cc4e6c5d3294ca70f92bfca6cd579fa4a6c941c73d6288d20640c5c",
   "response_headers": {
     "Content-Type": "text/html"
   },

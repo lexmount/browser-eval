@@ -4,6 +4,7 @@
     "lightpanda": {"type": "headless_markdown", "engine": "lightpanda", "binary": "${LIGHTPANDA_BINARY:-lightpanda}"},
     "obscura": {"type": "headless_markdown", "engine": "obscura", "binary": "${OBSCURA_BINARY:-obscura}"},
     "moli": {"type": "headless_markdown", "engine": "moli", "binary": "${MOLI_BINARY:-moli}"},
+    "moli-1.1.3": {"type": "headless_markdown", "engine": "moli", "binary": "${MOLI_1_1_3_BINARY:-moli-1.1.3}"},
     "chromium": {"type": "headless_markdown", "engine": "chromium", "binary": "${CHROMIUM_BINARY:-chromium}"}
   }
 }

@@ -1,7 +1,7 @@
 {
   "case_id": "live-007-html-hypertext-markup-language-s",
   "url": "https://docs.python.org/3/library/html.html",
-  "checked_at": "2026-09-04T07:45:31.288343+00:00",
+  "checked_at": "2026-09-07T03:56:36.037293+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/html.html",
   "mime": "text/html",
   "bytes": 20064,
-  "sha256": "0688737c7d40dd0ccde3866f371e4fbfd25cdb4b5da7ccddb9ac5fcb3cf0c3c1",
+  "sha256": "d107d13dd0943feedab81a1167acf68dc2887d60452f990bbf3080e7db3dada9",
   "response_headers": {
     "Content-Type": "text/html"
   },

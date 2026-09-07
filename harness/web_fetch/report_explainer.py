@@ -17,7 +17,7 @@ from .safety import contained_path, safe_identifier
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
-HEADLESS_TITLE = '五种浏览器取同一批网页：速度、正文与交付边界'
+HEADLESS_TITLE = '五类浏览器、六种方法取同一批网页：速度、正文与交付边界'
 from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
@@ -28,7 +28,8 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
                   'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
-                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区'}
+                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
+                  'moli': 'Moli 1.1.1', 'moli-1.1.3': 'Moli 1.1.3'}
 
 METHODOLOGY_FIGURES = (
     ('annotation', '混合标注：稳定文字、易变字段与全文参考',
@@ -410,19 +411,13 @@ def headless_evidence(cases, records):
     names = sorted({r['provider'] for r in records})
     def passed(r):
         return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
-    audit_path = ROOT / 'research/headless-result-audit.json'
-    audit = json.loads(audit_path.read_text()) if audit_path.is_file() else None
-    if audit and (audit.get('reviewed_calls') != len(records)
-                  or audit.get('final_validation', {}).get('task_count') != len(cases)
-                  or audit.get('final_validation', {}).get('provider_count') != len(names)):
-        audit = None
     selection_path = ROOT / 'research/chromium-markdown-selection.json'
     selection = json.loads(selection_path.read_text()) if selection_path.is_file() else None
     data = {'providers': names, 'cases': len(cases), 'attempts': len(records), 'tracks': {},
             'time_window': [min(r['started_at'] for r in records), max(r.get('completed_at',r['started_at']) for r in records)],
             'method': 'one URL, fresh process/context, provider-fastest Markdown path, 45s end-to-end deadline',
             'pairs': [], 'runtime': {}, 'encyclopedia': [], 'quality': {},
-            'independent_result_audit': audit, 'chromium_markdown_selection': selection}
+            'independent_result_audit': None, 'chromium_markdown_selection': selection}
     for name in names:
         meta = next(r['provider_metadata'] for r in records if r['provider']==name)
         data['runtime'][name] = {k:v for k,v in meta.items() if k in ('binary_sha256','browser_version','worker_sha256','extractor_version','playwright_version','deployment','wait_until')}
@@ -468,31 +463,66 @@ def headless_evidence(cases, records):
 
 def _render_headless(out, cases, records):
     data = headless_evidence(cases, records)
+    audit_path=contained_path(out,'result-review.json')
+    audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
+    speed_audit_path=contained_path(out,'speed-cohort/result-review.json')
+    speed_audit=json.loads(speed_audit_path.read_text()) if speed_audit_path.is_file() else None
+    data['independent_result_audit']=audit
+    provenance={}
+    provenance_path=contained_path(out,'implementation-provenance.json')
+    if provenance_path.is_file():
+        provenance={x['binary_sha256']:x for x in json.loads(provenance_path.read_text()).get('implementations',[])}
     def num(value):
         return '—' if value is None else f'{value:,.0f}'
     overview = _table(['浏览器', *TRACK_NAMES.values()], [
-        (escape(name), *(f'{data["tracks"][t]["providers"][name]["passed"]}/{data["tracks"][t]["providers"][name]["attempts"]}'
+        (escape(PROVIDER_NAMES.get(name,name)), *(f'{data["tracks"][t]["providers"][name]["passed"]}/{data["tracks"][t]["providers"][name]["attempts"]}'
             if name in data['tracks'][t]['providers'] else '—' for t in TRACK_NAMES))
         for name in data['providers']], '任务通过数 / 实际调用数。六类任务不合成总分；未执行不记为失败。')
     pairs = _table(['浏览器 vs Chromium','共同通过网页','本方法 P50 ms','Chromium P50 ms','仅本方法通过','仅 Chromium 通过'],[
-        (escape(p['provider']),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
+        (escape(PROVIDER_NAMES.get(p['provider'],p['provider'])),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
         for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取页与形成 Markdown 的全部开销。')
     latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
-        (escape(name),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
+        (escape(PROVIDER_NAMES.get(name,name)),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
         for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
+    speed_path=contained_path(out,'speed-cohort/speed-comparison.json')
+    if speed_path.is_file():
+        speed=json.loads(speed_path.read_text())
+        latency=_table(['方法','共同成功样本','P50 ms','P95 ms'],[
+            (escape(PROVIDER_NAMES.get(row['provider'],row['provider'])),str(row['attempts']),num(row['p50_ms']),num(row['p95_ms']))
+            for row in speed['rows']],f'同窗速度子集：预先声明 {len(speed["planned_cases"])} 题，六种方法共同通过 {len(speed["common_pass_cases"])} 题；所有方法使用完全相同的成功样本。')
+        pairs='<p class="callout">速度仅使用 '+str(len(speed['common_pass_cases']))+'/'+str(len(speed['planned_cases']))+' 个六方法共同通过的同窗任务；主结果中的跨批次耗时只作逐次诊断，不参与此表排名。</p>'
     dynamic = _table(['任务',*data['providers']], [
         (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
         for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
     stages=_table(['浏览器','实际路径','本次请求','原生 Markdown ms','取 HTML ms','转换 ms','服务端浏览器 ms','端到端 ms'],[
-        (_link('attempts/'+r['attempt_id']+'.html',r['provider']),escape(r.get('extractor') or '—'),'成功' if r['ok'] else '未成功',num(r['native_markdown_ms']),num(r['fetch_html_ms']),num(r['conversion_ms']),num(float(r['browser_ms_used'])) if r.get('browser_ms_used') else '—',num(r['elapsed_ms']))
+        (_link('attempts/'+r['attempt_id']+'.html',PROVIDER_NAMES.get(r['provider'],r['provider'])),escape(r.get('extractor') or '—'),'成功' if r['ok'] else '未成功',num(r['native_markdown_ms']),num(r['fetch_html_ms']),num(r['conversion_ms']),num(float(r['browser_ms_used'])) if r.get('browser_ms_used') else '—',num(r['elapsed_ms']))
         for r in data['encyclopedia']], 'Wikipedia 单页实测。原生路径不会虚构 HTML/转换拆分；Cloudflare 的 browser_ms_used 是服务端计费诊断，不等于客户端端到端耗时；超时缺少阶段数据时记为 —。')
     quality=_table(['浏览器','有全文指标的网页调用','纯净度','完整度','F1'],[
-        (escape(n),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
+        (escape(PROVIDER_NAMES.get(n,n)),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
         for n,r in data['quality'].items()], '逐次词级指标的算术平均，包含已测失败调用；未通过任务不会把已有重合归零。完整度与纯净度均受已声明参考范围约束。')
+    runtime=_table(['方法','版本','部署','完成条件'],[
+        (escape(PROVIDER_NAMES.get(name,name)),escape(str(data['runtime'][name].get('browser_version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('identity') or '版本未记录')),
+         escape(str(data['runtime'][name].get('deployment') or '—')),
+         escape(str(data['runtime'][name].get('wait_until') or '—')))
+        for name in data['providers']], '版本未记录不是可忽略信息；二进制哈希仍保留在环境与复现页。')
     web_rows=data['tracks']['web']['providers']
-    summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
-    dynamic_summary='；'.join(f'{n} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
+    summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
+    dynamic_summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
+    if audit:
+        reviewer=audit.get('reviewer',{})
+        reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)
+        expected=audit.get('expected_attempts',0)+(speed_audit or {}).get('expected_attempts',0)
+        disagreements=audit.get('disagreements',0)+(speed_audit or {}).get('disagreements',0)
+        main_subject='自动失败项' if audit.get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出'
+        speed_subject=('自动失败项' if (speed_audit or {}).get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出')
+        scopes=(f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}' +
+                (f'；同窗测速{speed_subject} {speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}' if speed_audit else ''))
+        review_summary=(f'{scopes}，由 '
+            f'{reviewer.get("agent","独立代理")}（{reviewer.get("model","—")}，{reviewer.get("effort","—")}）逐条核验；'
+            f'与自动判定不一致 {disagreements} 次，发布前未裁定数为 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。')
+    else:review_summary='本报告没有绑定独立结果核验记录。'
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
+        'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,
         'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
         'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
         'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
@@ -536,7 +566,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
                   (t['post_response_failure_share'] or 0) > .5 else '请求状态没有覆盖全部任务失败'),
               'results_link': _link('results.jsonl', '规范化执行记录'),
               'rules_link': _link('methodology/index.html', '判定规则与指标口径'),
-              'environment_link': _link('environment/index.html', '执行批次与接口配置'),
+              'environment_link': _link('reproduce/index.html', '执行批次与接口配置'),
               'evidence_link': _link('guide/interpretation-evidence.json', '本文计算明细'),
               'reproduce_link': _link('reproduce/index.html', '复现说明'),
               'article_link': _link('guide/interpretation-evidence.json', '独立 HTML 与证据下载'),

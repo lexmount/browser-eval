@@ -1,7 +1,7 @@
 {
   "case_id": "live-076-python-unittest-documentation",
   "url": "https://docs.python.org/3/library/unittest.html",
-  "checked_at": "2026-09-04T07:45:39.811000+00:00",
+  "checked_at": "2026-09-07T03:56:50.634603+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/unittest.html",
   "mime": "text/html",
   "bytes": 333905,
-  "sha256": "989d4a48668ba72ae15e4015f1c89a8d3edd29bd9956894af3bc1a2f03a91936",
+  "sha256": "e7a86006c86f43f7bd4450729de8df350f7b734010533ebb3f6122570f5a3d9e",
   "response_headers": {
     "Content-Type": "text/html"
   },

@@ -28,8 +28,9 @@ def main():
     cases={c['id']:c for c in dataset['cases'] if c['id'] not in blocked}
     rows=[r for r in all_rows if r['case_id'] in cases]
     evidence=headless_evidence(cases,rows)
-    text=['# 五种浏览器 Web Fetch：未发布诊断摘要','',
-        f'全部 {len(dataset["cases"])} 题 × 5 种浏览器均已执行，共保留 {len(all_rows)} 次主选调用。',
+    provider_count=len(evidence['providers'])
+    text=['# 浏览器 Web Fetch：未发布诊断摘要','',
+        f'全部 {len(dataset["cases"])} 题 × {provider_count} 种方法均已执行，共保留 {len(all_rows)} 次主选调用。',
         f'下表仅包含已完成参考核验或使用稳定契约的 {len(cases)} 题、{len(rows)} 次调用；不是最终已发布报告。',
         '','暂不纳入下表的参考题：'+('、'.join(sorted(blocked)) or '无')+'。原始调用及任务规则诊断完整保留，没有将参考失败计为浏览器失败。','',
         '| 浏览器 | '+' | '.join(f'{label}（{evidence["tracks"][track]["cases"]}题）' for track,label in TRACK_NAMES.items())+' |',
@@ -46,10 +47,10 @@ def main():
     text+=['','每行两侧是相同 URL 集合，不同行样本可能不同。包含客户端、启动、取页与形成 Markdown 的全部开销；Kitesurf 是远程账号 API，其余为本地。未隔离资源，不能视为纯引擎性能或成本比较。','',
         '## 已核对的解释','',
         '- 动态任务结果：'+dynamic_text+'。各接口实际完成条件不同，不能把同名等待选项当作相同内部实现。',
-        '- Kitesurf、Lightpanda、Obscura、Moli 使用原生 Markdown；Chromium 152 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换，转换计入端到端时间。',
+        '- Kitesurf、Lightpanda、Obscura、两个 Moli 版本使用原生 Markdown；Chromium 152 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换，转换计入端到端时间。',
         '- 本轮没有启用 PDF/Office 解析、媒体理解或通用下载，相关任务结果只约束当前 Markdown 交付路径。','',
         '## 保留的审计边界','',
-        '参考验证失败后的替换覆盖完整五方短批次，不按成绩挑选。此前输出和失败证书在 diagnostics/replaced-cases/ 中，替换范围见 selection-audit.json。',
+        '参考验证失败后的替换覆盖完整方法短批次，不按成绩挑选。此前输出和失败证书在 diagnostics/replaced-cases/ 中，替换范围见 selection-audit.json。',
         ('仍有未验证参考：'+ '、'.join(sorted(blocked))+'；正式报告构建器拒绝这些生命周期。' if blocked else '所有纳入全文指标的精确正文参考已完成独立前后核验；明确不可用的全文参考不计算文字指标，稳定契约不套用实时快照有效期。'),
         '本文仅描述本地测量证据；线上发布状态需以 Artifact Hub 的实际版本和校验回执为准。','']
     args.output.parent.mkdir(parents=True,exist_ok=True)

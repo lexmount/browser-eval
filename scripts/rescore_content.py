@@ -15,11 +15,13 @@ from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.reference_lifecycle import (
     check_case_equivalent_reference_binding, check_case_reference_binding,
+    check_case_scoring_revision_binding, check_case_reference_revision_binding,
     requires_fresh_reference, ReferenceLifecycleError,
 )
 
 
-def rescore(source, case_ids=None):
+def rescore(source, case_ids=None, *, allow_rule_revision=False,
+            reference_revision_hashes=None):
     dataset_path = contained_path(source, 'dataset.json')
     dataset_bytes = dataset_path.read_bytes()
     dataset = json.loads(dataset_bytes)
@@ -42,9 +44,13 @@ def rescore(source, case_ids=None):
         if len(owners) != 1:
             raise ReferenceLifecycleError(record['attempt_id']+': bound record requires one original execution batch')
         binding = owners[0].get('reference_checks', {}).get('cases', {}).get(record['case_id'])
-        if not binding or binding.get('reference_sha256') != reference_hash:
+        revised_hashes = (reference_revision_hashes or {}).get(record['case_id'])
+        if not binding or (not revised_hashes and binding.get('reference_sha256') != reference_hash):
             raise ReferenceLifecycleError(record['attempt_id']+': bound record has no matching original reference')
-        checker = (check_case_equivalent_reference_binding
+        checker = ((lambda case, binding: check_case_reference_revision_binding(
+                        case, binding, revised_hashes)) if revised_hashes else
+                   check_case_scoring_revision_binding if allow_rule_revision else
+                   check_case_equivalent_reference_binding
                    if dataset.get('comparison', {}).get('reference_binding_mode') ==
                    'equivalent_reference_bytes_with_independent_batch_captures'
                    else check_case_reference_binding)
@@ -64,6 +70,8 @@ def rescore(source, case_ids=None):
         'dataset_sha256': hashlib.sha256(dataset_bytes).hexdigest(),
         'input_results_sha256': hashlib.sha256(original_results).hexdigest(),
         'request_status_basis': 'shared_normalization_with_original_adapter_status_retained',
+        'rule_revision': bool(allow_rule_revision),
+        'reference_revision': bool(reference_revision_hashes),
     }
     changes = []
     for r in records:

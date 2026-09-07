@@ -7,11 +7,17 @@ import unittest
 from unittest.mock import patch
 
 from scripts.headless_worker import fetch
-from scripts.postcheck_headless import read_completed_records
+from scripts.postcheck_headless import read_completed_records, load_resumable_observations
 from scripts.certify_headless_cases import read_completed_records as read_certification_records
 
 
 class HeadlessReviewTests(unittest.TestCase):
+    def test_resume_discards_observations_outside_exact_reference_scope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'observations.json'
+            path.write_text(json.dumps([{'case_id':'exact'},{'case_id':'unavailable'}]))
+            self.assertEqual(set(load_resumable_observations(path,{'exact':{}})),{'exact'})
+
     def test_worker_rejects_unsupported_url_before_browser_launch(self):
         for url in ('file:///etc/passwd','javascript:alert(1)','https://example.com/\n'):
             with self.subTest(url=url), patch('scripts.headless_worker.subprocess.run') as run:

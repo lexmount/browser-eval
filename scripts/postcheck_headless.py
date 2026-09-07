@@ -14,8 +14,14 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from scripts.collect_source_evidence import capture
-from harness.web_fetch.reference_lifecycle import scope_identity
+from harness.web_fetch.reference_lifecycle import scope_identity, requires_fresh_reference
 from harness.web_fetch.record_io import read_completed_records
+
+def load_resumable_observations(checkpoint, cases):
+    if not checkpoint.exists():
+        return {}
+    return {row['case_id']:row for row in json.loads(checkpoint.read_text())
+            if row.get('case_id') in cases}
 
 
 def main():
@@ -27,14 +33,14 @@ def main():
     p.add_argument('--resume',action='store_true')
     args=p.parse_args()
     dataset=json.loads((args.run_dir/'dataset.json').read_text())
-    cases={c['id']:c for c in dataset['cases'] if c.get('track')=='web'}
+    cases={c['id']:c for c in dataset['cases'] if requires_fresh_reference(c)}
     if args.captures.exists() and not args.resume:p.error('Capture destination exists')
     args.captures.mkdir(parents=True,exist_ok=args.resume)
     pending={};done={};started=time.monotonic()
     checkpoint=args.captures/'observations.json'
     if args.resume and checkpoint.exists():
-        done={r['case_id']:r for r in json.loads(checkpoint.read_text())}
-    special={'javascript-spa','web-retail-returns'}
+        done=load_resumable_observations(checkpoint,cases)
+    special={'javascript-spa','live-025-api-reference'}
     def observe(case):
         begin=time.monotonic()
         existing=args.captures/case['id']/'evidence.json'
@@ -55,9 +61,10 @@ def main():
                 expected=set(dataset['coverage_plan']['web'])
                 if {r['provider'] for r in relevant}!=expected or cid in done or cid in pending:
                     continue
-                if cid in special:
-                    if not args.browser_observations.exists():continue
-                    rows=json.loads(args.browser_observations.read_text())
+                rows=(json.loads(args.browser_observations.read_text())
+                      if args.browser_observations.exists() else {})
+                if cid in special or cid in rows:
+                    if cid not in rows:continue
                     row=rows.get(cid,{})
                     latest=max(r.get('completed_at',r['started_at']) for r in relevant)
                     if row.get('checked_at','')>latest:

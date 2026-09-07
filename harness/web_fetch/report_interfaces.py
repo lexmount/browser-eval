@@ -12,7 +12,8 @@ HEADLESS_ACCESS={
  },
  'lightpanda':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
  'obscura':{'account':'本轮本地标准模式不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
- 'moli':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','links':[('官方项目与安装说明','https://github.com/lexmount/moli')]},
+ 'moli':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.1 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','links':[('Moli 1.1.1 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.1')]},
+ 'moli-1.1.3':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
  'chromium':{'account':'本轮独立本地浏览器不需要 Google 账号或 API Key，不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
 }
 def spec(entry,auth,params,fields,request,source,notes):
@@ -80,6 +81,14 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
   {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
   '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
+SPECS['moli-1.1.3']={**SPECS['moli'],
+ 'entry':'CLI · moli 1.1.3 fetch --dump markdown',
+ 'request':{**SPECS['moli']['request'],'version':'1.1.3'},
+ 'notes':SPECS['moli']['notes']+'本方法只使用官方 1.1.3 发行二进制，与旧 Moli 记录分开计分。'}
+SPECS['moli']={**SPECS['moli'],
+ 'entry':'CLI · moli 1.1.1 fetch --dump markdown',
+ 'request':{**SPECS['moli']['request'],'version':'1.1.1'},
+ 'notes':SPECS['moli']['notes']+'原调用当时保存了二进制 SHA-256，但未保存版本字符串；事后用留存二进制与官方 v1.1.1 归档逐字节匹配恢复版本。此项在报告中标为事后核验，不冒充运行时版本记录。'}
 SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
@@ -92,7 +101,7 @@ def render_interfaces(out,records):
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
  names=sorted(SPECS,key=lambda name:(name not in measured,name))
- body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置以环境页保存证据为准。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符；未列出的账号版或托管接口不属于本轮实测路径。</p>'
+ body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
   access=HEADLESS_ACCESS.get(name)
@@ -105,7 +114,7 @@ def render_interfaces(out,records):
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(name)+'</summary>'
   body+='<p class="interface-endpoint"><code>'+escape(s['entry'])+'</code></p><p class="source-note">'+escape(s['auth'])+'</p>'
   if access:
-   body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">官方说明核验：2026-09-04。只列账号要求、获取入口与占位符，不公开真实凭据。</p>'
+   body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">官方说明核验：2026-09-07。只列账号要求、获取入口与占位符，不公开真实凭据。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
   body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+'<h4>调用输入示例</h4>'+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'

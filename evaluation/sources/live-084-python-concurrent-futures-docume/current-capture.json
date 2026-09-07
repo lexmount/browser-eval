@@ -1,7 +1,7 @@
 {
   "case_id": "live-084-python-concurrent-futures-docume",
   "url": "https://docs.python.org/3/library/concurrent.futures.html",
-  "checked_at": "2026-09-04T08:32:36.286988+00:00",
+  "checked_at": "2026-09-07T03:56:52.168857+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/concurrent.futures.html",
   "mime": "text/html",
   "bytes": 108413,
-  "sha256": "04bff6c9ea8a8ae758b97aab9e2bd58a6ac483c9aa8f2963976682e59cac4dd1",
+  "sha256": "c741a659a60b297c13404b9c8541157487f830e66d5980059f179cb858e28c00",
   "response_headers": {
     "Content-Type": "text/html"
   },

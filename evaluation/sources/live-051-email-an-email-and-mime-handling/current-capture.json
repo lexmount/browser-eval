@@ -1,7 +1,7 @@
 {
   "case_id": "live-051-email-an-email-and-mime-handling",
   "url": "https://docs.python.org/3/library/email.html",
-  "checked_at": "2026-09-04T07:45:35.974413+00:00",
+  "checked_at": "2026-09-07T03:56:45.476304+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/email.html",
   "mime": "text/html",
   "bytes": 33661,
-  "sha256": "2229ebc7370730827bebacd5c76ad36f082df6be0fefc61b482aee3ac1c5fa22",
+  "sha256": "6449c911eb1556536292004e27b21262c1bf0a945961377f6f0e2afb54d8ddef",
   "response_headers": {
     "Content-Type": "text/html"
   },

@@ -147,8 +147,9 @@ class ReportBodyScopeTests(unittest.TestCase):
     def test_home_card_uses_genuine_task_result(self):
         c=case(); rendered=overview_card([record(c)],{'list':c},'challenge',TRACKS['challenge'],['fixture'])
         self.assertNotIn('正文未评测',rendered)
-        self.assertIn('最高任务通过率 <b>100.0%</b>',rendered)
+        self.assertIn('本类最高：<b>100.0%</b>',rendered)
         self.assertIn('fixture',rendered)
+        self.assertNotIn('种方法完整判分',rendered)
         c=case('body','body')
         self.assertIn('100.0%',overview_card([record(c)],{'body':c},'challenge',TRACKS['challenge'],['fixture']))
 

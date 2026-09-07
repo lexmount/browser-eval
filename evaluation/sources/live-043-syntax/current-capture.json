@@ -1,7 +1,7 @@
 {
   "case_id": "live-043-syntax",
   "url": "https://en.wikipedia.org/wiki/Cascading_Style_Sheets",
-  "checked_at": "2026-09-04T07:45:34.993223+00:00",
+  "checked_at": "2026-09-07T03:56:44.423172+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

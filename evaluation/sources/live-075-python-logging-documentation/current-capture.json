@@ -1,7 +1,7 @@
 {
   "case_id": "live-075-python-logging-documentation",
   "url": "https://docs.python.org/3/library/logging.html",
-  "checked_at": "2026-09-04T08:32:32.369829+00:00",
+  "checked_at": "2026-09-07T03:56:50.568649+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/logging.html",
   "mime": "text/html",
   "bytes": 191302,
-  "sha256": "70db70923d4d3cc00e7c1e35c8344c87d3c52868fe93f46f402810f44e5646a1",
+  "sha256": "dbf2c8b8145d485f3fddb619da398f1f9c7feccf1056b7c175ca24ef398fb15c",
   "response_headers": {
     "Content-Type": "text/html"
   },

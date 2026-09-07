@@ -41,7 +41,7 @@ Stable release
 ]
 / 5 August 2026
 ;
-30 days ago
+33 days ago
 (
 5 August 2026
 )
@@ -445,7 +445,17 @@ is the latest stable release, and since 3.14 official Android binary releases ar
 [
 56
 ]
-Python 3.15 has release candidate 1 out. Releases receive two years of full support followed by three years of security support.
+Python 3.15 has release candidate 2 out, it is the final planned release candidate and adds e.g.
+frozendict
+and
+sentinel
+built-in types, and a new soft keyword,
+lazy
+, for lazy imports.
+[
+57
+]
+Releases receive two years of full support followed by three years of security support.
 Design philosophy and features
 Python is a
 multi-paradigm programming language
@@ -454,34 +464,34 @@ aspect-oriented programming
 – including
 metaprogramming
 [
-57
+58
 ]
 and
 metaobjects
 .
 [
-58
+59
 ]
 Many other paradigms are supported via extensions, including
 design by contract
 [
-59
+60
 ]
 [
-60
+61
 ]
 and
 logic programming
 .
 [
-61
+62
 ]
 Python is often referred to as a
 ‘
 glue language
 ’
 [
-62
+63
 ]
 because it is purposely designed to be able to integrate components written in other languages.
 Python uses dynamic typing and a combination of
@@ -490,7 +500,7 @@ and a cycle-detecting garbage collector for
 memory management
 .
 [
-63
+64
 ]
 It uses dynamic
 name resolution
@@ -515,7 +525,7 @@ sets
 generator
 expressions.
 [
-64
+65
 ]
 The standard library has two modules (
 itertools
@@ -527,7 +537,7 @@ and
 Standard ML
 .
 [
-65
+66
 ]
 Python's core philosophy is summarized in the
 Zen of Python
@@ -535,7 +545,7 @@ Zen of Python
 Tim Peters
 , which includes aphorisms such as these:
 [
-66
+67
 ]
 Explicit is better than implicit.
 Simple is better than complex.
@@ -545,21 +555,21 @@ Although practicality beats purity, errors should never pass silently, unless ex
 There should be one—and preferably only one—obvious way to do it.
 However, Python has received criticism for violating these principles and adding unnecessary language bloat.
 [
-67
+68
 ]
 Responses to these criticisms note that the Zen of Python is a guideline rather than a rule.
 [
-68
+69
 ]
 The addition of some new features had been controversial: Guido van Rossum resigned as
 Benevolent Dictator for Life
 after conflict about adding the assignment expression operator in
 Python 3.8.
 [
-69
+70
 ]
 [
-70
+71
 ]
 Nevertheless, rather than building all functionality into its core, Python was designed to be highly
 extensible
@@ -576,7 +586,7 @@ loops
 Rossum
 considered harmful.
 [
-71
+72
 ]
 In contrast to
 Perl
@@ -584,11 +594,11 @@ Perl
 there is more than one way to do it
 ", Python advocates an approach where "there should be one – and preferably only one – obvious way to do it".
 [
-66
+67
 ]
 In practice, however, Python provides many ways to achieve a given goal. There are at least three ways to format a string literal, with no certainty as to which one a programmer should use.
 [
-72
+73
 ]
 Alex Martelli
 is a
@@ -599,13 +609,13 @@ and Python book author; he wrote that "To describe something as 'clever' is
 not
 considered a compliment in the Python culture."
 [
-73
+74
 ]
 Python's developers typically prioritize readability over performance. For example, they reject patches to non-critical parts of the
 CPython
 reference implementation that would offer increases in speed that do not justify the cost of clarity and readability.
 [
-74
+75
 ]
 [
 failed verification
@@ -620,18 +630,18 @@ PyPy
 dynamic language
 , or only a restricted subset of Python is compiled (with potential minor semantic changes).
 [
-75
+76
 ]
 Python is meant to be a fun language to use.
 [
-76
+77
 ]
 :
 3
 This goal is reflected in the name – a tribute to the British comedy group
 Monty Python
 [
-77
+78
 ]
 – and in playful approaches to some tutorials and reference materials. For instance, some code examples use the terms "spam" and "eggs" (in reference to
 a Monty Python sketch
@@ -639,10 +649,10 @@ a Monty Python sketch
 "foo" and "bar"
 .
 [
-76
+77
 ]
 [
-78
+79
 ]
 A common
 neologism
@@ -652,7 +662,7 @@ pythonic
 idioms
 well; be natural or show fluency in the language; or conform with Python's minimalist philosophy and emphasis on readability.
 [
-79
+80
 ]
 Enhancement Proposals
 Python Enhancement Proposals
@@ -663,17 +673,17 @@ are a design document for either providing information to the
 Python
 community, or proposal for new feature in Python.
 [
-80
+81
 ]
 PEPs are intented to explain new processes in Python, provide
 naming conventions
 or document the processes in the language.
 [
-81
+82
 ]
 PEPs are overseen by Python Steering Council.
 [
-81
+82
 ]
 There are 3 kinds of PEPs, with those are being
 standards track PEP
@@ -693,14 +703,14 @@ note 4
 ]
 which has their own unique meanings.
 [
-80
+81
 ]
 [
-82
+83
 ]
 They were firstly introduced in 2000, inspired by other RfCs (requests for comments) and Design Enhancement Proposals.
 [
-82
+83
 ]
 Most known PEPs are PEP
 –
@@ -714,7 +724,7 @@ PEP
 –
 257 and others.
 [
-82
+83
 ]
 Syntax and semantics
 Main article:
@@ -727,7 +737,7 @@ or
 Pascal
 .
 [
-83
+84
 ]
 Indentation
 Further information:
@@ -739,17 +749,17 @@ indentation, rather than curly brackets or keywords, to delimit
 blocks
 . An increase in indentation comes after certain statements; a decrease in indentation signifies the end of the current block.
 [
-84
+85
 ]
 Thus, the program's visual structure accurately represents its semantic structure.
 [
-85
+86
 ]
 This feature is sometimes termed the
 off-side rule
 . Some other languages use indentation this way; but in most, indentation has no semantic meaning. The recommended indent size is four spaces.
 [
-86
+87
 ]
 Statements and control flow
 Python's
@@ -784,7 +794,7 @@ clauses (or new syntax
 except*
 in Python 3.11 for exception groups);
 [
-87
+88
 ]
 the
 try
@@ -811,7 +821,7 @@ statement, which encloses a code block within a context manager, allowing
 resource-acquisition-is-initialization
 (RAII)-like behavior and replacing a common try/finally idiom
 [
-88
+89
 ]
 Examples of a context include acquiring a
 lock
@@ -888,16 +898,16 @@ optimization or
 first-class continuations
 ; according to Van Rossum, the language never will.
 [
-89
+90
 ]
 [
-90
+91
 ]
 However, better support for
 coroutine
 -like functionality is provided by extending Python's generators.
 [
-91
+92
 ]
 Before 2.5, generators were
 lazy
@@ -905,7 +915,7 @@ iterators
 ; data was passed unidirectionally out of the generator. From Python
 2.5 on, it is possible to pass data back into a generator function; and from version 3.3, data can be passed through multiple stack levels.
 [
-92
+93
 ]
 Expressions
 Python's
@@ -925,7 +935,7 @@ floor division
 /
 .
 [
-93
+94
 ]
 Python uses the
 **
@@ -944,10 +954,10 @@ for
 matrix multiplication
 .
 [
-94
+95
 ]
 [
-95
+96
 ]
 The syntax
 :=
@@ -955,7 +965,7 @@ The syntax
 walrus operator
 ", was introduced in Python 3.8. This operator assigns values to variables as part of a larger expression.
 [
-96
+97
 ]
 In Python,
 ==
@@ -981,7 +991,7 @@ list comprehension
 generator expression
 .
 [
-64
+65
 ]
 Anonymous functions
 are implemented using
@@ -995,7 +1005,7 @@ else
 y
 .
 [
-97
+98
 ]
 (This is different in operand order from the
 c
@@ -1072,7 +1082,7 @@ t
 t
 while conforming to the immutable nature of tuple objects. Parentheses are optional for tuples in unambiguous contexts.
 [
-98
+99
 ]
 Python features
 sequence unpacking
@@ -1080,7 +1090,7 @@ where multiple expressions, each evaluating to something assignable (e.g., a var
 iterable
 object on the right-hand side of the equal sign to produce the same number of values as the writable expressions on the left-hand side; while iterating, the statement assigns each of the values produced on the right to the corresponding expression on the left.
 [
-99
+100
 ]
 Python has a "string format" operator
 %
@@ -1140,7 +1150,7 @@ eggs
 '
 .
 [
-100
+101
 ]
 Strings in Python can be
 concatenated
@@ -1173,7 +1183,7 @@ String interpolation
 became available in Python
 3.6 as "formatted string literals".
 [
-100
+101
 ]
 Triple-quoted, i.e., starting and ending with three single or double quotation marks; this may span multiple lines and function like
 here documents
@@ -1296,7 +1306,7 @@ and
 new-style
 .
 [
-101
+102
 ]
 Current Python versions support the semantics of only the new style.
 Python supports
@@ -1306,7 +1316,7 @@ optional type annotations
 5
 ]
 [
-102
+103
 ]
 These annotations are not enforced by the language, but may be used by external tools such as
 mypy
@@ -1314,14 +1324,14 @@ to catch errors. Python includes a module
 typing
 including several type names for type annotations.
 [
-103
+104
 ]
 [
-104
+105
 ]
 Also, mypy supports a Python compiler called mypyc, which leverages type annotations for optimization.
 [
-105
+106
 ]
 Summary of Python 3's built-in types
 Type
@@ -1421,12 +1431,12 @@ IEEE 754
 number with 53
 bits of precision, in all supported versions since CPython 3.11;
 [
-106
+107
 ]
 also in practice in 3.10 and older
 , though technically there the precision is machine-dependent
 [
-107
+108
 ]
 )
 .  Python's built-in type
@@ -1437,13 +1447,13 @@ module additionally supports 16-bit half-floats. Python packages like NumPy and 
 numpy.half
 ; though support for half-floats is often incomplete or non-existent in most packages.
 [
-108
+109
 ]
 16-bit
 bfloat
 has support in a few packages.
 [
-109
+110
 ]
 Most Python implementations choose to support the double kind, but some unusual (subset) implementations, such as
 MicroPython
@@ -1471,7 +1481,7 @@ immutable
 Integer
 of unlimited magnitude
 [
-110
+111
 ]
 (i.e. not using machine integers; e.g. the Python package NumPy uses fixed-sized integers for speedup (and allows different sizes), such as types
 numpy.byte
@@ -1511,7 +1521,7 @@ of numbers, commonly used for iterating a specific number of times in
 for
 loops
 [
-111
+112
 ]
 range
 (
@@ -1599,7 +1609,7 @@ and
 @
 .
 [
-112
+113
 ]
 These operators work as in traditional mathematics; with the same
 precedence rules
@@ -1614,7 +1624,7 @@ unary
 , to represent positive and negative numbers respectively.
 Division between integers produces floating-point results. The behavior of division has changed significantly over time:
 [
-113
+114
 ]
 The current version of Python (i.e., since 3.0) changed the
 /
@@ -1657,7 +1667,7 @@ operator represents
 classic division
 .
 [
-113
+114
 ]
 Rounding
 towards negative infinity, though a different method than in most languages, adds consistency to Python. For instance, this rounding implies that the equation
@@ -1704,7 +1714,7 @@ b
 b
 is negative.
 [
-114
+115
 ]
 Python provides a
 round
@@ -1721,7 +1731,7 @@ both produce
 2
 .
 [
-115
+116
 ]
 Python versions before 3 used the
 round-away-from-zero
@@ -1735,7 +1745,7 @@ is
 −1.0
 .
 [
-116
+117
 ]
 Python allows Boolean expressions that contain multiple equality relations to be consistent with general usage in mathematics. For example, the expression
 a < b < c
@@ -1749,7 +1759,7 @@ is less than
 c
 .
 [
-117
+118
 ]
 C-derived languages interpret this expression differently: in C, the expression would first evaluate
 a < b
@@ -1757,7 +1767,7 @@ a < b
 c
 .
 [
-118
+119
 ]
 Python uses
 arbitrary-precision arithmetic
@@ -1769,7 +1779,7 @@ module provides
 decimal floating-point numbers
 to a pre-defined arbitrary precision with several rounding modes.
 [
-119
+120
 ]
 The
 Fraction
@@ -1779,16 +1789,16 @@ module provides arbitrary precision for
 rational numbers
 .
 [
-120
+121
 ]
 Due to Python's extensive mathematics library and the third-party library
 NumPy
 , the language is frequently used for scientific scripting in tasks such as numerical data processing and manipulation.
 [
-121
+122
 ]
 [
-122
+123
 ]
 Function syntax
 Functions
@@ -1876,7 +1886,7 @@ factorial
 Libraries
 Python's large standard library
 [
-123
+124
 ]
 is commonly cited as one of its greatest strengths. For Internet-facing applications, many standard formats and protocols such as
 MIME
@@ -1890,7 +1900,7 @@ relational databases
 generating pseudorandom numbers
 , arithmetic with arbitrary-precision decimals,
 [
-119
+120
 ]
 manipulating
 regular expressions
@@ -1903,7 +1913,7 @@ Web Server Gateway Interface
 wsgiref
 follows PEP 333
 [
-124
+125
 ]
 —but most parts are specified by their code, internal documentation, and
 test suites
@@ -1919,7 +1929,7 @@ the
 Python Package Index
 (PyPI), the official repository for third-party Python software, contains over 614,339
 [
-125
+126
 ]
 packages.
 Development environments
@@ -1936,7 +1946,7 @@ read–eval–print loop
 command line interpreter
 , with which users enter statements sequentially and receive results immediately.
 [
-126
+127
 ]
 Also, CPython is bundled with an
 integrated development environment (IDE)
@@ -1944,7 +1954,7 @@ called
 IDLE
 ,
 [
-127
+128
 ]
 which is oriented toward beginners.
 [
@@ -1961,10 +1971,10 @@ IPython
 syntax highlighting
 .
 [
-127
+128
 ]
 [
-128
+129
 ]
 Standard desktop IDEs include
 PyCharm
@@ -1974,7 +1984,7 @@ Spyder
 Visual Studio Code
 ;
 [
-129
+130
 ]
 there are
 web browser
@@ -1982,7 +1992,7 @@ web browser
 Jupyter Notebooks
 , an open-source interactive computing platform;
 [
-130
+131
 ]
 PythonAnywhere
 , a browser-based IDE and hosting environment; and
@@ -1992,10 +2002,10 @@ that emphasizes
 scientific computing
 .
 [
-131
+132
 ]
 [
-132
+133
 ]
 Implementations
 See also:
@@ -2009,7 +2019,7 @@ of Python. This implementation is written in C; meeting the
 C11
 standard
 [
-133
+134
 ]
 since version 3.11. Older versions use the
 C89
@@ -2017,10 +2027,10 @@ standard with several select
 C99
 features, but third-party extensions are not limited to older C versions—e.g., they can be implemented using C11 or C++.
 [
-134
+135
 ]
 [
-135
+136
 ]
 CPython
 compiles
@@ -2028,13 +2038,13 @@ Python programs into an intermediate
 bytecode
 ,
 [
-136
+137
 ]
 which is then executed by a
 virtual machine
 .
 [
-137
+138
 ]
 CPython is distributed with a large standard library written in a combination of C and native Python.
 CPython is available for many platforms, including Windows and most modern
@@ -2049,10 +2059,10 @@ Windows 7
 and 8
 ;
 [
-138
+139
 ]
 [
-139
+140
 ]
 Windows XP
 was supported until Python
@@ -2061,20 +2071,20 @@ Old Python versions unofficially support
 VMS
 (mostly supporting
 [
-140
+141
 ]
 ) and
 OpenVMS
 x86-64 has Python 3.10 support.
 [
-141
+142
 ]
 [
-142
+143
 ]
 Platform portability was one of Python's earliest priorities.
 [
-143
+144
 ]
 During development of Python
 1 and 2, even
@@ -2091,22 +2101,22 @@ All current Python versions (since 3.7) support only operating systems that feat
 Limitations of the reference implementation
 The energy usage of Python with CPython for typically written code is much worse than C by a factor of 75.88.
 [
-144
+145
 ]
 The throughput of Python with CPython for typically written code is worse than C by a factor of 71.9.
 [
-144
+145
 ]
 The average memory usage of CPython for typically written code is worse than C by a factor of 2.4.
 [
-144
+145
 ]
 Other implementations
 All alternative implementations have at least slightly different semantics. For example, an alternative may include unordered dictionaries
 , in contrast to other current Python versions. As another example in the larger Python ecosystem, PyPy does not support the full C Python API.
 Creating an executable with Python often is done by bundling an entire Python interpreter into the executable, which causes binary sizes to be massive for small programs,
 [
-145
+146
 ]
 yet there exist implementations that are capable of truly compiling Python. Alternative implementations include the following:
 PyPy
@@ -2114,16 +2124,16 @@ is a faster, compliant interpreter of Python
 2.7 and
 3.11.
 [
-146
+147
 ]
 [
-147
+148
 ]
 PyPy's
 just-in-time compiler
 often improves speed significantly relative to CPython, but PyPy does not support some libraries written in C.
 [
-148
+149
 ]
 PyPy offers support for the
 RISC-V
@@ -2132,13 +2142,13 @@ Codon is an implementation with an
 ahead-of-time (AOT) compiler
 , which compiles a statically-typed Python-like language whose "syntax and semantics are nearly identical to Python's, there are some notable differences"
 [
-149
+150
 ]
 For example, Codon uses 64-bit machine integers for speed, not arbitrarily as with Python; Codon developers claim that speedups over CPython are usually on the order of ten to a hundred times. Codon compiles to machine code (via
 LLVM
 ) and supports native multithreading.
 [
-150
+151
 ]
 Codon can also compile to Python extension modules that can be imported and used from Python.
 MicroPython
@@ -2151,31 +2161,31 @@ microcontrollers
 Lego Mindstorms EV3
 .
 [
-151
+152
 ]
 Pyston is a variant of the Python runtime that uses just-in-time compilation to speed up execution of Python programs.
 [
-152
+153
 ]
 Cinder is a performance-oriented fork of CPython 3.8 that features a number of optimizations, including bytecode inline caching, eager evaluation of coroutines, a method-at-a-time
 JIT
 , and an experimental bytecode compiler.
 [
-153
-]
-The Snek
-[
 154
 ]
+The Snek
 [
 155
 ]
 [
 156
 ]
-embedded computing language "is Python-inspired, but it is not Python. It is possible to write Snek programs that run under a full Python system, but most Python programs will not run under Snek."
 [
 157
+]
+embedded computing language "is Python-inspired, but it is not Python. It is possible to write Snek programs that run under a full Python system, but most Python programs will not run under Snek."
+[
+158
 ]
 Snek is compatible with 8-bit
 AVR microcontrollers
@@ -2194,7 +2204,7 @@ RustPython is an implementation written in
 Rust
 language. It aims to be compatible with CPython, including its C-ABI.
 [
-158
+159
 ]
 Currently, it is used in
 GrepTimeDB
@@ -2209,7 +2219,7 @@ microthreads
 call stack
 differently, thus allowing massively concurrent programs. PyPy also offers a stackless version.
 [
-159
+160
 ]
 Just-in-time Python compilers have been developed, but are now unsupported:
 Google began a project named
@@ -2220,7 +2230,7 @@ LLVM
 multithreading
 capability for scaling to thousands of cores,
 [
-160
+161
 ]
 while typical implementations are limited by the
 global interpreter lock
@@ -2247,7 +2257,7 @@ also supports Python through the
 GTK
 widget library, allowing programs to be written and run on the target device.
 [
-161
+162
 ]
 Transpilers to other languages
 There are several compilers/
@@ -2255,14 +2265,14 @@ transpilers
 to high-level object languages; the source language is unrestricted Python, a subset of Python, or a language similar to Python:
 Brython
 [
-162
+163
 ]
 and Transcrypt
 [
-163
+164
 ]
 [
-164
+165
 ]
 compile Python to
 JavaScript
@@ -2272,7 +2282,7 @@ compiles a superset of Python
 to C. The resulting code can be used with Python via direct C-level API calls into the Python interpreter.
 PyJL compiles/transpiles a subset of Python to "human-readable, maintainable, and high-performance Julia source code".
 [
-75
+76
 ]
 Despite the developers' performance claims, this is not possible for
 arbitrary
@@ -2281,7 +2291,7 @@ Nuitka
 compiles Python into C
 .
 [
-165
+166
 ]
 This compiler works with Python 3.4 to 3.13 (and 2.6 and 2.7) for Python's main supported platforms (and Windows 7 or even Windows XP) and for Android. The compiler developers claim full support for Python 3.10,
 partial support for Python 3.11 and 3.12,
@@ -2294,13 +2304,13 @@ Pythran compiles a subset of Python
 C++11
 ).
 [
-166
+167
 ]
 RPython
 can be compiled to C, and it is used to build the PyPy interpreter for Python.
 The Python → 11l → C++ transpiler
 [
-167
+168
 ]
 compiles a subset of Python
 3 to C++ (
@@ -2323,13 +2333,13 @@ Python
 Go
 .
 [
-168
-]
-[
 169
 ]
 [
 170
+]
+[
+171
 ]
 The latest release was in 2017.
 IronPython
@@ -2338,20 +2348,20 @@ allows running Python
 Common Language Runtime
 .
 [
-171
+172
 ]
 An
 alpha
 version (released in 2021), is available for "Python
 3.4, although features and behaviors from later versions may be included."
 [
-172
+173
 ]
 Jython
 compiles Python
 2.7 to Java bytecode, allowing the use of Java libraries from a Python program.
 [
-173
+174
 ]
 Pyrex
 (last released in 2010) and
@@ -2360,13 +2370,13 @@ Shed Skin
 Performance
 A performance comparison among various Python implementations, using a non-numerical (combinatorial) workload, was presented at EuroSciPy '13.
 [
-174
+175
 ]
 In addition, Python's performance relative to other programming languages is benchmarked by
 The Computer Language Benchmarks Game
 .
 [
-175
+176
 ]
 There are several approaches to optimizing Python performance, despite the inherent slowness of an
 interpreted language
@@ -2406,36 +2416,36 @@ or
 Fortran
 under the hood instead of the Python interpreter.
 [
-176
+177
 ]
 Language development
 Python's development is conducted mostly through the
 Python Enhancement Proposal
 (PEP) process; this process is the primary mechanism for proposing major new features, collecting community input on issues, and documenting Python design decisions.
 [
-177
+178
 ]
 Python coding style is covered in PEP
 8.
 [
-86
+87
 ]
 Outstanding PEPs are reviewed and commented on by the Python community and the steering council.
 [
-177
+178
 ]
 Enhancement of the language corresponds with development of the CPython reference implementation. The mailing list python-dev is the primary forum for the language's development. Specific issues were originally discussed in the
 Roundup
 bug tracker
 hosted by the foundation.
 [
-178
+179
 ]
 In 2022, all issues and discussions were migrated to
 GitHub
 .
 [
-179
+180
 ]
 Development originally took place on a
 self-hosted
@@ -2443,7 +2453,7 @@ source-code repository running
 Mercurial
 , until Python moved to GitHub in January 2017.
 [
-180
+181
 ]
 CPython's public releases have three types, distinguished by which part of the version number is incremented:
 Backward-incompatible versions
@@ -2451,31 +2461,31 @@ Backward-incompatible versions
 ported
 . The first part of the version number is incremented. These releases happen infrequently—version 3.0 was released 8 years after 2.0. According to Guido van Rossum, a version 4.0 will probably never exist.
 [
-181
+182
 ]
 Major or "feature" releases
 are largely compatible with the previous version but introduce new features. The second part of the version number is incremented. Starting with Python
 3.9, these releases are expected to occur annually.
 [
-182
+183
 ]
 [
-183
+184
 ]
 Each major version is supported by bug fixes for several years after its release.
 [
-184
+185
 ]
 Bug fix releases
 ,
 [
-185
+186
 ]
 which introduce no new features, occur approximately every three months; these releases are made when a sufficient number of bugs have been fixed
 upstream
 since the last release. Security vulnerabilities are also patched in these releases. The third and final part of the version number is incremented.
 [
-185
+186
 ]
 Many
 alpha, beta, and release-candidates
@@ -2483,7 +2493,7 @@ are also released as previews and for testing before final releases. Although th
 unit test
 suite during development.
 [
-186
+187
 ]
 The major
 academic conference
@@ -2497,7 +2507,7 @@ Python's name is inspired by the British comedy group
 Monty Python
 , whom Python creator Guido van Rossum enjoyed while developing the language. Monty Python references appear frequently in Python code and culture;
 [
-187
+188
 ]
 for example, the
 metasyntactic variables
@@ -2511,21 +2521,21 @@ and
 bar
 .
 [
-187
-]
-[
 188
 ]
-Also, the official Python documentation contains various references to Monty Python routines.
 [
 189
 ]
+Also, the official Python documentation contains various references to Monty Python routines.
 [
 190
 ]
-Python users are sometimes referred to as "Pythonistas".
 [
 191
+]
+Python users are sometimes referred to as "Pythonistas".
+[
+192
 ]
 Languages influenced by Python
 Cobra
@@ -2533,7 +2543,7 @@ has an
 Acknowledgements
 document that lists Python first among influencing languages.
 [
-192
+193
 ]
 ECMAScript
 and
@@ -2542,12 +2552,12 @@ borrowed iterators and
 generators
 from Python.
 [
-193
+194
 ]
 Go
 is designed for "speed of working in a dynamic language like Python".
 [
-194
+195
 ]
 Julia
 was designed to be "as usable for general programming as Python".
@@ -2560,16 +2570,16 @@ is almost
 34
 ]
 [
-195
+196
 ]
 a superset of Python.
 [
-196
+197
 ]
 GDScript
 is strongly influenced by Python.
 [
-197
+198
 ]
 Groovy
 ,
@@ -2684,7 +2694,7 @@ and deallocate heap memory.
 Also known as
 PEP
 [
-80
+81
 ]
 ↑
 to describe a new feature on Python
@@ -3342,6 +3352,15 @@ Python Developer's Guide
 . Retrieved
 12 November
 2025
+.
+↑
+"Python 3.15.0 candidate 2 is here!"
+.
+Python Insider
+. 1 September 2026
+. Retrieved
+6 September
+2026
 .
 ↑
 The Cain Gang Ltd.

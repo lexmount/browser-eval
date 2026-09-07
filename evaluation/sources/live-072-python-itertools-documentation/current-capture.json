@@ -1,7 +1,7 @@
 {
   "case_id": "live-072-python-itertools-documentation",
   "url": "https://docs.python.org/3/library/itertools.html",
-  "checked_at": "2026-09-04T08:32:32.369763+00:00",
+  "checked_at": "2026-09-07T03:56:50.348929+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/itertools.html",
   "mime": "text/html",
   "bytes": 173857,
-  "sha256": "d5e63e665f0fe0b11ef23a9d9c14641e2b04a1d283f0fa8e8e2e651eb39f7847",
+  "sha256": "6ecbc474bb553f31ae8c6eda1a8f20627c4ba6e040110c54ec6a074280afb29b",
   "response_headers": {
     "Content-Type": "text/html"
   },

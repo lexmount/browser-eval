@@ -6,9 +6,9 @@ import tempfile
 from unittest.mock import patch
 from pathlib import Path
 
-from harness.web_fetch.body_coverage import body_requirements
+from harness.web_fetch.body_coverage import body_requirements, evaluate_body_requirements
 from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer
-from harness.web_fetch.metrics import task_passed, task_measured
+from harness.web_fetch.metrics import evaluate_content, task_passed, task_measured
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.report import case_attrs, result_label, ranking
@@ -20,6 +20,65 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FairnessTests(unittest.TestCase):
+    def test_legacy_body_region_result_preserves_auditable_counts_and_missing_words(self):
+        contract={'version':1,'unit':'region_token_recall','minimum_coverage':.8,
+                  'regions':[{'id':'body-region-1','text':'alpha beta beta gamma delta epsilon'}]}
+        result=evaluate_body_requirements('alpha beta gamma',contract)['body_region_results'][0]
+        self.assertEqual(result['expected_tokens'],6)
+        self.assertEqual(result['matched_tokens'],3)
+        self.assertEqual(result['missing_tokens'],3)
+        self.assertIn({'token':'beta','count':1},result['missing_sample'])
+
+    def test_v3_body_regions_ignore_markdown_boundaries_but_reject_omissions(self):
+        contract=body_requirements('Albert Einstein Tags change deep thoughts')
+        complete=evaluate_body_requirements('AlbertEinstein\nTags:changedeep-thoughts',contract)
+        self.assertTrue(complete['body_coverage_pass'])
+        result=complete['body_region_results'][0]
+        self.assertEqual(result['matched_units'],result['expected_units'])
+        self.assertEqual(result['missing_units'],0)
+        omitted=evaluate_body_requirements('Albert Einstein Tags change',contract)
+        self.assertFalse(omitted['body_coverage_pass'])
+        self.assertGreater(omitted['body_region_results'][0]['missing_units'],0)
+
+    def test_v3_body_regions_reject_repeated_short_fragment_borrowing(self):
+        reference = ' '.join(
+            f'section{i} common api request response parameter example item{i}x{j}'
+            for i in range(1, 6) for j in range(5))
+        contract = body_requirements(reference)
+        # Repeating one section many times must not satisfy the omitted sections.
+        repeated = ' '.join(['section1 common api request response parameter example'] * 20)
+        result = evaluate_body_requirements(repeated, contract)
+        self.assertFalse(result['body_coverage_pass'])
+        self.assertLess(result['body_target_regions'], result['body_required_target_regions'])
+
+    def test_v3_allows_one_mild_conversion_region_but_not_a_missing_region(self):
+        reference = ' '.join(f'region{i}value{j}unique{i}item{j}' for i in range(1, 6) for j in range(25))
+        contract = body_requirements(reference)
+        regions = [r['text'] for r in contract['regions']]
+        mild = ' '.join(regions[:4] + [regions[4][:int(len(regions[4])*.7)]])
+        self.assertTrue(evaluate_body_requirements(mild, contract)['body_coverage_pass'])
+        severe = ' '.join(regions[:4] + [regions[4][:int(len(regions[4])*.4)]])
+        self.assertFalse(evaluate_body_requirements(severe, contract)['body_coverage_pass'])
+
+    def test_reviewed_region_threshold_keeps_every_floor_but_allows_reordering(self):
+        contract = body_requirements(' '.join(
+            f'region{i}value{j}unique{i}item{j}' for i in range(1, 6) for j in range(25)))
+        contract['minimum_region_passes'] = 3
+        regions = [row['text'] for row in contract['regions']]
+        content = ' '.join(regions[:3] + [row[:int(len(row)*.7)] for row in regions[3:]])
+        result = evaluate_body_requirements(content, contract)
+        self.assertTrue(result['body_coverage_pass'])
+        self.assertEqual(result['body_target_regions'], 3)
+        below_floor = ' '.join(regions[:4] + [regions[4][:int(len(regions[4])*.4)]])
+        self.assertFalse(evaluate_body_requirements(below_floor, contract)['body_coverage_pass'])
+
+    def test_markdown_table_contract_rejects_flattened_cells(self):
+        rule = {'id':'table', 'pattern':r'(?mi)^(?:\s*\|)?\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*\|\s*:?-{3,}:?\s*(?:\|\s*)?$|<table\b'}
+        valid = '| A | B | C |\n| --- | --- | --- |\n| 1 | 2 | 3 |'
+        self.assertTrue(evaluate_content(valid, [], required_patterns=[rule])['content_pass'])
+        self.assertTrue(evaluate_content('<table><tr><td>A</td></tr></table>', [], required_patterns=[rule])['content_pass'])
+        self.assertFalse(evaluate_content('A\nB\nC\n1\n2\n3', [], required_patterns=[rule])['content_pass'])
+
     def test_live_conversion_is_consumed_once_and_equals_offline(self):
         from harness.web_fetch.response_input import answer_input
         case={'url':'https://example.com','expected_any':['Answer']}
@@ -82,11 +141,13 @@ class FairnessTests(unittest.TestCase):
                 continue
             with self.subTest(case=c['id']):
                 reference = c['ground_truth_main_content']
-                self.assertTrue(score_attempt(c, reference.encode(), ok=True)['content_pass'])
-                prefix = score_attempt(c, reference[:max(1,len(reference)//10)].encode(), ok=True)
-                self.assertFalse(prefix['content_pass'])
-                self.assertIsNotNone(prefix['word_f1'])
-                self.assertGreaterEqual(prefix['word_f1'], 0)
+                self.assertTrue(evaluate_body_requirements(reference,c['body_requirements'])['body_coverage_pass'])
+                prefix_text = reference[:max(1,len(reference)//10)]
+                prefix = evaluate_body_requirements(prefix_text,c['body_requirements'])
+                self.assertFalse(prefix['body_coverage_pass'])
+                scored = score_attempt(c, prefix_text.encode(), ok=True)
+                self.assertIsNotNone(scored['word_f1'])
+                self.assertGreaterEqual(scored['word_f1'], 0)
 
     def test_reviewed_css_scope_preserves_both_document_tocs(self):
         cases = json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']

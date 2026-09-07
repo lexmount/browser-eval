@@ -132,6 +132,15 @@
       <meta property="twitter:card" content="summary">
     
 
+    
+  <!-- Privacy-friendly analytics by Plausible -->
+  <script async src="https://analytics.python.org/js/pa-Hlio-wYnj7S1NOKQZk60g.js"></script>
+  <script>
+    window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+    plausible.init()
+  </script>
+
+
     <title>Getting started | Django documentation | Django</title>
 
     <link rel="stylesheet" href="https://static.djangoproject.com/css/output.8649dac7a8cd.css" >
@@ -626,7 +635,7 @@ a list of <a class="reference external" href="https://wiki.python.org/moin/Pytho
     <div class="small-cta">
       <ul class="list-links-small">
         <li><a href="https://www.djangoproject.com/fundraising/">
-          Djangowaves donated to the Django Software Foundation to support Django development. Donate today!
+          Ferguson Builders donated to the Django Software Foundation to support Django development. Donate today!
         </a></li>
       </ul>
     </div>

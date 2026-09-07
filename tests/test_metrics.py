@@ -129,6 +129,23 @@ class MetricsTest(unittest.TestCase):
         )
         self.assertEqual(failed["resource_recall"], 0.0)
 
+    def test_resource_discovery_unescapes_commonmark_url_punctuation(self) -> None:
+        result = evaluate_resources(
+            r'<img src="pic\_trulli.jpg">', {},
+            [{"id": "image", "kind": "image", "urls": ["pic_trulli.jpg"]}],
+            base_url="https://example.test/gallery/page.html",
+        )
+        self.assertEqual(result["resource_recall"], 1.0)
+        self.assertEqual(result["resource_results"][0]["matched_urls"],
+                         ["https://example.test/gallery/pic_trulli.jpg"])
+
+    def test_visible_matching_ignores_markdown_link_spacing_before_punctuation(self) -> None:
+        content = "Read [the guide](/guide) , then [continue](/next) ."
+        required = "Read the guide, then continue."
+        self.assertTrue(evaluate_content(
+            content, [], required_facts=[{"id": "sentence", "alternatives": [required]}]
+        )["content_pass"])
+
     def test_malformed_resource_candidate_does_not_abort_content_evaluation(self) -> None:
         result = evaluate_resources(
             "See http://[broken and https://example.test/valid.png",

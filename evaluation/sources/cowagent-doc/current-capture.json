@@ -1,9 +1,12 @@
 {
   "case_id": "cowagent-doc",
   "url": "https://docs.cowagent.ai/zh/tools/web-fetch",
-  "checked_at": "2026-09-04T07:45:29.192042+00:00",
+  "checked_at": "2026-09-07T03:56:32.644079+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
+    {
+      "error": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
     {
       "status": 200,
       "url": "https://docs.cowagent.ai/zh/tools/web-fetch"
@@ -12,8 +15,8 @@
   "status": 200,
   "final_url": "https://docs.cowagent.ai/zh/tools/web-fetch",
   "mime": "text/html; charset=utf-8",
-  "bytes": 218561,
-  "sha256": "d55eef22c5e0fd5bb731c37efe4f9e395a006e48c6f5f72af1fb7946952b5710",
+  "bytes": 214334,
+  "sha256": "109e80bb0be96a1f95ad6db216c04908aed2da0de33c0a882ee8696d53186878",
   "response_headers": {
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "worker-src * blob: data: 'unsafe-eval' 'unsafe-inline'; object-src data: ; base-uri 'self'; upgrade-insecure-requests; frame-ancestors 'self' https://dashboard.mintlify.com https://app.mintlify.com; form-action 'self' https://codesandbox.io;",

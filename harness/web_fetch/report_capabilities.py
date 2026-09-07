@@ -187,8 +187,14 @@ for engine,url in {
             'CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。' if native else
             'DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。'),
  }
+SOURCES['headless-moli-1.1.3']=('Moli 1.1.3 · 官方发布',
+    'https://github.com/lexmount/moli/releases/tag/v1.1.3')
+CAPABILITIES['moli-1.1.3']={**CAPABILITIES['moli'],
+    'scope':'Moli 1.1.3 fetch --dump markdown 原生输出',
+    'sources':['headless-moli-1.1.3']}
 
 def render_capabilities(out, names, *, table, cell, link):
+    labels={'moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
     unknown = sorted(set(names) - set(CAPABILITIES))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}
@@ -198,7 +204,7 @@ def render_capabilities(out, names, *, table, cell, link):
         if name not in CAPABILITIES:
             continue
         row = CAPABILITIES[name]
-        method = cell(link('#capability-'+name, name))
+        method = cell(link('#capability-'+name, labels.get(name,name)))
         values = []
         for key in ['web', 'document', 'image', 'av', 'file']:
             item = row[key]
@@ -207,7 +213,7 @@ def render_capabilities(out, names, *, table, cell, link):
         runtime_rows.append(('', method+cell(escape(row['js']['status']+' · '+row['js']['detail']))+
                              ''.join(cell(escape(row[k])) for k in ['input', 'structure', 'access'])))
         sources = ' · '.join(link(SOURCES[s][1], SOURCES[s][0]+' ↗') for s in row['sources'])
-        details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(name)} · 范围与官方依据</summary>'+
+        details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
                        f'<p><strong>本轮配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
     legend = ('<p>核对日期：'+CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'

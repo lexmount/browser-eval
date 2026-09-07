@@ -8,10 +8,54 @@ import unittest
 from harness.web_fetch.reference_lifecycle import preflight_reference_checks, sha256, require_verified_reference_checks
 from harness.web_fetch.report_explainer import headless_evidence, render_explainer
 from scripts.certify_headless_cases import certify_case
-from scripts.assemble_headless import assemble
+from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
+                                       _prune_shadowed_batch_attempts)
+from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_prior_review_is_copied_only_when_dataset_and_results_are_identical(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';output=root/'output'
+            source.mkdir();output.mkdir()
+            for target in (source,output):
+                (target/'dataset.json').write_text('{"cases": []}\n')
+                (target/'results.jsonl').write_text('')
+            review={'bindings':{
+                'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}}
+            (source/'result-review.json').write_text(json.dumps(review))
+            self.assertTrue(copy_bound_review(source,output))
+            self.assertEqual(json.loads((output/'result-review.json').read_text()),review)
+            (output/'result-review.json').unlink()
+            (output/'dataset.json').write_text('{"cases": [1]}\n')
+            self.assertFalse(copy_bound_review(source,output))
+            self.assertFalse((output/'result-review.json').exists())
+
+    def test_shadowed_attempt_pruning_removes_stale_case_binding(self):
+        batches=[{'started_at':'2026-09-01T00:00:00+00:00','completed_at':'2026-09-01T00:00:10+00:00',
+                  'attempt_ids':['old-a','kept-b'],'reference_checks':{
+                      'cases':{'a':{},'b':{}},'postcheck':{'cases':{'a':{},'b':{}}}}}]
+        records=[{'attempt_id':'old-a','case_id':'a','started_at':'2026-09-02T00:00:00+00:00',
+                  'completed_at':'2026-09-02T00:00:01+00:00','elapsed_ms':1000},
+                 {'attempt_id':'kept-b','case_id':'b','started_at':'2026-09-01T00:00:01+00:00',
+                  'completed_at':'2026-09-01T00:00:02+00:00','elapsed_ms':1000}]
+        result=_prune_shadowed_batch_attempts(batches,records)
+        self.assertEqual(result[0]['attempt_ids'],['kept-b'])
+        self.assertEqual(set(result[0]['reference_checks']['cases']),{'b'})
+        self.assertEqual(set(result[0]['reference_checks']['postcheck']['cases']),{'b'})
+
+    def test_verified_batches_accepts_prior_assembly(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            batches=[{'run_id':'one'},{'run_id':'two'}]
+            (root/'execution.json').write_text(json.dumps({'batches':batches}))
+            with patch('scripts.assemble_headless.require_verified_reference_checks') as verify:
+                self.assertEqual(read_verified_batches(root,{'cases':[]},[]),batches)
+                verify.assert_called_once_with(batches,cases={'cases':[]},records=[],source=root,
+                    equivalent_capture_bindings=False)
+
     def test_matched_success_latency_and_unknown_quality(self):
         cases={cid:{'id':cid,'name':cid,'track':'web'} for cid in ('a','b','c')}
         records=[]

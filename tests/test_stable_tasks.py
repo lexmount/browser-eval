@@ -73,6 +73,12 @@ class StableTaskTests(unittest.TestCase):
                      "2026-09-01 Repeat review\n2026-09-01 Repeat review"):
             self.assertFalse(self.check(text, "review")["stable_task_pass"])
 
+    def test_reviews_accept_commonmark_escaped_iso_dates(self):
+        text = (r"2023\-05\-18 First independently returned review" "\n\n"
+                r"2023\-05\-19 Second independently returned review")
+        result = self.check(text, "review")
+        self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
+
     def test_name_description_requires_owned_blocks_not_arbitrary_line_pairing(self):
         self.assertTrue(self.check("New phone\nNew phone has a brighter display.\n\nOther phone\nIt has a different camera.",
                                    "name_description")["stable_task_pass"])
@@ -164,6 +170,14 @@ class StableTaskTests(unittest.TestCase):
         plain = "First title\nhttps://example.test/item/1\nSecond title\nhttps://example.test/item/2"
         self.assertTrue(self.check(plain, "named_link", **rules)["stable_task_pass"])
         self.assertFalse(self.check("[Bad URL](https://[invalid/item/1)", "named_link", **rules)["stable_task_pass"])
+
+    def test_named_links_accept_declared_tracking_path_suffix(self):
+        rules = {"hosts": ["www.amazon.com"],
+                 "entry_path": r"(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?"}
+        text = ("[First product](https://www.amazon.com/first/dp/B012345678/ref=abc_1)\n"
+                "[Second product](https://www.amazon.com/dp/B087654321/ref=abc_2)")
+        result = self.check(text, "named_link", **rules)
+        self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
 
     def test_wrong_page_identity_and_eligible_gates(self):
         text = "Alpha\n$10\n\nBeta\n$20"

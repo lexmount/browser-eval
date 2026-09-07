@@ -4,20 +4,19 @@ quickly as possible – using the latest Spring project releases and techniques
 as recommended by the Spring team.
 Category
 IO
+Security
+Messaging
 Data Access
 REST APIs
-Messaging
-Security
-Web
 Ops
+Web
 Batch Processing
 Microservices
 Caching
-Documentation
 Testing
+Documentation
 Cloud Platform
 Streaming
-GraphQL
 Misc
 Estimated Time
 30m

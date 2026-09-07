@@ -1,7 +1,7 @@
 {
   "case_id": "live-005-python-asyncio-documentation",
   "url": "https://docs.python.org/3/library/asyncio.html",
-  "checked_at": "2026-09-04T07:45:31.225846+00:00",
+  "checked_at": "2026-09-07T03:56:35.545413+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/asyncio.html",
   "mime": "text/html",
   "bytes": 25375,
-  "sha256": "388b591b40b2bb33b9fc8099373e29be6b47b19a2f3eeff436f6bdc4a94ed7bd",
+  "sha256": "f6c61cb4ca5087ac04b520676bf3bbe372ee3f6096d946dba298dd6d3b1fc39f",
   "response_headers": {
     "Content-Type": "text/html"
   },

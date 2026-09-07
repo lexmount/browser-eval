@@ -1,7 +1,7 @@
 {
   "case_id": "live-033-nasa-science",
   "url": "https://science.nasa.gov/",
-  "checked_at": "2026-09-04T07:45:34.234849+00:00",
+  "checked_at": "2026-09-07T03:56:41.485849+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://science.nasa.gov/",
   "mime": "text/html; charset=UTF-8",
-  "bytes": 368310,
-  "sha256": "3c53336721a0675a37f7b0fa8d35d0197cf1515c68d04448469db99c670dee34",
+  "bytes": 371943,
+  "sha256": "8a59aa5a937fb699783b504c8001e85655e206c50c7f752180a1482660f7cfb0",
   "response_headers": {
     "X-Frame-Options": "SAMEORIGIN",
     "Content-Type": "text/html; charset=UTF-8"
@@ -43,33 +43,33 @@
     },
     {
       "tag": "img",
-      "url": "https://images-assets.nasa.gov/image/NHQ20260830_admin_0002/NHQ20260830_admin_0002~large.jpg?w=1920&h=1279&fit=clip&crop=faces%2Cfocalpoint",
-      "alt": "NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches"
+      "url": "https://images-assets.nasa.gov/image/iss074e0315895/iss074e0315895~large.jpg?w=1920&h=1440&fit=clip&crop=faces%2Cfocalpoint",
+      "alt": "Spacesuits, Exercise, and Cargo Ops Wrap Week Aboard Station"
     },
     {
       "tag": "img",
-      "url": "https://images-assets.nasa.gov/image/jsc2026e406664/jsc2026e406664~large.jpg?w=1920&h=1536&fit=clip&crop=faces%2Cfocalpoint",
-      "alt": "NASA, SpaceX Adjust Crew-13 Launch Date"
+      "url": "https://images-assets.nasa.gov/image/iss074e0395792/iss074e0395792~large.jpg?w=1920&h=1078&fit=clip&crop=faces%2Cfocalpoint",
+      "alt": "NASA to Cover Progress 96 Spacecraft Launch, Docking"
     },
     {
       "tag": "img",
-      "url": "https://www.nasa.gov/wp-content/uploads/2026/08/eo-1.png?w=150&h=150&crop=1",
-      "alt": "President Trump Signs Executive Order to Create US Space Academy  "
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/Hubble_Saturn_29Aug2025.jpg?w=1024",
+      "alt": "NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole"
     },
     {
       "tag": "img",
-      "url": "https://images-assets.nasa.gov/image/NHQ20260830_admin_0002/NHQ20260830_admin_0002~large.jpg?w=1920&h=1279&fit=clip&crop=faces%2Cfocalpoint",
-      "alt": "NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches"
+      "url": "https://www.nasa.gov/wp-content/uploads/2026/09/afrc2026-0171-25.jpg?w=150&h=150&crop=1",
+      "alt": "NASA’s X-59 Aircraft Builds Momentum Through 25th Flight"
     },
     {
       "tag": "img",
-      "url": "https://images-assets.nasa.gov/image/jsc2026e406664/jsc2026e406664~large.jpg?w=1920&h=1536&fit=clip&crop=faces%2Cfocalpoint",
-      "alt": "NASA, SpaceX Adjust Crew-13 Launch Date"
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/nebulae/emission/Hubble_N44_potm2608a_lg.jpg?w=1024",
+      "alt": "NASA’s Hubble Spies Superbubble Scene"
     },
     {
       "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/swift-observatory/news/2026/science-ops/ds9.png?w=1024",
-      "alt": "NASA’s Swift Restarts Science Observations"
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/dragonfly/Harness1_SM.jpg?w=1024",
+      "alt": "NASA’s Dragonfly Gets Wired Up While Titan Landing Area Is Named"
     },
     {
       "tag": "img",
@@ -88,6 +88,11 @@
     },
     {
       "tag": "img",
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/the-west-faces-snow-drought/uswest_snowdrought_tmo_20260115.jpg?w=1024",
+      "alt": "NASA Knows Drought"
+    },
+    {
+      "tag": "img",
       "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/a-trio-of-tropical-cyclones-in-the-pacific/pacificstorms_epic_20260901_th.jpg?w=1024",
       "alt": "A Trio of Tropical Cyclones in the Pacific"
     },
@@ -98,12 +103,7 @@
     },
     {
       "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/imagerecords/86000/86508/greenland_pho_201508_front.jpg?w=1024",
-      "alt": "Amendment 72: New Opportunity: A.17 Hydrosphere"
-    },
-    {
-      "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/STScI-01M0T8BARTCFQW684XQ932TNNM.png?w=1024",
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/Hubble_Saturn_29Aug2025.jpg?w=1024",
       "alt": "NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole"
     },
     {
@@ -133,18 +133,18 @@
     },
     {
       "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/cds/svs/a010000/a014500/a014594/S7.jpg?w=1024",
-      "alt": "Amendment 73: D.9 Habitable Worlds Observatory Instrument Concept Assessments: Correction regarding collaborators on category 2 proposals"
+      "url": "https://science.nasa.gov/wp-content/uploads/2026/08/bgv2.jpg",
+      "alt": "Information for Funded Projects"
     },
     {
       "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/nebulae/emission/Hubble_N44_potm2608a_lg.jpg?w=1024",
-      "alt": "NASA’s Hubble Spies Superbubble Scene"
+      "url": "https://science.nasa.gov/wp-content/uploads/2026/08/newsannouncements-1.png",
+      "alt": "News and Announcements"
     },
     {
       "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/STScI-01M0T8BARTCFQW684XQ932TNNM.png?w=1024",
-      "alt": "NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole"
+      "url": "https://science.nasa.gov/wp-content/uploads/2026/08/surface-venus.jpg",
+      "alt": "PESTO Directed Funding"
     },
     {
       "tag": "img",
@@ -193,13 +193,13 @@
     },
     {
       "tag": "img",
-      "url": "https://www.nasa.gov/wp-content/uploads/2026/08/cerberuz-lunarecycle-winners.jpg?w=150&h=150&crop=1",
-      "alt": "NASA Awards First Prize in Phase 2 of Agency’s LunaRecycle Challenge "
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/missions/swift-observatory/news/2026/link-tech-demo/LINK%20Solar%20Panel%20Pic%209.4.26.png?w=1024",
+      "alt": "Commercial Spacecraft for NASA’s Swift Boost Continues Tech Demo "
     },
     {
       "tag": "img",
-      "url": "https://images-assets.nasa.gov/image/NHQ20260830_admin_0002/NHQ20260830_admin_0002~large.jpg?w=1920&h=1279&fit=clip&crop=faces%2Cfocalpoint",
-      "alt": "NASA’s Dark Universe-Seeking Nancy Grace Roman Space Telescope Launches"
+      "url": "https://www.nasa.gov/wp-content/uploads/2026/08/nhq202608310009large.jpg?w=150&h=150&crop=1",
+      "alt": "NASA Welcomes Türkiye as Newest Artemis Accords Signatory  "
     },
     {
       "tag": "img",

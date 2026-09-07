@@ -1,7 +1,7 @@
 {
   "case_id": "live-015-configmaps",
   "url": "https://kubernetes.io/docs/concepts/configuration/configmap/",
-  "checked_at": "2026-09-04T07:45:32.334066+00:00",
+  "checked_at": "2026-09-07T03:56:37.263186+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

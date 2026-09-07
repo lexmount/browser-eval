@@ -105,6 +105,8 @@ def run_evaluation(
                 "name": provider.name,
                 "type": provider.type,
                 "min_interval_seconds": provider.min_interval_seconds,
+                **({"implementation_identity": provider._implementation_identity}
+                   if isinstance(getattr(provider, '_implementation_identity', None), dict) else {}),
             }
             for provider in providers
         ],

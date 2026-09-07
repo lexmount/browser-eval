@@ -83,6 +83,26 @@ class HeadlessTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             provider.fetch(case, float('nan'))
 
+    def test_implementation_identity_is_cached_outside_timed_calls_and_refresh_detects_change(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            binary = Path(directory)/'moli'
+            binary.write_bytes(b'first executable')
+            provider = build_provider('moli', dict(type='headless_markdown', engine='moli',
+                                                    binary=str(binary)))
+            provider._resolved_binary = str(binary)
+            completed = SimpleNamespace(returncode=0, stdout='moli 1.0\n', stderr='')
+            with patch('harness.web_fetch.providers.headless.subprocess.run',
+                       return_value=completed) as run:
+                first = provider.implementation_identity()
+                cached = provider.implementation_identity()
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(first, cached)
+                binary.write_bytes(b'second executable')
+                refreshed = provider.implementation_identity(refresh=True)
+                self.assertEqual(run.call_count, 2)
+                self.assertNotEqual(first['binary_sha256'], refreshed['binary_sha256'])
+
     def test_raw_html_is_separate_hashed_evidence(self):
         from harness.web_fetch.models import ProviderResult
         html = '<h1>Fixture</h1>'

@@ -1,7 +1,7 @@
 {
   "case_id": "live-022-until-september-10-get-pycharm-f",
   "url": "https://docs.djangoproject.com/en/stable/intro/",
-  "checked_at": "2026-09-04T08:41:55.144718+00:00",
+  "checked_at": "2026-09-07T03:56:38.933087+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://docs.djangoproject.com/en/6.1/intro/",
   "mime": "text/html; charset=utf-8",
-  "bytes": 30963,
-  "sha256": "03ac49c2499c3de61cbbc9c4ed09250cef5fa086a241e49f5a254becd1312827",
+  "bytes": 31323,
+  "sha256": "7d525ee8ddfdb59bf3799be9aeb2061435a53a79d5921d21da89bdf61c49e83e",
   "response_headers": {
     "X-Frame-Options": "SAMEORIGIN",
     "Content-Type": "text/html; charset=utf-8"
