@@ -9,11 +9,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.report import (
-    TRACKS, attempt_row, case_rate, generate, overview_card, ranking, write_support,
+    TRACKS, attempt_row, case_rate, generate, overview_card, ranking, stable_anchor_evidence,
+    stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
 )
+from harness.web_fetch.stable_tasks import evaluate_stable_task
 
 
 def case(identifier='list', kind='structure', track='challenge'):
@@ -45,6 +47,36 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_quote_failure_shows_field_boundary_loss_instead_of_claiming_text_absent(self):
+        anchor={'id':'fixed','alternatives':['“An independent thought.”\nby Some Author\nTags: first second']}
+        metrics=evaluate_stable_task(
+            '“An independent thought.”bySome AuthorTags:firstsecond',
+            {'version':1,'schema':'quote','minimum_records':1,'maximum_records':1,
+             'stable_text_anchors':[anchor]})
+        self.assertFalse(metrics['stable_task_pass'])
+        rendered=stable_anchor_evidence(metrics,'“An independent thought.”bySome AuthorTags:firstsecond')
+        for phrase in ['字段边界不合格','引文','作者','标签','文字齐全，但分隔丢失']:
+            self.assertIn(phrase,rendered)
+        summary=stable_failure_summary(metrics)
+        self.assertIn('引文和作者均与标准答案一致',summary)
+        self.assertIn('标签之间没有可读分隔',summary)
+        self.assertNotIn('缺少稳定文字',summary)
+
+    def test_result_review_page_lists_failure_coverage_by_provider(self):
+        c=case();r=record(c,passed=False);r['provider']='moli';r['attempt_id']='moli__list__r001'
+        audit={'reviewed_attempts':1,'expected_attempts':1,'disagreements':0,'unresolved':0,
+               'reviewer':{'agent':'Codex','model':'test','effort':'high'},
+               'review_protocol':{'scope':'all'},
+               'attempts':[{'attempt_id':r['attempt_id'],'machine_verdict':'fail',
+                            'agent_verdict':'fail','final_verdict':'fail','agent_evidence':'specific evidence'}]}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);(out/'result-review.json').write_text(json.dumps(audit))
+            with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
+                write_support(out,[r],[])
+            rendered=(out/'reproduce/index.html').read_text()
+            for phrase in ['机器失败项核验：1/1','Moli 1.1.1','有独立证据','完整']:
+                self.assertIn(phrase,rendered)
+
     def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):
         a,b=case('a','body'),case('b','body')
         first,second=record(a),record(b)

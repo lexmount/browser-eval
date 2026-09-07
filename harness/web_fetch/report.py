@@ -212,6 +212,47 @@ def stable_answer_panel(contract):
         f'{minimum}–{maximum} 条完整且不重复的记录')
  return f'<div class="answer-list"><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
+def _stable_field_comparison(metrics,item):
+ """Find the closest parsed record for a structured anchor, for display only."""
+ schema=metrics.get('stable_task_schema')
+ if schema!='quote':return None
+ from .metrics import normalize_for_match
+ from .stable_tasks import SCHEMA_FIELDS,_parse_records,_visible
+ candidates=[]
+ for alternative in item.get('alternatives',[]):
+  expected=_parse_records(_visible(alternative,schema),schema)
+  candidates.extend(row['fields'] for row in expected if row.get('valid'))
+ actual=[row['fields'] for row in metrics.get('stable_records',[]) if row.get('valid')]
+ if not candidates or not actual:return None
+ def norm(value):return normalize_for_match(value).strip('“”"‘’ ')
+ best=None
+ for expected in candidates:
+  for returned in actual:
+   exact={field:norm(returned.get(field,''))==norm(expected.get(field,'')) for field in SCHEMA_FIELDS[schema]}
+   score=sum(exact.values())+2*exact.get('quote',False)+exact.get('author',False)
+   if best is None or score>best[0]:best=(score,expected,returned,exact)
+ return best[1:] if best else None
+
+def _quote_field_issue(metrics):
+ comparisons=[]
+ for item in metrics.get('stable_anchor_results',[]):
+  if item.get('pass'):continue
+  comparison=_stable_field_comparison(metrics,item)
+  if comparison and comparison[2].get('quote') and comparison[2].get('author'):
+   comparisons.append(comparison)
+ if not comparisons:return ''
+ from .metrics import normalize_for_match
+ compact=0
+ for expected,returned,_ in comparisons:
+  left=normalize_for_match(expected.get('tags','')).replace(' ','')
+  right=normalize_for_match(returned.get('tags','')).replace(' ','')
+  compact+=bool(left and left==right)
+ contaminated=len(comparisons)-compact
+ parts=[f'{len(comparisons)} 个未通过核对点的引文和作者均与标准答案一致']
+ if compact:parts.append(f'{compact} 条的标签文字齐全，但标签之间没有可读分隔')
+ if contaminated:parts.append(f'{contaminated} 条的标签字段还混入或缺少文字')
+ return '；'.join(parts)+'。任务要求标签列表保留字段边界，因此仍判未通过'
+
 def stable_anchor_evidence(metrics,output):
  cards=[]
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
@@ -221,13 +262,27 @@ def stable_anchor_evidence(metrics,output):
    candidate=_best_evidence_excerpt(alternative,output)
    if candidate:excerpt=candidate;break
   passed=bool(item.get('pass'));css='pass' if passed else 'fail'
-  actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到这段稳定文字。</p>')
-  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{"命中" if passed else "未命中"}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div></article>')
+  comparison=_stable_field_comparison(metrics,item) if not passed else None
+  field_detail='';badge='命中' if passed else '未命中'
+  if comparison:
+   expected_fields,returned_fields,exact=comparison
+   labels={'quote':'引文','author':'作者','tags':'标签'};rows=[]
+   from .metrics import normalize_for_match
+   for field in ('quote','author','tags'):
+    wanted=expected_fields.get(field,'');got=returned_fields.get(field,'')
+    compact=(normalize_for_match(wanted).replace(' ','')==normalize_for_match(got).replace(' ',''))
+    verdict='命中' if exact[field] else '文字齐全，但分隔丢失' if field=='tags' and compact else '不一致'
+    rows.append(('',cell(esc(labels[field]))+cell(esc(wanted))+cell(esc(got))+cell(esc(verdict))))
+   field_detail='<p class="source-note">整条记录按字段判定；文字出现不等于列表边界完整。</p>'+table(['字段','标准答案','实际解析','判定'],rows,metrics=[])
+   badge='字段边界不合格'
+  actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
+  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
  return '<div class="anchor-grid">'+''.join(cards)+'</div>' if cards else ''
 
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
  if succeeded(r,c):return '—'
+ if _quote_field_issue(r['metrics']):return '字段边界丢失'
  return (r.get('diagnosis') or diagnose(r,c,'') or {'category':'任务规则未满足'})['category']
 
 def stable_failure_summary(metrics):
@@ -236,6 +291,8 @@ def stable_failure_summary(metrics):
  complete=metrics.get('stable_unique_record_count')
  if isinstance(minimum,int) and isinstance(complete,int) and complete < minimum:
   parts.append(f'只有 {complete} 条记录同时做到字段完整且不重复，少于要求的 {minimum} 条')
+ quote_issue=_quote_field_issue(metrics)
+ if quote_issue:return quote_issue
  missing=[]
  for item in metrics.get('stable_anchor_results',[]):
   if not item.get('pass'):
@@ -624,7 +681,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
             '<a href="#decision">查看逐项判定</a></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
-   facts=[('失败分类',d['category']),('发生阶段',d['stage']),('判定依据',reason(r,c)),('归因边界',d['certainty'])]
+   quote_issue=_quote_field_issue(m)
+   facts=[('失败分类','字段边界丢失' if quote_issue else d['category']),
+          ('发生阶段','字段解析' if quote_issue else d['stage']),
+          ('判定依据',reason(r,c)),('归因边界',d['certainty'])]
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
@@ -795,7 +855,19 @@ def write_support(out,records,manifests):
   revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
   revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，另由 Codex 在不显示机器判定和分数的条件下重新核验；其余结果的任务规则与原始输出未变，沿用原核验。'
                  if revision else '')
-  review=section('结果核验',f'<p><b>{esc("；".join(scopes))}</b>。由 {esc(reviewer.get("agent","独立代理"))}（{esc(reviewer.get("model","—"))}，{esc(reviewer.get("effort","—"))}）逐条核对保存输出、任务规则与参考；核验输入不显示自动判定和分数。自动通过项只有在“全部输出”范围内才逐条复核。共核验 {reviewed}/{expected} 个纳入范围的结果，与自动判定不一致 {disagreements} 次；未裁定结果必须为 0，否则报告不能生成。{esc(revision_note)}</p><p>{link("../result-review.json","下载主结果核验记录")} · {link("../speed-cohort/result-review.json","下载测速核验记录") if len(audits)>1 else ""}</p>','result-review')
+  by_attempt={r['attempt_id']:r for r in records};failure_audits=defaultdict(list)
+  for item in audit.get('attempts',[]):
+   if item.get('machine_verdict')=='fail' and item.get('attempt_id') in by_attempt:
+    failure_audits[by_attempt[item['attempt_id']]['provider']].append(item)
+  failure_rows=[]
+  for name,items in sorted(failure_audits.items()):
+   evidenced=sum(bool(item.get('agent_evidence')) for item in items)
+   failure_rows.append(('',cell(esc(provider_label(name)))+cell(str(len(items)))+cell(f'{evidenced}/{len(items)}')+cell('完整' if evidenced==len(items) else '不完整')))
+  failure_total=sum(len(items) for items in failure_audits.values())
+  failure_evidenced=sum(bool(item.get('agent_evidence')) for items in failure_audits.values() for item in items)
+  failure_coverage=(f'<p><b>机器失败项核验：{failure_evidenced}/{failure_total}</b>。每个失败项均保留独立审查结论和具体证据；下表同时覆盖两版 Moli。</p>'+
+                    table(['方法','机器判定失败','有独立证据','覆盖状态'],failure_rows,metrics=[]))
+  review=section('结果核验',f'<p><b>{esc("；".join(scopes))}</b>。由 {esc(reviewer.get("agent","独立代理"))}（{esc(reviewer.get("model","—"))}，{esc(reviewer.get("effort","—"))}）逐条核对保存输出、任务规则与参考；核验输入不显示自动判定和分数。自动通过项只有在“全部输出”范围内才逐条复核。共核验 {reviewed}/{expected} 个纳入范围的结果，与自动判定不一致 {disagreements} 次；未裁定结果必须为 0，否则报告不能生成。{esc(revision_note)}</p>'+failure_coverage+f'<p>{link("../result-review.json","下载主结果核验记录")} · {link("../speed-cohort/result-review.json","下载测速核验记录") if len(audits)>1 else ""}</p>','result-review')
  support=hero('环境与复现','公共条件只写一次；方法版本、批次差异和复现命令分别保留。')
  support+=section('数据下载','<p>'+downloads+'</p>')+review
  if (out/'speed-cohort/speed-comparison.json').is_file():
