@@ -113,7 +113,7 @@ python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lex
 
 ### Moli WebFetch
 
-按 [官方 skill](https://github.com/lexmount/moli/tree/main/skills/moli-webfetch) 安装本地 CLI，在 `.env` 设置 `MOLI_BINARY`（默认 `moli`，不需要账号/API Key）。普通网页正文使用 `moli fetch --dump markdown --wait-until done`；Moli 1.1.3 遇到直接 PDF、DOCX、图片或视频地址时使用裸 `moli fetch URL`，因为原始响应不接受 `--dump html/markdown` 或页面等待参数。文档正文任务随后在同一截止预算内解析可读文字；直接文件任务到格式、长度和 SHA-256 校验完成为止，不做无关的 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态。Markdown 模式没有 HTTP 状态/最终 URL，因此这些字段留空，而不是发第二次请求拼接元数据。工具成功不等于任务通过，仍使用相同机械评分规则。
+按 [官方 skill](https://github.com/lexmount/moli/tree/main/skills/moli-webfetch) 安装本地 CLI，在 `.env` 设置 `MOLI_BINARY`（默认 `moli`，不需要账号/API Key）。普通网页正文使用 `moli fetch --dump markdown --wait-until done`；Moli 1.1.3 对直接文档和媒体地址预先选择裸 `moli fetch URL`，让 CLI 自动决定返回原始响应还是序列化页面。识别为原始 PDF 或媒体时直接取得字节，文档正文随后在同一截止预算内解析；本轮 DOCX 响应被 Moli 序列化为 HTML，没有形成可解析的原始文件，因此按保存结果失败。直接文件任务到格式、长度和 SHA-256 校验完成为止，不做无关的 Markdown 转换。适配器保留 stdout 原文、独立 stderr 和退出状态。Markdown 模式没有 HTTP 状态/最终 URL，因此这些字段留空，而不是发第二次请求拼接元数据。工具成功不等于任务通过，仍使用相同机械评分规则。
 
 官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。Moli 1.1.3 对非 HTML 响应使用自动原始输出（或 JSON 的 `body_base64`），不能强制 `--dump html/markdown`。本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。
 

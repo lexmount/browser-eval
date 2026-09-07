@@ -142,8 +142,12 @@ def review_summary(out, prefix=''):
  unresolved=sum(row.get('unresolved',0) for row in reviews)
  resolution=('；全部已裁定' if disagreements and not unresolved else
              '；没有发现分歧' if not disagreements else f'；仍有 {unresolved} 条未裁定')
+ revision=review.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
+ revision_note=(f' 评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已由新的盲审单独复核；其余结果沿用输入未变化的原核验。'
+                if revision else '')
  return (f'<p class="callout success"><b>结果已独立核验：{esc("；".join(scopes))}</b>。'
          f'{esc(name or "独立复核代理")}逐条对照任务、参考和实际输出；本轮共核验 {checked}/{total} 个纳入核验范围的结果，发现 {disagreements} 个与自动判定不一致的结果{resolution}。'
+         f'{esc(revision_note)}'
          f' {link(prefix+"reproduce/index.html#result-review","查看核验记录 →")}</p>')
 
 def _evidence_chunks(text, width=620):
@@ -187,11 +191,12 @@ def body_region_rows(case, metrics, output):
   label=_position_label(index-1,total)
   judgement=('达到目标' if passed else '低于目标，但达到硬下限' if actual.get('floor_pass') else '未达到硬下限')
   css='pass' if passed else 'fail'
-  rows.append(('',cell(esc(label))+cell(pct(actual['coverage']))+cell(pct(actual['minimum']))+cell(esc(judgement))))
+  rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
+               cell(pct(actual['coverage']))+cell(esc(judgement))))
   excerpt=_best_evidence_excerpt(expected,output)
   actual_html=(f'<pre data-kind="region-output">{esc(excerpt)}</pre>' if excerpt else
-               '<p class="empty">实际返回中没有找到可直接展示的对应连续文字。</p>')
-  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>在标准答案的 {expected_count:,} 个比对单元中找到 {matched:,} 个，覆盖 {pct(actual["coverage"])}；目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的标准答案</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际返回中的对应原文</b>{actual_html}</div></div></article>')
+               '<p class="empty">没有可供人工定位的连续文字样例；机器覆盖率仍按上方完整实际返回计算。</p>')
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>这一段标准答案产生 {expected_count:,} 个连续六字符片段；在上方完整实际返回（{len(output):,} 字符）中命中 {matched:,} 个，所以覆盖率为 {matched:,} ÷ {expected_count:,} = {pct(actual["coverage"])}。目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际输出中的定位样例（仅供人工查看）</b><p class="source-note">这是从完整实际返回中选出的一小段，便于确认文字确实出现；它不是覆盖率计算所使用的全部实际输出。</p>{actual_html}</div></div></article>')
  return rows,cards
 
 def stable_answer_panel(contract):
@@ -614,6 +619,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
            f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]))} · '
            f'请求：{"成功" if r["ok"] else "失败"} · 耗时：{ms(r["elapsed_ms"])} · {actual_summary}</p></div>')
   summary+=f'<p class="source-note">{esc(route_label)}</p>'
+  summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
+            '<a href="#evidence-output">查看本次完整实际返回</a>'
+            '<a href="#decision">查看逐项判定</a></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    facts=[('失败分类',d['category']),('发生阶段',d['stage']),('判定依据',reason(r,c)),('归因边界',d['certainty'])]
@@ -654,9 +662,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    else:
     actual_body='<p class="empty">本次没有交付可校验的原始文件字节。</p>'
     output_note='实际交付 0 个文件'
-  evidence=(f'<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的输出。两栏都显示真实内容，不是摘要；长内容可在栏内滚动。</p>'
-            f'<div class="evidence-compare"><article class="evidence-pane"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
-            f'<article class="evidence-pane"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
+  reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
+                   f'<p class="callout"><b>参考范围：</b>这是最小文档解析样本。冻结源文件的全部可提取正文共 {len(ref):,} 个字符，标准答案没有省略。它只验证短文档文字提取，不用于证明多页、表格或附录完整性。</p>')
+  evidence=(f'<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
+            f'<div class="evidence-compare"><article class="evidence-pane" id="evidence-reference"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
+            f'<article class="evidence-pane" id="evidence-output"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
   body+=section('标准答案与实际返回',evidence,'evidence')
   checks_html=''
   if 'stable_task_pass' in m:
@@ -674,12 +684,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   if m.get('body_region_results'):
    region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
-   region_intro=(f'<div class="decision-lead"><b>为什么还要检查前后位置？</b> 只命中标题和开头关键词，不代表整篇正文已经抓全。'
-                 f'系统把同一份完整标准答案按前后位置均分为 {len(rules.get("regions",[]))} 份；它仍是一份答案、一个任务。'
-                 f'本任务要求每个位置至少覆盖 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{len(rules.get("regions",[]))} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
-                 '比对时忽略排版、空格和链接地址；下面同时给出每个位置的标准答案和实际返回证据。</div>')
-   body+=section('是否抓全整篇正文',region_intro+table(['标准答案位置','实际覆盖','目标覆盖','判定'],region_rows,metrics=[])+
-                 '<details class="technical-details"><summary>查看各位置的标准原文与实际对应内容</summary>'+''.join(region_cards)+'</details>','body-coverage')
+   region_count=len(rules.get('regions',[]))
+   region_intro=(f'<div class="decision-lead"><b>这项分数怎样计算：</b>评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。'
+                 '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
+                 f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
+                 f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
+                 '同一个实际片段只能计入一个位置，避免重复文字被多次借用。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
+   body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
+                 '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',metric_legend(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'])+title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
@@ -780,7 +792,10 @@ def write_support(out,records,manifests):
    suffix=(f'（另 {accepted} 个自动通过项按约定接受、未逐条核验）'
            if index==0 and row.get('review_protocol',{}).get('scope')=='machine-failures' and accepted else '')
    scopes.append(f'{"主结果" if index==0 else "同窗测速"}{subject} {row.get("reviewed_attempts",0)}/{row.get("expected_attempts",0)}{suffix}')
-  review=section('结果核验',f'<p><b>{esc("；".join(scopes))}</b>。由 {esc(reviewer.get("agent","独立代理"))}（{esc(reviewer.get("model","—"))}，{esc(reviewer.get("effort","—"))}）逐条核对保存输出、任务规则与参考；核验输入不显示自动判定和分数。自动通过项只有在“全部输出”范围内才逐条复核。共核验 {reviewed}/{expected} 个纳入范围的结果，与自动判定不一致 {disagreements} 次；未裁定结果必须为 0，否则报告不能生成。</p><p>{link("../result-review.json","下载主结果核验记录")} · {link("../speed-cohort/result-review.json","下载测速核验记录") if len(audits)>1 else ""}</p>','result-review')
+  revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
+  revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，另由 Codex 在不显示机器判定和分数的条件下重新核验；其余结果的任务规则与原始输出未变，沿用原核验。'
+                 if revision else '')
+  review=section('结果核验',f'<p><b>{esc("；".join(scopes))}</b>。由 {esc(reviewer.get("agent","独立代理"))}（{esc(reviewer.get("model","—"))}，{esc(reviewer.get("effort","—"))}）逐条核对保存输出、任务规则与参考；核验输入不显示自动判定和分数。自动通过项只有在“全部输出”范围内才逐条复核。共核验 {reviewed}/{expected} 个纳入范围的结果，与自动判定不一致 {disagreements} 次；未裁定结果必须为 0，否则报告不能生成。{esc(revision_note)}</p><p>{link("../result-review.json","下载主结果核验记录")} · {link("../speed-cohort/result-review.json","下载测速核验记录") if len(audits)>1 else ""}</p>','result-review')
  support=hero('环境与复现','公共条件只写一次；方法版本、批次差异和复现命令分别保留。')
  support+=section('数据下载','<p>'+downloads+'</p>')+review
  if (out/'speed-cohort/speed-comparison.json').is_file():

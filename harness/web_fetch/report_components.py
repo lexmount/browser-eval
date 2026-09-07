@@ -250,6 +250,9 @@ FIELD_REQUIREMENTS = {
 def task_instruction(c):
     contract = c.get('acceptance_contract')
     if not contract:
+        reference = c.get('ground_truth_main_content', '')
+        if c.get('track') == 'document' and 0 < len(reference) < 100:
+            return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
         return c.get('task_prompt', '')
     from .stable_tasks import SCHEMA_FIELDS
     fields = '、'.join(FIELD_REQUIREMENTS[f][0] for f in SCHEMA_FIELDS[contract['schema']])

@@ -517,9 +517,12 @@ def _render_headless(out, cases, records):
         speed_subject=('自动失败项' if (speed_audit or {}).get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出')
         scopes=(f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}' +
                 (f'；同窗测速{speed_subject} {speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}' if speed_audit else ''))
+        revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
+        revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已另行盲审；'
+                       if revision else '')
         review_summary=(f'{scopes}，由 '
             f'{reviewer.get("agent","独立代理")}（{reviewer.get("model","—")}，{reviewer.get("effort","—")}）逐条核验；'
-            f'与自动判定不一致 {disagreements} 次，发布前未裁定数为 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。')
+            f'{revision_note}与自动判定不一致 {disagreements} 次，发布前未裁定数为 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。')
     else:review_summary='本报告没有绑定独立结果核验记录。'
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
         'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,

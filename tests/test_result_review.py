@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 from harness.web_fetch.result_review import require_result_review
+from scripts.merge_result_review_revision import merge
 from scripts.revise_body_scoring import rebind_unchanged_result_review
 
 
@@ -110,6 +111,46 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'verdict changed'):
                 rebind_unchanged_result_review(
                     path,dataset,new_bytes,dataset,(json.dumps(changed)+'\n').encode(),rebound_at='later')
+
+    def test_changed_case_requires_complete_supplemental_blind_review(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); evidence=root/'evidence'; supplement=root/'supplement'
+            evidence.mkdir();supplement.mkdir()
+            old_dataset={'comparison':{'require_independent_result_review':True},
+                         'cases':[{'id':'a','task_kind':'body','required_patterns':[{'id':'layout'}]},
+                                  {'id':'b','task_kind':'body'}]}
+            new_dataset=json.loads(json.dumps(old_dataset));new_dataset['cases'][0]['required_patterns']=[]
+            old_records=[{'attempt_id':'p__a__r001','case_id':'a','ok':True,'metrics':{'content_pass':False}},
+                         {'attempt_id':'p__b__r001','case_id':'b','ok':True,'metrics':{'content_pass':True}}]
+            new_records=json.loads(json.dumps(old_records));new_records[0]['metrics']['content_pass']=True
+            old_dataset_bytes=json.dumps(old_dataset).encode();old_results_bytes=(''.join(json.dumps(x)+'\n' for x in old_records)).encode()
+            (evidence/'dataset.json').write_text(json.dumps(new_dataset))
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in new_records))
+            prior={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256(old_dataset_bytes).hexdigest(),
+                'results_sha256':hashlib.sha256(old_results_bytes).hexdigest()},
+                'reviewer':{'agent':'Codex'},
+                'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'fail','agent_verdict':'fail','final_verdict':'fail'},
+                            {'attempt_id':'p__b__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+            prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior))
+            receipt={'input_dataset_sha256':prior['bindings']['dataset_sha256'],
+                     'input_results_sha256':prior['bindings']['results_sha256'],
+                     'changed_cases':[{'case_id':'a','fields':['required_patterns']}]}
+            (evidence/'scoring-revisions.json').write_text(json.dumps([receipt]))
+            subset_dataset={'comparison':{'require_independent_result_review':True},'cases':[new_dataset['cases'][0]]}
+            (supplement/'dataset.json').write_text(json.dumps(subset_dataset))
+            (supplement/'results.jsonl').write_text(json.dumps(new_records[0])+'\n')
+            supplemental={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
+                'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+            (supplement/'result-review.json').write_text(json.dumps(supplemental))
+            merge(evidence,prior_path,supplement)
+            merged=json.loads((evidence/'result-review.json').read_text())
+            self.assertEqual(merged['attempts'][0]['machine_verdict'],'pass')
+            self.assertEqual(merged['review_protocol']['scoring_rule_revision_review']['reviewed_attempts'],1)
 
 
 if __name__=='__main__':unittest.main()

@@ -20,5 +20,18 @@
   "text_chars": 0,
   "excerpt": "",
   "missing_facts": [],
+  "embedded_document": {
+    "url": "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
+    "observed_at": "2026-09-07T11:44:18Z",
+    "observation": "Independent Chromium network response from the declared viewer URL",
+    "status": 200,
+    "mime": "application/pdf",
+    "evidence_path": "../document-04/source.pdf",
+    "bytes": 1016315,
+    "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+    "text_extractor": "pypdf",
+    "text_chars": 82718,
+    "text_sha256": "1d8d29eea6e0f33ce4332ce417f9e4d0d646136269c27d3cbe965508a86eb790"
+  },
   "state": "captured"
 }

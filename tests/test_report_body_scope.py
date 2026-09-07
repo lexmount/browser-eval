@@ -240,13 +240,33 @@ class ReportBodyScopeTests(unittest.TestCase):
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
             self.assertIn('alpha beta gamma delta',detail)
-            self.assertIn('它仍是一份答案、一个任务',detail)
+            for phrase in ['评分使用上方完整标准答案和完整实际返回', '连续六字符片段',
+                           '12 ÷ 12 = 100.0%', '定位样例（仅供人工查看）',
+                           '查看判定使用的标准答案', '查看本次完整实际返回']:
+                self.assertIn(phrase,detail)
+            self.assertNotIn('实际返回中的对应原文',detail)
             self.assertIn('方法直接取得原始文档 → pypdf → 可读正文',detail)
             self.assertIn('标准答案位置',detail)
             self.assertNotIn('第 1/1 段',detail)
             dataset=(out/'datasets/article.html').read_text()
             self.assertIn('同一份标准答案',dataset)
             self.assertNotIn('字符六元组数',dataset)
+
+    def test_minimal_document_scope_is_explicit_and_does_not_claim_long_document_coverage(self):
+        c=case('minimal','body','document')
+        c['ground_truth_main_content']='Dummy PDF file'
+        self.assertIn('最小文档',task_instruction(c))
+        self.assertNotIn('多页',task_instruction(c).split('不代表')[0])
+        r=record(c)
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('Dummy PDF file')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            for phrase in ['冻结源文件的全部可提取正文共 14 个字符', '标准答案没有省略',
+                           '只验证短文档文字提取', '不用于证明多页、表格或附录完整性']:
+                self.assertIn(phrase,detail)
 
     def test_file_detail_compares_expected_file_with_delivered_bytes_not_empty_markdown(self):
         c=case('image','file','image');c['reference_answer']='PNG 图片，8 字节。'

@@ -12,7 +12,7 @@ PROFILES={
  'lightpanda':('本地浏览器 CLI','Lightpanda fetch --dump markdown，直接输出浏览器原生 Markdown。','https://github.com/lightpanda-io/browser'),
  'obscura':('本地浏览器 CLI','Obscura fetch --dump markdown；标准模式，不启用 stealth 或备用引擎。','https://github.com/h4ckf0r0day/obscura'),
  'moli':('本地浏览器 CLI','Moli fetch --dump markdown，直接输出浏览器原生 Markdown。','https://github.com/lexmount/moli'),
- 'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接 PDF、DOCX、图片和视频使用裸 fetch 自动取得原始响应。文档正文任务把本地解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
+ 'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch，由 CLI 自动选择原始响应或序列化页面。识别为原始 PDF 时，本地正文解析计入耗时；本轮 DOCX 被序列化为 HTML 并判失败。文件任务直接校验取得的字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
  'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。','https://playwright.dev/python/docs/browsers'),
  'moli-webfetch':('本地 CLI','Moli 一次性 fetch，默认运行网页 JavaScript 并输出 Markdown；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),

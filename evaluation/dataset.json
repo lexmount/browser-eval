@@ -872,13 +872,7 @@
           ]
         }
       ],
-      "required_patterns": [
-        {
-          "id": "指标表格结构",
-          "pattern": "(?mi)^(?:\\s*\\|)?\\s*:?-{3,}:?\\s*\\|\\s*:?-{3,}:?\\s*\\|\\s*:?-{3,}:?\\s*(?:\\|\\s*)?$|<table\\b",
-          "minimum": 1
-        }
-      ],
+      "required_patterns": [],
       "forbidden_any": [
         "Access denied",
         "CAPTCHA",
