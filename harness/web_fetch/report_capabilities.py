@@ -190,7 +190,7 @@ for engine,url in {
 SOURCES['headless-moli-1.1.3']=('Moli 1.1.3 · 官方发布',
     'https://github.com/lexmount/moli/releases/tag/v1.1.3')
 CAPABILITIES['moli-1.1.3']={**CAPABILITIES['moli'],
-    'scope':'Moli 1.1.3 fetch --dump markdown 原生输出',
+    'scope':'普通网页原生 Markdown；直接 PDF、DOCX 与媒体使用 fetch 自动原始响应，正文解析计入任务耗时',
     'sources':['headless-moli-1.1.3']}
 
 def render_capabilities(out, names, *, table, cell, link):

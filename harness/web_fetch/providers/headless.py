@@ -1,6 +1,7 @@
-"""Isolated browser-to-Markdown comparison, with no provider fallback."""
+"""Isolated task-native Web Fetch comparison, with no provider fallback."""
 from __future__ import annotations
 
+import base64
 import hashlib
 import importlib.util
 import json
@@ -35,8 +36,15 @@ def _resolve_binary(engine, configured):
 
 def cli_command(engine, binary, url, timeout, output_mode='html', wait_until=None):
     ms = str(max(1, math.ceil(timeout * 1000)))
-    if output_mode not in {'html', 'markdown'}:
+    if output_mode not in {'html', 'markdown', 'document', 'file'}:
         raise ValueError('Unsupported browser output mode: ' + output_mode)
+    if output_mode in {'document', 'file'}:
+        if engine != 'moli':
+            raise ValueError('Raw document auto-output is only supported by Moli')
+        # Moli 1.1.3 auto-serializes HTML and writes raw responses such as PDF
+        # and DOCX bytes when --dump is omitted. Supplying --dump html or
+        # markdown rejects these responses before extraction can begin.
+        return [binary, 'fetch', '--timeout', ms, '--http-timeout', ms, url]
     if output_mode == 'markdown':
         if engine == 'obscura':
             # Obscura's documented default is load plus an adaptive, at-most
@@ -133,19 +141,34 @@ class HeadlessProvider(Provider):
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('timeout must be positive and finite')
         engine = self.config['engine']
-        output_mode = 'markdown' if self.type == 'headless_markdown' else 'html'
+        document_url = case.url.casefold().split('?', 1)[0]
+        direct_document = (engine == 'moli' and self.name == 'moli-1.1.3'
+                           and case.track == 'document'
+                           and (document_url.endswith(('.pdf', '.docx'))
+                                or '/pdf/' in document_url))
+        output_mode = ('file' if engine == 'moli' and self.name == 'moli-1.1.3'
+                       and case.task_kind == 'file' else
+                       'document' if direct_document else
+                       'markdown' if self.type == 'headless_markdown' else 'html')
         binary = getattr(self, '_resolved_binary', None) or _resolve_binary(
             engine, self.config.get('binary'))
         cli_wait = 'networkidle' if case.track == 'dynamic' else 'done'
-        wait_until = ('networkidle2' if engine == 'kitesurf' and output_mode == 'markdown'
+        wait_until = ('automatic raw response' if output_mode == 'file'
+                      else 'automatic raw response or serialized HTML' if output_mode == 'document'
+                      else 'networkidle2' if engine == 'kitesurf' and output_mode == 'markdown'
                       else cli_wait if output_mode == 'markdown' and engine in {'moli','lightpanda'}
                       else 'load + adaptive settle' if output_mode == 'markdown' and engine == 'obscura'
                       else 'domcontentloaded')
-        extractor = ('cloudflare_native_markdown' if engine == 'kitesurf' and output_mode == 'markdown'
+        extractor = ('moli_auto_raw' if output_mode == 'file'
+                     else 'moli_auto_raw+document_text' if output_mode == 'document'
+                     else 'cloudflare_native_markdown' if engine == 'kitesurf' and output_mode == 'markdown'
                      else f'{engine}_native_markdown' if output_mode == 'markdown' and engine != 'chromium'
                      else 'node-html-markdown')
+        output_contract = ('original_file_bytes' if output_mode == 'file' else
+                           'readable_document_text' if output_mode == 'document' else
+                           'markdown')
         metadata = {'engine': engine, 'wait_until': wait_until,
-                    'extractor': extractor, 'output_contract': 'markdown',
+                    'extractor': extractor, 'output_contract': output_contract,
                     'session': 'fresh per call',
                     'deployment': 'public cloud CDP' if engine == 'kitesurf' else 'local process'}
         if engine == 'kitesurf' and output_mode == 'markdown':
@@ -214,6 +237,10 @@ class HeadlessProvider(Provider):
             return ProviderResult(False, '', error_type='worker_error',
                                   error_message=diagnostic or 'Invalid worker response', metadata=metadata)
         metadata.update(result.pop('metadata', {}))
+        files_b64 = result.pop('files_b64', [])
+        if files_b64:
+            result['files'] = [{'data': base64.b64decode(value, validate=True)}
+                               for value in files_b64]
         html = result.pop('html', '')
         if html:
             metadata['_rendered_html'] = html

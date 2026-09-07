@@ -17,6 +17,23 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(normalize_for_match('[5](u)[1](v)'),'51')
         self.assertFalse(evaluate_content('[change](u)[world](v)',[],required_facts=[{'id':'tags','alternatives':[reference]}])['content_pass'])
 
+    def test_native_markdown_link_boundaries_preserve_visible_prose(self):
+        content = ('Do you have a question? Check out[/r/learnprogramming](/r/learnprogramming),'
+                   '[/r/cscareerquestions](/r/cscareerquestions), or[Stack Overflow](https://stackoverflow.com/).')
+        expected = 'Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow.'
+        self.assertEqual(normalize_for_match(content), normalize_for_match(expected))
+        self.assertTrue(evaluate_content(
+            content, [], required_facts=[{'id':'community','alternatives':[expected]}]
+        )['content_pass'])
+        self.assertEqual(normalize_for_match('pre[fix](u)'), 'prefix')
+        self.assertEqual(normalize_for_match('[read](u)able'), 'readable')
+
+    def test_substantial_replacement_character_damage_fails_text_output(self):
+        result = evaluate_content('valid heading\n' + '\ufffd' * 25, ['valid heading'])
+        self.assertTrue(result['text_encoding_corruption'])
+        self.assertEqual(result['replacement_character_count'], 25)
+        self.assertFalse(result['content_pass'])
+
     def test_adjacent_numeric_links_cannot_invent_positive_number_hits(self):
         for text, visible in [('[-](u)[10](v)','-10'),('[10](u)[.5](v)','10.5'),
                               ('[10](u)[0](v)','100'),('[+](u)[10](v)','+10')]:
@@ -138,6 +155,24 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(result["resource_recall"], 1.0)
         self.assertEqual(result["resource_results"][0]["matched_urls"],
                          ["https://example.test/gallery/pic_trulli.jpg"])
+
+    def test_encoded_relative_file_autolink_resolves_against_source_page(self) -> None:
+        expected = 'https://download.example.test/files/bbb_sunflower.mp4.zip'
+        result = evaluate_resources(
+            '<bbb%5Fsunflower.mp4.zip>', {},
+            [{"id":"archive","kind":"video-archive-link","urls":[expected]}],
+            base_url='https://download.example.test/files/',
+        )
+        self.assertEqual(result['resource_results'][0]['matched_urls'], [expected])
+        self.assertTrue(result['resource_pass'])
+        # A filename in prose is not enough to prove that a resource address
+        # was returned; this correction is limited to angle-delimited targets.
+        prose = evaluate_resources(
+            'The archive is named bbb_sunflower.mp4.zip.', {},
+            [{"id":"archive","kind":"video-archive-link","urls":[expected]}],
+            base_url='https://download.example.test/files/',
+        )
+        self.assertFalse(prose['resource_pass'])
 
     def test_visible_matching_ignores_markdown_link_spacing_before_punctuation(self) -> None:
         content = "Read [the guide](/guide) , then [continue](/next) ."

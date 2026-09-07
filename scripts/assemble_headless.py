@@ -297,6 +297,9 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
         meta=row.get('provider_metadata',{})
         for path_key,hash_key in [('rendered_html_path','rendered_html_sha256'),('raw_stdout_path','raw_stdout_sha256')]:
             if meta.get(path_key):paths.append((meta[path_key],meta[hash_key]))
+        for delivered in meta.get('file_evaluation', {}).get('files', []):
+            if delivered.get('artifact_path'):
+                paths.append((delivered['artifact_path'], delivered['sha256']))
         for relative,digest in paths:
             source=contained_path(root,relative)
             if hashlib.sha256(source.read_bytes()).hexdigest()!=digest:raise ValueError('Artifact changed: '+relative)

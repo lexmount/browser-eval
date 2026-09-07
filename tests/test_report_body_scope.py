@@ -210,7 +210,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
-            for phrase in ['任务结果','列表任务：通过','— / — / —','全文指标无完整参考','列表任务规则 / 参考依据','有效条目数 / 声明最少数量','3 / 3']:
+            for phrase in ['任务结果','列表任务：通过','— / — / —','全文指标无完整参考','标准答案与验收规则','有效条目数 / 声明最少数量','3 / 3']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('正文未评测',detail)
             self.assertNotIn('评分方式',detail)
@@ -221,6 +221,62 @@ class ReportBodyScopeTests(unittest.TestCase):
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[r],[])
             self.assertIn('task-contracts',(out/'methodology/index.html').read_text())
+
+    def test_body_detail_leads_with_exact_reference_and_output_and_explains_positions(self):
+        c=case('article','body','document')
+        c['ground_truth_main_content']='alpha beta gamma delta'
+        c['body_requirements']={'version':3,'unit':'region_compact_hexagram_recall','minimum_coverage':.8,'minimum_floor':.6,
+                                'minimum_region_passes':1,
+                                'regions':[{'id':'body-region-1','text':'alpha beta gamma delta'}]}
+        r=record(c);r['metrics']['body_region_results']=[{'id':'body-region-1','coverage':1,
+            'minimum':.8,'floor':.6,'pass':True,'target_pass':True,'floor_pass':True,
+            'expected_units':12,'matched_units':12}]
+        r['provider_metadata']={'document_extractor':'pypdf'}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('alpha beta gamma delta')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
+            self.assertIn('alpha beta gamma delta',detail)
+            self.assertIn('它仍是一份答案、一个任务',detail)
+            self.assertIn('方法直接取得原始文档 → pypdf → 可读正文',detail)
+            self.assertIn('标准答案位置',detail)
+            self.assertNotIn('第 1/1 段',detail)
+            dataset=(out/'datasets/article.html').read_text()
+            self.assertIn('同一份标准答案',dataset)
+            self.assertNotIn('字符六元组数',dataset)
+
+    def test_file_detail_compares_expected_file_with_delivered_bytes_not_empty_markdown(self):
+        c=case('image','file','image');c['reference_answer']='PNG 图片，8 字节。'
+        c['source_verification']={'file_sha256':'abc123'}
+        r=record(c);r['artifact_path']='artifacts/fixture/image/run-001.txt'
+        r['provider_metadata']={'file_evaluation':{'files':[{'artifact_path':'artifacts/fixture/image/file.bin',
+            'mime':'image/png','bytes':8,'sha256':'abc123','pass':True}]}}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('')
+            delivered=out/'artifacts/fixture/image/file.bin';delivered.write_bytes(b'pngbytes')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            for phrase in ['目标文件','本任务验收原始文件字节，不要求 Markdown','image/png','8','abc123','匹配']:
+                self.assertIn(phrase,detail)
+            self.assertNotIn('本次没有交付可校验的原始文件字节',detail)
+
+    def test_body_failure_reason_names_readable_positions_not_internal_region_ids(self):
+        from harness.web_fetch.report import reason
+        c=case('article','body','web')
+        r=record(c,passed=False)
+        r['metrics'].update(body_coverage_pass=False,body_region_results=[
+            {'id':f'body-region-{index+1}','coverage':.1 if index==0 else .9,
+             'minimum':.8,'pass':index!=0,'target_pass':index!=0}
+            for index in range(5)
+        ])
+        r['diagnosis']={'evidence':'body-region-1'}
+        rendered=reason(r,c)
+        self.assertIn('开头 10.0%',rendered)
+        self.assertNotIn('body-region',rendered)
 
     def test_current_canonical_challenge_has_zero_body_coverage(self):
         from harness.web_fetch.storage import current_evidence_dir
@@ -280,7 +336,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         r['metrics'].update(stable_task_pass=False,stable_content_pass=False,
                             stable_task_errors=['missing_stable_anchor:heading'],list_task_pass=True)
         self.assertEqual(table_cells(ranking([r],{'list':c},'challenge'),'ranking-challenge')[0][3],'0.0%')
-        self.assertIn('missing_stable_anchor:heading',reason(r,c))
+        self.assertIn('稳定文字或记录结构没有满足任务要求',reason(r,c))
+        self.assertNotIn('missing_stable_anchor:heading',reason(r,c))
 
     def test_stable_failure_categories_preserve_diagnosis_and_filters(self):
         from harness.web_fetch.report import failure_category, failure_filters

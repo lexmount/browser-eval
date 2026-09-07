@@ -100,6 +100,13 @@ def _unwrap_links(text, schema):
         if label:
             rendered = "".join(output)
             prefix = rendered.rsplit("\n", 1)[-1]
+            separated = label.startswith(("/", "#")) or any(char.isspace() for char in label)
+            if prefix and not prefix[-1].isspace() and separated:
+                # Native Markdown can omit the DOM whitespace immediately
+                # before a path or multi-word inline link. The markup itself
+                # preserves that element boundary; do not apply this to links
+                # embedded in a single word such as ``pre[fix]``.
+                output.append(" ")
             if schema in {"product", "catalog_product"} and "\n" in text[start + 1:end]:
                 label = f"\n{_CARD_BOUNDARY}\n{label}\n{_CARD_BOUNDARY}\n"
             elif schema == "name_description" and (re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix)

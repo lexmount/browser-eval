@@ -334,6 +334,19 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "name_description", stable_text_anchors=anchors)
         self.assertTrue(result["stable_task_pass"], result)
 
+    def test_named_link_page_anchor_accepts_dropped_inline_link_spacing(self):
+        text = ('- Do you have a question? Check out[/r/learnprogramming](/r/learnprogramming),'
+                '[/r/cscareerquestions](/r/cscareerquestions), or[Stack Overflow](https://stackoverflow.com/).\n'
+                '- [First post](https://example.com/r/programming/comments/1)\n'
+                '- [Second post](https://example.com/r/programming/comments/2)\n'
+                '- [Third post](https://example.com/r/programming/comments/3)')
+        anchors = [{"id": "community", "alternatives": [
+            'Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow.'
+        ]}]
+        result = self.check(text, "named_link", 3, stable_text_anchors=anchors,
+                            hosts=["example.com"], entry_path=r"/r/programming/comments/\d+")
+        self.assertTrue(result["stable_task_pass"], result)
+
     def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
         anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]
         texts = ('“An independent thought.”by [Some Author](/author) [(about)](/about)\n'

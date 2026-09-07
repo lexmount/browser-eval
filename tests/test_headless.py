@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -10,9 +11,19 @@ from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import cli_command
 from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
+from scripts.review_headless_results import independent_attempt
 
 
 class HeadlessTests(unittest.TestCase):
+    def test_independent_review_receives_real_file_evidence(self):
+        row = {'attempt_id':'a','provider':'moli-1.1.3','artifact':'empty.txt',
+               'request_ok':True,'error_type':None,'file_artifacts':['file.bin'],
+               'raw_response_artifact':'raw.bin','metrics':{'raw_file_pass':True}}
+        packet = independent_attempt(row)
+        self.assertEqual(packet['file_artifacts'], ['file.bin'])
+        self.assertEqual(packet['raw_response_artifact'], 'raw.bin')
+        self.assertNotIn('metrics', packet)
+
     def test_whitespace_normalization_preserves_original_semantics(self):
         import itertools
         import re
@@ -52,6 +63,63 @@ class HeadlessTests(unittest.TestCase):
                          'networkidle')
         self.assertIn('--terminate-ms', lightpanda)
         self.assertNotIn('--wait-until', obscura)
+
+    def test_moli_raw_document_command_omits_dump(self):
+        command = cli_command('moli', '/moli', 'https://example.com/paper.pdf', 1.5,
+                              'document')
+        self.assertEqual(command[:2], ['/moli', 'fetch'])
+        self.assertNotIn('--dump', command)
+        self.assertNotIn('--wait-until', command)
+        self.assertEqual(command[-1], 'https://example.com/paper.pdf')
+
+    def test_moli_raw_file_command_omits_dump(self):
+        command = cli_command('moli', '/moli', 'https://example.com/image.png', 1.5, 'file')
+        self.assertNotIn('--dump', command)
+        self.assertNotIn('--wait-until', command)
+        self.assertEqual(command[-1], 'https://example.com/image.png')
+
+    def test_moli_raw_pdf_is_extracted_and_preserved(self):
+        from types import SimpleNamespace
+        raw = b'%PDF-fixture'
+        request = dict(engine='moli', binary='/moli', url='https://example.com/paper.pdf',
+                       timeout=1, output_mode='document')
+        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+                returncode=0, stdout=raw, stderr=b'')), patch(
+                'scripts.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['content'], 'Paper body')
+        self.assertEqual(result['metadata']['document_extractor'], 'pypdf')
+        self.assertEqual(result['metadata']['raw_stdout_sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertIn('_raw_stdout_b64', result['metadata'])
+
+    def test_moli_raw_file_is_returned_without_text_decoding(self):
+        from types import SimpleNamespace
+        raw = b'\x89PNG\r\n\x1a\n' + b'payload'
+        request = dict(engine='moli', binary='/moli', url='https://example.com/image.png',
+                       timeout=1, output_mode='file')
+        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+                returncode=0, stdout=raw, stderr=b'')):
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['content'], '')
+        self.assertEqual(result['files_b64'], [base64.b64encode(raw).decode('ascii')])
+
+    def test_moli_document_html_fallback_remains_a_scored_text_answer(self):
+        from types import SimpleNamespace
+        request = dict(engine='moli', binary='/moli', url='https://example.com/file.docx',
+                       timeout=1, output_mode='document')
+        completed = [
+            SimpleNamespace(returncode=0, stdout=b'<h1>Unsupported document</h1>', stderr=b''),
+            SimpleNamespace(returncode=0, stdout='v1'.encode(), stderr=b''),
+            SimpleNamespace(returncode=0, stdout=b'# Unsupported document\n', stderr=b''),
+        ]
+        with patch('scripts.headless_worker.subprocess.run', side_effect=completed):
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['content'], '# Unsupported document\n')
+        self.assertEqual(result['metadata']['document_response'],
+                         'serialized_html_not_raw_document')
 
     def test_unknown_cli_rejected(self):
         with self.assertRaises(ValueError):

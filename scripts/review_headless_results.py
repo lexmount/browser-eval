@@ -48,8 +48,13 @@ def independent_case(case):
 def independent_attempt(row):
     # Do not prime the independent reviewer with machine verdicts, scores or
     # large derived URL inventories. Those are joined only after review.
-    return {key: row[key] for key in
-            ('attempt_id', 'provider', 'artifact', 'request_ok', 'error_type')}
+    result = {key: row[key] for key in
+              ('attempt_id', 'provider', 'artifact', 'request_ok', 'error_type')}
+    if row.get('file_artifacts'):
+        result['file_artifacts'] = row['file_artifacts']
+    if row.get('raw_response_artifact'):
+        result['raw_response_artifact'] = row['raw_response_artifact']
+    return result
 
 
 def main():
@@ -89,6 +94,11 @@ def main():
             'artifact': str(evidence/record['artifact_path']),
             'request_ok': record['ok'], 'error_type': record.get('error_type'),
             'metrics': record['metrics'],
+            'file_artifacts': [str(evidence/file['artifact_path']) for file in
+                               record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
+                               if file.get('artifact_path')],
+            'raw_response_artifact': (str(evidence/record['provider_metadata']['raw_stdout_path'])
+                                      if record.get('provider_metadata',{}).get('raw_stdout_path') else None),
         })
     ordered = [case['id'] for case in dataset['cases'] if by_case[case['id']]]
     schema_path=work/'review-schema.json'
@@ -102,7 +112,8 @@ def main():
             if not packet.is_file():
                 raise ValueError(f'Batch {batch_index} has output without its blinded input packet')
             saved_packet = json.loads(packet.read_text())
-            if any(set(row) - {'attempt_id','provider','artifact','request_ok','error_type'}
+            if any(set(row) - {'attempt_id','provider','artifact','request_ok','error_type',
+                               'file_artifacts','raw_response_artifact'}
                    for row in saved_packet.get('attempts', [])):
                 raise ValueError(f'Batch {batch_index} exposes machine judgments; use a new review directory')
             result = json.loads(output.read_text())
@@ -113,7 +124,7 @@ def main():
                 'attempts': [independent_attempt(row) for cid in case_ids for row in by_case[cid]],
             }, ensure_ascii=False, indent=2)+'\n')
             prompt = f'''Independently audit every attempt in {packet}. This is a result-verification stage, not a code review.
-Inspect each artifact named in the packet and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. Use Read and Grep as needed across the full artifact; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
+Inspect every artifact named for an attempt, including file_artifacts and raw_response_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
 Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
             system=('You are an independent benchmark evidence auditor. Follow the task exactly. '
                     'Use only read operations, report observable evidence, and never trust stored verdicts. ')

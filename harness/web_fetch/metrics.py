@@ -31,6 +31,10 @@ METRIC_DEFINITIONS = {
 
 
 URL_KEYS = {"url", "href", "src", "link"}
+RESOURCE_FILE_SUFFIXES = (
+    'pdf','doc','docx','xls','xlsx','ppt','pptx','zip','tar','gz','bz2','7z',
+    'png','jpg','jpeg','gif','webp','svg','avif','mp4','webm','mov','m4v','mp3','wav','ogg',
+)
 
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
@@ -73,6 +77,19 @@ def _metadata_resource_urls(value: Any, *, key: str = "") -> list[str]:
     return urls
 
 
+def _visible_relative_resource_urls(content: str) -> list[str]:
+    """Find visible file links omitted as hrefs by a Markdown serializer.
+
+    Directory indexes and preformatted download pages may render a relative
+    filename as ``<file%5Fname.zip>`` after the href is lost. Requiring both
+    angle delimiters and a file-like suffix prevents ordinary prose and HTML
+    tag names from becoming resource hits.
+    """
+    suffix = '|'.join(RESOURCE_FILE_SUFFIXES)
+    pattern = rf'<((?:\.{{0,2}}/)?[^\s<>"\'()\[\]]+\.(?:{suffix})(?:\?[^\s<>"\'()\[\]]*)?)>'
+    return re.findall(pattern, content, re.I)
+
+
 def evaluate_resources(
     content: str,
     metadata: dict[str, Any],
@@ -92,6 +109,7 @@ def evaluate_resources(
         candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
         candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
         candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
+        candidates.extend(_visible_relative_resource_urls(content))
     normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
     normalized_candidates = [url for url in normalized_candidates if url != normalize_resource_url(base_url,base_url)]
     results = []
@@ -211,6 +229,13 @@ def fact_in_text(text: str, fact: str) -> bool:
     return False
 
 
+def text_corruption(value: str) -> tuple[int, float, bool]:
+    """Detect substantial UTF-8 replacement-character damage in text output."""
+    count = value.count('\ufffd')
+    ratio = count / max(1, len(value))
+    return count, round(ratio, 4), count >= 20 and ratio >= 0.02
+
+
 def evaluate_content(
     content: str,
     expected: list[str],
@@ -226,6 +251,7 @@ def evaluate_content(
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
 ) -> dict[str, Any]:
+    replacement_count, replacement_ratio, encoding_corruption = text_corruption(content)
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
@@ -262,7 +288,8 @@ def evaluate_content(
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
-    content_pass = legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold and not forbidden
+    content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
+                    and not forbidden and not encoding_corruption)
     pattern_results = []
     for rule in required_patterns or []:
         count = len(set(re.findall(rule['pattern'], content, re.I)))
@@ -299,6 +326,9 @@ def evaluate_content(
         "markdown_headings": len(re.findall(r"(?m)^#{1,6}\s+", content)),
         "markdown_links": len(re.findall(r"\[[^]]+]\(https?://", content)),
         "html_tags": len(re.findall(r"<[^>]+>", content)),
+        "replacement_character_count": replacement_count,
+        "replacement_character_ratio": replacement_ratio,
+        "text_encoding_corruption": encoding_corruption,
         "word_precision": word_precision,
         "word_recall": word_recall,
         "word_f1": word_f1,
@@ -312,6 +342,11 @@ def evaluate_content(
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task
         result.update(evaluate_stable_task(content, acceptance_contract, base_url, links=named_links))
+        if encoding_corruption:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "text_encoding_corruption" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("text_encoding_corruption")
         if forbidden:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

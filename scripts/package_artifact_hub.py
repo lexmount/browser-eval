@@ -162,11 +162,17 @@ def build():
     idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre data-kind="(reference|contract|output|metadata)">(.*?)</pre>',text,re.S))
     by_kind={kind:[match for match in matches if match[1]==kind] for kind in ('reference','contract','output','metadata')}
     source_kind='contract' if by_kind['contract'] else 'reference'
-    assert len(by_kind[source_kind])>=1 and len(by_kind['output'])==1 and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    # Text tasks show the complete source and output in <pre> blocks, which we
+    # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
+    # structured byte/hash comparison instead, so they have neither block.
+    assert len(by_kind['output'])<=1 and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
     # The first source block is the complete reference/contract. Newer detail pages
     # can also show several derived body-region excerpts; keep those excerpts inline
     # instead of incorrectly replacing each one with the complete source file.
-    selected=[by_kind[source_kind][0],by_kind['output'][0],by_kind['metadata'][0]]
+    selected=[]
+    if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
+    if by_kind['output']:selected.append(by_kind['output'][0])
+    selected.append(by_kind['metadata'][0])
     replacements={source_kind:(f'<pre data-file="contracts/{record["case_id"]}.json"></pre>' if source_kind=='contract'
                                 else f'<pre data-file="references/{record["case_id"]}.txt"></pre>'),
                   'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',

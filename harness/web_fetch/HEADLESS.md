@@ -1,21 +1,22 @@
-# Browser fastest-Markdown comparison
+# Browser task-native Web Fetch comparison
 
 The cohort reuses all 150 registered Web Fetch task IDs: 100 web cases and 10
 each for document, image, video, challenge and dynamic delivery. Every method
 receives the same URL, task rule and end-to-end deadline and is judged by the
 shared `score_attempt` path. Implementations are deliberately not forced through
-one extractor: the benchmark asks each method to deliver Markdown through its
-fastest documented or built-in route.
+one extractor: the benchmark asks each method to use its fastest documented or
+built-in route to the task's final deliverable. Web and document-body tasks end
+in readable text; direct-file tasks end in verified original bytes.
 
 ## Runtime and route
 
-| Method | Deployment | Measured Markdown route |
+| Method | Deployment | Measured route |
 |---|---|---|
 | Kitesurf | Cloudflare account Browser Run | `POST /browser-rendering/markdown?browser=kitesurf` |
 | Lightpanda | local CLI | `fetch --dump markdown` |
 | Obscura | local CLI, standard mode | `fetch --dump markdown` |
 | Moli 1.1.1 | local CLI | `fetch --dump markdown` |
-| Moli 1.1.3 | local CLI | `fetch --dump markdown` |
+| Moli 1.1.3 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
 | Chromium | local Playwright/CDP | rendered DOM HTML → `node-html-markdown` 2.0.0 |
 
 Chromium and CDP do not expose a native Markdown result. Chromium Reader Mode
@@ -56,8 +57,12 @@ each pair's denominator visible.
 Method-specific readiness behavior can change delivered content. Equal option
 names would still not prove equal implementation, so the report records the
 actual condition instead of calling it normalized. Documents and media also
-have different delivery contracts; this run does not silently add a PDF parser,
-OCR, media understanding or generic downloader to any method.
+have different delivery contracts. A document-body case measures URL to readable
+text: a provider's direct text is accepted, while a provider that returns raw
+PDF/DOCX bytes must parse them inside the same end-to-end deadline. A direct-file
+case stops at verified bytes and never performs an irrelevant Markdown conversion.
+The run does not add OCR, media understanding or a generic downloader that bypasses
+the selected method.
 
 ## Credentials and binaries
 

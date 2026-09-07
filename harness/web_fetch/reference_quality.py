@@ -26,14 +26,25 @@ def visible_markdown_links(text: str) -> str:
             elif char==')':depth-=1
             end+=1
         if depth:continue
-        # Distinct adjacent link labels retain a token boundary. Plain text
-        # (including a link inside a word) is never split or re-segmented.
+        # Distinct adjacent link labels retain a token boundary. Some native
+        # serializers also drop a real DOM text boundary immediately before a
+        # path link or a multi-word link label (``out[/r/x]`` / ``or[Stack
+        # Overflow]``). Restore only those unambiguous boundaries; ordinary
+        # links embedded in a word (``pre[fix]`` / ``[read]able``) stay joined.
         gap = text[start:match.start()]
         if match.start()==start and previous_label and match[1]:
             # A numeric value may span links: never turn -10, 10.5 or 100
             # into a separately matchable positive 10 by adding whitespace.
             numeric = lambda char: char.isdigit() or char in '+-.−'
             gap='' if numeric(previous_label[-1]) and numeric(match[1][0]) else ' '
+        else:
+            separated = lambda label: label.startswith(('/', '#')) or any(char.isspace() for char in label)
+            if (previous_label and gap and not gap[0].isspace()
+                    and separated(previous_label) and gap[0].isalnum()):
+                gap=' '+gap
+            if (gap and match[1] and not gap[-1].isspace()
+                    and separated(match[1]) and (gap[-1].isalnum() or gap[-1] in ',.;:!?')):
+                gap+=' '
         result.extend([gap,match[1]])
         previous_label=match[1]
         start=end

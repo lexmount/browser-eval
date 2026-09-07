@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.providers.headless import cli_command
+from harness.web_fetch.document_text import extract_document_text
 from harness.web_fetch.safety import validate_http_url
 
 
@@ -29,6 +30,28 @@ def fetch(request):
             result = subprocess.run(command, capture_output=True, timeout=timeout)
             meta.update(browser_exit_code=result.returncode,
                         browser_stderr=result.stderr.decode('utf-8', 'replace')[:4096])
+            if result.returncode:
+                return dict(ok=False, content='', html='', error_type='browser_exit',
+                            error_message=meta['browser_stderr'] or str(result.returncode), metadata=meta)
+            if output_mode == 'file':
+                meta['raw_stdout_sha256'] = hashlib.sha256(result.stdout).hexdigest()
+                meta['raw_fetch_ms'] = round((time.monotonic()-start)*1000, 2)
+                return dict(ok=bool(result.stdout), content='', html='', status_code=None,
+                            final_url=None, metadata=meta,
+                            files_b64=[base64.b64encode(result.stdout).decode('ascii')]
+                            if result.stdout else [],
+                            error_type=None if result.stdout else 'empty_response')
+            if output_mode == 'document' and result.stdout.startswith((b'%PDF', b'PK')):
+                raw_fetch_ms = round((time.monotonic()-start)*1000, 2)
+                text, extractor = extract_document_text(result.stdout)
+                meta['_raw_stdout_b64'] = base64.b64encode(result.stdout).decode('ascii')
+                meta['raw_stdout_sha256'] = hashlib.sha256(result.stdout).hexdigest()
+                meta['raw_fetch_ms'] = raw_fetch_ms
+                meta['document_extractor'] = extractor
+                meta['document_extract_ms'] = round((time.monotonic()-start)*1000-raw_fetch_ms, 2)
+                return dict(ok=bool(text.strip()), content=text, html='', status_code=None,
+                            final_url=None, metadata=meta,
+                            error_type=None if text.strip() else 'empty_response')
             try:
                 browser_output = result.stdout.decode('utf-8')
             except UnicodeDecodeError:
@@ -36,15 +59,14 @@ def fetch(request):
                 meta['raw_stdout_sha256'] = hashlib.sha256(result.stdout).hexdigest()
                 return dict(ok=False, content='', html='', error_type='non_utf8_response',
                     error_message='HTML adapter received non-UTF-8 bytes; preserved without conversion', metadata=meta)
-            if result.returncode:
-                return dict(ok=False, content='', html='', error_type='browser_exit',
-                            error_message=meta['browser_stderr'] or str(result.returncode), metadata=meta)
             if output_mode == 'markdown':
                 meta['native_markdown_ms'] = round((time.monotonic()-start)*1000, 2)
                 return dict(ok=bool(browser_output.strip()), content=browser_output, html='',
                             status_code=None, final_url=None, metadata=meta,
                             error_type=None if browser_output.strip() else 'empty_response')
             html = browser_output
+            if output_mode == 'document':
+                meta['document_response'] = 'serialized_html_not_raw_document'
             status = None
             final_url = None
         else:

@@ -19,6 +19,13 @@ from .models import execution_id
 
 TRACKS={'web':'网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
 PROVIDER_LABELS={'moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+ROUTE_LABELS={
+ 'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
+ 'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
+ 'obscura_native_markdown':'Obscura CLI 直接返回 Markdown',
+ 'moli_native_markdown':'Moli CLI 直接返回 Markdown',
+ 'node-html-markdown':'Chromium 渲染 DOM → node-html-markdown 2.0.0',
+}
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
@@ -54,6 +61,10 @@ EXTRA+='''
 
 EXTRA+='''
 .pricing-table{min-width:940px}.pricing-table th{white-space:normal;line-height:1.5}.pricing-table th:first-child{white-space:nowrap}.pricing-table td{font-size:13px;line-height:1.65;min-width:125px}.pricing-table td:first-child{min-width:36px}.pricing-table td:nth-child(2){min-width:150px}.pricing-table td:last-child{min-width:140px}#method-guide-pricing h3{margin-top:30px}#method-guide-pricing h4{margin-top:0}#method-guide-pricing .worked-example span{flex:1;min-width:200px}@media(max-width:700px){#method-guide-pricing .worked-example{display:block}#method-guide-pricing .worked-example strong{display:block;margin-bottom:8px}}
+'''
+
+EXTRA+='''
+.attempt-summary{display:grid;grid-template-columns:minmax(260px,1.4fr) repeat(4,minmax(120px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.7}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-jumps{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-weight:700}.evidence-intro{margin:0 0 18px;color:var(--muted)}.evidence-compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.evidence-pane{min-width:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.evidence-pane>header{padding:17px 19px;border-bottom:1px solid var(--line);background:var(--panel2)}.evidence-pane>header h3{margin:0 0 4px}.evidence-pane>header p{margin:0;color:var(--muted);font-size:13px}.evidence-pane>.pane-body{padding:16px}.evidence-pane pre{margin:0;max-height:560px;border-radius:9px}.answer-list{display:grid;gap:12px}.answer-item{padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}.answer-item b{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.answer-item blockquote{margin:0;padding:0;border:0;font-size:15px;white-space:pre-wrap}.encoding-warning{margin:0 0 14px}.decision-lead{padding:16px 18px;border-radius:12px;background:var(--accent-soft);line-height:1.75}.anchor-grid{display:grid;gap:12px;margin-top:16px}.anchor-card,.region-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:18px}.anchor-card.pass,.region-card.pass{border-left:4px solid var(--good)}.anchor-card.fail,.region-card.fail{border-left:4px solid var(--bad)}.anchor-head,.region-head{display:flex;align-items:start;justify-content:space-between;gap:18px}.anchor-head h3,.region-head h3{margin:0;font-size:18px}.verdict-badge{white-space:nowrap;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:750;background:var(--panel2)}.anchor-card.pass .verdict-badge,.region-card.pass .verdict-badge{color:var(--good);background:var(--success-bg)}.anchor-card.fail .verdict-badge,.region-card.fail .verdict-badge{color:var(--bad);background:var(--failure-bg)}.evidence-pair,.region-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.evidence-sample{min-width:0;padding:13px 14px;border-radius:10px;background:var(--panel2)}.evidence-sample b{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}.evidence-sample p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.coverage-rule{margin:14px 0 18px}.coverage-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:16px 0}.coverage-chip{display:block;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}.coverage-chip strong,.coverage-chip span{display:block}.coverage-chip span{font-size:12px;color:var(--muted)}.coverage-chip.good{border-color:var(--good)}.coverage-chip.bad{border-color:var(--bad)}.region-card{margin-top:14px}.region-card pre{max-height:260px;margin:8px 0 0;font-size:12px}.region-head p{margin:4px 0 0;color:var(--muted)}.technical-details{margin-top:18px;border-top:1px solid var(--line)}.technical-details>summary{cursor:pointer;font-weight:700;color:var(--accent);padding:14px 0}.technical-details .table-wrap{box-shadow:none}.section[id]{scroll-margin-top:78px}@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.coverage-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:700px){.attempt-summary,.evidence-compare,.evidence-pair,.region-pair{grid-template-columns:1fr}.coverage-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.evidence-pane pre{max-height:440px}.anchor-head,.region-head{display:block}.verdict-badge{display:inline-block;margin-top:8px}}
 '''
 
 def esc(s):return html.escape(str(s if s is not None else ''))
@@ -135,32 +146,108 @@ def review_summary(out, prefix=''):
          f'{esc(name or "独立复核代理")}逐条对照任务、参考和实际输出；本轮共核验 {checked}/{total} 个纳入核验范围的结果，发现 {disagreements} 个与自动判定不一致的结果{resolution}。'
          f' {link(prefix+"reproduce/index.html#result-review","查看核验记录 →")}</p>')
 
+def _evidence_chunks(text, width=620):
+ chunks=[]
+ for raw in text.splitlines():
+  line=raw.strip()
+  if not line:continue
+  if len(line)<=width:chunks.append(line)
+  else:
+   for start in range(0,len(line),width-100):chunks.append(line[start:start+width])
+ return chunks
+
+def _best_evidence_excerpt(expected, output):
+ from .body_coverage import tokens
+ wanted=Counter(tokens(expected))
+ if not wanted:return ''
+ best='';best_score=0
+ for chunk in _evidence_chunks(output):
+  found=Counter(tokens(chunk));score=sum((wanted & found).values())/sum(wanted.values())
+  if score>best_score:best,best_score=chunk,score
+ return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
+
+def _position_label(index,total):
+ names=['开头','前部','中部','后部','结尾'] if total==5 else [f'位置 {i+1}' for i in range(total)]
+ start=round(index*100/total);end=round((index+1)*100/total)
+ return f'{names[index]}（标准答案 {start}–{end}%）'
+
 def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
  regions={x['id']:x for x in contract['regions']}
- rows=[];details=[]
+ rows=[];cards=[];total=len(regions)
  for index,item in enumerate(metrics.get('body_region_results',[]),1):
   actual={**recalculated.get(item['id'],{}),**item}
   expected=regions.get(item['id'],{}).get('text','')
   expected_count=actual.get('expected_units',actual.get('expected_tokens',len(expected.split())))
   matched=actual.get('matched_units',actual.get('matched_tokens',round(actual['coverage']*expected_count)))
-  missing=actual.get('missing_units',actual.get('missing_tokens',expected_count-matched))
-  unit={2:'字符三元组',3:'字符六元组'}.get(contract.get('version'),'词')
-  label=f'第 {index}/{len(regions)} 段'
-  judgement=('达到 80% 目标' if actual.get('target_pass',actual['pass']) else
-             '容差段' if actual.get('floor_pass') else '未通过')
-  rows.append(('',cell(esc(label))+cell(f'{matched}/{expected_count}')+cell(str(missing))+cell(pct(actual['minimum']))+cell(judgement)))
-  sample='、'.join(f'{x.get("fragment",x.get("token",""))}'+(f'×{x["count"]}' if x['count']>1 else '') for x in actual.get('missing_sample',[])) or '无'
-  details.append(f'<details><summary>{esc(label)}：标准答案与缺失内容</summary><p><b>要求：</b>标准答案中的 {expected_count} 个{unit}目标命中 {actual["minimum"]*100:.0f}%（硬下限 {actual.get("floor",actual["minimum"])*100:.0f}%）；<b>实际：</b>{matched}/{expected_count}，{pct(actual["coverage"])}，{judgement}。</p><p><b>缺失片段：</b>{esc(sample)}</p><pre data-kind="reference">{esc(expected)}</pre></details>')
- return rows,''.join(details)
+  passed=actual.get('target_pass',actual['pass'])
+  label=_position_label(index-1,total)
+  judgement=('达到目标' if passed else '低于目标，但达到硬下限' if actual.get('floor_pass') else '未达到硬下限')
+  css='pass' if passed else 'fail'
+  rows.append(('',cell(esc(label))+cell(pct(actual['coverage']))+cell(pct(actual['minimum']))+cell(esc(judgement))))
+  excerpt=_best_evidence_excerpt(expected,output)
+  actual_html=(f'<pre data-kind="region-output">{esc(excerpt)}</pre>' if excerpt else
+               '<p class="empty">实际返回中没有找到可直接展示的对应连续文字。</p>')
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>在标准答案的 {expected_count:,} 个比对单元中找到 {matched:,} 个，覆盖 {pct(actual["coverage"])}；目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的标准答案</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际返回中的对应原文</b>{actual_html}</div></div></article>')
+ return rows,cards
+
+def stable_answer_panel(contract):
+ anchors=contract.get('stable_text_anchors',[])
+ items=[]
+ for index,anchor in enumerate(anchors,1):
+  alternatives=anchor.get('alternatives',[])
+  text='\n或\n'.join(alternatives)
+  items.append(f'<div class="answer-item"><b>必须出现的稳定文字 {index}（任一写法即可）</b><blockquote>{esc(text)}</blockquote></div>')
+ minimum=contract.get('minimum_records')
+ maximum=contract.get('maximum_records')
+ count=(f'至少 {minimum} 条完整且不重复的记录' if maximum is None else
+        f'{minimum}–{maximum} 条完整且不重复的记录')
+ return f'<div class="answer-list"><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
+
+def stable_anchor_evidence(metrics,output):
+ cards=[]
+ for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
+  alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
+  excerpt=''
+  for alternative in alternatives:
+   candidate=_best_evidence_excerpt(alternative,output)
+   if candidate:excerpt=candidate;break
+  passed=bool(item.get('pass'));css='pass' if passed else 'fail'
+  actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到这段稳定文字。</p>')
+  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{"命中" if passed else "未命中"}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div></article>')
+ return '<div class="anchor-grid">'+''.join(cards)+'</div>' if cards else ''
 
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
  if succeeded(r,c):return '—'
  return (r.get('diagnosis') or diagnose(r,c,'') or {'category':'任务规则未满足'})['category']
+
+def stable_failure_summary(metrics):
+ parts=[]
+ minimum=metrics.get('stable_minimum_records')
+ complete=metrics.get('stable_unique_record_count')
+ if isinstance(minimum,int) and isinstance(complete,int) and complete < minimum:
+  parts.append(f'只有 {complete} 条记录同时做到字段完整且不重复，少于要求的 {minimum} 条')
+ missing=[]
+ for item in metrics.get('stable_anchor_results',[]):
+  if not item.get('pass'):
+   alternatives=item.get('alternatives',[])
+   if alternatives:missing.append(' / '.join(alternatives))
+ if missing:parts.append('缺少稳定文字“'+'”、“'.join(missing)+'”')
+ if metrics.get('text_encoding_corruption'):
+  parts.append(f'输出存在明显乱码：{metrics.get("replacement_character_count",0):,} 个替换字符，占 {pct(metrics.get("replacement_character_ratio"))}')
+ errors=set(metrics.get('stable_task_errors') or [])
+ labels=[
+  ('duplicate_records','返回记录存在重复'),('incomplete_records','部分记录缺少必需字段'),
+  ('too_many_complete_records','完整记录数超过任务声明范围'),
+  ('blocked_page','实际返回是访问限制或验证页面'),
+ ]
+ for key,label in labels:
+  if key in errors and label not in parts:parts.append(label)
+ return '；'.join(parts) or '稳定文字或记录结构没有满足任务要求'
 
 def reason(r,c):
  if not measured(r,c):return '未测：历史调用未记录原文件字节验收证据，不计入任务通过率或失败数。'
@@ -169,7 +256,16 @@ def reason(r,c):
   m=r['metrics']
   counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
-  return counts+(success if succeeded(r,c) else '稳定任务规则未满足：'+'；'.join(m.get('stable_task_errors') or m.get('forbidden_hits') or ['见稳定检查结果']))
+  return counts+(success if succeeded(r,c) else stable_failure_summary(m)+'。')
+ m=r['metrics']
+ if m.get('text_encoding_corruption'):
+  return f'实际返回存在明显乱码：{m.get("replacement_character_count",0):,} 个替换字符，占 {pct(m.get("replacement_character_ratio"))}；损坏文字不能作为有效正文。'
+ if m.get('body_region_results') and not m.get('body_coverage_pass'):
+  regions=m['body_region_results'];failed=[]
+  for index,item in enumerate(regions):
+   if not item.get('target_pass',item.get('pass')):
+    failed.append(f'{_position_label(index,len(regions)).split("（")[0]} {pct(item.get("coverage"))}')
+  return '正文没有抓全；低于目标的位置为：'+'、'.join(failed)+'。下方会把完整标准答案与实际返回并排展示。'
  if r.get('diagnosis'):return r['diagnosis']['evidence']
  if not r['ok']:
   names={'dns':'请求路径中的域名无法解析','timeout':'请求超时','network':'请求路径网络故障','api_error':'供应商接口报错','WEB_BLOCKED_URL':'方法的 URL 安全规则拒绝请求'}
@@ -198,7 +294,7 @@ def stable_checks(m):
   checks.append(('',cell(f'页面模式 {i}')+cell(esc(x['pattern']))+cell('通过' if x['pass'] else '未通过')+cell('—')))
  content=table(['稳定内容核对点','目标','判定','实际命中'],checks) if checks else '<p>本例未设置稳定文字核对点，不作文字内容已核验的结论。</p>'
  records=[('',cell(esc(json.dumps(x.get('fields',{}),ensure_ascii=False)))+cell('通过' if x.get('valid') else '未通过')+cell(esc('；'.join(x.get('errors',[])) or '—'))) for x in m.get('stable_records',[])]
- return content+table(['条目字段','结构判定','原因'],records)+('<p>任务检查错误：'+esc('；'.join(m['stable_task_errors']))+'</p>' if m.get('stable_task_errors') else '')
+ return content+table(['条目字段','结构判定','原因'],records)+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
 
 def ranking(records,cases,track,base='',id=None,compact=False):
  from .report_components import comparable_body_reference
@@ -409,7 +505,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
    observed=sorted({r['provider'] for r in bycase[c['id']]})
    status_note+='<p class="source-note">动态网站正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
-  body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('源页与参考',status_note+f'<p>{link(c["url"],c["url"])}</p><details><summary>来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details><p>{link("../references/"+c["id"]+".txt","下载参考")} · {source_record}</p><details><summary>参考正文 / 目标结果</summary><pre>{esc(ref)}</pre></details>')
+  body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('标准答案与来源',status_note+f'<p>{link(c["url"],"打开任务源页 ↗")} · {link("../references/"+c["id"]+".txt","下载标准答案")} · {source_record}</p><div class="evidence-pane"><header><h3>本任务的标准答案 / 目标结果</h3><p>下方直接展示用于判定的完整内容；长内容可在栏内滚动。</p></header><div class="pane-body"><pre data-kind="reference">{esc(ref)}</pre></div></div><details class="technical-details"><summary>查看来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details>')
   body+=section('评分核对点',(table(['核对点','允许表达'],facts) if facts else '')+rules+(table(['资源','允许地址'],resources) if resources else '')+('<p>检查是否返回可核对的原始文件。</p>' if c.get('task_kind')=='file' else ''),'facts')
   if c.get('task_kind')=='structure':
    example=out/'sources'/c['id']/'items.json'
@@ -419,19 +515,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
     body+=section('公开条目快照','<p class="source-note">采集时的公开字段作为来源证据保留，不要求返回相同名单或排序；稳定任务按上方内容锚点与字段要求判定。</p><details><summary>展开 '+str(len(items))+' 条</summary>'+table(['名称 / 内容','入口'],sample)+'</details>')
   if c.get('body_requirements'):
    rules=c['body_requirements']
-   region_rows=[]
-   for index,region in enumerate(rules['regions'],1):
-    from .body_coverage import compact_ngrams
-    size=6 if rules.get('version')==3 else 3
-    count=len(compact_ngrams(region['text'],size)) if rules.get('version') in {2,3} else len(region['text'].split())
-    region_rows.append(('',cell(f'第 {index}/{len(rules["regions"])} 段')+cell(str(count))+cell(pct(rules['minimum_coverage']))+cell('<details><summary>查看标准答案</summary><pre>'+esc(region['text'])+'</pre></details>')))
-   unit={2:'字符三元组',3:'字符六元组'}.get(rules.get('version'),'词')
+   region_cards=[];total=len(rules['regions'])
+   for index,region in enumerate(rules['regions']):
+    label=_position_label(index,total)
+    region_cards.append(f'<article class="region-card" id="reference-region-{index+1}"><div class="region-head"><div><h3>{index+1}. {esc(label)}</h3><p>这是同一份标准答案在该位置的原文，不是独立任务。</p></div></div><pre data-kind="reference">{esc(region["text"])}</pre></article>')
    if rules.get('version')==3:
     policy=(f'每段硬下限 {pct(rules["minimum_floor"])}；至少 '
             f'{rules["minimum_region_passes"]}/{len(rules["regions"])} 段达到 '
             f'{pct(rules["minimum_coverage"])}。')
    else:policy=f'每段至少达到 {pct(rules["minimum_coverage"])}。'
-   body+=section('正文范围验收',f'<p>把标准答案按顺序均分为 {len(rules["regions"])} 段；{policy}{unit}忽略空白、排版符号和链接地址；每个实际片段只能分配给一个参考段，避免重复短语被多段重复借分。逐次执行页列出要求、实际命中、缺失片段、标准答案和完整输出。</p>'+table(['参考段','标准'+unit+'数','目标命中','标准答案'],region_rows,metrics=[]))
+   body+=section('如何检查是否抓全',f'<p class="decision-lead"><b>这是一份完整答案，不是 {total} 个任务。</b> 只检查标题和几个关键词，可能让“只抓到开头”的残缺结果通过。因此系统按前后位置检查同一份标准答案。{policy} 比对忽略空白、排版符号和 Markdown 链接地址；每次执行页会并列显示各位置的标准原文和实际证据。</p>'+''.join(region_cards))
   body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
@@ -501,32 +594,106 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   if 'stable_task_pass' in m:
    caveat='<p class="source-note">本次任务按稳定内容与条目结构共同判定。全文指标须有完整、可比的参考，不能由条目数量推算。</p>'
   detail_metrics=['请求','结果','耗时','HTTP 状态','输出字符','输出校验值']+(['具名详情入口'] if c.get('task_kind')=='structure' else ['完整度','纯净度','F1'] if c.get('ground_truth_main_content') else [])
-  body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('执行结果',caveat+f'<div class="callout">{esc(reason(r,c))}</div><details><summary>指标说明</summary>'+metric_legend(detail_metrics)+'</details>'+table(['项目','结果'],rows,metrics=[])+f'<p>{link(c["url"],"打开源页 ↗")} · {link("../datasets/"+c["id"]+".html","该案例与全部方法")}</p>')
-  if title_details:body+=section('标题文字质量',metric_legend(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'])+title_details)
-  if r.get('diagnosis') and not succeeded(r,c):
+  state=result_label(r,c);passed=succeeded(r,c)
+  provider_meta=r.get('provider_metadata',{})
+  if provider_meta.get('document_extractor'):
+   route_label=f'处理路线：方法直接取得原始文档 → {provider_meta["document_extractor"]} → 可读正文'
+  elif c.get('task_kind')=='file':
+   route_label='处理路线：方法直接取得原始文件 → 格式、长度与 SHA-256 验收'
+  else:
+   extractor=str(provider_meta.get('extractor') or '')
+   route_label='处理路线：'+ROUTE_LABELS.get(extractor,extractor or '参评方法直接返回正文')
+  delivered_summary=provider_meta.get('file_evaluation',{}).get('files',[])
+  actual_summary=(f'实际交付：{len(delivered_summary)} 个文件、{sum(x.get("bytes",0) for x in delivered_summary):,} 字节'
+                  if c.get('task_kind')=='file' else f'实际输出：{len(output):,} 字符')
+  hero_meta=(f'<strong>任务 ID：<code>{esc(c["id"])}</code></strong><br>{esc(task_instruction(c))}'
+             f'<span class="meta"><span class="pill">方法：{esc(provider_label(r["provider"]))}</span>'
+             f'<span class="pill">运行 ID：{esc(r.get("run_id") or execution_id(r))}</span></span>')
+  summary=(f'<div class="attempt-verdict {"" if passed else "failure"}">'
+           f'<span class="status-line">{esc(state)}</span><p>{esc(reason(r,c))}</p>'
+           f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]))} · '
+           f'请求：{"成功" if r["ok"] else "失败"} · 耗时：{ms(r["elapsed_ms"])} · {actual_summary}</p></div>')
+  summary+=f'<p class="source-note">{esc(route_label)}</p>'
+  if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
-   facts=[('失败分类',d['category']),('发生阶段',d['stage']),('判定依据',d['evidence']),('归因边界',d['certainty'])]
+   facts=[('失败分类',d['category']),('发生阶段',d['stage']),('判定依据',reason(r,c)),('归因边界',d['certainty'])]
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
-   body+=section('失败原因',table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[]))
-  reference_heading='列表任务规则 / 参考依据' if c.get('task_kind')=='structure' else '完整参考 / 目标结果'
+   summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
+  body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
+  reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_kind='reference';reference_download='../references/'+c['id']+'.txt'
+  source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
+  source_meta=f'{len(ref):,} 字符 · {link(reference_download,"下载完整标准答案")}'
+  delivered=r.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
   if 'stable_task_pass' in m and c.get('acceptance_contract'):
-   reference_heading='稳定任务契约'
    reference_kind='contract';reference_download='../contracts/'+c['id']+'.json'
-   ref=json.dumps(c['acceptance_contract'],ensure_ascii=False,indent=2)
-  body+=section('参考与实际输出',f'<div class="compare"><div><h3>{reference_heading}</h3><p>{link(reference_download,"下载契约" if reference_kind=="contract" else "下载参考")}</p><pre data-kind="{reference_kind}">{esc(ref)}</pre></div><div><h3>本次完整输出</h3><p>{link("../"+r["artifact_path"],"下载原始输出")}</p>'+('<p class="source-note">不可显示的控制字节以 \\xNN 展示；下载文件保留原始输出。</p>' if readable_output(output)!=output else '')+f'<pre data-kind="output">{esc(readable_output(output))}</pre></div></div>')
-  checks_html=stable_checks(m) if 'stable_task_pass' in m else (table(['核对点','目标','判定','实际命中'],checks) if checks else '<p>本例按任务结构或原文件输出判定。</p>')+''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
-  if m.get('body_region_results'):
-   region_rows,region_details=body_region_rows(c,m,output)
-   checks_html+=table(['参考段','实际命中','缺失单元','最低要求','判定'],region_rows,metrics=[])+region_details
+   contract_text=json.dumps(c['acceptance_contract'],ensure_ascii=False,indent=2)
+   source_body=(stable_answer_panel(c['acceptance_contract'])+
+                '<details class="technical-details"><summary>查看机器可读契约</summary>'
+                f'<pre data-kind="contract">{esc(contract_text)}</pre></details>')
+   source_meta='这里直接列出本任务真正要求的文字和记录数量，不要求用户阅读 JSON。'
+  corruption=''
+  if m.get('text_encoding_corruption'):
+   corruption=(f'<p class="callout failure encoding-warning"><b>实际输出存在解码损坏：</b>'
+               f'含 {m.get("replacement_character_count",0):,} 个 �，占 {pct(m.get("replacement_character_ratio"))}。'
+               '这些字符在保存前已丢失，不能从当前 Markdown 还原。</p>')
+  output_note=(f'{len(output):,} 字符 · '+link('../'+r['artifact_path'],'下载原始输出'))
+  if readable_output(output)!=output:output_note+=' · 控制字节在页面中显示为 \\xNN'
+  actual_body=corruption+f'<pre data-kind="output">{esc(readable_output(output))}</pre>'
+  if c.get('task_kind')=='file':
+   reference_heading='目标文件'
+   expected_hash=c.get('source_verification',{}).get('file_sha256') or '未登记'
+   source_meta='本任务验收原始文件字节，不要求 Markdown。'
+   source_body=(f'<div class="answer-list"><div class="answer-item"><b>文件要求</b><blockquote>{esc(ref)}</blockquote></div>'
+                f'<div class="answer-item"><b>目标 SHA-256</b><code class="break">{esc(expected_hash)}</code></div></div>')
+   if delivered:
+    actual_rows=[('',cell(esc(f.get('mime') or '未知格式'))+cell(f'{f.get("bytes",0):,}')+
+                  cell(f'<code class="break">{esc(f.get("sha256"))}</code>')+cell('匹配' if f.get('pass') else '未匹配')) for f in delivered]
+    actual_body=table(['识别格式','字节数','SHA-256','目标校验'],actual_rows,metrics=[])
+    output_note=f'实际交付 {len(delivered)} 个文件 · '+link('../'+delivered[0]['artifact_path'],'下载交付文件')
+   else:
+    actual_body='<p class="empty">本次没有交付可校验的原始文件字节。</p>'
+    output_note='实际交付 0 个文件'
+  evidence=(f'<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的输出。两栏都显示真实内容，不是摘要；长内容可在栏内滚动。</p>'
+            f'<div class="evidence-compare"><article class="evidence-pane"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
+            f'<article class="evidence-pane"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
+  body+=section('标准答案与实际返回',evidence,'evidence')
+  checks_html=''
+  if 'stable_task_pass' in m:
+   checks_html+=stable_anchor_evidence(m,output)
+   checks_html+=(f'<p class="decision-lead"><b>结构结果：</b>实际解析出 {m.get("stable_unique_record_count",0)} 条完整且不重复的记录，'
+                 f'要求至少 {m.get("stable_minimum_records","—")} 条；结构检查{("通过" if m.get("stable_structure_pass") else "未通过")}，'
+                 f'稳定文字检查{("通过" if m.get("stable_content_pass") else "未通过")}。</p>')
+   checks_html+='<details class="technical-details"><summary>查看解析出的全部记录和机器检查字段</summary>'+stable_checks(m)+'</details>'
+  else:
+   checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">本例按任务结构或原文件输出判定。</p>')
+   checks_html+=''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
   if m.get('stable_field_results'):
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
-  body+=section('逐项判定',checks_html+f'<details><summary>接口返回的附加字段</summary><pre data-kind="metadata">{esc(json.dumps(r.get("provider_metadata",{}),ensure_ascii=False,indent=2))}</pre></details>')
+  body+=section('为什么这样判',caveat+checks_html,'decision')
+  if m.get('body_region_results'):
+   region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
+   required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
+   region_intro=(f'<div class="decision-lead"><b>为什么还要检查前后位置？</b> 只命中标题和开头关键词，不代表整篇正文已经抓全。'
+                 f'系统把同一份完整标准答案按前后位置均分为 {len(rules.get("regions",[]))} 份；它仍是一份答案、一个任务。'
+                 f'本任务要求每个位置至少覆盖 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{len(rules.get("regions",[]))} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
+                 '比对时忽略排版、空格和链接地址；下面同时给出每个位置的标准答案和实际返回证据。</div>')
+   body+=section('是否抓全整篇正文',region_intro+table(['标准答案位置','实际覆盖','目标覆盖','判定'],region_rows,metrics=[])+
+                 '<details class="technical-details"><summary>查看各位置的标准原文与实际对应内容</summary>'+''.join(region_cards)+'</details>','body-coverage')
+  if title_details:body+=section('标题文字质量',metric_legend(['标题完整度','标题纯净度','标题 F1','标题参考覆盖'])+title_details)
+  runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
+           +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
+           f'<details><summary>接口返回的附加字段</summary><pre data-kind="metadata">{esc(json.dumps(r.get("provider_metadata",{}),ensure_ascii=False,indent=2))}</pre></details></details>'
+           f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
+  body+=section('运行与评分信息',runtime,'run-info')
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):
-   body+=section('非文本响应证据','<p>'+link('../'+r['provider_metadata']['raw_stdout_path'],'下载浏览器原始输出字节')+'。HTML 文本适配器未将该二进制响应转换为正文。</p>')
-  delivered=r.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
+   metadata=r['provider_metadata'];extractor=metadata.get('document_extractor')
+   if extractor:
+    body+=section('原始文档证据','<p>'+link('../'+metadata['raw_stdout_path'],'下载方法直接取得的原始文档')+f'。正文由 <code>{esc(extractor)}</code> 在同一次调用的计时预算内提取；上方“实际返回”展示的是送入统一评分器的文本。</p>')
+   else:
+    body+=section('原始响应证据','<p>'+link('../'+metadata['raw_stdout_path'],'下载方法直接取得的原始响应字节')+'。若任务要求正文而响应没有形成可读文本，会按实际结果判为未通过。</p>')
   if delivered:
    file_rows=[('',cell(link('../'+f['artifact_path'],'下载交付文件'))+cell(esc(f.get('mime')))+cell(str(f['bytes']))+cell('<code class="break">'+esc(f['sha256'])+'</code>')+cell('匹配' if f.get('pass') else '未匹配')) for f in delivered]
    body+=section('原始文件字节证据',table(['文件','格式特征','字节数','SHA-256','目标校验'],file_rows,metrics=[]))
@@ -543,10 +710,10 @@ def write_support(out,records,manifests):
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
  if headless:
-  methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>独立采集源页；需要渲染的页面另做浏览器观测，通过完整范围校验后才冻结。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式 Markdown 路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>独立重取精确参考页，确认调用期间标准答案未改变；不把参考变化算成浏览器失败。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>强代理逐次读取完整输出、标准答案与任务规则；分歧必须裁定，未裁定项会阻止构建。</p></article></div>'+review_summary(out,'../'),'评测流程')
+  methodology+=section('从参考到发布','<div class="guide-grid"><article class="guide-card"><h3>1 · 冻结参考</h3><p>独立采集源页；需要渲染的页面另做浏览器观测，通过完整范围校验后才冻结。</p></article><article class="guide-card"><h3>2 · 执行调用</h3><p>同一 URL、任务和截止时间；各方法使用其最快的正式任务原生产物路线，保留版本、输出与哈希。</p></article><article class="guide-card"><h3>3 · 测后核验</h3><p>独立重取精确参考页，确认调用期间标准答案未改变；不把参考变化算成浏览器失败。</p></article><article class="guide-card"><h3>4 · 结果独立审查</h3><p>强代理逐次读取完整输出、标准答案与任务规则；分歧必须裁定，未裁定项会阻止构建。</p></article></div>'+review_summary(out,'../'),'评测流程')
  examples_html=re.sub(r'<a href="../datasets/([^"#]+).html">([^<]*)</a>',lambda m:m[0] if (out/'datasets'/(m[1]+'.html')).exists() else m[2],examples())
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
- methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口。正文、HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写请求或任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到可统一裁判的最终答案”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或加工，也必须完成后才停表。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续区域检查字符六元组覆盖：每段至少达到 60%，通常要求至少四段达到 80%；若页面存在经独立证据确认的合法重排，案例可显式登记不同段数门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
+ methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%；若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'scoring-revisions.json').exists():
   methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。其他历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','评分规则修订收据')+'和'+link('../reference-revisions.json','参考答案修订收据')+'记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
@@ -558,7 +725,7 @@ def write_support(out,records,manifests):
   methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','六种方法每次使用新进程或新上下文；Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura、Moli 1.1.1、Moli 1.1.3 走本地 CLI 原生 Markdown，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。统一 45 秒端到端预算，方法之间并行、同一方法串行。')
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','六种方法每次使用新进程或新上下文。普通网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura、Moli 1.1.1、Moli 1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 1.1.3 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动原始响应；正文任务再在预算内解析可读文字，文件任务直接校验字节。统一 45 秒端到端预算，方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('result-review.json','独立核验记录')] if (out/'result-review.json').is_file() else [])+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>python3 scripts/build_report.py</pre><p>输出目录：reports/webfetch/。重新实测使用 scripts/run_benchmark.py，正文配置为 configs/providers.example.json，资源配置为 configs/providers.resources.json。凭据仅从本地环境加载，不包含在报告中。</p>'

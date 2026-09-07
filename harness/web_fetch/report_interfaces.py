@@ -82,9 +82,11 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
   {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
   '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
 SPECS['moli-1.1.3']={**SPECS['moli'],
- 'entry':'CLI · moli 1.1.3 fetch --dump markdown',
- 'request':{**SPECS['moli']['request'],'version':'1.1.3'},
- 'notes':SPECS['moli']['notes']+'本方法只使用官方 1.1.3 发行二进制，与旧 Moli 记录分开计分。'}
+ 'entry':'CLI · Moli 1.1.3 普通网页 Markdown / 直接文档与媒体自动原始响应',
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','普通网页正文','直接取得 Markdown'),('不传 --dump','直接 PDF、DOCX、图片或视频','取得自动原始响应；不附加页面等待参数'),('timeout','seconds','45 秒外层端到端截止；文档解析包含在内')],
+ 'fields':[('stdout','UTF-8 string / bytes','普通网页为 Markdown；直接文件为原始字节'),('document_extractor','string','直接文档正文使用的本地解析器'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
+ 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'moli fetch --timeout 45000 --http-timeout 45000 URL','version':'1.1.3'},
+ 'notes':'本方法只使用官方 1.1.3 发行二进制，与旧 Moli 记录分开计分。正文任务若取得原始 PDF/DOCX，会在同一计时预算内解析文字；文件任务直接验收字节。不是失败后切换，也不借用其他 provider。'}
 SPECS['moli']={**SPECS['moli'],
  'entry':'CLI · moli 1.1.1 fetch --dump markdown',
  'request':{**SPECS['moli']['request'],'version':'1.1.1'},

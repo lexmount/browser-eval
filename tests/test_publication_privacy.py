@@ -69,14 +69,23 @@ class PublicationPrivacyTests(unittest.TestCase):
             record = {'attempt_id': 'browser__case__r001', 'case_id': 'case',
                       'artifact_path': 'artifacts/browser/case/run-001.txt',
                       'provider_metadata': {}}
-            results = json.dumps(record) + '\n'
+            file_record = {'attempt_id': 'browser__file-case__r001', 'case_id': 'file-case',
+                           'artifact_path': 'artifacts/browser/file-case/run-001.txt',
+                           'provider_metadata': {}}
+            results = json.dumps(record) + '\n' + json.dumps(file_record) + '\n'
             (source / 'results.jsonl').write_text(results)
             (source / 'references/case.txt').write_text('complete reference')
+            (source / 'references/file-case.txt').write_text('file acceptance rule')
             (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
+            (source / 'artifacts/browser/file-case').mkdir(parents=True)
+            (source / 'artifacts/browser/file-case/run-001.txt').write_text('')
             (source / 'attempts/browser__case__r001.html').write_text(
                 '<html><body><pre data-kind="reference">complete reference</pre>'
                 '<pre data-kind="output">actual output</pre>'
                 '<pre data-kind="reference">derived body region</pre>'
+                '<pre data-kind="metadata">{}</pre></body></html>')
+            (source / 'attempts/browser__file-case__r001.html').write_text(
+                '<html><body><h2>目标文件与实际返回</h2>'
                 '<pre data-kind="metadata">{}</pre></body></html>')
             (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
