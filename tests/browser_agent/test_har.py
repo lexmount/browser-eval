@@ -1,3 +1,6 @@
+import base64
+import json
+
 from harness.browser_agent.har import CdpHarRecorder, _har_request, _har_response
 
 
@@ -72,3 +75,34 @@ def test_stop_is_idempotent_and_does_not_overwrite_har(tmp_path) -> None:
 
     assert first != "sentinel"
     assert path.read_text() == "sentinel"
+
+
+def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
+    class Session:
+        def send(self, _method, _params):
+            return {
+                "body": base64.b64encode(b'{"items_qty":1}').decode(),
+                "base64Encoded": True,
+            }
+
+        def detach(self):
+            pass
+
+    session = Session()
+    recorder = CdpHarRecorder()
+    recorder._sessions.append(session)
+    recorder._finished.add((id(session), "1"))
+    recorder._responses.append(
+        (
+            session,
+            "1",
+            {"method": "GET", "url": "http://example.test/totals", "headers": {}},
+            {"status": 200, "mimeType": "application/json", "headers": {}},
+        )
+    )
+    path = tmp_path / "network.har"
+
+    recorder.stop(object(), path)
+
+    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    assert content == {"mimeType": "application/json", "text": '{"items_qty":1}'}

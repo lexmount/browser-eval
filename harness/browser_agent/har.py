@@ -41,8 +41,6 @@ def _har_response(response: dict[str, Any], body: dict[str, Any] | None) -> dict
     content: dict[str, Any] = {"mimeType": mime_type, "text": ""}
     if body is not None:
         content["text"] = str(body.get("body") or "")
-        if body.get("base64Encoded"):
-            content["encoding"] = "base64"
     return {
         "status": int(response["status"]),
         "statusText": str(response.get("statusText") or ""),
@@ -115,7 +113,12 @@ class CdpHarRecorder:
                     try:
                         body = session.send("Network.getResponseBody", {"requestId": request_id})
                         if body.get("base64Encoded"):
-                            base64.b64decode(body.get("body") or "", validate=True)
+                            body = {
+                                "body": base64.b64decode(
+                                    body.get("body") or "", validate=True
+                                ).decode("utf-8", errors="replace"),
+                                "base64Encoded": False,
+                            }
                     except Exception as exc:
                         self.errors.append(
                             f"{request.get('url')}: response body unavailable: {exc}"
