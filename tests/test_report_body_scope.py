@@ -73,9 +73,10 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory);(out/'result-review.json').write_text(json.dumps(audit))
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[r],[])
-            rendered=(out/'reproduce/index.html').read_text()
-            for phrase in ['机器失败项核验：1/1','Moli 1.1.1','有独立证据','完整']:
+            rendered=(out/'review/index.html').read_text()
+            for phrase in ['机器失败项有证据','1/1','Moli 1.1.1','完整']:
                 self.assertIn(phrase,rendered)
+            self.assertNotIn('结果核验',(out/'reproduce/index.html').read_text())
 
     def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):
         a,b=case('a','body'),case('b','body')

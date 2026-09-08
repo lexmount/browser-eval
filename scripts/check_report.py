@@ -83,7 +83,7 @@ for p in root.rglob('*.html'):
 execution=json.loads((root/'execution.json').read_text())['batches']
 assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
 home=(root/'index.html').read_text()
-assert home.index('六类任务概览') < home.index('实测结果'),'Task overview must precede detailed rankings'
+assert home.index('<h2>六类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index('<h2>六类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'
 assert '本类最高：' in home and '判分完整性' in home
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:

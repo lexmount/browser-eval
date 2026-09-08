@@ -26,7 +26,7 @@ for path in out.rglob('*.html'):
     for table in soup.select('table.ranking'):
         headers=table.select('thead th')
         sort=int(table['data-col'])
-        expected=['命中仓库数'] if path.parent.name=='adoption' else ['任务通过率','正文通过率']
+        expected=['命中仓库数'] if path.parent.name=='adoption' else ['任务通过率','正文通过率','综合任务通过率']
         assert any(label in headers[sort].get_text() for label in expected),(path,sort)
         legend=table.parent.find_previous_sibling('div',class_='metric-help') or table.parent.find_previous_sibling('details',class_='ranking-metric-help')
         assert legend and legend.select('dt'),path
