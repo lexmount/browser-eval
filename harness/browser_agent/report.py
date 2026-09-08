@@ -185,6 +185,7 @@ def _environment_section(evidence: Path) -> str:
         ["WebArena‑Verified", str(environment.get("webarena_verified_version") or "—")],
         ["官方 evaluator checksum", str(official.get("evaluator_checksum") or "—")],
         ["官方 data checksum", str(official.get("data_checksum") or "—")],
+        ["预注册选择集 SHA-256", str(run_config.get("selection_sha256") or "—")],
         ["Docker", f"{environment.get('docker_architecture', '—')} · {environment.get('docker_server_version', '—')} · context={run_config.get('docker_context', '—')}"],
     ]
     for engine, label in (("chromium", "Chromium"), ("moli", "Moli")):

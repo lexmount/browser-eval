@@ -72,7 +72,8 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     output = tmp_path / "report"
     evidence.mkdir()
     (evidence / "run-config.json").write_text(
-        json.dumps({"docker_context": "isolated-eval"}), encoding="utf-8"
+        json.dumps({"docker_context": "isolated-eval", "selection_sha256": "selection-hash"}),
+        encoding="utf-8",
     )
     (evidence / "manifest.json").write_text(
         json.dumps(
@@ -122,6 +123,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         "gpt-6-astra · reasoning=low",
         "eval-checksum",
         "data-checksum",
+        "selection-hash",
         "Chrome/151",
         "Moli/1.1.3",
         "official/reddit@sha256:site",
