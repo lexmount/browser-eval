@@ -37,6 +37,7 @@ from harness.browser_kernel.runner import (
     _wait_cdp,
 )
 
+from .har import CdpHarRecorder
 from .model import AstraResponsesModel
 from .selection import PilotTask, load_pilot, validate_against_official
 
@@ -270,7 +271,8 @@ def _run_attempt(  # noqa: PLR0913
 
     attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
     attempt_dir.mkdir(parents=True, exist_ok=True)
-    trace_path = attempt_dir / "network.zip"
+    trace_path = attempt_dir / "agent_trace.zip"
+    har_path = attempt_dir / "network.har"
     response_path = attempt_dir / "agent_response.json"
     eval_path = attempt_dir / "eval_result.json"
     events_path = attempt_dir / "agent_events.json"
@@ -289,6 +291,7 @@ def _run_attempt(  # noqa: PLR0913
     raw_response = ""
     error = ""
     prepared = False
+    recorder = CdpHarRecorder()
     sampler_started = False
     started = time.perf_counter()
     try:
@@ -296,7 +299,12 @@ def _run_attempt(  # noqa: PLR0913
         service = tool._get_service()
         service._submit(lambda: None)
         _login_context(service, sites, benchmark)
-        service._submit(lambda: service._context.tracing.start(screenshots=True, snapshots=True))
+        service._submit(
+            lambda: (
+                recorder.start(service._context),
+                service._context.tracing.start(screenshots=True, snapshots=True),
+            )
+        )
         prepared = True
         sampler.start()
         sampler_started = True
@@ -317,12 +325,23 @@ def _run_attempt(  # noqa: PLR0913
         raw_response = agent.run_stream(
             _user_prompt(task, start_urls), on_event=events.append, clear_history=True
         )
-        service._submit(lambda: service._context.tracing.stop(path=str(trace_path)))
+        service._submit(
+            lambda: (
+                service._page.wait_for_timeout(500),
+                recorder.stop(service._context, har_path),
+                service._context.tracing.stop(path=str(trace_path)),
+            )
+        )
     except Exception:
         error = traceback.format_exc()
         try:
             service = tool._get_service()
-            service._submit(lambda: service._context.tracing.stop(path=str(trace_path)))
+            service._submit(
+                lambda: (
+                    recorder.stop(service._context, har_path),
+                    service._context.tracing.stop(path=str(trace_path)),
+                )
+            )
         except Exception:
             pass
     finally:
@@ -342,15 +361,15 @@ def _run_attempt(  # noqa: PLR0913
         json.dumps(parsed_response, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     events_path.write_text(json.dumps(events, ensure_ascii=False, indent=2), encoding="utf-8")
-    if trace_path.exists():
+    if har_path.exists():
         evaluation = benchmark.evaluate_task(
             task_id=selected.task_id,
             agent_response=parsed_response,
-            network_trace=trace_path,
+            network_trace=har_path,
         )
         eval_data = evaluation.model_dump(mode="json")
     else:
-        eval_data = {"status": "error", "score": 0.0, "error_msg": error or "trace missing"}
+        eval_data = {"status": "error", "score": 0.0, "error_msg": error or "HAR missing"}
     eval_path.write_text(json.dumps(eval_data, ensure_ascii=False, indent=2), encoding="utf-8")
     resource = (
         _resource_summary(resources, sampler, before, after, duration_ms)
@@ -370,10 +389,12 @@ def _run_attempt(  # noqa: PLR0913
         "duration_ms": round(duration_ms, 3),
         "agent_response": parsed_response,
         "error": error,
+        "har_capture_errors": recorder.errors,
         "resource": resource,
         "model_usage": {**model.usage, "request_count": model.request_count},
         "paths": {
-            "trace": str(trace_path),
+            "network_har": str(har_path),
+            "agent_trace": str(trace_path),
             "response": str(response_path),
             "evaluation": str(eval_path),
             "events": str(events_path),
