@@ -1,3 +1,5 @@
+import pytest
+
 from harness.browser_agent.model import (
     AstraResponsesModel,
     cow_messages_to_responses,
@@ -141,3 +143,14 @@ def test_model_continues_responses_conversation_without_resending_assistant_call
     assert session.payloads[1]["input"] == [
         {"type": "function_call_output", "call_id": "call_1", "output": "done"}
     ]
+
+
+def test_model_rejects_malformed_success_payload() -> None:
+    class MalformedSession:
+        def post(self, _url, **_kwargs):
+            return _Response({"output": []})
+
+    model = AstraResponsesModel(api_key="test", session=MalformedSession())
+
+    with pytest.raises(ValueError, match="non-empty id"):
+        list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))

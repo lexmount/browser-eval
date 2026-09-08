@@ -174,6 +174,11 @@ class AstraResponsesModel:
         )
         response.raise_for_status()
         self.last_response = response.json()
+        response_id = self.last_response.get("id")
+        if not isinstance(response_id, str) or not response_id:
+            raise ValueError("OpenAI Responses API success payload omitted a non-empty id")
+        if not isinstance(self.last_response.get("output"), list):
+            raise ValueError("OpenAI Responses API success payload omitted the output list")
         self.request_count += 1
         usage = self.last_response.get("usage") or {}
         details = usage.get("output_tokens_details") or {}
@@ -184,6 +189,6 @@ class AstraResponsesModel:
             ("total_tokens", usage.get("total_tokens")),
         ):
             self.usage[key] = self.usage.get(key, 0) + int(value or 0)
-        self._previous_response_id = str(self.last_response["id"])
+        self._previous_response_id = response_id
         self._seen_message_count = len(messages)
         yield response_to_chat_chunk(self.last_response)

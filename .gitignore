@@ -30,4 +30,5 @@ run.log
 .pytest_cache/
 .ruff_cache/
 artifacts/browser_kernel/
+artifacts/browser_agent/
 /docs/reports/browser-kernel-evaluation-*

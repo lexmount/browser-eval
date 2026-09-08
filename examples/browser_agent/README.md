@@ -18,6 +18,9 @@ repository's `.env`, then run:
 
     ./examples/browser_agent/run.sh
 
+`COWAGENT_REPO` is a trusted code-execution boundary, not a data input. The
+runner refuses a dirty checkout and records its Git commit in the run config.
+
 Every task runs once per engine. Only a failed official evaluation receives one
 retry. The official benchmark score is calculated from primary attempts only;
 retry recovery is reported separately and never replaces the primary score.

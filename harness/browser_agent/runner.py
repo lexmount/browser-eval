@@ -78,6 +78,21 @@ def _git_head(path: Path) -> str:
     ).stdout.strip()
 
 
+def _require_clean_git_checkout(path: Path) -> str:
+    commit = _git_head(path)
+    status = subprocess.run(
+        ["git", "-C", str(path), "status", "--porcelain"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    if status.strip():
+        raise RuntimeError(
+            "CowAgent checkout must be clean so its recorded commit identifies the code"
+        )
+    return commit
+
+
 def _cdp_metadata(http_endpoint: str) -> dict[str, str]:
     response = requests.get(http_endpoint.rstrip("/") + "/json/version", timeout=15)
     response.raise_for_status()
@@ -400,6 +415,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     cowagent_repo = Path(args.cowagent_repo or env.get("COWAGENT_REPO", "")).resolve()
     if not (cowagent_repo / "agent/protocol/agent.py").exists():
         raise RuntimeError("--cowagent-repo must point to a CowAgent checkout")
+    cowagent_commit = _require_clean_git_checkout(cowagent_repo)
 
     output_dir = Path(args.output).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -453,7 +469,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             {
                 "schema": "lex_browser_agent_run_config/1",
                 "selection_sha256": selection.sha256,
-                "cowagent_commit": _git_head(cowagent_repo),
+                "cowagent_commit": cowagent_commit,
                 "model": args.model,
                 "reasoning_effort": "low",
                 "browser_images": image_metadata,
@@ -538,7 +554,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         "selection": resolved,
         "protocol": {
             "agent": "CowAgent",
-            "cowagent_commit": _git_head(cowagent_repo),
+            "cowagent_commit": cowagent_commit,
             "model": args.model,
             "reasoning_effort": "low",
             "primary_attempts_per_engine_task": 1,
@@ -573,7 +589,10 @@ def parse_args() -> argparse.Namespace:
         "--selection", default="evaluation/browser-agent/webarena-verified-pilot.json"
     )
     parser.add_argument("--output", required=True)
-    parser.add_argument("--cowagent-repo")
+    parser.add_argument(
+        "--cowagent-repo",
+        help="trusted, clean CowAgent Git checkout; Python code is imported and executed from it",
+    )
     parser.add_argument("--model", default="gpt-6-astra")
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
