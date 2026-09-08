@@ -1,20 +1,10 @@
 Contents
 cURL
-curl
---request
-POST
-\
---url
-https://api.exa.ai/contents
-\
---header
-'Content-Type: application/json'
-\
---header
-'x-api-key: <api-key>'
-\
---data
-'
+curl --request POST \
+--url https://api.exa.ai/contents \
+--header 'Content-Type: application/json' \
+--header 'x-api-key: <api-key>' \
+--data '
 {
 "ids": [
 "https://arxiv.org/pdf/2307.06435"
@@ -160,67 +150,30 @@ fetch('https://api.exa.ai/contents', options)
 429
 500
 {
-"requestId"
-:
-"e492118ccdedcba5088bfc4357a8a125"
-,
-"results"
-: [
+"requestId": "e492118ccdedcba5088bfc4357a8a125",
+"results": [
 {
-"id"
-:
-"https://arxiv.org/abs/2307.06435"
-,
-"title"
-:
-"A Comprehensive Overview of Large Language Models"
-,
-"url"
-:
-"https://arxiv.org/pdf/2307.06435.pdf"
-,
-"publishedDate"
-:
-"2023-11-16T01:36:32.547Z"
-,
-"author"
-:
-"Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan"
-,
-"text"
-:
-"Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities..."
-,
-"highlights"
-: [
+"id": "https://arxiv.org/abs/2307.06435",
+"title": "A Comprehensive Overview of Large Language Models",
+"url": "https://arxiv.org/pdf/2307.06435.pdf",
+"publishedDate": "2023-11-16T01:36:32.547Z",
+"author": "Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan",
+"text": "Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities...",
+"highlights": [
 "Such requirements have limited their adoption..."
 ],
-"summary"
-:
-"This overview paper on Large Language Models (LLMs) highlights key developments..."
+"summary": "This overview paper on Large Language Models (LLMs) highlights key developments..."
 }
 ],
-"statuses"
-: [
+"statuses": [
 {
-"id"
-:
-"https://arxiv.org/abs/2307.06435"
-,
-"status"
-:
-"success"
-,
-"source"
-:
-"cached"
+"id": "https://arxiv.org/abs/2307.06435",
+"status": "success",
+"source": "cached"
 }
 ],
-"costDollars"
-: {
-"total"
-:
-0.003
+"costDollars": {
+"total": 0.003
 }
 }
 {
@@ -260,21 +213,11 @@ contents
 Try it
 Contents
 cURL
-curl
---request
-POST
-\
---url
-https://api.exa.ai/contents
-\
---header
-'Content-Type: application/json'
-\
---header
-'x-api-key: <api-key>'
-\
---data
-'
+curl --request POST \
+--url https://api.exa.ai/contents \
+--header 'Content-Type: application/json' \
+--header 'x-api-key: <api-key>' \
+--data '
 {
 "ids": [
 "https://arxiv.org/pdf/2307.06435"
@@ -420,67 +363,30 @@ fetch('https://api.exa.ai/contents', options)
 429
 500
 {
-"requestId"
-:
-"e492118ccdedcba5088bfc4357a8a125"
-,
-"results"
-: [
+"requestId": "e492118ccdedcba5088bfc4357a8a125",
+"results": [
 {
-"id"
-:
-"https://arxiv.org/abs/2307.06435"
-,
-"title"
-:
-"A Comprehensive Overview of Large Language Models"
-,
-"url"
-:
-"https://arxiv.org/pdf/2307.06435.pdf"
-,
-"publishedDate"
-:
-"2023-11-16T01:36:32.547Z"
-,
-"author"
-:
-"Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan"
-,
-"text"
-:
-"Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities..."
-,
-"highlights"
-: [
+"id": "https://arxiv.org/abs/2307.06435",
+"title": "A Comprehensive Overview of Large Language Models",
+"url": "https://arxiv.org/pdf/2307.06435.pdf",
+"publishedDate": "2023-11-16T01:36:32.547Z",
+"author": "Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan",
+"text": "Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities...",
+"highlights": [
 "Such requirements have limited their adoption..."
 ],
-"summary"
-:
-"This overview paper on Large Language Models (LLMs) highlights key developments..."
+"summary": "This overview paper on Large Language Models (LLMs) highlights key developments..."
 }
 ],
-"statuses"
-: [
+"statuses": [
 {
-"id"
-:
-"https://arxiv.org/abs/2307.06435"
-,
-"status"
-:
-"success"
-,
-"source"
-:
-"cached"
+"id": "https://arxiv.org/abs/2307.06435",
+"status": "success",
+"source": "cached"
 }
 ],
-"costDollars"
-: {
-"total"
-:
-0.003
+"costDollars": {
+"total": 0.003
 }
 }
 {
@@ -541,9 +447,7 @@ Required string length:
 1 - 2048
 Example
 :
-[
-"https://arxiv.org/pdf/2307.06435"
-]
+["https://arxiv.org/pdf/2307.06435"]
 
 urls
 string[]
@@ -558,9 +462,7 @@ Required string length:
 1 - 2048
 Example
 :
-[
-"https://arxiv.org/pdf/2307.06435"
-]
+["https://arxiv.org/pdf/2307.06435"]
 
 compliance
 enum<string> | null

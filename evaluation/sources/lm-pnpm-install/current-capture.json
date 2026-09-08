@@ -1,7 +1,7 @@
 {
   "case_id": "lm-pnpm-install",
   "url": "https://pnpm.io/installation",
-  "checked_at": "2026-09-04T07:45:29.195022+00:00",
+  "checked_at": "2026-09-08T04:23:13.792870+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://pnpm.io/installation",
   "mime": "text/html; charset=utf-8",
-  "bytes": 59975,
-  "sha256": "1671dcc5c5f082f442ce67b8a72c40365d8e446b2e2f2e53d7a299098218b9bc",
+  "bytes": 48750,
+  "sha256": "5d89555388dabf2ff594226d62909f4b744fe829c365cb803721ae574564f441",
   "response_headers": {
     "Content-Type": "text/html; charset=utf-8"
   },
@@ -41,10 +41,10 @@
       "alt": ""
     }
   ],
-  "extracted_sha256": "58bda297a953f53264c28dd718100f26f61d3f7bcd0a3e6be2541b3057b1d9b6",
-  "reference_sha256": "01097f1bd326d93d76713b8866702eba7700cff0228e6ccb4976a846a452356f",
-  "text_chars": 6878,
-  "excerpt": "Version: 11 & 12\nOn this page\nInstallation\nPrerequisites\n\nIf you don't use the standalone script or\n@pnpm/exe\nto install pnpm, then you need to have Node.js (at least v22) to be installed on your system.\ninfo\nLooking for pnpm 12? It is released, but\nlatest\non npm is still pnpm 11, so it is installed differently. See\nInstalling pnpm 12\n.\nUsing a standalone script\n\nYou may install pnpm even if you don't have Node.js installed, using the following scripts.\nOn Windows\n\nwarning\nSometimes, Windows Defender may block our executable if you install pnpm this way.\nDue to this issue, we currently recommend installing pnpm using\nnpm\non Windows.\nUsing PowerShell:\nInvoke-WebRequest\nhttps:\n/\n/\nget\n.\npnpm\n.\nio/install\n.\nps1\n-\nUseBasicParsing\n|\nInvoke-Expression\nOn Windows, Microsoft Defender can significa",
+  "extracted_sha256": "461a5dc9ad458166bef077139f0d9d467dd18700ee3dcba645ae685e86448b50",
+  "reference_sha256": "c4b2c667312b243729520746cc3b559d22cc993fd946f674ac5e7e5f818f0925",
+  "text_chars": 4288,
+  "excerpt": "Version: 12.x\nOn this page\nInstallation\nPrerequisites\n\npnpm 12 is a native executable and does not require Node.js after it is installed. Installing it through npm requires Node.js 22.13 or newer.\npnpm 12 is the current release line — the\nlatest\ntag on npm points at it, so the commands below install pnpm 12 without naming a version.\nUsing pnpm\n\nIf you already have pnpm v11.10.0 or newer, update directly to pnpm 12:\npnpm\nself-update\nInside a project that pins pnpm through the\npackageManager\nfield,\nself-update\nonly updates that pin instead of installing pnpm globally.\nUsing a standalone script\n\nYou may install pnpm even if you don't have Node.js installed, using the following scripts.\nOn Windows\n\nwarning\nSometimes, Windows Defender may block our executable if you install pnpm this way.\nDue t",
   "missing_facts": [],
   "quality_issues": [],
   "state": "captured"

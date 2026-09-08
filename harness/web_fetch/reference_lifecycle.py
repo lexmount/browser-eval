@@ -608,7 +608,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                 if case_map is not None:
                     if identifier not in case_map:
                         raise ReferenceLifecycleError("Certificate case absent from dataset")
-                    if identifier in revised_references:
+                    if (identifier in revised_references
+                            and binding.get("reference_sha256") in revised_references[identifier]):
                         check_case_reference_revision_binding(
                             case_map[identifier], binding, revised_references[identifier])
                     elif allow_scoring_rule_revision:

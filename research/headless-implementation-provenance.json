@@ -1,7 +1,18 @@
 {
   "schema_version": 1,
-  "verified_at": "2026-09-07",
+  "verified_at": "2026-09-08",
   "implementations": [
+    {
+      "provider": "moli-1.0.6",
+      "version": "1.0.6",
+      "binary_sha256": "53c7e51928f0eb7b83bbd703f2e804b2c59e2c2a56d4ce650e97e3f35f05ea3c",
+      "identity_timing": "recorded_during_run",
+      "verification": "Exact SHA-256 of the binary extracted from the official aarch64-apple-darwin release archive; the binary reports `moli 1.0.6`.",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.0.6",
+      "release_commit": "dda59858b57559f049b8a268051bc24a0d3da8dd",
+      "archive_url": "https://github.com/lexmount/moli/releases/download/v1.0.6/moli-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "92e3f077c9577bb60ef7889319c6caba3dfe9c2fbd6e215bf34ad31ff63dbc7e"
+    },
     {
       "provider": "moli",
       "version": "1.1.1",

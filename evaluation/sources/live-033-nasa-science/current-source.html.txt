@@ -158,7 +158,7 @@ img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
 /*# sourceURL=https://science.nasa.gov/wp-content/plugins/smd-blocks/build/blocks/iframe-embed/style-index.css */
 </style>
 
-<link rel='stylesheet' id='uswds-styles-css' href='https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788750000' media='all' />
+<link rel='stylesheet' id='uswds-styles-css' href='https://science.nasa.gov/wp-content/client-mu-plugins/uswds-framework/uswds/build/styles.css?ver=1788840000' media='all' />
 <link rel='stylesheet' id='all-css-12' href='https://science.nasa.gov/_static/??/wp-content/plugins/accessibility-checker/build/css/srOnlyFormat.css,/wp-content/plugins/hubble-space-telescope/css/style.css?m=1780066434' type='text/css' media='all' />
 <link rel='stylesheet' id='nasa-child-style-css' href='https://science.nasa.gov/wp-content/themes/nasa-child/build/style.css?ver=78da5645b79c20a885fa' media='all' />
 <link rel='stylesheet' id='all-css-14' href='https://science.nasa.gov/_static/??-eJyFyjEOgCAMQNELiVUGGwfjWSpp1CiFWMTrS+Iu4/958ETjgiSWBGljzwpCSuBUYT3DQqcRym3JBn4o53K1yuhy257ZLCTCV5XHEO9oPB2fnf3U4zCiRdvhCxV+Q3g=' type='text/css' media='all' />
@@ -497,7 +497,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 		</ul>
 	</div>
 </div>
-<div class="global-nav__home global-nav__features global-nav__col grid-col-9 desktop:padding-left-105"><h3 class="heading-12 color-carbon-40 text-uppercase margin-bottom-2">Highlights</h3><div class="grid-row"><a href="https://www.nasa.gov/blogs/spacestation/2026/09/04/spacesuits-exercise-and-cargo-ops-wrap-week-aboard-station/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://images-assets.nasa.gov/image/iss074e0315895/iss074e0315895~large.jpg?w=1920&#038;h=1440&#038;fit=clip&#038;crop=faces%2Cfocalpoint" alt="Spacesuits, Exercise, and Cargo Ops Wrap Week Aboard Station" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">3 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">Spacesuits, Exercise, and Cargo Ops Wrap Week Aboard Station</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>3 days ago</span></div></div></a><a href="https://www.nasa.gov/news-release/nasa-to-cover-progress-96-spacecraft-launch-docking/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://images-assets.nasa.gov/image/iss074e0395792/iss074e0395792~large.jpg?w=1920&#038;h=1078&#038;fit=clip&#038;crop=faces%2Cfocalpoint" alt="NASA to Cover Progress 96 Spacecraft Launch, Docking" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">2 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">NASA to Cover Progress 96 Spacecraft Launch, Docking</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>3 days ago</span></div></div></a><a href="https://science.nasa.gov/missions/hubble/nasas-hubble-tracks-new-decagon-encircling-saturns-south-pole/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/Hubble_Saturn_29Aug2025.jpg?w=1024" alt="NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">5 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>4 days ago</span></div></div></a></div></div><div class="global-nav__secondary global-nav__col grid-col-5 desktop:padding-left-105" hidden>
+<div class="global-nav__home global-nav__features global-nav__col grid-col-9 desktop:padding-left-105"><h3 class="heading-12 color-carbon-40 text-uppercase margin-bottom-2">Highlights</h3><div class="grid-row"><a href="https://www.nasa.gov/blogs/spacestation/2026/09/04/spacesuits-exercise-and-cargo-ops-wrap-week-aboard-station/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://images-assets.nasa.gov/image/iss074e0315895/iss074e0315895~large.jpg?w=1920&#038;h=1440&#038;fit=clip&#038;crop=faces%2Cfocalpoint" alt="Spacesuits, Exercise, and Cargo Ops Wrap Week Aboard Station" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">3 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">Spacesuits, Exercise, and Cargo Ops Wrap Week Aboard Station</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>4 days ago</span></div></div></a><a href="https://www.nasa.gov/news-release/nasa-to-cover-progress-96-spacecraft-launch-docking/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://images-assets.nasa.gov/image/iss074e0395792/iss074e0395792~large.jpg?w=1920&#038;h=1078&#038;fit=clip&#038;crop=faces%2Cfocalpoint" alt="NASA to Cover Progress 96 Spacecraft Launch, Docking" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">2 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">NASA to Cover Progress 96 Spacecraft Launch, Docking</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>4 days ago</span></div></div></a><a href="https://science.nasa.gov/missions/hubble/nasas-hubble-tracks-new-decagon-encircling-saturns-south-pole/" class="hds-content-card hds-content-card-home grid-col-12 desktop:grid-col-4 color-spacesuit-white padding-x-0 desktop:padding-right-3 margin-bottom-4" target="_self"><div class="grid-col margin-bottom-2"><div class="bg-carbon-black minh-mobile"><img loading="lazy" src="https://assets.science.nasa.gov/dynamicimage/assets/science/missions/hubble/releases/2026/09/Hubble_Saturn_29Aug2025.jpg?w=1024" alt="NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole" class="hds-media-background z-100" /></div></div><div class="grid-col padding-left-0"><div class="label margin-bottom-1">5 min read</div><div class="margin-bottom-2"><h3 class="heading-16 line-height-md">NASA’s Hubble Tracks New Decagon Encircling Saturn’s South Pole</h3></div><div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40"><span class="display-flex flex-align-center margin-right-2"><svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg><span>article</span></span><span>5 days ago</span></div></div></a></div></div><div class="global-nav__secondary global-nav__col grid-col-5 desktop:padding-left-105" hidden>
 	<div class="global-nav__secondary-wrapper global-nav__wrapper">
 
 		<!-- This is just a mobile button -->
@@ -540,7 +540,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>3 days ago</span>
+			<span>4 days ago</span>
 
 		</div>
 	</div>
@@ -567,7 +567,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>4 days ago</span>
+			<span>5 days ago</span>
 
 		</div>
 	</div>
@@ -594,7 +594,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>4 days ago</span>
+			<span>5 days ago</span>
 
 		</div>
 	</div>
@@ -681,6 +681,33 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 	</div>
 </a>
 </div><div class="global-nav__tertiary-submenu global-nav__wrapper" style="max-width: 440px" submenu-id="global-nav-earth-climate"><h3 class="heading-12 color-carbon-40 text-uppercase margin-bottom-2">Highlights</h3>
+<a href="https://science.nasa.gov/earth/earth-observatory/a-bright-spot-at-mount-michael/" class="hds-content-card hds-content-card-3 grid-row color-spacesuit-white margin-bottom-4" target="_self">
+	<div class="grid-col">
+		<div class="width-full bg-carbon-black minh-15">
+			<img loading="lazy" src="https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/a-bright-spot-at-mount-michael/mountmichael_oli_20260824_th.jpg?w=1024" alt="A Bright Spot at Mount Michael" class="hds-media-background z-100" />		</div>
+	</div>
+
+	<div class="grid-col padding-left-105">
+
+		<div class="label margin-bottom-1">3 min read</div>
+
+		<div class="margin-bottom-2">
+			<h3 class="heading-16 line-height-md">A Bright Spot at Mount Michael</h3>
+		</div>
+
+		<div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40">
+
+			<span class="display-flex flex-align-center margin-right-2">
+				<svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg>
+				<span>article</span>
+			</span>
+
+			<span>1 day ago</span>
+
+		</div>
+	</div>
+</a>
+
 <a href="https://science.nasa.gov/earth/explore/drought/" class="hds-content-card hds-content-card-3 grid-row color-spacesuit-white margin-bottom-4" target="_self">
 	<div class="grid-col">
 		<div class="width-full bg-carbon-black minh-15">
@@ -702,7 +729,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>2 days ago</span>
+			<span>3 days ago</span>
 
 		</div>
 	</div>
@@ -720,33 +747,6 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 
 		<div class="margin-bottom-2">
 			<h3 class="heading-16 line-height-md">A Trio of Tropical Cyclones in the Pacific</h3>
-		</div>
-
-		<div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40">
-
-			<span class="display-flex flex-align-center margin-right-2">
-				<svg version="1.1" class="square-2 margin-right-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" style="enable-background:new 0 0 16 16;" xml:space="preserve"><g><g><path d="M8,0C3.5,0-0.1,3.7,0,8.2C0.1,12.5,3.6,16,8,16c4.4,0,8-3.6,8-8C16,3.5,12.4,0,8,0z M8,15.2 C4,15.2,0.8,12,0.8,8C0.8,4,4,0.8,8,0.8c3.9,0,7.2,3.2,7.2,7.1C15.2,11.9,12,15.2,8,15.2z"></path><path d="M5.6,12c0.8-0.8,1.6-1.6,2.4-2.4c0.8,0.8,1.6,1.6,2.4,2.4c0-2.7,0-5.3,0-8C8.8,4,7.2,4,5.6,4 C5.6,6.7,5.6,9.3,5.6,12z"></path></g></g></svg>
-				<span>article</span>
-			</span>
-
-			<span>3 days ago</span>
-
-		</div>
-	</div>
-</a>
-
-<a href="https://science.nasa.gov/missions/aqua/peatland-fires-darken-skies-in-indonesia/" class="hds-content-card hds-content-card-3 grid-row color-spacesuit-white margin-bottom-4" target="_self">
-	<div class="grid-col">
-		<div class="width-full bg-carbon-black minh-15">
-			<img loading="lazy" src="https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/peatland-fires-darken-skies-in-indonesia/indonesiafires_amo_20260901_th.jpg?w=1024" alt="Peatland Fires Darken Skies in Indonesia" class="hds-media-background z-100" />		</div>
-	</div>
-
-	<div class="grid-col padding-left-105">
-
-		<div class="label margin-bottom-1">6 min read</div>
-
-		<div class="margin-bottom-2">
-			<h3 class="heading-16 line-height-md">Peatland Fires Darken Skies in Indonesia</h3>
 		</div>
 
 		<div class="heading-12 display-flex flex-align-center font-weight-bold text-uppercase margin-bottom-1 color-carbon-40">
@@ -783,7 +783,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>4 days ago</span>
+			<span>5 days ago</span>
 
 		</div>
 	</div>
@@ -810,7 +810,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>5 days ago</span>
+			<span>6 days ago</span>
 
 		</div>
 	</div>
@@ -837,7 +837,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>5 days ago</span>
+			<span>6 days ago</span>
 
 		</div>
 	</div>
@@ -864,7 +864,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>4 days ago</span>
+			<span>5 days ago</span>
 
 		</div>
 	</div>
@@ -891,7 +891,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>1 week ago</span>
+			<span>2 weeks ago</span>
 
 		</div>
 	</div>
@@ -945,7 +945,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>2 days ago</span>
+			<span>3 days ago</span>
 
 		</div>
 	</div>
@@ -972,7 +972,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>3 days ago</span>
+			<span>4 days ago</span>
 
 		</div>
 	</div>
@@ -999,7 +999,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>3 days ago</span>
+			<span>4 days ago</span>
 
 		</div>
 	</div>
@@ -1188,7 +1188,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>4 days ago</span>
+			<span>5 days ago</span>
 
 		</div>
 	</div>
@@ -1215,7 +1215,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>6 days ago</span>
+			<span>7 days ago</span>
 
 		</div>
 	</div>
@@ -1269,7 +1269,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>2 days ago</span>
+			<span>3 days ago</span>
 
 		</div>
 	</div>
@@ -1296,7 +1296,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 				<span>article</span>
 			</span>
 
-			<span>6 days ago</span>
+			<span>1 week ago</span>
 
 		</div>
 	</div>
@@ -1888,7 +1888,7 @@ var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file
 			<div id="" class="hds-single-form-embed bg-spacesuit-white hds-module alignwide wp-block-nasa-blocks-gravity-form-embed"><div class="grid-container grid-row grid-container-block grid-container-form-block grid-container-form-title-intro-block padding-x-3"><div class="padding-top-2 padding-bottom-2 width-full maxw-full hds-module hds-module-full wp-block-nasa-blocks-article-intro"></div></div><div class="grid-container grid-row grid-container-block grid-container-form-block grid-container-form-render-block padding-x-3"><div class="form-entry-content margin-bottom-3"><div class="margin-bottom-3">
                 <div class='gf_browser_unknown gform_wrapper gform-theme gform-theme--foundation gform-theme--framework gform-theme--orbital' data-form-theme='orbital' data-form-index='0' id='gform_wrapper_45' ><form method='post' enctype='multipart/form-data' target='gform_ajax_frame_45' id='gform_45'  action='/' data-formid='45' novalidate>					<div style="display: none !important;" class="akismet-fields-container gf_invisible" data-prefix="ak_">
 						<label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label>
-						<input type="hidden" id="ak_js_1" name="ak_js" value="153" />
+						<input type="hidden" id="ak_js_1" name="ak_js" value="130" />
 						<script>
 document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );
 </script>
@@ -1914,9 +1914,9 @@ document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTi
             <input type='hidden' class='gform_hidden' name='is_submit_45' value='1' />
             <input type='hidden' class='gform_hidden' name='gform_submit' value='45' />
             
-            <input type='hidden' class='gform_hidden' name='gform_currency' data-currency='USD' value='Y4DtmRwR+ZAgBErrOledimz/9eDZWX8sun4BpWLNyQz1WV0OpElztYyN66PzFNkCN2J2BCh6NWPZOMp5OfpbP7xWAlefetdQwkrFVdC2XHnqHlk=' />
+            <input type='hidden' class='gform_hidden' name='gform_currency' data-currency='USD' value='yL+CPvrbsBFSs1gegQdS5Yrt/niaual2Obqofq+2tMdKA0slF6IQHUhro5l4lRQdtxhPpJftH6bD2Us9Aw5uuluuMtQFM85Akt/7+22h+K22xfE=' />
             <input type='hidden' class='gform_hidden' name='gform_unique_id' value='' />
-            <input type='hidden' class='gform_hidden' name='state_45' value='WyJ7XCIxXCI6W1wiMzJmNGNjNzIzYzA1ZmEwYTA5YTg5OThkNzFhN2I5MjdcIixcIjA5ZWIxYzM5YWFlMjExMGM5MDEyMzA0Njk4YTdmOWVlXCIsXCIxOGVhM2U1MWQ5OTg0NjkwZDc4N2EyNWI3YmVjMDNiM1wiXSxcImdmb3JtX3N1Ym1pc3Npb25fbWV0aG9kXCI6W1wiMmU4ZjYzZTFiYmRjZTQxODMxYTlhMjM1ODRkYmI2MmFcIixcImE3NTcwNDcwNzZiZTBiMTgxNDQ3Y2UzZDhhMTc4OTU0XCIsXCJjYjQ5Mzk1MGVlZDY1ZjAzYjZiZWQwNzE2Nzc4MmE4NlwiXSxcImdmb3JtX3RoZW1lXCI6XCIwMmFiNDUzMGNmYTljYzUxNThmNDA5NWEwMjNmZjE2N1wiLFwiZ2Zvcm1fc3R5bGVfc2V0dGluZ3NcIjpcImQyMzY2OWVjYmEyMmI4ZmY3YzY0MGEzNjJhYzhmMGRlXCIsXCJmb3JtX2lkXCI6XCIzNGNlMWMxODI4ZDFlOTlmZjM1MzM4ZDY2Mjg2ODgzMVwiLFwidXJsXCI6XCJkNGYyYWVkZDYyZTczNWQ0MzMwZjFhODUzYmEzOWE1Y1wiLFwic3RhdGVfdGltZXN0YW1wXCI6XCJmNDY3ZDI1NDhkMjY3Mzk4NjBjMWQ5NDliM2MwMTYzYlwifSIsIjNmZTQ3M2Q5YjExNDExOTIzMTA2NTg3ZGQ3ZDgzZDQxIiwxNzg4NzUzNDAzXQ==' />
+            <input type='hidden' class='gform_hidden' name='state_45' value='WyJ7XCIxXCI6W1wiMzJmNGNjNzIzYzA1ZmEwYTA5YTg5OThkNzFhN2I5MjdcIixcIjA5ZWIxYzM5YWFlMjExMGM5MDEyMzA0Njk4YTdmOWVlXCIsXCIxOGVhM2U1MWQ5OTg0NjkwZDc4N2EyNWI3YmVjMDNiM1wiXSxcImdmb3JtX3N1Ym1pc3Npb25fbWV0aG9kXCI6W1wiMmU4ZjYzZTFiYmRjZTQxODMxYTlhMjM1ODRkYmI2MmFcIixcImE3NTcwNDcwNzZiZTBiMTgxNDQ3Y2UzZDhhMTc4OTU0XCIsXCJjYjQ5Mzk1MGVlZDY1ZjAzYjZiZWQwNzE2Nzc4MmE4NlwiXSxcImdmb3JtX3RoZW1lXCI6XCIwMmFiNDUzMGNmYTljYzUxNThmNDA5NWEwMjNmZjE2N1wiLFwiZ2Zvcm1fc3R5bGVfc2V0dGluZ3NcIjpcImQyMzY2OWVjYmEyMmI4ZmY3YzY0MGEzNjJhYzhmMGRlXCIsXCJmb3JtX2lkXCI6XCIzNGNlMWMxODI4ZDFlOTlmZjM1MzM4ZDY2Mjg2ODgzMVwiLFwidXJsXCI6XCJkNGYyYWVkZDYyZTczNWQ0MzMwZjFhODUzYmEzOWE1Y1wiLFwic3RhdGVfdGltZXN0YW1wXCI6XCJkMmEwOTJkMmYwNzhjNjkwZGNmYmU5OGYxMGZhODg2Y1wifSIsIjg0YmE2MTJhNDIwNWE2MWIwNzY4ZGIxZTA1MTZlZTc1IiwxNzg4ODQxMzk5XQ==' />
             <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_target_page_number_45' id='gform_target_page_number_45' value='0' />
             <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_source_page_number_45' id='gform_source_page_number_45' value='1' />
             <input type='hidden' name='gform_field_values' value='' />
@@ -1971,7 +1971,7 @@ var edac_frontend_fixes = [];
 <script id="wp-a11y-js" defer="defer" src="https://science.nasa.gov/wp-includes/js/dist/a11y.min.js?ver=af934e5259bc51b8718e"></script>
 <script id="gform_gravityforms_theme_vendors-js" defer='defer' defer="defer" src="https://science.nasa.gov/wp-content/plugins/gravityforms/assets/js/dist/vendor-theme.min.js?ver=0c901cb641ce64b99c20ea1a4d208cc9"></script>
 <script id="gform_gravityforms_theme-js-extra">
-var gform_theme_config = {"common":{"form":{"honeypot":{"version_hash":"0a27a3a6b77710f58f71bd697cd3215f"},"ajax":{"ajaxurl":"https://science.nasa.gov/wp-admin/admin-ajax.php","ajax_submission_nonce":"007b6cd5bb","i18n":{"step_announcement":"Step %1$s of %2$s, %3$s","unknown_error":"There was an unknown error processing your request. Please try again.","error_403":"The request was blocked (403 error) for unknown security reasons. Remove any code-like text (scripts or DB queries) and try again."}}}},"hmr_dev":"","public_path":"https://science.nasa.gov/wp-content/plugins/gravityforms/assets/js/dist/","config_nonce":"e9a746a690"};
+var gform_theme_config = {"common":{"form":{"honeypot":{"version_hash":"0a27a3a6b77710f58f71bd697cd3215f"},"ajax":{"ajaxurl":"https://science.nasa.gov/wp-admin/admin-ajax.php","ajax_submission_nonce":"007b6cd5bb","i18n":{"step_announcement":"Step %1$s of %2$s, %3$s","unknown_error":"There was an unknown error processing your request. Please try again.","error_403":"The request was blocked (403 error) for unknown security reasons. Remove any code-like text (scripts or DB queries) and try again."}}}},"hmr_dev":"","public_path":"https://science.nasa.gov/wp-content/plugins/gravityforms/assets/js/dist/","config_nonce":"fb844b81b0"};
 //# sourceURL=gform_gravityforms_theme-js-extra
 </script>
 <script id="gform_gravityforms_theme-js" defer='defer' defer="defer" src="https://science.nasa.gov/wp-content/plugins/gravityforms/assets/js/dist/scripts-theme.min.js?ver=fff046cc68bff0467f80af78630b0987"></script>

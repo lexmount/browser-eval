@@ -15,7 +15,8 @@ in readable text; direct-file tasks end in verified original bytes.
 | Kitesurf | Cloudflare account Browser Run | `POST /browser-rendering/markdown?browser=kitesurf` |
 | Lightpanda | local CLI | `fetch --dump markdown` |
 | Obscura | local CLI, standard mode | `fetch --dump markdown` |
-| Moli 1.1.1 | local CLI | `fetch --dump markdown` |
+| Moli 1.0.6 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
+| Moli 1.1.1 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
 | Moli 1.1.3 | local CLI | ordinary pages: `fetch --dump markdown`; direct documents/media: bare `fetch URL`, then timed text extraction only for document-body tasks |
 | Chromium | local Playwright/CDP | rendered DOM HTML → `node-html-markdown` 2.0.0 |
 
@@ -35,9 +36,10 @@ hypothetical local deployment.
 The routes have different completion controls because those controls belong to
 the tested interfaces: Kitesurf uses `networkidle2`, Chromium uses Playwright
 `domcontentloaded`, and each CLI uses its own documented completion behavior.
-No method receives task answers, task-specific selectors, retries chosen from a
-failed score, clicks, scrolling, personal sessions, stealth fallback or model
-post-processing.
+No method receives task answers, task-specific selectors, clicks, scrolling,
+personal sessions, stealth fallback or model post-processing. Each method gets
+exactly one provider call per task and run. A failure is retained as measured;
+there is no retry or selection of a more favorable later response.
 
 ## What is and is not fair
 
@@ -72,8 +74,10 @@ Browser Run access (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). The report
 lists official registration and token pages and variable names only. It never
 copies a real key into HTML, source control or examples.
 
-Local binary paths use `MOLI_BINARY`, `MOLI_1_1_3_BINARY`, `LIGHTPANDA_BINARY`,
-`OBSCURA_BINARY` and `CHROMIUM_BINARY`. Binaries are not committed; measured binary hashes and
+Local binary paths use `MOLI_1_0_6_BINARY`, `MOLI_BINARY`, `MOLI_1_1_3_BINARY`, `LIGHTPANDA_BINARY`,
+`OBSCURA_BINARY` and `CHROMIUM_BINARY`. Set `CHROMIUM_BINARY` explicitly: an
+empty value is rejected so a later partial rerun cannot silently switch from
+the report's browser to Playwright's bundled Chromium. Binaries are not committed; measured binary hashes and
 versions are retained in call evidence. Install JavaScript dependencies with
 `npm install` and the Python benchmark dependencies in a repository-local
 environment.
@@ -95,11 +99,11 @@ capture ordinary pages, separately observe browser-dependent complete scopes,
 freeze the references, execute, then postcheck:
 
 ```sh
-python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN --browser-observations PRE.json
-python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5
-python scripts/postcheck_headless.py --run-dir RUN --captures POST --browser-observations POST.json
-python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
-python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
+uv run --frozen python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN --browser-observations PRE.json
+uv run --frozen python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5
+uv run --frozen python scripts/postcheck_headless.py --run-dir RUN --captures POST --browser-observations POST.json
+uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
+uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
 
 A failed or incomplete evidence directory is immutable. A reference failure
@@ -134,12 +138,14 @@ the canonical dataset, source annotations, adapters and report implementation.
 Build from an explicit immutable evidence directory:
 
 ```sh
-python scripts/check_headless_evidence.py EVIDENCE --rescore
-python scripts/build_report.py --evidence EVIDENCE --output reports/webfetch
-python scripts/check_report.py reports/webfetch
-python scripts/check_report_links.py reports/webfetch
-python scripts/check_report_revision.py reports/webfetch
+make setup
+uv run --frozen python scripts/check_headless_evidence.py EVIDENCE --rescore
+make report EVIDENCE=/absolute/path/to/evidence
+make report-check
 ```
+
+`.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
+正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
 
 The public destination for this comparison is the separate site
 `bWkRP157EtF6`. Do not update the older report site `UeZE1vfcEOrM`.

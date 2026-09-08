@@ -45,10 +45,13 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False,
             raise ReferenceLifecycleError(record['attempt_id']+': bound record requires one original execution batch')
         binding = owners[0].get('reference_checks', {}).get('cases', {}).get(record['case_id'])
         revised_hashes = (reference_revision_hashes or {}).get(record['case_id'])
-        if not binding or (not revised_hashes and binding.get('reference_sha256') != reference_hash):
+        revision_applies = bool(
+            revised_hashes and binding
+            and binding.get('reference_sha256') in revised_hashes)
+        if not binding or (not revision_applies and binding.get('reference_sha256') != reference_hash):
             raise ReferenceLifecycleError(record['attempt_id']+': bound record has no matching original reference')
         checker = ((lambda case, binding: check_case_reference_revision_binding(
-                        case, binding, revised_hashes)) if revised_hashes else
+                        case, binding, revised_hashes)) if revision_applies else
                    check_case_scoring_revision_binding if allow_rule_revision else
                    check_case_equivalent_reference_binding
                    if dataset.get('comparison', {}).get('reference_binding_mode') ==

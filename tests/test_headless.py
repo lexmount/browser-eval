@@ -8,13 +8,50 @@ from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
-from harness.web_fetch.providers.headless import cli_command
+from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
+from harness.web_fetch.providers.headless import _resolve_binary
 from harness.web_fetch.runner import run_evaluation
 from scripts.headless_worker import fetch
 from scripts.review_headless_results import independent_attempt
+from scripts.review_headless_results import main as review_main
 
 
 class HeadlessTests(unittest.TestCase):
+    def test_explicit_empty_chromium_binary_never_uses_playwright_fallback(self):
+        self.assertIsNone(_resolve_binary('chromium', ''))
+
+    def test_review_packets_can_be_prepared_for_one_provider_without_verdicts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root/'evidence'; work = root/'work'
+            evidence.mkdir()
+            dataset = {'cases': [
+                {'id':'a','task_kind':'body','required_facts':[]},
+                {'id':'b','task_kind':'body','required_facts':[]},
+            ]}
+            records = [
+                {'attempt_id':f'{provider}__{case_id}__r001','provider':provider,
+                 'case_id':case_id,'artifact_path':f'artifacts/{provider}-{case_id}.txt',
+                 'ok':True,'error_type':None,'metrics':{'content_pass':True}}
+                for provider in ('p','q') for case_id in ('a','b')
+            ]
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'results.jsonl').write_text(
+                ''.join(json.dumps(row)+'\n' for row in records))
+            argv = ['review_headless_results.py','--evidence',str(evidence),
+                    '--work',str(work),'--batch-cases','1','--model','inherited',
+                    '--reviewer','internal','--scope','all','--provider','p',
+                    '--prepare-only']
+            with patch('sys.argv', argv):
+                review_main()
+            packets = sorted(work.glob('batch-*-input.json'))
+            self.assertEqual(len(packets), 2)
+            attempts = [attempt for path in packets
+                        for attempt in json.loads(path.read_text())['attempts']]
+            self.assertEqual({row['attempt_id'] for row in attempts},
+                             {'p__a__r001','p__b__r001'})
+            self.assertTrue(all('metrics' not in row for row in attempts))
+
     def test_independent_review_receives_real_file_evidence(self):
         row = {'attempt_id':'a','provider':'moli-1.1.3','artifact':'empty.txt',
                'request_ok':True,'error_type':None,'file_artifacts':['file.bin'],
@@ -77,6 +114,18 @@ class HeadlessTests(unittest.TestCase):
         self.assertNotIn('--dump', command)
         self.assertNotIn('--wait-until', command)
         self.assertEqual(command[-1], 'https://example.com/image.png')
+
+    def test_every_measured_moli_version_uses_raw_route_for_direct_files(self):
+        pdf = EvalCase('pdf', 'PDF', 'https://example.com/paper.pdf', 'document', [],
+                       track='document')
+        image = EvalCase('image', 'Image', 'https://example.com/image.png', 'image', [],
+                         track='image', task_kind='file')
+        for name in ('moli-1.0.6', 'moli', 'moli-1.1.3'):
+            with self.subTest(provider=name):
+                self.assertEqual(output_mode_for_case('moli', 'headless_markdown', pdf),
+                                 'document')
+                self.assertEqual(output_mode_for_case('moli', 'headless_markdown', image),
+                                 'file')
 
     def test_moli_raw_pdf_is_extracted_and_preserved(self):
         from types import SimpleNamespace

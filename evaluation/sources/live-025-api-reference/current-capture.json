@@ -1,7 +1,7 @@
 {
   "case_id": "live-025-api-reference",
   "url": "https://docs.tavily.com/documentation/api-reference/endpoint/extract",
-  "checked_at": "2026-09-04T07:45:33.309318+00:00",
+  "checked_at": "2026-09-08T07:00:51.821457+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://docs.tavily.com/documentation/api-reference/endpoint/extract",
   "mime": "text/html; charset=utf-8",
-  "bytes": 485624,
-  "sha256": "16147694c9546c2f76175592c6a9ec22e8d63f84a54ce0d2fa360db503dce7b9",
+  "bytes": 478863,
+  "sha256": "c1102acc552a513abb502f126f4c39e1a52b4924129fb76bcd65ea7479662c2c",
   "response_headers": {
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "worker-src * blob: data: 'unsafe-eval' 'unsafe-inline'; object-src data: ; base-uri 'self'; upgrade-insecure-requests; frame-ancestors 'self' https://dashboard.mintlify.com https://app.mintlify.com; form-action 'self' https://codesandbox.io;",
@@ -43,10 +43,10 @@
       "alt": "dark logo"
     }
   ],
-  "extracted_sha256": "025e1b666af9912f9943c6fb12247475c5672ce69b243a63e9a7808250050b4a",
-  "reference_sha256": "094f9271d1e4963e5bbfa4808ee0a1f5ec907d1f63b477678f05581513e7a4b8",
-  "text_chars": 15187,
-  "excerpt": "Python SDK\nPython\nfrom\ntavily\nimport\nTavilyClient\ntavily_client\n=\nTavilyClient(\napi_key\n=\n\"tvly-YOUR_API_KEY\"\n)\nresponse\n=\ntavily_client.extract(\n\"https://en.wikipedia.org/wiki/Artificial_intelligence\"\n)\nprint\n(response)\nconst { tavily } = require(\"@tavily/core\");\nconst tvly = tavily({ apiKey: \"tvly-YOUR_API_KEY\" });\nconst response = await tvly.extract(\"https://en.wikipedia.org/wiki/Artificial_intelligence\");\nconsole.log(response);\ncurl --request POST \\\n--url https://api.tavily.com/extract \\\n--header 'Authorization: Bearer <token>' \\\n--header 'Content-Type: application/json' \\\n--data '\n{\n\"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n\"query\": \"<string>\",\n\"chunks_per_source\": 3,\n\"extract_depth\": \"basic\",\n\"include_images\": false,\n\"include_favicon\": false,\n\"format\": \"markdow",
+  "extracted_sha256": "22b68be32bfc4bc18d82d374ddc24d5aacf9eb7fabfbdbe1383eca4f4a65321f",
+  "reference_sha256": "1271a5703b0a1d5ce0df1fa00f9d402e7099225f2e615fcebe50a85d3e6471a2",
+  "text_chars": 15173,
+  "excerpt": "Python SDK\nPython\nfrom tavily import TavilyClient\ntavily_client = TavilyClient(api_key=\"tvly-YOUR_API_KEY\")\nresponse = tavily_client.extract(\"https://en.wikipedia.org/wiki/Artificial_intelligence\")\nprint(response)\nconst { tavily } = require(\"@tavily/core\");\nconst tvly = tavily({ apiKey: \"tvly-YOUR_API_KEY\" });\nconst response = await tvly.extract(\"https://en.wikipedia.org/wiki/Artificial_intelligence\");\nconsole.log(response);\ncurl --request POST \\\n--url https://api.tavily.com/extract \\\n--header 'Authorization: Bearer <token>' \\\n--header 'Content-Type: application/json' \\\n--data '\n{\n\"urls\": \"https://en.wikipedia.org/wiki/Artificial_intelligence\",\n\"query\": \"<string>\",\n\"chunks_per_source\": 3,\n\"extract_depth\": \"basic\",\n\"include_images\": false,\n\"include_favicon\": false,\n\"format\": \"markdown\",\n\"ti",
   "missing_facts": [],
   "quality_issues": [],
   "state": "captured"

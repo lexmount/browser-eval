@@ -1,7 +1,7 @@
 {
   "case_id": "live-033-nasa-science",
   "url": "https://science.nasa.gov/",
-  "checked_at": "2026-09-07T03:56:41.485849+00:00",
+  "checked_at": "2026-09-08T04:23:18.304919+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://science.nasa.gov/",
   "mime": "text/html; charset=UTF-8",
-  "bytes": 371943,
-  "sha256": "8a59aa5a937fb699783b504c8001e85655e206c50c7f752180a1482660f7cfb0",
+  "bytes": 371911,
+  "sha256": "279550cf13c8ff6621d7b1eae04943f10db06b49e3a55d39f6545e206df537e9",
   "response_headers": {
     "X-Frame-Options": "SAMEORIGIN",
     "Content-Type": "text/html; charset=UTF-8"
@@ -88,6 +88,11 @@
     },
     {
       "tag": "img",
+      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/a-bright-spot-at-mount-michael/mountmichael_oli_20260824_th.jpg?w=1024",
+      "alt": "A Bright Spot at Mount Michael"
+    },
+    {
+      "tag": "img",
       "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/the-west-faces-snow-drought/uswest_snowdrought_tmo_20260115.jpg?w=1024",
       "alt": "NASA Knows Drought"
     },
@@ -95,11 +100,6 @@
       "tag": "img",
       "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/a-trio-of-tropical-cyclones-in-the-pacific/pacificstorms_epic_20260901_th.jpg?w=1024",
       "alt": "A Trio of Tropical Cyclones in the Pacific"
-    },
-    {
-      "tag": "img",
-      "url": "https://assets.science.nasa.gov/dynamicimage/assets/science/esd/eo/images/iotd/2026/peatland-fires-darken-skies-in-indonesia/indonesiafires_amo_20260901_th.jpg?w=1024",
-      "alt": "Peatland Fires Darken Skies in Indonesia"
     },
     {
       "tag": "img",

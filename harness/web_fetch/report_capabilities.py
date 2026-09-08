@@ -166,7 +166,6 @@ for engine,url in {
  'kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/',
  'lightpanda':'https://github.com/lightpanda-io/browser',
  'obscura':'https://github.com/h4ckf0r0day/obscura',
- 'moli':'https://github.com/lexmount/moli',
  'chromium':'https://developer.chrome.com/docs/automation-and-testing/headless',
 }.items():
  SOURCES['headless-'+engine]=(engine+' · 官方文档（2026-09-03 核对）',url)
@@ -187,14 +186,28 @@ for engine,url in {
             'CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。' if native else
             'DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。'),
  }
-SOURCES['headless-moli-1.1.3']=('Moli 1.1.3 · 官方发布',
-    'https://github.com/lexmount/moli/releases/tag/v1.1.3')
-CAPABILITIES['moli-1.1.3']={**CAPABILITIES['moli'],
-    'scope':'普通网页原生 Markdown；直接文档与媒体由 fetch 自动选择输出。本轮 PDF 和媒体取得原始响应，DOCX 被序列化为 HTML；正文解析计入任务耗时',
-    'sources':['headless-moli-1.1.3']}
+for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.1'),('moli-1.1.3','1.1.3')):
+    source='headless-moli-'+version
+    SOURCES[source]=(f'Moli {version} · 官方发布',
+        f'https://github.com/lexmount/moli/releases/tag/v{version}')
+    CAPABILITIES[provider]={
+      'scope':'普通网页原生 Markdown；直接文档与媒体使用裸 fetch 自动响应；原始文档的正文解析计入任务耗时',
+      'sources':[source],
+      'web':c('支持','CLI 原生 Markdown'),
+      'document':c('需配置','裸 fetch 取得原始 PDF 后在预算内解析；Office 格式取决于实际响应'),
+      'image':c('仅链接','网页资源取决于 Markdown 保留；直接 URL 可验收原始字节'),
+      'av':c('仅链接','网页资源取决于 Markdown 保留；直接 URL 可验收原始字节'),
+      'file':c('支持','裸 fetch 返回直接 PDF、PNG、WebM、MP4 等原始响应'),
+      'js':c('支持','兼容范围看逐例结果'),
+      'input':'给定公开 HTTP(S) URL；不登录、不点击、不滚动。',
+      'structure':'普通网页输出 Markdown；直接文档或媒体输出序列化 HTML 或原始字节。',
+      'access':'每次新进程；本地二进制，不使用托管服务凭据。',
+      'notes':'正文与文件是不同交付契约。直接文档若返回原始字节，评测在同一次预算内解析；直接媒体只校验格式、长度和冻结 SHA-256，不进行内容理解。1.0.6 与 1.1.1 的裸 fetch 行为由官方发行二进制实测确认，1.1.3 还在 CLI 帮助中明确说明。',
+      'tested':'普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；每个任务只调用一次，端到端预算 45 秒。',
+    }
 
 def render_capabilities(out, names, *, table, cell, link):
-    labels={'moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
     unknown = sorted(set(names) - set(CAPABILITIES))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}
@@ -221,7 +234,7 @@ def render_capabilities(out, names, *, table, cell, link):
               '<div><dt>仅链接 / 有限支持</dt><dd>仅返回地址，或只覆盖指定输入、正文区域。</dd></div>'
               '<div><dt>无此能力 / 未声明</dt><dd>前者有明确实现边界；后者是官方资料不足，不能当作不支持。</dd></div></dl>')
     content = ('<p class="source-note">能力声明不是实测任务成绩；任务通过按登记的稳定内容锚点与字段结构等规则判定，不证明频繁变化值的事实准确性或实时性。文档列指 PDF / Office 中的文字；普通 TXT 不等于文档解析。图片、音视频列说明网页资源取得方式，<strong>不代表视觉理解或转写</strong>；直接媒体 URL 能否取得字节看原文件列。原文件不是页面正文、截图或下载链接本身。</p>'+
-               table(['方法 / 依据', '网站正文', '文档文字', '图片资源', '音视频资源', '原文件'], content_rows, cls='capability-matrix', metrics=[]))
+               table(['方法 / 依据', '静态网站正文', '文档文字', '图片资源', '音视频资源', '原文件'], content_rows, cls='capability-matrix', metrics=[]))
     runtime = table(['方法 / 依据', 'JS 渲染', '输入范围', '结构化输出', '访问与会话'], runtime_rows, cls='capability-runtime', metrics=[])
     if unknown:
         legend += '<p>尚无已核对的官方能力资料：'+escape('、'.join(unknown))+'。</p>'

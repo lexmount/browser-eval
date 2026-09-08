@@ -635,7 +635,7 @@ a list of <a class="reference external" href="https://wiki.python.org/moin/Pytho
     <div class="small-cta">
       <ul class="list-links-small">
         <li><a href="https://www.djangoproject.com/fundraising/">
-          Ferguson Builders donated to the Django Software Foundation to support Django development. Donate today!
+          hellysmile donated to the Django Software Foundation to support Django development. Donate today!
         </a></li>
       </ul>
     </div>

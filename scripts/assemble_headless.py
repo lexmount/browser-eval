@@ -37,13 +37,13 @@ def copy_bound_review(source, output):
 def read_verified_batches(root, dataset, rows):
     """Accept either one physical run or a previously verified assembly."""
     manifest_path=root/'manifest.json'
-    if manifest_path.exists():
+    execution_path=root/'execution.json'
+    if execution_path.exists():
+        batches=json.loads(execution_path.read_text())['batches']
+    elif manifest_path.exists():
         batches=[json.loads(manifest_path.read_text())]
     else:
-        execution_path=root/'execution.json'
-        if not execution_path.exists():
-            raise ValueError('Evidence has neither manifest.json nor execution.json: '+str(root))
-        batches=json.loads(execution_path.read_text())['batches']
+        raise ValueError('Evidence has neither manifest.json nor execution.json: '+str(root))
     require_verified_reference_checks(batches,cases=dataset,records=rows,source=root,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures')
@@ -121,11 +121,21 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
     cases={c['id']:c for c in dataset['cases']}
     canonical=(json.loads(canonical_dataset.read_text()) if canonical_dataset else None)
     canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
+    case_replacements=(canonical.get('comparison',{}).get('case_replacements',{})
+                       if canonical else {})
+    if (not isinstance(case_replacements,dict)
+            or len(set(case_replacements.values())) != len(case_replacements)):
+        raise ValueError('Canonical case replacement map is invalid')
+    replacement_targets={new:old for old,new in case_replacements.items()}
     original=read_records(run)
     expected={(c['id'],p) for c in cases.values() for p in dataset['coverage_plan'][c.get('track','web')]}
     if len(original)!=len(expected) or {(r['case_id'],r['provider']) for r in original}!=expected:
         raise ValueError('Original run has incomplete coverage')
-    assembled_input=not (run/'manifest.json').exists() and (run/'execution.json').exists()
+    source_manifest = (json.loads((run/'manifest.json').read_text())
+                       if (run/'manifest.json').exists() else {})
+    assembled_input=((run/'execution.json').exists() and
+        (not source_manifest or source_manifest.get('projection',{}).get('kind') ==
+         'complete-provider-from-retained-incomplete-matrix'))
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
     if assembled_input:
         prior_batches=json.loads((run/'execution.json').read_text())['batches']
@@ -143,23 +153,29 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
     for root in replacements:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
-        manifest=json.loads((root/'manifest.json').read_text())
-        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        replacement_batches=read_verified_batches(root,new_dataset,rows)
         for case in new_dataset['cases']:
             cid=case['id']
-            if cid not in cases or cid in replacement_cases:raise ValueError('Unknown/duplicate replacement case')
-            before,after=_without_reference(cases[cid]),_without_reference(case)
+            target_id=replacement_targets.get(cid,cid)
+            if target_id not in cases or target_id in replacement_cases:raise ValueError('Unknown/duplicate replacement case')
+            before,after=_without_reference(cases[target_id]),_without_reference(case)
             if canonical:
                 for key in ('id','url','track','task_kind'):
                     if case.get(key)!=canonical_cases[cid].get(key):
                         raise ValueError(f'Replacement changed canonical {key}: '+cid)
             elif before!=after:
                 raise ValueError('Replacement changed task rules without a canonical dataset: '+cid)
-            replacement_cases[cid]=(case,root)
-            audit.append({'case_id':cid,'selection_reason':('canonical task/reference correction with a complete matched cohort; no score-based selection'
+            replacement_cases[target_id]=(case,root)
+            old_providers=dataset['coverage_plan'][cases[target_id].get('track','web')]
+            new_providers=new_dataset['coverage_plan'][case.get('track','web')]
+            if set(old_providers)!=set(new_providers):
+                raise ValueError('Replacement provider scope changed: '+cid)
+            expected-={(target_id,p) for p in old_providers}
+            expected|={(cid,p) for p in new_providers}
+            audit.append({'case_id':cid,'replaces_case_id':target_id,'selection_reason':('canonical task/reference correction with a complete matched cohort; no score-based selection'
                 if before!=after else 'fresh complete matched cohort after failed reference certificate; no score-based selection'),
-                'excluded_attempts':[{k:r[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')} for r in original if r['case_id']==cid]})
-        batches.append(public_manifest(manifest));evidence.append(root)
+                'excluded_attempts':[{k:r[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')} for r in original if r['case_id']==target_id]})
+        batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
         selected.extend((r,root) for r in rows)
     for cid,case in cases.items():
         if cid in replacement_cases:continue
@@ -201,8 +217,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
     for root in provider_replacements:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
-        manifest=json.loads((root/'manifest.json').read_text())
-        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        replacement_batches=read_verified_batches(root,new_dataset,rows)
         incoming={c['id']:c for c in new_dataset['cases']}
         for row in rows:
             key=(row['case_id'],row['provider'])
@@ -223,7 +238,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
             audit.append({'case_id':row['case_id'],'provider':row['provider'],
                 'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
-        batches.append(public_manifest(manifest));evidence.append(root)
+        batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
     added_providers=set()
     for root in provider_additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
@@ -255,7 +270,8 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
                       'excluded_attempts':[]} for provider in sorted(providers))
     dataset['cases']=[replacement_cases.get(cid,(case,None))[0] for cid,case in cases.items()]
     if canonical:
-        if set(canonical_cases)!=set(cases):raise ValueError('Assembled case inventory differs from canonical dataset')
+        resulting_ids={replacement_cases.get(cid,(case,None))[0]['id'] for cid,case in cases.items()}
+        if set(canonical_cases)!=resulting_ids:raise ValueError('Assembled case inventory differs from canonical dataset')
         dataset['cases']=[deepcopy(case) for case in canonical['cases']]
     if pair_replacements:
         selected=[pair_replacements.get((r['case_id'],r['provider']),(r,root)) for r,root in selected]

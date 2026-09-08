@@ -11,8 +11,9 @@ PROFILES={
  'kitesurf':('远程账号 API','Cloudflare Browser Run 账户级 Markdown 端点，指定 browser=kitesurf，直接返回 Markdown。','https://developers.cloudflare.com/browser-run/kitesurf/'),
  'lightpanda':('本地浏览器 CLI','Lightpanda fetch --dump markdown，直接输出浏览器原生 Markdown。','https://github.com/lightpanda-io/browser'),
  'obscura':('本地浏览器 CLI','Obscura fetch --dump markdown；标准模式，不启用 stealth 或备用引擎。','https://github.com/h4ckf0r0day/obscura'),
- 'moli':('本地浏览器 CLI','Moli fetch --dump markdown，直接输出浏览器原生 Markdown。','https://github.com/lexmount/moli'),
- 'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch，由 CLI 自动选择原始响应或序列化页面。识别为原始 PDF 时，本地正文解析计入耗时；本轮 DOCX 被序列化为 HTML 并判失败。文件任务直接校验取得的字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
+ 'moli-1.0.6':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.0.6'),
+ 'moli':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.1'),
+ 'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
  'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。','https://playwright.dev/python/docs/browsers'),
  'moli-webfetch':('本地 CLI','Moli 一次性 fetch，默认运行网页 JavaScript 并输出 Markdown；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),
@@ -27,7 +28,7 @@ PROFILES={
  'langchain-webbase':('本地开源库','WebBaseLoader 使用 HTTP 与 BeautifulSoup 取得网页文字。','https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader'),
  'crawl4ai':('本地开源库','本地浏览器渲染，再抽取 Markdown、媒体及链接信息。','https://docs.crawl4ai.com/'),
 }
-DISPLAY_NAMES={'moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
 def display_name(name):return DISPLAY_NAMES.get(name,name)
 
 def adoption_counts(data,names):
@@ -80,7 +81,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
     ])+'<p>'+link('evidence.json','完整检索证据')+' · '+link('counts.json','逐方法统计数据')+'</p>'
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
     if records and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records):
-        body+=section('参评方法',cards([('远程正文接口','Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。'),('本地原生产物','Lightpanda、Obscura 与 Moli 的普通网页使用 CLI 正文输出。Moli 1.1.3 的直接文档和媒体 URL 使用自动原始响应：正文任务在预算内解析，文件任务校验字节。'),('本地 DOM 转换','Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。六种方法都不调用模型。')]))
+        body+=section('参评方法',cards([('远程正文接口','Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。'),('本地原生产物','Lightpanda、Obscura 与三个 Moli 版本的普通网页使用 CLI 正文输出。三个 Moli 版本的直接文档和媒体 URL 均使用裸 fetch：正文任务在预算内解析，文件任务校验字节。'),('本地 DOM 转换','Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。七种方法都不调用模型。')]))
         body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+f'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
     else:
         body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))

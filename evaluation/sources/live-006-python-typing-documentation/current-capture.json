@@ -1,7 +1,7 @@
 {
   "case_id": "live-006-python-typing-documentation",
   "url": "https://docs.python.org/3/library/typing.html",
-  "checked_at": "2026-09-07T03:56:35.548860+00:00",
+  "checked_at": "2026-09-08T04:23:14.436445+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/typing.html",
   "mime": "text/html",
   "bytes": 537361,
-  "sha256": "b5d439889f422b374b1d495b05ce9a99fdc740e19c54a0866df014345481a014",
+  "sha256": "ff6a293e2e879f48b50d9b701b7ca43d6f3fce13ac421c004cbf2722520cc571",
   "response_headers": {
     "Content-Type": "text/html"
   },

@@ -1,7 +1,7 @@
 {
   "case_id": "live-052-objects-in-kubernetes",
   "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/",
-  "checked_at": "2026-09-07T03:56:45.528035+00:00",
+  "checked_at": "2026-09-08T04:23:21.251425+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

@@ -2,19 +2,19 @@
   <header class="essay-head">
     <p class="eyebrow">Web Fetch · 浏览器路线实测</p>
     <h1 id="article-title">${title}</h1>
-    <p class="lead">同一 URL、同一 Markdown 输出契约、同一任务集与验收规则；每种方法使用本轮可获得的最快正式路径，而不是强迫内部实现一致。</p>
+    <p class="lead">同一 URL、同一任务交付物、同一评测集与验收规则；每种方法使用本轮可获得的最快正式路径，不强迫内部实现一致。</p>
     <p class="source-note">${cases} 个任务 · ${providers} 种方法 · ${attempts} 次纳入结果 · ${time_window}（UTC）</p>
   </header>
 
   <section id="result">
     <h2>先看任务是否交付</h2>
-    <p>普通网页通过数：${web_summary}。六类任务要求不同，不合成总分，也不跨类别比较高低。</p>
+    <p>静态网页通过数：${web_summary}。综合榜按 150 个任务等权计数；六类分榜仍分别解释，耗时和文字质量不混入综合通过率。</p>
     ${overview}
   </section>
 
   <section id="routes">
-    <h2>方法各走最快的 Markdown 路径</h2>
-    <p>Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown</code>；Lightpanda、Obscura 与两个 Moli 版本使用本地原生 Markdown；Chromium 没有原生 Markdown，取完整渲染 DOM 后转换。所有路线最终进入同一个任务裁判。</p>
+    <h2>方法各走最快的正式交付路径</h2>
+    <p>网页正文以可读 Markdown 为目标：Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown</code>；Lightpanda、Obscura 与三个 Moli 版本使用本地原生 Markdown；Chromium 取完整渲染 DOM 后转换。直接文档或媒体不强制先转 Markdown：三个 Moli 版本使用裸 <code>fetch</code>，正文题在同一次计时内从确实取得的 PDF/DOCX 提取文字，文件题直接校验原始字节。所有路线最终进入同一套任务裁判。</p>
     ${runtime}
     ${stages}
   </section>
@@ -25,7 +25,7 @@
     <div class="table-wrap"><table><thead><tr><th>序号</th><th>可能偏差</th><th>引入位置</th><th>本报告处理</th></tr></thead><tbody>
       <tr><td>1</td><td>原生 Markdown 与二次转换</td><td>输出形成阶段</td><td>允许最快正式路径；统一最终 Markdown 与裁判</td></tr>
       <tr><td>2</td><td>远端网络、排队与本地资源</td><td>调用与执行阶段</td><td>全部计入端到端时间；仅同窗共同成功样本排名</td></tr>
-      <tr><td>3</td><td>冷启动、缓存与会话复用</td><td>进程或浏览器生命周期</td><td>每次新进程或新上下文，不复用个人会话</td></tr>
+      <tr><td>3</td><td>冷启动、缓存与会话复用</td><td>进程或浏览器生命周期</td><td>每次新进程或新上下文，不复用个人会话；每个任务只调用一次，失败不重试</td></tr>
       <tr><td>4</td><td>完成条件不同</td><td>动态页面等待阶段</td><td>各自正式接口完成后，再用同一任务契约验收</td></tr>
       <tr><td>5</td><td>版本与远端服务漂移</td><td>二进制或托管后端</td><td>计时外记录批次前后版本与 SHA-256，身份变化直接失败；每次调用绑定该身份。事后恢复与运行时记录分开披露，nightly 无法映射 commit 时不猜测</td></tr>
     </tbody></table></div>

@@ -73,17 +73,17 @@ research/provider-adoption.json # 当前已核验采用统计及候选文件目�
 ```
 
 ```bash
-python3 scripts/build_report.py
-python3 scripts/check_report.py reports/webfetch
-python3 scripts/check_report_links.py reports/webfetch
-python3 -m unittest discover -s tests
-node tests/test_report_ui.mjs
+make setup
+make report EVIDENCE=/absolute/path/to/evidence
+make report-check
+make test
 ```
 
-布局校验另执行 `python3 scripts/check_report_revision.py`，需要 BeautifulSoup4。
+上述入口由 `.python-version`、`uv.lock` 和 Makefile 固定 Python 3.11 与依赖版本；
+不得改用系统 `python` / `python3`。环境不满足时立即失败，不降级执行。
 构建不调用供应商、不修改当前测量成绩。输出校验失败会中止；重建会替换整个已标记的生成目录，避免旧页面残留。
 
-参考与评分规则更新时，依次执行 `python3 scripts/prepare_references.py`、`python3 scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
+参考与评分规则更新时，依次执行 `uv run --frozen python scripts/prepare_references.py`、`uv run --frozen python scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
 
 采用统计用 `python3 research/search_method_adoption.py` 发现候选，再统一核验；`python3 research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
 
@@ -93,23 +93,23 @@ node tests/test_report_ui.mjs
 
 把根目录 `.env.example` 复制为 `.env`，只填写需要的方法。所有 Web Fetch 入口默认只读取仓库根目录 `.env`，不读取用户目录、不执行 shell 内容；已导出的环境变量优先。只有显式 `--env-file <路径>` 才改用其他文件，文件不存在时报错。`.env` 与本地变体已被 Git 忽略，示例不含凭据。
 
-用 `python3 -m harness.web_fetch validate --providers <方法名>` 校验凭据。原生实现还需要对应仓库和 Python/Node 依赖；路径均在 `.env.example` 中列出，开源依赖可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
+先执行 `make setup`，再用 `uv run --frozen python -m harness.web_fetch validate --providers <方法名>` 校验凭据。原生实现还需要对应仓库和 Python/Node 依赖；路径均在 `.env.example` 中列出，开源依赖可通过 `scripts/bootstrap_oss_baselines.sh` 准备。
 
 ```bash
-python3 scripts/run_benchmark.py
+uv run --frozen python scripts/run_benchmark.py
 # 或仅实测 Moli（当前完整评测集，不调用其他供应商）
-python3 scripts/run_benchmark.py --providers moli-webfetch --output ~/.browser-eval/runs/moli-webfetch
+uv run --frozen python scripts/run_benchmark.py --providers moli-webfetch --output ~/.browser-eval/runs/moli-webfetch
 # 仅检查新增动态组配置，不创建输出、不调用接口
-python3 scripts/run_benchmark.py --track dynamic --validate-only
+uv run --frozen python scripts/run_benchmark.py --track dynamic --validate-only
 # 扩充案例时，只运行已独立冻结的新案例 JSON；源页证据放在其旁边的 sources/
-python3 scripts/run_benchmark.py --dataset ~/.browser-eval/runs/new-reference/dataset.json --track dynamic --output ~/.browser-eval/runs/new-cases
+uv run --frozen python scripts/run_benchmark.py --dataset ~/.browser-eval/runs/new-reference/dataset.json --track dynamic --output ~/.browser-eval/runs/new-cases
 # 仅补跑指定的托管方法；其余已测记录不受影响
-python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output ~/.browser-eval/runs/dynamic-hosted
+uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexmount-global,lexmount-cn,firecrawl,tavily,exa,cloudflare-markdown --output ~/.browser-eval/runs/dynamic-hosted
 ```
 
 使用具备当前全部解析依赖的 Python 环境执行。默认调用存档中的方法及新接入的 Moli（目前 12 种），可用 `--providers` 选择；云端方法可能消耗配额。所有选中方法先通过配置检查，再开始调用。不同方法并发，同一方法先完成网页组，再测其他组；正文与资源配置分开。已有输出目录会被拒绝覆盖。新结果核验后才能替换 `evaluation/`，不自动替换已发布成绩。
 
-新增方法完成同一评测集后，可执行 `python3 scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
+新增方法完成同一评测集后，可执行 `uv run --frozen python scripts/add_provider_results.py ~/.browser-eval/runs/<完整运行目录> --provider <新方法>`。已有方法补测尚未执行的组时，使用 `--provider <方法> --track dynamic`；输入必须完整覆盖该组，案例与参考须与当前评测集完全一致。此入口拒绝缺失/重复任务、参考变化、输出哈希不符或执行批次不完整；原有 JSONL 行和输出字节不变，禁止覆盖已测任务。补测后同步审查 `configs/evaluation-inventory.json` 的方法覆盖，再重建报告。原始执行组、运行 ID 与时间仍各自保留，不能把不同时间的调用描述成同时测量。
 
 ### Moli WebFetch
 
@@ -117,16 +117,17 @@ python3 scripts/run_benchmark.py --track dynamic --providers lexmount-global,lex
 
 官方还提供 JSON/HTML/semantic tree、DOM eval、授权会话及需 layout 的截图/PDF 输出。这些能力与正文和原始响应路线分开说明；生成 PDF 不等于解析已有 PDF，媒体链接也不等于取得原文件。Moli 1.1.3 对非 HTML 响应使用自动原始输出（或 JSON 的 `body_base64`），不能强制 `--dump html/markdown`。本地文档解析属于正文任务的计时内后处理，不暗中借用其他 provider。
 
-独立源页检查：`python3 scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
+独立源页检查：`uv run --frozen python scripts/audit_sources.py`，需要 requests、BeautifulSoup4 和文档解析依赖。HTTP 失败只触发进一步检查，不能据此自动删除任务。复杂热门网站的列表按字段结构评分，不耦合当前标题、排序或价格。动态正文参考采集须遵守 `harness/web_fetch/README.md` 的配对证据与有界完成条件；页面分类不是 JS 必要性的证据。
 
 ## 发布
 
 ```bash
 export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/bWkRP157EtF6
-python3 scripts/build_report.py
-python3 scripts/package_artifact_hub.py
-python3 scripts/verify_artifact_hub.py --slug bWkRP157EtF6
-python3 scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
+make report EVIDENCE=/absolute/path/to/evidence
+make report-check
+uv run --frozen python scripts/package_artifact_hub.py
+uv run --frozen python scripts/verify_artifact_hub.py --slug bWkRP157EtF6
+uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
 ```
 
 打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Hub 发布令牌默认保存在 `~/.config/artifact-hub/token`（权限 0600），供同一用户的工作区复用；仓库 `.env` 或显式环境变量中的 `ARTIFACT_HUB_TOKEN` 可覆盖它。其他评测密钥仍只读取仓库配置。五浏览器报告使用独立站点 `bWkRP157EtF6`，不覆盖原报告 `UeZE1vfcEOrM`。构建和打包须使用同一公开地址环境变量；独立回执中的 slug 决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。

@@ -355,11 +355,13 @@ class StableTaskTests(unittest.TestCase):
                  '| An independent thought. | Some Author | first second |')
         for text in texts:
             self.assertTrue(self.check(text, "quote", 1, stable_text_anchors=anchors)["stable_task_pass"])
-        for text in ('“An independent thought.”by Some Author\nTags: firstsecond',
-                     '“An independent thought.”by Wrong Author\nTags: first second'):
-            result = self.check(text, "quote", 1, stable_text_anchors=anchors)
-            self.assertTrue(result["stable_structure_pass"])
-            self.assertFalse(result["stable_content_pass"])
+        compact = self.check('“An independent thought.”by Some Author\nTags: firstsecond',
+                             "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(compact["stable_task_pass"])
+        wrong = self.check('“An independent thought.”by Wrong Author\nTags: first second',
+                           "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(wrong["stable_structure_pass"])
+        self.assertFalse(wrong["stable_content_pass"])
 
     def test_quote_tags_can_span_native_markdown_link_lines(self):
         anchors = [{"id": "fixed", "alternatives": [

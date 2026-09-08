@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--dataset', type=Path, default=ROOT/'evaluation/dataset.json')
     parser.add_argument('--config', type=Path, default=ROOT/'configs/providers.headless.json')
-    parser.add_argument('--providers', default='kitesurf,lightpanda,obscura,moli,moli-1.1.3,chromium')
+    parser.add_argument('--providers', default='kitesurf,lightpanda,obscura,moli-1.0.6,moli,moli-1.1.3,chromium')
     parser.add_argument('--case-ids')
     parser.add_argument('--tracks', help='Comma-separated task families; default all')
     parser.add_argument('--workers', type=int, default=1)
@@ -53,13 +53,13 @@ def main():
     preflight_identities = {provider.name: provider.implementation_identity()
                             for provider in providers}
     dataset = {**dataset, 'id': 'web-fetch-headless-browsers',
-               'name': '五类浏览器、六种方法 Web Fetch 对比',
+               'name': '五类浏览器、七种方法 Web Fetch 对比',
                'cases': [c for c in dataset['cases'] if c['id'] in {x.id for x in cases}],
                'coverage_plan': {c.track: names for c in cases},
                'comparison': {'kind': 'headless_markdown', 'timeout_seconds': args.timeout,
                    'source_dataset_sha256': hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
                    'adapter_input_sha256': hashlib.sha256((ROOT/'scripts/headless_worker.py').read_bytes()).hexdigest(),
-                   'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and both measured Moli versions; Chromium whole-DOM HTML via node-html-markdown 2.0.0',
+               'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0',
                    'concurrency': args.workers, 'runs_per_case': 1}}
     records, _ = run_evaluation(output_dir=args.output, dataset_meta=dataset,
         dataset_path=args.dataset, cases=cases, providers=providers,

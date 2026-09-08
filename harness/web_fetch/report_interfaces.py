@@ -12,6 +12,7 @@ HEADLESS_ACCESS={
  },
  'lightpanda':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
  'obscura':{'account':'本轮本地标准模式不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
+ 'moli-1.0.6':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
  'moli':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.1 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','links':[('Moli 1.1.1 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.1')]},
  'moli-1.1.3':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
  'chromium':{'account':'本轮独立本地浏览器不需要 Google 账号或 API Key，不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
@@ -81,16 +82,18 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
   {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
   '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
-SPECS['moli-1.1.3']={**SPECS['moli'],
- 'entry':'CLI · Moli 1.1.3 普通网页 Markdown / 直接文档与媒体自动原始响应',
+def moli_release_spec(version):
+ base=SPECS['moli']
+ return {**base,
+ 'entry':f'CLI · Moli {version} 普通网页 Markdown / 直接文档与媒体自动原始响应',
  'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','普通网页正文','直接取得 Markdown'),('不传 --dump','直接文档或媒体','由 CLI 自动选择原始响应或序列化页面；不附加页面等待参数'),('timeout','seconds','45 秒外层端到端截止；文档解析包含在内')],
  'fields':[('stdout','UTF-8 string / bytes','普通网页为 Markdown；直接文件为原始字节'),('document_extractor','string','直接文档正文使用的本地解析器'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
- 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'moli fetch --timeout 45000 --http-timeout 45000 URL','version':'1.1.3'},
- 'notes':'本方法只使用官方 1.1.3 发行二进制，与旧 Moli 记录分开计分。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。本轮 PDF 成功进入原始响应路线，DOCX 被序列化为 HTML 并失败。没有失败后切换，也不借用其他 provider。'}
-SPECS['moli']={**SPECS['moli'],
- 'entry':'CLI · moli 1.1.1 fetch --dump markdown',
- 'request':{**SPECS['moli']['request'],'version':'1.1.1'},
- 'notes':SPECS['moli']['notes']+'原调用当时保存了二进制 SHA-256，但未保存版本字符串；事后用留存二进制与官方 v1.1.1 归档逐字节匹配恢复版本。此项在报告中标为事后核验，不冒充运行时版本记录。'}
+ 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'moli fetch --timeout 45000 --http-timeout 45000 URL','version':version},
+ 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。'}
+SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
+SPECS['moli']=moli_release_spec('1.1.1')
+SPECS['moli']['notes']+=' 旧批次只保存了二进制 SHA-256，随后与官方 v1.1.1 归档逐字节匹配；受错误输出模式影响的直接文档与媒体已用正确路线重测。'
+SPECS['moli-1.1.3']=moli_release_spec('1.1.3')
 SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],

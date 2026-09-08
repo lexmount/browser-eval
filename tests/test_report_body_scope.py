@@ -47,20 +47,16 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
-    def test_quote_failure_shows_field_boundary_loss_instead_of_claiming_text_absent(self):
+    def test_quote_inline_whitespace_loss_preserves_complete_owned_fields(self):
         anchor={'id':'fixed','alternatives':['“An independent thought.”\nby Some Author\nTags: first second']}
         metrics=evaluate_stable_task(
             '“An independent thought.”bySome AuthorTags:firstsecond',
             {'version':1,'schema':'quote','minimum_records':1,'maximum_records':1,
              'stable_text_anchors':[anchor]})
-        self.assertFalse(metrics['stable_task_pass'])
+        self.assertTrue(metrics['stable_task_pass'])
         rendered=stable_anchor_evidence(metrics,'“An independent thought.”bySome AuthorTags:firstsecond')
-        for phrase in ['字段边界不合格','引文','作者','标签','文字齐全，但分隔丢失']:
+        for phrase in ['An independent thought.','Some Author','firstsecond','命中']:
             self.assertIn(phrase,rendered)
-        summary=stable_failure_summary(metrics)
-        self.assertIn('引文和作者均与标准答案一致',summary)
-        self.assertIn('标签之间没有可读分隔',summary)
-        self.assertNotIn('缺少稳定文字',summary)
 
     def test_result_review_page_lists_failure_coverage_by_provider(self):
         c=case();r=record(c,passed=False);r['provider']='moli';r['attempt_id']='moli__list__r001'

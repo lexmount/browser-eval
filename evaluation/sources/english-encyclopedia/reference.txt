@@ -6196,6 +6196,10 @@ doi
 :
 10.1007/s12525-023-00680-1
 .
+hdl
+:
+10419/306304
+.
 ↑
 Pasick, Adam (27 March 2023).
 "Artificial Intelligence Glossary: Neural Networks and Other Terms Explained"
@@ -11003,6 +11007,190 @@ Articles related to artificial intelligence
 v
 t
 e
+Artificial intelligence algorithms
+Search
+A* search algorithm
+Beam search
+Beam stack search
+Best-first search
+Breadth-first search
+Depth-first search
+General Problem Solver
+Iterative deepening A*
+Iterative deepening depth-first search
+Uniform-cost search
+Game-tree search
+Alpha–beta pruning
+Expectiminimax
+Minimax
+Monte Carlo tree search
+SSS*
+Optimization
+ALOPEX
+Bayesian optimization
+Conjugate gradient method
+Gradient descent
+Hill climbing
+Levenberg–Marquardt algorithm
+Quadratic unconstrained binary optimization
+Quasi-Newton method
+Simulated annealing
+Stochastic gradient descent
+Evolutionary computation
+Differential evolution
+Evolutionary multimodal optimization
+Genetic algorithm
+Genetic programming
+Bio-inspired methods
+Ant colony optimization algorithms
+Particle swarm optimization
+Automated reasoning
+Backward chaining
+Forward chaining
+Rete algorithm
+Logic
+DPLL algorithm
+Resolution (logic)
+WalkSAT
+Statistical inference
+Baum–Welch algorithm
+Belief propagation
+Expectation–maximization algorithm
+Forward–backward algorithm
+Kalman filter
+Markov chain Monte Carlo (MCMC)
+Viterbi algorithm
+Pathfinding
+A*
+D*
+Dijkstra's algorithm
+Theta*
+Motion planning
+Bug algorithm
+Dynamic window approach
+Graphplan
+Probabilistic roadmap
+Rapidly-exploring random tree
+Vector Field Histogram
+Ensemble learning
+AdaBoost
+Bootstrap aggregating
+BrownBoost
+Gradient boosting
+LogitBoost
+LPBoost
+Random forest
+Randomized weighted majority algorithm
+Weighted majority algorithm
+Classification
+Alternating decision tree
+C4.5 algorithm
+CN2 algorithm
+Decision tree learning
+Dominance-based rough set approach
+Genetic Algorithm for Rule Set Production
+ID3 algorithm
+k
+-nearest neighbors algorithm
+Logic learning machine
+Logistic regression
+Naive Bayes classifier
+Relevance vector machine
+RIPPER
+Structured kNN
+Support vector machine
+Winnow algorithm
+Clustering
+DBSCAN
+Hierarchical clustering
+k-means++
+k-means clustering
+k-medoids
+Linde–Buzo–Gray algorithm
+Lloyd's algorithm
+OPTICS
+Association learning
+Apriori algorithm
+Eclat algorithm
+FP-growth algorithm
+Dimensionality reduction
+Diffusion map
+FastICA
+Kernel principal component analysis
+Manifold alignment
+Minimum redundancy feature selection
+Non-negative matrix factorization
+Principal component analysis
+Sparse PCA
+T-distributed stochastic neighbor embedding
+Neural learning
+Almeida–Pineda recurrent backpropagation
+Backpropagation
+GeneRec
+Generalized Hebbian algorithm
+Growing self-organizing map
+Learning vector quantization
+Leabra
+Perceptron
+Quickprop
+Rprop
+Self-organizing map
+Wake-sleep algorithm
+Reinforcement learning
+Actor-critic algorithm
+Constructing skill trees
+Error-driven learning
+Policy gradient method
+Prefrontal cortex basal ganglia working memory
+Proximal policy optimization
+PVLV
+Q-learning
+Skill chaining
+State–action–reward–state–action
+Temporal difference learning
+Deep learning
+PagedAttention
+vAttention
+Other machine learning
+Dynamic time warping
+IDistance
+Local outlier factor
+Natural language processing
+Byte-pair encoding
+Cocke–Younger–Kasami algorithm
+Earley parser
+Inside-outside algorithm
+Computer vision
+Canny edge detector
+GrabCut
+RANSAC
+Scale-invariant feature transform
+Game play
+AlphaGo
+AlphaGo Zero
+AlphaZero
+MuZero
+TD-Gammon
+Related
+Glossary of artificial intelligence
+List of algorithms
+List of algorithms for automated planning
+List of artificial intelligence journals
+List of machine learning algorithms
+List of quantum algorithms
+Lists of open-source artificial intelligence software
+Motion planning
+Outline of algorithms
+Outline of artificial intelligence
+Satplan
+TurboQuant
+AlphaDev
+AlphaEvolve
+AlphaTensor
+Algorithm engineering
+v
+t
+e
 John McCarthy
 Artificial intelligence
 Circumscription
@@ -11968,8 +12156,11 @@ GPT
 GPT-J
 PanGu
 Granite
+Hy4
+Inkling
 Jais
 LaMDA
+Laguna S
 Llama
 MiMo
 Minerva
@@ -11990,13 +12181,14 @@ Amazon Q
 ChatGPT
 Character.ai
 Claude
+Claude Code
 DeepSeek
 Doubao
 Ernie Bot
-GLM
-Google Gemini
+Gemini
 Grok
 Kimi
+Kimi Code
 Lumo
 Microsoft Copilot
 Meta AI
@@ -12021,7 +12213,6 @@ Machine translation
 Text summarization
 Chatbot
 Virtual assistant
-LLMs in higher education
 Software
 PyTorch
 TensorFlow
@@ -12081,6 +12272,7 @@ MiniMax
 Moonshot AI
 Nvidia
 OpenAI
+OpenRouter
 Sarvam AI
 StepFun
 Technology Innovation Institute

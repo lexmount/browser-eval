@@ -7,6 +7,24 @@ Example code ↗
 Task: "Extract structured data about my followers and export it as a CSV."
 extract-followers-from-3.5.mp4
 Browser Use Cloud Docs ↗
+Start with Browser Use Cloud
+Eligible new Google, GitHub or Microsoft signups get a one-time
+$15 Cloud credit
+. No card required; email/password signups do not qualify.
+Pricing and eligibility
+.
+Hosted agent:
+V4 quickstart
+, using
+browser-use-sdk
+.
+Your own agent:
+Managed browser quickstart
+.
+Local framework:
+the
+browser-use
+Python library below.
 Quickstart
 If you want to use Browser Use in your agent (Claude Code, Codex, Cursor, Hermes, OpenClaw, etc.), paste this prompt, and it sets everything up itself:
 Install or upgrade browser-use to the latest stable version with uv using Python 3.12, run `browser-use skill install` to register the skill, and connect it to my browser. If setup or connection fails, follow https://github.com/browser-use/browser-harness/blob/main/install.md.

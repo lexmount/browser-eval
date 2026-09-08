@@ -91,5 +91,5 @@ def render_changes(out, cases, records):
     revision=out/'scoring-revisions.json'
     if revision.exists():
         require_revision_release_bindings(json.loads(revision.read_text()),data['releases'])
-    body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/pull/4','对应修复 PR')+'</p>')
+    body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/pull/6','对应修复 PR')+'</p>')
     write(out,'changes/index.html','报告版本说明','<div class="change-log">'+body+'</div>')

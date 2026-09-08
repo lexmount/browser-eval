@@ -14,6 +14,8 @@ from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.reference_quality import clean_reference_text
 
+RENDERED_REFERENCE_CASES = {'javascript-spa', 'live-025-api-reference'}
+
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -55,6 +57,8 @@ def main():
         if not requires_fresh_reference(case):
             continue
         cid = case['id']
+        if cid in RENDERED_REFERENCE_CASES and cid not in observations:
+            p.error('Reference requires independent browser observation: ' + cid)
         if cid in observations:
             row = observations[cid]
             from harness.web_fetch.reference_lifecycle import _completion

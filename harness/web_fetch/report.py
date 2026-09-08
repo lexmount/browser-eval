@@ -17,8 +17,8 @@ from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
 from .models import execution_id
 
-TRACKS={'web':'网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
-PROVIDER_LABELS={'moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
+TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
+PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.1','moli-1.1.3':'Moli 1.1.3'}
 ROUTE_LABELS={
  'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
  'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
@@ -162,7 +162,7 @@ def review_cell(audit, rows, base=''):
  indexed=review_index(audit);items=[indexed[r['attempt_id']] for r in rows if r['attempt_id'] in indexed]
  unresolved=sum(not x.get('final_verdict') for x in items)
  reviewer=audit.get('reviewer',{})
- label=f'{len(items)}/{len(rows)} · {reviewer.get("agent","独立审查")} 自动 · {unresolved} 未决'
+ label=f'{len(items)}/{len(rows)} · {reviewer.get("agent","独立审查")}已核验 · {unresolved} 未决'
  return cell(link(base+'review/index.html',label),len(items)/len(rows) if rows else -1)
 
 def _evidence_chunks(text, width=620):
@@ -642,7 +642,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  for name,rs in byprovider.items():
   info=method_info(rs[0]['provider_type'])
   controls=filter_controls([('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
-  body=hero(esc(provider_label(name)),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>网站正文使用默认正文输出；资源任务为支持资源返回的 Exa、Tavily、Firecrawl 开启原生资源字段。未开启额外的理解模型或付费后备方法。</p>')
+  body=hero(esc(provider_label(name)),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>静态网站正文使用默认正文输出；资源任务为支持资源返回的 Exa、Tavily、Firecrawl 开启原生资源字段。未开启额外的理解模型或付费后备方法。</p>')
   price_anchor='pricing-'+name if name in {'firecrawl','tavily','exa','cloudflare-markdown'} else 'method-guide-pricing'
   body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+price_anchor,'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
   body+=section(f'{len(rs)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in rs],'filtered-table'))
@@ -853,7 +853,8 @@ def write_review_page(out,records):
           f'<article class="card"><div class="eyebrow">当前自动误判</div><h3>{len(current_machine_fn)} FN · {len(current_machine_fp)} FP</h3><p>最终裁定相对当前评分</p></article>'
           f'<article class="card"><div class="eyebrow">历史评分纠正</div><h3>{len(historical_fn)} FN · {len(historical_fp)} FP</h3><p>均已离线重算</p></article>'
           f'<article class="card"><div class="eyebrow">未决</div><h3>{audit.get("unresolved",0)}</h3><p>非零即禁止发布</p></article></div>')
- process=('<ol class="quality-steps"><li><b>冻结核验输入</b><span>绑定评测集、900 份保存输出及其 SHA-256。</span></li>'
+ total=len(records)
+ process=(f'<ol class="quality-steps"><li><b>冻结核验输入</b><span>绑定评测集、{total} 份保存输出及其 SHA-256。</span></li>'
           '<li><b>隐藏机器结论</b><span>审查代理只看任务规则、标准答案和完整实际输出。</span></li>'
           '<li><b>逐条独立判定</b><span>每条给出通过或失败及可定位的证据，再与自动结果比较。</span></li>'
           '<li><b>裁定并发布</b><span>分歧回到原始证据裁定；未决数必须为 0。</span></li></ol>')
@@ -872,7 +873,10 @@ def write_review_page(out,records):
  historical_rows=[]
  for x in sorted(historical.values(),key=lambda y:y['attempt_id']):
   kind='自动假阴性' if x.get('before') is False and x.get('after') is True else '自动假阳性'
-  historical_rows.append(('',cell(link('../attempts/'+x['attempt_id']+'.html',x['attempt_id']))+cell(kind)+cell('失败' if not x.get('before') else '通过')+cell('通过' if x.get('after') else '失败')+cell('已用保存输出离线重算；供应商调用 0 次')))
+  attempt=(link('../attempts/'+x['attempt_id']+'.html',x['attempt_id'])
+           if x['attempt_id'] in by_attempt else
+           '<code>'+esc(x['attempt_id'])+'</code>（历史任务已替换）')
+  historical_rows.append(('',cell(attempt)+cell(kind)+cell('失败' if not x.get('before') else '通过')+cell('通过' if x.get('after') else '失败')+cell('已用保存输出离线重算；供应商调用 0 次')))
  filters=filter_controls([('provider','方法',[(n,provider_label(n)) for n in sorted({r['provider'] for r in records})]),('reviewState','核验状态',[('agree','结论一致'),('adjudicated','分歧已裁定')])],all_first={'provider','reviewState'})
  detail_rows=[]
  for x in audit['attempts']:
@@ -884,12 +888,15 @@ def write_review_page(out,records):
  if speed_path.is_file():
   speed_audit=json.loads(speed_path.read_text())
   speed=section('同窗测速核验',f'<p><b>{speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}</b> 条输出已独立核验；分歧 {speed_audit.get("disagreements",0)}，未决 {speed_audit.get("unresolved",0)}。{link("../speed-cohort/result-review.json","下载完整测速核验记录")}</p>')
- page=hero('核验记录',f'{esc(reviewer.get("agent","独立代理"))} · {esc(reviewer.get("model","—"))} · {esc(reviewer.get("effort","—"))}；主结果 900 条全部独立核验。')
- page+=section('核验结论',summary+'<p class="decision-lead"><b>结论：</b>当前 900 条评分中，自动假阴性 0、自动假阳性 0、未决 0。盲审出现的 4 个分歧都来自审查代理漏看 Markdown 链接排版，裁定后维持自动结果。当前六方法证据链中，发布前规则修订发现的 21 个自动假阴性已全部纠正；没有发现自动假阳性。</p>')
+ page=hero('核验记录',f'{esc(reviewer.get("agent","独立代理"))} · {esc(reviewer.get("model","—"))} · {esc(reviewer.get("effort","—"))}；主结果 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)} 条独立核验。')
+ conclusion=(f'<p class="decision-lead"><b>结论：</b>当前 {total} 条评分中，自动假阴性 {len(current_machine_fn)}、自动假阳性 {len(current_machine_fp)}、未决 {audit.get("unresolved",0)}。'
+             f'盲审与自动判定分歧 {len(review_disagreements)} 条；分歧的逐项证据与裁定见下表。'
+             f'本轮发布前的评分修订累计纠正自动假阴性 {len(historical_fn)} 条、自动假阳性 {len(historical_fp)} 条，均保留原输出与调用耗时。</p>')
+ page+=section('核验结论',summary+conclusion)
  page+=section('核验方法',process+table(['方法','主结果核验','机器失败项有证据','盲审分歧','状态'],provider_rows,metrics=[]))
- page+=section('盲审分歧与裁定','<p>这里的 4 条是“审查代理与自动判定不同”，不是 4 个自动评分错误。</p>'+table(['执行记录','分歧类型','审查意见','最终裁定依据','最终结果'],disagreement_rows,metrics=[]))
+ page+=section('盲审分歧与裁定',f'<p>这里的 {len(review_disagreements)} 条表示“审查代理与自动判定不同”；只有最终裁定相对当前机器结论发生变化时，才计为当前自动误判。</p>'+table(['执行记录','分歧类型','审查意见','最终裁定依据','最终结果'],disagreement_rows,metrics=[]))
  page+=section('已纠正的历史自动误判','<p>这些项目在报告发布前通过评分规则修订改为正确结果；只重算保存输出，没有重新调用浏览器。</p>'+table(['执行记录','误判类型','修订前','修订后','处理'],historical_rows,metrics=[]))
- page+=section('全部 900 条逐项核验',filters+'<p class="source-note">机器结论是当前评分结果；独立结论在审查时看不到机器结论和分数；最终结论是证据裁定后的发布结果。</p>'+table(['执行记录','方法','机器结论','独立结论','最终结论','状态','独立证据','裁定'],detail_rows,'filtered-table',cls='review-table',metrics=[]))
+ page+=section(f'全部 {total} 条逐项核验',filters+'<p class="source-note">机器结论是当前评分结果；独立结论在审查时看不到机器结论和分数；最终结论是证据裁定后的发布结果。</p>'+table(['执行记录','方法','机器结论','独立结论','最终结论','状态','独立证据','裁定'],detail_rows,'filtered-table',cls='review-table',metrics=[]))
  page+=speed+section('下载',f'<p>{link("../result-review.json","主结果完整核验记录")} · {link("../scoring-revisions.json","评分规则修订记录")}</p>')
  write(out,'review/index.html','核验记录',page)
 
@@ -907,18 +914,18 @@ def write_support(out,records,manifests):
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
  figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
  if figures:methodology+=section('方法图解',figures)
- methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。相邻独立链接的标签按独立词段核对，不猜测粘连纯文本的分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
+ methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表 <code>change deep-thoughts</code> 与 <code>changedeep-thoughts</code> 内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考。不同批次的耗时不直接排名；同窗速度子集单独标识。实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。环境、版本与命令见“环境与复现”。</p>')
  if headless:
   methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','六种方法每次使用新进程或新上下文。普通网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura、Moli 1.1.1、Moli 1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 1.1.3 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动原始响应；正文任务再在预算内解析可读文字，文件任务直接校验字节。统一 45 秒端到端预算，方法之间并行、同一方法串行。')
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。每个任务只调用一次，有 45 秒端到端预算；失败不重试，也不从后续响应中选择更好的结果。方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('result-review.json','独立核验记录')] if (out/'result-review.json').is_file() else [])+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else []))
- reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>python3 scripts/build_report.py</pre><p>输出目录：reports/webfetch/。重新实测使用 scripts/run_benchmark.py，正文配置为 configs/providers.example.json，资源配置为 configs/providers.resources.json。凭据仅从本地环境加载，不包含在报告中。</p>'
+ reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
-  reproduce='<p>在评测仓库中执行；默认读取用户目录下的持久化冻结证据，不重新调用浏览器。</p><pre>python3 scripts/build_report.py --evidence ~/.browser-eval/evidence/current</pre><p>唯一输出目录为 reports/webfetch/。重新测量使用 scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。过期的精确参考不能直接用于新一轮调用。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
+  reproduce='<p>在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
  common=[]
  for label,path in [('平台',('environment','platform')),('Python',('environment','python')),('超时秒',('parameters','timeout')),('并发方式',('parameters','concurrency_scope'))]:
   values=sorted({str(m.get(path[0],{}).get(path[1],'—')) for m in manifests})

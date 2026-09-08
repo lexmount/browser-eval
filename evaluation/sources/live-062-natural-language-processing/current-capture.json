@@ -1,7 +1,7 @@
 {
   "case_id": "live-062-natural-language-processing",
   "url": "https://en.wikipedia.org/wiki/Natural_language_processing",
-  "checked_at": "2026-09-07T03:56:48.010194+00:00",
+  "checked_at": "2026-09-08T04:23:22.490917+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

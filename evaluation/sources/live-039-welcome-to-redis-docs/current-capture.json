@@ -1,7 +1,7 @@
 {
   "case_id": "live-039-welcome-to-redis-docs",
   "url": "https://redis.io/docs/latest/",
-  "checked_at": "2026-09-07T03:56:44.019378+00:00",
+  "checked_at": "2026-09-08T04:23:19.226663+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://redis.io/docs/latest/",
   "mime": "text/html",
   "bytes": 118674,
-  "sha256": "5e0fd7acaf66e0003cf689d232117966c45a41c96958b4ca0cac5907539d7952",
+  "sha256": "b733bb687adfe53074e52d8bfb09cb7b5d44330c5ee38b732605096eba6f7d4a",
   "response_headers": {
     "Content-Type": "text/html"
   },

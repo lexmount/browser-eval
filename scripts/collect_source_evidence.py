@@ -7,8 +7,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
+import ipaddress
 import json
 import re
+import socket
 import zipfile
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -73,12 +75,17 @@ def extract_html(raw: bytes, url: str):
     return title, text, selector, resources
 
 
-def capture(case, out):
+def capture(case, out, resolved_hosts=None):
     safe_identifier(case['id'])
     validate_http_url(case['url'])
     dest = contained_path(out,case['id'])
     dest.mkdir(parents=True, exist_ok=True)
+    host = urlsplit(case['url']).hostname or ''
+    override = (resolved_hosts or {}).get(host)
     result = {'case_id':case['id'], 'url':case['url'], 'checked_at':datetime.now(timezone.utc).isoformat(), 'source':'independent HTTP GET (no provider output)', 'attempts':[]}
+    if override:
+        result['dns_override'] = {'host': host, 'ip': override,
+                                  'scope': 'explicit resolver override in this capture process'}
     try:
         for attempt in range(2):
             try:
@@ -152,10 +159,27 @@ def extract_docx(raw):
 
 if __name__ == '__main__':
     p=argparse.ArgumentParser(); p.add_argument('dataset',type=Path);p.add_argument('output',type=Path);p.add_argument('--workers',type=int,default=8);p.add_argument('--only',default='')
+    p.add_argument('--resolve', action='append', default=[], metavar='HOST=IP',
+                   help='Audited process-local DNS override; repeat for multiple hosts')
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=True)
+    resolved_hosts = {}
+    for value in args.resolve:
+        try:
+            host, ip = value.rsplit('=', 1)
+            ipaddress.ip_address(ip)
+        except ValueError:
+            p.error('--resolve must use HOST=IP with a literal IPv4/IPv6 address')
+        if not host or host in resolved_hosts:
+            p.error('Empty or duplicate --resolve host')
+        resolved_hosts[host] = ip
+    if resolved_hosts:
+        original_getaddrinfo = socket.getaddrinfo
+        def overridden_getaddrinfo(host, port, *positional, **named):
+            return original_getaddrinfo(resolved_hosts.get(host, host), port, *positional, **named)
+        socket.getaddrinfo = overridden_getaddrinfo
     cases=json.loads(args.dataset.read_text())['cases']
     if args.only:
         cases=[c for c in cases if c['id'] in args.only.split(',')]
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        results=list(pool.map(lambda c:capture(c,args.output),cases))
+        results=list(pool.map(lambda c:capture(c,args.output,resolved_hosts),cases))
     (args.output/'audit.json').write_text(json.dumps(results,ensure_ascii=False,indent=2)+'\n')

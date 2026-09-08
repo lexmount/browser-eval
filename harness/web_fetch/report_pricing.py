@@ -32,7 +32,7 @@ def render_pricing(out, names, *, table, cell, link, esc):
     def sources(p):
         return ' · '.join(link(s['url'], s['label'] + ' ↗') for s in p['sources'])
 
-    if set(names) <= {'kitesurf','lightpanda','obscura','moli','moli-1.1.3','chromium'}:
+    if set(names) <= {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','chromium'}:
         rows=[('',cell(esc(p['label']))+cell(esc(p['status']))+cell(esc(p['note']))+cell(sources(p)))
               for p in data['other_methods'] if set(p['ids']) & set(names)]
         return '<h3>本轮执行模式的成本边界</h3><p>这是客户端实测，不是计费或同机 CPU / 内存测试。本组官方资料核验日期：2026-09-07。</p>'+table(['方法','价格状态','成本边界','官方来源'],rows,cls='pricing-table',metrics=[])

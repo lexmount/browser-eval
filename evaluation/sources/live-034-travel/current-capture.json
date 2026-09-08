@@ -1,7 +1,7 @@
 {
   "case_id": "live-034-travel",
   "url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html",
-  "checked_at": "2026-09-07T03:56:42.824385+00:00",
+  "checked_at": "2026-09-08T04:23:18.387539+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {

@@ -1,7 +1,15 @@
 OpenClaw 🦞 — Your assistant, on your devices, in your chats
-OpenClaw is an AI assistant that runs on your devices and meets you in the channels you already use. It connects models, tools, messaging channels, and optional companion apps through one Gateway, for a single operator or for a team whose members trust each other: the same gateway runs as a personal assistant on one laptop or as a shared
+OpenClaw is an open-source AI assistant that runs on your own computer and meets you in the channels you already use: Discord, iMessage, Slack, Teams, Telegram, WhatsApp, and 20+ more, plus native apps for macOS, iOS, Android, Windows, and Linux. One Gateway runs it as a personal assistant on a laptop or as a shared
 team deployment
-, and configuration is the only difference. The architecture case — trusted gateway, untrusted execution, deterministic policy — is in
+; configuration is the only difference.
+Yours, with no catch.
+State, memory, and credentials live on your hardware. Models and agent harnesses (Claude, Codex, local models) are plugins you can swap without changing anything else. Your prompts go to the model provider and chat platforms you configure, plus any diagnostics export you enable yourself; by default OpenClaw itself phones home for nothing but a daily version check, anonymous feature statistics are opt-in, and
+update.checkOnStart: false
+disables both (
+what OpenClaw sends
+). OpenClaw is stewarded by the
+OpenClaw Foundation
+, an independent 501(c)(3), and has no paid tier, hosted service, or token. The architecture case — trusted gateway, untrusted execution, deterministic policy — is in
 Why OpenClaw
 .
 Website
@@ -37,7 +45,7 @@ openclaw.ai
 install.ps1
 |
 iex
-Already manage Node.js? Install the published package instead (Node 22.22.3+, 24.15+, or 25.9+):
+Already manage Node.js? Install the published package instead (Node 24.16+ or 26.1+):
 npm install -g openclaw@latest --allow-scripts=openclaw
 That command is for npm 12 or npm 11.16+. On npm 11.15 and earlier, omit
 --allow-scripts=openclaw
@@ -137,10 +145,12 @@ CONTRIBUTING.md
 for the contribution workflow and the
 source setup guide
 for the development loop.
-Community
+Governance
 OpenClaw is developed in the open by the
 OpenClaw Foundation
-, a non-profit. See
+, an independent 501(c)(3). The Foundation employs the core team and signs releases. Donors and infrastructure sponsors support the Foundation; none of them own or direct the project. OpenAI is a donor, not an owner.
+Community
+See
 CONTRIBUTING.md
 for maintainers and contribution guidelines; AI-assisted PRs are welcome.
 Use the
@@ -172,7 +182,8 @@ Mario Zechner
 for his support and for
 pi
 , and to Adam Doppelt for the lobster.bot domain.
-Sponsors
+Donors and sponsors
+The Foundation is funded by donors including the University of Michigan, OpenAI, Amazon, Red Hat, Offline Holdings, and Lobster Computer Company, with infrastructure support from GitHub, NVIDIA, Vercel, Blacksmith, and Convex.
 Contributors
 Thanks to all clawtributors:
 License

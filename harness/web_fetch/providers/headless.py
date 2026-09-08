@@ -23,6 +23,11 @@ ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 
 
 def _resolve_binary(engine, configured):
+    # An explicitly expanded empty environment variable is a configuration
+    # error.  It must not behave like an omitted option and silently select a
+    # different Playwright browser during a partial rerun.
+    if configured == '':
+        return None
     resolved = shutil.which(configured or engine)
     if resolved or engine != 'chromium' or configured not in (None, '', 'chromium'):
         return resolved
@@ -41,9 +46,11 @@ def cli_command(engine, binary, url, timeout, output_mode='html', wait_until=Non
     if output_mode in {'document', 'file'}:
         if engine != 'moli':
             raise ValueError('Raw document auto-output is only supported by Moli')
-        # Moli 1.1.3 auto-serializes HTML and writes raw responses such as PDF
-        # and DOCX bytes when --dump is omitted. Supplying --dump html or
-        # markdown rejects these responses before extraction can begin.
+        # All three measured Moli releases write direct raw responses such as
+        # PDF and media bytes when --dump is omitted. Supplying --dump markdown
+        # rejects those responses before extraction can begin. Version 1.1.3
+        # documents this behavior explicitly; 1.0.6 and 1.1.1 are bound to
+        # release binaries and covered by route probes and end-to-end tests.
         return [binary, 'fetch', '--timeout', ms, '--http-timeout', ms, url]
     if output_mode == 'markdown':
         if engine == 'obscura':
@@ -65,6 +72,19 @@ def cli_command(engine, binary, url, timeout, output_mode='html', wait_until=Non
     if engine == 'lightpanda':
         return common + ['--http-timeout', ms, url]
     raise ValueError('Not a CLI engine: ' + engine)
+
+
+def output_mode_for_case(engine, provider_type, case):
+    """Choose the fastest version-supported route for the requested deliverable."""
+    document_url = case.url.casefold().split('?', 1)[0]
+    direct_document = (engine == 'moli' and case.track == 'document'
+                       and (document_url.endswith(('.pdf', '.docx'))
+                            or '/pdf/' in document_url))
+    if engine == 'moli' and case.task_kind == 'file':
+        return 'file'
+    if direct_document:
+        return 'document'
+    return 'markdown' if provider_type == 'headless_markdown' else 'html'
 
 
 class HeadlessProvider(Provider):
@@ -141,15 +161,7 @@ class HeadlessProvider(Provider):
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError('timeout must be positive and finite')
         engine = self.config['engine']
-        document_url = case.url.casefold().split('?', 1)[0]
-        direct_document = (engine == 'moli' and self.name == 'moli-1.1.3'
-                           and case.track == 'document'
-                           and (document_url.endswith(('.pdf', '.docx'))
-                                or '/pdf/' in document_url))
-        output_mode = ('file' if engine == 'moli' and self.name == 'moli-1.1.3'
-                       and case.task_kind == 'file' else
-                       'document' if direct_document else
-                       'markdown' if self.type == 'headless_markdown' else 'html')
+        output_mode = output_mode_for_case(engine, self.type, case)
         binary = getattr(self, '_resolved_binary', None) or _resolve_binary(
             engine, self.config.get('binary'))
         cli_wait = 'networkidle' if case.track == 'dynamic' else 'done'

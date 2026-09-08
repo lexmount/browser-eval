@@ -70,7 +70,11 @@ def main():
                         help='Retries only API/protocol failures, never a substantive verdict')
     parser.add_argument('--model', required=True,
                         help='Exact reviewer model route; aliases can drift and are intentionally rejected here')
-    parser.add_argument('--reviewer', choices=('codex','claude'), default='codex')
+    parser.add_argument('--reviewer', choices=('codex','claude','internal'), default='codex')
+    parser.add_argument('--provider', action='append', default=[],
+                        help='Limit review packets to one or more exact provider IDs')
+    parser.add_argument('--prepare-only', action='store_true',
+                        help='Write blinded input packets, then stop before invoking a reviewer')
     parser.add_argument('--scope', choices=('all','machine-failures'), default='all',
                         help='Review every output or only outputs currently judged failed')
     parser.add_argument('--adjudications', type=Path)
@@ -83,7 +87,13 @@ def main():
     cases = {case['id']: case for case in dataset['cases']}
     records = [json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
     by_case = {case_id: [] for case_id in cases}
+    selected_providers = set(args.provider)
+    unknown_providers = selected_providers - {record['provider'] for record in records}
+    if unknown_providers:
+        raise SystemExit(f'Unknown provider(s): {", ".join(sorted(unknown_providers))}')
     for record in records:
+        if selected_providers and record['provider'] not in selected_providers:
+            continue
         machine = task_passed(record['ok'], record['metrics'], cases[record['case_id']].get('task_kind', 'body'))
         machine_verdict = 'pass' if machine else 'fail'
         if args.scope == 'machine-failures' and machine_verdict != 'fail':
@@ -123,12 +133,18 @@ def main():
                 'cases': [independent_case(cases[cid]) for cid in case_ids],
                 'attempts': [independent_attempt(row) for cid in case_ids for row in by_case[cid]],
             }, ensure_ascii=False, indent=2)+'\n')
+            if args.prepare_only:
+                return []
             prompt = f'''Independently audit every attempt in {packet}. This is a result-verification stage, not a code review.
 Inspect every artifact named for an attempt, including file_artifacts and raw_response_artifact when present, and compare it with that case's task, exact body-region passages, required facts/resources/patterns, stable contract, and exclusions. For direct-file tasks, the text artifact may intentionally be empty: verify the supplied file artifact's signature, size and reference hash instead of treating empty text as failure. Use Read, Grep and read-only hashing/file-identification commands as needed; the full frozen page is available at full_dataset when context beyond the declared acceptance evidence is necessary. The packet deliberately omits machine verdicts and scores. Decide whether the saved output satisfies the declared task. Review successes and failures equally. Return exactly one row per attempt ID ({len(expected)} rows), no omissions or extras. Use uncertain only when the frozen evidence is genuinely insufficient. Evidence must be a short, concrete observable reason; do not expose chain-of-thought.
 Stable text anchors are literal requirements after ordinary Markdown/whitespace normalization: only a declared alternative can substitute for one. Semantically related text is not a hit. Before returning pass, locate every required fact group, stable anchor, resource and record constraint in the artifact; never claim a passage is present without finding it. Evidence for a pass must name the observed required anchors or fields, not merely say that all criteria are met.'''
             system=('You are an independent benchmark evidence auditor. Follow the task exactly. '
                     'Use only read operations, report observable evidence, and never trust stored verdicts. ')
             raw_output=work/f'batch-{batch_index:03d}-raw.json'
+            if args.reviewer=='internal':
+                raise SystemExit(
+                    f'Internal review output missing for batch {batch_index}; '
+                    f'write {output} from the blinded packet before aggregation')
             if args.reviewer=='codex':
                 command=['codex','exec','--model',args.model,'--sandbox','read-only',
                          '--add-dir',str(evidence),'--ephemeral',
@@ -166,6 +182,11 @@ Stable text anchors are literal requirements after ordinary Markdown/whitespace 
             print(f'batch {batch_index}/{len(jobs)} reviewed ({len(expected)} attempts)',flush=True)
         return result['attempts']
     jobs=list(enumerate(chunks(ordered, args.batch_cases),1))
+    if args.prepare_only:
+        for job in jobs:
+            review_batch(job)
+        print(f'prepared={len(jobs)} work={work}')
+        return
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         reviewed=list(pool.map(review_batch,jobs))
     all_rows=[row for batch in reviewed for row in batch]
@@ -185,14 +206,19 @@ Stable text anchors are literal requirements after ordinary Markdown/whitespace 
     review = {'schema_version': 1,
               'bindings': {'dataset_sha256': sha(evidence/'dataset.json'),
                            'results_sha256': sha(evidence/'results.jsonl')},
-              'reviewer': {'agent': 'Codex' if args.reviewer=='codex' else 'Claude Code',
-                           'model': args.model, 'effort': 'high',
-                           'cli_version': subprocess.check_output(
-                               ['codex' if args.reviewer=='codex' else 'claude','--version'],
-                               text=True).strip()},
+              'reviewer': {
+                  'agent': ('Codex task subagents' if args.reviewer == 'internal' else
+                            ('Codex' if args.reviewer=='codex' else 'Claude Code')),
+                  'model': args.model,
+                  'effort': 'high',
+                  'cli_version': ('Codex desktop task runtime' if args.reviewer == 'internal' else
+                                  subprocess.check_output(
+                                      ['codex' if args.reviewer=='codex' else 'claude','--version'],
+                                      text=True).strip())},
               'review_protocol': {'machine_judgments_withheld': True,
                                   'complete_artifact_paths_supplied': True,
                                   'declared_acceptance_evidence_supplied': True,
+                                  'provider_filter': sorted(selected_providers),
                                   'scope': args.scope},
               'total_attempts':len(records),
               'accepted_unreviewed_passes':len(records)-len(reviewed_ids),

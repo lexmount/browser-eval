@@ -1,7 +1,7 @@
 {
   "case_id": "live-074-python-sqlite3-documentation",
   "url": "https://docs.python.org/3/library/sqlite3.html",
-  "checked_at": "2026-09-07T03:56:50.484107+00:00",
+  "checked_at": "2026-09-08T04:23:24.222747+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/sqlite3.html",
   "mime": "text/html",
   "bytes": 313830,
-  "sha256": "2a8322a994063bd348ad676607756dadc5bd123ca4a3e682120ded53f536c10b",
+  "sha256": "1ea9e78af033aef232a6b030872a763fc1629cc063d09749e0a8c08f23a003f6",
   "response_headers": {
     "Content-Type": "text/html"
   },

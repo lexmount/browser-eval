@@ -1,7 +1,7 @@
 {
   "case_id": "html-table",
   "url": "https://www.w3schools.com/html/html_tables.asp",
-  "checked_at": "2026-09-07T03:56:32.644865+00:00",
+  "checked_at": "2026-09-08T04:23:12.924286+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://www.w3schools.com/html/html_tables.asp",
   "mime": "text/html",
-  "bytes": 230469,
-  "sha256": "6b63e23462f7ecd0df94dd4a09459a419eb487f80ffc5adf1a68fcb8329f81fd",
+  "bytes": 229267,
+  "sha256": "9acaac5fb980586fd3d8d2d4ddfc2edb2f5d778c72127d3e241d3c983c8c8f65",
   "response_headers": {
     "Content-Security-Policy": "frame-ancestors 'self' https://mycourses.w3schools.com https://pathfinder.w3schools.com; upgrade-insecure-requests",
     "Content-Type": "text/html"

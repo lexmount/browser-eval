@@ -1,7 +1,7 @@
 {
   "case_id": "live-021-python-common-pathname-manipulations",
   "url": "https://docs.python.org/3/library/os.path.html",
-  "checked_at": "2026-09-07T03:56:38.869002+00:00",
+  "checked_at": "2026-09-08T04:23:16.387039+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -13,7 +13,7 @@
   "final_url": "https://docs.python.org/3/library/os.path.html",
   "mime": "text/html",
   "bytes": 88062,
-  "sha256": "21227e4d8f72f364f419f1b1319d1c6ca88ac6b74d24e2d01b9bff6c20db3e12",
+  "sha256": "f222612f43fbfa8a0295b2748d498b975d95df9dd622e4b107aee6921693584c",
   "response_headers": {
     "Content-Type": "text/html"
   },

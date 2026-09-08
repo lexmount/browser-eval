@@ -294,9 +294,8 @@ def _quotes(lines):
         parts = [line]
         j = i + 1
         while j < len(lines) and not re.match(r'[“"‘]|quote\s*:', lines[j], re.I):
-            if (len(parts) > 1 and re.match(
-                    r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b)',
-                    lines[j], re.I)):
+            if re.match(r'(?:#{1,6}\s*)?(?:loading[. …]*|quotes by\s*:|made with\b)',
+                        lines[j], re.I):
                 break
             parts.append(lines[j])
             j += 1
@@ -451,11 +450,13 @@ def _anchor_matches(anchor, records, visible, schema):
         def field_matches(record, fields, field):
             actual = normalize_for_match(record["fields"][field]).strip('“”"‘’ ')
             expected = normalize_for_match(fields[field]).strip('“”"‘’ ')
-            # Name/description converters commonly omit whitespace at inline
-            # DOM boundaries. Other schemas (notably quote tags) require exact
-            # field serialization so two adjacent values cannot be conflated.
+            # Some native Markdown converters omit whitespace at inline DOM
+            # boundaries. In name/description cards the owned record still
+            # proves the boundary; quote tags are likewise a declared tag list,
+            # so compact-equivalent serialization retains the same values.
+            compact = schema == "name_description" or (schema == "quote" and field == "tags")
             return (actual.replace(" ", "") == expected.replace(" ", "")
-                    if schema == "name_description" else actual == expected)
+                    if compact else actual == expected)
         return [value for value, fields in owned if any(record["valid"] and all(
             field_matches(record, fields, field)
             for field in SCHEMA_FIELDS[schema]) for record in records)]

@@ -1,0 +1,39 @@
+{
+  "case_id": "stable-wcag21-recommendation",
+  "url": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/",
+  "checked_at": "2026-09-08T06:38:11.016723+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.w3.org/TR/2018/REC-WCAG21-20180605/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 311199,
+  "sha256": "a8793e95937866bacd03d9b421e4e889bc7811b84d0ddec6ed8c790f8e7f67dd",
+  "response_headers": {
+    "Content-Security-Policy": "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "Web Content Accessibility Guidelines (WCAG) 2.1",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://www.w3.org/StyleSheets/TR/2016/logos/W3C",
+      "alt": "W3C"
+    }
+  ],
+  "extracted_sha256": "485108d7e7528f5bed7ccbe123ba0ee9745998277fc3e1af75f0805517a7bff4",
+  "reference_sha256": "485108d7e7528f5bed7ccbe123ba0ee9745998277fc3e1af75f0805517a7bff4",
+  "text_chars": 124739,
+  "excerpt": "Web Content Accessibility Guidelines (WCAG) 2.1\nW3C\nRecommendation\n05 June 2018\nThis version:\nhttps://www.w3.org/TR/2018/REC-WCAG21-20180605/\nLatest published version:\nhttps://www.w3.org/TR/WCAG21/\nLatest editor's draft:\nhttps://w3c.github.io/wcag/21/guidelines/\nImplementation report:\nhttps://www.w3.org/WAI/WCAG21/implementation-report/\nPrevious version:\nhttps://www.w3.org/TR/2018/PR-WCAG21-20180424/\nPrevious Recommendation:\nhttps://www.w3.org/TR/2008/REC-WCAG20-20081211/\nEditors:\nAndrew Kirkpatrick\n(Adobe)\nJoshue O Connor\n(Invited Expert, InterAccess)\nAlastair Campbell\n(Nomensa)\nMichael Cooper\n(\nW3C\n)\nWCAG 2.0 Editors (until December 2008):\nBen Caldwell\n(Trace R&D Center, University of Wisconsin-Madison)\nLoretta Guarino Reid\n(Google, Inc.)\nGregg Vanderheiden\n(Trace R&D Center, University ",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

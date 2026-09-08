@@ -1,7 +1,7 @@
 {
   "case_id": "live-023-guides",
   "url": "https://spring.io/guides",
-  "checked_at": "2026-09-07T03:56:39.627521+00:00",
+  "checked_at": "2026-09-08T04:23:16.768179+00:00",
   "source": "independent HTTP GET (no provider output)",
   "attempts": [
     {
@@ -12,8 +12,8 @@
   "status": 200,
   "final_url": "https://spring.io/guides/",
   "mime": "text/html; charset=utf-8",
-  "bytes": 400678,
-  "sha256": "c5ce5e1e662efd6ef19fa58a77ed9c3eaa0f27ff70a2680c4b63659317971b09",
+  "bytes": 400856,
+  "sha256": "7ef7707ba0d169e1797a6ffd8cf7ea46efb71b428df4e4a79381c558a2e3b78a",
   "response_headers": {
     "X-Frame-Options": "DENY",
     "Content-Type": "text/html; charset=utf-8"
@@ -42,10 +42,10 @@
       "alt": ""
     }
   ],
-  "extracted_sha256": "0e2a4085116b5d608841a4d087f7b90f90a3837eca356d00f9e5696604acba72",
-  "reference_sha256": "0e2a4085116b5d608841a4d087f7b90f90a3837eca356d00f9e5696604acba72",
-  "text_chars": 700,
-  "excerpt": "Guides\nWhatever you're building, these guides are designed to get you productive as\nquickly as possible – using the latest Spring project releases and techniques\nas recommended by the Spring team.\nCategory\nIO\nSecurity\nMessaging\nData Access\nREST APIs\nOps\nWeb\nBatch Processing\nMicroservices\nCaching\nTesting\nDocumentation\nCloud Platform\nStreaming\nMisc\nEstimated Time\n30m\n1h\n3h\nNo result found.\nGet ahead\nVMware offers training and certification to turbo-charge your progress.\nLearn more\nGet support\nTanzu Spring offers support and binaries for OpenJDK™, Spring, and Apache Tomcat® in one simple subscription.\nLearn more\nUpcoming events\nCheck out all the upcoming events in the Spring community.\nView all",
+  "extracted_sha256": "788a72018d350988dde5c31bd03591f36ed43fb9abfe47482a9eceb9a1c9fdfe",
+  "reference_sha256": "788a72018d350988dde5c31bd03591f36ed43fb9abfe47482a9eceb9a1c9fdfe",
+  "text_chars": 708,
+  "excerpt": "Guides\nWhatever you're building, these guides are designed to get you productive as\nquickly as possible – using the latest Spring project releases and techniques\nas recommended by the Spring team.\nCategory\nData Access\nIO\nREST APIs\nMessaging\nSecurity\nWeb\nOps\nBatch Processing\nMicroservices\nCaching\nTesting\nDocumentation\nCloud Platform\nStreaming\nGraphQL\nMisc\nEstimated Time\n30m\n1h\n3h\nNo result found.\nGet ahead\nVMware offers training and certification to turbo-charge your progress.\nLearn more\nGet support\nTanzu Spring offers support and binaries for OpenJDK™, Spring, and Apache Tomcat® in one simple subscription.\nLearn more\nUpcoming events\nCheck out all the upcoming events in the Spring community.\nView all",
   "missing_facts": [],
   "quality_issues": [],
   "state": "captured"

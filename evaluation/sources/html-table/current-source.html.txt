@@ -19,6 +19,7 @@
 <meta name="twitter:title" content="W3Schools.com">
 <meta name="twitter:description" content="W3Schools offers free online tutorials, references and exercises in all the major languages of the web. Covering popular subjects like HTML, CSS, JavaScript, Python, SQL, Java, and many, many more.">
 <meta name="twitter:image" content="https://www.w3schools.com/images/w3schools_logo_436_2.png">
+<meta name="apple-itunes-app" content="app-id=6770531503">
 <link rel="icon" href="https://www.w3schools.com/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -35,7 +36,7 @@
 <link rel="preload" href="/lib/fonts/source-sans-pro-v14-latin-600.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/lib/fonts/SourceSansPro-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/lib/fonts/freckle-face-v9-latin-regular.woff2" as="font" type="font/woff2" crossorigin> 
-<link rel="stylesheet" href="/lib/topnav/main.v1.0.137.css">
+<link rel="stylesheet" href="/lib/topnav/main.v1.0.139.css">
 <link rel="stylesheet" href="/lib/my-learning/main.v1.0.106.css">
 <link rel="stylesheet" href="/lib/pathfinder/main.v1.0.12.css">
 <link rel="stylesheet" href="/w3css/5/w3.css?v=5.01">
@@ -139,7 +140,7 @@ function w3_getStyleValue(elmnt,style) {
 
 <script src="/lib/common-deps/main.v1.0.24.js"></script>
 <script src="/lib/user-session/main.v1.0.52.js"></script>
-<script src="/lib/topnav/main.v1.0.137.js"></script>
+<script src="/lib/topnav/main.v1.0.139.js"></script>
 <script src="/lib/my-learning/main.v1.0.106.js"></script>
 
 <style>
@@ -318,7 +319,18 @@ padding:5px;
       aria-label="Menu"
       role="button"
     >
-      Menu
+      <svg
+        class="tnb-menu-btn-icon"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 448 512"
+        aria-hidden="true"
+      >
+        <path
+          d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"
+          fill="currentColor"
+        />
+      </svg>
+      <span class="tnb-menu-btn-label">Menu</span>
       <i
         class="fa fa-caret-down"
         style="font-size: 15px"
@@ -448,8 +460,9 @@ padding:5px;
           loading="eager"
         />
         <span class="tnb-adventure-badge-text">
-          <span class="tnb-adventure-badge-title">Adventure app</span>
-          <span class="tnb-adventure-badge-sub">iOS &amp; Android</span>
+          <span class="tnb-adventure-badge-title">W3Schools app</span>
+          <span class="tnb-adventure-badge-sub tnb-adventure-badge-sub-mobile">iOS &amp; Android</span>
+          <span class="tnb-adventure-badge-sub tnb-adventure-badge-sub-desktop">Start the adventure</span>
         </span>
       </a>
       <!-- < user-anonymous -->
@@ -462,19 +475,15 @@ padding:5px;
         role="button"
       >
         <svg
-          width="14"
+          width="12"
           height="14"
-          viewBox="0 0 14 14"
+          viewBox="0 0 448 512"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           class="tnb-sign-in-icon"
         >
           <path
-            d="M7 7C8.933 7 10.5 5.433 10.5 3.5C10.5 1.567 8.933 0 7 0C5.067 0 3.5 1.567 3.5 3.5C3.5 5.433 5.067 7 7 7ZM9.33333 3.5C9.33333 4.78866 8.28866 5.83333 7 5.83333C5.71134 5.83333 4.66667 4.78866 4.66667 3.5C4.66667 2.21134 5.71134 1.16667 7 1.16667C8.28866 1.16667 9.33333 2.21134 9.33333 3.5Z"
-            fill="white"
-          />
-          <path
-            d="M14 12.8333C14 14 12.8333 14 12.8333 14H1.16667C1.16667 14 0 14 0 12.8333C0 11.6667 1.16667 8.16667 7 8.16667C12.8333 8.16667 14 11.6667 14 12.8333ZM12.8333 12.8293C12.8316 12.5414 12.6539 11.6789 11.8625 10.8875C11.1016 10.1265 9.67062 9.33333 6.99999 9.33333C4.32936 9.33333 2.89841 10.1265 2.13745 10.8875C1.34605 11.6789 1.16833 12.5414 1.16667 12.8293H12.8333Z"
+            d="M224 256a128 128 0 1 0 0-256 128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3 0 498.7 13.3 512 29.7 512h388.6c16.4 0 29.7-13.3 29.7-29.7 0-98.5-79.8-178.3-178.3-178.3h-91.4z"
             fill="white"
           />
         </svg>
@@ -561,7 +570,6 @@ padding:5px;
       -->
       <!-- > user-authenticated -->
       <!-- < user-anonymous - action-btn -->
-      <!-- TEMP HIDDEN 2026-09-01: Get Certified / Upgrade / Academy / Spaces / Practice buttons hidden, being replaced with something new (expected ~a couple of weeks). Delete this comment line and the closing comment marker a few lines below (right before the "user-anonymous/user-authenticated - action-btn" end marker) to restore.
       <a
         target="_blank"
         href="https://campus.w3schools.com/collections/course-catalog"
@@ -569,19 +577,9 @@ padding:5px;
         title="W3Schools Certificates"
         aria-label="W3Schools Certificates"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="1em"
-          viewBox="0 0 576 512"
-          aria-hidden="true"
-        >
-          <path
-            d="M24 0C10.7 0 0 10.7 0 24S10.7 48 24 48H69.5c3.8 0 7.1 2.7 7.9 6.5l51.6 271c6.5 34 36.2 58.5 70.7 58.5H488c13.3 0 24-10.7 24-24s-10.7-24-24-24H199.7c-11.5 0-21.4-8.2-23.6-19.5L170.7 288H459.2c32.6 0 61.1-21.8 69.5-53.3l41-152.3C576.6 57 557.4 32 531.1 32h-411C111 12.8 91.6 0 69.5 0H24zM131.1 80H520.7L482.4 222.2c-2.8 10.5-12.3 17.8-23.2 17.8H161.6L131.1 80zM176 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm336-48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0z"
-            fill="currentColor"
-          />
-        </svg>
         Get Certified
       </a>
+      <!-- TEMP HIDDEN 2026-09-01: Upgrade / Academy / Spaces / Practice buttons hidden, being replaced with something new (expected ~a couple of weeks). Delete this comment line and the closing comment marker a few lines below (right before the "user-anonymous/user-authenticated - action-btn" end marker) to restore.
       <a
         href="https://order.w3schools.com/plans"
         class="user-anonymous tnb-upgrade-btn tnb-right-side-btn w3-bar-item w3-button w3-hide w3-right w3-white ga-top ga-top-plus"
@@ -673,7 +671,6 @@ padding:5px;
       -->
       <!-- > user-anonymous - action-btn -->
       <!-- < user-authenticated - action-btn -->
-      <!-- TEMP HIDDEN 2026-09-01: Get Certified / Upgrade / Academy / Spaces / Practice buttons hidden, being replaced with something new (expected ~a couple of weeks). Delete this comment line and the closing comment marker a few lines below (right before the "user-anonymous/user-authenticated - action-btn" end marker) to restore.
       <a
         target="_blank"
         href="https://campus.w3schools.com/collections/course-catalog"
@@ -681,19 +678,9 @@ padding:5px;
         title="W3Schools Certificates"
         aria-label="W3Schools Certificates"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          height="1em"
-          viewBox="0 0 576 512"
-          aria-hidden="true"
-        >
-          <path
-            d="M24 0C10.7 0 0 10.7 0 24S10.7 48 24 48H69.5c3.8 0 7.1 2.7 7.9 6.5l51.6 271c6.5 34 36.2 58.5 70.7 58.5H488c13.3 0 24-10.7 24-24s-10.7-24-24-24H199.7c-11.5 0-21.4-8.2-23.6-19.5L170.7 288H459.2c32.6 0 61.1-21.8 69.5-53.3l41-152.3C576.6 57 557.4 32 531.1 32h-411C111 12.8 91.6 0 69.5 0H24zM131.1 80H520.7L482.4 222.2c-2.8 10.5-12.3 17.8-23.2 17.8H161.6L131.1 80zM176 512a48 48 0 1 0 0-96 48 48 0 1 0 0 96zm336-48a48 48 0 1 0 -96 0 48 48 0 1 0 96 0z"
-            fill="currentColor"
-          />
-        </svg>
         Get Certified
       </a>
+      <!-- TEMP HIDDEN 2026-09-01: Upgrade / Academy / Spaces / Practice buttons hidden, being replaced with something new (expected ~a couple of weeks). Delete this comment line and the closing comment marker a few lines below (right before the "user-anonymous/user-authenticated - action-btn" end marker) to restore.
       <a
         href="https://order.w3schools.com/plans"
         class="user-authenticated tnb-upgrade-btn tnb-right-side-btn w3-bar-item w3-button w3-hide w3-right w3-white ga-top ga-top-goals"
@@ -932,7 +919,7 @@ padding:5px;
           loading="lazy"
         />
         <span class="tnb-adventure-menu-text">
-          <span class="tnb-adventure-menu-title">Adventure app</span>
+          <span class="tnb-adventure-menu-title">W3Schools app</span>
           <span class="tnb-adventure-menu-sub">iOS &amp; Android</span>
         </span>
         <span class="tnb-adventure-menu-new">NEW</span>
@@ -2559,7 +2546,7 @@ padding:5px;
                     <div class="services-adventure-box">
                       <div class="services-adventure-text">
                         <h4>
-                          Adventure app
+                          W3Schools app
                           <span class="services-adventure-new">NEW</span>
                         </h4>
                         <p>
@@ -5945,7 +5932,7 @@ of all content. While using W3Schools, you agree to have read and accepted our <
 
 
 </div>
-<!-- <script src="/lib/topnav/main.v1.0.137.js"></script> -->
+<!-- <script src="/lib/topnav/main.v1.0.139.js"></script> -->
 <script src="/lib/w3schools_footer.js?update=20260819"></script>
 <script src="/lib/w3schools_features.js?update=20260902"></script>
 <script src="https://www.google.com/recaptcha/api.js?render=explicit"></script>
