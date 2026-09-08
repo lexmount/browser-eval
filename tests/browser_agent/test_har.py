@@ -59,3 +59,16 @@ def test_document_request_has_navigation_accept_fallback() -> None:
     )
 
     assert {item["name"]: item["value"] for item in request["headers"]}["Accept"] == "text/html"
+
+
+def test_stop_is_idempotent_and_does_not_overwrite_har(tmp_path) -> None:
+    recorder = CdpHarRecorder()
+    path = tmp_path / "network.har"
+    recorder.stop(object(), path)
+    first = path.read_text()
+    path.write_text("sentinel")
+
+    recorder.stop(object(), path)
+
+    assert first != "sentinel"
+    assert path.read_text() == "sentinel"

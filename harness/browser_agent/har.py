@@ -72,6 +72,8 @@ class CdpHarRecorder:
         self._extra_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
         self._responses: list[tuple[Any, str, dict[str, Any], dict[str, Any]]] = []
         self._finished: set[tuple[int, str]] = set()
+        self._payload: str | None = None
+        self._stopped = False
         self.errors: list[str] = []
 
     def start(self, context: Any) -> None:
@@ -81,44 +83,53 @@ class CdpHarRecorder:
             self._attach(page)
 
     def stop(self, context: Any, path: Path) -> None:
-        if self._context is not None:
-            context.remove_listener("page", self._attach)
-        entries: list[dict[str, Any]] = []
-        last_response_by_key = {
-            (id(session), request_id): index
-            for index, (session, request_id, _request, _response) in enumerate(self._responses)
-        }
-        for index, (session, request_id, request, response) in enumerate(self._responses):
-            body = None
-            key = (id(session), request_id)
-            request = dict(request)
-            ordinal = int(request.pop("__ordinal", 0))
-            extras = self._extra_headers.get(key, [])
-            if ordinal < len(extras):
-                request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
-            mime_type = str(response.get("mimeType") or "")
-            if (
-                index == last_response_by_key[key]
-                and key in self._finished
-                and (mime_type == "application/json" or mime_type.endswith("+json"))
-            ):
+        if self._stopped:
+            return
+        if self._payload is None:
+            if self._context is not None:
                 try:
-                    body = session.send("Network.getResponseBody", {"requestId": request_id})
-                    if body.get("base64Encoded"):
-                        base64.b64decode(body.get("body") or "", validate=True)
+                    context.remove_listener("page", self._attach)
                 except Exception as exc:
-                    self.errors.append(f"{request.get('url')}: response body unavailable: {exc}")
-            entries.append(
-                {"request": _har_request(request), "response": _har_response(response, body)}
-            )
-        for session in self._sessions:
-            try:
-                session.detach()
-            except Exception as exc:
-                self.errors.append(f"CDP detach failed: {exc}")
-        self._context = None
-        path.write_text(
-            json.dumps(
+                    self.errors.append(f"page listener detach failed: {exc}")
+            entries: list[dict[str, Any]] = []
+            last_response_by_key = {
+                (id(session), request_id): index
+                for index, (session, request_id, _request, _response) in enumerate(
+                    self._responses
+                )
+            }
+            for index, (session, request_id, request, response) in enumerate(self._responses):
+                body = None
+                key = (id(session), request_id)
+                request = dict(request)
+                ordinal = int(request.pop("__ordinal", 0))
+                extras = self._extra_headers.get(key, [])
+                if ordinal < len(extras):
+                    request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
+                mime_type = str(response.get("mimeType") or "")
+                if (
+                    index == last_response_by_key[key]
+                    and key in self._finished
+                    and (mime_type == "application/json" or mime_type.endswith("+json"))
+                ):
+                    try:
+                        body = session.send("Network.getResponseBody", {"requestId": request_id})
+                        if body.get("base64Encoded"):
+                            base64.b64decode(body.get("body") or "", validate=True)
+                    except Exception as exc:
+                        self.errors.append(
+                            f"{request.get('url')}: response body unavailable: {exc}"
+                        )
+                entries.append(
+                    {"request": _har_request(request), "response": _har_response(response, body)}
+                )
+            for session in self._sessions:
+                try:
+                    session.detach()
+                except Exception as exc:
+                    self.errors.append(f"CDP detach failed: {exc}")
+            self._context = None
+            self._payload = json.dumps(
                 {
                     "log": {
                         "version": "1.2",
@@ -127,9 +138,9 @@ class CdpHarRecorder:
                     }
                 },
                 ensure_ascii=False,
-            ),
-            encoding="utf-8",
-        )
+            )
+        path.write_text(self._payload, encoding="utf-8")
+        self._stopped = True
 
     def _attach(self, page: Any) -> None:
         try:

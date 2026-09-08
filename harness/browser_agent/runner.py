@@ -379,11 +379,22 @@ def _run_attempt(  # noqa: PLR0913
         except Exception:
             pass
     finally:
+        cleanup_errors: list[str] = []
         if sampler_started:
-            sampler.stop()
+            try:
+                sampler.stop()
+            except Exception as exc:
+                cleanup_errors.append(f"resource sampler stop failed: {exc}")
         duration_ms = (time.perf_counter() - started) * 1000
-        after = resources.counters()
-        tool.close()
+        try:
+            after = resources.counters()
+        except Exception as exc:
+            after = None
+            cleanup_errors.append(f"final resource counters failed: {exc}")
+        try:
+            tool.close()
+        except Exception as exc:
+            cleanup_errors.append(f"browser tool close failed: {exc}")
 
     if not prepared:
         raise RuntimeError(
@@ -407,7 +418,7 @@ def _run_attempt(  # noqa: PLR0913
     eval_path.write_text(json.dumps(eval_data, ensure_ascii=False, indent=2), encoding="utf-8")
     resource = (
         _resource_summary(resources, sampler, before, after, duration_ms)
-        if sampler.samples
+        if sampler.samples and after is not None
         else {}
     )
     return {
@@ -423,6 +434,7 @@ def _run_attempt(  # noqa: PLR0913
         "duration_ms": round(duration_ms, 3),
         "agent_response": parsed_response,
         "error": error,
+        "cleanup_errors": cleanup_errors,
         "har_capture_errors": recorder.errors,
         "resource": resource,
         "model_usage": {**model.usage, "request_count": model.request_count},
