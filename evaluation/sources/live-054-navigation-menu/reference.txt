@@ -1,0 +1,296 @@
+Async http client/server framework
+Key Features
+Supports both client and server side of HTTP protocol.
+Supports both client and server Web-Sockets out-of-the-box and avoids
+Callback Hell.
+Provides Web-server with middleware and pluggable routing.
+Getting started
+Client
+To get something from the web:
+import
+aiohttp
+import
+asyncio
+async
+def
+main
+():
+async
+with
+aiohttp
+.
+ClientSession
+()
+as
+session
+:
+async
+with
+session
+.
+get
+(
+'https://python.org'
+)
+as
+response
+:
+print
+(
+"Status:"
+,
+response
+.
+status
+)
+print
+(
+"Content-type:"
+,
+response
+.
+headers
+[
+'content-type'
+])
+html
+=
+await
+response
+.
+text
+()
+print
+(
+"Body:"
+,
+html
+[:
+15
+],
+"..."
+)
+asyncio
+.
+run
+(
+main
+())
+This prints:
+Status: 200
+Content-type: text/html; charset=utf-8
+Body: <!doctype html> ...
+Coming from
+requests
+? Read
+why we need so many lines
+.
+Server
+An example using a simple server:
+# examples/server_simple.py
+from
+aiohttp
+import
+web
+async
+def
+handle
+(
+request
+):
+name
+=
+request
+.
+match_info
+.
+get
+(
+'name'
+,
+"Anonymous"
+)
+text
+=
+"Hello, "
++
+name
+return
+web
+.
+Response
+(
+text
+=
+text
+)
+async
+def
+wshandle
+(
+request
+):
+ws
+=
+web
+.
+WebSocketResponse
+()
+await
+ws
+.
+prepare
+(
+request
+)
+async
+for
+msg
+in
+ws
+:
+if
+msg
+.
+type
+==
+web
+.
+WSMsgType
+.
+text
+:
+await
+ws
+.
+send_str
+(
+"Hello, {}"
+.
+format
+(
+msg
+.
+data
+))
+elif
+msg
+.
+type
+==
+web
+.
+WSMsgType
+.
+binary
+:
+await
+ws
+.
+send_bytes
+(
+msg
+.
+data
+)
+elif
+msg
+.
+type
+==
+web
+.
+WSMsgType
+.
+close
+:
+break
+return
+ws
+app
+=
+web
+.
+Application
+()
+app
+.
+add_routes
+([
+web
+.
+get
+(
+'/'
+,
+handle
+),
+web
+.
+get
+(
+'/echo'
+,
+wshandle
+),
+web
+.
+get
+(
+'/{name}'
+,
+handle
+)])
+if
+__name__
+==
+'__main__'
+:
+web
+.
+run_app
+(
+app
+)
+Documentation
+https://aiohttp.readthedocs.io/
+Demos
+https://github.com/aio-libs/aiohttp-demos
+External links
+Third party libraries
+Built with aiohttp
+Powered by aiohttp
+Feel free to make a Pull Request for adding your link to these pages!
+Communication channels
+aio-libs Discussions
+:
+https://github.com/aio-libs/aiohttp/discussions
+Matrix
+:
+#aio-libs:matrix.org
+We support
+Stack Overflow
+.
+Please add
+aiohttp
+tag to your question there.
+Requirements
+multidict
+yarl
+frozenlist
+Optionally you may install the
+aiodns
+library (highly recommended for sake of speed).
+Keepsafe
+The aiohttp community would like to thank Keepsafe
+(
+https://www.getkeepsafe.com
+) for its support in the early days of
+the project.
+Source code
+The latest developer version is available in a GitHub repository:
+https://github.com/aio-libs/aiohttp
+Benchmarks
+If you are interested in efficiency, the AsyncIO community maintains a
+list of benchmarks on the official wiki:
+https://github.com/python/asyncio/wiki/Benchmarks

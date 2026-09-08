@@ -1,0 +1,46 @@
+{
+  "case_id": "lm-python-tutorial",
+  "url": "https://docs.python.org/3/tutorial/index.html",
+  "checked_at": "2026-09-08T04:23:12.925173+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/tutorial/index.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/tutorial/index.html",
+  "mime": "text/html",
+  "bytes": 36953,
+  "sha256": "06ad84433f3fa9b9a1938ddc82077a7457dde881fcc66d5d6f586b0b29991dee",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "The Python Tutorial — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "ac1c8ffbbbed1193e32b33155b1cdbf28f107ec18c819e81fec316534d9172b9",
+  "reference_sha256": "ac1c8ffbbbed1193e32b33155b1cdbf28f107ec18c819e81fec316534d9172b9",
+  "text_chars": 6091,
+  "excerpt": "The Python Tutorial\n¶\nTip\nThis tutorial is designed for\nprogrammers\nthat are new to the Python language,\nnot\nbeginners\nwho are new to programming.\nPython is an easy to learn, powerful programming language. It has efficient\nhigh-level data structures and a simple but effective approach to\nobject-oriented programming. Python’s elegant syntax and dynamic typing,\ntogether with its interpreted nature, make it an ideal language for scripting\nand rapid application development in many areas on most platforms.\nThe Python interpreter and the extensive standard library are freely available\nin source or binary form for all major platforms from the Python website,\nhttps://www.python.org/\n, and may be freely distributed. The same site also\ncontains distributions of and pointers to many free third party ",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

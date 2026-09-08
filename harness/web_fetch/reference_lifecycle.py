@@ -93,6 +93,26 @@ def scope_identity(case) -> dict[str, Any]:
     })
 
 
+def evaluation_scope_identity(case) -> dict[str, Any]:
+    """Return the scoring scope, excluding capture-procedure wording.
+
+    ``source_verification.selector`` documents how one independent observer
+    bounded its capture.  Distinct observers may describe the same scoring
+    scope differently, so assembled equivalent-reference batches compare the
+    contract, URL, reference scope and rendered scope while preserving the
+    exact selector in each batch's strict binding and postcheck.
+    """
+    identity = scope_identity(case)
+    identity.pop("selector", None)
+    return identity
+
+
+def _binding_evaluation_scope_identity(binding: dict) -> dict[str, Any]:
+    identity = deepcopy(binding.get("scope_identity", {}))
+    identity.pop("selector", None)
+    return identity
+
+
 def _completion(completion) -> None:
     if not isinstance(completion, dict) or completion.get("satisfied") is not True:
         raise ReferenceLifecycleError("Independent completion was not satisfied")
@@ -201,6 +221,43 @@ def check_case_reference_binding(case, binding: dict) -> None:
             or ("render_evidence" in binding and
                 (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
         raise ReferenceLifecycleError("Rescore requires the original frozen reference and capture binding", "reference_changed")
+
+
+def check_case_equivalent_reference_binding(case, binding: dict) -> None:
+    """Allow distinct independent captures only when reference bytes and scope are identical."""
+    reference = _get(case, "ground_truth_main_content", "")
+    verification = _get(case, "source_verification", {})
+    if (sha256(reference) != binding.get("reference_sha256")
+            or sha256(normalize_for_match(reference)) != binding.get("expected_normalized_sha256")
+            or evaluation_scope_identity(case) != _binding_evaluation_scope_identity(binding)
+            or verification.get("reference_sha256") != binding.get("reference_sha256")
+            or ("render_evidence" in binding and
+                (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
+        raise ReferenceLifecycleError(
+            "Assembled batch differs in reference bytes or evaluation scope", "reference_changed")
+
+
+def check_case_scoring_revision_binding(case, binding: dict) -> None:
+    """Validate immutable capture/task scope while allowing an audited rule correction.
+
+    This is intentionally separate from normal rescoring.  It permits only the
+    evaluation-contract portion of the original scope identity to differ; the
+    URL, task prompt, reference bytes, reference scope and render scope remain
+    bound to the measured call.
+    """
+    reference = _get(case, "ground_truth_main_content", "")
+    verification = _get(case, "source_verification", {})
+    current = evaluation_scope_identity(case)
+    original = _binding_evaluation_scope_identity(binding)
+    current.pop("evaluation_contract", None)
+    original.pop("evaluation_contract", None)
+    if (sha256(reference) != binding.get("reference_sha256")
+            or current != original
+            or verification.get("reference_sha256") != binding.get("reference_sha256")
+            or ("render_evidence" in binding and
+                (_get(case, "source_benchmark", {}) or {}).get("render_evidence") != binding["render_evidence"])):
+        raise ReferenceLifecycleError(
+            "Scoring revision differs from the captured task or reference scope", "reference_changed")
 
 
 def _selected_records(batch, records):
@@ -365,7 +422,101 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
             "batches": outcomes, "evidence_path": evidence_rel, "evidence_sha256": sha256(raw)}
 
 
-def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None) -> None:
+def valid_scoring_revision(source) -> bool:
+    """Return true only for a receipt bound to the current derived dataset/results."""
+    if source is None:
+        return False
+    root = Path(source)
+    receipt_path = root/'scoring-revisions.json'
+    if not receipt_path.is_file() or not (root/'dataset.json').is_file() or not (root/'results.jsonl').is_file():
+        return False
+    try:
+        rows = json.loads(receipt_path.read_text())
+    except (OSError, ValueError, TypeError):
+        return False
+    current_dataset = sha256((root/'dataset.json').read_bytes())
+    current_results = sha256((root/'results.jsonl').read_bytes())
+    return any(
+        isinstance(row, dict)
+        and row.get('kind') in {'audited_body_scoring_revision',
+                                'audited_scoring_rule_revision'}
+        and row.get('provider_calls') == 0
+        and row.get('output_dataset_sha256') == current_dataset
+        and row.get('output_results_sha256') == current_results
+        and isinstance(row.get('task_decision_changes'), list)
+        and isinstance(row.get('changed_cases'), list)
+        and all(isinstance(change, dict)
+                and set(change.get('fields', ())) <= {
+                    'body_requirements', 'required_patterns', 'required_facts',
+                    'acceptance_contract',
+                }
+                for change in row['changed_cases'])
+        for row in rows if isinstance(rows, list)
+    )
+
+
+def reference_revision_cases(source) -> dict[str, set[str]]:
+    """Return original reference hashes covered by a bound offline correction.
+
+    A reference correction never certifies a new browser call.  It only permits
+    saved output bytes to be rescored against independently retained, corrected
+    reference evidence.  The receipt is deliberately bound to the complete
+    derived dataset/results pair so it cannot be copied to another cohort.
+    """
+    if source is None:
+        return {}
+    root = Path(source)
+    path = root / "reference-revisions.json"
+    if not path.is_file() or not (root / "dataset.json").is_file() or not (root / "results.jsonl").is_file():
+        return {}
+    try:
+        receipts = json.loads(path.read_text())
+    except (OSError, ValueError, TypeError):
+        return {}
+    current_dataset = sha256((root / "dataset.json").read_bytes())
+    current_results = sha256((root / "results.jsonl").read_bytes())
+    covered: dict[str, set[str]] = {}
+    for receipt in receipts if isinstance(receipts, list) else ():
+        if (not isinstance(receipt, dict)
+                or receipt.get("kind") != "audited_reference_correction"
+                or receipt.get("provider_calls") != 0
+                or receipt.get("output_dataset_sha256") != current_dataset
+                or receipt.get("output_results_sha256") != current_results):
+            continue
+        for change in receipt.get("changed_cases", ()):
+            if (not isinstance(change, dict) or not isinstance(change.get("case_id"), str)
+                    or not isinstance(change.get("old_reference_sha256"), str)
+                    or not isinstance(change.get("new_reference_sha256"), str)
+                    or set(change.get("fields", ())) - {
+                        "ground_truth_main_content", "source_verification",
+                        "body_requirements", "required_patterns", "reference_answer",
+                    }):
+                return {}
+            covered.setdefault(change["case_id"], set()).add(change["old_reference_sha256"])
+    return covered
+
+
+def valid_reference_revision(source) -> bool:
+    return bool(reference_revision_cases(source))
+
+
+def check_case_reference_revision_binding(case, binding: dict, original_hashes: set[str]) -> None:
+    """Validate immutable task scope for an explicitly audited reference fix."""
+    original = _binding_evaluation_scope_identity(binding)
+    current = evaluation_scope_identity(case)
+    for scope in (original, current):
+        scope.pop("evaluation_contract", None)
+    # The frozen reference hash is expected to differ; URL, prompt and all
+    # non-reference scope must remain identical.
+    if (binding.get("reference_sha256") not in original_hashes
+            or current != original):
+        raise ReferenceLifecycleError(
+            "Reference correction differs from the captured task scope", "reference_changed")
+
+
+def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None,
+                                      equivalent_capture_bindings=False,
+                                      allow_scoring_rule_revision=False) -> None:
     """Fail closed for explicit live lifecycles; leave historical batches readable.
 
     Call before report/append writes. The minimum call validates certificate
@@ -391,6 +542,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     def valid_hash(value):
         return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
+    allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
+    revised_references = reference_revision_cases(source)
     try:
         for batch in manifests:
             if not isinstance(batch, dict):
@@ -455,7 +608,16 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                 if case_map is not None:
                     if identifier not in case_map:
                         raise ReferenceLifecycleError("Certificate case absent from dataset")
-                    check_case_reference_binding(case_map[identifier], binding)
+                    if (identifier in revised_references
+                            and binding.get("reference_sha256") in revised_references[identifier]):
+                        check_case_reference_revision_binding(
+                            case_map[identifier], binding, revised_references[identifier])
+                    elif allow_scoring_rule_revision:
+                        check_case_scoring_revision_binding(case_map[identifier], binding)
+                    elif equivalent_capture_bindings:
+                        check_case_equivalent_reference_binding(case_map[identifier], binding)
+                    else:
+                        check_case_reference_binding(case_map[identifier], binding)
                 relevant = [r for r in selected if r["case_id"] == identifier] if selected is not None else None
                 if relevant is not None:
                     if not relevant:
@@ -470,7 +632,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                         if record.get("completed_at") is not None:
                             finish = max(finish, timestamp(record["completed_at"]))
                         latest = finish if latest is None else max(latest, finish)
-                    if latest != finished_at:
+                    if ((not equivalent_capture_bindings and latest != finished_at)
+                            or (equivalent_capture_bindings and latest > finished_at)):
                         raise ReferenceLifecycleError("Certificate does not follow the latest relevant call")
                 if observations is not None:
                     observation = observations[identifier]
@@ -480,9 +643,16 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                             or observation.get("scope_identity") != binding["scope_identity"]
                             or observation.get("checked_at") != result["checked_at"]
                             or sha256(content) != result["content_sha256"]
-                            or sha256(normalize_for_match(content)) != result["normalized_sha256"]
+                            # A reviewed scoring revision may itself correct
+                            # visible-text normalization.  The certificate's
+                            # exact captured-byte hash remains immutable and is
+                            # stronger than re-running newer normalization code.
+                            or (identifier not in revised_references
+                                and not allow_scoring_rule_revision
+                                and sha256(normalize_for_match(content)) != result["normalized_sha256"])
                             or ("content_sha256" in observation and observation["content_sha256"] != sha256(content))):
-                        raise ReferenceLifecycleError("Postcheck evidence differs from certificate")
+                        raise ReferenceLifecycleError(
+                            f"Postcheck evidence differs from certificate: {identifier}")
     except ReferenceLifecycleError:
         raise
     except (OSError, KeyError, AttributeError, TypeError, ValueError, OverflowError) as error:

@@ -14,9 +14,9 @@ METRIC_DEFINITIONS = {
     "transport_success": "供应商完成请求，并将响应判为请求成功；它不代表正文正确。",
     "content_pass": "机器内容判定：显著标记、最小长度、事实组、错误页排除及案例声明的正文覆盖要求均通过；稳定内容与结构契约另由统一任务谓词合并。",
     "marker_recall": "命中的显著标记数除以该案例登记的显著标记总数。",
-    "elapsed_ms": "客户端调用至最终内容及必要转换完成的墙钟耗时，包含网络、远端处理和本地提取；离线评分与持久化不计入。历史耗时保持原值，不补算未测开销。",
+    "elapsed_ms": "客户端开始单次调用至任务交付物形成的墙钟耗时，包含网络、远端处理和本地提取；离线评分、持久化及调用前节流不计入。历史耗时保持原值，不补算未测开销。",
     "mean_content_ms": "仅对程序判断通过的调用计算平均耗时；失败、空壳和超时不进入该均值。",
-    "deadline_overrun": "实际墙钟耗时超过调用预算，不计为按时完成；新调用由统一截止边界约束，历史记录仅据原始耗时判断，不追认硬截止执行。",
+    "deadline_overrun": "某次物理调用超过自己的调用预算，不计为按时完成；重试获得独立的同额预算，逻辑结果耗时累计。新调用由统一截止边界约束，历史记录仅据原始耗时判断，不追认硬截止执行。",
     "content_chars": "持久化供应商输出的 Unicode 字符数。",
     "markdown_headings": "输出中的 Markdown 标题行数量。",
     "markdown_links": "输出中目标为 HTTP(S) 的 Markdown 链接数量。",
@@ -31,10 +31,17 @@ METRIC_DEFINITIONS = {
 
 
 URL_KEYS = {"url", "href", "src", "link"}
+RESOURCE_FILE_SUFFIXES = (
+    'pdf','doc','docx','xls','xlsx','ppt','pptx','zip','tar','gz','bz2','7z',
+    'png','jpg','jpeg','gif','webp','svg','avif','mp4','webm','mov','m4v','mp3','wav','ogg',
+)
 
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
     value = value.strip().strip("<>\"'")
+    # Markdown serializers may escape punctuation inside literal HTML or URL
+    # text.  Those backslashes are presentation syntax, not URL bytes.
+    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', value)
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
     try:
@@ -70,6 +77,19 @@ def _metadata_resource_urls(value: Any, *, key: str = "") -> list[str]:
     return urls
 
 
+def _visible_relative_resource_urls(content: str) -> list[str]:
+    """Find visible file links omitted as hrefs by a Markdown serializer.
+
+    Directory indexes and preformatted download pages may render a relative
+    filename as ``<file%5Fname.zip>`` after the href is lost. Requiring both
+    angle delimiters and a file-like suffix prevents ordinary prose and HTML
+    tag names from becoming resource hits.
+    """
+    suffix = '|'.join(RESOURCE_FILE_SUFFIXES)
+    pattern = rf'<((?:\.{{0,2}}/)?[^\s<>"\'()\[\]]+\.(?:{suffix})(?:\?[^\s<>"\'()\[\]]*)?)>'
+    return re.findall(pattern, content, re.I)
+
+
 def evaluate_resources(
     content: str,
     metadata: dict[str, Any],
@@ -89,6 +109,7 @@ def evaluate_resources(
         candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
         candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
         candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
+        candidates.extend(_visible_relative_resource_urls(content))
     normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
     normalized_candidates = [url for url in normalized_candidates if url != normalize_resource_url(base_url,base_url)]
     results = []
@@ -167,17 +188,26 @@ def normalize_for_match(value: str) -> str:
     normalized = clean_reference_text(normalized)
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
+    # Native Markdown emitters may escape punctuation in visible text. These
+    # escapes are presentation syntax, not part of the page's wording.
+    normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
-    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|\s+(?=[\u3400-\u9fff])', '', normalized)
+    # Start only at a whitespace-run boundary: a long run not followed by CJK
+    # must not be rescanned from every suffix (quadratic backtracking).
+    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])', '', normalized)
     # Menu breadcrumbs commonly lose spaces when inline links are extracted.
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:
     # plain-text DOM extraction may put every menu label on a separate line.
     normalized = re.sub(r"\s+", " ", normalized).strip()
+    # A serializer may leave layout whitespace before sentence punctuation at
+    # an inline-link boundary. Never bridge a digit to punctuation: doing so
+    # could turn ``$10 .90`` into a different valid monetary value.
+    normalized = re.sub(r"(?<!\d)\s+([,.;:!?])", r"\1", normalized)
     # Inline styling often separates a currency symbol from its amount.
     # Normalize only currency/financing syntax, never digit or decimal boundaries.
     normalized = re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', normalized)
@@ -187,7 +217,7 @@ def normalize_for_match(value: str) -> str:
 
 
 def fact_in_text(text: str, fact: str) -> bool:
-    """Exact normalized fact; do not accept a fragment of a different number."""
+    """Match an explicitly registered normalized fact without fuzzy semantics."""
     if not fact:
         return False
     left = r'(?<![0-9.+\-])' if fact[0].isdigit() or fact[0] in '$£€¥' else ''
@@ -197,6 +227,13 @@ def fact_in_text(text: str, fact: str) -> bool:
             continue
         return True
     return False
+
+
+def text_corruption(value: str) -> tuple[int, float, bool]:
+    """Detect substantial UTF-8 replacement-character damage in text output."""
+    count = value.count('\ufffd')
+    ratio = count / max(1, len(value))
+    return count, round(ratio, 4), count >= 20 and ratio >= 0.02
 
 
 def evaluate_content(
@@ -214,6 +251,7 @@ def evaluate_content(
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
 ) -> dict[str, Any]:
+    replacement_count, replacement_ratio, encoding_corruption = text_corruption(content)
     folded = normalize_for_match(content)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
@@ -250,7 +288,8 @@ def evaluate_content(
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(content) >= min_content_chars
-    content_pass = legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold and not forbidden
+    content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
+                    and not forbidden and not encoding_corruption)
     pattern_results = []
     for rule in required_patterns or []:
         count = len(set(re.findall(rule['pattern'], content, re.I)))
@@ -287,13 +326,27 @@ def evaluate_content(
         "markdown_headings": len(re.findall(r"(?m)^#{1,6}\s+", content)),
         "markdown_links": len(re.findall(r"\[[^]]+]\(https?://", content)),
         "html_tags": len(re.findall(r"<[^>]+>", content)),
+        "replacement_character_count": replacement_count,
+        "replacement_character_ratio": replacement_ratio,
+        "text_encoding_corruption": encoding_corruption,
         "word_precision": word_precision,
         "word_recall": word_recall,
         "word_f1": word_f1,
+        # Keep ``reference_sha256`` as the immutable run-time capture binding.
+        # This separate hash says which reference bytes produced these derived
+        # text metrics after an audited offline correction.
+        "scored_reference_sha256": (hashlib.sha256(
+            ground_truth_main_content.encode("utf-8")).hexdigest()
+            if ground_truth_main_content else None),
     }
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task
         result.update(evaluate_stable_task(content, acceptance_contract, base_url, links=named_links))
+        if encoding_corruption:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "text_encoding_corruption" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("text_encoding_corruption")
         if forbidden:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

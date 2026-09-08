@@ -1,0 +1,46 @@
+{
+  "case_id": "live-007-html-hypertext-markup-language-s",
+  "url": "https://docs.python.org/3/library/html.html",
+  "checked_at": "2026-09-08T04:23:14.497346+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/html.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/html.html",
+  "mime": "text/html",
+  "bytes": 20064,
+  "sha256": "44d628efcb463d1fde6a5d83584c3191d34a2a45bb921bf36010d25152f75aec",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "html — HyperText Markup Language support — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "d0c055677330ce4f19b4bec7310817c9f3cb5b075f8357a1379116b30bfe5f0b",
+  "reference_sha256": "d0c055677330ce4f19b4bec7310817c9f3cb5b075f8357a1379116b30bfe5f0b",
+  "text_chars": 1092,
+  "excerpt": "html\n— HyperText Markup Language support\n¶\nSource code:\nLib/html/__init__.py\nThis module defines utilities to manipulate HTML.\nhtml.\nescape\n(\ns\n,\nquote\n=\nTrue\n)\n¶\nConvert the characters\n&\n,\n<\nand\n>\nin string\ns\nto HTML-safe\nsequences.  Use this if you need to display text that might contain such\ncharacters in HTML.  If the optional flag\nquote\nis true (the default), the\ncharacters (\n\"\n) and (\n'\n) are also translated; this helps for inclusion\nin an HTML attribute value delimited by quotes, as in\n<a\nhref=\"...\">\n.\nIf\nquote\nis set to false, the characters (\n\"\n) and (\n'\n) are not\ntranslated.\nAdded in version 3.2.\nhtml.\nunescape\n(\ns\n)\n¶\nConvert all named and numeric character references (e.g.\n&gt;\n,\n&#62;\n,\n&#x3e;\n) in the string\ns\nto the corresponding Unicode\ncharacters.  This function uses the r",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

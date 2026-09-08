@@ -419,16 +419,16 @@
   },
   {
     "case_id": "document-03",
-    "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    "checked_at": "2026-09-02T09:22:01.090873+00:00",
-    "method": "independent HTTP GET; at most 128 KiB",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/4c9b65f0e13fd290c326b38cb97436fa50b930f5/test/pdfs/basicapi.pdf",
+    "checked_at": "2026-09-08T09:49:51+00:00",
+    "method": "independent HTTP GET from immutable Git commit; complete file",
     "status": 200,
-    "final_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    "content_type": "application/pdf; qs=0.001",
-    "title": "",
+    "final_url": "https://raw.githubusercontent.com/mozilla/pdf.js/4c9b65f0e13fd290c326b38cb97436fa50b930f5/test/pdfs/basicapi.pdf",
+    "content_type": "application/octet-stream",
+    "title": "Mozilla PDF.js · 3 页 PDF",
     "access_signals": [],
-    "prefix_sha256": "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4",
-    "sampled_bytes": 13264
+    "prefix_sha256": "925853d98d67d5dae7473c635f932958e1695ce1029d23b2ecd2531cb65f1f14",
+    "sampled_bytes": 105779
   },
   {
     "case_id": "document-04",

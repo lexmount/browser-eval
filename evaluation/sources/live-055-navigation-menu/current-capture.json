@@ -1,0 +1,88 @@
+{
+  "case_id": "live-055-navigation-menu",
+  "url": "https://github.com/pytest-dev/pytest",
+  "checked_at": "2026-09-08T04:23:21.326120+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://github.com/pytest-dev/pytest"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://github.com/pytest-dev/pytest",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 352947,
+  "sha256": "a680eccdba071bd01ec6e8494e262aff34b2274eaa2bae2da814ae0797a4a732",
+  "response_headers": {
+    "X-Frame-Options": "deny",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'self'; child-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/; connect-src 'self' uploads.github.com www.githubstatus.com collector.github.com raw.githubusercontent.com api.github.com github-cloud.s3.amazonaws.com github-production-repository-file-5c1aeb.s3.amazonaws.com github-production-upload-manifest-file-7fdce7.s3.amazonaws.com github-production-user-asset-6210df.s3.amazonaws.com *.rel.tunnels.api.visualstudio.com wss://*.rel.tunnels.api.visualstudio.com github.githubassets.com objects-origin.githubusercontent.com copilot-proxy.githubusercontent.com proxy.individual.githubcopilot.com proxy.business.githubcopilot.com proxy.enterprise.githubcopilot.com *.actions.githubusercontent.com wss://*.actions.githubusercontent.com productionresultssa0.blob.core.windows.net productionresultssa1.blob.core.windows.net productionresultssa2.blob.core.windows.net productionresultssa3.blob.core.windows.net productionresultssa4.blob.core.windows.net productionresultssa5.blob.core.windows.net productionresultssa6.blob.core.windows.net productionresultssa7.blob.core.windows.net productionresultssa8.blob.core.windows.net productionresultssa9.blob.core.windows.net productionresultssa10.blob.core.windows.net productionresultssa11.blob.core.windows.net productionresultssa12.blob.core.windows.net productionresultssa13.blob.core.windows.net productionresultssa14.blob.core.windows.net productionresultssa15.blob.core.windows.net productionresultssa16.blob.core.windows.net productionresultssa17.blob.core.windows.net productionresultssa18.blob.core.windows.net productionresultssa19.blob.core.windows.net github-production-repository-image-32fea6.s3.amazonaws.com github-production-release-asset-2e65be.s3.amazonaws.com insights.github.com wss://alive.github.com wss://alive-staging.github.com api.githubcopilot.com api.individual.githubcopilot.com api.business.githubcopilot.com api.enterprise.githubcopilot.com wss://production-copilot-host.webpubsub.azure.com; font-src github.githubassets.com; form-action 'self' github.com gist.github.com copilot-workspace.githubnext.com objects-origin.githubusercontent.com; frame-ancestors 'none'; frame-src viewscreen.githubusercontent.com notebooks.githubusercontent.com; img-src 'self' data: blob: github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com release-assets.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com repository-images.githubusercontent.com marketplace-screenshots.githubusercontent.com copilotprodattachments.blob.core.windows.net/github-production-copilot-attachments/ github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com explore-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; manifest-src 'self'; media-src github.com user-images.githubusercontent.com secured-user-images.githubusercontent.com private-user-images.githubusercontent.com github-production-user-asset-6210df.s3.amazonaws.com gist.github.com github.githubassets.com; script-src github.githubassets.com; style-src 'unsafe-inline' github.githubassets.com; upgrade-insecure-requests; worker-src github.githubassets.com github.com/assets-cdn/worker/ github.com/assets/ gist.github.com/assets-cdn/worker/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "GitHub - pytest-dev/pytest: The pytest framework makes it easy to write small tests, yet scales to support complex functional testing · GitHub",
+  "selector": "article.markdown-body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://github.com/pytest-dev/pytest/raw/main/doc/en/img/pytest_logo_curves.svg",
+      "alt": "pytest"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fcd4c7ef9285ea27ab72839cc8426c718e8f1806c9d4401a2249fcc3e8a4ad04/68747470733a2f2f696d672e736869656c64732e696f2f707970692f762f7079746573742e737667",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/4ff8b4b19023315ec4937ebb2c556601bd29965fef12f57ee460ba782d42d6ef/68747470733a2f2f696d672e736869656c64732e696f2f636f6e64612f766e2f636f6e64612d666f7267652f7079746573742e737667",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/1649ec2cb46fb5521249dbffe132a12941ac951282e51f6621e2f82246465023/68747470733a2f2f696d672e736869656c64732e696f2f707970692f707976657273696f6e732f7079746573742e737667",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/28964991a3f5f4e6cd3f430890fadd714fec354ee7805dca9751c30e63f978a6/68747470733a2f2f636f6465636f762e696f2f67682f7079746573742d6465762f7079746573742f6272616e63682f6d61696e2f67726170682f62616467652e737667",
+      "alt": "Code coverage Status"
+    },
+    {
+      "tag": "img",
+      "url": "https://github.com/pytest-dev/pytest/actions/workflows/test.yml/badge.svg",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/fba81a5fcdf89abbb475b52554f947ab770aab9566f0a12b951f69698b37c36b/68747470733a2f2f726573756c74732e7072652d636f6d6d69742e63692f62616467652f6769746875622f7079746573742d6465762f7079746573742f6d61696e2e737667",
+      "alt": "pre-commit.ci status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/981ee696193c7179ab340f1ce90ace3fd5dff136e36b329acaba0e0486f50af2/68747470733a2f2f7777772e636f64657472696167652e636f6d2f7079746573742d6465762f7079746573742f6261646765732f75736572732e737667",
+      "alt": ""
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/355fb166731d620df1db2c29b2a44b05487c71a6521c553978320568793b1c23/68747470733a2f2f72656164746865646f63732e6f72672f70726f6a656374732f7079746573742f62616467652f3f76657273696f6e3d6c6174657374",
+      "alt": "Documentation Status"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/9906f54d325942581813fa8e76f999eea0850f7b117fe722a0bf0d5b1318ace9/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f446973636f72642d7079746573742d2d6465762d626c7565",
+      "alt": "Discord"
+    },
+    {
+      "tag": "img",
+      "url": "https://camo.githubusercontent.com/29c300c28c4167300866b18172d45110d1ad03ad854df75f18bd1a3742e93cc4/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f4c6962657261253230636861742d2532337079746573742d6f72616e6765",
+      "alt": "Libera chat"
+    }
+  ],
+  "extracted_sha256": "8271ea53b67903be42db1449426629c7136f9981166339d1bbcd6026dc38d4e6",
+  "reference_sha256": "8271ea53b67903be42db1449426629c7136f9981166339d1bbcd6026dc38d4e6",
+  "text_chars": 2642,
+  "excerpt": "The\npytest\nframework makes it easy to write small tests, yet\nscales to support complex functional testing for applications and libraries.\nAn example of a simple test:\n# content of test_sample.py\ndef\ninc\n(\nx\n):\nreturn\nx\n+\n1\ndef\ntest_answer\n():\nassert\ninc\n(\n3\n)\n==\n5\nTo execute it:\n$ pytest\n============================= test session starts =============================\ncollected 1 items\ntest_sample.py F\n================================== FAILURES ===================================\n_________________________________ test_answer _________________________________\ndef test_answer():\n>       assert inc(3) == 5\nE       assert 4 == 5\nE        +  where 4 = inc(3)\ntest_sample.py:5: AssertionError\n========================== 1 failed in 0.04 seconds ===========================\nThanks to\npytest\n's detail",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

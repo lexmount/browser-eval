@@ -1,0 +1,46 @@
+{
+  "case_id": "live-074-python-sqlite3-documentation",
+  "url": "https://docs.python.org/3/library/sqlite3.html",
+  "checked_at": "2026-09-08T04:23:24.222747+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/sqlite3.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/sqlite3.html",
+  "mime": "text/html",
+  "bytes": 313830,
+  "sha256": "1ea9e78af033aef232a6b030872a763fc1629cc063d09749e0a8c08f23a003f6",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "sqlite3 — DB-API 2.0 interface for SQLite databases — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "95cf7c5373e4c51e710ae2a4fd2aa8987a1c020e5c793d61d2f6277b96cf6851",
+  "reference_sha256": "95cf7c5373e4c51e710ae2a4fd2aa8987a1c020e5c793d61d2f6277b96cf6851",
+  "text_chars": 71095,
+  "excerpt": "sqlite3\n— DB-API 2.0 interface for SQLite databases\n¶\nSource code:\nLib/sqlite3/\nSQLite is a C library that provides a lightweight disk-based database that\ndoesn’t require a separate server process and allows accessing the database\nusing a nonstandard variant of the SQL query language. Some applications can use\nSQLite for internal data storage.  It’s also possible to prototype an\napplication using SQLite and then port the code to a larger database such as\nPostgreSQL or Oracle.\nThe\nsqlite3\nmodule was written by Gerhard Häring.  It provides an SQL interface\ncompliant with the DB-API 2.0 specification described by\nPEP 249\n, and\nrequires the third-party\nSQLite\nlibrary.\nThis is an\noptional module\n.\nIf it is missing from your copy of CPython,\nlook for documentation from your distributor (that is,",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

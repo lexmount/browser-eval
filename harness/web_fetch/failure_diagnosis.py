@@ -91,6 +91,11 @@ def diagnose(r,c,raw,source=None):
         else:
             category,stage,proof=set_result('服务取页失败','服务取页',message[:650])
             certainty='服务未披露更细原因；不能仅凭该错误归责源站或服务内部'
+    elif m.get('text_encoding_corruption'):
+        category,stage,proof=set_result(
+            '输出文本解码损坏','内容提取',
+            f"保存输出含 {m.get('replacement_character_count',0)} 个 Unicode 替换字符 "
+            f"（占 {m.get('replacement_character_ratio',0)*100:.1f}%）；原文字节已在方法输出前被替换，无法从该 Markdown 还原。")
     elif m.get('forbidden_hits'):
         category,stage,proof=set_result('返回非目标内容','内容核验','命中错误页 / 排除标记：'+', '.join(m['forbidden_hits']))
     elif m.get('stable_blocked_page') or 'blocked_page' in m.get('stable_task_errors', []):

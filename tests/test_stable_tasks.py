@@ -73,6 +73,12 @@ class StableTaskTests(unittest.TestCase):
                      "2026-09-01 Repeat review\n2026-09-01 Repeat review"):
             self.assertFalse(self.check(text, "review")["stable_task_pass"])
 
+    def test_reviews_accept_commonmark_escaped_iso_dates(self):
+        text = (r"2023\-05\-18 First independently returned review" "\n\n"
+                r"2023\-05\-19 Second independently returned review")
+        result = self.check(text, "review")
+        self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
+
     def test_name_description_requires_owned_blocks_not_arbitrary_line_pairing(self):
         self.assertTrue(self.check("New phone\nNew phone has a brighter display.\n\nOther phone\nIt has a different camera.",
                                    "name_description")["stable_task_pass"])
@@ -88,6 +94,12 @@ class StableTaskTests(unittest.TestCase):
         for bad in (text.replace("GET", "FETCH"), text.replace("/new/{id}", "https://wrong.test/new"),
                     text.replace("Read a new object", ""), "GET /new First summary\nGET /new Different summary"):
             self.assertFalse(self.check(bad, "api_operation")["stable_task_pass"])
+
+    def test_api_operation_native_markdown_link_layout(self):
+        text = ('POST[/pet](#/pet/addPet)Add a new pet to the store\n'
+                'GET[/pet/{petId}](#/pet/getPetById)Find pet by ID')
+        result = self.check(text, 'api_operation')
+        self.assertTrue(result['stable_task_pass'], result['stable_task_errors'])
 
     def test_operation_group_headings_and_footer_do_not_extend_summary(self):
         anchors = [{"id": "read", "alternatives": ["GET\n/new/{id}\nRead a new object"]},
@@ -158,6 +170,14 @@ class StableTaskTests(unittest.TestCase):
         plain = "First title\nhttps://example.test/item/1\nSecond title\nhttps://example.test/item/2"
         self.assertTrue(self.check(plain, "named_link", **rules)["stable_task_pass"])
         self.assertFalse(self.check("[Bad URL](https://[invalid/item/1)", "named_link", **rules)["stable_task_pass"])
+
+    def test_named_links_accept_declared_tracking_path_suffix(self):
+        rules = {"hosts": ["www.amazon.com"],
+                 "entry_path": r"(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?"}
+        text = ("[First product](https://www.amazon.com/first/dp/B012345678/ref=abc_1)\n"
+                "[Second product](https://www.amazon.com/dp/B087654321/ref=abc_2)")
+        result = self.check(text, "named_link", **rules)
+        self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
 
     def test_wrong_page_identity_and_eligible_gates(self):
         text = "Alpha\n$10\n\nBeta\n$20"
@@ -293,6 +313,40 @@ class StableTaskTests(unittest.TestCase):
                      "- [New phone](/a)\n- [Other phone](/b) A brighter display. A different camera."):
             self.assertFalse(self.check(text, "name_description")["stable_task_pass"])
 
+    def test_image_bullet_then_linked_description_card(self):
+        text = ("- [![New phone](/img)](/phone)\n"
+                "[New phone](/phone) A brighter display.\n\n"
+                "- [![Other phone](/img2)](/other)\n"
+                "[Other phone](/other) A different camera.")
+        result = self.check(text, "name_description")
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_complete_record_count"], 2)
+
+    def test_image_bullet_card_can_contain_blank_line_and_glued_inline_boundary(self):
+        text = ("- [![New phone](/img)](/phone)\n"
+                "[New phone](/phone) First sentence\n\nSecond sentence.\n\n"
+                "- [![Other phone](/img2)](/other)\n"
+                "[Other phone](/other) A brighterdisplay.")
+        anchors = [
+            {"id": "new", "alternatives": ["New phone\nFirst sentence Second sentence."]},
+            {"id": "other", "alternatives": ["Other phone\nA brighter display."]},
+        ]
+        result = self.check(text, "name_description", stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+
+    def test_named_link_page_anchor_accepts_dropped_inline_link_spacing(self):
+        text = ('- Do you have a question? Check out[/r/learnprogramming](/r/learnprogramming),'
+                '[/r/cscareerquestions](/r/cscareerquestions), or[Stack Overflow](https://stackoverflow.com/).\n'
+                '- [First post](https://example.com/r/programming/comments/1)\n'
+                '- [Second post](https://example.com/r/programming/comments/2)\n'
+                '- [Third post](https://example.com/r/programming/comments/3)')
+        anchors = [{"id": "community", "alternatives": [
+            'Do you have a question? Check out /r/learnprogramming, /r/cscareerquestions, or Stack Overflow.'
+        ]}]
+        result = self.check(text, "named_link", 3, stable_text_anchors=anchors,
+                            hosts=["example.com"], entry_path=r"/r/programming/comments/\d+")
+        self.assertTrue(result["stable_task_pass"], result)
+
     def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
         anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]
         texts = ('“An independent thought.”by [Some Author](/author) [(about)](/about)\n'
@@ -301,11 +355,30 @@ class StableTaskTests(unittest.TestCase):
                  '| An independent thought. | Some Author | first second |')
         for text in texts:
             self.assertTrue(self.check(text, "quote", 1, stable_text_anchors=anchors)["stable_task_pass"])
-        for text in ('“An independent thought.”by Some Author\nTags: firstsecond',
-                     '“An independent thought.”by Wrong Author\nTags: first second'):
-            result = self.check(text, "quote", 1, stable_text_anchors=anchors)
-            self.assertTrue(result["stable_structure_pass"])
-            self.assertFalse(result["stable_content_pass"])
+        compact = self.check('“An independent thought.”by Some Author\nTags: firstsecond',
+                             "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(compact["stable_task_pass"])
+        wrong = self.check('“An independent thought.”by Wrong Author\nTags: first second',
+                           "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(wrong["stable_structure_pass"])
+        self.assertFalse(wrong["stable_content_pass"])
+
+    def test_quote_tags_can_span_native_markdown_link_lines(self):
+        anchors = [{"id": "fixed", "alternatives": [
+            '“An independent thought.”\nby Some Author\nTags: first second']}]
+        text = ('“An independent thought.”by Some Author\nTags: [first]()\n[second]()\n'
+                '##### Loading...\nQuotes by: Example')
+        result = self.check(text, "quote", 1, stable_text_anchors=anchors)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_records"][0]["fields"]["tags"], "first second")
+
+    def test_minimum_only_contract_ignores_unrelated_incomplete_candidate(self):
+        rules = {"version": 1, "schema": "quote", "minimum_records": 1}
+        text = ('" + template[\'quote\'] + " by " + template[\'author\'] + "\n'
+                '“A real quote.” by Real Author Tags: one two')
+        result = evaluate_stable_task(text, rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertIn("ignored_incomplete_candidates", result["stable_record_warnings"])
 
     def test_tuple_anchor_cannot_match_unowned_footer_or_other_record(self):
         anchors = [{"id": "fixed", "alternatives": ["New phone\nA brighter display."]}]

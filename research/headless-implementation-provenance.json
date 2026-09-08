@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-09-08",
+  "implementations": [
+    {
+      "provider": "moli-1.0.6",
+      "version": "1.0.6",
+      "binary_sha256": "53c7e51928f0eb7b83bbd703f2e804b2c59e2c2a56d4ce650e97e3f35f05ea3c",
+      "identity_timing": "recorded_during_run",
+      "verification": "Exact SHA-256 of the binary extracted from the official aarch64-apple-darwin release archive; the binary reports `moli 1.0.6`.",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.0.6",
+      "release_commit": "dda59858b57559f049b8a268051bc24a0d3da8dd",
+      "archive_url": "https://github.com/lexmount/moli/releases/download/v1.0.6/moli-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "92e3f077c9577bb60ef7889319c6caba3dfe9c2fbd6e215bf34ad31ff63dbc7e"
+    },
+    {
+      "provider": "moli",
+      "version": "1.1.1",
+      "binary_sha256": "44f1a90efc45e9d114619b00ea3b4ad48b6eef93be7ea89aa19277e12b926783",
+      "identity_timing": "post_hoc_recovery",
+      "run_time_evidence": "The measured calls retained this binary SHA-256 but did not retain a version string.",
+      "verification": "After the run, the retained measured binary was matched byte-for-byte to the binary extracted from the official v1.1.1 aarch64-apple-darwin release archive; both have this SHA-256 and the retained binary reports `moli 1.1.1`.",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.1.1",
+      "archive_url": "https://github.com/lexmount/moli/releases/download/v1.1.1/moli-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "56deed4634b9c77641ce31f3802b9bb3f32c6d7f28073f73901540429a29864b"
+    },
+    {
+      "provider": "moli-1.1.3",
+      "version": "1.1.3",
+      "binary_sha256": "72051832a3535ee93090c8bbbe57017daea779d1b368deb35dca19944298f775",
+      "identity_timing": "recorded_during_run",
+      "verification": "Exact SHA-256 of the official aarch64-apple-darwin binary; the binary reports `moli 1.1.3`.",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.1.3",
+      "archive_url": "https://github.com/lexmount/moli/releases/download/v1.1.3/moli-aarch64-apple-darwin.tar.gz",
+      "archive_sha256": "6327debf22c9ca95d3e5313168b2913e0c4cc5299e8c013e933023da26856928"
+    },
+    {
+      "provider": "obscura",
+      "version": "0.2.1",
+      "binary_sha256": "6d07bced7d92f52f955b1407e817100bd649bcf08481d056f80fa4863a0b515a",
+      "identity_timing": "post_hoc_version_probe_of_retained_binary",
+      "run_time_evidence": "The measured calls retained this binary SHA-256 but did not retain a version string.",
+      "verification": "After the run, the retained measured binary was matched byte-for-byte to the official v0.2.1 aarch64-macos release binary; it reports `obscura 0.2.1`.",
+      "source": "https://github.com/h4ckf0r0day/obscura/releases/tag/v0.2.1",
+      "release_commit": "2810cb4",
+      "archive_url": "https://github.com/h4ckf0r0day/obscura/releases/download/v0.2.1/obscura-aarch64-macos.tar.gz",
+      "archive_sha256": "5233da6426ec16667d7e4374b824189c6dfb3b325e5cf3fb5f04c7bc48b52a0f"
+    },
+    {
+      "provider": "lightpanda",
+      "identity": "nightly build (version string unavailable; binary SHA-256 is the identity)",
+      "binary_sha256": "7504e2badd3d9fa39578964d0251b20d3396865ba7c472e8a8fe623808c31eae",
+      "identity_timing": "binary_hash_recorded_during_run_version_unavailable",
+      "verification": "The original run retained the exact binary SHA-256 but the nightly CLI did not expose a usable version string. No commit is inferred.",
+      "source": "https://github.com/lightpanda-io/browser/releases/tag/nightly"
+    },
+    {
+      "provider": "lightpanda",
+      "identity": "official nightly build verified 2026-09-07",
+      "binary_sha256": "2748d1ce39d75c6f0d949fe318345f3a5a1585538cc76a7c712a98e3474e5043",
+      "identity_timing": "binary_hash_recorded_during_targeted_rerun_version_unavailable",
+      "verification": "SHA-256 of the official macOS aarch64 nightly asset used for targeted reruns; the CLI has no successful --version response.",
+      "source": "https://github.com/lightpanda-io/browser/releases/tag/nightly"
+    },
+    {
+      "provider": "chromium",
+      "version": "152.0.7977.82",
+      "binary_sha256": "392011a70cdd30bc22ccc977591ed0fd099233a50da8b0cdf9d1a16dabdcab9b",
+      "identity_timing": "recorded_during_run",
+      "verification": "The measured calls retained both the browser-reported version and exact executable SHA-256.",
+      "source": "https://playwright.dev/python/docs/browsers"
+    }
+  ],
+  "remote_implementations": [
+    {
+      "provider": "kitesurf",
+      "product": "Cloudflare Browser Rendering Browser Run /markdown",
+      "identity_timing": "account_endpoint_recorded_during_run_server_build_unavailable",
+      "verification": "Every call retains the product endpoint, extractor and Cloudflare browser-time metadata. The hosted service does not expose an immutable server build identifier, so exact backend version reproduction is unavailable and is reported as such.",
+      "source": "https://developers.cloudflare.com/browser-rendering/rest-api/markdown-endpoint/"
+    }
+  ]
+}

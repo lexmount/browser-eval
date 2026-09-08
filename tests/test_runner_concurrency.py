@@ -20,6 +20,32 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_failed_task_is_called_once(self):
+        class Flaky(Provider):
+            def __init__(self):
+                super().__init__('flaky', {'type': 'fixture'})
+                self.calls = 0
+
+            def fetch(self, case, timeout):
+                self.calls += 1
+                return ProviderResult(True, 'wrong')
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        provider = Flaky()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records, _ = run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
+            self.assertEqual(provider.calls, 1)
+            self.assertEqual(len(records), 1)
+            self.assertFalse(records[0]['metrics']['content_pass'])
+            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'wrong')
+            self.assertNotIn('retry', records[0]['provider_metadata'])
+            manifest = json.loads((root / 'manifest.json').read_text())
+            self.assertEqual(manifest['attempt_count'], 1)
+            self.assertNotIn('physical_attempt_count', manifest)
+
     def test_jsonl_escapes_unicode_line_separators_without_changing_output(self):
         value = 'before\u0085middle\u2028after\u2029end'
         class TextProvider(Provider):
@@ -66,6 +92,32 @@ class RunnerConcurrencyTest(unittest.TestCase):
         finally:
             release.set()
             finished.wait(2)
+
+    def test_unstoppable_timeout_on_final_case_is_complete(self):
+        release = threading.Event()
+
+        class Unstoppable(Provider):
+            def fetch(self, case, timeout):
+                release.wait(2)
+                return ProviderResult(True, 'late answer')
+
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                records, _ = run_evaluation(
+                    output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
+                    dataset_path=Path('dataset.json'),
+                    cases=[EvalCase('only', 'Only', 'https://example.com', 'static', [])],
+                    providers=[Unstoppable('slow', {})],
+                    provider_config_path=Path('providers.json'), runs=1,
+                    timeout=.02, delay=0,
+                )
+                self.assertEqual(len(records), 1)
+                self.assertEqual(records[0]['error_type'], 'timeout')
+                manifest = json.loads((root / 'manifest.json').read_text())
+                self.assertEqual(manifest['unexecuted'], [])
+        finally:
+            release.set()
 
     def test_providers_overlap_but_results_remain_deterministic(self) -> None:
         barrier = threading.Barrier(2)

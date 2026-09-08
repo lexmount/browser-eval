@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import base64
 import math
 import json
 import platform
@@ -49,6 +50,36 @@ def classify_exception(error: Exception) -> tuple[str, str]:
     if isinstance(error, ValueError):
         return "response_validation", str(error)
     return "provider_exception", f"{type(error).__name__}: {error}"
+
+
+def persist_result_artifacts(
+    output_dir: Path, artifact_rel: Path, result: ProviderResult
+) -> Path:
+    """Persist one physical call without changing its scored answer bytes."""
+    artifact = contained_path(output_dir, artifact_rel)
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    artifact.write_text(result.content, encoding='utf-8', errors='replace')
+    rendered_html = result.metadata.pop('_rendered_html', None)
+    if rendered_html is not None:
+        html_rel = artifact_rel.with_suffix('.html.txt')
+        contained_path(output_dir, html_rel).write_text(rendered_html, encoding='utf-8')
+        result.metadata['rendered_html_path'] = html_rel.as_posix()
+    raw_stdout = result.metadata.pop('_raw_stdout_b64', None)
+    if raw_stdout is not None:
+        binary_rel = artifact_rel.with_suffix('.bin')
+        binary = base64.b64decode(raw_stdout, validate=True)
+        if hashlib.sha256(binary).hexdigest() != result.metadata['raw_stdout_sha256']:
+            raise ValueError('Raw stdout hash mismatch')
+        contained_path(output_dir, binary_rel).write_bytes(binary)
+        result.metadata['raw_stdout_path'] = binary_rel.as_posix()
+    delivered = result.metadata.get('file_evaluation', {}).get('files', [])
+    if len(delivered) != len(result.files):
+        raise ValueError('File evaluation does not match returned files')
+    for index, item in enumerate(result.files):
+        binary = artifact.with_name(artifact.stem + f'-file-{index:03d}.bin')
+        binary.write_bytes(item['data'])
+        delivered[index]['artifact_path'] = binary.relative_to(output_dir).as_posix()
+    return artifact
 
 
 def run_evaluation(
@@ -104,6 +135,8 @@ def run_evaluation(
                 "name": provider.name,
                 "type": provider.type,
                 "min_interval_seconds": provider.min_interval_seconds,
+                **({"implementation_identity": provider._implementation_identity}
+                   if isinstance(getattr(provider, '_implementation_identity', None), dict) else {}),
             }
             for provider in providers
         ],
@@ -143,7 +176,7 @@ def run_evaluation(
         def run_provider(provider: Provider) -> None:
             previous_request_completed: float | None = None
             for run_number in range(1, runs + 1):
-                for case in cases:
+                for case_index, case in enumerate(cases, 1):
                     throttle_wait_ms = 0.0
                     if previous_request_completed is not None and provider.min_interval_seconds:
                         remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
@@ -155,7 +188,7 @@ def run_evaluation(
                     # Outside provider exception handling: expired references
                     # stop measurement, never create a supplier failure record.
                     check_case_reference_fresh(case, dataset_path, binding)
-                    begin = time.perf_counter()
+                    physical_begin = time.perf_counter()
                     started = utc_now()
                     pending = None
                     try:
@@ -168,30 +201,30 @@ def run_evaluation(
                             error_type=error_type,
                             error_message=error_message,
                         )
-                    elapsed_ms = round((time.perf_counter() - begin) * 1000, 2)
-                    finished = utc_now()
+                    elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
                     previous_request_completed = time.monotonic()
                     if case.task_kind == 'file':
                         result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
                             'scope': 'returned_bytes_signature_length_sha256'})
-                    artifact_rel = Path("artifacts") / provider.name / case.id / f"run-{run_number:03d}.txt"
-                    artifact = contained_path(output_dir, artifact_rel)
-                    artifact.parent.mkdir(parents=True, exist_ok=True)
-                    artifact.write_text(result.content, encoding="utf-8", errors="replace")
+                    artifact_rel = (Path('artifacts') / provider.name / case.id /
+                                    f'run-{run_number:03d}.txt')
+                    artifact = persist_result_artifacts(output_dir, artifact_rel, result)
+                    artifact_bytes = result.content.encode('utf-8', errors='replace')
                     measured = score_attempt(
-                        case, artifact.read_bytes(), ok=result.ok, metadata=result.metadata,
+                        case, artifact_bytes, ok=result.ok, metadata=result.metadata,
                         list_reference=load_list_reference(case, dataset_path.parent),
                         status_code=result.status_code,
                         prepared_answer=result.prepared_answer,
                     )
-                    measured["deadline_overrun"] = elapsed_ms > timeout * 1000
+                    measured['deadline_overrun'] = elapsed_ms > timeout * 1000
                     measured['deadline_budget_ms'] = timeout * 1000
-                    for index, item in enumerate(result.files):
-                        binary = artifact.with_name(f'run-{run_number:03d}-file-{index:03d}.bin')
-                        binary.write_bytes(item['data'])
-                        result.metadata['file_evaluation']['files'][index]['artifact_path'] = binary.relative_to(output_dir).as_posix()
                     if binding is not None:
-                        measured["reference_sha256"] = binding["reference_sha256"]
+                        measured['reference_sha256'] = binding['reference_sha256']
+                    stopped_provider = (result.error_type == 'timeout' and pending is not None
+                                        and pending.is_alive())
+                    finished = utc_now()
+                    if hashlib.sha256(artifact.read_bytes()).hexdigest() != measured['content_sha256']:
+                        raise ValueError('Persisted output differs from scored bytes')
                     record = AttemptRecord(
                         attempt_id=attempt_id,
                         provider=provider.name,
@@ -234,12 +267,15 @@ def run_evaluation(
                         )
                     if delay:
                         time.sleep(delay)
-                    if result.error_type == 'timeout' and pending is not None and pending.is_alive():
-                        with result_lock:
-                            manifest['unexecuted'].append({'provider': provider.name,
-                                'after_attempt_id': attempt_id,
-                                'reason': 'non_cancellable_call_still_running; remaining provider cases not executed'})
-                        return
+                    if stopped_provider:
+                        remaining_attempts = ((runs - run_number) * len(cases)
+                                              + len(cases) - case_index)
+                        if remaining_attempts:
+                            with result_lock:
+                                manifest['unexecuted'].append({'provider': provider.name,
+                                    'after_attempt_id': attempt_id,
+                                    'reason': 'non_cancellable_call_still_running; remaining provider cases not executed'})
+                            return
 
         workers = min(provider_concurrency, max(1, len(providers)))
         try:

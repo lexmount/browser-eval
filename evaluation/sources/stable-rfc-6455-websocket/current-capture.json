@@ -1,0 +1,32 @@
+{
+  "case_id": "stable-rfc-6455-websocket",
+  "url": "https://www.rfc-editor.org/rfc/rfc6455.html",
+  "checked_at": "2026-09-08T06:38:11.016333+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.rfc-editor.org/rfc/rfc6455.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.rfc-editor.org/rfc/rfc6455.html",
+  "mime": "text/html",
+  "bytes": 200197,
+  "sha256": "4f4123b855949ad986591341c6d64a52a8bdf391cba2c1f93242ff31048fd9bb",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "",
+  "selector": "body",
+  "resources": [],
+  "extracted_sha256": "b4e82cb20f4acd3545b61474bb9cbc873f1293c940077aa60a1ac921917e0ed8",
+  "reference_sha256": "b4e82cb20f4acd3545b61474bb9cbc873f1293c940077aa60a1ac921917e0ed8",
+  "text_chars": 147117,
+  "excerpt": "Internet Engineering Task Force (IETF)                          I. Fette\nRequest for Comments: 6455                                  Google, Inc.\nCategory: Standards Track                                    A. Melnikov\nISSN: 2070-1721                                               Isode Ltd.\nDecember 2011\nThe WebSocket Protocol\nAbstract\nThe WebSocket Protocol enables two-way communication between a client\nrunning untrusted code in a controlled environment to a remote host\nthat has opted-in to communications from that code.  The security\nmodel used for this is the origin-based security model commonly used\nby web browsers.  The protocol consists of an opening handshake\nfollowed by basic message framing, layered over TCP.  The goal of\nthis technology is to provide a mechanism for browser-based",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

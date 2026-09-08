@@ -36,7 +36,7 @@ class StorageTests(unittest.TestCase):
             with self.assertRaisesRegex(FileNotFoundError,'results.jsonl'):
                 require_evidence(Path(folder))
 
-    def test_canonical_inputs_must_match_byte_for_byte(self):
+    def test_canonical_task_inputs_match_while_run_metadata_may_differ(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             canonical = root / "canonical"
@@ -44,10 +44,29 @@ class StorageTests(unittest.TestCase):
             for base in (canonical, evidence):
                 (base / "sources/case").mkdir(parents=True)
                 (base / "list-references").mkdir()
-                (base / "dataset.json").write_bytes(b"dataset")
+                (base / "dataset.json").write_text(
+                    '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
+                    '"id":"canonical","name":"Canonical","coverage_plan":{},'
+                    '"cases":[{"id":"case","url":"https://example.test"}]}'
+                )
                 (base / "sources/case/reference.txt").write_bytes(b"reference")
                 (base / "list-references/case.json").write_bytes(b"list")
             require_canonical_inputs(evidence, canonical)
+            (evidence / "dataset.json").write_text(
+                '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
+                '"id":"cohort","name":"Cohort","coverage_plan":{"web":["p"]},'
+                '"comparison":{"kind":"headless_markdown"},'
+                '"cases":[{"id":"case","url":"https://example.test"}]}'
+            )
+            require_canonical_inputs(evidence, canonical)
+            (evidence / "dataset.json").write_text(
+                '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
+                '"id":"cohort","name":"Cohort","coverage_plan":{},'
+                '"cases":[{"id":"case","url":"https://changed.test"}]}'
+            )
+            with self.assertRaisesRegex(ValueError, "cases"):
+                require_canonical_inputs(evidence, canonical)
+            (evidence / "dataset.json").write_text((canonical / "dataset.json").read_text())
             (evidence / "sources/case/reference.txt").write_bytes(b"changed")
             with self.assertRaisesRegex(ValueError, "sources"):
                 require_canonical_inputs(evidence, canonical)

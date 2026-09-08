@@ -96,6 +96,25 @@ class ScoringTests(unittest.TestCase):
         self.assertTrue(partial["stable_structure_pass"])
         self.assertEqual(partial["content_check_coverage"], .5)
 
+    def test_quote_fields_survive_missing_inline_whitespace(self):
+        quote = "“The world as we have created it is a process of our thinking.”"
+        contract = {
+            "version": 1, "schema": "quote", "minimum_records": 1,
+            "stable_text_anchors": [{"id": "quote-1", "alternatives": [
+                quote + "\nby Albert Einstein\nTags: change deep-thoughts thinking world"]}],
+        }
+        facts = [
+            {"id": "entry-1-quote", "alternatives": [quote]},
+            {"id": "entry-1-author", "alternatives": ["Albert Einstein"]},
+            {"id": "entry-1-tags", "alternatives": ["change deep-thoughts thinking world"]},
+        ]
+        output = (quote + "byAlbert EinsteinTags:changedeep-thoughtsthinkingworld"
+                  "\n\n##### Loading...\n\nQuotes by: GoodReads.com").encode()
+        measured = score_attempt(case(acceptance_contract=contract, required_facts=facts), output, ok=True)
+        self.assertTrue(task_passed(True, measured))
+        self.assertEqual(measured["fact_coverage"], 1)
+        self.assertEqual(measured["stable_anchor_coverage"], 1)
+
     def test_no_declared_groups_is_unmeasured_even_with_markers_or_old_facts(self):
         rules = stable_contract()
         rules["stable_text_anchors"] = []

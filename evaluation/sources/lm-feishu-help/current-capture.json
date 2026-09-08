@@ -1,0 +1,30 @@
+{
+  "case_id": "lm-feishu-help",
+  "url": "https://www.feishu.cn/hc/zh-CN/articles/485770964672-管理者查看企业-ai-功能使用数据",
+  "checked_at": "2026-09-08T04:23:12.925196+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.feishu.cn/hc/zh-CN/articles/485770964672-%E7%AE%A1%E7%90%86%E5%91%98%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A-ai-%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.feishu.cn/hc/zh-CN/articles/485770964672-%E7%AE%A1%E7%90%86%E5%91%98%E6%9F%A5%E7%9C%8B%E4%BC%81%E4%B8%9A-ai-%E5%8A%9F%E8%83%BD%E4%BD%BF%E7%94%A8%E6%95%B0%E6%8D%AE",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 521688,
+  "sha256": "a54353a99153e691315da32b5064a91348d6d1a7445360ef8c25225dc56669ce",
+  "response_headers": {
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "管理员查看企业 AI 功能使用数据",
+  "selector": "embedded article HTML + collapsed FAQ questions",
+  "resources": [],
+  "extracted_sha256": "357c294d786fc3bc548bcdac6ee8e731b30149ecd87798a47ac9bd98b07c328c",
+  "reference_sha256": "357c294d786fc3bc548bcdac6ee8e731b30149ecd87798a47ac9bd98b07c328c",
+  "text_chars": 2514,
+  "excerpt": "管理员查看企业 AI 功能使用数据\n一、功能简介\n增值信息：飞书 AI 版本需企业管理员另外购买。如需购买，请\n联系客服\n或前往\n飞书管理后台\n>\nAI 使用管理\n>\n用量概览\n自助购买。\n内测信息：功能内测中。\n谁能操作：超级管理员或拥有 AI 使用管理权限的管理员。\n飞书管理后台的 AI 使用数据功能帮助管理员全面了解企业内 AI 功能（知识问答、智能纪要、飞书 aily 专业版、文档 AI 速览、\n飞书 aily 工作流应用和企业工作伙伴\n）的综合使用情况，以及单个 AI 功能的使用情况。\n管理员可通过 AI 功能的使用次数、使用人数、人均使用次数、使用渗透率等指标，分析不同团队或成员使用 AI 功能的差异，及时\n调整 AI 权益的限额规则\n，提升 AI 功能在企业中的应用价值。\n例如，管理员根据 AI 使用数据发现部门 A 近期对知识问答功能的用量需求持续增加，可适当提升该部门对知识问答功能的用量额度。\n二、操作流程\n说明：支持查询 2025 年 8 月 1 日之后产生的数据。各项指标中，“人均可搜文档数”从 2025 年 11 月 1 日之后开始统计。\n查看整体使用数据\n进入\n飞书管理后台\n，点击\nAI 使用管理\n>\nAI 使用数据\n。\n在\nAI 整体使用情况\n模块中查看企业 AI 功能的综合使用情况；在\nAI 功能使用情况\n模块中点击 AI 功能名称标签页，查看对应 AI 功能的使用情况。\n将鼠标悬停至指标名称右侧的\n图标上，可查看对应说明。主要的指标说明如下：\n使用次数：对应 AI 功能的实际使用次数。不同功能统计规则不同，请以实际显示的数据为准。\n使用人数：使用过该 AI 功能的总人数。若同一成员多次使用同一 AI 功能，仅计数 1 次。\n使用渗透率：该 AI 功能的使用人数在企业飞书活跃人数中所占的比例。\n人均使用次数：使用次数 ÷ 使用人数后得到的数值。",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

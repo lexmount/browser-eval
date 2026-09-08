@@ -41,6 +41,21 @@ def build_report(source: Path, output: Path) -> Path:
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
+    from .result_review import require_result_review
+    result_review = require_result_review(source, dataset, records)
+    speed_root=source/'speed-cohort'
+    if speed_root.exists():
+        speed=json.loads((speed_root/'speed-comparison.json').read_text())
+        if speed.get('bindings',{}).get('dataset_sha256') != hashlib.sha256((speed_root/'dataset.json').read_bytes()).hexdigest():
+            raise ValueError('Speed comparison dataset binding mismatch')
+        if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
+            raise ValueError('Speed comparison result binding mismatch')
+        speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
+        require_result_review(speed_root, json.loads((speed_root/'dataset.json').read_text()), speed_records)
+        for row in speed_records:
+            raw=contained_path(speed_root,row['artifact_path'])
+            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
+                raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
@@ -64,7 +79,9 @@ def build_report(source: Path, output: Path) -> Path:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source)
+    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
+        equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
+        'equivalent_reference_bytes_with_independent_batch_captures')
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:
@@ -75,6 +92,21 @@ def build_report(source: Path, output: Path) -> Path:
                 raise ValueError(f'Output integrity failure: {path}')
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(raw, target)
+            meta = r.get('provider_metadata', {})
+            if meta.get('rendered_html_path'):
+                html_source = contained_path(source, meta['rendered_html_path'])
+                if hashlib.sha256(html_source.read_bytes()).hexdigest() != meta.get('rendered_html_sha256'):
+                    raise ValueError('Rendered HTML integrity failure: ' + r['attempt_id'])
+                html_target = contained_path(staging, meta['rendered_html_path'])
+                html_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(html_source, html_target)
+            if meta.get('raw_stdout_path'):
+                binary_source = contained_path(source, meta['raw_stdout_path'])
+                if hashlib.sha256(binary_source.read_bytes()).hexdigest() != meta.get('raw_stdout_sha256'):
+                    raise ValueError('Raw stdout integrity failure: ' + r['attempt_id'])
+                binary_target = contained_path(staging, meta['raw_stdout_path'])
+                binary_target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(binary_source, binary_target)
             for file in r.get('provider_metadata', {}).get('file_evaluation', {}).get('files', []):
                 binary = contained_path(source, file['artifact_path'])
                 if hashlib.sha256(binary.read_bytes()).hexdigest() != file['sha256']:
@@ -99,6 +131,8 @@ def build_report(source: Path, output: Path) -> Path:
             shutil.copytree(source/'list-references',staging/'list-references')
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
+        if speed_root.exists():
+            shutil.copytree(speed_root,staging/'speed-cohort')
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
@@ -123,10 +157,19 @@ def build_report(source: Path, output: Path) -> Path:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
-        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=True)+'\n' for r in records))
+        # Keep the downloadable result file byte-identical to the independently
+        # reviewed evidence. Derived diagnosis/title fields remain report-only.
+        (staging/'results.jsonl').write_bytes(contained_path(source,'results.jsonl').read_bytes())
+        if result_review is not None:
+            (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
         copy_methodology_assets(staging)
+        provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
+        if provenance.is_file():
+            shutil.copy2(provenance,staging/'implementation-provenance.json')
         if (source/'scoring-revisions.json').is_file():
             shutil.copy2(source/'scoring-revisions.json', staging/'scoring-revisions.json')
+        if (source/'reference-revisions.json').is_file():
+            shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')

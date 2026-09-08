@@ -33,7 +33,8 @@ class EndToEndTest(unittest.TestCase):
             self.assertEqual(attempt.count('<pre data-kind='),3)
             for kind in ('reference', 'output', 'metadata'):
                 self.assertIn(f'<pre data-kind="{kind}">', attempt)
-            for removed in ['capabilities','benchmarks','review','execution','market']:
+            self.assertTrue((report.parent/'review/index.html').exists())
+            for removed in ['capabilities','benchmarks','execution','market']:
                 self.assertFalse((report.parent/removed).exists())
             for page in report.parent.rglob('*.html'):
                 self.assertNotIn('人工二次复核',page.read_text())

@@ -12,12 +12,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.7.8"
+          enable-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: python -m pip install -e '.[test,browser-use-eval,reference-audit]'
-      - run: python -m unittest discover -s tests -v
-      - run: python -m pytest tests/browser_use -q
-      - run: node tests/test_report_ui.mjs && node tests/test_report_loader.mjs
-      - run: python -m harness.web_fetch validate --providers fixture
-      - run: python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture --runs 1 --delay 0 --output /tmp/browser-harness-demo
+          cache: npm
+      - run: make setup
+      - run: make ci

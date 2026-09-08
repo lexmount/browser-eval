@@ -1,0 +1,46 @@
+{
+  "case_id": "live-084-python-concurrent-futures-docume",
+  "url": "https://docs.python.org/3/library/concurrent.futures.html",
+  "checked_at": "2026-09-08T04:23:25.757952+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/concurrent.futures.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/concurrent.futures.html",
+  "mime": "text/html",
+  "bytes": 108413,
+  "sha256": "3105415697a94a56ea5d647f6b0d3d1be655c88767ca5c5de7e98bb0dd7d1058",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "concurrent.futures — Launching parallel tasks — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "79ace7aed1c2fc80fda604f5627ef2dc9eed5046f4b6d7836fa0b9e3a2062aa0",
+  "reference_sha256": "79ace7aed1c2fc80fda604f5627ef2dc9eed5046f4b6d7836fa0b9e3a2062aa0",
+  "text_chars": 25283,
+  "excerpt": "concurrent.futures\n— Launching parallel tasks\n¶\nAdded in version 3.2.\nSource code:\nLib/concurrent/futures/thread.py\n,\nLib/concurrent/futures/process.py\n,\nand\nLib/concurrent/futures/interpreter.py\nThe\nconcurrent.futures\nmodule provides a high-level interface for\nasynchronously executing callables.\nThe asynchronous execution can be performed with threads, using\nThreadPoolExecutor\nor\nInterpreterPoolExecutor\n,\nor separate processes, using\nProcessPoolExecutor\n.\nEach implements the same interface, which is defined\nby the abstract\nExecutor\nclass.\nconcurrent.futures.Future\nmust not be confused with\nasyncio.Future\n, which is designed for use with\nasyncio\ntasks and coroutines. See the\nasyncio’s Future\ndocumentation for a detailed comparison of the two.\nAvailability\n: not WASI.\nThis module does not w",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

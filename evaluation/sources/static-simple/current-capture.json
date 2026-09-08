@@ -1,0 +1,32 @@
+{
+  "case_id": "static-simple",
+  "url": "https://example.com/",
+  "checked_at": "2026-09-08T04:23:12.923492+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://example.com/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://example.com/",
+  "mime": "text/html",
+  "bytes": 559,
+  "sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "Example Domain",
+  "selector": "body",
+  "resources": [],
+  "extracted_sha256": "feb057ddba5ac313506909af05c17370808a81030f057346499d045c25534dbf",
+  "reference_sha256": "feb057ddba5ac313506909af05c17370808a81030f057346499d045c25534dbf",
+  "text_chars": 127,
+  "excerpt": "Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\nLearn more",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

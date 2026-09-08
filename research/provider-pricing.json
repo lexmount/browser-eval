@@ -120,6 +120,8 @@
     }
   ],
   "other_methods":[
+    {"ids":["kitesurf"], "label":"Kitesurf · Cloudflare Browser Run /markdown", "status":"Beta 期免费；账户级限制", "note":"2026-09-07 核验的 Kitesurf 专项文档明确写明 Beta 期免费且受每账户限制。通用 Browser Run 另有浏览器时长计价；在专项文档改口前，不把通用超额价格当成 Kitesurf Beta 的已证实单价。", "sources":[{"label":"官方 Kitesurf 文档", "url":"https://developers.cloudflare.com/browser-run/kitesurf/"},{"label":"Browser Run 通用定价", "url":"https://developers.cloudflare.com/browser-run/pricing/"}]},
+    {"ids":["lightpanda","obscura","moli-1.0.6","moli","moli-1.1.3","chromium"], "label":"Lightpanda / Obscura / Moli 1.0.6 / 1.1.1 / 1.1.3 / Chromium", "status":"本轮本地浏览器；无托管调用单价", "note":"核验于 2026-09-08。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本轮执行模式。", "sources":[{"label":"Lightpanda", "url":"https://github.com/lightpanda-io/browser"},{"label":"Obscura", "url":"https://github.com/h4ckf0r0day/obscura"},{"label":"Moli", "url":"https://github.com/lexmount/moli"},{"label":"Chrome Headless", "url":"https://developer.chrome.com/docs/automation-and-testing/headless"}]},
     {"ids":["lexmount-cn","lexmount-global"], "label":"Lexmount CN / Global", "status":"未查到公开价格", "note":"官方 WebFetch 文档标记内测；两个区域分别实测，不能据此推断价格相同。价格未公布不代表免费。", "sources":[{"label":"官方 WebFetch 文档", "url":"https://browser.lexmount.com/en/docs/webfetch"}]},
     {"ids":["moli-webfetch"], "label":"Moli WebFetch", "status":"本轮本地 CLI；无托管 API 单价", "note":"Moli 可独立运行；本地算力、网络和代理自担。Lexmount 托管浏览器是另一个产品。", "sources":[{"label":"官方项目说明", "url":"https://github.com/lexmount/moli"}]},
     {"ids":["crawl4ai"], "label":"Crawl4AI", "status":"本轮本地开源库；非云套餐", "note":"计算、浏览器、网络及代理成本自担；商业云服务价格不能当成本轮本地调用的费用。", "sources":[{"label":"官方文档", "url":"https://docs.crawl4ai.com/"}]},

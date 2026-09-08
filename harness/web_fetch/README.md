@@ -50,10 +50,13 @@ not by provider name. Original adapter status remains in `raw_request_status`;
 the report never changes the meaning of a request.
 
 Full-body cases may declare `body_requirements`: up to five contiguous regions
-of the independent reference, with at least 80% token-count recall in each.
-This coverage floor rejects small prefixes without using the aggregate F1 as an
-acceptance gate. It does not verify order, ownership or semantic correctness.
-The thresholds and regions are stored in each case, never selected by provider.
+of the independent reference. Version 3 compares six-character windows after
+removing layout syntax and link destinations. Each returned window can satisfy
+only one reference region. Every region has a 60% hard floor, and all but at most
+one must reach 80%. This rejects small prefixes and repeated short-fragment
+borrowing without using aggregate F1 as an acceptance gate, while
+allowing one mildly noisy conversion region. It does not verify semantics. The
+thresholds and regions are stored in each case, never selected by provider.
 
 ## End-to-end budget and missing measurements
 
@@ -137,10 +140,11 @@ live in this package. Browser Use remains independent in `harness/browser_use`.
 From the repository root:
 
 ```sh
-python -m harness.web_fetch validate --providers fixture
-python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture
-python -m harness.web_fetch run --providers moli-webfetch --case-ids static-simple
-python scripts/build_report.py
+make setup
+uv run --frozen python -m harness.web_fetch validate --providers fixture
+uv run --frozen python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture
+uv run --frozen python -m harness.web_fetch run --providers moli-webfetch --case-ids static-simple
+make report EVIDENCE=/absolute/path/to/evidence
 ```
 
 Credentials and local executable/repository paths belong in the root `.env`

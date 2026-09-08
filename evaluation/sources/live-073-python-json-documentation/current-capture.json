@@ -1,0 +1,46 @@
+{
+  "case_id": "live-073-python-json-documentation",
+  "url": "https://docs.python.org/3/library/json.html",
+  "checked_at": "2026-09-08T04:23:24.174676+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/json.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/json.html",
+  "mime": "text/html",
+  "bytes": 111909,
+  "sha256": "87d12353f3c5c7a0a9f94f5dca39f0018ae0188922cfb6908ad68b339bbc26c0",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "json — JSON encoder and decoder — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "0f6f3b40c0e029fa6062bfe6f689e2dc17d243929870d05ae02f6caba2d4a738",
+  "reference_sha256": "0f6f3b40c0e029fa6062bfe6f689e2dc17d243929870d05ae02f6caba2d4a738",
+  "text_chars": 24357,
+  "excerpt": "json\n— JSON encoder and decoder\n¶\nSource code:\nLib/json/__init__.py\nJSON (JavaScript Object Notation)\n, specified by\nRFC 7159\n(which obsoletes\nRFC 4627\n) and by\nECMA-404\n,\nis a lightweight data interchange format inspired by\nJavaScript\nobject literal syntax\n(although it is not a strict subset of JavaScript\n[\n1\n]\n).\nNote\nThe term “object” in the context of JSON processing in Python can be\nambiguous. All values in Python are objects. In JSON, an object refers to\nany data wrapped in curly braces, similar to a Python dictionary.\nWarning\nBe cautious when parsing JSON data from untrusted sources. A malicious\nJSON string may cause the decoder to consume considerable CPU and memory\nresources. Limiting the size of data to be parsed is recommended.\nThis module exposes an API familiar to users of the",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

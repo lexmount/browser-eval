@@ -1,7 +1,8 @@
-"""Lossless, lazy-loaded Artifact Hub publication of the validated report.
+"""Lazy-loaded Artifact Hub publication with explicit supplemental HTML redaction.
 
 The original report is untouched. Repeated reference/output HTML is reconstructed
-from the same source files; downloads are byte-identical. Hub injects a root base.
+from the same source files. Scored outputs remain byte-identical; supplemental
+HTML may be redacted with separate original/published hashes. Hub injects a root base.
 """
 import gzip
 import hashlib
@@ -18,6 +19,9 @@ from pathlib import Path
 from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.publication_privacy import project_file
+from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
 (ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
@@ -135,7 +139,8 @@ def build():
  (DEST/'data').mkdir(exist_ok=True)
  records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
  by_attempt={r['attempt_id']:(i,r) for i,r in enumerate(records)}
- files={};blocks={};raw_blocks={};original={};pages={}
+ scored_paths={r['artifact_path'] for r in records}
+ files={};blocks={};raw_blocks={};original={};pages={};redactions=[]
  def add(path,data):
   parts=[]
   for start in range(0,len(data),65536):
@@ -145,21 +150,44 @@ def build():
  for path in sorted(SOURCE.rglob('*')):
   if not path.is_file():continue
   name=path.relative_to(SOURCE).as_posix();data=path.read_bytes()
+  if name=='.generated-report':continue
+  if path.is_symlink():raise ValueError('Publication source must not contain symlinks: '+name)
+  data,redaction=project_file(name,data)
+  if redaction:
+   if name in scored_paths:raise ValueError('Scored output requires credential review: '+name)
+   redactions.append(redaction)
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
     idx,record=by_attempt[path.stem];matches=list(re.finditer(r'<pre data-kind="(reference|contract|output|metadata)">(.*?)</pre>',text,re.S))
-    assert len(matches)==3,(name,len(matches))
-    replacements={'reference':f'<pre data-file="references/{record["case_id"]}.txt"></pre>',
-                  'contract':f'<pre data-file="contracts/{record["case_id"]}.json"></pre>',
+    by_kind={kind:[match for match in matches if match[1]==kind] for kind in ('reference','contract','output','metadata')}
+    source_kind='contract' if by_kind['contract'] else 'reference'
+    # Text tasks show the complete source and output in <pre> blocks, which we
+    # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
+    # structured byte/hash comparison instead, so they have neither block.
+    assert len(by_kind['output'])<=1 and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    # The first source block is the complete reference/contract. Newer detail pages
+    # can also show several derived body-region excerpts; keep those excerpts inline
+    # instead of incorrectly replacing each one with the complete source file.
+    selected=[]
+    if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
+    if by_kind['output']:selected.append(by_kind['output'][0])
+    selected.append(by_kind['metadata'][0])
+    replacements={source_kind:(f'<pre data-file="contracts/{record["case_id"]}.json"></pre>' if source_kind=='contract'
+                                else f'<pre data-file="references/{record["case_id"]}.txt"></pre>'),
                   'output':f'<pre data-file="{record["artifact_path"]}" data-readable="1"></pre>',
                   'metadata':f'<pre data-record="{idx+1}"></pre>'}
-    for match in reversed(matches):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
+    for match in reversed(selected):text=text[:match.start()]+replacements[match[1]]+text[match.end():]
    elif path.parent.name=='datasets' and path.name!='index.html':
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
   add(name,data)
+ privacy={'schema_version':1,'scope':'supplemental_raw_html_only',
+          'scored_outputs_unchanged':True,'original_evidence_preserved_locally':True,
+          'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
+          'files':redactions}
+ add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
  # Pack raw blocks together then gzip, keeping requests small and all bytes intact.
  batch=bytearray();batch_keys=[];index=0
  def flush():
@@ -203,7 +231,7 @@ def build():
   for key,b in blocks.items():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
- print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':True,'all_virtual_links_valid':True}))
+ print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':not redactions,'redacted_supplemental_files':len(redactions),'scored_outputs_unchanged':True,'all_virtual_links_valid':True}))
  # Artifact Hub publishes large bundles through staged per-file uploads.
  # Its documented total limit is 300 MB, not the former local 50 MB budget.
  assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'

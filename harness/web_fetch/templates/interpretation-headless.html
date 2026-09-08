@@ -1,0 +1,58 @@
+<article class="essay-body publication-article" aria-labelledby="article-title">
+  <header class="essay-head">
+    <p class="eyebrow">Web Fetch · 浏览器路线实测</p>
+    <h1 id="article-title">${title}</h1>
+    <p class="lead">同一 URL、同一任务交付物、同一评测集与验收规则；每种方法使用本轮可获得的最快正式路径，不强迫内部实现一致。</p>
+    <p class="source-note">${cases} 个任务 · ${providers} 种方法 · ${attempts} 次纳入结果 · ${time_window}（UTC）</p>
+  </header>
+
+  <section id="result">
+    <h2>先看任务是否交付</h2>
+    <p>静态网页通过数：${web_summary}。综合榜按 150 个任务等权计数；六类分榜仍分别解释，耗时和文字质量不混入综合通过率。</p>
+    ${overview}
+    ${moli_comparison}
+  </section>
+
+  <section id="routes">
+    <h2>方法各走最快的正式交付路径</h2>
+    <p>网页正文以可读 Markdown 为目标：Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown</code>；Lightpanda、Obscura 与三个 Moli 版本使用本地原生 Markdown；Chromium 取完整渲染 DOM 后转换。直接文档或媒体不强制先转 Markdown：三个 Moli 版本使用裸 <code>fetch</code>，正文题在同一次计时内从确实取得的 PDF/DOCX 提取文字，文件题直接校验原始字节。所有路线最终进入同一套任务裁判。</p>
+    ${runtime}
+    ${stages}
+  </section>
+
+  <section id="fairness">
+    <h2>公平边界在输入、输出和裁判，不在内部形态</h2>
+    <p>远端 Kitesurf 包含公网往返、排队与远端执行；本地方法包含进程启动和本机资源竞争。不同批次的耗时不直接排名；速度结论只使用同一时间窗口、双方共同通过的样本。它衡量客户端拿到合格 Markdown 的时间，不是纯内核 CPU、长期吞吐或 SLA。</p>
+    <div class="table-wrap"><table><thead><tr><th>序号</th><th>可能偏差</th><th>引入位置</th><th>本报告处理</th></tr></thead><tbody>
+      <tr><td>1</td><td>原生 Markdown 与二次转换</td><td>输出形成阶段</td><td>允许最快正式路径；统一最终 Markdown 与裁判</td></tr>
+      <tr><td>2</td><td>远端网络、排队与本地资源</td><td>调用与执行阶段</td><td>全部计入端到端时间；仅同窗共同成功样本排名</td></tr>
+      <tr><td>3</td><td>冷启动、缓存与会话复用</td><td>进程或浏览器生命周期</td><td>每次新进程或新上下文，不复用个人会话；每个任务只调用一次，失败不重试</td></tr>
+      <tr><td>4</td><td>完成条件不同</td><td>动态页面等待阶段</td><td>各自正式接口完成后，再用同一任务契约验收</td></tr>
+      <tr><td>5</td><td>版本与远端服务漂移</td><td>二进制或托管后端</td><td>计时外记录批次前后版本与 SHA-256，身份变化直接失败；每次调用绑定该身份。事后恢复与运行时记录分开披露，nightly 无法映射 commit 时不猜测</td></tr>
+    </tbody></table></div>
+    ${pairs}
+    ${latency}
+  </section>
+
+  <section id="quality">
+    <h2>任务通过和文字重合分开看</h2>
+    ${quality}
+    <p>完整度、纯净度与 F1 是参考范围内的词级诊断，不证明逐句语义或实时事实。任务未通过时，已取回的有效文字也不会被强制记为零；没有完整参考的题显示未测。</p>
+  </section>
+
+  <section id="dynamic">
+    <h2>动态页还要判断何时可以交付</h2>
+    <p>动态任务通过数：${dynamic_summary}。允许浏览器渲染、读取页面内嵌状态或使用页面公开数据接口；不允许为单题追加特例、失败后切换实现，或把另一个抓取器的结果算给当前方法。</p>
+    ${dynamic}
+  </section>
+
+  <section id="audit">
+    <h2>结果核验是发布门禁</h2>
+    <p>${review_summary}</p>
+  </section>
+
+  <section id="protocol">
+    <h2>如何复验</h2>
+    <p>报告保存任务 ID、原始输出、哈希、运行 ID、方法版本或版本缺口、参数、计时与参考来源。正文分区页直接展示每段标准答案、最低要求、实际命中数和缺失词。环境、批次、代码与命令集中在“环境与复现”，不在多页重复。</p>
+  </section>
+</article>

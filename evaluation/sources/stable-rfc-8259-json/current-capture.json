@@ -1,0 +1,32 @@
+{
+  "case_id": "stable-rfc-8259-json",
+  "url": "https://www.rfc-editor.org/rfc/rfc8259.html",
+  "checked_at": "2026-09-08T06:38:11.016064+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.rfc-editor.org/rfc/rfc8259.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.rfc-editor.org/rfc/rfc8259.html",
+  "mime": "text/html",
+  "bytes": 37946,
+  "sha256": "5302d6ccb6cf221817bdd1f8cd7221661d4519372e0ac0b4cf641e11e8037de7",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "",
+  "selector": "body",
+  "resources": [],
+  "extracted_sha256": "c957c1749ac9474280f070d86ad1767a9cce89acd67a02ce8d9d3db824731149",
+  "reference_sha256": "c957c1749ac9474280f070d86ad1767a9cce89acd67a02ce8d9d3db824731149",
+  "text_chars": 25352,
+  "excerpt": "Internet Engineering Task Force (IETF)                      T. Bray, Ed.\nRequest for Comments: 8259                                    Textuality\nObsoletes:\n7159\nDecember 2017\nCategory: Standards Track\nISSN: 2070-1721\nThe JavaScript Object Notation (JSON) Data Interchange Format\nAbstract\nJavaScript Object Notation (JSON) is a lightweight, text-based,\nlanguage-independent data interchange format.  It was derived from\nthe ECMAScript Programming Language Standard.  JSON defines a small\nset of formatting rules for the portable representation of structured\ndata.\nThis document removes inconsistencies with other specifications of\nJSON, repairs specification errors, and offers experience-based\ninteroperability guidance.\nStatus of This Memo\nThis is an Internet Standards Track document.\nThis documen",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

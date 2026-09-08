@@ -14,6 +14,16 @@ class ReportChangesTests(unittest.TestCase):
         self.assertEqual(first_correction([later,original],releases),original)
         self.assertEqual(first_correction([original,later],releases),original)
         with self.assertRaises(ValueError):first_correction([later],releases)
+    def test_every_bundled_revision_binds_one_release(self):
+        from harness.web_fetch.report_changes import require_revision_release_bindings
+        history=[{'input_results_sha256':'new'}]
+        releases=[{'id':'old','scoring_revision_input_sha256':'old'},
+                  {'id':'new','scoring_revision_input_sha256':['new','newer']}]
+        require_revision_release_bindings(history,releases)
+        with self.assertRaises(ValueError):
+            require_revision_release_bindings(history,releases[:1])
+        with self.assertRaises(ValueError):
+            require_revision_release_bindings(history,releases+[dict(releases[1],id='duplicate')])
     def test_release_history_is_compact_and_reader_facing(self):
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)
@@ -46,5 +56,5 @@ class ReportChangesTests(unittest.TestCase):
             for name in ['first','second']
         ]
         page=overview_card(records,cases,'web','网站正文',['first','second'])
-        self.assertIn('最高分方法：first、second',page)
-        self.assertIn('2/2 种方法完整判分',page)
+        self.assertIn('<p>first、second</p>',page)
+        self.assertNotIn('种方法完整判分',page)

@@ -1,0 +1,57 @@
+{
+  "case_id": "live-022-until-september-10-get-pycharm-f",
+  "url": "https://docs.djangoproject.com/en/stable/intro/",
+  "checked_at": "2026-09-08T04:23:16.554540+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.djangoproject.com/en/6.1/intro/"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.djangoproject.com/en/6.1/intro/",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 31316,
+  "sha256": "37624346a0802d5fb5d48a09cdc742bc3e3c3cf2b647d13e4dd2370186750928",
+  "response_headers": {
+    "X-Frame-Options": "SAMEORIGIN",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "Getting started | Django documentation | Django",
+  "selector": "article#docs-content",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://static.djangoproject.com/img/fundraising-heart.cd6bb84ffd33.svg",
+      "alt": "Support Django!"
+    },
+    {
+      "tag": "img",
+      "url": "https://media.djangoproject.com/cache/7a/f9/7af9c770dc49465739a82c91a0eb3d51.png",
+      "alt": "Sentry"
+    },
+    {
+      "tag": "img",
+      "url": "https://media.djangoproject.com/cache/c0/ea/c0ea128467983e64aab91cd27e7918c0.png",
+      "alt": "JetBrains"
+    },
+    {
+      "tag": "img",
+      "url": "https://media.djangoproject.com/cache/71/4b/714b3473ed0cf3665f6b894d3be9491e.png",
+      "alt": "Kraken Tech"
+    },
+    {
+      "tag": "img",
+      "url": "https://media.djangoproject.com/cache/c7/e4/c7e40c86262b3d455526e8f94a899303.png",
+      "alt": "PostHog"
+    }
+  ],
+  "extracted_sha256": "212b55e4a8f69a812a587b67b40aa5f6926fcd9fbc104aa41d25d9adde2fdd3f",
+  "reference_sha256": "212b55e4a8f69a812a587b67b40aa5f6926fcd9fbc104aa41d25d9adde2fdd3f",
+  "text_chars": 1248,
+  "excerpt": "Getting started\n¶\nNew to Django? Or to web development in general? Well, you came to the right\nplace: read this material to quickly get up and running.\nDjango at a glance\nQuick install guide\nWriting your first Django app, part 1\nWriting your first Django app, part 2\nWriting your first Django app, part 3\nWriting your first Django app, part 4\nWriting your first Django app, part 5\nWriting your first Django app, part 6\nWriting your first Django app, part 7\nWriting your first Django app, part 8\nAdvanced tutorial: How to write reusable apps\nWhat to read next\nWriting your first contribution for Django\nSee also\nIf you’re new to\nPython\n, you might want to start by getting an idea of\nwhat the language is like. Django is 100% Python, so if you’ve got minimal\ncomfort with Python you’ll probably get a ",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

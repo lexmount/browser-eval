@@ -1,0 +1,101 @@
+{
+  "case_id": "live-071-science",
+  "url": "https://books.toscrape.com/catalogue/category/books/science_22/index.html",
+  "checked_at": "2026-09-08T04:23:24.173371+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://books.toscrape.com/catalogue/category/books/science_22/index.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://books.toscrape.com/catalogue/category/books/science_22/index.html",
+  "mime": "text/html",
+  "bytes": 42547,
+  "sha256": "aed413eaf598a11dbe2a5a26338095a930de963551ed59e3a793c152ac654773",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "Science | \n     Books to Scrape - Sandbox",
+  "selector": ".col-sm-8.col-md-9",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/d4/8d/d48d5122a15347e9fe2b15ad354d69bf.jpg",
+      "alt": "The Most Perfect Thing: Inside (and Outside) a Bird's Egg"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/26/1c/261c4eaf957ae4aacf2229b482e76dbe.jpg",
+      "alt": "Immunity: How Elie Metchnikoff Changed the Course of Modern Medicine"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/68/ca/68caaf9ac41964d5167a3eb67c638393.jpg",
+      "alt": "Sorting the Beef from the Bull: The Science of Food Fraud Forensics"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/56/97/5697f2f8f628129df01c5790985ffd9b.jpg",
+      "alt": "Tipping Point for Planet Earth: How Close Are We to the Edge?"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/5e/7f/5e7f7d9913d4c95d33904770c518d537.jpg",
+      "alt": "The Fabric of the Cosmos: Space, Time, and the Texture of Reality"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/33/4f/334fd0ebdf0c0192baf5914d199c53b5.jpg",
+      "alt": "Diary of a Citizen Scientist: Chasing Tiger Beetles and Other New Ways of Engaging the World"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/da/0d/da0d13699a090516502257a4d7da623f.jpg",
+      "alt": "The Origin of Species"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/08/a9/08a957eb34f8047862e225774c3bdde2.jpg",
+      "alt": "The Grand Design"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/83/ab/83ab65f938b24fa1a9cb47235be49b57.jpg",
+      "alt": "Peak: Secrets from the New Science of Expertise"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/69/c8/69c83860995cde393dbe6690ec3f1d4f.jpg",
+      "alt": "The Elegant Universe: Superstrings, Hidden Dimensions, and the Quest for the Ultimate Theory"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/f9/69/f969969428b505970a46272fdcea00d3.jpg",
+      "alt": "The Disappearing Spoon: And Other True Tales of Madness, Love, and the History of the World from the Periodic Table of the Elements"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/f8/bc/f8bcd489d33473e0819beaecccd5ebac.jpg",
+      "alt": "Surely You're Joking, Mr. Feynman!: Adventures of a Curious Character"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/c8/63/c863c222c130a1bc8685a1242dd2523d.jpg",
+      "alt": "Seven Brief Lessons on Physics"
+    },
+    {
+      "tag": "img",
+      "url": "https://books.toscrape.com/media/cache/08/14/0814f26516fb72b7391d0a742b5928a2.jpg",
+      "alt": "The Selfish Gene"
+    }
+  ],
+  "extracted_sha256": "4d0c61f291eac4a8dd8317fca34bf3cf68c6bc35860d7f4a03adbdcb7c094fe1",
+  "reference_sha256": "4d0c61f291eac4a8dd8317fca34bf3cf68c6bc35860d7f4a03adbdcb7c094fe1",
+  "text_chars": 946,
+  "excerpt": "Science\n14\nresults.\nWarning!\nThis is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.\nThe Most Perfect Thing: ...\n£42.96\nIn stock\nAdd to basket\nImmunity: How Elie Metchnikoff ...\n£57.36\nIn stock\nAdd to basket\nSorting the Beef from ...\n£44.74\nIn stock\nAdd to basket\nTipping Point for Planet ...\n£37.55\nIn stock\nAdd to basket\nThe Fabric of the ...\n£55.91\nIn stock\nAdd to basket\nDiary of a Citizen ...\n£28.41\nIn stock\nAdd to basket\nThe Origin of Species\n£10.01\nIn stock\nAdd to basket\nThe Grand Design\n£13.76\nIn stock\nAdd to basket\nPeak: Secrets from the ...\n£16.28\nIn stock\nAdd to basket\nThe Elegant Universe: Superstrings, ...\n£13.03\nIn stock\nAdd to basket\nThe Disappearing Spoon: And ...\n£57.35\nIn stock\nAdd to basket\nSurely You're Jok",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

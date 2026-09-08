@@ -1,3 +1,9 @@
 # Supplier artifacts are immutable evidence and may contain meaningful trailing
 # whitespace. Keep them byte-exact and suppress textual diff normalization.
 reports/**/artifacts/** -diff
+# Captured HTML, Markdown and reference bytes are evidence, not source code.
+# Do not normalize their line endings or treat source-site whitespace as lint.
+evaluation/headless/artifacts/** -diff -text -whitespace
+evaluation/headless/sources/** -diff -text -whitespace
+evaluation/headless/diagnostics/**/artifacts/** -diff -text -whitespace
+evaluation/sources/** -diff -text -whitespace

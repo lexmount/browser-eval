@@ -1,0 +1,51 @@
+{
+  "case_id": "live-001-python-pathlib-documentation",
+  "url": "https://docs.python.org/3/library/pathlib.html",
+  "checked_at": "2026-09-08T04:23:13.926886+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/pathlib.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/pathlib.html",
+  "mime": "text/html",
+  "bytes": 266954,
+  "sha256": "c41095b48994a80265f622c7e788890f11568202a068c3b841a5c004aeb924c4",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "pathlib — Object-oriented filesystem paths — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_images/pathlib-inheritance.png",
+      "alt": "Inheritance diagram showing the classes available in pathlib. The most basic class is PurePath, which has three direct subclasses: PurePosixPath, PureWindowsPath, and Path. Further to these four classes, there are two classes that use multiple inheritance: PosixPath subclasses PurePosixPath and Path, and WindowsPath subclasses PureWindowsPath and Path."
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "495187a4fbd8d066a77144b771a11fe8eddc5aa298914984dee5095e534f5f1f",
+  "reference_sha256": "495187a4fbd8d066a77144b771a11fe8eddc5aa298914984dee5095e534f5f1f",
+  "text_chars": 57824,
+  "excerpt": "pathlib\n— Object-oriented filesystem paths\n¶\nAdded in version 3.4.\nSource code:\nLib/pathlib/\nThis module offers classes representing filesystem paths with semantics\nappropriate for different operating systems.  Path classes are divided\nbetween\npure paths\n, which provide purely computational\noperations without I/O, and\nconcrete paths\n, which\ninherit from pure paths but also provide I/O operations.\nIf you’ve never used this module before or just aren’t sure which class is\nright for your task,\nPath\nis most likely what you need. It instantiates\na\nconcrete path\nfor the platform the code is running on.\nPure paths are useful in some special cases; for example:\nIf you want to manipulate Windows paths on a Unix machine (or vice versa).\nYou cannot instantiate a\nWindowsPath\nwhen running on Unix, but ",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

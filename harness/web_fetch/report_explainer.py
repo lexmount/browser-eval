@@ -10,24 +10,27 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote
 
-from .metrics import task_passed
+from .metrics import evaluate_content, task_passed, percentile
 from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
 
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
-HUB = 'https://artifact-hub.dev.lexmount.net/api/preview/UeZE1vfcEOrM'
+HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
+from .publication_target import HUB
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
-TRACK_NAMES = {'web': '网站正文', 'document': '文档文字', 'image': '图片',
+TRACK_NAMES = {'web': '静态网站正文', 'document': '文档文字', 'image': '图片',
                'video': '视频', 'challenge': '热门网站正文', 'dynamic': '动态网站正文'}
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
                   'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
-                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区'}
+                  'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
+                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.1',
+                  'moli-1.1.3': 'Moli 1.1.3'}
 
 METHODOLOGY_FIGURES = (
     ('annotation', '混合标注：稳定文字、易变字段与全文参考',
@@ -312,7 +315,7 @@ def _dynamic_section(data, cases):
     scope, total = data['tracks']['dynamic'], data['dynamic']
     if not scope['case_count']:
         return ('<section id="dynamic-coverage"><h2>动态网站正文：内容何时可以交付</h2>'
-                '<p>网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
+                '<p>静态网站正文的分类标签与参考来源不足以逐页证明正文必须执行 JavaScript 后才出现。'
                 '当前输入没有动态网站正文实测，不能把所有网页称为静态任务，'
                 '也不能把动态类别标签当作浏览器必需的证据。</p></section>')
     providers = sorted(scope['providers'])
@@ -386,7 +389,7 @@ def _dynamic_section(data, cases):
             f'<p>{scope["case_count"]} 个任务覆盖异步取数、客户端呈现与子文档获取。'
             f'实际运行 {len(providers)} 种方法、{total["records"]} 次调用，'
             f'{total["request_ok"]} 次请求正常返回，{total["task_pass"]} 次任务通过。'
-            '任务难度、源站状态和调用日期没有与网站正文任务构成受控对照；两类结果分别比较。</p>'
+            '任务难度、源站状态和调用日期没有与静态网站正文任务构成受控对照；两类结果分别比较。</p>'
             + figure + mechanism
             + '<p>动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；'
               '每日变动的榜单也可能直接写在 HTML 中。任务可以要求一定数量的完整条目、非空名称和指定类型的字段，'
@@ -396,9 +399,161 @@ def _dynamic_section(data, cases):
               '如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。</p></section>')
 
 
+def _is_headless_comparison(records):
+    return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+
+
+def article_title(records):
+    return HEADLESS_TITLE if _is_headless_comparison(records) else TITLE
+
+
+def headless_evidence(cases, records):
+    """Matched-task comparisons; never compare unaligned successful subsets."""
+    names = sorted({r['provider'] for r in records})
+    def passed(r):
+        return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
+    selection_path = ROOT / 'research/chromium-markdown-selection.json'
+    selection = json.loads(selection_path.read_text()) if selection_path.is_file() else None
+    data = {'providers': names, 'cases': len(cases), 'attempts': len(records), 'tracks': {},
+            'time_window': [min(r['started_at'] for r in records), max(r.get('completed_at',r['started_at']) for r in records)],
+            'method': 'one URL, fresh process/context, provider-fastest Markdown path, 45s end-to-end deadline',
+            'pairs': [], 'runtime': {}, 'encyclopedia': [], 'quality': {},
+            'independent_result_audit': None, 'chromium_markdown_selection': selection}
+    for name in names:
+        meta = next(r['provider_metadata'] for r in records if r['provider']==name)
+        data['runtime'][name] = {k:v for k,v in meta.items() if k in ('binary_sha256','browser_version','worker_sha256','extractor_version','playwright_version','deployment','wait_until')}
+        text_rows=[r for r in records if r['provider']==name and cases[r['case_id']].get('track','web')=='web' and r['metrics'].get('word_f1') is not None]
+        data['quality'][name]={'attempts':len(text_rows), **{key:_mean([r['metrics'].get(key) for r in text_rows]) for key in ('word_precision','word_recall','word_f1')}}
+    for r in records:
+        if r['case_id']=='english-encyclopedia':
+            meta=r.get('provider_metadata',{})
+            data['encyclopedia'].append({'provider':r['provider'],'attempt_id':r['attempt_id'],
+                'ok':r['ok'],'elapsed_ms':r['elapsed_ms'],
+                'extractor':meta.get('extractor'),'deployment':meta.get('deployment'),
+                'native_markdown_ms':meta.get('native_markdown_ms'),'browser_ms_used':meta.get('browser_ms_used'),
+                'fetch_html_ms':meta.get('fetch_html_ms'),'conversion_ms':meta.get('conversion_ms')})
+    for track in TRACK_NAMES:
+        ids = {c['id'] for c in cases.values() if c.get('track','web')==track}
+        byname = {}
+        for name in names:
+            rows = [r for r in records if r['provider']==name and r['case_id'] in ids]
+            if not rows:
+                continue
+            byname[name] = {'attempts':len(rows), 'request_ok':sum(r['ok'] for r in rows),
+                'passed':sum(passed(r) for r in rows),
+                'p50_ms':statistics.median(r['elapsed_ms'] for r in rows),
+                'p95_ms':percentile([r['elapsed_ms'] for r in rows], .95),
+                'pass_ids':sorted(r['case_id'] for r in rows if passed(r)),
+                'request_failures':dict(Counter(r.get('error_type') or 'unknown' for r in rows if not r['ok']))}
+        data['tracks'][track] = {'cases':len(ids),'providers':byname}
+    web = {name:{r['case_id']:r for r in records if r['provider']==name and cases[r['case_id']].get('track','web')=='web'} for name in names}
+    for name in names:
+        if name=='chromium' or 'chromium' not in web:
+            continue
+        a,b=web[name],web['chromium']
+        matched = sorted(a.keys() & b.keys())
+        common = [cid for cid in matched if passed(a[cid]) and passed(b[cid])]
+        pa,pb=({cid for cid in matched if passed(rows[cid])} for rows in (a,b))
+        data['pairs'].append({'provider':name,'baseline':'chromium','matched':len(matched),
+            'both_pass_ids':common,'provider_only':sorted(pa-pb),'chromium_only':sorted(pb-pa),
+            'union':len(pa|pb),
+            'provider_p50_ms':statistics.median(a[cid]['elapsed_ms'] for cid in common) if common else None,
+            'chromium_p50_ms':statistics.median(b[cid]['elapsed_ms'] for cid in common) if common else None})
+    return data
+
+
+def _render_headless(out, cases, records):
+    data = headless_evidence(cases, records)
+    audit_path=contained_path(out,'result-review.json')
+    audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
+    speed_audit_path=contained_path(out,'speed-cohort/result-review.json')
+    speed_audit=json.loads(speed_audit_path.read_text()) if speed_audit_path.is_file() else None
+    data['independent_result_audit']=audit
+    provenance={}
+    provenance_path=contained_path(out,'implementation-provenance.json')
+    if provenance_path.is_file():
+        provenance={x['binary_sha256']:x for x in json.loads(provenance_path.read_text()).get('implementations',[])}
+    def num(value):
+        return '—' if value is None else f'{value:,.0f}'
+    overview = _table(['浏览器', *TRACK_NAMES.values()], [
+        (escape(PROVIDER_NAMES.get(name,name)), *(f'{data["tracks"][t]["providers"][name]["passed"]}/{data["tracks"][t]["providers"][name]["attempts"]}'
+            if name in data['tracks'][t]['providers'] else '—' for t in TRACK_NAMES))
+        for name in data['providers']], '任务通过数 / 实际调用数。六类任务不合成总分；未执行不记为失败。')
+    pairs = _table(['浏览器 vs Chromium','共同通过网页','本方法 P50 ms','Chromium P50 ms','仅本方法通过','仅 Chromium 通过'],[
+        (escape(PROVIDER_NAMES.get(p['provider'],p['provider'])),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
+        for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取页与形成 Markdown 的全部开销。')
+    latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
+        (escape(PROVIDER_NAMES.get(name,name)),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
+        for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
+    speed_path=contained_path(out,'speed-cohort/speed-comparison.json')
+    if speed_path.is_file():
+        speed=json.loads(speed_path.read_text())
+        latency=_table(['方法','共同成功样本','P50 ms','样本 P95 ms'],[
+            (escape(PROVIDER_NAMES.get(row['provider'],row['provider'])),str(row['attempts']),num(row['p50_ms']),num(row['p95_ms']))
+            for row in speed['rows']],f'同窗速度子集：预先声明 {len(speed["planned_cases"])} 题，{len(speed["rows"])} 种方法共同通过 {len(speed["common_pass_cases"])} 题；所有方法使用完全相同的成功样本。样本少于 20 时，P95 只作本次样本诊断，不视为稳定尾延迟。')
+        pairs='<p class="callout">速度仅使用 '+str(len(speed['common_pass_cases']))+'/'+str(len(speed['planned_cases']))+' 个全部 '+str(len(speed['rows']))+' 种方法共同通过的同窗任务；这是小样本探索性比较。主结果中的跨批次耗时只作逐次诊断，不参与此表排名。</p>'
+    dynamic = _table(['任务',*data['providers']], [
+        (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
+        for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
+    stages=_table(['浏览器','实际路径','本次请求','原生 Markdown ms','取 HTML ms','转换 ms','服务端浏览器 ms','端到端 ms'],[
+        (_link('attempts/'+r['attempt_id']+'.html',PROVIDER_NAMES.get(r['provider'],r['provider'])),escape(r.get('extractor') or '—'),'成功' if r['ok'] else '未成功',num(r['native_markdown_ms']),num(r['fetch_html_ms']),num(r['conversion_ms']),num(float(r['browser_ms_used'])) if r.get('browser_ms_used') else '—',num(r['elapsed_ms']))
+        for r in data['encyclopedia']], 'Wikipedia 单页实测。原生路径不会虚构 HTML/转换拆分；Cloudflare 的 browser_ms_used 是服务端计费诊断，不等于客户端端到端耗时；超时缺少阶段数据时记为 —。')
+    quality=_table(['浏览器','有全文指标的网页调用','纯净度','完整度','F1'],[
+        (escape(PROVIDER_NAMES.get(n,n)),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
+        for n,r in data['quality'].items()], '逐次词级指标的算术平均，包含已测失败调用；未通过任务不会把已有重合归零。完整度与纯净度均受已声明参考范围约束。')
+    runtime=_table(['方法','版本','部署','完成条件'],[
+        (escape(PROVIDER_NAMES.get(name,name)),escape(str(data['runtime'][name].get('browser_version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('identity') or '版本未记录')),
+         escape(str(data['runtime'][name].get('deployment') or '—')),
+         escape(str(data['runtime'][name].get('wait_until') or '—')))
+        for name in data['providers']], '版本未记录不是可忽略信息；二进制哈希仍保留在环境与复现页。')
+    web_rows=data['tracks']['web']['providers']
+    summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
+    dynamic_summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
+    moli_names=['moli-1.0.6','moli','moli-1.1.3']
+    moli_comparison=''
+    if all(name in data['providers'] for name in moli_names):
+        totals={name:sum(data['tracks'][track]['providers'][name]['passed'] for track in TRACK_NAMES) for name in moli_names}
+        documents={name:data['tracks']['document']['providers'][name]['passed'] for name in moli_names}
+        moli_comparison=(
+            '<p class="callout"><b>Moli 版本结论：</b>三版使用相同路线；当前总通过数为 '
+            f'Moli 1.0.6 {totals["moli-1.0.6"]}/150、Moli 1.1.1 {totals["moli"]}/150、Moli 1.1.3 {totals["moli-1.1.3"]}/150，'
+            f'文档正文分别为 {documents["moli-1.0.6"]}/10、{documents["moli"]}/10、{documents["moli-1.1.3"]}/10。'
+            '本轮没有显示版本越新通过越多；1.1.3 在 document-03 的单次请求失败，不能单独证明产品能力回退。</p>')
+    if audit:
+        reviewer=audit.get('reviewer',{})
+        reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)
+        expected=audit.get('expected_attempts',0)+(speed_audit or {}).get('expected_attempts',0)
+        disagreements=audit.get('disagreements',0)+(speed_audit or {}).get('disagreements',0)
+        main_subject='自动失败项' if audit.get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出'
+        speed_subject=('自动失败项' if (speed_audit or {}).get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出')
+        scopes=(f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}' +
+                (f'；同窗测速{speed_subject} {speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}' if speed_audit else ''))
+        revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
+        revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已另行盲审；'
+                       if revision else '')
+        review_summary=(f'{scopes}；未决 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。'
+            '成功项与失败项均已逐条独立核验，轮次与修正见“核验记录”。')
+    else:review_summary='本报告没有绑定独立结果核验记录。'
+    values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
+        'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,
+        'moli_comparison':moli_comparison,
+        'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
+        'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
+        'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
+    template=Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())
+    body=template.substitute(values)
+    contained_path(out,'guide').mkdir(parents=True,exist_ok=True)
+    contained_path(out,'guide/interpretation-evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+        f'<title>{HEADLESS_TITLE}</title><style>{STYLE}</style></head><body class="standalone-article"><main class="wrap essay">{body}</main></body></html>')
+    return '<div class="wrap essay">'+body+'<aside id="evidence"><h2>文章与证据下载</h2><p><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json" download>计算明细</a> · <a href="../results.jsonl" download>逐次记录</a></p></aside></div>'
+
+
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
+    if _is_headless_comparison(records):
+        return _render_headless(out,cases,records)
     data = collect_evidence(cases, records)
     data['initial_reference_audit'] = _bound_initial_audit(cases)
     data['dynamic']['loading_attempts'] = []
@@ -425,7 +580,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
                   (t['post_response_failure_share'] or 0) > .5 else '请求状态没有覆盖全部任务失败'),
               'results_link': _link('results.jsonl', '规范化执行记录'),
               'rules_link': _link('methodology/index.html', '判定规则与指标口径'),
-              'environment_link': _link('environment/index.html', '执行批次与接口配置'),
+              'environment_link': _link('reproduce/index.html', '执行批次与接口配置'),
               'evidence_link': _link('guide/interpretation-evidence.json', '本文计算明细'),
               'reproduce_link': _link('reproduce/index.html', '复现说明'),
               'article_link': _link('guide/interpretation-evidence.json', '独立 HTML 与证据下载'),
@@ -443,7 +598,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     values['dynamic_section'] = _dynamic_section(data, cases)
     audit = data['initial_reference_audit']
     values['initial_audit'] = (
-        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：网站正文 {audit["web_case_count"]} 例中，'
+        f'<p>初始源文档审计进一步缩小了这批样本的解释范围：静态网站正文 {audit["web_case_count"]} 例中，'
         f'{audit["exact_reconstructions"]} 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。'
         '这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。'
         '嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。'
@@ -457,7 +612,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         '样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
-    values['lead'] = (f'同一配置的 Moli，在网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
+    values['lead'] = (f'同一配置的 Moli，在静态网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'
         f'在动态网站正文中通过 {dm["task_pass"]}/{dm["records"]}。'
         '网页高分为什么没有自然延伸到动态内容？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。'
         if wm and dm else '抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。'
@@ -470,13 +625,13 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         f'<div class="editorial-bar-row"><span>{label}</span><span class="editorial-bar-track" aria-hidden="true">'
         f'<i style="width:{count / max(t["records"], 1) * 100:.4f}%"></i></span>'
         f'<b>{count:,} / {t["records"]:,}</b></div>' for label, count in failure_rows
-    ) + f'</div><figcaption>网站正文调用的互斥状态分解；{values["time_window"]}。正常返回不等于源站 HTTP 200。</figcaption></figure>'
+    ) + f'</div><figcaption>静态网站正文调用的互斥状态分解；{values["time_window"]}。正常返回不等于源站 HTTP 200。</figcaption></figure>'
     selected = ['cloudflare-markdown', 'exa', 'cowagent-built-in']
     values['quality_figure'] = _table(['方法', '任务通过 / 调用', '平均 F1', 'F1 样本数'], [
         (_link('providers/' + p + '.html', PROVIDER_NAMES[p]), f'{s["task_pass"]}/{s["records"]}',
          f'{s["mean_f1"]:.4f}' if s['mean_f1'] is not None else '未测', str(s['f1_records']))
         for p in selected if (s := web['providers'].get(p))],
-        '用于比较排名逆转与提取机制的方法：同一网站正文范围，F1 为有指标记录的逐例算术平均')
+        '用于比较排名逆转与提取机制的方法：同一静态网站正文范围，F1 为有指标记录的逐例算术平均')
     cf, exa = (web['providers'].get(p) for p in ('cloudflare-markdown', 'exa'))
     values['rank_reversal'] = '<p>当前输入不足以比较 Cloudflare Markdown 与 Exa。</p>'
     if cf and exa:
@@ -519,7 +674,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
             f'<h3>实际输出</h3><pre>{escape(probe["output"])}</pre><p>'
             + _link('guide/cowagent-text-probe.json', '实验代码、观察结果与源码 SHA-256') + '</p></details>')
     cow = web['providers'].get('cowagent-built-in')
-    values['cow_result'] = (f'<p>CowAgent 在网站正文中请求成功 {cow["request_ok"]}/{cow["records"]}，'
+    values['cow_result'] = (f'<p>CowAgent 在静态网站正文中请求成功 {cow["request_ok"]}/{cow["records"]}，'
         f'任务通过 {cow["task_pass"]}/{cow["records"]}。一个以 HTTP 取页、再去除标签的实现，'
         '在这批网页上已能满足大部分关键内容规则。这使它值得作为正文入口的基线，'
         '但还不足以解释全部成功来自哪里。</p>' if cow else '<p>当前输入没有 CowAgent 网页记录。</p>')

@@ -10,7 +10,8 @@ from unittest.mock import Mock, patch
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.reference_lifecycle import (
-    ReferenceLifecycleError, check_case_reference_fresh, finalize_reference_checks,
+    ReferenceLifecycleError, check_case_equivalent_reference_binding,
+    check_case_reference_binding, check_case_reference_fresh, finalize_reference_checks,
     preflight_reference_checks, require_verified_reference_checks, sha256,
 )
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
@@ -96,6 +97,18 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def test_hash_is_exact_not_just_normalized(self):
         with self.assertRaisesRegex(ReferenceLifecycleError, "SHA-256"):
             self.checks(replace(self.case, ground_truth_main_content="Price  10 dollars"))
+
+    def test_equivalent_capture_allows_selector_wording_but_not_scoring_scope(self):
+        case = replace(self.case, source_verification={**self.case.source_verification,
+            "selector": "body after exactly 10 cards became visible"})
+        binding = self.checks(case)["cases"]["body"]
+        equivalent = replace(case, source_verification={**case.source_verification,
+            "selector": "browser-visible body after all 10 cards rendered"})
+        check_case_equivalent_reference_binding(equivalent, binding)
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_reference_binding(equivalent, binding)
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_equivalent_reference_binding(replace(equivalent, task_prompt="Different task"), binding)
 
     def test_only_body_with_independent_metadata_is_required(self):
         for case in (replace(self.case, source_verification={}), replace(self.case, track="image"),

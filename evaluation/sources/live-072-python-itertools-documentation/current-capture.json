@@ -1,0 +1,46 @@
+{
+  "case_id": "live-072-python-itertools-documentation",
+  "url": "https://docs.python.org/3/library/itertools.html",
+  "checked_at": "2026-09-08T04:23:24.174459+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.python.org/3/library/itertools.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.python.org/3/library/itertools.html",
+  "mime": "text/html",
+  "bytes": 173857,
+  "sha256": "7af3dc9c75a5ef2fa5af72c02aee552f32bc5c4bc5cbc0d47e4fb506ccf3741c",
+  "response_headers": {
+    "Content-Type": "text/html"
+  },
+  "title": "itertools — Functions creating iterators for efficient looping — Python 3.14.7 documentation",
+  "selector": "[role=main]",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://docs.python.org/3/_static/py.svg",
+      "alt": "Python logo"
+    }
+  ],
+  "extracted_sha256": "00c68ee0fcc8ac5e2022398158b9cb0545fee221bdfe5960963aa5052af2c694",
+  "reference_sha256": "00c68ee0fcc8ac5e2022398158b9cb0545fee221bdfe5960963aa5052af2c694",
+  "text_chars": 37149,
+  "excerpt": "itertools\n— Functions creating iterators for efficient looping\n¶\nThis module implements a number of\niterator\nbuilding blocks inspired\nby constructs from APL, Haskell, and SML.  Each has been recast in a form\nsuitable for Python.\nThe module standardizes a core set of fast, memory efficient tools that are\nuseful by themselves or in combination.  Together, they form an “iterator\nalgebra” making it possible to construct specialized tools succinctly and\nefficiently in pure Python.\nFor instance, SML provides a tabulation tool:\ntabulate(f)\nwhich produces a\nsequence\nf(0),\nf(1),\n...\n.  The same effect can be achieved in Python\nby combining\nmap()\nand\ncount()\nto form\nmap(f,\ncount())\n.\nGeneral iterators:\nIterator\nArguments\nResults\nExample\naccumulate()\np [,func]\np0, p0+p1, p0+p1+p2, …\naccumulate([1,2,3",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

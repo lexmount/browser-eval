@@ -11,9 +11,10 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.config import load_runtime_env
 load_runtime_env()
-token=os.getenv('ARTIFACT_HUB_TOKEN','').strip()
-if not token.startswith('ahp_'):raise SystemExit('Set ARTIFACT_HUB_TOKEN in the repository .env or environment')
-receipt=ROOT/'publish/artifact-hub-receipt.json'
+from harness.web_fetch.artifact_auth import load_token
+token=load_token()
+receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
+         else ROOT/'publish/artifact-hub-receipt.json')
 updating='--update' in sys.argv
 expected=sys.argv[sys.argv.index('--expected-version')+1] if '--expected-version' in sys.argv else None
 if updating:assert receipt.exists() and expected and expected.startswith('ver_')
@@ -30,6 +31,8 @@ if receipt.exists():
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if not receipt.exists() or updating:
  archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
+ from scripts.check_publication_bundle import check
+ check(archive,ROOT/'reports/webfetch')
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
  for key,value in [('mode','zip'),('title','Web Fetch 评测')]:

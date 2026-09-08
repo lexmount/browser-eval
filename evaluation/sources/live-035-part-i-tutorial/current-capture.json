@@ -1,0 +1,40 @@
+{
+  "case_id": "live-035-part-i-tutorial",
+  "url": "https://www.postgresql.org/docs/current/tutorial.html",
+  "checked_at": "2026-09-08T04:23:18.421307+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://www.postgresql.org/docs/current/tutorial.html"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://www.postgresql.org/docs/current/tutorial.html",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 17920,
+  "sha256": "688afbf484e95ba62909f9ea5b7678501052a5ae7f5b5ac840e3a724e79838bc",
+  "response_headers": {
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'self' ; img-src * data: ; script-src 'unsafe-eval' 'self' www.google-analytics.com ssl.google-analytics.com www.googletagmanager.com tagmanager.google.com data: ; connect-src 'self' www.google-analytics.com ssl.google-analytics.com ; media-src 'self' ; style-src 'self' fonts.googleapis.com tagmanager.google.com 'unsafe-inline' ; font-src 'self' fonts.gstatic.com data: ; frame-ancestors 'none' ; report-uri https://csp-report.postgresql.org/",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "PostgreSQL: Documentation: 18: Part I. Tutorial",
+  "selector": "body",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://www.postgresql.org/media/img/about/press/elephant.png",
+      "alt": "PostgreSQL Elephant Logo"
+    }
+  ],
+  "extracted_sha256": "4e0e8a9c0c36ae70556d26dc7fe92eac0af4fd504ddde22671165ab76194bd2a",
+  "reference_sha256": "4e0e8a9c0c36ae70556d26dc7fe92eac0af4fd504ddde22671165ab76194bd2a",
+  "text_chars": 1985,
+  "excerpt": "August 13, 2026:\nPostgreSQL 18.6, 17.11, 16.15, 15.19, 14.24 and 19 Beta 3 Released!\nDocumentation\n→\nPostgreSQL 18\nSupported Versions:\nCurrent\n(\n18\n)\n/\n17\n/\n16\n/\n15\n/\n14\nDevelopment Versions:\n19\n/\ndevel\nUnsupported versions:\n13\n/\n12\n/\n11\n/\n10\n/\n9.6\n/\n9.5\n/\n9.4\n/\n9.3\n/\n9.2\n/\n9.1\n/\n9.0\n/\n8.4\n/\n8.3\n/\n8.2\n/\n8.1\n/\n8.0\n/\n7.4\n/\n7.3\n/\n7.2\n/\n7.1\nPart I. Tutorial\nPrev\nUp\nPostgreSQL 18.6 Documentation\nHome\nNext\nPart I. Tutorial\nWelcome to the\nPostgreSQL\nTutorial. The tutorial is intended to give an introduction to\nPostgreSQL\n, relational database concepts, and the SQL language. We assume some general knowledge about how to use computers and no particular Unix or programming experience is required. This tutorial is intended to provide hands-on experience with important aspects of the\nPostgreSQL\nsystem",
+  "missing_facts": [],
+  "quality_issues": [
+    "whole_body_requires_scope_review"
+  ],
+  "state": "needs_review"
+}

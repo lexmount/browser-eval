@@ -51,5 +51,17 @@
   "text_chars": 2753,
   "excerpt": "How to embed a PDF without using JavaScript\n​\nPDFs can be embedded into HTML pages without using JavaScript. Below are four examples of the most common techniques.\nNote: these examples work in most modern desktop browsers, but results will vary in older desktop browsers and mobile browsers. None of these examples work properly on mobile, including iOS.\n<embed>\n​\nThe\n<embed>\nelement became an official part of the HTML specification with HTML5. All HTML5-compliant browsers—all 'modern' browsers—officially support the\n<embed>\nelement. Older browsers also offer surprisingly robust (though sometimes unofficial) support for\n<embed>\n. Unfortunately, when used in static markup, the\n<embed>\nelement doesn't provide a mechanism for fallback content. If the browser doesn't support PDF embedding, which",
   "missing_facts": [],
+  "embedded_document": {
+    "url": "https://pdfobject.com/pdf/sample-3pp.pdf",
+    "observed_at": "2026-09-07T11:44:18Z",
+    "observation": "Embedded URL recorded in the frozen source HTML and independently downloaded",
+    "status": 200,
+    "mime": "application/pdf",
+    "bytes": 55194,
+    "sha256": "20ed911bdf766ef637e5acb3465084537e78e30df9239b7332a3a21179354012",
+    "text_extractor": "pypdf",
+    "text_chars": 9346,
+    "text_sha256": "04a2abed68d590b11b63cd7a231a2d5b0c29bf1f2fd1846b590ec6242ab2b91b"
+  },
   "state": "captured"
 }

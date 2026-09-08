@@ -8,7 +8,7 @@ from harness.web_fetch.metrics import normalize_for_match
 
 
 def prepare(path):
-    dataset=json.loads(path.read_text());changes=[];issues=[]
+    dataset=json.loads(path.read_text());changes=[];issues=[];synced=[]
     for c in dataset['cases']:
         raw=c.get('ground_truth_main_content','')
         if not raw:continue
@@ -24,10 +24,21 @@ def prepare(path):
         for fact in c.get('required_facts',[]):
             fact['alternatives']=[clean_reference_text(x) for x in fact['alternatives']]
         problems=audit_reference(clean,c.get('required_facts',[]),normalize=normalize_for_match)
+        # Dynamic entry contracts intentionally repeat values such as HTTP
+        # methods, prices and authors across distinct record-scoped facts.
+        if c.get('track') == 'dynamic':
+            problems=[problem for problem in problems if not problem.startswith('duplicate_fact:')]
         if problems:issues.append({'case_id':c['id'],'issues':problems})
     if issues:raise ValueError(json.dumps(issues,ensure_ascii=False))
+    for c in dataset['cases']:
+        reference=c.get('ground_truth_main_content','')
+        target=path.parent/'sources'/c['id']/'reference.txt'
+        if reference and target.is_file() and target.read_text()!=reference:
+            target.write_text(reference);synced.append(c['id'])
     path.write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
-    print(json.dumps({'cleaned_cases':changes,'audited_cases':sum(bool(c.get('ground_truth_main_content')) for c in dataset['cases']),'issues':issues},ensure_ascii=False))
+    print(json.dumps({'cleaned_cases':changes,'synced_reference_files':synced,
+                      'audited_cases':sum(bool(c.get('ground_truth_main_content')) for c in dataset['cases']),
+                      'issues':issues},ensure_ascii=False))
 
 
 if __name__=='__main__':prepare(ROOT/'evaluation/dataset.json')

@@ -87,14 +87,14 @@ class TitleQualityTests(unittest.TestCase):
         rendered=ranking([r],{'list':c},'challenge')
         self.assertIn('标题完整度',rendered)
         self.assertIn('标题参考覆盖',rendered)
-        self.assertIn('不能据此直接比较整页正文质量',rendered)
+        self.assertIn('不衡量榜单召回率、实时性或整页正文质量',rendered)
         cells=table_cells(rendered,'ranking-challenge')[0]
         self.assertEqual(cells[3],'0.0%')
         self.assertEqual(cells[4:7],['—']*3)
         diagnostic=table_cells(rendered,'ranking-challenge-titles')[0]
         self.assertEqual(diagnostic[2:5],['100.0%']*3)
         self.assertEqual(diagnostic[5],'1/1 · 1/1 例')
-        self.assertIn('<summary>辅助诊断',rendered)
+        self.assertIn('<summary>标题文字质量 · 计算过程与结果',rendered)
 
     def test_case_macro_average_not_returned_title_pooled_average(self):
         a,b=case('a'),case('b'); ra,rb=record(a),record(b)

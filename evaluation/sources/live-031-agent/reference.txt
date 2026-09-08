@@ -1,0 +1,613 @@
+Contents
+cURL
+curl --request POST \
+--url https://api.exa.ai/contents \
+--header 'Content-Type: application/json' \
+--header 'x-api-key: <api-key>' \
+--data '
+{
+"ids": [
+"https://arxiv.org/pdf/2307.06435"
+],
+"urls": [
+"https://arxiv.org/pdf/2307.06435"
+],
+"compliance": "hipaa",
+"text": false,
+"highlights": false,
+"summary": {
+"query": "Main developments",
+"schema": {
+"$schema": "http://json-schema.org/draft-07/schema#",
+"title": "Title",
+"type": "object",
+"properties": {
+"Property 1": {
+"type": "string",
+"description": "Description"
+},
+"Property 2": {
+"type": "string",
+"enum": [
+"option 1",
+"option 2",
+"option 3"
+],
+"description": "Description"
+}
+},
+"required": [
+"Property 1"
+]
+}
+},
+"extras": {
+"links": 1,
+"imageLinks": 1,
+"richImageLinks": 0,
+"richLinks": 0,
+"codeBlocks": 0
+},
+"context": true,
+"livecrawl": "preferred",
+"livecrawlTimeout": 1000,
+"maxAgeHours": 24,
+"subpages": 1,
+"subpageTarget": "sources"
+}
+'
+import requests
+url = "https://api.exa.ai/contents"
+payload = {
+"ids": ["https://arxiv.org/pdf/2307.06435"],
+"urls": ["https://arxiv.org/pdf/2307.06435"],
+"compliance": "hipaa",
+"text": False,
+"highlights": False,
+"summary": {
+"query": "Main developments",
+"schema": {
+"$schema": "http://json-schema.org/draft-07/schema#",
+"title": "Title",
+"type": "object",
+"properties": {
+"Property 1": {
+"type": "string",
+"description": "Description"
+},
+"Property 2": {
+"type": "string",
+"enum": ["option 1", "option 2", "option 3"],
+"description": "Description"
+}
+},
+"required": ["Property 1"]
+}
+},
+"extras": {
+"links": 1,
+"imageLinks": 1,
+"richImageLinks": 0,
+"richLinks": 0,
+"codeBlocks": 0
+},
+"context": True,
+"livecrawl": "preferred",
+"livecrawlTimeout": 1000,
+"maxAgeHours": 24,
+"subpages": 1,
+"subpageTarget": "sources"
+}
+headers = {
+"x-api-key": "<api-key>",
+"Content-Type": "application/json"
+}
+response = requests.post(url, json=payload, headers=headers)
+print(response.text)
+const options = {
+method: 'POST',
+headers: {'x-api-key': '<api-key>', 'Content-Type': 'application/json'},
+body: JSON.stringify({
+ids: ['https://arxiv.org/pdf/2307.06435'],
+urls: ['https://arxiv.org/pdf/2307.06435'],
+compliance: 'hipaa',
+text: false,
+highlights: false,
+summary: {
+query: 'Main developments',
+schema: {
+$schema: 'http://json-schema.org/draft-07/schema#',
+title: 'Title',
+type: 'object',
+properties: {
+'Property 1': {type: 'string', description: 'Description'},
+'Property 2': {
+type: 'string',
+enum: ['option 1', 'option 2', 'option 3'],
+description: 'Description'
+}
+},
+required: ['Property 1']
+}
+},
+extras: {links: 1, imageLinks: 1, richImageLinks: 0, richLinks: 0, codeBlocks: 0},
+context: true,
+livecrawl: 'preferred',
+livecrawlTimeout: 1000,
+maxAgeHours: 24,
+subpages: 1,
+subpageTarget: 'sources'
+})
+};
+fetch('https://api.exa.ai/contents', options)
+.then(res => res.json())
+.then(res => console.log(res))
+.catch(err => console.error(err));
+200
+400
+401
+402
+429
+500
+{
+"requestId": "e492118ccdedcba5088bfc4357a8a125",
+"results": [
+{
+"id": "https://arxiv.org/abs/2307.06435",
+"title": "A Comprehensive Overview of Large Language Models",
+"url": "https://arxiv.org/pdf/2307.06435.pdf",
+"publishedDate": "2023-11-16T01:36:32.547Z",
+"author": "Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan",
+"text": "Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities...",
+"highlights": [
+"Such requirements have limited their adoption..."
+],
+"summary": "This overview paper on Large Language Models (LLMs) highlights key developments..."
+}
+],
+"statuses": [
+{
+"id": "https://arxiv.org/abs/2307.06435",
+"status": "success",
+"source": "cached"
+}
+],
+"costDollars": {
+"total": 0.003
+}
+}
+{
+"requestId": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+"error": "Invalid request body: query: Invalid input: expected string, received undefined",
+"tag": "INVALID_REQUEST_BODY"
+}
+{
+"requestId": "f2a4c6e8b0d2f4a6c8e0b2d4f6a8c0e2",
+"error": "Invalid API key",
+"tag": "INVALID_API_KEY"
+}
+{
+"requestId": "b5947044c4b78efa9552a7c89b306d95",
+"error": "Invalid API key",
+"tag": "DEFAULT_ERROR"
+}
+{
+"requestId": "7f9b1d3e5a0c2e4b6d8f0a2c4e6b8d0f",
+"error": "You've exceeded the Exa rate limit for your network. If you believe this is in error, please email hello@exa.ai :)",
+"tag": "RATE_LIMIT_EXCEEDED"
+}
+{
+"requestId": "9b1d3f5e7a0c2e4b6d8f0a2c4e6b8d0f",
+"error": "Sorry, we encountered an error while processing your request. Please try again later",
+"tag": "DEFAULT_ERROR"
+}
+Search
+Contents
+Copy page
+Get the full page contents, summaries, and metadata for a list of URLs.
+Returns instant results from our cache, with automatic live crawling as fallback for uncached pages.
+Copy page
+POST
+/
+contents
+Try it
+Contents
+cURL
+curl --request POST \
+--url https://api.exa.ai/contents \
+--header 'Content-Type: application/json' \
+--header 'x-api-key: <api-key>' \
+--data '
+{
+"ids": [
+"https://arxiv.org/pdf/2307.06435"
+],
+"urls": [
+"https://arxiv.org/pdf/2307.06435"
+],
+"compliance": "hipaa",
+"text": false,
+"highlights": false,
+"summary": {
+"query": "Main developments",
+"schema": {
+"$schema": "http://json-schema.org/draft-07/schema#",
+"title": "Title",
+"type": "object",
+"properties": {
+"Property 1": {
+"type": "string",
+"description": "Description"
+},
+"Property 2": {
+"type": "string",
+"enum": [
+"option 1",
+"option 2",
+"option 3"
+],
+"description": "Description"
+}
+},
+"required": [
+"Property 1"
+]
+}
+},
+"extras": {
+"links": 1,
+"imageLinks": 1,
+"richImageLinks": 0,
+"richLinks": 0,
+"codeBlocks": 0
+},
+"context": true,
+"livecrawl": "preferred",
+"livecrawlTimeout": 1000,
+"maxAgeHours": 24,
+"subpages": 1,
+"subpageTarget": "sources"
+}
+'
+import requests
+url = "https://api.exa.ai/contents"
+payload = {
+"ids": ["https://arxiv.org/pdf/2307.06435"],
+"urls": ["https://arxiv.org/pdf/2307.06435"],
+"compliance": "hipaa",
+"text": False,
+"highlights": False,
+"summary": {
+"query": "Main developments",
+"schema": {
+"$schema": "http://json-schema.org/draft-07/schema#",
+"title": "Title",
+"type": "object",
+"properties": {
+"Property 1": {
+"type": "string",
+"description": "Description"
+},
+"Property 2": {
+"type": "string",
+"enum": ["option 1", "option 2", "option 3"],
+"description": "Description"
+}
+},
+"required": ["Property 1"]
+}
+},
+"extras": {
+"links": 1,
+"imageLinks": 1,
+"richImageLinks": 0,
+"richLinks": 0,
+"codeBlocks": 0
+},
+"context": True,
+"livecrawl": "preferred",
+"livecrawlTimeout": 1000,
+"maxAgeHours": 24,
+"subpages": 1,
+"subpageTarget": "sources"
+}
+headers = {
+"x-api-key": "<api-key>",
+"Content-Type": "application/json"
+}
+response = requests.post(url, json=payload, headers=headers)
+print(response.text)
+const options = {
+method: 'POST',
+headers: {'x-api-key': '<api-key>', 'Content-Type': 'application/json'},
+body: JSON.stringify({
+ids: ['https://arxiv.org/pdf/2307.06435'],
+urls: ['https://arxiv.org/pdf/2307.06435'],
+compliance: 'hipaa',
+text: false,
+highlights: false,
+summary: {
+query: 'Main developments',
+schema: {
+$schema: 'http://json-schema.org/draft-07/schema#',
+title: 'Title',
+type: 'object',
+properties: {
+'Property 1': {type: 'string', description: 'Description'},
+'Property 2': {
+type: 'string',
+enum: ['option 1', 'option 2', 'option 3'],
+description: 'Description'
+}
+},
+required: ['Property 1']
+}
+},
+extras: {links: 1, imageLinks: 1, richImageLinks: 0, richLinks: 0, codeBlocks: 0},
+context: true,
+livecrawl: 'preferred',
+livecrawlTimeout: 1000,
+maxAgeHours: 24,
+subpages: 1,
+subpageTarget: 'sources'
+})
+};
+fetch('https://api.exa.ai/contents', options)
+.then(res => res.json())
+.then(res => console.log(res))
+.catch(err => console.error(err));
+200
+400
+401
+402
+429
+500
+{
+"requestId": "e492118ccdedcba5088bfc4357a8a125",
+"results": [
+{
+"id": "https://arxiv.org/abs/2307.06435",
+"title": "A Comprehensive Overview of Large Language Models",
+"url": "https://arxiv.org/pdf/2307.06435.pdf",
+"publishedDate": "2023-11-16T01:36:32.547Z",
+"author": "Humza  Naveed, University of Engineering and Technology (UET), Lahore, Pakistan",
+"text": "Abstract Large Language Models (LLMs) have recently demonstrated remarkable capabilities...",
+"highlights": [
+"Such requirements have limited their adoption..."
+],
+"summary": "This overview paper on Large Language Models (LLMs) highlights key developments..."
+}
+],
+"statuses": [
+{
+"id": "https://arxiv.org/abs/2307.06435",
+"status": "success",
+"source": "cached"
+}
+],
+"costDollars": {
+"total": 0.003
+}
+}
+{
+"requestId": "0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+"error": "Invalid request body: query: Invalid input: expected string, received undefined",
+"tag": "INVALID_REQUEST_BODY"
+}
+{
+"requestId": "f2a4c6e8b0d2f4a6c8e0b2d4f6a8c0e2",
+"error": "Invalid API key",
+"tag": "INVALID_API_KEY"
+}
+{
+"requestId": "b5947044c4b78efa9552a7c89b306d95",
+"error": "Invalid API key",
+"tag": "DEFAULT_ERROR"
+}
+{
+"requestId": "7f9b1d3e5a0c2e4b6d8f0a2c4e6b8d0f",
+"error": "You've exceeded the Exa rate limit for your network. If you believe this is in error, please email hello@exa.ai :)",
+"tag": "RATE_LIMIT_EXCEEDED"
+}
+{
+"requestId": "9b1d3f5e7a0c2e4b6d8f0a2c4e6b8d0f",
+"error": "Sorry, we encountered an error while processing your request. Please try again later",
+"tag": "DEFAULT_ERROR"
+}
+Get your Exa API key
+Authorizations
+apiKey
+bearer
+
+x-api-key
+string
+header
+required
+Pass your Exa API key in the x-api-key header. You can also authenticate with Authorization: Bearer
+.
+Body
+application/json
+Option 1
+Option 2
+Provide either
+ids
+or
+urls
+, but not both.
+
+ids
+string[]
+required
+Document IDs obtained from searches.
+Required array length:
+1 - 100
+element
+s
+Required string length:
+1 - 2048
+Example
+:
+["https://arxiv.org/pdf/2307.06435"]
+
+urls
+string[]
+URLs to crawl (backwards compatible with the
+ids
+parameter).
+Required array length:
+1 - 100
+element
+s
+Required string length:
+1 - 2048
+Example
+:
+["https://arxiv.org/pdf/2307.06435"]
+
+compliance
+enum<string> | null
+Enterprise-only compliance mode. Set to
+hipaa
+for HIPAA mode. Requires cache-only retrieval with supported parameters. See the HIPAA docs for details.
+Available options
+:
+hipaa
+Example
+:
+"hipaa"
+
+text
+boolean
+Advanced text options · object
+default:
+false
+Text extraction options for each result.
+
+highlights
+boolean
+Advanced highlights options · object
+default:
+false
+Text snippets the LLM identifies as most relevant from each page.
+
+summary
+object | null
+Summary of the webpage.
+Show
+child attributes
+
+extras
+object | null
+Extra parameters to pass.
+Show
+child attributes
+
+context
+boolean
+object
+deprecated
+Deprecated: Use highlights or text instead. Returns page contents as a combined context string.
+Example
+:
+true
+
+livecrawl
+enum<string> | null
+deprecated
+Deprecated: Use maxAgeHours instead for content freshness control. livecrawl does not guarantee freshly fetched parser output and may be served according to server freshness policy. Do not send livecrawl and maxAgeHours together.
+Available options
+:
+never
+,
+always
+,
+fallback
+,
+preferred
+Example
+:
+"preferred"
+
+livecrawlTimeout
+integer | null
+default:
+10000
+The timeout for livecrawling in milliseconds.
+Required range
+:
+0 < x <= 90000
+Example
+:
+1000
+
+maxAgeHours
+integer | null
+Maximum age of cached content in hours. Positive values use cached content if it is less than this many hours old; 0 fetches fresh content and is the supported way to apply text rendering options to newly fetched pages; -1 always uses cache; omitted uses fallback fetching when cached content is unavailable. Maximum supported value is 720 hours.
+Required range
+:
+-1 <= x <= 720
+Example
+:
+24
+
+subpages
+integer | null
+default:
+0
+The number of subpages to crawl. The actual number crawled may be limited by system constraints.
+Required range
+:
+0 <= x <= 100
+Example
+:
+1
+
+subpageTarget
+string
+string[]
+Term to find specific subpages of search results. Can be a single string or an array of strings.
+Required string length:
+1 - 100
+Example
+:
+"sources"
+Response
+200
+application/json
+OK
+
+requestId
+string
+Unique identifier for the request.
+Example
+:
+"b5947044c4b78efa9552a7c89b306d95"
+
+results
+object[]
+Show
+child attributes
+
+context
+string
+deprecated
+Deprecated. Combined context string from search results. Use highlights or text instead.
+
+statuses
+object[]
+Status information for each requested URL or document ID.
+Show
+child attributes
+
+costDollars
+object
+Endpoint-dependent estimated dollar cost breakdown for the completed request. Billing is computed from usage counters rather than this response object.
+Show
+child attributes
+
+searchTime
+number
+Server-side processing time in milliseconds, measured at the gateway. Covers retrieval but may exclude later phases such as structured output synthesis, so it can be lower than end-to-end request latency.
+Example
+:
+312.4

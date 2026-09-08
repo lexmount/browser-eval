@@ -85,8 +85,20 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                     break
                 label = _LABELS[field]
                 # Labels are allowed only in the gap for their own field.
-                gap = _SEP + rf'(?:{label}\b\s*:?\s*)?' + _SEP
-                literal = '|'.join(re.escape(v) for v in values)
+                # The label may itself touch the value when an extractor drops
+                # an inline DOM boundary (``byAlbert``). The following exact
+                # declared field literal closes the ambiguity, so a word
+                # boundary after the label would reject complete content.
+                gap = _SEP + rf'(?:(?:{label})\s*:?\s*)?' + _SEP
+                # Tags are a set-like visible field. Native Markdown extractors
+                # can preserve every tag while dropping only the whitespace
+                # between adjacent inline elements (``change deep-thoughts``
+                # becomes ``changedeep-thoughts``). Accept that serialization
+                # difference without relaxing quote, author, or record ownership.
+                literal = '|'.join(
+                    re.escape(v).replace(r'\ ', r'\s*') if field == 'tags'
+                    else re.escape(v)
+                    for v in values)
                 parts.append((gap if index else '') + rf'(?P<f{index}>{literal})')
             else:
                 pattern = re.compile('(?=(' + ''.join(parts) + '))')
@@ -97,15 +109,38 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                         value = match.group(f'f{index}')
                         # Check the actual surrounding characters, not an isolated
                         # captured number, so numeric/sign boundaries stay intact.
-                        if (value[0].isalnum() and start and folded[start-1].isalnum()
-                                or value[-1].isalnum() and end < len(folded) and folded[end].isalnum()):
+                        left_joined = value[0].isalnum() and start and folded[start-1].isalnum()
+                        right_joined = value[-1].isalnum() and end < len(folded) and folded[end].isalnum()
+                        if left_joined:
+                            own_label = _LABELS[field]
+                            if re.search(rf'(?:{own_label})\s*:?\s*$', folded[max(0, start - 16):start]):
+                                left_joined = False
+                        if right_joined and index + 1 < len(order):
+                            # A missing DOM whitespace before the *declared next
+                            # field label* is still an unambiguous field boundary.
+                            next_label = _LABELS[order[index + 1]]
+                            if re.match(rf'(?:{next_label})\b\s*:?', folded[end:]):
+                                right_joined = False
+                        # Native Markdown can emit METHOD[/path](target)Summary.
+                        # Link normalization removes the destination and leaves
+                        # `/pathsummary` with no whitespace. For a path, an
+                        # adjacent word is therefore the next field; a slash or
+                        # opening route parameter still proves a longer path and
+                        # must not satisfy a shorter one such as /pet.
+                        if field == 'path':
+                            right_joined = end < len(folded) and folded[end] in '/{'
+                        elif field == 'summary' and index and order[index - 1] == 'path':
+                            left_joined = False
+                        if left_joined or right_joined:
                             break
                         if field in {'name', 'title', 'quote', 'text', 'family'} and any(
                                 a <= start and end <= b and (a < start or end < b) for a, b in anchors):
                             break
                         context = folded[max(0, start-3):end+4]
                         alternatives = [v for v in fields[field].get('alternatives', [])
-                                        if normalize(str(v)) == value and fact_match(context, value)]
+                                        if ((normalize(str(v)).replace(' ', '') == value.replace(' ', ''))
+                                            if field == 'tags' else normalize(str(v)) == value)
+                                        and fact_match(context, value)]
                         if not alternatives:
                             break
                         hits[fields[field]['id']] = alternatives

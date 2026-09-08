@@ -1,0 +1,41 @@
+{
+  "case_id": "lexmount-doc",
+  "url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+  "checked_at": "2026-09-08T04:23:12.924328+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://browser.lexmount.com/docs/webfetch/quickstart"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://browser.lexmount.com/docs/webfetch/quickstart",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 215302,
+  "sha256": "c13485f598dac5fbac397f3fd9e722592ac45e2c998cf8facd578503431900c0",
+  "response_headers": {
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "Quick Start | Lexmount Browser - Cloud Browser Infrastructure for AI Agents",
+  "selector": "article",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://browser.lexmount.com/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75",
+      "alt": "Logo of Lexmount"
+    },
+    {
+      "tag": "img",
+      "url": "https://browser.lexmount.com/_next/image?url=%2Fbrand%2Flexmount-lockup.png&w=1080&q=75",
+      "alt": "Logo of Lexmount"
+    }
+  ],
+  "extracted_sha256": "708f83dbd8652cbde2bf484dea1df701b02abffc0fe31a4add3085334ee4a9b9",
+  "reference_sha256": "708f83dbd8652cbde2bf484dea1df701b02abffc0fe31a4add3085334ee4a9b9",
+  "text_chars": 2660,
+  "excerpt": "Quick Start\nSend your first WebFetch request and understand the default response behavior.\nCopy Markdown\nOpen\nUse Lexmount WebFetch when you want structured content from a public web page without building your own fetch, rendering, and extraction pipeline.\nThe most practical starting point is\nPOST /v1/extract\n.\nAuthentication\nThe API is currently in internal testing\nExternal requests must include both\nX-API-Key\nand\nX-Project-Id\nCreate or copy them from\nhttps://browser.lexmount.cn/settings/api-keys\nFor overseas access, use\nhttps://browser.lexmount.com/settings/api-keys\nand replace the endpoint with\nhttps://api.lexmount.com\nSend Your First Request\nAPI_KEY\n=\n'<your-api-key>'\nPROJECT_ID\n=\n'<your-project-id>'\ncurl\n-sS\n-X\nPOST\nhttps://api.lexmount.cn/v1/extract\n\\\n-H\n'Content-Type: application/js",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

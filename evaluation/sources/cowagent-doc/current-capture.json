@@ -1,0 +1,43 @@
+{
+  "case_id": "cowagent-doc",
+  "url": "https://docs.cowagent.ai/zh/tools/web-fetch",
+  "checked_at": "2026-09-08T04:23:12.924104+00:00",
+  "source": "independent HTTP GET (no provider output)",
+  "attempts": [
+    {
+      "status": 200,
+      "url": "https://docs.cowagent.ai/zh/tools/web-fetch"
+    }
+  ],
+  "status": 200,
+  "final_url": "https://docs.cowagent.ai/zh/tools/web-fetch",
+  "mime": "text/html; charset=utf-8",
+  "bytes": 216020,
+  "sha256": "0a1aaa23bcf6e18a2894d4f26eb3cf27cd23d9c202ca9a8947cf7604434ddc23",
+  "response_headers": {
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "worker-src * blob: data: 'unsafe-eval' 'unsafe-inline'; object-src data: ; base-uri 'self'; upgrade-insecure-requests; frame-ancestors 'self' https://dashboard.mintlify.com https://app.mintlify.com; form-action 'self' https://codesandbox.io;",
+    "Content-Type": "text/html; charset=utf-8"
+  },
+  "title": "web_fetch - 网页获取 - CowAgent",
+  "selector": "main",
+  "resources": [
+    {
+      "tag": "img",
+      "url": "https://mintcdn.com/minimalfuture/kFr6XLKqkl319blp/images/logo.jpg?fit=max&auto=format&n=kFr6XLKqkl319blp&q=85&s=71578eed432dfbc8615e84af3b5f2eab",
+      "alt": "light logo"
+    },
+    {
+      "tag": "img",
+      "url": "https://mintcdn.com/minimalfuture/kFr6XLKqkl319blp/images/logo.jpg?fit=max&auto=format&n=kFr6XLKqkl319blp&q=85&s=71578eed432dfbc8615e84af3b5f2eab",
+      "alt": "dark logo"
+    }
+  ],
+  "extracted_sha256": "83fe47eb411688271ba4be8415d6613e14d08949482071238cb835529b7b5ae0",
+  "reference_sha256": "6d63269cfe683cd215e564852909f903c97d33fc7a01495421670ab7fe0c2591",
+  "text_chars": 359,
+  "excerpt": "内置工具\nweb_fetch - 网页获取\n获取网页或文档内容\n获取 HTTP/HTTPS URL 的内容。对网页提取可读文本，对文档文件（PDF、Word、Excel 等）自动下载并解析内容。\n\n参数\n参数\n类型\n必填\n说明\nurl\nstring\n是\nHTTP/HTTPS URL（网页或文档链接）\n\n支持的文件类型\n类型\n格式\nPDF\n.pdf\nWord\n.docx\n文本\n.txt\n、\n.md\n、\n.csv\n、\n.log\n表格\n.xls\n、\n.xlsx\n演示文稿\n.ppt\n、\n.pptx\n\n使用场景\n获取网页的文本内容\n下载并解析远程文档\n获取 API 响应内容\nweb_fetch\n只能获取静态 HTML 内容。如果页面需要 JavaScript 渲染（如 SPA 单页应用），请使用\nbrowser\n工具。",
+  "missing_facts": [],
+  "quality_issues": [],
+  "state": "captured"
+}

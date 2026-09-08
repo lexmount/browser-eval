@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from ..models import EvalCase, ProviderResult
 from .base import Provider
 from .http_client import request
@@ -11,8 +13,10 @@ class CloudflareMarkdownProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
+        query = urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""
+        endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/markdown"
         response = request(
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/markdown",
+            endpoint + ("?" + query if query else ""),
             method="POST",
             timeout=timeout,
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
@@ -36,6 +40,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=None if ok else ("authentication" if response.status in (401, 403) else ("rate_limit" if response.status == 429 else "api_error")),
             error_message=None if ok else ((errors[0].get("message") if errors else None) or f"HTTP {response.status}"),
             metadata={
+                "browser": self.config.get("browser"),
                 **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "upstream_status": meta.get("status"),
                 "empty_content": ok and not content,

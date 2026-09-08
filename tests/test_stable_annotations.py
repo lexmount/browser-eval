@@ -113,6 +113,8 @@ class StableAnnotationTests(unittest.TestCase):
         for identifier, sources in layouts.items():
             for source in sources:
                 path = evidence / "artifacts" / source / identifier / "run-001.txt"
+                if not path.is_file():
+                    self.skipTest('requires persisted general benchmark artifacts')
                 result = self.score(identifier, path.read_text())
                 self.assertTrue(result["stable_task_pass"], (identifier, source, result["stable_task_errors"]))
                 self.assertEqual(result["stable_unique_record_count"], CASE_ANNOTATIONS[identifier]["contract"]["minimum_records"])
@@ -124,6 +126,8 @@ class StableAnnotationTests(unittest.TestCase):
                                    ("tavily", "dynamic-products-api"),
                                    ("tavily", "dynamic-angular-phones")):
             path = evidence / "artifacts" / source / identifier / "run-001.txt"
+            if not path.is_file():
+                self.skipTest('requires persisted general benchmark artifacts')
             result = self.score(identifier, path.read_text())
             self.assertFalse(result["stable_task_pass"], (source, identifier))
             if identifier == "dynamic-quotes-api":

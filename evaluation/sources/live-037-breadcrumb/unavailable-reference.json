@@ -1,0 +1,14 @@
+{
+  "case_id": "live-037-breadcrumb",
+  "checked_at": "2026-09-04T08:44:55.570813+00:00",
+  "status": 504,
+  "final_url": "https://www.noaa.gov/climate",
+  "response_sha256": "ac3d2ee82ed9f1e9c9550e5de29c9e0b059296ffd1c5e1b28e2c1ac7d9a7ca66",
+  "previous_reference_sha256": "ab62f0273ab9f9b792c99d2d021bb1fe7f6ff7fcf6af9935de7b65cc4443d2e8",
+  "missing_facts": [
+    "正文核对点-1",
+    "正文核对点-2",
+    "正文核对点-3"
+  ],
+  "decision": "retain_task_checks_and_remove_unavailable_snapshot_text_metrics"
+}
