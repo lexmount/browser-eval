@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.report import (
-    TRACKS, attempt_row, case_rate, generate, overview_card, ranking, stable_anchor_evidence,
+    TRACKS, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
     stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
@@ -47,6 +47,13 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_request_failure_reason_precedes_derived_empty_body_metrics(self):
+        c=case('document','body','document');r=record(c,passed=False,ok=False)
+        r['metrics']['body_region_results']=[{'coverage':0,'target_pass':False}]
+        r['metrics']['body_coverage_pass']=False
+        r['diagnosis']={'evidence':'CLI 请求失败：curl request failed'}
+        self.assertEqual(reason(r,c),'CLI 请求失败：curl request failed')
+
     def test_quote_inline_whitespace_loss_preserves_complete_owned_fields(self):
         anchor={'id':'fixed','alternatives':['“An independent thought.”\nby Some Author\nTags: first second']}
         metrics=evaluate_stable_task(
@@ -58,7 +65,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         for phrase in ['An independent thought.','Some Author','firstsecond','命中']:
             self.assertIn(phrase,rendered)
 
-    def test_result_review_page_lists_failure_coverage_by_provider(self):
+    def test_result_review_page_prioritizes_rounds_over_attempt_dump(self):
         c=case();r=record(c,passed=False);r['provider']='moli';r['attempt_id']='moli__list__r001'
         audit={'reviewed_attempts':1,'expected_attempts':1,'disagreements':0,'unresolved':0,
                'reviewer':{'agent':'Codex','model':'test','effort':'high'},
@@ -70,8 +77,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[r],[])
             rendered=(out/'review/index.html').read_text()
-            for phrase in ['机器失败项有证据','1/1','Moli 1.1.1','完整']:
+            for phrase in ['当前状态','核验轮次','第 1 轮','核验协议与执行者']:
                 self.assertIn(phrase,rendered)
+            self.assertNotIn('全部 1 条逐项核验',rendered)
+            self.assertNotIn('机器失败项有证据',rendered)
+            self.assertNotIn('核验 JSON',rendered)
             self.assertNotIn('结果核验',(out/'reproduce/index.html').read_text())
 
     def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):

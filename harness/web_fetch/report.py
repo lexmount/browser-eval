@@ -71,6 +71,10 @@ EXTRA+='''
 .quality-steps{list-style:none;counter-reset:quality-step;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0;margin:18px 0}.quality-steps li{counter-increment:quality-step;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.quality-steps li:before{content:counter(quality-step);display:inline-grid;place-items:center;width:26px;height:26px;margin-bottom:10px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.quality-steps b,.quality-steps span{display:block}.quality-steps span{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.6}.review-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.review-summary .card{grid-column:auto}.review-table{min-width:1320px}.review-table td:nth-child(7),.review-table td:nth-child(8){min-width:280px;white-space:normal}.review-table td:nth-child(2){min-width:145px}@media(max-width:900px){.quality-steps,.review-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.quality-steps,.review-summary{grid-template-columns:1fr}}
 '''
 
+EXTRA+='''
+.review-rounds{display:grid;gap:14px;margin-top:18px}.review-round{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.review-round .round-label{color:var(--accent);font-weight:800}.review-round h3{margin:0 0 8px;font-size:19px}.review-round p{margin:5px 0;line-height:1.7}.review-round .round-result{color:var(--muted)}@media(max-width:600px){.review-round{grid-template-columns:1fr;gap:7px}}
+'''
+
 def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
@@ -128,31 +132,13 @@ def review_summary(out, prefix=''):
  reviews=[json.loads(path.read_text())]
  speed_review=out/'speed-cohort/result-review.json'
  if speed_review.is_file():reviews.append(json.loads(speed_review.read_text()))
- review=reviews[0]
- reviewer=review.get('reviewer',{})
- checked=sum(row.get('reviewed_attempts',0) for row in reviews)
- total=sum(row.get('expected_attempts',0) for row in reviews)
- scopes=[]
- for index,row in enumerate(reviews):
-  label='主结果' if index==0 else '同窗测速'
-  scope=row.get('review_protocol',{}).get('scope','all')
-  subject='自动失败项' if scope=='machine-failures' else '全部输出'
-  accepted=row.get('accepted_unreviewed_passes',0)
-  suffix=(f'（另 {accepted} 个自动通过项按约定接受、未逐条核验）'
-          if index==0 and scope=='machine-failures' and accepted else '')
-  scopes.append(f'{label}{subject} {row.get("reviewed_attempts",0)}/{row.get("expected_attempts",0)}{suffix}')
- name=' · '.join(str(x) for x in [reviewer.get('agent'),reviewer.get('model')] if x)
- disagreements=sum(row.get('disagreements',0) for row in reviews)
+ checked=[row.get('reviewed_attempts',0) for row in reviews]
+ total=[row.get('expected_attempts',0) for row in reviews]
  unresolved=sum(row.get('unresolved',0) for row in reviews)
- resolution=('；全部已裁定' if disagreements and not unresolved else
-             '；没有发现分歧' if not disagreements else f'；仍有 {unresolved} 条未裁定')
- revision=review.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
- revision_note=(f' 评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已由新的盲审单独复核；其余结果沿用输入未变化的原核验。'
-                if revision else '')
- return (f'<p class="callout success"><b>结果已独立核验：{esc("；".join(scopes))}</b>。'
-         f'{esc(name or "独立复核代理")}逐条对照任务、参考和实际输出；本轮共核验 {checked}/{total} 个纳入核验范围的结果，发现 {disagreements} 个与自动判定不一致的结果{resolution}。'
-         f'{esc(revision_note)}'
-         f' {link(prefix+"review/index.html","查看核验记录 →")}</p>')
+ scopes=f'主结果 {checked[0]:,}/{total[0]:,}'
+ if len(reviews)>1:scopes+=f'；同窗测速 {checked[1]:,}/{total[1]:,}'
+ return (f'<p class="callout success"><b>独立核验：{scopes}；未决 {unresolved}</b>。'
+         f' {link(prefix+"review/index.html","查看核验轮次 →")}</p>')
 
 def review_index(audit):
  return {x['attempt_id']:x for x in (audit or {}).get('attempts',[])}
@@ -161,8 +147,8 @@ def review_cell(audit, rows, base=''):
  if not audit:return ''
  indexed=review_index(audit);items=[indexed[r['attempt_id']] for r in rows if r['attempt_id'] in indexed]
  unresolved=sum(not x.get('final_verdict') for x in items)
- reviewer=audit.get('reviewer',{})
- label=f'{len(items)}/{len(rows)} · {reviewer.get("agent","独立审查")}已核验 · {unresolved} 未决'
+ label=f'{len(items)}/{len(rows)} · 已核验'
+ if unresolved:label+=f' · 未决 {unresolved}'
  return cell(link(base+'review/index.html',label),len(items)/len(rows) if rows else -1)
 
 def _evidence_chunks(text, width=620):
@@ -334,6 +320,10 @@ def reason(r,c):
   counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
   return counts+(success if succeeded(r,c) else stable_failure_summary(m)+'。')
+ if not r['ok']:
+  if r.get('diagnosis'):return r['diagnosis']['evidence']
+  names={'dns':'请求路径中的域名无法解析','timeout':'请求超时','network':'请求路径网络故障','api_error':'供应商接口报错','WEB_BLOCKED_URL':'方法的 URL 安全规则拒绝请求'}
+  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+str(r.get('error_message') or '')[:300]
  m=r['metrics']
  if m.get('text_encoding_corruption'):
   return f'实际返回存在明显乱码：{m.get("replacement_character_count",0):,} 个替换字符，占 {pct(m.get("replacement_character_ratio"))}；损坏文字不能作为有效正文。'
@@ -344,9 +334,6 @@ def reason(r,c):
     failed.append(f'{_position_label(index,len(regions)).split("（")[0]} {pct(item.get("coverage"))}')
   return '正文没有抓全；低于目标的位置为：'+'、'.join(failed)+'。下方会把完整标准答案与实际返回并排展示。'
  if r.get('diagnosis'):return r['diagnosis']['evidence']
- if not r['ok']:
-  names={'dns':'请求路径中的域名无法解析','timeout':'请求超时','network':'请求路径网络故障','api_error':'供应商接口报错','WEB_BLOCKED_URL':'方法的 URL 安全规则拒绝请求'}
-  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+str(r.get('error_message') or '')[:300]
  if c.get('task_kind')=='structure':
   from .report_components import list_rule_description
   return f"检出 {r['metrics'].get('named_entry_count',0)} 个具名详情入口。"+list_rule_description(c)
@@ -833,71 +820,32 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  render_changes(out,cases,records)
  return out/'index.html'
 
+
 def write_review_page(out,records):
  path=out/'result-review.json'
  if not path.is_file():
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
- audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{});indexed=review_index(audit)
- by_attempt={r['attempt_id']:r for r in records}
- current_machine_fn=[x for x in audit['attempts'] if x.get('machine_verdict')=='fail' and x.get('final_verdict')=='pass']
- current_machine_fp=[x for x in audit['attempts'] if x.get('machine_verdict')=='pass' and x.get('final_verdict')=='fail']
- review_disagreements=[x for x in audit['attempts'] if x.get('agent_verdict')!=x.get('machine_verdict')]
- revisions=json.loads((out/'scoring-revisions.json').read_text()) if (out/'scoring-revisions.json').is_file() else []
- historical={}
- for revision in revisions:
-  for change in revision.get('task_decision_changes',[]):historical[change['attempt_id']]=change
- historical_fn=[x for x in historical.values() if x.get('before') is False and x.get('after') is True]
- historical_fp=[x for x in historical.values() if x.get('before') is True and x.get('after') is False]
- summary=(f'<div class="review-summary"><article class="card"><div class="eyebrow">主结果覆盖</div><h3>{audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}</h3><p>全部输出逐条盲审</p></article>'
-          f'<article class="card"><div class="eyebrow">当前自动误判</div><h3>{len(current_machine_fn)} FN · {len(current_machine_fp)} FP</h3><p>最终裁定相对当前评分</p></article>'
-          f'<article class="card"><div class="eyebrow">历史评分纠正</div><h3>{len(historical_fn)} FN · {len(historical_fp)} FP</h3><p>均已离线重算</p></article>'
-          f'<article class="card"><div class="eyebrow">未决</div><h3>{audit.get("unresolved",0)}</h3><p>非零即禁止发布</p></article></div>')
- total=len(records)
- process=(f'<ol class="quality-steps"><li><b>冻结核验输入</b><span>绑定评测集、{total} 份保存输出及其 SHA-256。</span></li>'
-          '<li><b>隐藏机器结论</b><span>审查代理只看任务规则、标准答案和完整实际输出。</span></li>'
-          '<li><b>逐条独立判定</b><span>每条给出通过或失败及可定位的证据，再与自动结果比较。</span></li>'
-          '<li><b>裁定并发布</b><span>分歧回到原始证据裁定；未决数必须为 0。</span></li></ol>')
- provider_rows=[]
- for name in sorted({r['provider'] for r in records}):
-  rs=[r for r in records if r['provider']==name];items=[indexed[r['attempt_id']] for r in rs if r['attempt_id'] in indexed]
-  failures=sum(x.get('machine_verdict')=='fail' for x in items)
-  evidence=sum(bool(x.get('agent_evidence')) for x in items if x.get('machine_verdict')=='fail')
-  disagreements=sum(x.get('agent_verdict')!=x.get('machine_verdict') for x in items)
-  provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(f'{len(items)}/{len(rs)}')+cell(f'{evidence}/{failures}')+cell(str(disagreements))+cell('完整' if len(items)==len(rs) and evidence==failures else '不完整')))
- disagreement_rows=[]
- for x in review_disagreements:
-  r=by_attempt.get(x['attempt_id'],{})
-  kind='审查代理假阴性' if x.get('agent_verdict')=='fail' and x.get('final_verdict')=='pass' else '审查代理假阳性'
-  disagreement_rows.append(('',cell(link('../attempts/'+x['attempt_id']+'.html',x['attempt_id']))+cell(esc(kind))+cell(esc(x.get('agent_evidence')))+cell(esc(x.get('adjudication')))+cell('通过' if x.get('final_verdict')=='pass' else '失败')))
- historical_rows=[]
- for x in sorted(historical.values(),key=lambda y:y['attempt_id']):
-  kind='自动假阴性' if x.get('before') is False and x.get('after') is True else '自动假阳性'
-  attempt=(link('../attempts/'+x['attempt_id']+'.html',x['attempt_id'])
-           if x['attempt_id'] in by_attempt else
-           '<code>'+esc(x['attempt_id'])+'</code>（历史任务已替换）')
-  historical_rows.append(('',cell(attempt)+cell(kind)+cell('失败' if not x.get('before') else '通过')+cell('通过' if x.get('after') else '失败')+cell('已用保存输出离线重算；供应商调用 0 次')))
- filters=filter_controls([('provider','方法',[(n,provider_label(n)) for n in sorted({r['provider'] for r in records})]),('reviewState','核验状态',[('agree','结论一致'),('adjudicated','分歧已裁定')])],all_first={'provider','reviewState'})
- detail_rows=[]
- for x in audit['attempts']:
-  r=by_attempt.get(x['attempt_id'],{});state='agree' if x.get('agent_verdict')==x.get('machine_verdict') else 'adjudicated'
-  attrs=f' data-provider="{esc(r.get("provider",""))}" data-review-state="{state}" data-search="{esc(x["attempt_id"]+" "+str(x.get("agent_evidence",""))+" "+str(x.get("adjudication","")))}"'
-  detail_rows.append((attrs,cell(link('../attempts/'+x['attempt_id']+'.html',x['attempt_id']))+cell(esc(provider_label(r.get('provider','—'))))+cell('通过' if x.get('machine_verdict')=='pass' else '失败')+cell('通过' if x.get('agent_verdict')=='pass' else '失败')+cell('通过' if x.get('final_verdict')=='pass' else '失败')+cell('一致' if state=='agree' else '分歧已裁定')+cell(esc(x.get('agent_evidence') or '—'))+cell(esc(x.get('adjudication') or '无需裁定'))))
- speed=''
+ audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
+ current_fn=[x for x in audit['attempts'] if x.get('machine_verdict')=='fail' and x.get('final_verdict')=='pass']
+ current_fp=[x for x in audit['attempts'] if x.get('machine_verdict')=='pass' and x.get('final_verdict')=='fail']
+ speed_audit={}
  speed_path=out/'speed-cohort/result-review.json'
- if speed_path.is_file():
-  speed_audit=json.loads(speed_path.read_text())
-  speed=section('同窗测速核验',f'<p><b>{speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}</b> 条输出已独立核验；分歧 {speed_audit.get("disagreements",0)}，未决 {speed_audit.get("unresolved",0)}。{link("../speed-cohort/result-review.json","下载完整测速核验记录")}</p>')
- page=hero('核验记录',f'{esc(reviewer.get("agent","独立代理"))} · {esc(reviewer.get("model","—"))} · {esc(reviewer.get("effort","—"))}；主结果 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)} 条独立核验。')
- conclusion=(f'<p class="decision-lead"><b>结论：</b>当前 {total} 条评分中，自动假阴性 {len(current_machine_fn)}、自动假阳性 {len(current_machine_fp)}、未决 {audit.get("unresolved",0)}。'
-             f'盲审与自动判定分歧 {len(review_disagreements)} 条；分歧的逐项证据与裁定见下表。'
-             f'本轮发布前的评分修订累计纠正自动假阴性 {len(historical_fn)} 条、自动假阳性 {len(historical_fp)} 条，均保留原输出与调用耗时。</p>')
- page+=section('核验结论',summary+conclusion)
- page+=section('核验方法',process+table(['方法','主结果核验','机器失败项有证据','盲审分歧','状态'],provider_rows,metrics=[]))
- page+=section('盲审分歧与裁定',f'<p>这里的 {len(review_disagreements)} 条表示“审查代理与自动判定不同”；只有最终裁定相对当前机器结论发生变化时，才计为当前自动误判。</p>'+table(['执行记录','分歧类型','审查意见','最终裁定依据','最终结果'],disagreement_rows,metrics=[]))
- page+=section('已纠正的历史自动误判','<p>这些项目在报告发布前通过评分规则修订改为正确结果；只重算保存输出，没有重新调用浏览器。</p>'+table(['执行记录','误判类型','修订前','修订后','处理'],historical_rows,metrics=[]))
- page+=section(f'全部 {total} 条逐项核验',filters+'<p class="source-note">机器结论是当前评分结果；独立结论在审查时看不到机器结论和分数；最终结论是证据裁定后的发布结果。</p>'+table(['执行记录','方法','机器结论','独立结论','最终结论','状态','独立证据','裁定'],detail_rows,'filtered-table',cls='review-table',metrics=[]))
- page+=speed+section('下载',f'<p>{link("../result-review.json","主结果完整核验记录")} · {link("../scoring-revisions.json","评分规则修订记录")}</p>')
+ if speed_path.is_file():speed_audit=json.loads(speed_path.read_text())
+ metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
+ release=json.loads(metadata_path.read_text())['releases'][0] if metadata_path.is_file() else {}
+ rounds=release.get('review_rounds',[])
+ rounds_html=''.join(
+  f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>修正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>结果：</b>{esc(row.get("result",""))}</p></div></article>'
+  for i,row in enumerate(rounds,1))
+ page=hero('核验记录','记录每轮核验的范围、发现、纠正和未决事项。')
+ conclusion=(f'<p class="callout success"><b>当前状态：</b>主结果 {audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
+             f'同窗测速 {speed_audit.get("reviewed_attempts",0):,}/{speed_audit.get("expected_attempts",0):,}；当前误判 {len(current_fn)+len(current_fp)}；未决 {audit.get("unresolved",0)}。</p>')
+ page+=section('当前状态',conclusion)
+ page+=section('核验轮次','<p>每轮只列影响正式结论的问题。</p><div class="review-rounds">'+rounds_html+'</div>')
+ method=(f'<details class="technical-details"><summary>核验协议与执行者</summary><p>执行者：{esc(reviewer.get("agent","独立代理"))}；模型：{esc(reviewer.get("model","—"))}；推理强度：{esc(reviewer.get("effort","—"))}。'
+         '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')
+ page+=section('核验口径',method)
  write(out,'review/index.html','核验记录',page)
 
 def write_support(out,records,manifests):
@@ -922,7 +870,7 @@ def write_support(out,records,manifests):
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。每个任务只调用一次，有 45 秒端到端预算；失败不重试，也不从后续响应中选择更好的结果。方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
- downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('result-review.json','独立核验记录')] if (out/'result-review.json').is_file() else [])+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else []))
+ downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
   reproduce='<p>在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'

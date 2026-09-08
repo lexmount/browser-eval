@@ -67,7 +67,8 @@ class GroundTruthTest(unittest.TestCase):
                 extracted,_=extract_document_text(raw)
             self.assertEqual(normalize_for_match(extracted),
                              normalize_for_match(cases[identifier]['ground_truth_main_content']),identifier)
-        self.assertEqual(cases['document-03']['ground_truth_main_content'],'Dummy PDF file')
+        self.assertIn('Table Of Content',cases['document-03']['ground_truth_main_content'])
+        self.assertIn('page 3 / 3',cases['document-03']['ground_truth_main_content'])
         for identifier in ('document-07','document-08'):
             evidence=json.loads((sources/identifier/'evidence.json').read_text())
             embedded=evidence['embedded_document']

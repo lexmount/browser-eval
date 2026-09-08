@@ -509,6 +509,16 @@ def _render_headless(out, cases, records):
     web_rows=data['tracks']['web']['providers']
     summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
     dynamic_summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
+    moli_names=['moli-1.0.6','moli','moli-1.1.3']
+    moli_comparison=''
+    if all(name in data['providers'] for name in moli_names):
+        totals={name:sum(data['tracks'][track]['providers'][name]['passed'] for track in TRACK_NAMES) for name in moli_names}
+        documents={name:data['tracks']['document']['providers'][name]['passed'] for name in moli_names}
+        moli_comparison=(
+            '<p class="callout"><b>Moli 版本结论：</b>三版使用相同路线；当前总通过数为 '
+            f'Moli 1.0.6 {totals["moli-1.0.6"]}/150、Moli 1.1.1 {totals["moli"]}/150、Moli 1.1.3 {totals["moli-1.1.3"]}/150，'
+            f'文档正文分别为 {documents["moli-1.0.6"]}/10、{documents["moli"]}/10、{documents["moli-1.1.3"]}/10。'
+            '本轮没有显示版本越新通过越多；1.1.3 在 document-03 的单次请求失败，不能单独证明产品能力回退。</p>')
     if audit:
         reviewer=audit.get('reviewer',{})
         reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)
@@ -521,12 +531,12 @@ def _render_headless(out, cases, records):
         revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
         revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已另行盲审；'
                        if revision else '')
-        review_summary=(f'{scopes}，由 '
-            f'{reviewer.get("agent","独立代理")}（{reviewer.get("model","—")}，{reviewer.get("effort","—")}）逐条核验；'
-            f'{revision_note}与自动判定不一致 {disagreements} 次，发布前未裁定数为 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。')
+        review_summary=(f'{scopes}；未决 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。'
+            '成功项与失败项均已逐条独立核验，轮次与修正见“核验记录”。')
     else:review_summary='本报告没有绑定独立结果核验记录。'
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
         'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,
+        'moli_comparison':moli_comparison,
         'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
         'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
         'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}

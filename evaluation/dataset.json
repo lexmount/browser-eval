@@ -9106,21 +9106,46 @@
     },
     {
       "id": "document-03",
-      "name": "W3C · PDF 文件",
-      "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      "name": "Mozilla PDF.js · 3 页 PDF",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/4c9b65f0e13fd290c326b38cb97436fa50b930f5/test/pdfs/basicapi.pdf",
       "category": "document",
       "expected_any": [],
       "track": "document",
       "task_kind": "body",
       "required_facts": [
         {
-          "id": "文件正文",
+          "id": "目录页",
           "alternatives": [
-            "Dummy PDF file"
+            "Table Of Content"
+          ]
+        },
+        {
+          "id": "第 1 页页码",
+          "alternatives": [
+            "page 1 / 3"
+          ]
+        },
+        {
+          "id": "第 2 页正文",
+          "alternatives": [
+            "Chapter 1"
+          ]
+        },
+        {
+          "id": "第 3 页正文",
+          "alternatives": [
+            "Paragraph 1.1",
+            "Powered by TCPDF"
+          ]
+        },
+        {
+          "id": "第 3 页页码",
+          "alternatives": [
+            "page 3 / 3"
           ]
         }
       ],
-      "min_content_chars": 7,
+      "min_content_chars": 100,
       "forbidden_any": [
         "Just a moment...",
         "Prove your humanity",
@@ -9129,13 +9154,14 @@
       "reference_answer": "",
       "source_verification": {
         "state": "valid",
-        "checked_at": "2026-09-02T08:21:56.731681+00:00",
+        "checked_at": "2026-09-08T09:49:51+00:00",
         "http_status": 200,
-        "method": "独立 HTTP 源文档",
-        "reference_sha256": "41417fb420a737c8064205cf4b7fac3fc7ce6bad26417be5b4f6f6012d92c951",
-        "note": "已独立核对任务目标；正文、资源地址或原文件的评分依据见本例记录。"
+        "method": "固定 Git 提交的独立 HTTP 源文档，pypdf 提取全部 3 页",
+        "selector": "PDF all 3 pages",
+        "reference_sha256": "243d1eb0436f22be8865a6ebf4d6fd0e4fd29a1442245bcaae08d940a1843c71",
+        "note": "URL 绑定 Mozilla PDF.js 的不可变提交 4c9b65f0e13fd290c326b38cb97436fa50b930f5；原始 PDF SHA-256 为 925853d98d67d5dae7473c635f932958e1695ce1029d23b2ecd2531cb65f1f14。"
       },
-      "ground_truth_main_content": "Dummy PDF file",
+      "ground_truth_main_content": " \nTable Of Content\nChapter 1 .......................................................... 2\nParagraph 1.1 ...................................................... 3\n                               page 1 / 3\n\n \nChapter 1\n                               page 2 / 3\n\n \nParagraph 1.1\nPowered by TCPDF (www.tcpdf.org)\n                               page 3 / 3",
       "task_prompt": "读取文档全部正文，包括后续页面、表格和附录；若输入为文档查看页，读取里面嵌入的文档，而非只读工具栏或外围介绍。",
       "body_requirements": {
         "version": 3,
@@ -9146,7 +9172,7 @@
         "regions": [
           {
             "id": "body-region-1",
-            "text": "dummy pdf file"
+            "text": "table of content chapter 1 2 paragraph 1 1 3 page 1 3 chapter 1 page 2 3 paragraph 1 1 powered by tcpdf www tcpdf org page 3 3"
           }
         ]
       }

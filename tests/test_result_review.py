@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from harness.web_fetch.result_review import require_result_review
-from scripts.merge_result_review_revision import merge
+from scripts.merge_result_review_revision import merge, merge_replacement
 from scripts.revise_body_scoring import rebind_unchanged_result_review
 
 
@@ -151,6 +151,46 @@ class ResultReviewTests(unittest.TestCase):
             merged=json.loads((evidence/'result-review.json').read_text())
             self.assertEqual(merged['attempts'][0]['machine_verdict'],'pass')
             self.assertEqual(merged['review_protocol']['scoring_rule_revision_review']['reviewed_attempts'],1)
+
+    def test_task_replacement_reuses_only_unchanged_reviews(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); prior_root=root/'prior'; current_root=root/'current'; supplement=root/'supplement'
+            prior_root.mkdir();current_root.mkdir();supplement.mkdir()
+            old_dataset={'comparison':{'require_independent_result_review':True},
+                         'cases':[{'id':'a','task_kind':'body','url':'https://old.example'},
+                                  {'id':'b','task_kind':'body','url':'https://same.example'}]}
+            new_dataset=json.loads(json.dumps(old_dataset));new_dataset['cases'][0]['url']='https://fixed.example'
+            old_records=[{'attempt_id':'p__a__r001','case_id':'a','ok':True,'metrics':{'content_pass':False}},
+                         {'attempt_id':'p__b__r001','case_id':'b','ok':True,'metrics':{'content_pass':True}}]
+            new_records=json.loads(json.dumps(old_records));new_records[0]['metrics']['content_pass']=True
+            for path,dataset,records in ((prior_root,old_dataset,old_records),(current_root,new_dataset,new_records)):
+                (path/'dataset.json').write_text(json.dumps(dataset))
+                (path/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            prior_review={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((prior_root/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((prior_root/'results.jsonl').read_bytes()).hexdigest()},
+                'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'fail','agent_verdict':'fail','final_verdict':'fail'},
+                            {'attempt_id':'p__b__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+            (prior_root/'result-review.json').write_text(json.dumps(prior_review))
+            subset_dataset={'comparison':{'require_independent_result_review':True},'cases':[new_dataset['cases'][0]]}
+            (supplement/'dataset.json').write_text(json.dumps(subset_dataset))
+            (supplement/'results.jsonl').write_text(json.dumps(new_records[0])+'\n')
+            supplemental={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
+                'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
+            (supplement/'result-review.json').write_text(json.dumps(supplemental))
+            merge_replacement(current_root,prior_root,supplement)
+            merged=json.loads((current_root/'result-review.json').read_text())
+            self.assertEqual([row['machine_verdict'] for row in merged['attempts']],['pass','pass'])
+            self.assertEqual(merged['review_protocol']['task_replacement_review']['reviewed_attempts'],1)
+
+            changed=json.loads(json.dumps(new_records));changed[1]['metrics']['content_pass']=False
+            (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
+            with self.assertRaisesRegex(ValueError,'Unchanged case result differs'):
+                merge_replacement(current_root,prior_root,supplement)
 
 
 if __name__=='__main__':unittest.main()
