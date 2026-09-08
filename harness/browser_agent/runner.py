@@ -406,6 +406,15 @@ def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
     path.write_text(json.dumps(planned, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tuple[PilotTask, ...]:
+    """Limit only this invocation; a later invocation resumes the same pre-registered cohort."""
+    if max_tasks is None:
+        return tasks
+    if max_tasks < 1 or max_tasks > len(tasks):
+        raise ValueError(f"--max-tasks must be between 1 and {len(tasks)}")
+    return tasks[:max_tasks]
+
+
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
     env = _load_repo_env(repo_root)
@@ -485,7 +494,9 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         )
 
         with attempts_file.open("a", encoding="utf-8") as stream:
-            for task_index, selected in enumerate(selection.tasks):
+            for task_index, selected in enumerate(
+                _scheduled_tasks(selection.tasks, args.max_tasks)
+            ):
                 order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
                 for engine in order:
                     for attempt in (1, 2):
@@ -598,6 +609,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--sample-interval-ms", type=int, default=100)
+    parser.add_argument(
+        "--max-tasks",
+        type=int,
+        help=(
+            "run only the first N pre-registered tasks in this invocation; "
+            "resume later without this option to finish the unchanged cohort"
+        ),
+    )
     return parser.parse_args()
 
 

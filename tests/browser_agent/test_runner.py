@@ -1,6 +1,13 @@
+import pytest
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_agent.runner import SITE_AUTH_HEADERS, _configure_benchmark, _user_prompt
+from harness.browser_agent.runner import (
+    SITE_AUTH_HEADERS,
+    _configure_benchmark,
+    _scheduled_tasks,
+    _user_prompt,
+)
+from harness.browser_agent.selection import load_pilot
 
 
 def test_official_container_urls_and_header_auth() -> None:
@@ -25,3 +32,12 @@ def test_user_prompt_exposes_schema_but_not_reference_answer() -> None:
     assert "task_type: RETRIEVE" in prompt
     assert '"type":"array"' in prompt
     assert "hollister" not in prompt
+
+
+def test_max_tasks_limits_only_the_current_invocation() -> None:
+    tasks = load_pilot("evaluation/browser-agent/webarena-verified-pilot.json").tasks
+
+    assert _scheduled_tasks(tasks, None) == tasks
+    assert _scheduled_tasks(tasks, 1) == tasks[:1]
+    with pytest.raises(ValueError, match="between 1 and 30"):
+        _scheduled_tasks(tasks, 0)
