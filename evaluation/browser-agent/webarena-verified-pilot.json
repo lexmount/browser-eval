@@ -1,0 +1,47 @@
+{
+  "schema": "lex_webarena_verified_pilot/1",
+  "metadata": {
+    "benchmark": "WebArena-Verified",
+    "benchmark_version": "1.2.3",
+    "difficulty_definition": "estimated minimum visible UI operations after authentication: easy 1-4, medium 5-7, hard 8+",
+    "selection_policy": "pre-registered before model execution; four self-hosted sites only; covers retrieve, navigate, and mutate",
+    "excluded_sites": {
+      "wikipedia": "requires a large external ZIM data mount",
+      "map": "requires multiple external map datasets and persistent volumes"
+    }
+  },
+  "tasks": [
+    {"task_id": 44, "tier": "easy", "estimated_min_steps": 2, "official_hard": true, "rationale": "打开一个需要登录的 GitLab 目标页"},
+    {"task_id": 41, "tier": "easy", "estimated_min_steps": 3, "official_hard": false, "rationale": "打开一份报表并读取第一个条目"},
+    {"task_id": 77, "tier": "easy", "estimated_min_steps": 3, "official_hard": false, "rationale": "打开评论列表并读取一种状态的数量"},
+    {"task_id": 94, "tier": "easy", "estimated_min_steps": 4, "official_hard": false, "rationale": "搜索一张发票并读取总金额"},
+    {"task_id": 404, "tier": "easy", "estimated_min_steps": 4, "official_hard": false, "rationale": "进入一个论坛、选择最新帖子并点赞"},
+
+    {"task_id": 45, "tier": "medium", "estimated_min_steps": 5, "official_hard": false, "rationale": "进入项目议题列表并应用排序和状态筛选"},
+    {"task_id": 118, "tier": "medium", "estimated_min_steps": 5, "official_hard": false, "rationale": "把需求转成商品查询并打开匹配详情页"},
+    {"task_id": 117, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "进入订单历史，经翻页或排序后读取最早日期"},
+    {"task_id": 132, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "找到项目贡献者活动页并限定一个日期"},
+    {"task_id": 168, "tier": "medium", "estimated_min_steps": 5, "official_hard": false, "rationale": "打开个人项目并检查星标与项目标识"},
+    {"task_id": 173, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "按标题和更新时间筛选个人议题，再读取状态"},
+    {"task_id": 183, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "按库存量筛选后台表格并收集 SKU"},
+    {"task_id": 188, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "按状态筛选订单，打开最新一单并读取总额"},
+    {"task_id": 198, "tier": "medium", "estimated_min_steps": 6, "official_hard": false, "rationale": "筛选并排序订单，再打开最新的匹配客户"},
+    {"task_id": 399, "tier": "medium", "estimated_min_steps": 6, "official_hard": true, "rationale": "打开个人资料设置，修改简介并保存"},
+
+    {"task_id": 28, "tier": "hard", "estimated_min_steps": 10, "official_hard": true, "rationale": "找到最新论坛帖子，并按作者和票数条件检查多条评论"},
+    {"task_id": 50, "tier": "hard", "estimated_min_steps": 9, "official_hard": true, "rationale": "检查一整年的分页订单并汇总数量和支出"},
+    {"task_id": 66, "tier": "hard", "estimated_min_steps": 12, "official_hard": true, "rationale": "检查十个排序帖子，并根据描述归类推荐内容"},
+    {"task_id": 68, "tier": "hard", "estimated_min_steps": 12, "official_hard": true, "rationale": "检查十个排序帖子，并从合格描述中提取两个字段"},
+    {"task_id": 108, "tier": "hard", "estimated_min_steps": 10, "official_hard": true, "rationale": "应用日期和状态条件，并汇总五个月度数量"},
+    {"task_id": 110, "tier": "hard", "estimated_min_steps": 12, "official_hard": true, "rationale": "应用日期和状态条件，并汇总十一个月度数量"},
+    {"task_id": 124, "tier": "hard", "estimated_min_steps": 9, "official_hard": true, "rationale": "搜索商品、检查结果页并计算价格区间"},
+    {"task_id": 127, "tier": "hard", "estimated_min_steps": 9, "official_hard": true, "rationale": "结合搜索词排名与独立的商品可用性检查"},
+    {"task_id": 142, "tier": "hard", "estimated_min_steps": 10, "official_hard": true, "rationale": "检查日期区间内的订单、归类商品并汇总行项目金额"},
+    {"task_id": 184, "tier": "hard", "estimated_min_steps": 9, "official_hard": true, "rationale": "筛选库存、检查变体并返回成对商品字段"},
+    {"task_id": 193, "tier": "hard", "estimated_min_steps": 8, "official_hard": true, "rationale": "排序已完成订单、检查两份详情并合计付款"},
+    {"task_id": 196, "tier": "hard", "estimated_min_steps": 12, "official_hard": true, "rationale": "检查两组各四笔订单，并计算付款差额"},
+    {"task_id": 204, "tier": "hard", "estimated_min_steps": 9, "official_hard": true, "rationale": "找到最新完成订单，并规范化、排序多个行项目"},
+    {"task_id": 506, "tier": "hard", "estimated_min_steps": 12, "official_hard": false, "rationale": "清空购物车，按预算和评分筛选品类，选择商品并结账"},
+    {"task_id": 441, "tier": "hard", "estimated_min_steps": 11, "official_hard": true, "rationale": "定位项目文件、修改标题、提交到默认分支并验证"}
+  ]
+}

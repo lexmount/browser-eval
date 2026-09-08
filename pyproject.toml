@@ -20,8 +20,15 @@ reference-audit = [
 ]
 browser-use-eval = [
   "docker>=7,<8",
+  "json-repair>=0.54,<1",
+  "pillow>=11,<13",
   "playwright>=1.52,<2",
+  "python-dotenv>=1,<2",
+  "pyyaml>=6,<7",
+  "regex>=2025.7,<2027",
+  "requests>=2.32,<3",
   "tiktoken>=0.7,<1",
+  "webarena-verified==1.2.3",
 ]
 test = [
   "pytest>=8,<10",
@@ -38,8 +45,10 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
-  "harness/browser_use/**/*.py",
-  "tests/browser_use/**/*.py",
+  "harness/browser_agent/**/*.py",
+  "harness/browser_kernel/**/*.py",
+  "tests/browser_agent/**/*.py",
+  "tests/browser_kernel/**/*.py",
 ]
 target-version = "py311"
 
@@ -47,7 +56,8 @@ target-version = "py311"
 select = ["B", "E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-"harness/browser_use/report.py" = ["E501"]
+"harness/browser_kernel/report.py" = ["E501"]
+"harness/browser_agent/report.py" = ["E501"]
 
 [build-system]
 requires = ["setuptools>=64"]

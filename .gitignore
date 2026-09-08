@@ -29,6 +29,5 @@ run.log
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-.browser-use-eval-venv/
-artifacts/browser_use/
-/docs/reports/browser-use-evaluation-*
+artifacts/browser_kernel/
+/docs/reports/browser-kernel-evaluation-*
