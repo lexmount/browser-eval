@@ -3,6 +3,8 @@ import json
 import re
 import unittest
 
+from scripts.run_headless_benchmark import require_expected_provider_versions
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -14,6 +16,21 @@ class RuntimeEntrypointTests(unittest.TestCase):
         makefile = (ROOT / "Makefile").read_text()
         self.assertIn("$(UV) run --frozen python", makefile)
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)
+        self.assertIn("sys.version_info[:2] == (3, 11)", makefile)
+
+    def test_versioned_moli_slots_reject_wrong_or_missing_binaries(self) -> None:
+        valid = {
+            "moli-1.0.6": {"reported_version": "moli 1.0.6"},
+            "moli": {"reported_version": "moli 1.1.1"},
+            "moli-1.1.3": {"reported_version": "moli 1.1.3"},
+        }
+        require_expected_provider_versions(valid)
+        for value in (None, "moli 1.1.3"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                require_expected_provider_versions({
+                    **valid,
+                    "moli": {"reported_version": value},
+                })
 
     def test_ci_uses_the_same_make_entrypoint(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()

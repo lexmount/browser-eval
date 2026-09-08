@@ -8,7 +8,7 @@ setup:
 	npm ci
 
 runtime-check:
-	@$(PY) -c 'import sys; assert sys.version_info >= (3, 11), sys.version'
+	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'
 
 test-python: runtime-check
 	$(PY) -m unittest discover -s tests -v

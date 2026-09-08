@@ -14,9 +14,28 @@ from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
 
 
+EXPECTED_PROVIDER_VERSIONS = {
+    'moli-1.0.6': '1.0.6',
+    'moli': '1.1.1',
+    'moli-1.1.3': '1.1.3',
+}
+
+
 def version_number(value):
     match = re.search(r'\d+(?:\.\d+)+', value or '')
     return match.group(0) if match else value
+
+
+def require_expected_provider_versions(identities):
+    """Fail before measurement if a versioned provider slot is mislabeled."""
+    for name, expected in EXPECTED_PROVIDER_VERSIONS.items():
+        if name not in identities:
+            continue
+        reported = version_number(identities[name].get('reported_version'))
+        if reported != expected:
+            raise ValueError(
+                f'{name}: expected version {expected}, reported '
+                f'{reported or "unavailable"}')
 
 
 def main():
@@ -52,6 +71,7 @@ def main():
             parser.error(provider.name + ': ' + ', '.join(missing))
     preflight_identities = {provider.name: provider.implementation_identity()
                             for provider in providers}
+    require_expected_provider_versions(preflight_identities)
     dataset = {**dataset, 'id': 'web-fetch-headless-browsers',
                'name': '五类浏览器、七种方法 Web Fetch 对比',
                'cases': [c for c in dataset['cases'] if c['id'] in {x.id for x in cases}],
