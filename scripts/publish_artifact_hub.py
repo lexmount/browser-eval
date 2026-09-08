@@ -12,6 +12,7 @@ sys.path.insert(0,str(ROOT))
 from harness.web_fetch.config import load_runtime_env
 load_runtime_env()
 from harness.web_fetch.artifact_auth import load_token
+from harness.web_fetch.publication_target import require_publication_site
 token=load_token()
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')
@@ -26,9 +27,11 @@ def request(path,data=None,content_type=None,auth=True,method=None):
  req=urllib.request.Request(BASE+path if path.startswith('/') else path,data=data,headers=headers,method=method)
  with urllib.request.urlopen(req,timeout=240) as response:return response.status,response.read()
 
-if receipt.exists():
- result=json.loads(receipt.read_text())
- print('Using saved publication receipt; not creating a duplicate site.',flush=True)
+if not receipt.exists():
+ raise ValueError('Current report requires its existing site receipt; refusing to create a duplicate')
+result=json.loads(receipt.read_text())
+require_publication_site(result,ROOT/'evaluation/current-report.json')
+print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if not receipt.exists() or updating:
  archive=ROOT/'publish/webfetch-sites.zip';boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check

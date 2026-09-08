@@ -24,7 +24,7 @@ SPECS={
  [('URL','string · 必填','公开 HTTP(S) 页面'),('--wait-until','string','done；可配置 networkidle / domstable 等'),('--timeout','number','毫秒；与外层进程截止时间使用同一预算'),('--block-private-networks','flag','默认启用，阻止私网地址')],
  [('stdout','UTF-8 string','原样保存 Markdown → content'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 且正文非空表示工具执行成功，任务另按规则判定'),('status_code / final_url','未提供','Markdown 模式没有这些字段，不伪造 HTTP 200 或最终 URL')],
  'moli fetch --dump markdown --wait-until done --timeout 45000 --block-private-networks "https://example.com/"',
- 'harness/web_fetch/providers/moli.py','正文用 Markdown；文件任务预先选择 --dump html，官方 CLI 对非 HTML 响应原样输出字节，保存后用统一文件规则验收。不是失败后的切换或额外下载；JSON、截图与 PDF 不在本轮范围。'),
+ 'harness/web_fetch/providers/moli.py','正文用 Markdown；直接文件任务预先选择不带 --dump 和页面等待参数的自动响应，保存原始字节后按统一文件规则验收。不是失败后的切换或额外下载。七方法报告中的直接 PDF/DOCX 正文另由 headless 适配器在同一截止预算内解析。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],

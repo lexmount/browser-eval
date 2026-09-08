@@ -79,6 +79,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             rendered=(out/'review/index.html').read_text()
             for phrase in ['当前状态','核验轮次','第 1 轮','核验协议与执行者']:
                 self.assertIn(phrase,rendered)
+            for phrase in ['代理分歧 0','已裁定 0','未决 0']:
+                self.assertIn(phrase,rendered)
+            self.assertNotIn('当前误判',rendered)
             self.assertNotIn('全部 1 条逐项核验',rendered)
             self.assertNotIn('机器失败项有证据',rendered)
             self.assertNotIn('核验 JSON',rendered)

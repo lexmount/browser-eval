@@ -73,24 +73,37 @@ class MoliWebFetchProvider(Provider):
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
-        dump = "html" if case.task_kind == "file" else "markdown"
-        command = [
-            binary,
-            "fetch",
-            "--dump",
-            dump,
-            "--wait-until",
-            wait,
-            "--timeout",
-            str(max(1, int(timeout * 1000))),
-        ]
+        file_task = case.task_kind == "file"
+        if file_task:
+            # Direct file delivery uses Moli's automatic response mode. Forcing
+            # --dump html/markdown can reject or serialize a non-HTML response
+            # before the evaluator receives the original bytes.
+            dump = None
+            command = [
+                binary,
+                "fetch",
+                "--timeout",
+                str(max(1, int(timeout * 1000))),
+            ]
+        else:
+            dump = "markdown"
+            command = [
+                binary,
+                "fetch",
+                "--dump",
+                dump,
+                "--wait-until",
+                wait,
+                "--timeout",
+                str(max(1, int(timeout * 1000))),
+            ]
         if self.config.get("block_private_networks", True):
             command.append("--block-private-networks")
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
         metadata = {
             "dump": dump,
-            "wait_until": wait,
+            "wait_until": None if file_task else wait,
             "binary": Path(binary).name,
             "block_private_networks": bool(self.config.get("block_private_networks", True)),
         }

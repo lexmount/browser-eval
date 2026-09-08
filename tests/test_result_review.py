@@ -112,6 +112,57 @@ class ResultReviewTests(unittest.TestCase):
                 rebind_unchanged_result_review(
                     path,dataset,new_bytes,dataset,(json.dumps(changed)+'\n').encode(),rebound_at='later')
 
+    def test_nonjudgmental_dataset_metadata_can_rebind_but_cases_cannot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            before={'id':'old','name':'Old','coverage_plan':{'web':['p']},
+                    'comparison':{'conversion':'old'},
+                    'cases':[{'id':'a','task_kind':'body'}]}
+            after=json.loads(json.dumps(before));after['id']='current';after['name']='Current'
+            after['comparison']['conversion']='corrected description'
+            row={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
+                 'artifact_path':'artifacts/a.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':True,'content_sha256':'a'*64}}
+            before_bytes=(json.dumps(before)+'\n').encode()
+            after_bytes=(json.dumps(after)+'\n').encode()
+            results=(json.dumps(row)+'\n').encode()
+            review={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256(before_bytes).hexdigest(),
+                'results_sha256':hashlib.sha256(results).hexdigest()},
+                'review_protocol':{'scope':'all'},
+                'attempts':[{'attempt_id':row['attempt_id'],'machine_verdict':'pass',
+                             'agent_verdict':'pass','final_verdict':'pass'}]}
+            path=root/'result-review.json';path.write_text(json.dumps(review))
+            self.assertTrue(rebind_unchanged_result_review(
+                path,before_bytes,results,after_bytes,results,rebound_at='now'))
+            rebound=json.loads(path.read_text())
+            self.assertEqual(rebound['bindings']['dataset_sha256'],hashlib.sha256(after_bytes).hexdigest())
+            self.assertEqual(
+                rebound['review_protocol']['rebound_after_nonjudgmental_metadata_change']['changed_top_level_fields'],
+                ['comparison','id','name'])
+            changed=json.loads(json.dumps(after));changed['cases'][0]['task_kind']='file'
+            with self.assertRaisesRegex(ValueError,'review inputs changed'):
+                rebind_unchanged_result_review(
+                    path,after_bytes,results,(json.dumps(changed)+'\n').encode(),results,
+                    rebound_at='later')
+            semantic=json.loads(json.dumps(after))
+            semantic['comparison']['reference_binding_mode']='relaxed'
+            with self.assertRaisesRegex(ValueError,'Comparison semantics changed'):
+                rebind_unchanged_result_review(
+                    path,after_bytes,results,(json.dumps(semantic)+'\n').encode(),results,
+                    rebound_at='later')
+            changed_row=json.loads(json.dumps(row))
+            changed_row['provider_metadata']={
+                'raw_stdout_path':'artifacts/raw.bin','raw_stdout_sha256':'b'*64,
+                'file_evaluation':{'files':[{'artifact_path':'artifacts/file.bin',
+                                             'sha256':'c'*64,'bytes':10,
+                                             'mime':'application/pdf','pass':True}]},
+            }
+            changed_results=(json.dumps(changed_row)+'\n').encode()
+            with self.assertRaisesRegex(ValueError,'Review-visible input changed'):
+                rebind_unchanged_result_review(
+                    path,after_bytes,results,after_bytes,changed_results,rebound_at='later')
+
     def test_changed_case_requires_complete_supplemental_blind_review(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); evidence=root/'evidence'; supplement=root/'supplement'

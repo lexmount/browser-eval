@@ -38,6 +38,18 @@ class ReportChangesTests(unittest.TestCase):
             self.assertNotIn('这两列怎么读',page)
             data=json.loads((out/'report-changes.json').read_text())
             self.assertEqual(len(data['releases']),len({r['id'] for r in data['releases']}))
+            self.assertGreaterEqual(len(data['review_rounds']), 5)
+            self.assertNotIn('github.com/lexmount/browser-eval/pull/6', page)
+
+    def test_review_round_log_is_required_and_structured(self):
+        from harness.web_fetch.report_changes import require_review_rounds
+        valid={'review_rounds':[{'date':'2026-09-08','title':'复核','scope':'全部结果',
+                                 'finding':'发现','fix':'修正','pending':'无'}]}
+        self.assertEqual(require_review_rounds(valid), valid['review_rounds'])
+        for invalid in ({}, {'review_rounds':[]},
+                        {'review_rounds':[{'date':'2026-09-08','title':'复核'}]}):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                require_review_rounds(invalid)
 
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}

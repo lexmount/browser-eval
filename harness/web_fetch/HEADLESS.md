@@ -48,7 +48,8 @@ client-observed end-to-end deadline. It does not claim identical internals.
 Forcing native Markdown methods through HTML conversion would replace their
 product advantage with benchmark code and answer a less useful question.
 
-Kitesurf is remote while four methods are local. Its latency includes network
+Kitesurf is remote while the other six methods are local (covering four local
+implementation families). Its latency includes network
 round trips, Cloudflare queueing and remote execution; local measurements
 include local process startup and machine contention. This is a cold-call
 client latency comparison, not an engine-only CPU/RSS benchmark. One invocation
@@ -146,6 +147,18 @@ make report-check
 
 `.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
 正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
+
+## Cross-session release gates
+
+`evaluation/current-report.json` fixes the current report's dataset ID, task
+count, seven providers, timeout, route description and destination site. Both
+the evidence checker and report builder reject a different complete cohort.
+The report also requires an exact all-attempt review binding, zero unresolved
+judgments, valid reference/scoring receipts and a nonempty top-level review-round
+log. Assembly rebinds inherited scoring history to the final dataset/results
+bytes only after the complete blind review matches those bytes. These checks are
+covered by the repository test suite; a new session must repair the evidence or
+implementation instead of bypassing them.
 
 The public destination for this comparison is the separate site
 `bWkRP157EtF6`. Do not update the older report site `UeZE1vfcEOrM`.

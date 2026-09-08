@@ -37,6 +37,12 @@ def sha256(value: str | bytes) -> str:
     return hashlib.sha256(value.encode("utf-8") if isinstance(value, str) else value).hexdigest()
 
 
+def scoring_revision_history_sha256(rows) -> str:
+    """Hash prior receipts canonically so an assembled receipt forms a verifiable chain."""
+    payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+    return sha256(payload)
+
+
 def timestamp(value) -> datetime:
     try:
         parsed = value if isinstance(value, datetime) else datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -436,10 +442,32 @@ def valid_scoring_revision(source) -> bool:
         return False
     current_dataset = sha256((root/'dataset.json').read_bytes())
     current_results = sha256((root/'results.jsonl').read_bytes())
+    review_path = root/'result-review.json'
+    review_hash = sha256(review_path.read_bytes()) if review_path.is_file() else None
+    assembled_review_valid = False
+    if review_path.is_file():
+        try:
+            from .result_review import require_result_review
+            dataset = json.loads((root/'dataset.json').read_text())
+            records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+            assembled_review_valid = require_result_review(root, dataset, records) is not None
+        except (OSError, ValueError, TypeError, KeyError, StopIteration):
+            assembled_review_valid = False
+
+    def valid_assembled_binding(row, index):
+        source_hash = row.get('source_scoring_receipts_sha256')
+        return (row.get('kind') == 'audited_assembled_scoring_revision'
+                and assembled_review_valid
+                and isinstance(source_hash, str)
+                and re.fullmatch(r'[0-9a-f]{64}', source_hash) is not None
+                and source_hash == scoring_revision_history_sha256(rows[:index])
+                and row.get('independent_result_review_sha256') == review_hash)
+
     return any(
         isinstance(row, dict)
-        and row.get('kind') in {'audited_body_scoring_revision',
-                                'audited_scoring_rule_revision'}
+        and (row.get('kind') in {'audited_body_scoring_revision',
+                                 'audited_scoring_rule_revision'}
+             or valid_assembled_binding(row, index))
         and row.get('provider_calls') == 0
         and row.get('output_dataset_sha256') == current_dataset
         and row.get('output_results_sha256') == current_results
@@ -451,7 +479,7 @@ def valid_scoring_revision(source) -> bool:
                     'acceptance_contract',
                 }
                 for change in row['changed_cases'])
-        for row in rows if isinstance(rows, list)
+        for index, row in enumerate(rows) if isinstance(rows, list)
     )
 
 

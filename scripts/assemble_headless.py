@@ -7,14 +7,21 @@ import json
 from pathlib import Path
 import shutil
 import sys
+import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.reference_lifecycle import (
     require_verified_reference_checks, requires_fresh_reference,
-    valid_scoring_revision, reference_revision_cases,
+    valid_scoring_revision, reference_revision_cases, scoring_revision_history_sha256,
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.result_review import require_result_review
+
+
+ALLOWED_REVISION_FIELDS = {
+    'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
+}
 
 
 def read_records(root):
@@ -31,6 +38,47 @@ def copy_bound_review(source, output):
             or bindings.get('results_sha256') != hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest()):
         return False
     shutil.copy2(prior,output/'result-review.json')
+    return True
+
+
+def bind_assembled_scoring_revision(output):
+    """Bind inherited scoring history to exact assembled bytes and full blind review."""
+    path=output/'scoring-revisions.json'
+    review_path=output/'result-review.json'
+    if not path.is_file() or not review_path.is_file():return False
+    dataset=json.loads((output/'dataset.json').read_text())
+    records=read_records(output)
+    require_result_review(output,dataset,records)
+    if valid_scoring_revision(output):return False
+    original=path.read_bytes();history=json.loads(original)
+    changed={};decisions={}
+    for row in history:
+        if (not isinstance(row,dict) or row.get('provider_calls') != 0
+                or row.get('kind') not in {'audited_body_scoring_revision',
+                                           'audited_scoring_rule_revision',
+                                           'audited_assembled_scoring_revision'}):
+            raise ValueError('Invalid inherited scoring revision history')
+        for change in row.get('changed_cases',[]):
+            if set(change.get('fields',()))-ALLOWED_REVISION_FIELDS:
+                raise ValueError('Inherited scoring revision changes unsupported fields')
+            changed[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
+        for change in row.get('task_decision_changes',[]):
+            decisions[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
+    history.append({
+        'kind':'audited_assembled_scoring_revision',
+        'scored_at':datetime.now().astimezone().isoformat(),
+        'input_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
+        'input_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+        'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
+        'output_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
+        'changed_cases':list(changed.values()),
+        'task_decision_changes':list(decisions.values()),
+        'provider_calls':0,
+        'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
+        'source_scoring_receipts_sha256':scoring_revision_history_sha256(history),
+        'independent_result_review_sha256':hashlib.sha256(review_path.read_bytes()).hexdigest(),
+    })
+    path.write_text(json.dumps(history,ensure_ascii=False,indent=2)+'\n')
     return True
 
 
@@ -111,8 +159,8 @@ def _prune_shadowed_batch_attempts(batches, records):
     return result
 
 
-def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
-             provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
+def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
+              provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
     additions = additions or []
     provider_replacements = provider_replacements or []
     provider_additions = provider_additions or []
@@ -390,6 +438,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
         }
         (output/'reference-revisions.json').write_text(json.dumps([consolidated],ensure_ascii=False,indent=2)+'\n')
     copy_bound_review(run,output)
+    bind_assembled_scoring_revision(output)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')
@@ -398,6 +447,25 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures')
     print('Assembled',len(records),'calls; publication:',dataset['comparison']['publication_state'],'unverified:',failed)
+
+
+def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
+             provider_additions=None, speed_cohort=None, canonical_dataset=None, retain_unverified=False):
+    """Build and verify in a sibling staging directory, then publish atomically."""
+    if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
+    output.parent.mkdir(parents=True,exist_ok=True)
+    work=Path(tempfile.mkdtemp(prefix='.'+output.name+'-',dir=output.parent))
+    staging=work/'evidence'
+    try:
+        _assemble(run,certificates,replacements,staging,additions=additions,
+            provider_replacements=provider_replacements,provider_additions=provider_additions,
+            speed_cohort=speed_cohort,canonical_dataset=canonical_dataset,
+            retain_unverified=retain_unverified)
+        staging.replace(output)
+        work.rmdir()
+    except BaseException:
+        shutil.rmtree(work,ignore_errors=True)
+        raise
 
 
 if __name__=='__main__':

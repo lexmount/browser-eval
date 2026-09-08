@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "dataset_id": "web-fetch-headless-browsers",
+  "comparison_kind": "headless_markdown",
+  "case_count": 150,
+  "providers": [
+    "kitesurf",
+    "lightpanda",
+    "obscura",
+    "moli-1.0.6",
+    "moli",
+    "moli-1.1.3",
+    "chromium"
+  ],
+  "timeout_seconds": 45,
+  "runs_per_case": 1,
+  "concurrency": 5,
+  "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
+  "publication_state": "verified",
+  "unverified_reference_cases": [],
+  "require_independent_result_review": true,
+  "conversion": "Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0",
+  "artifact_hub_site": "bWkRP157EtF6"
+}

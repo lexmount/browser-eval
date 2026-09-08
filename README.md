@@ -35,7 +35,7 @@ summary and report from an existing `attempts.jsonl` without rerunning the
 browsers, use:
 
 ```bash
-uv run python examples/browser_use/rebuild_report.py
+uv run --frozen python examples/browser_use/rebuild_report.py
 ```
 
 See [examples/browser_use/README.md](examples/browser_use/README.md) for the
@@ -85,7 +85,7 @@ make test
 
 参考与评分规则更新时，依次执行 `uv run --frozen python scripts/prepare_references.py`、`uv run --frozen python scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
 
-采用统计用 `python3 research/search_method_adoption.py` 发现候选，再统一核验；`python3 research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
+采用统计用 `uv run --frozen python research/search_method_adoption.py` 发现候选，再统一核验；`uv run --frozen python research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
 
 `reports/` 和 `publish/` 是可重建产物及本地发布回执，不提交 Git；发布凭据不得写入仓库。
 

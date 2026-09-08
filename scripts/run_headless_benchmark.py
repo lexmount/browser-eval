@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.providers import build_provider
+from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
 from harness.web_fetch.runner import run_evaluation
 
 
@@ -79,7 +80,7 @@ def main():
                'comparison': {'kind': 'headless_markdown', 'timeout_seconds': args.timeout,
                    'source_dataset_sha256': hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
                    'adapter_input_sha256': hashlib.sha256((ROOT/'scripts/headless_worker.py').read_bytes()).hexdigest(),
-               'conversion': 'Native Markdown for Kitesurf, Lightpanda, Obscura and three measured Moli versions; direct Moli documents/media use automatic raw output; Chromium whole-DOM HTML via node-html-markdown 2.0.0',
+               'conversion': HEADLESS_CONVERSION,
                    'concurrency': args.workers, 'runs_per_case': 1}}
     records, _ = run_evaluation(output_dir=args.output, dataset_meta=dataset,
         dataset_path=args.dataset, cases=cases, providers=providers,

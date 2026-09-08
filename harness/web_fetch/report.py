@@ -827,22 +827,29 @@ def write_review_page(out,records):
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
  audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
- current_fn=[x for x in audit['attempts'] if x.get('machine_verdict')=='fail' and x.get('final_verdict')=='pass']
- current_fp=[x for x in audit['attempts'] if x.get('machine_verdict')=='pass' and x.get('final_verdict')=='fail']
  speed_audit={}
  speed_path=out/'speed-cohort/result-review.json'
  if speed_path.is_file():speed_audit=json.loads(speed_path.read_text())
  metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
- release=json.loads(metadata_path.read_text())['releases'][0] if metadata_path.is_file() else {}
- rounds=release.get('review_rounds',[])
+ if not metadata_path.is_file():
+  raise ValueError('A reviewed report requires research/report-changes.json')
+ changes=json.loads(metadata_path.read_text())
+ from .report_changes import require_review_rounds
+ rounds=require_review_rounds(changes)
  rounds_html=''.join(
-  f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>修正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>结果：</b>{esc(row.get("result",""))}</p></div></article>'
+  f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>范围：</b>{esc(row.get("scope",""))}</p><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>纠正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>未完成：</b>{esc(row.get("pending",""))}</p></div></article>'
   for i,row in enumerate(rounds,1))
  page=hero('核验记录','记录每轮核验的范围、发现、纠正和未决事项。')
- conclusion=(f'<p class="callout success"><b>当前状态：</b>主结果 {audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
-             f'同窗测速 {speed_audit.get("reviewed_attempts",0):,}/{speed_audit.get("expected_attempts",0):,}；当前误判 {len(current_fn)+len(current_fp)}；未决 {audit.get("unresolved",0)}。</p>')
+ reviewed_attempts=audit.get('attempts',[])+speed_audit.get('attempts',[])
+ disagreements=[row for row in reviewed_attempts
+                if row.get('agent_verdict') != row.get('machine_verdict')]
+ adjudicated=[row for row in disagreements if row.get('final_verdict') in {'pass','fail'}]
+ unresolved=audit.get('unresolved',0)+speed_audit.get('unresolved',0)
+ conclusion=(f'<p class="callout success">主结果 {audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
+             f'同窗测速 {speed_audit.get("reviewed_attempts",0):,}/{speed_audit.get("expected_attempts",0):,}；'
+             f'代理分歧 {len(disagreements)}；已裁定 {len(adjudicated)}；未决 {unresolved}。</p>')
  page+=section('当前状态',conclusion)
- page+=section('核验轮次','<p>每轮只列影响正式结论的问题。</p><div class="review-rounds">'+rounds_html+'</div>')
+ page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
  method=(f'<details class="technical-details"><summary>核验协议与执行者</summary><p>执行者：{esc(reviewer.get("agent","独立代理"))}；模型：{esc(reviewer.get("model","—"))}；推理强度：{esc(reviewer.get("effort","—"))}。'
          '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')
  page+=section('核验口径',method)

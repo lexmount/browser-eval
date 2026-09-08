@@ -4,7 +4,12 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.report_build import build_report
-from harness.web_fetch.storage import current_evidence_dir,require_canonical_inputs,require_evidence
+from harness.web_fetch.storage import (
+    current_evidence_dir,
+    require_canonical_inputs,
+    require_current_report_profile,
+    require_evidence,
+)
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
@@ -13,4 +18,5 @@ if __name__ == '__main__':
     args=parser.parse_args()
     evidence=require_evidence(args.evidence)
     require_canonical_inputs(evidence,ROOT/'evaluation')
+    require_current_report_profile(evidence,ROOT/'evaluation/current-report.json')
     print(build_report(evidence,args.output))
