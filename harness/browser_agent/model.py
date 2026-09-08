@@ -146,6 +146,18 @@ class AstraResponsesModel:
     def _normalized_reasoning_effort(self) -> str:
         return self.reasoning_effort
 
+    def verify_access(self) -> None:
+        """Fail before benchmark attempts if the configured project cannot access the model."""
+        response = self.session.get(
+            f"{self.base_url}/models/{self.model}",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get("id") != self.model:
+            raise ValueError(f"model lookup returned an unexpected id: {payload.get('id')!r}")
+
     def call_stream(self, request: Any) -> Iterable[dict[str, Any]]:
         messages = list(request.messages or [])
         if self._previous_response_id:

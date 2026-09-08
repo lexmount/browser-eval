@@ -49,6 +49,9 @@ class _Session:
             }
         )
 
+    def get(self, _url, **_kwargs):
+        return _Response({"id": "gpt-6-astra"})
+
 
 def test_translates_tool_round_trip() -> None:
     messages = [
@@ -154,3 +157,9 @@ def test_model_rejects_malformed_success_payload() -> None:
 
     with pytest.raises(ValueError, match="non-empty id"):
         list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))
+
+
+def test_model_access_preflight_checks_exact_model() -> None:
+    model = AstraResponsesModel(api_key="test", session=_Session())
+
+    model.verify_access()

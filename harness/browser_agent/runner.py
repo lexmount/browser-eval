@@ -428,6 +428,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         model=args.model,
         reasoning_effort="low",
     )
+    model.verify_access()
 
     client = docker.from_env()
     run_id = uuid.uuid4().hex[:12]
