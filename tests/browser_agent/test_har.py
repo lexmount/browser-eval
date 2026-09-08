@@ -106,3 +106,32 @@ def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
 
     content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
     assert content == {"mimeType": "application/json", "text": '{"items_qty":1}'}
+
+
+def test_invalid_base64_is_not_written_as_plain_json(tmp_path) -> None:
+    class Session:
+        def send(self, _method, _params):
+            return {"body": "not valid base64!", "base64Encoded": True}
+
+        def detach(self):
+            pass
+
+    session = Session()
+    recorder = CdpHarRecorder()
+    recorder._sessions.append(session)
+    recorder._finished.add((id(session), "1"))
+    recorder._responses.append(
+        (
+            session,
+            "1",
+            {"method": "GET", "url": "http://example.test/totals", "headers": {}},
+            {"status": 200, "mimeType": "application/json", "headers": {}},
+        )
+    )
+    path = tmp_path / "network.har"
+
+    recorder.stop(object(), path)
+
+    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    assert content["text"] == ""
+    assert recorder.errors

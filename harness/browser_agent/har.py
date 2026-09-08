@@ -123,6 +123,7 @@ class CdpHarRecorder:
                         self.errors.append(
                             f"{request.get('url')}: response body unavailable: {exc}"
                         )
+                        body = None
                 entries.append(
                     {"request": _har_request(request), "response": _har_response(response, body)}
                 )
