@@ -1,7 +1,7 @@
 """Assemble exact headless measurements, never selecting retries by score."""
 import argparse
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
@@ -50,7 +50,7 @@ def bind_assembled_scoring_revision(output):
     records=read_records(output)
     require_result_review(output,dataset,records)
     if valid_scoring_revision(output):return False
-    original=path.read_bytes();history=json.loads(original)
+    history=json.loads(path.read_bytes())
     changed={};decisions={}
     for row in history:
         if (not isinstance(row,dict) or row.get('provider_calls') != 0
@@ -66,7 +66,7 @@ def bind_assembled_scoring_revision(output):
             decisions[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
     history.append({
         'kind':'audited_assembled_scoring_revision',
-        'scored_at':datetime.now().astimezone().isoformat(),
+        'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
         'input_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
         'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
@@ -425,7 +425,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 for row in revision_rows}
         consolidated={
             'kind':'audited_reference_correction',
-            'corrected_at':datetime.now().astimezone().isoformat(),
+            'corrected_at':datetime.now(timezone.utc).isoformat(),
             'output_dataset_sha256':hashlib.sha256((output/'dataset.json').read_bytes()).hexdigest(),
             'output_results_sha256':hashlib.sha256((output/'results.jsonl').read_bytes()).hexdigest(),
             'changed_cases':list(unique.values()),
