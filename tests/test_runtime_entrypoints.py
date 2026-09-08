@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class RuntimeEntrypointTests(unittest.TestCase):
     def test_repository_pins_python_and_uv(self) -> None:
         self.assertEqual((ROOT / ".python-version").read_text().strip(), "3.11")
+        self.assertTrue((ROOT / "uv.lock").is_file())
         makefile = (ROOT / "Makefile").read_text()
         self.assertIn("$(UV) run --frozen python", makefile)
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)

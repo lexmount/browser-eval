@@ -32,4 +32,3 @@ run.log
 .browser-use-eval-venv/
 artifacts/browser_use/
 /docs/reports/browser-use-evaluation-*
-uv.lock
