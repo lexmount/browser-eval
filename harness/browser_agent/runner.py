@@ -177,11 +177,19 @@ def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
 
 
 def _login_context(
-    service: Any, sites: tuple[WebArenaSite, ...], benchmark: WebArenaVerified
+    service: Any,
+    sites: tuple[WebArenaSite, ...],
+    benchmark: WebArenaVerified,
+    start_urls: list[str],
 ) -> None:
     def login() -> None:
         context = service._context
         assert context is not None
+        primary_page = service._page
+        assert primary_page is not None
+        for existing_page in context.pages:
+            if existing_page != primary_page:
+                existing_page.close()
         context.clear_cookies()
         context.set_extra_http_headers(
             {
@@ -226,6 +234,10 @@ def _login_context(
                 page.wait_for_timeout(1_000)
             finally:
                 page.close()
+        primary_page.set_default_timeout(60_000)
+        primary_page.set_default_navigation_timeout(90_000)
+        primary_page.goto(start_urls[0], wait_until="domcontentloaded")
+        primary_page.wait_for_timeout(500)
 
     service._submit(login)
 
@@ -296,6 +308,7 @@ def _run_attempt(  # noqa: PLR0913
 ) -> dict[str, Any]:
     task = benchmark.get_task(selected.task_id)
     sites = tuple(task.sites)
+    start_urls = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
     _prepare_sites(sites)
 
     if str(cowagent_repo) not in sys.path:
@@ -332,7 +345,7 @@ def _run_attempt(  # noqa: PLR0913
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
-        _login_context(service, sites, benchmark)
+        _login_context(service, sites, benchmark, start_urls)
         service._submit(
             lambda: (
                 recorder.start(service._context),
@@ -355,7 +368,6 @@ def _run_attempt(  # noqa: PLR0913
         # CowAgent rebuilds its base prompt at run time; the suffix is the supported
         # way to retain benchmark-specific completion and output constraints.
         agent.extra_system_suffix = _system_prompt()
-        start_urls = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
         raw_response = agent.run_stream(
             _user_prompt(task, start_urls), on_event=events.append, clear_history=True
         )
