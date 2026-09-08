@@ -46,3 +46,16 @@ def test_recorder_retains_redirect_response_before_request_id_is_reused() -> Non
     assert recorder._responses[0][2]["method"] == "POST"
     assert recorder._responses[0][3]["status"] == 302
     assert recorder._requests[(7, "1")]["method"] == "GET"
+
+
+def test_document_request_has_navigation_accept_fallback() -> None:
+    request = _har_request(
+        {
+            "method": "GET",
+            "url": "http://example.test/page",
+            "headers": {},
+            "__resource_type": "Document",
+        }
+    )
+
+    assert {item["name"]: item["value"] for item in request["headers"]}["Accept"] == "text/html"

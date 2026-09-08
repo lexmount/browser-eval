@@ -130,6 +130,40 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     )
     if not ready.success:
         raise RuntimeError(f"{site.value} did not become ready: {ready.message}")
+    _wait_application_ready(site, manager.config.health_check_path)
+
+
+def _wait_application_ready(
+    site: WebArenaSite,
+    health_path: str,
+    *,
+    timeout_seconds: float = 300,
+    stable_responses: int = 3,
+) -> None:
+    """Require a stable app endpoint after env-ctrl reports ready.
+
+    GitLab's control process can report ready during the Puma handover performed
+    by container initialization. A single successful request can therefore be
+    followed by a run of 502 responses. Consecutive app-level responses prevent
+    that startup race from consuming an Agent attempt.
+    """
+    port = SITE_PORTS[site][0]
+    url = f"http://127.0.0.1:{port}{health_path}"
+    deadline = time.monotonic() + timeout_seconds
+    consecutive = 0
+    last_detail = "no response"
+    while time.monotonic() < deadline:
+        try:
+            response = requests.get(url, timeout=15, allow_redirects=True)
+            last_detail = f"HTTP {response.status_code}"
+            consecutive = consecutive + 1 if response.status_code < 500 else 0
+            if consecutive >= stable_responses:
+                return
+        except requests.RequestException as exc:
+            consecutive = 0
+            last_detail = str(exc)
+        time.sleep(2)
+    raise RuntimeError(f"{site.value} application was not stably ready: {last_detail}")
 
 
 def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:

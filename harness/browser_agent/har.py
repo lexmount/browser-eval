@@ -13,7 +13,13 @@ def _headers(values: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def _har_request(request: dict[str, Any]) -> dict[str, Any]:
-    headers = request.get("headers", {})
+    headers = dict(request.get("headers", {}))
+    if request.get("__resource_type") == "Document" and not any(
+        name.lower() == "accept" for name in headers
+    ):
+        # CDP marks the request as a top-level document even when a browser
+        # implementation omits default Accept headers from requestWillBeSent.
+        headers["Accept"] = "text/html"
     result: dict[str, Any] = {
         "method": str(request["method"]),
         "url": str(request["url"]),
@@ -62,6 +68,8 @@ class CdpHarRecorder:
         self._context: Any = None
         self._sessions: list[Any] = []
         self._requests: dict[tuple[int, str], dict[str, Any]] = {}
+        self._request_ordinals: dict[tuple[int, str], int] = {}
+        self._extra_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
         self._responses: list[tuple[Any, str, dict[str, Any], dict[str, Any]]] = []
         self._finished: set[tuple[int, str]] = set()
         self.errors: list[str] = []
@@ -83,6 +91,11 @@ class CdpHarRecorder:
         for index, (session, request_id, request, response) in enumerate(self._responses):
             body = None
             key = (id(session), request_id)
+            request = dict(request)
+            ordinal = int(request.pop("__ordinal", 0))
+            extras = self._extra_headers.get(key, [])
+            if ordinal < len(extras):
+                request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
             mime_type = str(response.get("mimeType") or "")
             if (
                 index == last_response_by_key[key]
@@ -132,6 +145,12 @@ class CdpHarRecorder:
                 lambda event: self._record_response(session, session_index, event),
             )
             session.on(
+                "Network.requestWillBeSentExtraInfo",
+                lambda event: self._extra_headers.setdefault(
+                    (session_index, str(event["requestId"])), []
+                ).append(event.get("headers", {})),
+            )
+            session.on(
                 "Network.loadingFinished",
                 lambda event: self._finished.add((session_index, str(event["requestId"]))),
             )
@@ -147,7 +166,12 @@ class CdpHarRecorder:
         redirect_response = event.get("redirectResponse")
         if previous is not None and redirect_response is not None:
             self._responses.append((session, request_id, dict(previous), redirect_response))
-        self._requests[key] = event["request"]
+        ordinal = self._request_ordinals.get(key, 0)
+        self._request_ordinals[key] = ordinal + 1
+        request = dict(event["request"])
+        request["__ordinal"] = ordinal
+        request["__resource_type"] = event.get("type")
+        self._requests[key] = request
 
     def _record_response(self, session: Any, session_index: int, event: dict[str, Any]) -> None:
         request_id = str(event["requestId"])
