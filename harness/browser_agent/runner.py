@@ -105,6 +105,18 @@ def _cdp_metadata(http_endpoint: str) -> dict[str, str]:
     }
 
 
+def _docker_image_metadata(image: Any) -> dict[str, Any]:
+    attrs = image.attrs
+    return {
+        "id": image.id,
+        "tags": image.tags,
+        "repo_digests": attrs.get("RepoDigests") or [],
+        "architecture": attrs.get("Architecture"),
+        "os": attrs.get("Os"),
+        "size_bytes": attrs.get("Size"),
+    }
+
+
 def _configure_benchmark(hostname: str = "host.docker.internal") -> WebArenaVerified:
     environments = {
         site: EnvironmentConfig(
@@ -527,6 +539,19 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     run_config_file = output_dir / "run-config.json"
     completed = _load_completed_attempts(attempts_file)
     image_metadata: dict[str, dict[str, Any]] = {}
+    site_image_metadata = {
+        site.value: {
+            "reference": ContainerManager(
+                site=site, hostname="host.docker.internal"
+            ).config.docker_img,
+            **_docker_image_metadata(
+                client.images.get(
+                    ContainerManager(site=site, hostname="host.docker.internal").config.docker_img
+                )
+            ),
+        }
+        for site in SITE_PORTS
+    }
     browser_metadata: dict[str, dict[str, str]] = {}
     docker_info: dict[str, Any] = {}
     try:
@@ -543,10 +568,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             )
             containers[engine] = container
             container.reload()
-            image_metadata[engine] = {
-                "id": container.image.id,
-                "tags": container.image.tags,
-            }
+            image_metadata[engine] = _docker_image_metadata(container.image)
             http_endpoint = _published_endpoint(
                 container, engine=engine, cdp_port=ENGINE_PORTS[engine]
             )
@@ -562,6 +584,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "model": args.model,
                 "reasoning_effort": "low",
                 "browser_images": image_metadata,
+                "site_images": site_image_metadata,
                 "browser_versions": browser_metadata,
                 "docker_context": subprocess.run(
                     ["docker", "context", "show"],
@@ -636,6 +659,18 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             except Exception:
                 pass
 
+    evaluator_provenance: dict[str, Any] = {}
+    for row in completed.values():
+        eval_path = Path(str((row.get("paths") or {}).get("evaluation") or ""))
+        if eval_path.is_file():
+            eval_data = json.loads(eval_path.read_text(encoding="utf-8"))
+            evaluator_provenance = {
+                "version": eval_data.get("webarena_verified_version"),
+                "evaluator_checksum": eval_data.get("webarena_verified_evaluator_checksum"),
+                "data_checksum": eval_data.get("webarena_verified_data_checksum"),
+            }
+            break
+
     manifest = {
         "schema": "lex_browser_agent_manifest/1",
         "run_id": run_id,
@@ -665,6 +700,8 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "webarena_verified_version": importlib.metadata.version("webarena-verified"),
             "browser_images": image_metadata,
             "browser_versions": browser_metadata,
+            "site_images": site_image_metadata,
+            "official_evaluator": evaluator_provenance,
         },
     }
     (output_dir / "manifest.json").write_text(

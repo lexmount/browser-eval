@@ -65,3 +65,65 @@ def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) 
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert data["summary"]["chromium"]["score"] == 0
     assert data["summary"]["chromium"]["recovered"] == 1
+
+
+def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
+    evidence = tmp_path / "evidence"
+    output = tmp_path / "report"
+    evidence.mkdir()
+    (evidence / "run-config.json").write_text(
+        json.dumps({"docker_context": "isolated-eval"}), encoding="utf-8"
+    )
+    (evidence / "manifest.json").write_text(
+        json.dumps(
+            {
+                "protocol": {
+                    "cowagent_commit": "abc123",
+                    "model": "gpt-6-astra",
+                    "reasoning_effort": "low",
+                },
+                "environment": {
+                    "docker_architecture": "aarch64",
+                    "docker_server_version": "28.0",
+                    "webarena_verified_version": "1.2.3",
+                    "official_evaluator": {
+                        "evaluator_checksum": "eval-checksum",
+                        "data_checksum": "data-checksum",
+                    },
+                    "browser_versions": {
+                        "chromium": {"Browser": "Chrome/151"},
+                        "moli": {"Browser": "Moli/1.1.3"},
+                    },
+                    "browser_images": {
+                        "chromium": {"architecture": "arm64", "id": "sha256:chrome"},
+                        "moli": {"architecture": "arm64", "id": "sha256:moli"},
+                    },
+                    "site_images": {
+                        "reddit": {
+                            "reference": "official/reddit:latest",
+                            "repo_digests": ["official/reddit@sha256:site"],
+                        }
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = build_report(
+        evidence=evidence,
+        output=output,
+        selection_path=Path("evaluation/browser-agent/webarena-verified-pilot.json"),
+    )
+    text = report.read_text(encoding="utf-8")
+
+    for expected in (
+        "abc123",
+        "gpt-6-astra · reasoning=low",
+        "eval-checksum",
+        "data-checksum",
+        "Chrome/151",
+        "Moli/1.1.3",
+        "official/reddit@sha256:site",
+    ):
+        assert expected in text
