@@ -30,14 +30,15 @@ ROUTE_LABELS={
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
 JS=r'''
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.setItem('webfetch-theme',t)}
-function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=`显示 ${count} 条`}
+function tr(zh,en){return document.documentElement?.lang==='en'?en:zh}
+function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=tr(`显示 ${count} 条`,`Showing ${count}`)}
 function paintSort(t){let col=Number(t.dataset.col);[...t.tHead.rows[0].cells].forEach((h,i)=>{h.classList.toggle('sorted',i===col);h.removeAttribute('aria-sort')});t.tHead.rows[0].cells[col].setAttribute('aria-sort',t.dataset.dir==='asc'?'ascending':'descending');[...t.tBodies[0].rows].forEach(r=>[...r.cells].forEach((c,i)=>c.classList.toggle('sorted',i===col)))}
-function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,'zh-CN'):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t)}
+function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t)}
 function chooseTab(group,key){let box=document.getElementById(group);if(!box)return;box.querySelectorAll(':scope > .tab-bar > button').forEach(b=>{let on=b.dataset.tab===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});box.querySelectorAll(':scope > [role="tabpanel"]').forEach(p=>p.hidden=p.dataset.panel!==key)}
 function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;let bs=[...document.getElementById(group).querySelectorAll(':scope > .tab-bar > button')],i=bs.indexOf(event.target);i=event.key==='Home'?0:event.key==='End'?bs.length-1:(i+(event.key==='ArrowRight'?1:-1)+bs.length)%bs.length;event.preventDefault();chooseTab(group,bs[i].dataset.tab);bs[i].focus()}
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
 function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
-function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?`找到 ${shown} 个任务`:'请至少选择一个对比方法'}
+function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
 function applyReportAnchor(anchor){if(!anchor)return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
 window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));document.querySelectorAll('[data-compare-method],[data-compare-control]').forEach(e=>e.addEventListener('change',compareMethods));cascadeFilters();compareMethods();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
 window.addEventListener('hashchange',()=>applyReportAnchor(location.hash.slice(1)));
@@ -102,16 +103,12 @@ _RELIABILITY_BANNER=''
 
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
- english=Path(path).parts[0]=='en'
- if english:
-  nav=[('index.html#results','Results'),('index.html#scope','Scope'),('index.html#method','Method'),('index.html#review','Review'),('index.html#access','Access'),('index.html#evidence','Evidence')]
-  brand=link('index.html','Web Fetch');language=link('../index.html','中文');theme='Theme'
-  footer='Scores are computed from the recorded calls. Web pages and services may change; conclusions apply only to this sample and configuration.'
- else:
-  nav=[('index.html','首页'),('guide/index.html','报告解读'),('changes/index.html','变更记录'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('accounts/index.html','账号与安装')]
-  brand=link(base+'index.html','Web Fetch 评测');language=link(base+'en/index.html','English');theme='切换主题'
-  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
- page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link((url if english else base+url),label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">{theme}</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
+ brand=link(base+'index.html','Web Fetch')
+ counterpart=base+'en/'+path
+ language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
+ footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 def succeeded(r,c):
@@ -605,7 +602,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  cards=''
  for track,label in TRACKS.items():
   cards+=overview_card(records,cases,track,label,names)
- home='<div class="home-page">'+hero('Web Fetch 评测',f'{len(cases)} 个案例 · {len(names)} 种方法 · 六类分榜与一个综合通过率总榜。')
+ home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · 六类分榜与一个综合通过率总榜。')
  from .report_explainer import article_title,render_explainer
  TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
@@ -619,7 +616,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  home+=section('六类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
  home+=section('六类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
- write(out,'index.html','首页',home+'</div>')
+ write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',list(TRACKS.items())),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
  for c in cases.values():
@@ -865,50 +862,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
  write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
  write_support(out,records,manifests)
- write_english_edition(out,cases,records)
  from .report_changes import render_changes
  render_changes(out,cases,records)
+ from .report_i18n import write_english_report
+ write_english_report(out)
  return out/'index.html'
-
-
-def write_english_edition(out,cases,records):
- names=sorted({r['provider'] for r in records},key=lambda value:(-sum(succeeded(r,cases[r['case_id']]) for r in records if r['provider']==value),provider_label(value)))
- method_rows=[]
- for name in names:
-  rows=[r for r in records if r['provider']==name]
-  passed=sum(succeeded(r,cases[r['case_id']]) for r in rows)
-  request_ok=sum(bool(r.get('ok')) for r in rows)
-  values=[]
-  for track in TRACKS:
-   group=[r for r in rows if cases[r['case_id']].get('track','web')==track]
-   values.append(f'{sum(succeeded(r,cases[r["case_id"]]) for r in group)}/{len(group)}')
-  method_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(f'{passed}/{len(rows)}')+cell(f'{request_ok}/{len(rows)}')+''.join(cell(value) for value in values)))
- review_path=out/'result-review.json'
- review=json.loads(review_path.read_text()) if review_path.is_file() else {}
- reviewed=review.get('reviewed_attempts',0);expected=review.get('expected_attempts',0);unresolved=review.get('unresolved',0)
- speed=''
- speed_path=out/'speed-cohort/result-review.json'
- if speed_path.is_file():
-  sr=json.loads(speed_path.read_text());speed=f' The matched-window cohort was also reviewed {sr.get("reviewed_attempts",0)}/{sr.get("expected_attempts",0)}.'
- access_rows=[]
- for name in (name for name in names if name in HEADLESS_ACCESS):
-  access=HEADLESS_ACCESS[name]
-  requirement=('Cloudflare Browser Run account and API token with Browser Rendering permission.' if name=='kitesurf' else 'No supplier account or API key; local binary.')
-  official='<br>'.join(link(url,'Official source'+(f' {i}' if len(access['links'])>1 else '')) for i,(_,url) in enumerate(access['links'],1))
-  access_rows.append(('',cell(provider_label(name))+cell(requirement)+cell(official)+cell('<br>'.join('<code>'+esc(v)+'</code>' for v in access['env_vars']))))
- body='<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · Measured benchmark</div><h1>Seven browser methods, one evidence base</h1><p class="lead">Kitesurf, Lightpanda, Obscura, three Moli releases, and Chromium were tested on the same 150-task suite. This English edition shares the exact calls, scores, hashes, and downloadable evidence with the Chinese report; source answers and provider outputs remain in their original language.</p></div></section>'
- review_status=(f'{reviewed}/{expected} main results were independently reviewed by Codex, with {unresolved} unresolved.'
-                if review else 'This build has no bound independent-review record.')
- body+=section('Results',f'<p class="callout success"><b>{len(records):,}/{len(records):,} planned calls were recorded and judged; {review_status}</b></p>'+table(['Method','Task pass','Request success','General web','Rendered web','Popular sites','Documents','Images','Video'],method_rows,cls='english-results',metrics=[],index_header='No.'),'results')
- body+=section('Scope','<p>The suite contains 100 general web-body tasks and 10 tasks in each of five focused families: rendered pages, popular sites, document text, image retrieval, and video retrieval. Family scores are not comparable across columns because their acceptance contracts differ. The overall pass rate is a coverage summary, not a universal browser-quality score.</p><p>Every method receives the same URL, task contract, frozen reference scope, and 45-second end-to-end budget. Each method may use its fastest documented native route: native Markdown where available, automatic raw responses for direct files, and rendered DOM plus node-html-markdown for Chromium.</p>','scope')
- body+=section('How tasks are judged','<p>Binary task acceptance and continuous text overlap are separate. Stable facts and record shape decide whether the requested task was completed; full-text completeness, precision, and F1 are diagnostics only where an independently frozen full reference exists. PDF, DOCX, image, and video byte-delivery tasks are judged as files and are not forced through Markdown.</p><p>Formatting-only differences are normalized only where field boundaries remain recoverable. Challenge pages, verification screens, mojibake, missing document bodies, and links without required bytes remain failures. Timing starts immediately before the provider call and stops only after the final deliverable is ready for the shared scorer.</p>','method')
- review_copy=(f'Codex reviewed the complete task contract, reference, and saved output for every authoritative result before seeing the machine verdict. Coverage: <b>{reviewed}/{expected}</b>; unresolved: <b>{unresolved}</b>.{speed}'
-              if review else 'No independent-review record is bound to this build.')
- body+=section('Independent review',f'<p>{review_copy} One logical result remains authoritative for each method and task. Documented corrections may replace it without erasing earlier physical attempts; a fixed scope and final-round rule prevent best-of selection.</p><p>{link("../review/index.html","Open the review rounds and corrections →")}</p>','review')
- if len(access_rows)==len(names):
-  body+=section('Accounts and installation','<p>Only Kitesurf requires a supplier account: Cloudflare Browser Run with Browser Rendering permission. The other six methods run as local binaries. The report publishes variable names and official acquisition links, never values, cookies, personal sessions, or machine-local paths.</p>'+table(['Method','Account requirement','Official source','Variable names'],access_rows,cls='accounts-table',metrics=[],index_header='No.'),'access')
- body+=section('Reproduction and evidence','<p>The local build creates independently checkable logical routes, while the Sites release compiles them into one HTML shell and content-addressed compressed packs. Routes and large evidence are loaded on demand; hashes allow every downloadable file to be reconstructed and checked.</p><p>'+link('../datasets/index.html','Tasks and references')+' · '+link('../methodology/index.html','Full methodology')+' · '+link('../analysis/index.html','Interactive method comparison')+' · '+link('../reproduce/index.html','Environment and reproduction')+' · '+link('../changes/index.html','Release notes')+'</p><p class="source-note">Detailed evidence pages retain the original-language task names, references, and outputs to avoid changing what was judged. Their navigation and explanations are available in the canonical Chinese edition.</p>','evidence')
- write(out,'en/index.html','English edition',body)
 
 
 def write_review_page(out,records):

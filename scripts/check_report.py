@@ -6,6 +6,7 @@ import sys
 from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
 
@@ -28,7 +29,34 @@ class VisibleText(HTMLParser):
  def handle_data(self,text):
   if not self.skip:self.parts.append(text)
 
-root=Path(sys.argv[1]);d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+class EnglishNarrative(HTMLParser):
+ def __init__(self,allowed):super().__init__();self.skip=0;self.allowed=sorted(allowed,key=len,reverse=True);self.untranslated=[]
+ def handle_starttag(self,tag,attrs):
+  if tag in {'pre','code','script','style'}:self.skip+=1
+ def handle_endtag(self,tag):
+  if tag in {'pre','code','script','style'}:self.skip=max(0,self.skip-1)
+ def handle_data(self,text):
+  value=text.strip()
+  remainder=value
+  for allowed in self.allowed:remainder=remainder.replace(allowed,'')
+  if not self.skip and re.search(r'[\u4e00-\u9fff]',remainder):
+   self.untranslated.append(value)
+
+class PageShape(HTMLParser):
+ def __init__(self):
+  super().__init__();self.tags=Counter();self.ids=set();self.data=[];self.links=[];self.skip=0;self.numbers=[]
+ def handle_starttag(self,tag,attrs):
+  values=dict(attrs);self.tags[tag]+=1
+  if values.get('id'):self.ids.add(values['id'])
+  self.data.extend((key,value) for key,value in attrs if key.startswith('data-'))
+  if values.get('href') and not values.get('hreflang'):self.links.append(values['href'])
+  if tag in {'pre','code','script','style'}:self.skip+=1
+ def handle_endtag(self,tag):
+  if tag in {'pre','code','script','style'}:self.skip=max(0,self.skip-1)
+ def handle_data(self,text):
+  if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
+
+root=Path(sys.argv[1]).resolve();d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 names={r['provider'] for r in rs}
 inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
@@ -64,6 +92,39 @@ for c in d['cases']:
   assert hashlib.sha256(expected).hexdigest()==c['source_verification']['reference_sha256'],c['id']
   assert (root/'references'/f"{c['id']}.txt").read_bytes()==expected,c['id']
  assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
+zh_pages={p.relative_to(root) for p in root.rglob('*.html') if 'en' not in p.relative_to(root).parts}
+en_pages={Path(*p.relative_to(root).parts[1:]) for p in (root/'en').rglob('*.html')}
+assert zh_pages==en_pages,('Chinese/English route inventories differ',zh_pages^en_pages)
+def canonical_link(page,value):
+ parsed=urlsplit(value)
+ if parsed.scheme or parsed.netloc:return value
+ if not parsed.path:return '#'+parsed.fragment
+ target=(page.parent/parsed.path).resolve().relative_to(root)
+ if target.parts and target.parts[0]=='en' and target.suffix.lower() in {'.html','.htm'}:
+  target=Path(*target.parts[1:])
+ return target.as_posix()+(('?'+parsed.query) if parsed.query else '')+(('#'+parsed.fragment) if parsed.fragment else '')
+
+bilingual_issues=[]
+for relative in sorted(zh_pages):
+ zh_path=root/relative;en_path=root/'en'/relative
+ zh=PageShape();zh.feed(zh_path.read_text());en=PageShape();en.feed(en_path.read_text())
+ if zh.tags!=en.tags:bilingual_issues.append((relative,'semantic tag counts differ'))
+ if zh.ids!=en.ids:bilingual_issues.append((relative,'element IDs differ'))
+ if Counter(zh.data)!=Counter(en.data):bilingual_issues.append((relative,'data attributes differ'))
+ zh_numbers=Counter(zh.numbers);en_numbers=Counter(en.numbers)
+ if zh_numbers!=en_numbers:
+  bilingual_issues.append((relative,'visible numeric values differ',zh_numbers-en_numbers,en_numbers-zh_numbers))
+ zh_links=Counter(canonical_link(zh_path,value) for value in zh.links)
+ en_links=Counter(canonical_link(en_path,value) for value in en.links)
+ if zh_links!=en_links:bilingual_issues.append((relative,'evidence or navigation links differ'))
+assert not bilingual_issues,('Chinese/English page parity failed',bilingual_issues[:200],len(bilingual_issues))
+english_primary=[Path(name) for name in ('index.html','methodology/index.html','review/index.html',
+ 'guide/index.html','adoption/index.html','reproduce/index.html','changes/index.html','accounts/index.html')]
+allowed_english_source_text={'中文'}|{case['name'] for case in d['cases'] if case.get('name')}
+for relative in english_primary:
+ if relative not in en_pages:continue
+ parser=EnglishNarrative(allowed_english_source_text);parser.feed((root/'en'/relative).read_text())
+ assert not parser.untranslated,(relative,'untranslated English report narrative',parser.untranslated[:20])
 for p in root.rglob('*.html'):
  text=p.read_text();reader=VisibleText();reader.feed(text);visible=' '.join(reader.parts)
  for banned in ['人工复核','人工检查','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2','已执行/总案例','已判分/已调用']:
@@ -78,8 +139,11 @@ for p in root.rglob('*.html'):
   heading=('目标文件' if case.get('task_kind')=='file' else
            '标准答案与验收规则' if case.get('task_kind')=='structure' else
            '完整标准答案')
-  assert text.count('<h3>'+heading+'</h3>')==1,p
-  assert text.count('<h3>实际返回</h3>')==1,p
+  actual_heading=({'目标文件':'Target file','标准答案与验收规则':'Reference and acceptance contract',
+                   '完整标准答案':'Complete reference answer'}[heading]
+                  if p.relative_to(root).parts[0]=='en' else heading)
+  assert text.count('<h3>'+actual_heading+'</h3>')==1,p
+  assert text.count('<h3>'+('Actual output' if p.relative_to(root).parts[0]=='en' else '实际返回')+'</h3>')==1,p
   for delivered in record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[]):
    assert '../'+delivered['artifact_path'] in text and delivered['sha256'] in text,p
 execution=json.loads((root/'execution.json').read_text())['batches']

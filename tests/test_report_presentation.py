@@ -51,11 +51,14 @@ class ReportRevisionTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as directory:
    root=Path(directory)
    write(root,'index.html','中文','<p>正文</p>')
-   write(root,'en/index.html','English edition','<p>English</p>')
+   from harness.web_fetch.report_i18n import write_english_report
+   write_english_report(root)
    zh=(root/'index.html').read_text();en=(root/'en/index.html').read_text()
-   self.assertIn('href="en/index.html">English</a>',zh)
+   self.assertIn('href="en/index.html" hreflang="en">English</a>',zh)
    self.assertIn('lang="en"',en)
-   self.assertIn('href="../index.html">中文</a>',en)
+   self.assertIn('href="../index.html" hreflang="zh-CN">中文</a>',en)
+   self.assertNotIn('>首页</a>',zh)
+   self.assertNotIn('>Home</a>',en)
  def test_english_tables_can_localize_the_index_header(self):
   rendered=table(['Method'],[('', '<td>Moli</td>')],index_header='No.')
   self.assertIn('<th>No.</th>',rendered)

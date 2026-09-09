@@ -12,6 +12,19 @@ def percentile(values,p):
  values=sorted(values);position=(len(values)-1)*p;low=int(position);high=min(low+1,len(values)-1)
  return values[low]+(values[high]-values[low])*(position-low)
 
+def validated_final_round(diagnostic):
+ if not diagnostic:raise SystemExit('diagnostic correction scope is empty')
+ rounds=sorted({row['round'] for row in diagnostic});selected_round=rounds[-1]
+ selected=[row for row in diagnostic if row['round']==selected_round]
+ keys={(row['provider'],row['case_id']) for row in selected}
+ if (len(rounds)<2 or len(keys)!=len(selected)
+     or len(diagnostic)!=len(rounds)*len(keys)
+     or any({(row['provider'],row['case_id']) for row in diagnostic if row['round']==round_id}!=keys for round_id in rounds)):
+  raise SystemExit('diagnostic rounds are incomplete, duplicated or have different scopes')
+ if any(not row['ok'] for row in diagnostic):
+  raise SystemExit('diagnostic correction scope contains a failed call')
+ return selected_round,selected,keys
+
 def main():
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument('base',type=Path);parser.add_argument('diagnostic',type=Path);parser.add_argument('output',type=Path)
@@ -20,13 +33,10 @@ def main():
  before=(args.base/'results.jsonl').read_bytes();dataset=(args.base/'dataset.json').read_bytes()
  diagnostic_raw=(args.diagnostic/'results.jsonl').read_bytes()
  diagnostic=[json.loads(line) for line in diagnostic_raw.splitlines()]
- rounds=sorted({row['round'] for row in diagnostic});selected_round=rounds[-1]
- selected=[row for row in diagnostic if row['round']==selected_round]
- keys={(row['provider'],row['case_id']) for row in selected}
- if len(rounds)<2 or len(keys)!=len(selected):raise SystemExit('diagnostic rounds are incomplete or duplicated')
+ selected_round,selected,keys=validated_final_round(diagnostic)
  identities=json.loads((args.diagnostic/'identity.json').read_text())
  records=[json.loads(line) for line in before.splitlines()];by_key={(r['provider'],r['case_id']):r for r in records}
- if not keys<=by_key.keys() or any(not row['ok'] for row in selected):raise SystemExit('selected correction scope is incomplete or failed')
+ if not keys<=by_key.keys():raise SystemExit('diagnostic correction scope is incomplete')
  shutil.copytree(args.base,args.output)
  changes=[]
  for row in selected:

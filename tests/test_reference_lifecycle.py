@@ -376,7 +376,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         receipt = json.loads((self.run / "latency-corrections.json").read_text())
         receipt["changes"][0]["before_ms"] += 1
         self.write_json(self.run / "latency-corrections.json", receipt)
-        with self.assertRaisesRegex(ReferenceLifecycleError, "time bounds|latest relevant call"):
+        with self.assertRaisesRegex(ReferenceLifecycleError, "Invalid latency correction"):
             require_verified_reference_checks(manifest, cases=self.dataset(), records=[record], source=self.run)
 
     def test_public_guard_does_not_trust_status_alone(self):

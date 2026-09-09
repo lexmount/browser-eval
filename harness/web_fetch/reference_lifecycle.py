@@ -497,13 +497,15 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
     root = Path(source)
     receipt_path = root / "latency-corrections.json"
     results_path = root / "results.jsonl"
-    if not receipt_path.is_file() or not results_path.is_file():
+    if not receipt_path.is_file():
         return {}
+    if not results_path.is_file():
+        raise ReferenceLifecycleError("Latency correction receipt has no bound results")
     try:
         receipt = json.loads(receipt_path.read_text())
         records = [json.loads(line) for line in results_path.read_text().splitlines()]
-    except (OSError, ValueError, TypeError):
-        return {}
+    except (OSError, ValueError, TypeError) as error:
+        raise ReferenceLifecycleError("Invalid latency correction receipt") from error
     if (not isinstance(receipt, dict)
             or receipt.get("schema_version") != 1
             or receipt.get("output_results_sha256") != sha256(results_path.read_bytes())
@@ -511,7 +513,7 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
             or receipt.get("selection") != "same four cases for all three Moli versions; final round always selected, never best-of"
             or not isinstance(receipt.get("changes"), list)
             or receipt.get("superseded_logical_results") != len(receipt["changes"])):
-        return {}
+        raise ReferenceLifecycleError("Invalid latency correction receipt binding")
     by_key = {(row.get("provider"), row.get("case_id")): row for row in records}
     covered: dict[tuple[str, str], float] = {}
     for change in receipt["changes"]:
@@ -527,7 +529,7 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
                 or correction.get("original_elapsed_ms") != before
                 or correction.get("corrected_elapsed_ms") != after
                 or correction.get("diagnostic_results_sha256") != receipt.get("diagnostic_results_sha256")):
-            return {}
+            raise ReferenceLifecycleError("Invalid latency correction entry")
         covered[key] = before
     return covered
 
