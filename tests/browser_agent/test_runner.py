@@ -5,11 +5,13 @@ from harness.browser_agent.runner import (
     ENV_CTRL_READY_TIMEOUT_SECONDS,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
-    _container_host_gateway,
     _configure_benchmark,
-    _login_context,
+    _container_host_gateway,
     _limit_cowagent_transport_retries,
+    _login_context,
     _scheduled_tasks,
+    _site_container_manager,
+    _site_runtime_compatibility,
     _user_prompt,
     _wait_application_ready,
     _wait_container_healthy,
@@ -148,6 +150,43 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
 
 def test_environment_control_wait_covers_slow_official_image_restore() -> None:
     assert ENV_CTRL_READY_TIMEOUT_SECONDS == 600
+
+
+def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
+    class Client:
+        @staticmethod
+        def info():
+            return {"Architecture": "aarch64"}
+
+    monkeypatch.setattr("harness.browser_agent.runner.docker.from_env", lambda: Client())
+    manager = _site_container_manager(WebArenaSite.SHOPPING)
+
+    assert manager.config.docker_img == "am1n3e/webarena-verified-shopping"
+    assert manager.config.volumes["/usr/bin/qemu-x86_64"] == "/usr/local/bin/qemu-x86_64"
+    assert manager.config.volumes[str(manager.config.setup.volumes[1].volume_name)].endswith(
+        "/etc/supervisor.d/php-fpm.ini:ro"
+    )
+
+
+def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
+    class Client:
+        @staticmethod
+        def info():
+            return {"Architecture": "aarch64"}
+
+    monkeypatch.setattr("harness.browser_agent.runner.docker.from_env", lambda: Client())
+    manager = _site_container_manager(WebArenaSite.REDDIT)
+
+    assert manager.config.docker_img == "am1n3e/webarena-verified-reddit"
+    assert manager.config.volumes == {}
+
+
+def test_arm_runtime_compatibility_is_evidence_bound() -> None:
+    compatibility = _site_runtime_compatibility("aarch64")
+
+    assert compatibility["mode"] == "rosetta-with-qemu-php-fpm"
+    assert compatibility["sites"] == ["shopping", "shopping_admin"]
+    assert len(compatibility["supervisor_config_sha256"]) == 64
 
 
 def test_cowagent_transport_retry_limit_is_exactly_one() -> None:

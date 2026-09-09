@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.metadata
 import ipaddress
 import json
@@ -22,9 +23,16 @@ import requests
 from dotenv import dotenv_values
 from json_repair import repair_json
 from webarena_verified import WebArenaVerified
+from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.environments.env_ctrl_client import EnvCtrlDockerClient
-from webarena_verified.types.config import EnvironmentConfig, WebArenaVerifiedConfig
+from webarena_verified.types.config import (
+    ContainerConfig,
+    ContainerSetupConfig,
+    ContainerVolumeSpec,
+    EnvironmentConfig,
+    WebArenaVerifiedConfig,
+)
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_kernel.metrics import (
@@ -69,6 +77,10 @@ SITE_AUTH_HEADERS = {
 # healthy shortly afterwards. A longer ceiling changes no measured task time;
 # it only keeps environment preparation from aborting a formal cohort.
 ENV_CTRL_READY_TIMEOUT_SECONDS = 600
+AMD64_PHP_SITES = frozenset({WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN})
+PHP_FPM_COMPAT_CONFIG = Path(__file__).with_name("runtime") / "php-fpm-qemu.ini"
+QEMU_X86_64_HOST_PATH = "/usr/bin/qemu-x86_64"
+QEMU_X86_64_CONTAINER_PATH = "/usr/local/bin/qemu-x86_64"
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
@@ -221,9 +233,73 @@ def _wait_container_healthy(container: Any, *, timeout_seconds: float = 600) -> 
     raise RuntimeError(f"GitLab container health timed out in state {last_status!r}")
 
 
+def _site_container_manager(site: WebArenaSite) -> ContainerManager:
+    """Use QEMU only for PHP-FPM when amd64 site images run on an ARM host.
+
+    Rosetta starts the official images' Java services reliably, but PHP-FPM in
+    both Magento images segfaults under Rosetta. Mounting Colima's static QEMU
+    interpreter and a one-line supervisor override keeps every other process on
+    Rosetta while preserving the official image and site data.
+    """
+    config = get_container_config(site=site)
+    docker_arch = str(docker.from_env().info().get("Architecture") or "")
+    if site not in AMD64_PHP_SITES or docker_arch not in {"aarch64", "arm64"}:
+        return ContainerManager(site=site, hostname="host.docker.internal")
+    if not PHP_FPM_COMPAT_CONFIG.is_file():
+        raise RuntimeError(f"missing PHP-FPM compatibility config: {PHP_FPM_COMPAT_CONFIG}")
+    compat = ContainerConfig(
+        **config.model_dump(exclude={"setup"}),
+        setup=ContainerSetupConfig(
+            volumes=(
+                ContainerVolumeSpec(
+                    volume_name=QEMU_X86_64_HOST_PATH,
+                    mount_path=QEMU_X86_64_CONTAINER_PATH,
+                ),
+                ContainerVolumeSpec(
+                    volume_name=str(PHP_FPM_COMPAT_CONFIG.resolve()),
+                    mount_path="/etc/supervisor.d/php-fpm.ini:ro",
+                ),
+            )
+        ),
+    )
+    return ContainerManager(
+        site=site,
+        config=compat,
+        hostname="host.docker.internal",
+    )
+
+
+def _verify_arm_php_compatibility(container_name: str) -> None:
+    container = docker.from_env().containers.get(container_name)
+    processes = container.exec_run(["ps", "-o", "pid,args"])
+    process_table = processes.output.decode(errors="replace")
+    qemu = container.exec_run(["test", "-x", QEMU_X86_64_CONTAINER_PATH])
+    if processes.exit_code != 0 or "/mnt/lima-rosetta/rosetta" not in process_table:
+        raise RuntimeError(
+            "ARM Docker host must enable Rosetta for official amd64 site images"
+        )
+    if qemu.exit_code != 0:
+        raise RuntimeError("PHP-FPM QEMU compatibility interpreter was not mounted")
+    if f"{QEMU_X86_64_CONTAINER_PATH} /usr/local/sbin/php-fpm" not in process_table:
+        raise RuntimeError("PHP-FPM did not start through the mounted QEMU interpreter")
+
+
+def _site_runtime_compatibility(docker_arch: str) -> dict[str, Any]:
+    if docker_arch not in {"aarch64", "arm64"}:
+        return {"mode": "host-default"}
+    return {
+        "mode": "rosetta-with-qemu-php-fpm",
+        "sites": sorted(site.value for site in AMD64_PHP_SITES),
+        "qemu_host_path": QEMU_X86_64_HOST_PATH,
+        "supervisor_config_sha256": hashlib.sha256(
+            PHP_FPM_COMPAT_CONFIG.read_bytes()
+        ).hexdigest(),
+    }
+
+
 def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     port, ctrl_port = SITE_PORTS[site]
-    manager = ContainerManager(site=site, hostname="host.docker.internal")
+    manager = _site_container_manager(site)
     if reset or not manager.is_running():
         manager.start(port=port, env_ctrl_port=ctrl_port, wait=False)
     ready = EnvCtrlDockerClient.create(
@@ -239,6 +315,8 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
         container = docker.from_env().containers.get(manager.container_name)
         _wait_container_healthy(container)
     _wait_application_ready(site, manager.config.health_check_path)
+    if manager.config.setup is not None and site in AMD64_PHP_SITES:
+        _verify_arm_php_compatibility(manager.container_name)
 
 
 def _wait_application_ready(
@@ -283,7 +361,7 @@ def _wait_application_ready(
 def _prepare_sites(sites: tuple[WebArenaSite, ...]) -> None:
     """Keep only task-required sites running, then reset those sites from official images."""
     for site in SITE_PORTS:
-        manager = ContainerManager(site=site, hostname="host.docker.internal")
+        manager = _site_container_manager(site)
         if site not in sites and manager.is_running():
             manager.stop()
     for site in sites:
@@ -667,6 +745,8 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     browser_metadata: dict[str, dict[str, str]] = {}
     site_access_host = ""
     docker_info: dict[str, Any] = {}
+    docker_architecture = str(client.info().get("Architecture") or "")
+    site_runtime_compatibility = _site_runtime_compatibility(docker_architecture)
     try:
         for engine in ENGINE_IMAGES:
             network = client.networks.create(f"lex-browser-agent-{run_id}-{engine}")
@@ -715,6 +795,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                     capture_output=True,
                     text=True,
                 ).stdout.strip(),
+                "site_runtime_compatibility": site_runtime_compatibility,
             },
         )
 
@@ -830,6 +911,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "site_images": site_image_metadata,
             "site_access_host": site_access_host,
             "official_evaluator": evaluator_provenance,
+            "site_runtime_compatibility": site_runtime_compatibility,
         },
     }
     (output_dir / "manifest.json").write_text(
