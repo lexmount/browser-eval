@@ -91,6 +91,10 @@ def main() -> None:
         result = json.loads(raw)
         if status != 200 or not result.get("slug"):
             raise RuntimeError(result)
+        # Persist the remote identity before the separate share request. If that
+        # request fails, the next run must update this site rather than create
+        # an orphaned duplicate.
+        save_receipt(result)
     if not result.get("share_url"):
         status, raw = request(
             f"/api/sites/{result['slug']}/shares",
