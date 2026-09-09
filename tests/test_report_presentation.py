@@ -1,7 +1,7 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,write
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 
 class ReportRevisionTests(unittest.TestCase):
@@ -56,3 +56,7 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertIn('href="en/index.html">English</a>',zh)
    self.assertIn('lang="en"',en)
    self.assertIn('href="../index.html">中文</a>',en)
+ def test_english_tables_can_localize_the_index_header(self):
+  rendered=table(['Method'],[('', '<td>Moli</td>')],index_header='No.')
+  self.assertIn('<th>No.</th>',rendered)
+  self.assertNotIn('<th>序号</th>',rendered)

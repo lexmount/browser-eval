@@ -69,7 +69,9 @@ for p in root.rglob('*.html'):
  for banned in ['人工复核','人工检查','短参考答案词级','组 · 查看','已确认有效','标准答案漂移候选队列','需辅助','需用户辅助','请自行登录','补采记录','本轮解析修正','内容已合并','build_v8_report','report_v8.py','任务修订','评分 8.2','已执行/总案例','已判分/已调用']:
   assert banned not in visible,(p,banned)
  assert not re.search(r'\bHIL\b',visible),(p,'HIL')
- parser=Tables();parser.feed(text);assert all(h=='序号' for h in parser.headers),(p,parser.headers)
+ parser=Tables();parser.feed(text)
+ expected_index_header='No.' if p.relative_to(root).parts[0]=='en' else '序号'
+ assert all(h==expected_index_header for h in parser.headers),(p,parser.headers)
  if p.parent.name=='attempts':
   record=next(r for r in rs if r['attempt_id']==p.stem)
   case=case_by_id[record['case_id']]
