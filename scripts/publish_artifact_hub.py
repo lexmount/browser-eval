@@ -63,7 +63,7 @@ if creating or updating:
  if creating:
   result=response
   if not result.get('slug'):raise ValueError('Publication did not return a site slug')
-else:
+ else:
   from harness.web_fetch.publication import updated_receipt
   result=updated_receipt(result,response)
  result['base_url']=BASE
