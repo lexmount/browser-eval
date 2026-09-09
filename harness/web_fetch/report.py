@@ -527,7 +527,7 @@ def failure_filters(records,cases):
 def comparison_rows(cases,bycase,names):
  rows=[]
  for case_id,c in cases.items():
-  attempts={r['provider']:r for r in bycase[case_id]}
+  attempts={r['provider']:r for r in bycase.get(case_id,[])}
   passed=[name for name in names if name in attempts and measured(attempts[name],c) and succeeded(attempts[name],c)]
   failed=[name for name in names if name in attempts and measured(attempts[name],c) and not succeeded(attempts[name],c)]
   method_links=lambda selected:'、'.join(link('../attempts/'+attempts[name]['attempt_id']+'.html',provider_label(name)) for name in selected) or '—'

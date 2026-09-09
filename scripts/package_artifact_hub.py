@@ -61,8 +61,10 @@ async function metadata(index){
  return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
 }
 function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
+ if(pre.dataset.deferred)return;
+ pre.dataset.deferred='1';
  pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label','加载完整内容');pre.textContent=message;
- const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);fill(pre,true)};
+ const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);pre.dataset.deferred='';fill(pre,true)};
  pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
 }
 function resolvePath(href,page){
@@ -102,7 +104,7 @@ async function fill(pre,force=false){
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
   if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
- }catch(error){pre.dataset.loaded='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
+ }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
 }
 async function render(){
  savePageState();
