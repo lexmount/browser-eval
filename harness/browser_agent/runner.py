@@ -63,6 +63,12 @@ SITE_AUTH_HEADERS = {
     WebArenaSite.SHOPPING_ADMIN: "X-M2-Admin-Auto-Login",
     WebArenaSite.REDDIT: "X-Postmill-Auto-Login",
 }
+# The official all-in-one shopping image restores Magento, MariaDB and
+# Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
+# repeatedly exceeded the package example's 180-second default despite becoming
+# healthy shortly afterwards. A longer ceiling changes no measured task time;
+# it only keeps environment preparation from aborting a formal cohort.
+ENV_CTRL_READY_TIMEOUT_SECONDS = 600
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
@@ -220,8 +226,12 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     manager = ContainerManager(site=site, hostname="host.docker.internal")
     if reset or not manager.is_running():
         manager.start(port=port, env_ctrl_port=ctrl_port, wait=False)
-    ready = EnvCtrlDockerClient.create(manager.container_name, timeout=180).wait_until_ready(
-        timeout=180, interval=2
+    ready = EnvCtrlDockerClient.create(
+        manager.container_name,
+        timeout=ENV_CTRL_READY_TIMEOUT_SECONDS,
+    ).wait_until_ready(
+        timeout=ENV_CTRL_READY_TIMEOUT_SECONDS,
+        interval=2,
     )
     if not ready.success:
         raise RuntimeError(f"{site.value} did not become ready: {ready.message}")

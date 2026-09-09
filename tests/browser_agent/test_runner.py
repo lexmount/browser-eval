@@ -2,6 +2,7 @@ import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_agent.runner import (
+    ENV_CTRL_READY_TIMEOUT_SECONDS,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
     _container_host_gateway,
@@ -143,6 +144,10 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
             {"timeout": 15, "allow_redirects": False},
         )
     ]
+
+
+def test_environment_control_wait_covers_slow_official_image_restore() -> None:
+    assert ENV_CTRL_READY_TIMEOUT_SECONDS == 600
 
 
 def test_cowagent_transport_retry_limit_is_exactly_one() -> None:
