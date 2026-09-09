@@ -77,7 +77,9 @@ SITE_AUTH_HEADERS = {
 # healthy shortly afterwards. A longer ceiling changes no measured task time;
 # it only keeps environment preparation from aborting a formal cohort.
 ENV_CTRL_READY_TIMEOUT_SECONDS = 600
-AMD64_PHP_SITES = frozenset({WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN})
+AMD64_PHP_SITES = frozenset(
+    {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT}
+)
 PHP_FPM_COMPAT_CONFIG = Path(__file__).with_name("runtime") / "php-fpm-qemu.ini"
 QEMU_X86_64_HOST_PATH = "/usr/bin/qemu-x86_64"
 QEMU_X86_64_CONTAINER_PATH = "/usr/local/bin/qemu-x86_64"

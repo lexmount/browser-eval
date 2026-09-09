@@ -16,9 +16,9 @@ requires large external data bundles.
 On Apple Silicon, run the official amd64 site images in a dedicated Colima VZ
 profile with Rosetta enabled and at least 140 GiB of disk. The four required
 images occupy about 91 GB before container writable layers. The runner mounts
-Colima's QEMU interpreter only for PHP-FPM in the two Magento images because the
-legacy Alpine/musl PHP-FPM binary segfaults under Rosetta; Java, GitLab, and the
-remaining official image processes stay on Rosetta. This is a runtime
+Colima's QEMU interpreter only for PHP-FPM in the Magento and Reddit images because
+the legacy Alpine/musl PHP-FPM binary segfaults under Rosetta; Java, GitLab, and
+the remaining official image processes stay on Rosetta. This is a runtime
 compatibility shim, not a change to site data or evaluation logic.
 
     colima start browser-eval --vm-type vz --disk 140 --memory 8 --cpus 4 --vz-rosetta

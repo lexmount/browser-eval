@@ -175,9 +175,9 @@ def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
             return {"Architecture": "aarch64"}
 
     monkeypatch.setattr("harness.browser_agent.runner.docker.from_env", lambda: Client())
-    manager = _site_container_manager(WebArenaSite.REDDIT)
+    manager = _site_container_manager(WebArenaSite.GITLAB)
 
-    assert manager.config.docker_img == "am1n3e/webarena-verified-reddit"
+    assert manager.config.docker_img == "am1n3e/webarena-verified-gitlab"
     assert manager.config.volumes == {}
 
 
@@ -185,7 +185,7 @@ def test_arm_runtime_compatibility_is_evidence_bound() -> None:
     compatibility = _site_runtime_compatibility("aarch64")
 
     assert compatibility["mode"] == "rosetta-with-qemu-php-fpm"
-    assert compatibility["sites"] == ["shopping", "shopping_admin"]
+    assert compatibility["sites"] == ["reddit", "shopping", "shopping_admin"]
     assert len(compatibility["supervisor_config_sha256"]) == 64
 
 
