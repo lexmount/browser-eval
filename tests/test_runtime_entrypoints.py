@@ -64,16 +64,32 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertEqual(dataset['comparison']['conversion'], HEADLESS_CONVERSION)
         self.assertEqual(profile['comparison_kind'], dataset['comparison']['kind'])
         self.assertEqual(set(profile['providers']), set(dataset['coverage_plan']['web']))
-        self.assertEqual(profile['artifact_hub_site'], 'bWkRP157EtF6')
+        self.assertEqual(profile['artifact_hub_base_url'], 'https://artifact-hub.app.lexmount.com')
+        self.assertEqual(profile['artifact_hub_site'], 'UUAhhQMnrGwm')
 
     def test_publication_receipt_must_target_current_site(self) -> None:
         profile = ROOT / 'evaluation/current-report.json'
         self.assertEqual(
-            require_publication_site({'slug':'bWkRP157EtF6'}, profile),
-            'bWkRP157EtF6',
+            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+                                     'https://artifact-hub.app.lexmount.com'),
+            'UUAhhQMnrGwm',
         )
         with self.assertRaisesRegex(ValueError, 'expected'):
-            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile)
+            require_publication_site({'slug':'UeZE1vfcEOrM'}, profile,
+                                     'https://artifact-hub.app.lexmount.com')
+        with self.assertRaisesRegex(ValueError, 'expected'):
+            require_publication_site({'slug':'UUAhhQMnrGwm'}, profile,
+                                     'https://artifact-hub.dev.lexmount.net')
+        with self.assertRaisesRegex(ValueError, 'requested'):
+            require_publication_site(
+                {'slug':'UUAhhQMnrGwm','base_url':'https://artifact-hub.dev.lexmount.net'},
+                profile,'https://artifact-hub.app.lexmount.com')
+
+    def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
+        for relative in ('scripts/publish_artifact_hub.py',
+                         'scripts/verify_artifact_hub.py',
+                         'scripts/rename_artifact_hub.py'):
+            self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
 
     def test_dynamic_rendered_references_cannot_fall_back_to_http(self) -> None:
         source = (ROOT / "scripts/freeze_headless_references.py").read_text()

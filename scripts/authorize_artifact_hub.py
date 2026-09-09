@@ -19,6 +19,7 @@ def main():
     action.add_argument('--persist-existing', action='store_true')
     parser.add_argument('--timeout', type=int, default=540)
     parser.add_argument('--replace-existing', action='store_true', help='Explicitly back up and replace a different user token')
+    parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com'))
     args = parser.parse_args()
     if args.persist_existing:
         load_runtime_env()
@@ -28,7 +29,7 @@ def main():
         return
     deadline = time.monotonic() + args.timeout
     while time.monotonic() < deadline:
-        request = urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/device/poll',
+        request = urllib.request.Request(args.base_url.rstrip('/')+'/api/device/poll',
             data=json.dumps({'device_code': args.device_code}).encode(),
             headers={'Content-Type': 'application/json'}, method='POST')
         with urllib.request.urlopen(request, timeout=30) as response:

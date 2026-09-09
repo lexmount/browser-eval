@@ -1,41 +1,55 @@
 """Artifact Hub large-bundle transport; credentials remain with the caller."""
 import json
 import math
+import socket
 import time
 import zipfile
 from email.utils import parsedate_to_datetime
 from pathlib import PurePosixPath
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 
 
 def put_file(request, path, data):
-    """Retry only idempotent staging PUTs, respecting bounded Retry-After."""
+    """Retry only the identical idempotent staging PUT with bounded waits."""
     for attempt in range(4):
         try:
             return request(path, data, 'application/octet-stream', method='PUT')
         except HTTPError as error:
-            if error.code != 429 or attempt == 3:
-                raise
-            header = error.headers.get('Retry-After', '') if error.headers else ''
-            delay = 30.0
-            if header:
-                try:
-                    delay = float(header)
-                except ValueError:
+            if error.code >= 500:
+                if attempt > 0:
+                    raise
+                delay=1.0
+            elif error.code == 429:
+                if attempt == 3:
+                    raise
+                header = error.headers.get('Retry-After', '') if error.headers else ''
+                delay = 30.0
+                if header:
                     try:
-                        delay = parsedate_to_datetime(header).timestamp() - time.time()
-                    except (TypeError, ValueError, OverflowError):
-                        pass
-            if not math.isfinite(delay) or delay > 120:
-                raise  # Never retry earlier than a longer server-requested wait.
-            delay = max(1.0, delay)
+                        delay = float(header)
+                    except ValueError:
+                        try:
+                            delay = parsedate_to_datetime(header).timestamp() - time.time()
+                        except (TypeError, ValueError, OverflowError):
+                            pass
+                if not math.isfinite(delay) or delay > 120:
+                    raise  # Never retry earlier than a longer server-requested wait.
+                delay = max(1.0, delay)
+            else:
+                raise
             error.close()
-            print(f'Upload rate limited; retrying the same file in {delay:.0f}s', flush=True)
+            print(f'Upload failed with HTTP {error.code}; retrying the same file in {delay:.0f}s', flush=True)
             while delay > 0:
                 interval = min(delay, 30)
                 time.sleep(interval)
                 delay -= interval
+        except (TimeoutError, socket.timeout, URLError):
+            if attempt == 3:
+                raise
+            delay=min(2**attempt,4)
+            print(f'Upload response unavailable; retrying the same file in {delay}s',flush=True)
+            time.sleep(delay)
 
 
 def upload_large_archive(request, archive, slug=None, expected=None):

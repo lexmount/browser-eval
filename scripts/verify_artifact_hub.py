@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import socket
 import sys
@@ -16,11 +17,10 @@ from urllib.error import HTTPError, URLError
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.config import load_runtime_env
+from harness.web_fetch.publication_target import DEFAULT_BASE
 
 
-def verify_public_files(slug, expected_archive):
-    base='https://artifact-hub.dev.lexmount.net'
+def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
     endpoint=base+'/api/sites/'+quote(slug,safe='')
     def metadata():
         request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+load_token()})
@@ -62,15 +62,16 @@ def verify_public_files(slug, expected_archive):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-archive',type=Path)
-    parser.add_argument('--slug',default='bWkRP157EtF6')
+    parser.add_argument('--slug',required=True)
+    parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL',DEFAULT_BASE))
     parser.add_argument('--public-files',action='store_true',help='Verify individual served files when ZIP export is unavailable')
     args=parser.parse_args()
-    load_runtime_env()
+    base=args.base_url.rstrip('/')
     if args.public_files:
         if not args.expected_archive:parser.error('--public-files requires --expected-archive')
-        print(json.dumps(verify_public_files(args.slug,args.expected_archive)),flush=True)
+        print(json.dumps(verify_public_files(args.slug,args.expected_archive,base)),flush=True)
         return
-    request=urllib.request.Request('https://artifact-hub.dev.lexmount.net/api/sites/'+quote(args.slug,safe='')+'/export',
+    request=urllib.request.Request(base+'/api/sites/'+quote(args.slug,safe='')+'/export',
         headers={'Authorization':'Bearer '+load_token()})
     (ROOT/'publish').mkdir(exist_ok=True)
     with urllib.request.urlopen(request,timeout=180) as response:
