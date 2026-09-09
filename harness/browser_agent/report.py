@@ -270,14 +270,14 @@ NAV = [
 
 
 def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
-    base = "../" * depth
+    local_base = "../" * depth or "./"
     links = "".join(
-        f'<a href="{base}{href}"'
+        f'<a href="{href}"'
         + (' aria-current="page"' if key == active else "")
         + f">{_e(label)}</a>"
         for href, label, key in NAV
     )
-    return f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="{base}assets/style.css"><script defer src="{base}assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
+    return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
@@ -344,7 +344,7 @@ def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> 
         c, m = primary.get(("chromium", task_id)), primary.get(("moli", task_id))
         result = "pass" if c and m and float(c["score"]) == float(m["score"]) == 1 else "fail"
         values = [
-            Safe(f'<a href="{task_id}.html">#{task_id}</a>'),
+            Safe(f'<a href="datasets/{task_id}.html">#{task_id}</a>'),
             TIER_LABELS[task["tier"]],
             SITE_LABELS.get(site, site),
             kind,
@@ -374,7 +374,7 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
         p = _public_attempt(row)
         result = "pass" if p["score"] == 1 else "fail"
         values = [
-            Safe(f'<a href="../attempts/{p["id"]}.html">{p["id"]}</a>'),
+            Safe(f'<a href="attempts/{p["id"]}.html">{p["id"]}</a>'),
             ENGINE_LABELS[p["engine"]],
             p["task_id"],
             TIER_LABELS[p["tier"]],
@@ -492,7 +492,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             + _section(
                 "独立导出",
-                '<p class="page-links"><a href="article.html">打开独立文章</a><a href="interpretation-evidence.json">下载论点证据</a></p>',
+                '<p class="page-links"><a href="guide/article.html">打开独立文章</a><a href="guide/interpretation-evidence.json">下载论点证据</a></p>',
             )
             + f'<section class="section"><div class="wrap">{article}</div></section>'
         )
@@ -549,7 +549,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                                 "首轮" if attempt_no == 1 else "失败诊断重试",
                                 _status(row),
                                 _seconds(float(row["duration_ms"])),
-                                Safe(f'<a href="../attempts/{_attempt_id(row)}.html">查看试次</a>'),
+                                Safe(f'<a href="attempts/{_attempt_id(row)}.html">查看试次</a>'),
                             ]
                         )
             detail = _hero(
@@ -714,7 +714,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     ["检查", "结果"],
                     [[key, "通过" if value else "未通过"] for key, value in checks.items()],
                 )
-                + f'<p class="page-links"><a href="../datasets/{public["task_id"]}.html">返回任务页</a></p>',
+                + f'<p class="page-links"><a href="datasets/{public["task_id"]}.html">返回任务页</a></p>',
             )
             (stage / f"attempts/{public['id']}.html").write_text(
                 _page(title=public["id"], active="analysis", body=detail, depth=1), encoding="utf-8"
@@ -793,7 +793,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             version, image = versions.get(engine) or {}, images.get(engine) or {}
             engine_rows.append(
                 [
-                    Safe(f'<a href="../engines/{engine}.html">{ENGINE_LABELS[engine]}</a>'),
+                    Safe(f'<a href="engines/{engine}.html">{ENGINE_LABELS[engine]}</a>'),
                     version.get("Browser", "—"),
                     version.get("Protocol-Version", "—"),
                     image.get("architecture", "—"),
@@ -850,7 +850,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="../data/selection.json">selection.json</a><a href="../data/results.jsonl">results.jsonl</a><a href="../data/summary.json">summary.json</a><a href="../data/environment.json">environment.json</a><a href="../data/review.json">review.json</a></div>',
+            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a></div>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
