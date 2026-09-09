@@ -115,31 +115,30 @@ assert.equal(adoptionDetail.open,true);
 assert.deepEqual(anchorSelections.pop(),['method-guide','adoption']);
 console.log('PASS: official capability and adoption anchors reveal their own tab, not a hard-coded tab');
 
-const pairRows=[
+const comparisonRows=[
  {dataset:{track:'web',pass:'a c',fail:'b'}},
  {dataset:{track:'document',pass:'a b c',fail:''}},
  {dataset:{track:'web',pass:'b',fail:'a c'}},
  {dataset:{track:'web',pass:'',fail:'a b c'}}
 ];
-const pairControls={
- 'pair-a':{value:'a'},'pair-b':{value:'b'},'pair-relation':{value:'a_pass_b_fail'},'pair-track':{value:''},'pair-count':{textContent:''},
- 'group-relation':{value:'mixed'},'group-track':{value:''},'group-count':{textContent:''}
+const comparisonControls={
+ 'compare-a':{value:'a'},'compare-relation':{value:'a_pass_others_fail'},'compare-track':{value:''},'compare-count':{textContent:''}
 };
-const groupChecks=[{value:'a',checked:true},{value:'b',checked:true},{value:'c',checked:false}];
+const compareChecks=['a','b','c'].map(value=>({value,checked:value==='b',disabled:false,closest(){return {classList:{toggle(){}}}}}));
 const comparison=vm.createContext({window:{addEventListener(){}},document:{
- getElementById(id){return pairControls[id]},
- querySelectorAll(selector){if(selector==='#pair-rows tr'||selector==='#group-rows tr')return pairRows;if(selector==='[data-group-method]:checked')return groupChecks.filter(x=>x.checked);return []}
+ getElementById(id){return comparisonControls[id]},
+ querySelectorAll(selector){if(selector==='#compare-rows tr')return comparisonRows;if(selector==='[data-compare-method]')return compareChecks;return []}
 }});
 vm.runInContext(js,comparison);
-vm.runInContext('comparePair()',comparison);
-assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,true,true]);assert.equal(pairControls['pair-count'].textContent,'找到 1 个任务');
-pairControls['pair-relation'].value='different';pairControls['pair-track'].value='web';
-vm.runInContext('comparePair()',comparison);
-assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,false,true]);
-vm.runInContext('compareGroup()',comparison);
-assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,false,true]);
-pairControls['group-relation'].value='all_fail';vm.runInContext('compareGroup()',comparison);
-assert.deepEqual(pairRows.map(r=>r.hidden),[true,true,true,false]);
-groupChecks[1].checked=false;vm.runInContext('compareGroup()',comparison);
-assert.ok(pairRows.every(r=>r.hidden));assert.equal(pairControls['group-count'].textContent,'请至少选择两个方法');
-console.log('PASS: pairwise and multi-method task comparisons cover asymmetric, shared and mixed outcomes');
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[false,true,true,true]);assert.equal(comparisonControls['compare-count'].textContent,'找到 1 个任务');
+assert.equal(compareChecks[0].disabled,true,'baseline must not also be a comparison method');
+comparisonControls['compare-relation'].value='mixed';comparisonControls['compare-track'].value='web';
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[false,true,false,true]);
+compareChecks[2].checked=true;comparisonControls['compare-relation'].value='all_fail';comparisonControls['compare-track'].value='';
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[true,true,true,false]);
+compareChecks[1].checked=false;compareChecks[2].checked=false;vm.runInContext('compareMethods()',comparison);
+assert.ok(comparisonRows.every(r=>r.hidden));assert.equal(comparisonControls['compare-count'].textContent,'请至少选择一个对比方法');
+console.log('PASS: one unified method-set comparison covers asymmetric, shared, mixed and empty selections');

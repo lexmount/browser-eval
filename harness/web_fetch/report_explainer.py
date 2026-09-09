@@ -519,7 +519,8 @@ def _render_headless(out, cases, records):
             f'Moli 1.0.6 {totals["moli-1.0.6"]}/150、Moli 1.1.1 {totals["moli"]}/150、Moli 1.1.3 {totals["moli-1.1.3"]}/150，'
             f'文档正文分别为 {documents["moli-1.0.6"]}/10、{documents["moli"]}/10、{documents["moli-1.1.3"]}/10。'
             '本轮没有显示版本越新通过越多。三轮独立配对诊断中，document-03 两版均为 3/3；challenge-01 的 1.1.1 为 1/3、1.1.3 为 0/3，且失败均为空响应。'
-            '这说明正式分差混有请求与页面稳定性，尚不能归因为产品能力回退；主榜仍只保留预定的一次正式调用。</p>')
+            '另对正式时延差异最大的四题做三轮顺序轮换复测：1.1.3 相对 1.1.1 的各题中位数从快 6% 到慢 18%，区间大量重叠；本地固定页五轮中位数则为 57 ms 对 56 ms。'
+            '这说明公网长尾主要发生在原生抓取与页面等待阶段，可能仍含版本策略差异，但尚不能归因为核心性能普遍回退；主榜仍只保留预定的一次正式调用。</p>')
     if audit:
         reviewer=audit.get('reviewer',{})
         reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)
