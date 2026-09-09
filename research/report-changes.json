@@ -1,6 +1,23 @@
 {
   "schema_version": 1,
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
+  "browser_agent_releases": [
+    {
+      "id": "2026-09-09-webarena-verified-pilot",
+      "date": "2026-09-09",
+      "title": "完成 WebArena-Verified 自主 Agent 双浏览器首轮对比",
+      "summary": "CowAgent 与 gpt-5.6-sol（reasoning=low）在预注册的 30 题上分别以 Chromium 和 Moli 完成 60 次主试；双方均通过 25 题，主分 83.3%，失败后的 10 次唯一重试均未恢复。70/70 个试次证据通过确定性复核，分歧与未决均为 0。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        ["新增自主 Agent 轨道", "原 30 题是固定 BrowserTool 动作重放，只能回答内核兼容与执行问题。", "新增 CowAgent 自主观察、规划和操作的 WebArena-Verified 轨道；同题配对且只替换浏览器。", "保留原轨道并正名为浏览器内核微基准；两条轨道分开计分，不能相加。"],
+        ["公开 benchmark 选型", "模型厂商使用的 browser-use、computer-use、离线动作预测和 agentic search 口径混杂。", "按一手机构采用情况梳理 Mind2Web、WebArena、WebVoyager，并比较 Online-Mind2Web、BU Bench、Odysseys 等评测对象和 judge。", "首轮选择可自托管、确定性结果验收的 WebArena-Verified；实时网站和 LLM judge 留到后续泛化阶段。"],
+        ["完整正式运行", "需要同时覆盖短、中、长操作链，且避免运行后换题或挑结果。", "预注册 5/10/15 题操作长度分层；每个题×浏览器只以第一次正式执行计 pass@1，失败最多重试一次且只作诊断。", "Chromium 与 Moli 均为 25/30；共同失败 5 题、单边胜出 0 题，30 题 pilot 未观察到成功率差异。"],
+        ["证据与复核", "最终分数必须能回到模型回答、网络副作用和官方 evaluator，不能人工修分。", "保存回答、事件、HAR、Playwright trace 和 evaluator 明细；逐试次核对文件、哈希、分数、状态与模型请求尝试。", "70/70 个试次复核通过，记分分歧 0、未决 0；完整网络正文和登录凭据不公开。"],
+        ["Astra 可用性边界", "用户代理公开的模型列表不等于当前团队有调用权限。", "直接调用代理验证 gpt-6-astra，服务返回 team_model_access_denied；随后只用可用的 gpt-5.6-sol 完成流程。", "本轮是 GPT-5.6 条件下的正式对比，不能写成 Astra 成绩；Astra 获权后必须新建独立运行。"]
+      ]
+    }
+  ],
   "releases": [
     {
       "id": "2026-09-08-seven-method-final-audit",

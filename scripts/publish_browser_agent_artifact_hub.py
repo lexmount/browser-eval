@@ -72,7 +72,7 @@ def main() -> None:
             json.dumps({"policy": "public"}).encode(),
             "application/json",
         )
-        if status != 200:
+        if not 200 <= status < 300:
             raise RuntimeError(raw.decode(errors="replace"))
         result["share_url"] = json.loads(raw)["url"]
         RECEIPT.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -7,7 +7,7 @@ import argparse
 import zipfile
 from pathlib import Path
 
-from scripts.check_browser_agent_report import check
+from check_browser_agent_report import check
 
 
 def main() -> None:

@@ -155,6 +155,44 @@ def _tier_section(attempts: list[dict[str, Any]]) -> str:
     return f"""<section><h2>难度不是官方标签，是预注册的操作长度分层</h2><p>WebArena‑Verified 只发布一个 258 题 hard subset，并没有 easy/medium/hard 三档。为了让首轮同时覆盖简单、中等和困难任务，本项目在模型运行前按“完成目标所需的最少可见 UI 操作数”预注册三档：1–4、5–7、8+。这衡量的是操作链长度，不等于推理难度；涉及跨页聚合、条件筛选或提交修改的任务即使点击少，也可能更难。</p>{_table(['本项目分层','Chromium 首轮','Moli 首轮'], rows)}<p class="fine">30 题配额为 5/10/15；其中个别本项目“简单”题也属于官方 hard subset，两种分类回答的是不同问题，报告保留两者而不互相覆盖。</p></section>"""
 
 
+def _failure_analysis(attempts: list[dict[str, Any]]) -> str:
+    primary_failures = {
+        int(row["task_id"])
+        for row in attempts
+        if int(row["attempt"]) == 1 and float(row["score"]) == 0.0
+    }
+    transport_rows = [row for row in attempts if row.get("model_transport_errors")]
+    transport_count = sum(len(row["model_transport_errors"]) for row in transport_rows)
+    if not primary_failures:
+        return ""
+    failure_rows = [
+        [168, "项目筛选", "两种浏览器的主试与重试都返回空列表；官方答案非空。"],
+        [68, "多帖聚合", "四次执行都只返回一本书，遗漏其余合格帖子中的结果。"],
+        [124, "条件范围", "四次执行都返回 0.01–17774.32，取成了错误的全局价格范围。"],
+        [142, "跨订单汇总", "四次执行都返回 80.50，未完成目标月份与品类的完整汇总。"],
+        [506, "购物车最终状态", "主试虽到达结账或成功页，但官方网络事件检查发现购物车最终内容不符合唯一目标商品；重试又在 30 步上限前未完成。"],
+    ]
+    visible_rows = [row for row in failure_rows if row[0] in primary_failures]
+    transport_text = (
+        f"另有 {transport_count} 次模型请求发生代理断连或超时，均只做一次同请求传输重试并恢复；它们分布在 "
+        + "、".join(f"{row['engine']} #{row['task_id']}" for row in transport_rows)
+        + "。这些事件保留在证据中，不改分，但会拉长对应试次耗时。"
+        if transport_rows
+        else "本轮没有模型传输重试。"
+    )
+    return f"""<section><h2>五个共同失败首先指向 Agent，而不是某个浏览器</h2><p>两种浏览器在同五题失败，且十次失败诊断重试没有一次恢复。四个检索题的主试和重试还给出了跨浏览器一致的错误答案；购买题则由官方网络事件 evaluator 拒绝了不正确的购物车最终状态。这是“共同失败模式”的证据，不足以证明根因只在模型：同一 Agent、提示和 30 步上限也是共同变量。</p>{_table(['任务','失败类型','证据中的表现'], visible_rows)}<p>{_e(transport_text)}</p><p class="fine">本轮没有逐题胜负差，因此不能估计内核对成功率的方向性效应。Moli 在个别长任务上出现更长的交互等待，Chromium 也有一次 180 秒模型代理超时；端到端耗时混合了模型、站点重置、页面等待和浏览器执行，不应当解释成纯内核基准。</p></section>"""
+
+
+def _release_notes() -> str:
+    changes = _read_json(Path("research/report-changes.json"))
+    releases = changes.get("browser_agent_releases") or []
+    if not releases:
+        return ""
+    release = releases[0]
+    rows = release.get("changes") or []
+    return f"""<section><h2>本报告发布记录</h2><p><strong>{_e(release.get('date', '—'))} · {_e(release.get('title', '—'))}</strong></p><p>{_e(release.get('summary', '—'))}</p>{_table(['变更','原因','本次处理','结果与边界'], rows)}<details><summary>展开发布证据绑定</summary><p class="fine">attempts SHA-256：<code>{_e(release.get('attempts_sha256', '—'))}</code><br>selection SHA-256：<code>{_e(release.get('selection_sha256', '—'))}</code></p></details></section>"""
+
+
 def _task_table(selection_path: Path, attempts: list[dict[str, Any]]) -> str:
     selection = load_pilot(selection_path)
     score = {(row["engine"], row["task_id"]): row for row in attempts if row["attempt"] == 1}
@@ -292,9 +330,10 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
 <section><h2>Browser Use 官方现在更偏向什么</h2><p>要区分三种信号。Browser Use 产品首页强调开放的 100 题 <strong>BU Bench V1</strong>，同时展示 <strong>Odysseys</strong> 的 200 题长链排行榜成绩；其 benchmark 仓库当前把 71 题 <strong>Stealth Bench V1</strong> 放在最前。Stealth Bench 测的是反机器人检测与浏览器基础设施，不是 CowAgent 能否自主完成业务任务，因此不能代替本报告的 agent 评测。</p><p>BU Bench 由 Custom、WebBench、Mind2Web 2、GAIA、BrowseComp 各 20 题组成，另有独立的 300 题 Online‑Mind2Web 运行仓库。最值得借鉴的是：运行前确认任务可完成、保存逐题 trace、支持断点续跑、把“不可完成”与 Agent 真失败分开。Odysseys 还把长任务拆成平均 6.1 个可检查 rubric，并同时报告完整成功率、部分进度和每步效率。</p><p>首轮不直接照搬的原因也很具体：这些工作流都包含模型评审，BU Bench 还混入搜索与问答任务，Odysseys 又是实时多站长链任务。它们适合第二阶段测真实互联网泛化和长链能力，但会把网页漂移、judge 波动和浏览器内核差异同时混进结果。</p></section>
 <section><h2>WebArena‑Verified 本地部署要不要账号付费</h2><p>四个首轮站点使用官方 Docker 镜像和内置测试账号，本地运行不需要向 GitLab、Reddit 或电商站点申请真实账号，也没有按题平台费用。成本来自本机 CPU、内存、磁盘和模型 API。</p><p>本轮模型是 <code>{_e(run_model)}</code>，通过 Responses API 调用，并固定 <code>reasoning.effort=low</code>。当前 LiteLLM Team 没有 <code>gpt-6-astra</code> 权限，因此 GPT‑5.6 运行只能证明流程和 Chromium/Moli 在该模型条件下的差异，不能替代 Astra 成绩。</p><p>“本地可部署”也不等于轻量。本轮核对的官方 GitLab 镜像 manifest 含一个约 22.0 GB 的压缩主层，四个站点镜像合计约 91 GB；正式环境因此使用独立的 140 GiB Docker profile。Apple Silicon 上，三个含旧 Alpine/musl PHP‑FPM 的官方 amd64 镜像需要兼容层：Java、数据库及其余进程通过 Rosetta，PHP‑FPM 单独通过挂载的 QEMU 运行。该适配不修改官方镜像、站点数据或 evaluator，并以配置哈希写入运行证据。Wikipedia 与 Map 还需要额外数据卷，所以首轮不纳入。自托管能消除网站内容漂移、封号和真实支付风险，但不会自动消除镜像下载、环境初始化、登录兼容、浏览器 CDP 实现差异或 evaluator 缺陷。</p></section>
 <section><h2>本轮怎样保证是可比较的自主 Agent 实验</h2>{_table(['项目','预注册规则'], [['样本','固定 30 题：简单 5、中等 10、困难 15；运行后不换题，不重复抽样'],['Agent 与模型',f'CowAgent 真实自主观察、规划和调用 BrowserTool；{run_model}，reasoning=low；每个试次清空模型会话'],['工具接口','沿用 CowAgent 的页面快照与 browser 函数工具，不调用模型原生 computer tool；测的是既有 CowAgent 接入方式下的自主 browser use'],['唯一变量','Agent、提示、模型、任务、站点数据和资源限额相同，只替换 Chromium / Moli'],['环境','每个试次都从官方镜像重置该题站点并等待应用连续稳定；Shopping、Shopping Admin、Reddit 使用官方头登录，GitLab 使用官方 UI 登录'],['顺序','逐题交替先跑 Chromium 或 Moli，减轻固定先后顺序偏差'],['主分','每个“题 × 浏览器”只跑一次，官方二元 pass@1；两边构成逐题配对'],['重试','任务首轮失败后最多重跑一次，恢复只作诊断；每次模型请求遇到传输错误也最多重发一次，所有请求尝试与错误都入证'],['留证','保存最终 JSON、CowAgent 事件、标准网络 HAR、可视 Playwright trace、官方 evaluator 明细、镜像 ID、代码 commit、token 与资源指标'],['排除','首轮不选 Wikipedia / Map；不选无法由官方确定性 evaluator 验收的外部实时站点任务']])}<p class="fine">“操作步数层级”只决定覆盖结构，不参与得分。环境准备失败应标成基础设施错误并修复后重跑同一预注册试次，不能计作 Agent 失败，也不能借机换题。官方 evaluator 读取 HAR；可视 trace 只用于调试，不参与评分。由于工具接口不同，本轮结果不能直接代表 Astra 发布页中原生 computer-use harness 的成绩。</p></section>
-{_result_section(attempts)}{_tier_section(attempts)}{_task_table(selection_path, attempts)}
+{_result_section(attempts)}{_tier_section(attempts)}{_failure_analysis(attempts)}{_task_table(selection_path, attempts)}
 <section><h2>两条轨道必须分开读</h2>{_table(['轨道','Agent 是否自主','控制变量','主指标','回答的问题'], [['浏览器内核微基准（原 30 题）','否；重放固定 BrowserTool 等价调用','同一动作序列，只替换浏览器','严格输出正确率、动作执行、资源与耗时','相同操作交给两个内核，谁更兼容/省资源？'],['WebArena‑Verified Agent 评测（本报告）','是；CowAgent 自主观察、规划和调用 BrowserTool','同一 Agent、模型、提示、站点快照与任务，只替换浏览器','官方首轮 pass@1；失败重试恢复率另列','浏览器差异会怎样影响完整自主任务成功率？']])}<p>固定动作轨道不是“有问题的假 Agent”，它是有价值的内核微基准；问题只是旧命名把它说成了自主 browser use。两条轨道互补，但分数不能相加，也不能用一条替代另一条。</p></section>
 <section><h2>公开证据与复现边界</h2><ul><li><a href="https://openai.com/index/gpt-6-astra/">OpenAI：GPT‑6 Astra 发布页</a>；<a href="https://developers.openai.com/api/docs/models/gpt-6-astra">OpenAI API：GPT‑6 Astra 模型页</a>；<a href="https://developers.openai.com/api/docs/guides/latest-model">OpenAI API：Astra 使用指南</a></li><li><a href="https://openai.com/index/computer-using-agent/">OpenAI：Computer-Using Agent 评测说明</a></li><li><a href="https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf">Anthropic：Claude Sonnet 4.6 System Card</a></li><li><a href="https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf">Google DeepMind：Gemini 2.5 Computer Use Model Card</a></li><li><a href="https://github.com/OSU-NLP-Group/Mind2Web">Mind2Web 官方仓库</a>；<a href="https://github.com/OSU-NLP-Group/Online-Mind2Web">Online‑Mind2Web 官方仓库</a></li><li><a href="https://github.com/browser-use/benchmark">Browser Use 官方 benchmark 仓库</a>；<a href="https://github.com/browser-use/browser-use">Browser Use 产品仓库</a></li><li><a href="https://github.com/ljang0/Odysseys">Odysseys 官方仓库</a></li><li><a href="https://github.com/THUDM/AutoWebGLM">THUDM：AutoWebGLM</a></li><li><a href="https://github.com/ServiceNow/webarena-verified">WebArena‑Verified 官方仓库</a>；<a href="https://github.com/ServiceNow/webarena-verified/blob/main/docs/environments/gitlab.md">官方 GitLab 环境说明</a></li></ul><p class="fine">采用统计只计公开一手材料。未找到 DeepSeek 或 Kimi 的官方浏览器交互 benchmark，不代表其内部没有评测；Kimi 公布的 BrowseComp 属于 agentic search，本报告不把它算成 UI browser use。</p></section>
+{_release_notes()}
 </main></body></html>"""
     report = output / "index.html"
     report.write_text(html_text, encoding="utf-8")
