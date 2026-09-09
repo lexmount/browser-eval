@@ -66,6 +66,16 @@ reporting and between-call throttling are outside this latency. Runtime source a
 configuration hashes are captured before calls. Moli binary hashing occurs during
 validation, not each measured fetch; a changed binary requires revalidation.
 
+Runs default to no benchmark-level retry. A run may predeclare one failure retry
+with `max_failure_retries=1` (the headless CLI flag is
+`--max-failure-retries 1`). The retry is triggered only after the first physical
+call fails the shared task predicate. Both physical outputs and supplemental
+artifacts are retained; the logical record always uses the final physical call,
+never whichever response scored better. Its displayed latency sums both physical
+call intervals and any provider-required wait between them. A correction for a
+proven wrong command, version, scorer or reference is not a retry: supersede the
+affected result explicitly and rerun the complete declared correction scope.
+
 Late answers cannot pass. A common daemon boundary stops accepting output at the
 deadline and requests cancellation. An adapter that cannot cancel is quarantined:
 remaining calls on it are recorded as unexecuted, not fabricated failures, and

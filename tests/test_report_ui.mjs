@@ -141,4 +141,6 @@ vm.runInContext('compareMethods()',comparison);
 assert.deepEqual(comparisonRows.map(r=>r.hidden),[true,true,true,false]);
 compareChecks[1].checked=false;compareChecks[2].checked=false;vm.runInContext('compareMethods()',comparison);
 assert.ok(comparisonRows.every(r=>r.hidden));assert.equal(comparisonControls['compare-count'].textContent,'请至少选择一个对比方法');
+comparisonControls['compare-track']=null;
+assert.doesNotThrow(()=>vm.runInContext('compareMethods()',comparison));
 console.log('PASS: one unified method-set comparison covers asymmetric, shared, mixed and empty selections');

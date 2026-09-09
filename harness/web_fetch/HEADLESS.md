@@ -37,9 +37,12 @@ The routes have different completion controls because those controls belong to
 the tested interfaces: Kitesurf uses `networkidle2`, Chromium uses Playwright
 `domcontentloaded`, and each CLI uses its own documented completion behavior.
 No method receives task answers, task-specific selectors, clicks, scrolling,
-personal sessions, stealth fallback or model post-processing. Each method gets
-exactly one provider call per task and run. A failure is retained as measured;
-there is no retry or selection of a more favorable later response.
+personal sessions, stealth fallback or model post-processing. The current
+published run used exactly one provider call per task and did not retry.
+Future runs may predeclare `--max-failure-retries 1`: only a failed task may
+receive one additional physical call, both artifacts are retained, total
+logical latency includes the retry path, and the final physical call is always
+authoritative. Choosing the better response after seeing outcomes is forbidden.
 
 ## What is and is not fair
 
@@ -107,6 +110,12 @@ uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observa
 uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
 
+Failure retry is disabled by default. Add `--max-failure-retries 1` only when
+the protocol calls for one retry before measurement begins. This is distinct
+from correcting a proven wrong command, implementation version, scorer or
+reference: a correction explicitly supersedes the affected logical results,
+reruns the complete declared comparison scope and records its score impact.
+
 A failed or incomplete evidence directory is immutable. A reference failure
 suspends that case's new body measurement; it is not a provider failure. A
 replacement cohort must be independently prefrozen and must cover every method
@@ -160,5 +169,6 @@ bytes only after the complete blind review matches those bytes. These checks are
 covered by the repository test suite; a new session must repair the evidence or
 implementation instead of bypassing them.
 
-The public destination for this comparison is the separate site
-`bWkRP157EtF6`. Do not update the older report site `UeZE1vfcEOrM`.
+The public destination for this comparison is the separate Sites project
+`UUAhhQMnrGwm`. Do not update the older report sites `bWkRP157EtF6` or
+`UeZE1vfcEOrM`.
