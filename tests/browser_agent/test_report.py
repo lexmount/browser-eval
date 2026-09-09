@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from harness.browser_agent.report import _paired_summary, build_report
+from harness.browser_agent.report import _failure_diagnosis, _paired_summary, build_report
 
 
 def test_paired_summary_uses_primary_attempts_only() -> None:
@@ -68,6 +68,9 @@ def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) 
     task = (output / "datasets/44.html").read_text(encoding="utf-8")
     assert "Ground truth · 官方验收合同" in task
     assert "没有唯一参考点击路径" in task
+    assert "参考状态 · 当前环境是否有成功路径证据" in task
+    assert "全部试次结果对照" in task
+    assert "本轮已有成功轨迹" in (output / "datasets/index.html").read_text(encoding="utf-8")
     attempt = (output / "attempts/chromium-44-a1.html").read_text(encoding="utf-8")
     for expected in (
         "Agent 实际回答",
@@ -160,14 +163,42 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         "adoption/index.html",
         "reproduce/index.html",
         "accounts/index.html",
+        "en/index.html",
         "engines/chromium.html",
         "engines/moli.html",
     ):
         page = output / name
         assert page.is_file()
-        if name != "guide/article.html":
+        if name not in {"guide/article.html", "en/index.html"}:
             assert "切换主题" in page.read_text(encoding="utf-8")
     assert len(list((output / "datasets").glob("[0-9]*.html"))) == 30
     assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
+    evidence_index = json.loads(
+        (output / "data/evidence-index.json").read_text(encoding="utf-8")
+    )
+    assert evidence_index["schema"] == "lex_browser_agent_public_evidence_index/1"
+
+
+def test_failure_diagnosis_surfaces_exact_evaluator_assertion() -> None:
+    result = {
+        "evaluators_results": [
+            {
+                "evaluator_name": "AgentResponseEvaluator",
+                "score": 0,
+                "assertions": [
+                    {
+                        "assertion_msgs": [
+                            "Array is missing 1 expected element(s). Matched (1/2)"
+                        ]
+                    }
+                ],
+            }
+        ]
+    }
+
+    diagnosis = _failure_diagnosis(result, {})
+
+    assert "规则 1 AgentResponseEvaluator" in diagnosis
+    assert "Array is missing 1 expected element(s)" in diagnosis

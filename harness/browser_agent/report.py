@@ -264,12 +264,18 @@ def _group_rows(
     return result
 
 
-REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-agent-theme',n)}catch(e){}}function filterRows(){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query));r.hidden=hidden;if(!hidden)visible++;});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);}function sortTable(id,col){const t=document.getElementById(id),b=t?.tBodies[0];if(!b)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=col;t.dataset.dir=dir;}document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',filterRows));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',filterRows));filterRows();});"""
+REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-agent-theme',n)}catch(e){}}
+function updateViewUrl(){const u=new URL(location.href),q=document.querySelector('[data-search]');[...u.searchParams.keys()].filter(k=>k==='q'||k.startsWith('f_')).forEach(k=>u.searchParams.delete(k));if(q?.value)u.searchParams.set('q',q.value);document.querySelectorAll('[data-filter]').forEach(c=>{if(c.value)u.searchParams.set('f_'+c.dataset.filter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}
+function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
+function applySort(t,col,dir){const b=t?.tBodies[0];if(!b)return;[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=String(col);t.dataset.dir=dir}
+function sortTable(id,col){const t=document.getElementById(id);if(!t)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';applySort(t,col,dir);const u=new URL(location.href);u.searchParams.set('sort',id+':'+col+':'+dir);history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString()+u.hash)}
+function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null)c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);try{const y=sessionStorage.getItem('browser-agent-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}catch(e){}}
+document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}restoreView();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-agent-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
 body{overflow-x:hidden}.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
-.top nav{gap:18px;flex-wrap:nowrap}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px 1fr;gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.evidence-pair{grid-template-columns:1fr}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}}@media print{.top,.filters{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
+.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px 1fr;gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.evidence-pair{grid-template-columns:1fr}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}}@media print{.top,.filters{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 """
 )
 NAV = [
@@ -283,6 +289,7 @@ NAV = [
     ("adoption/", "方法介绍", "adoption"),
     ("reproduce/", "环境与复现", "reproduce"),
     ("accounts/", "账号", "accounts"),
+    ("en/", "English", "en"),
 ]
 
 
@@ -295,6 +302,31 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         for href, label, key in NAV
     )
     return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
+
+
+def _english_page(body: str) -> str:
+    links = "".join(
+        f'<a href="en/index.html#{anchor}">{label}</a>'
+        for anchor, label in (
+            ("results", "Results"),
+            ("scope", "Scope"),
+            ("method", "Method"),
+            ("evidence", "Evidence"),
+            ("review", "Review"),
+            ("access", "Access"),
+        )
+    )
+    return (
+        '<!doctype html><html lang="en"><head><base href="../"><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>English edition · Browser Use evaluation</title><link rel="stylesheet" href="assets/style.css">'
+        '<script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">'
+        + links
+        + '<a href="">中文</a><button class="theme-toggle" onclick="theme()">Theme</button></nav></header>'
+        '<main class="page-main">'
+        + body
+        + '</main><footer class="footer"><div class="wrap"><p>Conclusions apply only to this preregistered sample, agent, model, and runtime configuration.</p></div></footer></body></html>'
+    )
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
@@ -351,20 +383,53 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
         return "全部官方 evaluator 均通过。"
     parts = []
     for item in failed:
-        if item["name"] == "AgentResponseEvaluator":
-            parts.append("最终回答与官方结构化答案不一致")
-        elif item["name"] == "NetworkEventEvaluator":
-            parts.append("未观察到满足合同的必要网络请求或副作用")
-        else:
-            parts.append(f"{item['name']} 未通过")
+        messages: list[str] = []
+        for assertion in item.get("assertions") or []:
+            assertion_messages = assertion.get("assertion_msgs") or []
+            if assertion_messages:
+                messages.append(str(assertion_messages[0]))
+            if assertion.get("error_msg"):
+                messages.append(str(assertion["error_msg"]))
         if item.get("error"):
-            parts.append(str(item["error"]))
+            messages.append(str(item["error"]))
+        if not messages:
+            messages.append(
+                "最终回答与官方结构化答案不一致"
+                if item["name"] == "AgentResponseEvaluator"
+                else "未观察到满足合同的必要网络请求或副作用"
+                if item["name"] == "NetworkEventEvaluator"
+                else "该规则未通过"
+            )
+        expected, actual = item.get("expected"), item.get("actual")
+        if expected is not None or actual is not None:
+            comparison = (
+                f"expected={json.dumps(expected, ensure_ascii=False, separators=(',', ':'))}; "
+                f"actual={json.dumps(actual, ensure_ascii=False, separators=(',', ':'))}"
+            )
+            messages.append(comparison)
+        exact = "；".join(
+            dict.fromkeys(str(sanitize(message)).strip().rstrip("。.;； ") for message in messages)
+        )
+        if len(exact) > 420:
+            exact = exact[:417].rstrip() + "…"
+        parts.append(f"规则 {item['index']} {item['name']}：{exact}")
     if row.get("error"):
         parts.append(str(sanitize(row["error"])))
     response = row.get("agent_response") or {}
     if response.get("error_details"):
         parts.append(str(sanitize(response["error_details"])))
-    return "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())) + "。"
+    return (
+        "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())).rstrip("。.;； ")
+        + "。"
+    )
+
+
+def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
+    return [
+        f"规则 {item['index']} {item['name']}"
+        for item in evaluator_summary(result)
+        if float(item.get("score") or 0) < 1
+    ]
 
 
 def _evaluator_result_html(result: dict[str, Any] | None) -> str:
@@ -444,7 +509,11 @@ def _article_body(
             caption="表 1｜30 个首轮任务的逐题配对；重试不并入主分。",
         )
         + "<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。30 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section><section><h2>二、五个共同失败指向检索聚合与最终状态，不是重试次数</h2><p>失败集中在四个信息聚合任务和一个购物车状态任务。十个失败试次各获得一次重试，恢复数仍为 0。继续增加重试只会提高成本并模糊 pass@1。</p>"
-        + _table(["任务", "公开诊断"], failures, caption="表 2｜不公开参考答案或 Agent 原始回答。")
+        + _table(
+            ["任务", "公开诊断"],
+            failures,
+            caption="表 2｜任务详情公开官方合同、实际回答、逐规则判定与执行轨迹。",
+        )
         + "<p>共同失败不能单独证明模型是唯一根因，因为 CowAgent 提示、工具抽象和步数上限也是共同变量；但它足以改变下一步优先级：先检查跨页收集、去重、范围约束和提交后状态验证。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
         + _table(
             ["本项目分层", "Chromium", "Moli"],
@@ -472,6 +541,11 @@ def _filters(*, attempts: bool = False) -> str:
         if attempts
         else ""
     )
+    solvability = (
+        ""
+        if attempts
+        else '<label>可完成性 <select data-filter="solvability"><option value="">全部</option><option value="measured">本轮已有成功轨迹</option><option value="unproven">仅官方合同</option></select></label>'
+    )
     return (
         '<div class="filters"><label>全文搜索 <input data-search type="search" placeholder="任务、意图、答案、错误"></label>'
         '<label>层级 <select data-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
@@ -480,6 +554,7 @@ def _filters(*, attempts: bool = False) -> str:
         '<label>结果 <select data-filter="result"><option value="">全部</option><option value="pass">通过</option><option value="fail"'
         + (" selected" if attempts else "")
         + '>失败</option></select></label>'
+        + solvability
         + extra
         + '<span class="count-note" data-visible-count></span></div>'
     )
@@ -492,6 +567,15 @@ def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> 
         task_id, site, kind = int(task["task_id"]), task["sites"][0], task["task_type"]
         c, m = primary.get(("chromium", task_id)), primary.get(("moli", task_id))
         result = "pass" if c and m and float(c["score"]) == float(m["score"]) == 1 else "fail"
+        measured_success = any(
+            int(row["task_id"]) == task_id and float(row["score"]) == 1 for row in attempts
+        )
+        solvability = "measured" if measured_success else "unproven"
+        solvability_label = (
+            Safe('<span class="status-pass">本轮已有成功轨迹</span>')
+            if measured_success
+            else Safe('<span class="status-unproven">仅官方合同</span>')
+        )
         values = [
             Safe(f'<a href="datasets/{task_id}.html">#{task_id}</a>'),
             TIER_LABELS[task["tier"]],
@@ -499,6 +583,8 @@ def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> 
             kind,
             task["estimated_min_steps"],
             task["rationale"],
+            task.get("intent") or "—",
+            solvability_label,
             _status(c) if c else "—",
             _status(m) if m else "—",
         ]
@@ -513,9 +599,20 @@ def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> 
             )
         )
         rows.append(
-            f'<tr data-tier="{task["tier"]}" data-site="{site}" data-kind="{kind}" data-result="{result}" data-search="{_e(search)}">{cells}</tr>'
+            f'<tr data-tier="{task["tier"]}" data-site="{site}" data-kind="{kind}" data-result="{result}" data-solvability="{solvability}" data-search="{_e(search)}">{cells}</tr>'
         )
-    labels = ["任务", "层级", "站点", "类型", "最少步", "入选理由", "Chromium", "Moli"]
+    labels = [
+        "任务",
+        "层级",
+        "站点",
+        "类型",
+        "最少步",
+        "入选理由",
+        "官方任务意图",
+        "可完成性证据",
+        "Chromium",
+        "Moli",
+    ]
     headers = "".join(
         f'<th><button class="sort-button" onclick="sortTable(\'task-table\',{i})">{_e(x)} ↕</button></th>'
         for i, x in enumerate(labels)
@@ -533,18 +630,18 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
         p = _public_attempt(row)
         result = "pass" if p["score"] == 1 else "fail"
         result_record = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
-        failed_names = [
+        failed_names = {
             item["name"]
             for item in evaluator_summary(result_record)
             if float(item.get("score") or 0) < 1
-        ]
+        }
         failure = (
             "none"
             if not failed_names
             else "mixed"
             if len(failed_names) > 1
             else "network"
-            if failed_names[0] == "NetworkEventEvaluator"
+            if "NetworkEventEvaluator" in failed_names
             else "response"
         )
         task = task_meta.get(p["task_id"], {})
@@ -594,11 +691,7 @@ def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any
             continue
         task_id = int(row["task_id"])
         result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
-        failed = [
-            item["name"]
-            for item in evaluator_summary(result)
-            if float(item.get("score") or 0) < 1
-        ]
+        failed = _failed_rule_labels(result)
         rows.append(
             [
                 Safe(f'<a href="attempts/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
@@ -648,6 +741,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         for name in ("manifest.json", "run-config.json", "result-review.json")
     )
     summary, paired = _primary_summary(attempts), _paired_summary(attempts)
+    measured_solvable_ids = {
+        int(row["task_id"]) for row in attempts if float(row.get("score") or 0) == 1
+    }
+    unproven_ids = sorted(
+        int(task["task_id"])
+        for task in tasks
+        if int(task["task_id"]) not in measured_solvable_ids
+    )
     protocol, environment = manifest.get("protocol") or {}, manifest.get("environment") or {}
     model, run_date = (
         str(protocol.get("model") or "未记录"),
@@ -670,6 +771,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "adoption",
             "reproduce",
             "accounts",
+            "en",
             "data",
             "artifacts",
         ):
@@ -708,6 +810,54 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         (stage / "index.html").write_text(
             _page(title="首页", active="home", body=home), encoding="utf-8"
         )
+
+        english = _hero(
+            f"Browser Agent Evaluation · {run_date}",
+            "One autonomous agent and model; only the browser changes",
+            f"CowAgent with {model} (reasoning=low) ran the same 30 preregistered WebArena-Verified tasks on Chromium and Moli.",
+        )
+        english += '<div id="results"></div>' + _section(
+            "Results",
+            _table(
+                ["Browser", "Primary passes", "pass@1", "Retry recoveries", "Median latency"],
+                [
+                    [
+                        ENGINE_LABELS[engine],
+                        f"{summary[engine]['passed']}/{summary[engine]['completed']}",
+                        _pct(summary[engine]["score"]),
+                        f"{summary[engine]['recovered']}/{summary[engine]['retry_count']}",
+                        (
+                            f"{summary[engine]['median_duration_ms'] / 1000:.1f} s"
+                            if summary[engine]["median_duration_ms"] is not None
+                            else "—"
+                        ),
+                    ]
+                    for engine in ENGINE_LABELS
+                ],
+            )
+            + f'<p class="callout success"><strong>Observed result:</strong> {paired["both_pass"]} tasks passed on both browsers, {paired["both_fail"]} failed on both, and {paired["chromium_only"] + paired["moli_only"]} had a one-browser-only pass. This run found no directional success-rate difference; it does not establish browser equivalence.</p>',
+        )
+        english += '<div id="scope"></div>' + _section(
+            "Scope",
+            '<p>The suite contains 5 easy, 10 medium, and 15 hard project tiers, defined before execution by estimated minimum visible UI actions. These are operation-length strata, not official WebArena difficulty labels. Every primary failure receives at most one diagnostic retry, which never changes pass@1.</p>',
+        )
+        english += '<div id="method"></div>' + _section(
+            "How tasks are judged",
+            '<p>WebArena-Verified does not prescribe one canonical click path. A task passes only when every configured deterministic evaluator scores 1.0: <code>AgentResponseEvaluator</code> checks the normalized final JSON, while <code>NetworkEventEvaluator</code> checks required observable requests or side effects. There is no LLM-as-a-judge and no human score override.</p>',
+        )
+        english += '<div id="evidence"></div>' + _section(
+            "Task and attempt evidence",
+            '<p>Each task page publishes the official evaluation contract, whether this run contains a successful trajectory, every Chromium and Moli result, exact failed assertions, and links to the actual autonomous trajectory. Each attempt page publishes the final response, rule-level expected/actual values, BrowserTool calls, output excerpts, and downloadable sanitized records.</p><div class="page-links"><a href="datasets/">Open 30 tasks</a><a href="analysis/">Open 70 attempts</a><a href="data/selection.json" download>Download task contracts</a><a href="data/evidence-index.json" download>Download evidence index</a></div>',
+        )
+        english += '<div id="review"></div>' + _section(
+            "Independent integrity review",
+            f'<p>{(review.get("coverage") or {}).get("reviewed_attempts", 0)}/{(review.get("coverage") or {}).get("recorded_attempts", 0)} attempts passed deterministic evidence checks, with {len(review.get("disagreements") or [])} score disagreements and {len(review.get("unresolved") or [])} unresolved records. The official evaluator remains the only scoring authority.</p><p><a href="review/">Open the review inventory →</a></p>',
+        )
+        english += '<div id="access"></div>' + _section(
+            "Access, privacy, and reproduction",
+            '<p>The four benchmark sites are self-hosted and reset before each task. Model access is separate. The public bundle includes sanitized responses, evaluator records, events, trajectories, hashes, and runtime identities. Raw HAR and Playwright traces remain private because they may contain cookies and session state.</p><div class="page-links"><a href="accounts/">Account requirements</a><a href="reproduce/">Reproduction and downloads</a><a href="data/publication-privacy.json" download>Privacy manifest</a></div>',
+        )
+        (stage / "en/index.html").write_text(_english_page(english), encoding="utf-8")
 
         guide = (
             _hero(
@@ -758,6 +908,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         ) + _section(
             "怎样阅读任务 ground truth",
             '<p><strong>WebArena‑Verified 的 ground truth 不是一条固定点击脚本。</strong>每题声明一个结构化最终回答合同，并在需要确认页面副作用时附加一个或多个网络事件合同。所有合同都通过才记 1 分。任务详情同时展示合同、两种浏览器的实际回答、失败规则和 CowAgent 自主轨迹。</p>',
+        ) + _section(
+            "参考状态与可完成性证据",
+            f'<p><strong>{len(measured_solvable_ids)}/30 题</strong>在本轮至少有一条自主成功轨迹，直接证明当前环境存在可完成路径；<strong>{len(unproven_ids)}/30 题</strong>只有官方验收合同而没有本轮成功轨迹（任务 {", ".join(f"#{task_id}" for task_id in unproven_ids) or "无"}）。后者仍可稳定判分，但本轮不能独立证明当前快照可完成，也不能仅凭共同失败归因浏览器。</p><p class="fine">“有成功路径证据”不等于存在唯一标准路径；WebArena‑Verified 不要求复刻人工动作序列。</p>',
         ) + _section("30 个任务", _task_table(tasks, attempts))
         (stage / "datasets/index.html").write_text(
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
@@ -766,6 +919,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         by_attempt = {(r["engine"], int(r["task_id"]), int(r["attempt"])): r for r in attempts}
         for task in tasks:
             task_id, site = int(task["task_id"]), task["sites"][0]
+            measured_passes = [
+                row
+                for row in attempts
+                if int(row["task_id"]) == task_id and float(row["score"]) == 1
+            ]
             task_rows = []
             for engine in ENGINE_LABELS:
                 for attempt_no in (1, 2):
@@ -787,9 +945,24 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             detail += _section(
                 "任务身份",
-                f'<div class="detail-grid"><div class="kv"><b>站点</b>{_e(SITE_LABELS.get(site, site))}</div><div class="kv"><b>本项目层级</b>{_e(TIER_LABELS[task["tier"]])} · {_e(task["estimated_min_steps"])} 步起</div><div class="kv"><b>任务类型</b>{_e(task["task_type"])}</div><div class="kv"><b>官方 hard subset</b>{"是" if task["official_hard"] else "否"}</div></div><h3>公开任务意图</h3><p>{_e(task["intent"])}</p><p class="fine">模板 ID {task.get("intent_template_id") or "—"} · revision {task.get("revision") or "—"}</p>',
+                f'<div class="detail-grid"><div class="kv"><b>站点</b>{_e(SITE_LABELS.get(site, site))}</div><div class="kv"><b>本项目层级</b>{_e(TIER_LABELS[task["tier"]])} · {_e(task["estimated_min_steps"])} 步起</div><div class="kv"><b>任务类型</b>{_e(task["task_type"])}</div><div class="kv"><b>官方 hard subset</b>{"是" if task["official_hard"] else "否"}</div><div class="kv"><b>本轮可完成性证据</b>{"已有成功轨迹" if measured_passes else "尚无成功轨迹"}</div></div><h3>公开任务意图</h3><p>{_e(task["intent"])}</p><p class="fine">官方来源：<a href="https://github.com/ServiceNow/webarena-verified">WebArena‑Verified {_e(environment.get("webarena_verified_version", "—"))}</a> · Task #{task_id} · 模板 ID {task.get("intent_template_id") or "—"} · revision {task.get("revision") or "—"}</p>',
             )
             detail += _section("Ground truth · 官方验收合同", _task_contract_html(task))
+            if measured_passes:
+                proof_links = "".join(
+                    f'<a href="attempts/{_attempt_id(row)}.html#trajectory">{_e(_attempt_id(row))} 成功轨迹</a>'
+                    for row in measured_passes
+                )
+                detail += _section(
+                    "参考状态 · 当前环境是否有成功路径证据",
+                    '<p class="callout success"><strong>有。</strong>本轮至少一个自主试次通过全部官方合同，因此当前站点快照存在已实测的可完成路径。成功轨迹不是唯一标准路径，也不要求另一浏览器复刻。</p>'
+                    f'<div class="page-links">{proof_links}</div>',
+                )
+            else:
+                detail += _section(
+                    "参考状态 · 当前环境是否有成功路径证据",
+                    '<p class="callout failure"><strong>本轮没有。</strong>官方任务包给出了确定性验收合同，但两种浏览器的首轮和唯一诊断重试都未通过。因此本报告不能独立证明当前快照存在可完成路径，也不能把失败直接归因给浏览器；需要另做不参与计分的人工或 oracle 可完成性核验。</p>',
+                )
             detail += _section(
                 "两种浏览器的全部正式试次",
                 _table(["浏览器", "口径", "官方结果", "端到端耗时", "证据"], task_rows)
@@ -799,42 +972,47 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     else ""
                 ),
             )
-            primary_comparison = []
+            attempt_comparison = []
             for engine in ENGINE_LABELS:
-                row = by_attempt.get((engine, task_id, 1))
-                if not row:
-                    continue
-                result_record = read_public_json(
-                    Path((row.get("paths") or {}).get("evaluation", ""))
-                )
-                event_record = read_public_json(
-                    Path((row.get("paths") or {}).get("events", ""))
-                )
-                step_count = len(
-                    trajectory(event_record if isinstance(event_record, list) else [])
-                )
-                failed_rules = [
-                    item["name"]
-                    for item in evaluator_summary(result_record)
-                    if float(item.get("score") or 0) < 1
-                ]
-                primary_comparison.append(
-                    [
-                        ENGINE_LABELS[engine],
-                        _status(row),
-                        Safe(_json_pre(sanitize(row.get("agent_response") or {}))),
-                        "、".join(failed_rules) or "无",
-                        _failure_diagnosis(result_record, row),
-                        Safe(
-                            f'<a href="attempts/{_attempt_id(row)}.html#trajectory">查看 {step_count} 步轨迹</a>'
-                        ),
-                    ]
-                )
+                for attempt_no in (1, 2):
+                    row = by_attempt.get((engine, task_id, attempt_no))
+                    if not row:
+                        continue
+                    result_record = read_public_json(
+                        Path((row.get("paths") or {}).get("evaluation", ""))
+                    )
+                    event_record = read_public_json(
+                        Path((row.get("paths") or {}).get("events", ""))
+                    )
+                    step_count = len(
+                        trajectory(event_record if isinstance(event_record, list) else [])
+                    )
+                    attempt_comparison.append(
+                        [
+                            ENGINE_LABELS[engine],
+                            "首轮" if attempt_no == 1 else "失败诊断重试",
+                            _status(row),
+                            Safe(_json_pre(sanitize(row.get("agent_response") or {}))),
+                            "、".join(_failed_rule_labels(result_record)) or "无",
+                            _failure_diagnosis(result_record, row),
+                            Safe(
+                                f'<a href="attempts/{_attempt_id(row)}.html#trajectory">查看 {step_count} 步轨迹</a>'
+                            ),
+                        ]
+                    )
             detail += _section(
-                "首轮结果对照",
+                "全部试次结果对照",
                 _table(
-                    ["浏览器", "结果", "实际最终回答", "失败规则", "为什么这样判", "执行过程"],
-                    primary_comparison,
+                    [
+                        "浏览器",
+                        "口径",
+                        "结果",
+                        "实际最终回答",
+                        "失败规则",
+                        "为什么这样判",
+                        "执行过程",
+                    ],
+                    attempt_comparison,
                 ),
             )
             (stage / f"datasets/{task_id}.html").write_text(
@@ -1222,7 +1400,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个试次的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;attempt-id&gt;/</code>，也可从试次详情页直接下载。</p>',
+            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个试次的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;attempt-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 70 个试次的页面与下载路径。</p>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -1282,6 +1460,31 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         (stage / "data/results.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in public_attempts),
             encoding="utf-8",
+        )
+        _write_json(
+            stage / "data/evidence-index.json",
+            {
+                "schema": "lex_browser_agent_public_evidence_index/1",
+                "attempts": [
+                    {
+                        "attempt_id": row["id"],
+                        "engine": row["engine"],
+                        "task_id": row["task_id"],
+                        "attempt": row["attempt"],
+                        "score": row["score"],
+                        "task_page": f"datasets/{row['task_id']}.html",
+                        "attempt_page": f"attempts/{row['id']}.html",
+                        "artifacts": {
+                            "agent_response": f"artifacts/{row['id']}/agent-response.json",
+                            "evaluation": f"artifacts/{row['id']}/evaluation.json",
+                            "agent_events": f"artifacts/{row['id']}/agent-events.json",
+                            "trajectory": f"artifacts/{row['id']}/trajectory.json",
+                            "evidence_metadata": f"artifacts/{row['id']}/evidence-metadata.json",
+                        },
+                    }
+                    for row in public_attempts
+                ],
+            },
         )
         audit = {
             "schema": "lex_browser_agent_report/2",

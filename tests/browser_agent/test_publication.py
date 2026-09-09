@@ -5,12 +5,14 @@ def test_sanitize_redacts_credentials_origins_and_local_paths() -> None:
     value = sanitize(
         {
             "password": "hello1234",
+            "response_cookies": None,
             "url": "http://host.docker.internal:8023/dashboard/todos",
             "message": "Bearer abc.def from /Users/example/run/output.json",
         }
     )
 
     assert value["password"] == "[REDACTED]"
+    assert value["response_cookies"] is None
     assert value["url"] == "__GITLAB__/dashboard/todos"
     assert value["message"] == "Bearer [REDACTED] from <LOCAL_PATH>"
 

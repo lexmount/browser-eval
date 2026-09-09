@@ -34,6 +34,7 @@ def check(
         "adoption/index.html",
         "reproduce/index.html",
         "accounts/index.html",
+        "en/index.html",
         "engines/chromium.html",
         "engines/moli.html",
     )
@@ -70,6 +71,7 @@ def check(
             "environment.json",
             "review.json",
             "publication-privacy.json",
+            "evidence-index.json",
         )
     )
     artifact_files = tuple(
@@ -124,9 +126,14 @@ def check(
         page: page.read_text(encoding="utf-8") for page in (*pages, *task_pages, *attempt_pages)
     }
     if task_pages and any(
-        "Ground truth · 官方验收合同" not in rendered_pages[page] for page in task_pages
+        "Ground truth · 官方验收合同" not in rendered_pages[page]
+        or "参考状态 · 当前环境是否有成功路径证据" not in rendered_pages[page]
+        or "全部试次结果对照" not in rendered_pages[page]
+        for page in task_pages
     ):
-        raise ValueError("every task page must publish its official evaluation contract")
+        raise ValueError(
+            "every task page must publish its contract, solvability status and all attempts"
+        )
     if attempt_pages and any(
         marker not in rendered_pages[page]
         for page in attempt_pages
@@ -156,6 +163,14 @@ def check(
     ]
     if len(public_results) != len(rows):
         raise ValueError("public result projection must cover every measured attempt")
+    evidence_index = json.loads(
+        (report_dir / "data/evidence-index.json").read_text(encoding="utf-8")
+    )
+    indexed_attempts = evidence_index.get("attempts") or []
+    if {item.get("attempt_id") for item in indexed_attempts} != {
+        page.stem for page in attempt_pages
+    }:
+        raise ValueError("public evidence index must cover every measured attempt exactly once")
     forbidden = {
         "agent_response",
         "paths",

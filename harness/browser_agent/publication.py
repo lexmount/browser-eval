@@ -56,6 +56,8 @@ def sanitize_text(value: str) -> str:
 def sanitize(value: Any, *, key: str = "") -> Any:
     """Recursively redact credentials while preserving benchmark evidence."""
 
+    if value is None or value == [] or value == {}:
+        return value
     if _SENSITIVE_KEY.search(key):
         return "[REDACTED]"
     if isinstance(value, str):

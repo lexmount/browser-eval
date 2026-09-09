@@ -18,6 +18,7 @@ test-python: runtime-check
 test-ui:
 	node tests/test_report_ui.mjs
 	node tests/test_report_loader.mjs
+	node tests/browser_agent/test_report_ui.mjs
 
 fixture-smoke: runtime-check
 	$(PY) -m harness.web_fetch validate --providers fixture
