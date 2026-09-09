@@ -3,6 +3,7 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_agent.runner import (
     ENV_CTRL_READY_TIMEOUT_SECONDS,
+    QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
     _configure_benchmark,
@@ -179,6 +180,18 @@ def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-gitlab"
     assert manager.config.volumes == {}
+
+
+def test_php_site_on_x86_keeps_official_default_config(monkeypatch) -> None:
+    class Client:
+        @staticmethod
+        def info():
+            return {"Architecture": "x86_64"}
+
+    monkeypatch.setattr("harness.browser_agent.runner.docker.from_env", lambda: Client())
+    manager = _site_container_manager(WebArenaSite.SHOPPING)
+
+    assert QEMU_X86_64_HOST_PATH not in manager.config.volumes
 
 
 def test_arm_runtime_compatibility_is_evidence_bound() -> None:

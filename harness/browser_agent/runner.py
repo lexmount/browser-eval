@@ -317,7 +317,7 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
         container = docker.from_env().containers.get(manager.container_name)
         _wait_container_healthy(container)
     _wait_application_ready(site, manager.config.health_check_path)
-    if manager.config.setup is not None and site in AMD64_PHP_SITES:
+    if QEMU_X86_64_HOST_PATH in manager.config.volumes:
         _verify_arm_php_compatibility(manager.container_name)
 
 

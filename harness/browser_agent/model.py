@@ -213,12 +213,12 @@ class OpenAIResponsesModel:
                 json=payload,
                 timeout=self.timeout_seconds,
             )
+            response.raise_for_status()
         except requests.RequestException as exc:
             self.transport_errors.append(
                 {"type": type(exc).__name__, "message": str(exc)[:500]}
             )
             raise
-        response.raise_for_status()
         self.last_response = response.json()
         response_id = self.last_response.get("id")
         if not isinstance(response_id, str) or not response_id:

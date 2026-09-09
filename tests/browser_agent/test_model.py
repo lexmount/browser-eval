@@ -176,6 +176,29 @@ def test_model_records_failed_transport_attempts() -> None:
     assert model.transport_errors == [{"type": "Timeout", "message": "timed out"}]
 
 
+def test_model_records_http_error_attempts() -> None:
+    requests = __import__("requests")
+
+    class ErrorResponse:
+        def raise_for_status(self):
+            raise requests.HTTPError("503 Service Unavailable")
+
+    class HttpErrorSession:
+        def post(self, _url, **_kwargs):
+            return ErrorResponse()
+
+    model = OpenAIResponsesModel(api_key="test", session=HttpErrorSession())
+
+    with pytest.raises(requests.HTTPError):
+        list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))
+
+    assert model.request_count == 0
+    assert model.request_attempt_count == 1
+    assert model.transport_errors == [
+        {"type": "HTTPError", "message": "503 Service Unavailable"}
+    ]
+
+
 def test_model_access_preflight_checks_exact_model() -> None:
     model = OpenAIResponsesModel(api_key="test", session=_Session())
 
