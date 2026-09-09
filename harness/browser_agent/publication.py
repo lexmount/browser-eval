@@ -8,7 +8,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-
 _ORIGIN_REPLACEMENTS = {
     "http://host.docker.internal:7770": "__SHOPPING__",
     "http://host.docker.internal:7780/admin": "__SHOPPING_ADMIN__",

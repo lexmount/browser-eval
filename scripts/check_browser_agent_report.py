@@ -250,7 +250,9 @@ def check(
             if path.is_file() and path.suffix in {".html", ".json", ".jsonl", ".js", ".css"}:
                 text = path.read_text(encoding="utf-8")
                 if any(secret in text for secret in forbidden_text):
-                    raise ValueError(f"published evidence contains a secret or local origin: {path}")
+                    raise ValueError(
+                        f"published evidence contains a secret or local origin: {path}"
+                    )
 
 
 def main() -> None:

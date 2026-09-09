@@ -175,9 +175,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
-    evidence_index = json.loads(
-        (output / "data/evidence-index.json").read_text(encoding="utf-8")
-    )
+    evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
     assert evidence_index["schema"] == "lex_browser_agent_public_evidence_index/1"
 
 
@@ -188,11 +186,7 @@ def test_failure_diagnosis_surfaces_exact_evaluator_assertion() -> None:
                 "evaluator_name": "AgentResponseEvaluator",
                 "score": 0,
                 "assertions": [
-                    {
-                        "assertion_msgs": [
-                            "Array is missing 1 expected element(s). Matched (1/2)"
-                        ]
-                    }
+                    {"assertion_msgs": ["Array is missing 1 expected element(s). Matched (1/2)"]}
                 ],
             }
         ]

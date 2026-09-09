@@ -215,7 +215,9 @@ def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
 
         benchmark = _configure_benchmark()
         tasks = validate_against_official(selection, benchmark)
-        official = {int(task["task_id"]): benchmark.get_task(int(task["task_id"])) for task in tasks}
+        official = {
+            int(task["task_id"]): benchmark.get_task(int(task["task_id"])) for task in tasks
+        }
     except Exception:
         tasks = [
             {
@@ -238,7 +240,9 @@ def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
         task["contract"] = contract
         evals = contract.get("evaluation_contract") or []
         expected = (evals[0].get("expected") or {}) if evals else {}
-        task["task_type"] = str(expected.get("task_type") or _task_type(int(task["task_id"]))).upper()
+        task["task_type"] = str(
+            expected.get("task_type") or _task_type(int(task["task_id"]))
+        ).upper()
     return tasks
 
 
@@ -356,16 +360,18 @@ def _task_contract_html(task: dict[str, Any]) -> str:
         evaluator = rule.get("evaluator") or "UnknownEvaluator"
         expected = rule.get("expected") or {}
         qualifiers = {
-            key: value
-            for key, value in rule.items()
-            if key not in {"evaluator", "expected"}
+            key: value for key, value in rule.items() if key not in {"evaluator", "expected"}
         }
         cards.append(
             '<article class="evidence-card"><h3>'
             + _e(f"规则 {index} · {evaluator}")
-            + "</h3><p><span class=\"badge\">程序化验收</span>该规则必须得分 1.0。</p>"
+            + '</h3><p><span class="badge">程序化验收</span>该规则必须得分 1.0。</p>'
             + _json_pre(expected)
-            + (f"<details><summary>匹配选项与结果 schema</summary>{_json_pre(qualifiers)}</details>" if qualifiers else "")
+            + (
+                f"<details><summary>匹配选项与结果 schema</summary>{_json_pre(qualifiers)}</details>"
+                if qualifiers
+                else ""
+            )
             + "</article>"
         )
     return (
@@ -418,10 +424,7 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
     response = row.get("agent_response") or {}
     if response.get("error_details"):
         parts.append(str(sanitize(response["error_details"])))
-    return (
-        "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())).rstrip("。.;； ")
-        + "。"
-    )
+    return "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())).rstrip("。.;； ") + "。"
 
 
 def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
@@ -446,13 +449,17 @@ def _evaluator_result_html(result: dict[str, Any] | None) -> str:
         }
         cards.append(
             f'<article class="evidence-card rule-{"pass" if passed else "fail"}"><h3>规则 {item["index"]} · {_e(item["name"])}</h3>'
-            f'<p>{"通过" if passed else "失败"} · score={_e(item.get("score"))}</p>'
+            f"<p>{'通过' if passed else '失败'} · score={_e(item.get('score'))}</p>"
             '<div class="evidence-pair"><div><h4>官方期望</h4>'
             + _json_pre(item.get("expected"))
-            + '</div><div><h4>实际归一化结果</h4>'
+            + "</div><div><h4>实际归一化结果</h4>"
             + _json_pre(item.get("actual"))
             + "</div></div>"
-            + (f"<details open><summary>断言与错误</summary>{_json_pre(detail)}</details>" if detail else "")
+            + (
+                f"<details open><summary>断言与错误</summary>{_json_pre(detail)}</details>"
+                if detail
+                else ""
+            )
             + "</article>"
         )
     return "".join(cards)
@@ -468,11 +475,11 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
         if duration is not None:
             meta += f" · {float(duration):.2f} 秒"
         rows.append(
-            '<li><div><details><summary>'
+            "<li><div><details><summary>"
             + _e(trajectory_label(step))
             + f'</summary><p class="fine">{meta}</p><h4>调用参数</h4>'
             + _json_pre(step.get("arguments"))
-            + '<h4>执行输出节选</h4>'
+            + "<h4>执行输出节选</h4>"
             + f'<pre class="log-view">{_e(result_excerpt(step))}</pre>'
             + "</details></div></li>"
         )
@@ -553,7 +560,7 @@ def _filters(*, attempts: bool = False) -> str:
         '<label>类型 <select data-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>'
         '<label>结果 <select data-filter="result"><option value="">全部</option><option value="pass">通过</option><option value="fail"'
         + (" selected" if attempts else "")
-        + '>失败</option></select></label>'
+        + ">失败</option></select></label>"
         + solvability
         + extra
         + '<span class="count-note" data-visible-count></span></div>'
@@ -704,7 +711,9 @@ def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any
     return _table(["首轮试次", "任务", "失败规则", "直接原因", "同题对照"], rows)
 
 
-def _engine_attempts(engine: str, attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
+def _engine_attempts(
+    engine: str, attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
+) -> str:
     meta = {int(task["task_id"]): task for task in tasks}
     rows = []
     for row in attempts:
@@ -745,9 +754,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         int(row["task_id"]) for row in attempts if float(row.get("score") or 0) == 1
     }
     unproven_ids = sorted(
-        int(task["task_id"])
-        for task in tasks
-        if int(task["task_id"]) not in measured_solvable_ids
+        int(task["task_id"]) for task in tasks if int(task["task_id"]) not in measured_solvable_ids
     )
     protocol, environment = manifest.get("protocol") or {}, manifest.get("environment") or {}
     model, run_date = (
@@ -839,11 +846,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         english += '<div id="scope"></div>' + _section(
             "Scope",
-            '<p>The suite contains 5 easy, 10 medium, and 15 hard project tiers, defined before execution by estimated minimum visible UI actions. These are operation-length strata, not official WebArena difficulty labels. Every primary failure receives at most one diagnostic retry, which never changes pass@1.</p>',
+            "<p>The suite contains 5 easy, 10 medium, and 15 hard project tiers, defined before execution by estimated minimum visible UI actions. These are operation-length strata, not official WebArena difficulty labels. Every primary failure receives at most one diagnostic retry, which never changes pass@1.</p>",
         )
         english += '<div id="method"></div>' + _section(
             "How tasks are judged",
-            '<p>WebArena-Verified does not prescribe one canonical click path. A task passes only when every configured deterministic evaluator scores 1.0: <code>AgentResponseEvaluator</code> checks the normalized final JSON, while <code>NetworkEventEvaluator</code> checks required observable requests or side effects. There is no LLM-as-a-judge and no human score override.</p>',
+            "<p>WebArena-Verified does not prescribe one canonical click path. A task passes only when every configured deterministic evaluator scores 1.0: <code>AgentResponseEvaluator</code> checks the normalized final JSON, while <code>NetworkEventEvaluator</code> checks required observable requests or side effects. There is no LLM-as-a-judge and no human score override.</p>",
         )
         english += '<div id="evidence"></div>' + _section(
             "Task and attempt evidence",
@@ -902,16 +909,21 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "公开采用信号 Top 3",
             '<div class="rank-list"><article class="rank-item"><div><h3>Mind2Web 家族 · 5 家</h3><p>OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use。原版是离线动作预测，Online 与 2.0 的目标和判分不同。</p></div></article><article class="rank-item"><div><h3>WebArena 家族 · 3 家</h3><p>OpenAI、Anthropic、THUDM / ChatGLM。自托管、可重置、结果验收，更适合浏览器 A/B。</p></div></article><article class="rank-item"><div><h3>WebVoyager · 2 家</h3><p>OpenAI、Google DeepMind。真实网站直观，但网页漂移与 LLM judge 降低精确复现性。</p></div></article></div><p class="fine">采用次数是公开一手材料中的机构数，不是质量分；未找到 DeepSeek、Kimi 公开的一手 UI browser-use benchmark，不等于内部没有评测。</p>',
         )
-        datasets += _section(
-            "Mind2Web 的拆分不是 easy / medium / hard",
-            "<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 5、中等 10、困难 15 是预注册的操作长度层级。</p>",
-        ) + _section(
-            "怎样阅读任务 ground truth",
-            '<p><strong>WebArena‑Verified 的 ground truth 不是一条固定点击脚本。</strong>每题声明一个结构化最终回答合同，并在需要确认页面副作用时附加一个或多个网络事件合同。所有合同都通过才记 1 分。任务详情同时展示合同、两种浏览器的实际回答、失败规则和 CowAgent 自主轨迹。</p>',
-        ) + _section(
-            "参考状态与可完成性证据",
-            f'<p><strong>{len(measured_solvable_ids)}/30 题</strong>在本轮至少有一条自主成功轨迹，直接证明当前环境存在可完成路径；<strong>{len(unproven_ids)}/30 题</strong>只有官方验收合同而没有本轮成功轨迹（任务 {", ".join(f"#{task_id}" for task_id in unproven_ids) or "无"}）。后者仍可稳定判分，但本轮不能独立证明当前快照可完成，也不能仅凭共同失败归因浏览器。</p><p class="fine">“有成功路径证据”不等于存在唯一标准路径；WebArena‑Verified 不要求复刻人工动作序列。</p>',
-        ) + _section("30 个任务", _task_table(tasks, attempts))
+        datasets += (
+            _section(
+                "Mind2Web 的拆分不是 easy / medium / hard",
+                "<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 5、中等 10、困难 15 是预注册的操作长度层级。</p>",
+            )
+            + _section(
+                "怎样阅读任务 ground truth",
+                "<p><strong>WebArena‑Verified 的 ground truth 不是一条固定点击脚本。</strong>每题声明一个结构化最终回答合同，并在需要确认页面副作用时附加一个或多个网络事件合同。所有合同都通过才记 1 分。任务详情同时展示合同、两种浏览器的实际回答、失败规则和 CowAgent 自主轨迹。</p>",
+            )
+            + _section(
+                "参考状态与可完成性证据",
+                f'<p><strong>{len(measured_solvable_ids)}/30 题</strong>在本轮至少有一条自主成功轨迹，直接证明当前环境存在可完成路径；<strong>{len(unproven_ids)}/30 题</strong>只有官方验收合同而没有本轮成功轨迹（任务 {", ".join(f"#{task_id}" for task_id in unproven_ids) or "无"}）。后者仍可稳定判分，但本轮不能独立证明当前快照可完成，也不能仅凭共同失败归因浏览器。</p><p class="fine">“有成功路径证据”不等于存在唯一标准路径；WebArena‑Verified 不要求复刻人工动作序列。</p>',
+            )
+            + _section("30 个任务", _task_table(tasks, attempts))
+        )
         (stage / "datasets/index.html").write_text(
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
         )
@@ -1109,7 +1121,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     ],
                 ],
             )
-            + '<p><strong>合取规则：</strong>一题配置的每个 evaluator 都必须得分 1.0，整题才通过。这里没有 LLM-as-a-judge，也没有人工改分。</p>',
+            + "<p><strong>合取规则：</strong>一题配置的每个 evaluator 都必须得分 1.0，整题才通过。这里没有 LLM-as-a-judge，也没有人工改分。</p>",
         )
         (stage / "methodology/index.html").write_text(
             _page(title="评测方法", active="methodology", body=methodology, depth=1),
@@ -1150,12 +1162,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         analysis += _section(
             "首轮失败定位",
-            '<p>两种浏览器在同五题失败。下表不是人工猜测：失败环节来自官方 evaluator，补充说明来自 Agent 最终错误和执行记录。</p>'
+            "<p>两种浏览器在同五题失败。下表不是人工猜测：失败环节来自官方 evaluator，补充说明来自 Agent 最终错误和执行记录。</p>"
             + _failure_inventory(attempts, tasks),
         )
         analysis += _section(
             "70 个试次",
-            '<p>默认只显示失败；可按浏览器、层级、站点、任务类型、首轮/重试、失败环节和全文关键词筛选。</p>'
+            "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、首轮/重试、失败环节和全文关键词筛选。</p>"
             + _attempt_table(attempts, tasks),
         )
         (stage / "analysis/index.html").write_text(
@@ -1217,12 +1229,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             detail += '<div id="rules"></div>' + _section(
                 "官方 evaluator 逐规则判定",
-                '<p>所有规则都必须得分 1.0；这里使用 evaluator 已归一化的实际值与期望值直接对照。</p>'
+                "<p>所有规则都必须得分 1.0；这里使用 evaluator 已归一化的实际值与期望值直接对照。</p>"
                 + _evaluator_result_html(evaluation_record),
             )
             detail += '<div id="trajectory"></div>' + _section(
                 "CowAgent 自主执行轨迹",
-                '<p>以下顺序来自本次执行的 Agent 事件流，不是固定动作回放。展开可查看调用参数和输出摘录；完整脱敏日志可下载。</p>'
+                "<p>以下顺序来自本次执行的 Agent 事件流，不是固定动作回放。展开可查看调用参数和输出摘录；完整脱敏日志可下载。</p>"
                 + _trajectory_html(steps),
             )
             detail += '<div id="runtime"></div>' + _section(
@@ -1231,12 +1243,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 + '<p class="fine">公开包包含脱敏的回答、evaluator、事件流与轨迹。原始 HAR 和 Playwright trace 可能携带登录态、Cookie、页面快照或请求正文，因此不公开；其字节数和 SHA-256 保留用于证明证据绑定。</p>'
                 + _table(["指标", "值"], resource.items())
                 + '<p class="fine">整次 Agent 运行的容器计量只作诊断；不同进程模型下不直接比较内存或 PID。</p>'
-                + '<h3>证据完整性检查</h3>'
+                + "<h3>证据完整性检查</h3>"
                 + _table(
                     ["检查", "结果"],
                     [[key, "通过" if value else "未通过"] for key, value in checks.items()],
                 )
-                + '<h3>原始证据文件绑定</h3>'
+                + "<h3>原始证据文件绑定</h3>"
                 + _table(
                     ["证据", "存在", "字节", "SHA-256", "公开策略"],
                     [
@@ -1261,7 +1273,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             [
                 Safe(
                     f'<a href="attempts/{x["engine"]}-{int(x["task_id"])}-a{int(x["attempt"])}.html">'
-                    f'{x["engine"]}-{int(x["task_id"])}-a{int(x["attempt"])}</a>'
+                    f"{x['engine']}-{int(x['task_id'])}-a{int(x['attempt'])}</a>"
                 ),
                 x["outcome"],
                 sum(not v for v in (x.get("checks") or {}).values()),
@@ -1281,7 +1293,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         review_page += _section(
             "复核协议",
             _json_pre(review.get("protocol") or {})
-            + '<p>人工或二次模型不得修改官方分数；复核只验证文件存在、哈希绑定、状态/分数一致、官方版本一致和传输尝试计数。</p>',
+            + "<p>人工或二次模型不得修改官方分数；复核只验证文件存在、哈希绑定、状态/分数一致、官方版本一致和传输尝试计数。</p>",
         )
         review_page += _section(
             "逐试次覆盖",
@@ -1364,7 +1376,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             body += _section(
                 "全部执行记录",
-                '<p>首轮决定主分；仅失败任务有一次诊断重试，重试不回写主分。</p>'
+                "<p>首轮决定主分；仅失败任务有一次诊断重试，重试不回写主分。</p>"
                 + _engine_attempts(engine, attempts, tasks),
             )
             (stage / f"engines/{engine}.html").write_text(
