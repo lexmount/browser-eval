@@ -697,11 +697,20 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
 
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
-    env = _load_repo_env(repo_root)
+    repo_env = _load_repo_env(repo_root)
+    env_file = Path(args.env_file).expanduser().resolve() if args.env_file else None
+    env = (
+        {key: value for key, value in dotenv_values(env_file).items() if value is not None}
+        if env_file
+        else repo_env
+    )
     api_key = env.get("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError(f"OPENAI_API_KEY is required in {repo_root / '.env'}")
-    cowagent_repo = Path(args.cowagent_repo or env.get("COWAGENT_REPO", "")).resolve()
+        source = env_file or repo_root / ".env"
+        raise RuntimeError(f"OPENAI_API_KEY is required in {source}")
+    cowagent_repo = Path(
+        args.cowagent_repo or repo_env.get("COWAGENT_REPO", "")
+    ).resolve()
     if not (cowagent_repo / "agent/protocol/agent.py").exists():
         raise RuntimeError("--cowagent-repo must point to a CowAgent checkout")
     harness_commit = _require_clean_git_checkout(repo_root)
@@ -785,6 +794,9 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "model": args.model,
                 "reasoning_effort": "low",
                 "model_transport_retries": 1,
+                "provider_base_url": env.get(
+                    "OPENAI_BASE_URL", "https://api.openai.com/v1"
+                ),
                 "browser_images": image_metadata,
                 "site_images": site_image_metadata,
                 "browser_versions": browser_metadata,
@@ -927,6 +939,10 @@ def parse_args() -> argparse.Namespace:
         "--selection", default="evaluation/browser-agent/webarena-verified-pilot.json"
     )
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--env-file",
+        help="explicit dotenv file for provider credentials; defaults to the repository .env",
+    )
     parser.add_argument(
         "--cowagent-repo",
         help="trusted, clean CowAgent Git checkout; Python code is imported and executed from it",
