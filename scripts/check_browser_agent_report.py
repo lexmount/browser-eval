@@ -24,15 +24,18 @@ def check(
 ) -> None:
     page_names = (
         "index.html",
-        "interpretation.html",
-        "changes.html",
-        "dataset.html",
-        "methodology.html",
-        "results.html",
-        "review.html",
-        "methods.html",
-        "reproduction.html",
-        "accounts.html",
+        "guide/index.html",
+        "guide/article.html",
+        "changes/index.html",
+        "datasets/index.html",
+        "methodology/index.html",
+        "analysis/index.html",
+        "review/index.html",
+        "adoption/index.html",
+        "reproduce/index.html",
+        "accounts/index.html",
+        "engines/chromium.html",
+        "engines/moli.html",
     )
     pages = tuple(report_dir / name for name in page_names)
     index = pages[0]
@@ -40,7 +43,37 @@ def check(
     attempts_path = evidence_dir / "attempts.jsonl"
     manifest_path = evidence_dir / "manifest.json"
     run_config_path = evidence_dir / "run-config.json"
-    if not all(path.is_file() for path in (*pages, audit_path)):
+    task_pages = tuple(
+        report_dir / "datasets" / f"{task_id}.html"
+        for task_id in sorted(task.task_id for task in load_pilot(selection_path).tasks)
+    )
+    attempt_pages = tuple(
+        report_dir
+        / "attempts"
+        / f"{row['engine']}-{int(row['task_id'])}-a{int(row['attempt'])}.html"
+        for row in (
+            [
+                json.loads(line)
+                for line in attempts_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            if attempts_path.is_file()
+            else []
+        )
+    )
+    data_files = tuple(
+        report_dir / "data" / name
+        for name in (
+            "selection.json",
+            "results.jsonl",
+            "summary.json",
+            "environment.json",
+            "review.json",
+        )
+    )
+    if not all(
+        path.is_file() for path in (*pages, *task_pages, *attempt_pages, *data_files, audit_path)
+    ):
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
@@ -55,9 +88,7 @@ def check(
         ]
     selected_ids = {task.task_id for task in selection.tasks}
     expected_primary = {
-        (engine, task_id, 1)
-        for engine in ("chromium", "moli")
-        for task_id in selected_ids
+        (engine, task_id, 1) for engine in ("chromium", "moli") for task_id in selected_ids
     }
     by_key: dict[tuple[str, int, int], dict] = {}
     for row in rows:
@@ -76,13 +107,41 @@ def check(
                 raise ValueError(
                     f"retry is allowed only after a failed primary: {(engine, task_id)}"
                 )
-    rendered_pages = {page: page.read_text(encoding="utf-8") for page in pages}
+    rendered_pages = {
+        page: page.read_text(encoding="utf-8") for page in (*pages, *task_pages, *attempt_pages)
+    }
     if any(
         "expected_response" in text or "reference_answer" in text
         for text in rendered_pages.values()
     ):
         raise ValueError("private evaluator answers must not be published")
     html = rendered_pages[index]
+    standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
+    if "<script" in standalone or "assets/" in standalone:
+        raise ValueError("standalone article must be self-contained and JavaScript-free")
+    if (
+        "25 比 25 不是“内核等价”" not in standalone
+        or "25 比 25 不是“内核等价”" not in rendered_pages[report_dir / "guide/index.html"]
+    ):
+        raise ValueError(
+            "dashboard guide and standalone article must share the authored interpretation"
+        )
+    public_results = [
+        json.loads(line)
+        for line in (report_dir / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
+        if line
+    ]
+    if len(public_results) != len(rows):
+        raise ValueError("public result projection must cover every measured attempt")
+    forbidden = {
+        "agent_response",
+        "paths",
+        "expected_response",
+        "reference_answer",
+        "model_transport_errors",
+    }
+    if any(forbidden & set(item) for item in public_results):
+        raise ValueError("public result projection contains private evidence fields")
     if require_complete:
         if not manifest_path.is_file() or not run_config_path.is_file():
             raise ValueError("complete evidence requires manifest.json and run-config.json")
@@ -140,7 +199,7 @@ def check(
         report_review = audit.get("review") or {}
         if report_review.get("bindings") != bindings:
             raise ValueError("rendered report is not bound to the current result review")
-        for page, text in rendered_pages.items():
+        for _page, text in rendered_pages.items():
             if str(evidence_dir.resolve()) in text:
                 raise ValueError("published pages must not contain machine-local evidence paths")
 

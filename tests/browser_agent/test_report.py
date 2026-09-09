@@ -116,34 +116,38 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         output=output,
         selection_path=Path("evaluation/browser-agent/webarena-verified-pilot.json"),
     )
-    text = (output / "reproduction.html").read_text(encoding="utf-8")
+    text = (output / "reproduce/index.html").read_text(encoding="utf-8")
 
     for expected in (
         "abc123",
         "gpt-6-astra · reasoning=low",
         "eval-checksum",
-        "data-checksum",
         "selection-hash",
         "Chrome/151",
         "Moli/1.1.3",
-        "official/reddit@sha256:site",
     ):
         assert expected in text
 
     assert report.is_file()
     for name in (
-        "interpretation.html",
-        "changes.html",
-        "dataset.html",
-        "methodology.html",
-        "results.html",
-        "review.html",
-        "methods.html",
-        "reproduction.html",
-        "accounts.html",
+        "guide/index.html",
+        "guide/article.html",
+        "changes/index.html",
+        "datasets/index.html",
+        "methodology/index.html",
+        "analysis/index.html",
+        "review/index.html",
+        "adoption/index.html",
+        "reproduce/index.html",
+        "accounts/index.html",
+        "engines/chromium.html",
+        "engines/moli.html",
     ):
         page = output / name
         assert page.is_file()
-        assert "切换主题" in page.read_text(encoding="utf-8")
+        if name != "guide/article.html":
+            assert "切换主题" in page.read_text(encoding="utf-8")
+    assert len(list((output / "datasets").glob("[0-9]*.html"))) == 30
+    assert (output / "guide/article.html").read_text(encoding="utf-8").find("<script") == -1
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
