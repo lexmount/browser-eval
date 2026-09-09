@@ -10,6 +10,7 @@
       "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
       "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
       "changes": [
+        ["多页阅读结构", "一页版把选型、方法、结果、复核和复现连续堆叠，首页无法承担快速决策入口。", "按首页、报告解读、变更记录、评测集、评测方法、结果分析、核验记录、方法介绍、环境与复现、账号拆成十页，并提供统一导航与明暗主题。", "只改变信息架构和文字组织；任务、分母、原始输出、分数与证据绑定均未修改。"],
         ["新增自主 Agent 轨道", "原 30 题是固定 BrowserTool 动作重放，只能回答内核兼容与执行问题。", "新增 CowAgent 自主观察、规划和操作的 WebArena-Verified 轨道；同题配对且只替换浏览器。", "保留原轨道并正名为浏览器内核微基准；两条轨道分开计分，不能相加。"],
         ["公开 benchmark 选型", "模型厂商使用的 browser-use、computer-use、离线动作预测和 agentic search 口径混杂。", "按一手机构采用情况梳理 Mind2Web、WebArena、WebVoyager，并比较 Online-Mind2Web、BU Bench、Odysseys 等评测对象和 judge。", "首轮选择可自托管、确定性结果验收的 WebArena-Verified；实时网站和 LLM judge 留到后续泛化阶段。"],
         ["完整正式运行", "需要同时覆盖短、中、长操作链，且避免运行后换题或挑结果。", "预注册 5/10/15 题操作长度分层；每个题×浏览器只以第一次正式执行计 pass@1，失败最多重试一次且只作诊断。", "Chromium 与 Moli 均为 25/30；共同失败 5 题、单边胜出 0 题，30 题 pilot 未观察到成功率差异。"],

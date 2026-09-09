@@ -22,17 +22,26 @@ def check(
     *,
     require_complete: bool,
 ) -> None:
-    index = report_dir / "index.html"
-    review_page = report_dir / "review.html"
-    reproduction_page = report_dir / "reproduction.html"
+    page_names = (
+        "index.html",
+        "interpretation.html",
+        "changes.html",
+        "dataset.html",
+        "methodology.html",
+        "results.html",
+        "review.html",
+        "methods.html",
+        "reproduction.html",
+        "accounts.html",
+    )
+    pages = tuple(report_dir / name for name in page_names)
+    index = pages[0]
     audit_path = report_dir / "report-data.json"
     attempts_path = evidence_dir / "attempts.jsonl"
     manifest_path = evidence_dir / "manifest.json"
     run_config_path = evidence_dir / "run-config.json"
-    if not all(path.is_file() for path in (index, review_page, reproduction_page, audit_path)):
-        raise ValueError(
-            "report must contain index.html, review.html, reproduction.html, and report-data.json"
-        )
+    if not all(path.is_file() for path in (*pages, audit_path)):
+        raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if audit.get("selection_sha256") != selection.sha256:
@@ -67,9 +76,13 @@ def check(
                 raise ValueError(
                     f"retry is allowed only after a failed primary: {(engine, task_id)}"
                 )
-    html = index.read_text(encoding="utf-8")
-    if "expected_response" in html or "reference_answer" in html:
+    rendered_pages = {page: page.read_text(encoding="utf-8") for page in pages}
+    if any(
+        "expected_response" in text or "reference_answer" in text
+        for text in rendered_pages.values()
+    ):
         raise ValueError("private evaluator answers must not be published")
+    html = rendered_pages[index]
     if require_complete:
         if not manifest_path.is_file() or not run_config_path.is_file():
             raise ValueError("complete evidence requires manifest.json and run-config.json")
@@ -127,8 +140,7 @@ def check(
         report_review = audit.get("review") or {}
         if report_review.get("bindings") != bindings:
             raise ValueError("rendered report is not bound to the current result review")
-        for page in (index, review_page, reproduction_page):
-            text = page.read_text(encoding="utf-8")
+        for page, text in rendered_pages.items():
             if str(evidence_dir.resolve()) in text:
                 raise ValueError("published pages must not contain machine-local evidence paths")
 

@@ -12,6 +12,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from harness.web_fetch.report_style import STYLE as SHARED_STYLE
+
 from .selection import load_pilot
 
 
@@ -107,6 +109,71 @@ def _table(headers: list[str], rows: list[list[Any]]) -> str:
 
 class Safe(str):
     pass
+
+
+REPORT_JS = r"""
+function theme(){
+  const root=document.documentElement;
+  const next=root.dataset.theme==='dark'?'light':'dark';
+  root.dataset.theme=next;
+  try{localStorage.setItem('browser-agent-theme',next)}catch(_error){}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  let saved='';
+  try{saved=localStorage.getItem('browser-agent-theme')||''}catch(_error){}
+  document.documentElement.dataset.theme=saved||'light';
+});
+"""
+
+
+REPORT_STYLE = SHARED_STYLE + r"""
+.top nav{gap:19px;flex-wrap:nowrap}.top nav a[aria-current="page"]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}
+.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}
+.prose{max-width:900px;font-size:16px;line-height:1.82}.prose p{margin:14px 0}.section>.wrap>p{max-width:920px}.section>.wrap>ul{max-width:920px}
+main>section:not(.hero):not(.section){width:min(var(--max),calc(100% - 40px));margin:22px auto;padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.decision-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.decision-grid .card{min-height:190px}.decision-grid h3{margin:8px 0}
+.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:18px;padding:22px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0 8px}
+.result-hero{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-hero .card{border-top:3px solid var(--accent)}.result-hero .card:nth-child(2){border-color:var(--violet)}.result-hero .card:nth-child(3){border-color:var(--lime)}.result-hero .card:nth-child(4){border-color:var(--coral)}
+.reading-path .card{grid-column:span 4}.reading-path h3{margin-top:0}.reading-path a{font-weight:750}.callout.good{border-left-color:var(--good);background:var(--success-bg)}.callout.warn{border-left-color:var(--warn);background:var(--callout)}
+.fine{font-size:13px;color:var(--muted)}details{margin:16px 0}summary{cursor:pointer;font-weight:700;color:var(--accent)}
+.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}.table-wrap th{white-space:nowrap}.source-list li{margin:9px 0}.footer{border-top:1px solid var(--line)}
+@media(max-width:900px){.decision-grid{grid-template-columns:1fr}.result-hero{grid-template-columns:repeat(2,minmax(0,1fr))}.reading-path .card{grid-column:span 6}.top nav{gap:15px}}
+@media(max-width:650px){.wrap{width:calc(100% - 28px)}.top nav{padding:9px 0}.brand{margin-right:4px}.result-hero{grid-template-columns:1fr}.reading-path .card{grid-column:span 12}.rank-item{grid-template-columns:38px minmax(0,1fr)}.hero{padding-top:30px}}
+@media print{.top{display:none!important}.page-main{min-height:0}.section{break-inside:auto}.card,.table-wrap{box-shadow:none}.hero{padding-top:0}}
+"""
+
+
+NAVIGATION = [
+    ("index.html", "首页", "home"),
+    ("interpretation.html", "报告解读", "interpretation"),
+    ("changes.html", "变更记录", "changes"),
+    ("dataset.html", "评测集", "dataset"),
+    ("methodology.html", "评测方法", "methodology"),
+    ("results.html", "结果分析", "results"),
+    ("review.html", "核验记录", "review"),
+    ("methods.html", "方法介绍", "methods"),
+    ("reproduction.html", "环境与复现", "reproduction"),
+    ("accounts.html", "账号", "accounts"),
+]
+
+
+def _page(*, title: str, active: str, body: str) -> str:
+    links = "".join(
+        f'<a href="{_e(href)}"'
+        + (' aria-current="page"' if key == active else "")
+        + f'>{_e(label)}</a>'
+        for href, label, key in NAVIGATION
+    )
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><style>{REPORT_STYLE}</style><script>{REPORT_JS}</script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" type="button" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>"""
+
+
+def _hero(eyebrow: str, title: str, lead: str) -> str:
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{_e(lead)}</p></div></section>'
+
+
+def _section(title: str, body: str, *, section_id: str = "") -> str:
+    marker = f' id="{_e(section_id)}"' if section_id else ""
+    return f'<section class="section"{marker}><div class="wrap"><h2>{_e(title)}</h2>{body}</div></section>'
 
 
 def _result_section(attempts: list[dict[str, Any]]) -> str:
@@ -216,7 +283,7 @@ def _environment_section(evidence: Path) -> str:
     manifest = _read_json(evidence / "manifest.json")
     run_config = _read_json(evidence / "run-config.json")
     if not manifest or not run_config:
-        return """<section><h2>实测环境与证据身份</h2><p class="callout warn">正式运行尚未形成 manifest；发布门槛会阻止这份草稿作为完整结果上线。</p></section>"""
+        return """<p class="callout warn">正式运行尚未形成 manifest；发布门槛会阻止这份草稿作为完整结果上线。</p>"""
     protocol = manifest.get("protocol") or {}
     environment = manifest.get("environment") or {}
     versions = environment.get("browser_versions") or {}
@@ -249,10 +316,10 @@ def _environment_section(evidence: Path) -> str:
         if site_rows
         else '<p class="fine">站点镜像身份尚未记录。</p>'
     )
-    return f"""<section><h2>本轮运行身份</h2><p>这些字段来自运行 manifest，用于限定复现边界，不参与评分。</p><details><summary>展开代码、镜像与校验身份</summary>{_table(['项目','记录值'], rows)}<h3>自托管站点镜像</h3>{sites}</details></section>"""
+    return f"""<p>这些字段来自运行 manifest，用于限定复现边界，不参与评分。</p><details><summary>展开代码、镜像与校验身份</summary>{_table(['项目','记录值'], rows)}<h3>自托管站点镜像</h3>{sites}</details>"""
 
 
-def _review_page(evidence: Path, css: str) -> str:
+def _review_page(evidence: Path) -> str:
     review = _read_json(evidence / "result-review.json")
     rows: list[list[Any]] = []
     if not review:
@@ -291,14 +358,41 @@ def _review_page(evidence: Path, css: str) -> str:
         if rows
         else "<p>尚无可列出的复核记录。</p>"
     )
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Agent 结果复核</title><style>{css}</style></head><body><main><header><p class="eyebrow">Result review</p><h1>每个试次都要与官方评分证据对得上</h1><p class="lede">这是一项确定性证据审计，不是第二套 evaluator，也不是 LLM-as-a-judge。官方 WebArena-Verified 分数仍是唯一成绩来源。</p><nav><a href="index.html">返回主报告</a><a href="reproduction.html">复现说明</a></nav></header><section><h2>复核结论</h2>{body}<p>判定协议：任何缺失文件、无法解析的 JSON、回答不一致、分数或状态不一致、官方版本身份缺失，以及 evaluator/data checksum 不一致，都会保留为未解决项并阻止发布。不存在用人工意见覆盖官方 evaluator 的裁决路径。</p></section><section><h2>逐试次覆盖</h2>{coverage_table}</section></main></body></html>"""
+    page_body = (
+        _hero(
+            "Result review",
+            "每个试次都要与官方评分证据对得上",
+            "这是一项确定性证据审计，不是第二套 evaluator，也不是 LLM-as-a-judge。官方 WebArena-Verified 分数仍是唯一成绩来源。",
+        )
+        + _section(
+            "复核结论",
+            body
+            + "<p>判定协议：任何缺失文件、无法解析的 JSON、回答不一致、分数或状态不一致、官方版本身份缺失，以及 evaluator/data checksum 不一致，都会保留为未解决项并阻止发布。人工意见不能覆盖官方 evaluator。</p>",
+        )
+        + _section("逐试次覆盖", coverage_table)
+    )
+    return _page(title="核验记录", active="review", body=page_body)
 
 
-def _reproduction_page(evidence: Path, css: str) -> str:
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Agent 复现说明</title><style>{css}</style></head><body><main><header><p class="eyebrow">Reproduction</p><h1>复现从仓库、预注册题集和固定运行配置开始</h1><p class="lede">代码、题集选择与运行入口以公开仓库为准；测量输出、登录 Cookie 和完整网络正文不进入 Git。</p><nav><a href="index.html">返回主报告</a><a href="review.html">结果复核</a></nav></header><section><h2>唯一代码来源</h2><p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 保存评测代码、预注册的 30 题、依赖锁文件和报告生成器。官方 evaluator 由锁定的 <code>webarena-verified</code> 包提供，本项目不复制其判分逻辑。</p></section><section><h2>核心命令</h2><pre><code>./examples/browser_agent/run.sh
+def _reproduction_page(evidence: Path) -> str:
+    body = _hero(
+        "Reproduction",
+        "复现从仓库、预注册题集和固定运行配置开始",
+        "代码、题集选择与运行入口以公开仓库为准；测量输出、登录 Cookie 和完整网络正文不进入 Git。",
+    )
+    body += _section(
+        "唯一代码来源",
+        '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 保存评测代码、预注册的 30 题、依赖锁文件和报告生成器。官方 evaluator 由锁定的 <code>webarena-verified</code> 包提供，本项目不复制其判分逻辑。</p>',
+    )
+    body += _section(
+        "核心命令",
+        """<pre><code>./examples/browser_agent/run.sh
 make browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"
 make browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"
-make browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><p class="fine">运行前需在仓库 <code>.env</code> 或显式进程环境配置目标模型可用的 API key、代理地址和 CowAgent checkout。Python 依赖只按 <code>uv.lock</code> 冻结安装。</p></section>{_environment_section(evidence)}</main></body></html>"""
+make browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><p class="fine">运行前需在仓库 <code>.env</code> 或显式进程环境配置目标模型可用的 API key、代理地址和 CowAgent checkout。Python 依赖只按 <code>uv.lock</code> 冻结安装。</p>""",
+    )
+    body += _section("本轮运行身份", _environment_section(evidence))
+    return _page(title="环境与复现", active="reproduction", body=body)
 
 
 def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
@@ -308,9 +402,6 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     run_model = str(protocol.get("model") or "gpt-5.6-sol")
     run_date = str(manifest.get("created_at") or "2026-09-09")[:10]
     output.mkdir(parents=True, exist_ok=True)
-    css = """
-:root{--ink:#17202a;--muted:#667085;--paper:#fbfaf7;--card:#fff;--line:#dedbd2;--accent:#155eef;--soft:#eef4ff;--good:#eaf8ef;--warn:#fff6df}*{box-sizing:border-box}html,body{overflow-x:hidden}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.72 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{width:100%;max-width:1100px;margin:auto;padding:64px 28px 100px}header{border-bottom:1px solid var(--line);padding-bottom:42px;margin-bottom:42px}h1{font:700 clamp(38px,6vw,72px)/1.06 ui-serif,Georgia,serif;letter-spacing:-.035em;max-width:920px;margin:10px 0 22px}h2{font:700 30px/1.25 ui-serif,Georgia,serif;margin:0 0 16px}h1,h2,h3,p,li,summary{overflow-wrap:anywhere}h3{margin:28px 0 8px}section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:30px;margin:22px 0;box-shadow:0 8px 30px rgba(31,41,55,.035)}p{max-width:88ch}.lede{font-size:20px;color:#344054}.eyebrow{color:var(--accent);font-weight:750;letter-spacing:.08em;text-transform:uppercase;font-size:13px}.meta,.fine{color:var(--muted);font-size:14px}.callout{border-left:4px solid var(--accent);padding:13px 16px;background:var(--soft);border-radius:6px}.callout.good{background:var(--good)}.callout.warn{background:var(--warn);border-color:#d68a00}.table-wrap{max-width:100%;overflow:auto;margin:20px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:11px 12px}th{background:#f5f3ee;white-space:nowrap}a{color:var(--accent)}code{background:#f1f2f4;padding:2px 5px;border-radius:5px}pre{overflow:auto;background:#171b24;color:#f7f7f5;border-radius:12px;padding:18px}pre code{background:transparent;padding:0}details{margin-top:18px}summary{cursor:pointer;font-weight:700}.rank{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;padding:18px 0;border-top:1px solid var(--line)}.rank>div{min-width:0}.rank b{font:700 30px/1 Georgia,serif;color:var(--accent)}nav{display:flex;gap:16px;flex-wrap:wrap;margin-top:24px}nav a{text-decoration:none;font-size:14px}@media(max-width:650px){main{padding:36px 14px}section{padding:21px}h1{font-size:34px}.lede{font-size:18px}h2{font-size:25px}}@media print{body{background:#fff}main{max-width:none;padding:0}section{break-inside:avoid;box-shadow:none}nav{display:none}a{color:inherit;text-decoration:none}}
-"""
     methodology = _table(
         ["Benchmark", "评什么", "验收对象", "判分方式", "主要问题"],
         [
@@ -323,24 +414,103 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             ["Odysseys", "200 个真实互联网长链、多站任务", "最终产物、轨迹与平均 6.1 个任务 rubric", "按细粒度 rubric 做模型评审；报告 partial、perfect 与每步效率", "实时网页漂移，运行与评审成本高；更适合第二阶段长链能力"],
         ],
     )
-    html_text = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Use 公开评测选型与 WebArena‑Verified 首轮对比</title><style>{css}</style></head><body><main><header><p class="eyebrow">Browser Agent Evaluation · {_e(run_date)}</p><h1>Browser Use 公开评测怎么选，以及为什么首轮用 WebArena‑Verified</h1><p class="lede">结论先说：原有 30 题应保留，但它测的是固定动作下浏览器内核能否正确、快速执行，不是 CowAgent 的自主规划能力。新增轨道用真实 CowAgent + {_e(run_model)}（reasoning=low），在同一组 WebArena‑Verified 任务上只替换 Chromium/Moli，以官方程序化 evaluator 判最终结果。GPT‑5.6 是流程验证模型，后续 Astra 结果必须作为新的独立运行发布，不能混入本轮分数。</p><nav><a href="#decision">选型结论</a><a href="#methods">评测方法</a><a href="#results">实测结果</a><a href="#tasks">30 题</a><a href="review.html">结果复核</a><a href="reproduction.html">复现</a></nav></header>
-<section id="decision"><p class="eyebrow">采用统计与决策</p><h2>公开采用次数 Top 3：Mind2Web、WebArena、WebVoyager</h2><p>统计单位是公开一手材料中采用过该家族的机构数，而不是论文引用量；同一机构重复发布只计一次。Mind2Web 家族为 5 家（OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use），WebArena 家族为 3 家（OpenAI、Anthropic、THUDM / ChatGLM），WebVoyager 为 2 家（OpenAI、Google DeepMind）。不同变体的成绩不能合并，这里的聚合只回答“有多少机构采用过这个家族”。</p><div class="rank"><b>1</b><div><h3>Mind2Web 家族 · 5 家</h3><p>采用最广，但家族内部差异最大：原版是离线动作预测，Online 版是真实网站 + WebJudge，Mind2Web 2 是长链研究任务 + Agent-as-a-Judge。适合作为第二阶段真实互联网泛化评测，不能把三者成绩合并。</p></div></div><div class="rank"><b>2</b><div><h3>WebArena 家族 · 3 家</h3><p>覆盖导航、检索和改写状态；自托管让 Chromium/Moli 面对同一份站点数据。首轮仍选它的 Verified 版本，因为它重新审计任务、答案和 evaluator，并使用确定性程序判分。这里是“实验适配性”胜过“采用数量”。</p></div></div><div class="rank"><b>3</b><div><h3>WebVoyager · 2 家</h3><p>经典视觉浏览器基准，优势是直观、接近用户网站；问题是实时网页和 LLM judge 同时引入波动，作为内核 A/B 首轮不如 WebArena‑Verified 稳定。</p></div></div><p class="callout"><strong>为什么不是照着 Astra 发布页抄 benchmark：</strong>GPT‑6 Astra 的公开 computer-use 主表是 Agents’ Last Exam、OSWorld 2.0 和 ScreenSpot‑Pro；页面只给出 Mind2Web 的 1.9× 演示耗时对比，没有公开 WebArena‑Verified 分数。这些基准能说明模型的通用电脑操作能力，但 OSWorld/ScreenSpot 并不是纯 browser use，也不适合直接比较两个浏览器内核。</p></section>
-<section id="methods"><p class="eyebrow">Benchmark taxonomy</p><h2>它们评最终结果，还是评过程？</h2>{methodology}<h3>WebArena‑Verified 的精确判分链</h3><p>官方 1.2.3 数据共有 812 题，812 题都配置 <code>AgentResponseEvaluator</code>，其中 663 题还配置 <code>NetworkEventEvaluator</code>。前者解析 Agent 最终 JSON，核对任务类型、状态和带类型的返回字段；后者从 Playwright trace 或 HAR 中提取请求、响应、Cookie 等事件，核对导航或状态改变是否实际发生。字段先按官方 schema 做 URL、字符串、数字、布尔、数组和对象规范化，再做结构比较；需要有序时保留顺序，允许的备选答案由任务定义声明。没有模糊子串放行，也没有 LLM judge。</p><p>单题是二元分：该题配置的每一个 evaluator 都得到 1.0 才通过，任何一项失败或 evaluator 报错都记 0。因此它评的是最终结果与必要的可观察副作用，不是“按参考路径逐步打分”。Agent 可以走不同点击路径，只要完成的结果和必要事件符合任务契约即可。</p></section>
-<section><h2>Mind2Web 的 easy / medium / hard 要先纠正</h2><p>原始 Mind2Web 的官方拆分不是难度档，而是 <strong>cross-task、cross-website、cross-domain</strong>：测试任务是否见过同站任务、是否换了网站、是否换了整个领域。Online‑Mind2Web 官方也没有稳定的 easy/medium/hard 定义；有些第三方按参考动作长度再分档，那是第三方分析口径。Mind2Web 2 论文把任务 horizon 定义为 short（少于 10 次动作）、medium（10–50）、long（超过 50），仍不等同于 easy/medium/hard。</p><p>所以本轮的 5/10/15 是我们自己的预注册操作长度层级。它只用于保证样本覆盖，不改写官方字段，也不把它当成跨论文可比较的难度标签。</p></section>
-<section><h2>Browser Use 官方现在更偏向什么</h2><p>要区分三种信号。Browser Use 产品首页强调开放的 100 题 <strong>BU Bench V1</strong>，同时展示 <strong>Odysseys</strong> 的 200 题长链排行榜成绩；其 benchmark 仓库当前把 71 题 <strong>Stealth Bench V1</strong> 放在最前。Stealth Bench 测的是反机器人检测与浏览器基础设施，不是 CowAgent 能否自主完成业务任务，因此不能代替本报告的 agent 评测。</p><p>BU Bench 由 Custom、WebBench、Mind2Web 2、GAIA、BrowseComp 各 20 题组成，另有独立的 300 题 Online‑Mind2Web 运行仓库。最值得借鉴的是：运行前确认任务可完成、保存逐题 trace、支持断点续跑、把“不可完成”与 Agent 真失败分开。Odysseys 还把长任务拆成平均 6.1 个可检查 rubric，并同时报告完整成功率、部分进度和每步效率。</p><p>首轮不直接照搬的原因也很具体：这些工作流都包含模型评审，BU Bench 还混入搜索与问答任务，Odysseys 又是实时多站长链任务。它们适合第二阶段测真实互联网泛化和长链能力，但会把网页漂移、judge 波动和浏览器内核差异同时混进结果。</p></section>
-<section><h2>WebArena‑Verified 本地部署要不要账号付费</h2><p>四个首轮站点使用官方 Docker 镜像和内置测试账号，本地运行不需要向 GitLab、Reddit 或电商站点申请真实账号，也没有按题平台费用。成本来自本机 CPU、内存、磁盘和模型 API。</p><p>本轮模型是 <code>{_e(run_model)}</code>，通过 Responses API 调用，并固定 <code>reasoning.effort=low</code>。当前 LiteLLM Team 没有 <code>gpt-6-astra</code> 权限，因此 GPT‑5.6 运行只能证明流程和 Chromium/Moli 在该模型条件下的差异，不能替代 Astra 成绩。</p><p>“本地可部署”也不等于轻量。本轮核对的官方 GitLab 镜像 manifest 含一个约 22.0 GB 的压缩主层，四个站点镜像合计约 91 GB；正式环境因此使用独立的 140 GiB Docker profile。Apple Silicon 上，三个含旧 Alpine/musl PHP‑FPM 的官方 amd64 镜像需要兼容层：Java、数据库及其余进程通过 Rosetta，PHP‑FPM 单独通过挂载的 QEMU 运行。该适配不修改官方镜像、站点数据或 evaluator，并以配置哈希写入运行证据。Wikipedia 与 Map 还需要额外数据卷，所以首轮不纳入。自托管能消除网站内容漂移、封号和真实支付风险，但不会自动消除镜像下载、环境初始化、登录兼容、浏览器 CDP 实现差异或 evaluator 缺陷。</p></section>
-<section><h2>本轮怎样保证是可比较的自主 Agent 实验</h2>{_table(['项目','预注册规则'], [['样本','固定 30 题：简单 5、中等 10、困难 15；运行后不换题，不重复抽样'],['Agent 与模型',f'CowAgent 真实自主观察、规划和调用 BrowserTool；{run_model}，reasoning=low；每个试次清空模型会话'],['工具接口','沿用 CowAgent 的页面快照与 browser 函数工具，不调用模型原生 computer tool；测的是既有 CowAgent 接入方式下的自主 browser use'],['唯一变量','Agent、提示、模型、任务、站点数据和资源限额相同，只替换 Chromium / Moli'],['环境','每个试次都从官方镜像重置该题站点并等待应用连续稳定；Shopping、Shopping Admin、Reddit 使用官方头登录，GitLab 使用官方 UI 登录'],['顺序','逐题交替先跑 Chromium 或 Moli，减轻固定先后顺序偏差'],['主分','每个“题 × 浏览器”只跑一次，官方二元 pass@1；两边构成逐题配对'],['重试','任务首轮失败后最多重跑一次，恢复只作诊断；每次模型请求遇到传输错误也最多重发一次，所有请求尝试与错误都入证'],['留证','保存最终 JSON、CowAgent 事件、标准网络 HAR、可视 Playwright trace、官方 evaluator 明细、镜像 ID、代码 commit、token 与资源指标'],['排除','首轮不选 Wikipedia / Map；不选无法由官方确定性 evaluator 验收的外部实时站点任务']])}<p class="fine">“操作步数层级”只决定覆盖结构，不参与得分。环境准备失败应标成基础设施错误并修复后重跑同一预注册试次，不能计作 Agent 失败，也不能借机换题。官方 evaluator 读取 HAR；可视 trace 只用于调试，不参与评分。由于工具接口不同，本轮结果不能直接代表 Astra 发布页中原生 computer-use harness 的成绩。</p></section>
-{_result_section(attempts)}{_tier_section(attempts)}{_failure_analysis(attempts)}{_task_table(selection_path, attempts)}
-<section><h2>两条轨道必须分开读</h2>{_table(['轨道','Agent 是否自主','控制变量','主指标','回答的问题'], [['浏览器内核微基准（原 30 题）','否；重放固定 BrowserTool 等价调用','同一动作序列，只替换浏览器','严格输出正确率、动作执行、资源与耗时','相同操作交给两个内核，谁更兼容/省资源？'],['WebArena‑Verified Agent 评测（本报告）','是；CowAgent 自主观察、规划和调用 BrowserTool','同一 Agent、模型、提示、站点快照与任务，只替换浏览器','官方首轮 pass@1；失败重试恢复率另列','浏览器差异会怎样影响完整自主任务成功率？']])}<p>固定动作轨道不是“有问题的假 Agent”，它是有价值的内核微基准；问题只是旧命名把它说成了自主 browser use。两条轨道互补，但分数不能相加，也不能用一条替代另一条。</p></section>
-<section><h2>公开证据与复现边界</h2><ul><li><a href="https://openai.com/index/gpt-6-astra/">OpenAI：GPT‑6 Astra 发布页</a>；<a href="https://developers.openai.com/api/docs/models/gpt-6-astra">OpenAI API：GPT‑6 Astra 模型页</a>；<a href="https://developers.openai.com/api/docs/guides/latest-model">OpenAI API：Astra 使用指南</a></li><li><a href="https://openai.com/index/computer-using-agent/">OpenAI：Computer-Using Agent 评测说明</a></li><li><a href="https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf">Anthropic：Claude Sonnet 4.6 System Card</a></li><li><a href="https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf">Google DeepMind：Gemini 2.5 Computer Use Model Card</a></li><li><a href="https://github.com/OSU-NLP-Group/Mind2Web">Mind2Web 官方仓库</a>；<a href="https://github.com/OSU-NLP-Group/Online-Mind2Web">Online‑Mind2Web 官方仓库</a></li><li><a href="https://github.com/browser-use/benchmark">Browser Use 官方 benchmark 仓库</a>；<a href="https://github.com/browser-use/browser-use">Browser Use 产品仓库</a></li><li><a href="https://github.com/ljang0/Odysseys">Odysseys 官方仓库</a></li><li><a href="https://github.com/THUDM/AutoWebGLM">THUDM：AutoWebGLM</a></li><li><a href="https://github.com/ServiceNow/webarena-verified">WebArena‑Verified 官方仓库</a>；<a href="https://github.com/ServiceNow/webarena-verified/blob/main/docs/environments/gitlab.md">官方 GitLab 环境说明</a></li></ul><p class="fine">采用统计只计公开一手材料。未找到 DeepSeek 或 Kimi 的官方浏览器交互 benchmark，不代表其内部没有评测；Kimi 公布的 BrowseComp 属于 agentic search，本报告不把它算成 UI browser use。</p></section>
-{_release_notes()}
-</main></body></html>"""
-    report = output / "index.html"
-    report.write_text(html_text, encoding="utf-8")
-    (output / "review.html").write_text(_review_page(evidence, css), encoding="utf-8")
-    (output / "reproduction.html").write_text(
-        _reproduction_page(evidence, css), encoding="utf-8"
+    summary = _primary_summary(attempts)
+    paired = _paired_summary(attempts)
+    chromium = summary["chromium"]
+    moli = summary["moli"]
+    home = _hero(
+        f"Browser Agent Evaluation · {run_date}",
+        "同一自主 Agent、同一模型，只替换浏览器",
+        f"CowAgent + {run_model}（reasoning=low）在预注册的 30 题 WebArena-Verified 样本上分别运行 Chromium 与 Moli；主分只使用第一次正式执行。",
     )
+    home += _section(
+        "先看结论",
+        f'<div class="result-hero"><div class="card"><span class="tiny">Chromium 首轮</span><div class="n">{chromium["passed"]}/{chromium["completed"]}</div><p>官方 pass@1 · {_pct(chromium["score"])}</p></div><div class="card"><span class="tiny">Moli 首轮</span><div class="n">{moli["passed"]}/{moli["completed"]}</div><p>官方 pass@1 · {_pct(moli["score"])}</p></div><div class="card"><span class="tiny">逐题不一致</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对中的单边胜出</p></div><div class="card"><span class="tiny">失败重试恢复</span><div class="n">{chromium["recovered"] + moli["recovered"]}/{chromium["retry_count"] + moli["retry_count"]}</div><p>只作诊断，不回写主分</p></div></div><p class="callout good"><strong>当前最小结论：</strong>这个 30 题 pilot 没有观察到 Chromium 与 Moli 的任务成功率差异。双方均通过 25 题，并在同 5 题失败。共同失败更像 Agent、模型、提示或步数上限的共同瓶颈，不能据此断言某个浏览器更强。</p>',
+    )
+    home += _section(
+        "怎么读这份报告",
+        '<div class="grid reading-path"><article class="card"><h3>先理解结论</h3><p>为什么没有差异仍然是有效结果，以及它能支持什么决策。</p><a href="interpretation.html">读报告解读 →</a></article><article class="card"><h3>再核对口径</h3><p>公开 benchmark 的采用情况、验收对象和本轮筛选规则。</p><a href="dataset.html">看评测集 →</a></article><article class="card"><h3>最后查证据</h3><p>逐试次核验、环境身份和可复现命令。</p><a href="review.html">看核验记录 →</a></article></div>',
+    )
+
+    interpretation = _hero(
+        "Report interpretation",
+        "这轮结果证明流程可比，但还不能证明内核等价",
+        "零个不一致配对意味着本样本没有给出成功率方向；它缩小了下一轮该查什么，而不是结束评测。",
+    )
+    interpretation += _section(
+        "30 题回答了什么",
+        '<div class="prose"><p>两种浏览器面对完全相同的任务、站点快照、Agent、模型和资源上限，各完成 30 次首轮执行。25 题共同通过，5 题共同失败，失败后的唯一一次重试也没有恢复。这个模式支持一个克制的判断：在当前样本里，浏览器替换没有改变最终任务成功率。</p><p>它没有证明 Chromium 与 Moli 在所有网站、长链任务、延迟或资源使用上等价。样本只有 30 题，且端到端耗时混合了模型响应、站点重置、页面等待和浏览器执行。成功率没有差异时，继续用同一批题反复重跑的收益有限；下一轮更应该扩大可稳定验收的题量，并补充能区分内核的协议兼容与长页面交互案例。</p></div>',
+    )
+    interpretation += _section(
+        "为什么首轮选 WebArena-Verified",
+        '<div class="prose"><p>选择它不是因为采用次数最多，而是因为它最适合做浏览器 A/B：站点和数据可自托管，任务状态可以逐次重置，官方 evaluator 以结构化答案和必要网络副作用做确定性判分，不依赖 LLM judge，也不要求 Agent 重放参考点击路径。</p><p>Mind2Web 家族采用更广，但原版主要评离线动作预测；Online-Mind2Web 和 WebVoyager 接近真实网站，却同时引入网页漂移与模型裁判。它们适合第二阶段测泛化，不适合作为第一组内核差异归因实验。</p></div>',
+    )
+    interpretation += _section(
+        "下一轮决策",
+        '<p class="callout"><strong>先扩大确定性样本，再引入实时网站。</strong>保持 CowAgent 和 pass@1 主分不变，把稳定可验收的 WebArena-Verified 题目扩到更大配对样本；另开 Online-Mind2Web / WebVoyager 泛化轨道，并把 LLM judge 与人工抽检结果单独报告。Astra 获权后新建独立运行，不能与本轮 GPT-5.6 成绩混合。</p>',
+    )
+
+    dataset = _hero("Dataset", "公开 benchmark 怎样选", "先区分真实交互、离线动作预测和 agentic search，再看采用次数；不能把同一家族的不同变体当成同一成绩。")
+    dataset += _section(
+        "公开采用次数 Top 3",
+        '<p>统计单位是公开一手材料中采用过该家族的机构数，同一机构重复发布只计一次。它衡量行业采用信号，不是 benchmark 质量分。</p><div class="rank-list"><article class="rank-item"><div><h3>Mind2Web 家族 · 5 家</h3><p>OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use。原版、Online 版与 Mind2Web 2 的任务和评分不同，成绩不能合并。</p></div></article><article class="rank-item"><div><h3>WebArena 家族 · 3 家</h3><p>OpenAI、Anthropic、THUDM / ChatGLM。自托管、可重置、结果验收，最适合本轮浏览器内核 A/B。</p></div></article><article class="rank-item"><div><h3>WebVoyager · 2 家</h3><p>OpenAI、Google DeepMind。真实网站和视觉交互直观，但网页漂移与 LLM judge 会降低精确复现性。</p></div></article></div>',
+    )
+    dataset += _section(
+        "Mind2Web 没有统一的 easy / medium / hard",
+        '<p>原始 Mind2Web 的官方拆分是 <strong>cross-task、cross-website、cross-domain</strong>，衡量从见过同站任务到跨领域的泛化，不是难度。Online-Mind2Web 也没有稳定的三档定义。Mind2Web 2 用 short（少于 10 次动作）、medium（10–50）、long（超过 50）描述任务跨度，仍不等于 easy / medium / hard。</p><p>本轮的简单 5 题、中等 10 题、困难 15 题是运行前固定的操作长度层级：1–4、5–7、8+ 次最少可见 UI 操作。它只保证覆盖结构，不参与评分，也不冒充官方标签。</p>',
+    )
+    dataset += _task_table(selection_path, attempts)
+
+    methodology_page = _hero("Methodology", "到底评最终结果，还是评过程", "不同 benchmark 的验收对象差别很大；本轮只把官方确定性最终结果作为主分。")
+    methodology_page += _section("七个候选 benchmark 的判分边界", methodology)
+    methodology_page += _section(
+        "WebArena-Verified 的精确判分链",
+        '<p>官方 1.2.3 数据共有 812 题，全部配置 <code>AgentResponseEvaluator</code>，其中 663 题还配置 <code>NetworkEventEvaluator</code>。前者解析 Agent 最终 JSON，核对任务类型、状态和带类型字段；后者从 trace 或 HAR 读取请求、响应、Cookie 等事件，验证导航或状态改变是否真的发生。</p><p>单题为二元分：所有已配置 evaluator 都返回 1.0 才通过。它检查最终结果和必要副作用，不检查是否复刻参考路径；本轮也没有 LLM-as-a-judge。</p>',
+    )
+    methodology_page += _section(
+        "本轮预注册协议",
+        _table(['项目','规则'], [['样本','固定 30 题：简单 5、中等 10、困难 15；运行后不换题'],['Agent 与模型',f'CowAgent 真实自主观察、规划和调用 BrowserTool；{run_model}，reasoning=low'],['唯一变量','Agent、提示、模型、站点数据和资源限额相同，只替换 Chromium / Moli'],['主分','每个题×浏览器只跑一次，官方二元 pass@1；逐题配对'],['重试','首轮失败后最多重跑一次，只报告恢复诊断；模型传输错误同样最多一次重发并完整入证'],['排除','不纳入无法稳定验收的实时任务；首轮排除需要额外大型数据卷的 Wikipedia / Map']]) + '<p class="fine">基础设施失败应修复后重跑同一预注册试次，不能记作 Agent 失败，也不能借机换题。Playwright trace 用于调试，官方 evaluator 读取最终回答和 HAR。</p>',
+    )
+
+    results = _hero("Results", "成功率相同，五个失败也完全重合", "结果页只展示由当前持久证据计算的首轮成绩、配对关系和失败诊断。")
+    results += _result_section(attempts) + _tier_section(attempts) + _failure_analysis(attempts)
+
+    methods = _hero("Methods", "两条轨道回答不同问题", "固定动作重放和自主 Agent 都有价值；错误在于混用名称或合并分数。")
+    methods += _section(
+        "浏览器内核微基准与自主 Agent 评测",
+        _table(['轨道','Agent 是否自主','控制变量','主指标','回答的问题'], [['浏览器内核微基准（原 30 题）','否；重放固定 BrowserTool 等价调用','同一动作序列，只替换浏览器','严格输出正确率、动作执行、资源与耗时','相同操作交给两个内核，谁更兼容、资源更省？'],['WebArena-Verified Agent 评测（本报告）','是；CowAgent 自主观察、规划和调用 BrowserTool','同一 Agent、模型、提示、站点快照与任务，只替换浏览器','官方首轮 pass@1；失败重试恢复率另列','浏览器差异会怎样影响完整自主任务成功率？']]) + '<p>原 30 题确实由 CowAgent 真实执行 BrowserTool，但任务动作是预先固定的，因此它测执行层，不测自主规划。把它正名为微基准不会降低其价值，也不应把它冒充完整 Agent benchmark。</p>',
+    )
+    methods += _section(
+        "Browser Use 官方实践里可借鉴什么",
+        '<p>Browser Use 同时使用 BU Bench V1、Odysseys、Online-Mind2Web 和 Stealth Bench。最值得复用的是运行前确认任务可完成、保存逐题 trace、支持断点续跑，并把不可完成与 Agent 真失败分开。Stealth Bench 评反机器人检测和浏览器基础设施，不能替代自主任务成功率评测。</p><p>BU Bench 和 Odysseys 使用模型评审，且包含实时网站、搜索或长链任务。它们适合第二阶段，而不是当前需要清晰归因的最小对照。</p>',
+    )
+
+    accounts = _hero("Accounts", "本地站点不需要真实业务账号", "账号页只解释运行权限和费用边界，不展示任何密钥、Cookie 或个人信息。")
+    accounts += _section(
+        "站点、模型与费用",
+        _table(['范围','本轮做法','是否需要外部付费账号'], [['Shopping / Admin / Reddit / GitLab','官方 Docker 镜像与内置测试账号；每题前重置状态','不需要'],['模型 API',f'{run_model}，Responses API，reasoning=low','需要有权调用该模型的 API 账号'],['GPT-6 Astra','已直接验证当前 LiteLLM Team；返回 team_model_access_denied','当前团队权限不足，未运行'],['Artifact Hub','只发布脱敏后的静态报告；令牌不进报告和 Git','发布者需已有站点权限']]) + '<p>本地可部署不等于轻量：四个首轮站点镜像约 91 GB，正式环境使用独立 140 GiB Docker profile。Apple Silicon 对部分旧 amd64 PHP-FPM 镜像还需要受控兼容层。</p>',
+    )
+
+    sources = '<ul class="source-list"><li><a href="https://openai.com/index/gpt-6-astra/">OpenAI：GPT-6 Astra 发布页</a></li><li><a href="https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75/Claude%20Sonnet%204.6%20System%20Card.pdf">Anthropic：Claude Sonnet 4.6 System Card</a></li><li><a href="https://storage.googleapis.com/deepmind-media/Model-Cards/Gemini-2-5-Computer-Use-Model-Card.pdf">Google DeepMind：Gemini 2.5 Computer Use Model Card</a></li><li><a href="https://github.com/OSU-NLP-Group/Mind2Web">Mind2Web 官方仓库</a>；<a href="https://github.com/OSU-NLP-Group/Online-Mind2Web">Online-Mind2Web 官方仓库</a></li><li><a href="https://github.com/browser-use/benchmark">Browser Use benchmark 仓库</a></li><li><a href="https://github.com/ljang0/Odysseys">Odysseys 官方仓库</a></li><li><a href="https://github.com/THUDM/AutoWebGLM">THUDM：AutoWebGLM</a></li><li><a href="https://github.com/ServiceNow/webarena-verified">WebArena-Verified 官方仓库</a></li></ul><p class="fine">采用统计只计公开一手材料。未找到 DeepSeek 或 Kimi 的官方 UI browser-use benchmark，不代表其内部没有评测；BrowseComp 属于 agentic search，本报告不把它算作浏览器 UI 操作基准。</p>'
+    methods += _section("公开依据", sources)
+
+    changes = _hero("Release notes", "变更记录从可审计版本开始", "这里只写会改变读者理解、分母或复现边界的正式变更，不记录制作过程。") + _release_notes()
+
+    pages = {
+        "index.html": _page(title="首页", active="home", body=home),
+        "interpretation.html": _page(title="报告解读", active="interpretation", body=interpretation),
+        "changes.html": _page(title="变更记录", active="changes", body=changes),
+        "dataset.html": _page(title="评测集", active="dataset", body=dataset),
+        "methodology.html": _page(title="评测方法", active="methodology", body=methodology_page),
+        "results.html": _page(title="结果分析", active="results", body=results),
+        "review.html": _review_page(evidence),
+        "methods.html": _page(title="方法介绍", active="methods", body=methods),
+        "reproduction.html": _reproduction_page(evidence),
+        "accounts.html": _page(title="账号", active="accounts", body=accounts),
+    }
+    for filename, text in pages.items():
+        (output / filename).write_text(text, encoding="utf-8")
+    report = output / "index.html"
     review = _read_json(evidence / "result-review.json")
     audit = {
         "schema": "lex_browser_agent_report/1",

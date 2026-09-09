@@ -131,6 +131,19 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         assert expected in text
 
     assert report.is_file()
-    assert (output / "review.html").is_file()
+    for name in (
+        "interpretation.html",
+        "changes.html",
+        "dataset.html",
+        "methodology.html",
+        "results.html",
+        "review.html",
+        "methods.html",
+        "reproduction.html",
+        "accounts.html",
+    ):
+        page = output / name
+        assert page.is_file()
+        assert "切换主题" in page.read_text(encoding="utf-8")
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
