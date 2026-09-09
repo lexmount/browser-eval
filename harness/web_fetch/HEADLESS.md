@@ -37,8 +37,10 @@ The routes have different completion controls because those controls belong to
 the tested interfaces: Kitesurf uses `networkidle2`, Chromium uses Playwright
 `domcontentloaded`, and each CLI uses its own documented completion behavior.
 No method receives task answers, task-specific selectors, clicks, scrolling,
-personal sessions, stealth fallback or model post-processing. The current
-published run used exactly one provider call per task and did not retry.
+personal sessions, stealth fallback or model post-processing. The original
+published matrix used one provider call per task and did not retry; later
+documented corrections may supersede affected logical results while preserving
+the earlier physical evidence.
 Future runs may predeclare `--max-failure-retries 1`: only a failed task may
 receive one additional physical call, both artifacts are retained, total
 logical latency includes the retry path, and the final physical call is always
@@ -55,8 +57,10 @@ Kitesurf is remote while the other six methods are local (covering four local
 implementation families). Its latency includes network
 round trips, Cloudflare queueing and remote execution; local measurements
 include local process startup and machine contention. This is a cold-call
-client latency comparison, not an engine-only CPU/RSS benchmark. One invocation
-per method and URL does not establish variance, sustained throughput or SLA.
+client latency comparison, not an engine-only CPU/RSS benchmark. The original
+matrix's single observation per method and URL does not establish variance,
+sustained throughput or SLA. Documented correction calls remain visible and do
+not turn that matrix into a repeated-measures performance study.
 Pairwise latency tables therefore use only URLs passed by both methods and keep
 each pair's denominator visible.
 

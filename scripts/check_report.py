@@ -88,4 +88,4 @@ assert '本类最高：' in home and '判分完整性' in home
 methodology=(root/'methodology/index.html').read_text()
 for phrase in ['计入耗时','不计入耗时','供应商上报的服务端耗时只作附加证据','形成可送入统一评分器的最终答案']:
  assert phrase in methodology,phrase
-print(f'PASS: {len(d["cases"])} tasks / {len(rs)} records / {len(names)} providers; {len(list(root.rglob("*.html")))} HTML pages; reference integrity, all numbered tables, no workflow leftovers.')
+print(f'PASS: {len(d["cases"])} tasks / {len(rs)} records / {len(names)} providers; {len(list(root.rglob("*.html")))} logical report routes; reference integrity, all numbered tables, no workflow leftovers.')

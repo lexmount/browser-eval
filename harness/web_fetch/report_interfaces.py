@@ -8,14 +8,15 @@ HEADLESS_ACCESS={
  'kitesurf':{
   'account':'需要开通 Browser Rendering / Browser Run 的 Cloudflare 账号及 API Token。',
   'configuration':'在仓库本地 .env 配置 <ACCOUNT_ID> 与 <API_TOKEN>；报告和示例只保留占位符。',
+  'env_vars':['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN'],
   'links':[('Cloudflare 控制台','https://dash.cloudflare.com/'),('Kitesurf 接入说明','https://developers.cloudflare.com/browser-run/kitesurf/'),('Markdown 端点','https://developers.cloudflare.com/browser-run/quick-actions/markdown-endpoint/')],
  },
- 'lightpanda':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
- 'obscura':{'account':'本轮本地标准模式不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
- 'moli-1.0.6':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
- 'moli':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.1 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','links':[('Moli 1.1.1 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.1')]},
- 'moli-1.1.3':{'account':'本轮本地 CLI 不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
- 'chromium':{'account':'本轮独立本地浏览器不需要 Google 账号或 API Key，不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
+ 'lightpanda':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','env_vars':['LIGHTPANDA_BINARY'],'links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
+ 'obscura':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','env_vars':['OBSCURA_BINARY'],'links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
+ 'moli-1.0.6':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_0_6_BINARY'],'links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
+ 'moli':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.1 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','env_vars':['MOLI_BINARY'],'links':[('Moli 1.1.1 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.1')]},
+ 'moli-1.1.3':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_1_3_BINARY'],'links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
+ 'chromium':{'account':'不需要 Google 账号或 API Key；不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','env_vars':['CHROMIUM_BINARY'],'links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
 }
 def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)

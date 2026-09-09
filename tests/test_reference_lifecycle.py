@@ -347,6 +347,38 @@ class ReferenceLifecycleTests(unittest.TestCase):
             cases={"body": self.case}, records=records, source=self.run)
         require_verified_reference_checks(manifest, cases=self.dataset())
 
+    def test_latency_only_correction_preserves_original_certificate_timeline(self):
+        manifest = self.verified_run()
+        record = json.loads((self.run / "results.jsonl").read_text())
+        original_elapsed = record["elapsed_ms"]
+        corrected_elapsed = original_elapsed + 60_000
+        record["elapsed_ms"] = corrected_elapsed
+        record.setdefault("provider_metadata", {})["latency_correction"] = {
+            "kind": "documented_final_round_supersession",
+            "original_elapsed_ms": original_elapsed,
+            "corrected_elapsed_ms": corrected_elapsed,
+            "diagnostic_results_sha256": "a" * 64,
+        }
+        raw = (json.dumps(record) + "\n").encode()
+        (self.run / "results.jsonl").write_bytes(raw)
+        self.write_json(self.run / "latency-corrections.json", {
+            "schema_version": 1,
+            "selection": "same four cases for all three Moli versions; final round always selected, never best-of",
+            "diagnostic_results_sha256": "a" * 64,
+            "output_results_sha256": sha256(raw),
+            "task_decision_changes": 0,
+            "superseded_logical_results": 1,
+            "changes": [{"provider": record["provider"], "case_id": record["case_id"],
+                         "before_ms": original_elapsed, "after_ms": corrected_elapsed}],
+        })
+        require_verified_reference_checks(manifest, cases=self.dataset(), records=[record], source=self.run)
+
+        receipt = json.loads((self.run / "latency-corrections.json").read_text())
+        receipt["changes"][0]["before_ms"] += 1
+        self.write_json(self.run / "latency-corrections.json", receipt)
+        with self.assertRaisesRegex(ReferenceLifecycleError, "time bounds|latest relevant call"):
+            require_verified_reference_checks(manifest, cases=self.dataset(), records=[record], source=self.run)
+
     def test_public_guard_does_not_trust_status_alone(self):
         manifest = self.verified_run()
         mutations = [

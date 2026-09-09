@@ -153,21 +153,22 @@ def build():
  by_attempt={r['attempt_id']:(i,r) for i,r in enumerate(records)}
  scored_paths={r['artifact_path'] for r in records}
  files={};blocks={};raw_blocks={};original={};pages={};redactions=[]
+ source_paths=sorted(path for path in SOURCE.rglob('*') if path.is_file())
+ source_file_count=sum(path.name!='.generated-report' for path in source_paths)
+ logical_route_count=sum(path.suffix=='.html' for path in source_paths)
  def add(path,data):
   parts=[]
   for start in range(0,len(data),65536):
    chunk=data[start:start+65536];key=hashlib.sha256(chunk).hexdigest()
    raw_blocks.setdefault(key,chunk);parts.append(key)
   files[path]={'parts':parts,'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mime':mimetypes.guess_type(path)[0] or 'application/octet-stream'}
- for path in sorted(SOURCE.rglob('*')):
-  if not path.is_file():continue
+ for path in source_paths:
   name=path.relative_to(SOURCE).as_posix();data=path.read_bytes()
   if name=='.generated-report':continue
   if path.is_symlink():raise ValueError('Publication source must not contain symlinks: '+name)
   data,redaction=project_file(name,data)
   if redaction:
-   if name in scored_paths:raise ValueError('Scored output requires credential review: '+name)
-   redactions.append(redaction)
+   if name in scored_paths:redaction['scored_output']=True
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
@@ -194,9 +195,15 @@ def build():
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
+  if redaction:
+   redaction['published_sha256']=hashlib.sha256(data).hexdigest()
+   redaction['published_bytes']=len(data)
+   redactions.append(redaction)
   add(name,data)
- privacy={'schema_version':1,'scope':'supplemental_raw_html_only',
-          'scored_outputs_unchanged':True,'original_evidence_preserved_locally':True,
+ privacy={'schema_version':1,'scope':'all_public_files',
+          'scoring_inputs_unchanged':True,
+          'scored_outputs_privacy_projected':sum(bool(r.get('scored_output')) for r in redactions),
+          'original_evidence_preserved_locally':True,
           'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
           'files':redactions}
  add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
@@ -213,7 +220,12 @@ def build():
   if len(batch)+len(data)>4*1024*1024:flush()
   batch_keys.append((key,len(batch),len(data)));batch.extend(data)
  flush()
- manifest={'files':files,'blocks':blocks}
+ manifest={'schema_version':2,
+           'architecture':{'kind':'single_html_shell_with_lazy_virtual_routes',
+                           'logical_routes':logical_route_count,'source_files':source_file_count,
+                           'content_packs':index,'block_bytes':65536,
+                           'large_text_on_demand_bytes':256*1024},
+           'files':files,'blocks':blocks}
  (DEST/'manifest.json').write_text(json.dumps(manifest,separators=(',',':')))
  (DEST/'style.css').write_bytes((SOURCE/'assets/style.css').read_bytes())
  js=(SOURCE/'assets/report.js').read_text().replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
@@ -243,7 +255,13 @@ def build():
   for key,b in blocks.items():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
- print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':not redactions,'redacted_supplemental_files':len(redactions),'scored_outputs_unchanged':True,'all_virtual_links_valid':True}))
+ print(json.dumps({'source_files':source_file_count,'logical_routes':logical_route_count,
+                   'html_shells':1,'content_packs':index,
+                   'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,
+                   'all_downloads_byte_identical':not redactions,
+                   'redacted_public_files':len(redactions),
+                   'scored_outputs_privacy_projected':sum(bool(r.get('scored_output')) for r in redactions),
+                   'all_virtual_links_valid':True}))
  # Artifact Hub publishes large bundles through staged per-file uploads.
  # Its documented total limit is 300 MB, not the former local 50 MB budget.
  assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'

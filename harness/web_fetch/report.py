@@ -11,6 +11,7 @@ from pathlib import Path
 from .metrics import percentile, task_passed, task_measured
 from .methods import method_info
 from .accounts import ACCOUNT_REGISTRY
+from .report_interfaces import HEADLESS_ACCESS
 from .report_style import STYLE
 from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, sources_panel, stable_contract_details, task_instruction
 from .failure_diagnosis import diagnose
@@ -101,9 +102,16 @@ _RELIABILITY_BANNER=''
 
 def write(out,path,title,body):
  depth=len(Path(path).parts)-1;base='../'*depth
- nav=[('index.html','首页'),('guide/index.html','报告解读'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('accounts/index.html','账号')]
- nav.insert(2,('changes/index.html','变更记录'))
- page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap"><a class="brand" href="{base}index.html">Web Fetch 评测</a>'+''.join(link(base+url,label) for url,label in nav)+f'<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。</p></footer></body></html>'
+ english=Path(path).parts[0]=='en'
+ if english:
+  nav=[('index.html#results','Results'),('index.html#scope','Scope'),('index.html#method','Method'),('index.html#review','Review'),('index.html#access','Access'),('index.html#evidence','Evidence')]
+  brand=link('index.html','Web Fetch');language=link('../index.html','中文');theme='Theme'
+  footer='Scores are computed from the recorded calls. Web pages and services may change; conclusions apply only to this sample and configuration.'
+ else:
+  nav=[('index.html','首页'),('guide/index.html','报告解读'),('changes/index.html','变更记录'),('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('accounts/index.html','账号与安装')]
+  brand=link(base+'index.html','Web Fetch 评测');language=link(base+'en/index.html','English');theme='切换主题'
+  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
+ page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link((url if english else base+url),label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">{theme}</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 def succeeded(r,c):
@@ -153,7 +161,7 @@ def review_cell(audit, rows, base=''):
  if not audit:return ''
  indexed=review_index(audit);items=[indexed[r['attempt_id']] for r in rows if r['attempt_id'] in indexed]
  unresolved=sum(not x.get('final_verdict') for x in items)
- label=f'{len(items)}/{len(rows)} · 已核验'
+ label=f'{len(items)}/{len(rows)} · Codex 已核验'
  if unresolved:label+=f' · 未决 {unresolved}'
  return cell(link(base+'review/index.html',label),len(items)/len(rows) if rows else -1)
 
@@ -857,9 +865,50 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
  write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
  write_support(out,records,manifests)
+ write_english_edition(out,cases,records)
  from .report_changes import render_changes
  render_changes(out,cases,records)
  return out/'index.html'
+
+
+def write_english_edition(out,cases,records):
+ names=sorted({r['provider'] for r in records},key=lambda value:(-sum(succeeded(r,cases[r['case_id']]) for r in records if r['provider']==value),provider_label(value)))
+ method_rows=[]
+ for name in names:
+  rows=[r for r in records if r['provider']==name]
+  passed=sum(succeeded(r,cases[r['case_id']]) for r in rows)
+  request_ok=sum(bool(r.get('ok')) for r in rows)
+  values=[]
+  for track in TRACKS:
+   group=[r for r in rows if cases[r['case_id']].get('track','web')==track]
+   values.append(f'{sum(succeeded(r,cases[r["case_id"]]) for r in group)}/{len(group)}')
+  method_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name)))+cell(f'{passed}/{len(rows)}')+cell(f'{request_ok}/{len(rows)}')+''.join(cell(value) for value in values)))
+ review_path=out/'result-review.json'
+ review=json.loads(review_path.read_text()) if review_path.is_file() else {}
+ reviewed=review.get('reviewed_attempts',0);expected=review.get('expected_attempts',0);unresolved=review.get('unresolved',0)
+ speed=''
+ speed_path=out/'speed-cohort/result-review.json'
+ if speed_path.is_file():
+  sr=json.loads(speed_path.read_text());speed=f' The matched-window cohort was also reviewed {sr.get("reviewed_attempts",0)}/{sr.get("expected_attempts",0)}.'
+ access_rows=[]
+ for name in (name for name in names if name in HEADLESS_ACCESS):
+  access=HEADLESS_ACCESS[name]
+  requirement=('Cloudflare Browser Run account and API token with Browser Rendering permission.' if name=='kitesurf' else 'No supplier account or API key; local binary.')
+  official='<br>'.join(link(url,'Official source'+(f' {i}' if len(access['links'])>1 else '')) for i,(_,url) in enumerate(access['links'],1))
+  access_rows.append(('',cell(provider_label(name))+cell(requirement)+cell(official)+cell('<br>'.join('<code>'+esc(v)+'</code>' for v in access['env_vars']))))
+ body='<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · Measured benchmark</div><h1>Seven browser methods, one evidence base</h1><p class="lead">Kitesurf, Lightpanda, Obscura, three Moli releases, and Chromium were tested on the same 150-task suite. This English edition shares the exact calls, scores, hashes, and downloadable evidence with the Chinese report; source answers and provider outputs remain in their original language.</p></div></section>'
+ review_status=(f'{reviewed}/{expected} main results were independently reviewed by Codex, with {unresolved} unresolved.'
+                if review else 'This build has no bound independent-review record.')
+ body+=section('Results',f'<p class="callout success"><b>{len(records):,}/{len(records):,} planned calls were recorded and judged; {review_status}</b></p>'+table(['Method','Task pass','Request success','General web','Rendered web','Popular sites','Documents','Images','Video'],method_rows,cls='english-results',metrics=[]),'results')
+ body+=section('Scope','<p>The suite contains 100 general web-body tasks and 10 tasks in each of five focused families: rendered pages, popular sites, document text, image retrieval, and video retrieval. Family scores are not comparable across columns because their acceptance contracts differ. The overall pass rate is a coverage summary, not a universal browser-quality score.</p><p>Every method receives the same URL, task contract, frozen reference scope, and 45-second end-to-end budget. Each method may use its fastest documented native route: native Markdown where available, automatic raw responses for direct files, and rendered DOM plus node-html-markdown for Chromium.</p>','scope')
+ body+=section('How tasks are judged','<p>Binary task acceptance and continuous text overlap are separate. Stable facts and record shape decide whether the requested task was completed; full-text completeness, precision, and F1 are diagnostics only where an independently frozen full reference exists. PDF, DOCX, image, and video byte-delivery tasks are judged as files and are not forced through Markdown.</p><p>Formatting-only differences are normalized only where field boundaries remain recoverable. Challenge pages, verification screens, mojibake, missing document bodies, and links without required bytes remain failures. Timing starts immediately before the provider call and stops only after the final deliverable is ready for the shared scorer.</p>','method')
+ review_copy=(f'Codex reviewed the complete task contract, reference, and saved output for every authoritative result before seeing the machine verdict. Coverage: <b>{reviewed}/{expected}</b>; unresolved: <b>{unresolved}</b>.{speed}'
+              if review else 'No independent-review record is bound to this build.')
+ body+=section('Independent review',f'<p>{review_copy} One logical result remains authoritative for each method and task. Documented corrections may replace it without erasing earlier physical attempts; a fixed scope and final-round rule prevent best-of selection.</p><p>{link("../review/index.html","Open the review rounds and corrections →")}</p>','review')
+ if len(access_rows)==len(names):
+  body+=section('Accounts and installation','<p>Only Kitesurf requires a supplier account: Cloudflare Browser Run with Browser Rendering permission. The other six methods run as local binaries. The report publishes variable names and official acquisition links, never values, cookies, personal sessions, or machine-local paths.</p>'+table(['Method','Account requirement','Official source','Variable names'],access_rows,cls='accounts-table',metrics=[]),'access')
+ body+=section('Reproduction and evidence','<p>The local build creates independently checkable logical routes, while the Sites release compiles them into one HTML shell and content-addressed compressed packs. Routes and large evidence are loaded on demand; hashes allow every downloadable file to be reconstructed and checked.</p><p>'+link('../datasets/index.html','Tasks and references')+' · '+link('../methodology/index.html','Full methodology')+' · '+link('../analysis/index.html','Interactive method comparison')+' · '+link('../reproduce/index.html','Environment and reproduction')+' · '+link('../changes/index.html','Release notes')+'</p><p class="source-note">Detailed evidence pages retain the original-language task names, references, and outputs to avoid changing what was judged. Their navigation and explanations are available in the canonical Chinese edition.</p>','evidence')
+ write(out,'en/index.html','English edition',body)
 
 
 def write_review_page(out,records):
@@ -906,7 +955,7 @@ def write_support(out,records,manifests):
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档正文最终验收可读文本；原始文件任务验收 PDF、DOCX、图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%；若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'scoring-revisions.json').exists():
-  methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。其他历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','评分规则修订收据')+'和'+link('../reference-revisions.json','参考答案修订收据')+'记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。</p>')
+  methodology+=section('评分来源与修订','<p>当前成绩包含对保存输出的离线重算；文件任务另在 2026-09-04 真实补测，选取 36 次新调用替换原缺测项，详情见'+link('../changes/index.html','变更记录')+'。Moli 时延纠正只替换固定四题、三个版本的 12 个耗时值，并统一取三轮配对实验的最终轮；旧耗时和全部 36 次物理调用保留在'+link('../latency-corrections.json','时延纠正收据')+'中。其余历史调用的输出与计时保留，不能把跨批次视图当成同时重跑。'+link('../scoring-revisions.json','评分规则修订收据')+'和'+link('../reference-revisions.json','参考答案修订收据')+'记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。</p>')
  methodology+=section('稳定任务契约与全文诊断',task_contract_guide(),'task-contracts')
  figures=''.join(f'<figure><img src="../assets/methodology/{name}.png" alt="{label}" style="max-width:100%;height:auto" loading="lazy"><figcaption>{label}</figcaption></figure>' for name,label in [('annotation','参考标注'),('validation','任务验收'),('scoring','评分口径')] if (out/'assets/methodology'/f'{name}.png').is_file())
  if figures:methodology+=section('方法图解',figures)
@@ -916,9 +965,9 @@ def write_support(out,records,manifests):
   methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
-  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。本轮每个任务只调用一次，有 45 秒端到端预算且未重试。运行器支持在测量前显式声明至多一次失败重试；启用后保留两次物理证据、总耗时，并固定采用最后一次结果，不能择优。方法之间并行、同一方法串行。')
+  methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。')
  write(out,'methodology/index.html','评测方法',methodology)
- downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else []))
+ downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
   reproduce='<p>在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
@@ -954,12 +1003,25 @@ def write_support(out,records,manifests):
   support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与共同成功样本')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
  support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
+ if headless:
+  support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
  support+=section('核心复现指令',reproduce+f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>')
  write(out,'reproduce/index.html','环境与复现',support)
- accounts=[a for a in ACCOUNT_REGISTRY if not headless or a['id']=='cloudflare-browser-rendering']
- accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
- account_intro=('Kitesurf 需要下列 Cloudflare 账号权限；Lightpanda、Obscura、Moli 与 Chromium 的本地路线不需要供应商账号或 API Key。'
-                if headless else '只列官方入口和环境变量名称，不保存实际凭据。')
- write(out,'accounts/index.html','账号',hero('账号与凭据',account_intro)+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
+ if headless:
+  access_rows=[]
+  for name in sorted({r['provider'] for r in records},key=lambda value:(provider_label(value).lower(),value)):
+   access=HEADLESS_ACCESS[name]
+   official='<br>'.join(link(url,label) for label,url in access['links'])
+   variables='<br>'.join('<code>'+esc(value)+'</code>' for value in access['env_vars'])
+   access_rows.append(('',cell(provider_label(name))+cell(esc(access['account']))+cell(official)+cell(variables)+cell(esc(access['configuration']))))
+  account_intro='只有 Kitesurf 的账户级 Cloudflare Browser Run 路线需要供应商账号与凭据；其余六种方法是本地二进制，不需要账号，但仍需安装并明确指定可执行文件。'
+  account_body=hero('账号与安装',account_intro)
+  account_body+=section('本轮方法清单','<p>这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。</p>'+table(['方法','账号要求','官方获取入口','变量名称','本轮配置'],access_rows,cls='accounts-table',metrics=[]))
+  account_body+=section('公开内容边界','<p class="callout success"><b>报告只公开复现所需的名称和入口，不公开凭据值。</b> 发布门禁会扫描 HTML、JSON、下载文件和逐次输出中的常见 Token、私钥、Authorization 值与用户目录路径；第三方原始 HTML 中命中密钥形态的片段单独脱敏，计分输出保持逐字节不变。扫描结果和脱敏文件哈希随发布包保存。</p>')
+  write(out,'accounts/index.html','账号与安装',account_body)
+ else:
+  accounts=ACCOUNT_REGISTRY
+  accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
+  write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods
  write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc))

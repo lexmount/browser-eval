@@ -266,7 +266,7 @@ def check_case_scoring_revision_binding(case, binding: dict) -> None:
             "Scoring revision differs from the captured task or reference scope", "reference_changed")
 
 
-def _selected_records(batch, records):
+def _selected_records(batch, records, original_elapsed=None):
     ids = batch.get("attempt_ids")
     if (not isinstance(ids, list) or not ids or any(not isinstance(i, str) for i in ids)
             or len(ids) != len(set(ids)) or batch.get("attempt_count") != len(ids)):
@@ -279,7 +279,8 @@ def _selected_records(batch, records):
         raise ReferenceLifecycleError("Invalid batch time bounds")
     for record in selected:
         began = timestamp(record.get("started_at"))
-        elapsed = record.get("elapsed_ms")
+        elapsed = (original_elapsed or {}).get(
+            (record.get("provider"), record.get("case_id")), record.get("elapsed_ms"))
         if type(elapsed) not in (int, float) or not math.isfinite(elapsed) or elapsed < 0:
             raise ReferenceLifecycleError("Invalid call elapsed time")
         finished = began + timedelta(milliseconds=elapsed)
@@ -483,6 +484,54 @@ def valid_scoring_revision(source) -> bool:
     )
 
 
+def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
+    """Return original timings for a receipt bound to current corrected results.
+
+    Reference certificates describe the content-producing call.  A later paired
+    diagnostic may supersede only its reported latency, so certificate chronology
+    must continue to use the original elapsed value retained in the correction
+    receipt and record metadata.
+    """
+    if source is None:
+        return {}
+    root = Path(source)
+    receipt_path = root / "latency-corrections.json"
+    results_path = root / "results.jsonl"
+    if not receipt_path.is_file() or not results_path.is_file():
+        return {}
+    try:
+        receipt = json.loads(receipt_path.read_text())
+        records = [json.loads(line) for line in results_path.read_text().splitlines()]
+    except (OSError, ValueError, TypeError):
+        return {}
+    if (not isinstance(receipt, dict)
+            or receipt.get("schema_version") != 1
+            or receipt.get("output_results_sha256") != sha256(results_path.read_bytes())
+            or receipt.get("task_decision_changes") != 0
+            or receipt.get("selection") != "same four cases for all three Moli versions; final round always selected, never best-of"
+            or not isinstance(receipt.get("changes"), list)
+            or receipt.get("superseded_logical_results") != len(receipt["changes"])):
+        return {}
+    by_key = {(row.get("provider"), row.get("case_id")): row for row in records}
+    covered: dict[tuple[str, str], float] = {}
+    for change in receipt["changes"]:
+        if not isinstance(change, dict):
+            return {}
+        key = (change.get("provider"), change.get("case_id"))
+        before, after = change.get("before_ms"), change.get("after_ms")
+        record = by_key.get(key)
+        correction = (record or {}).get("provider_metadata", {}).get("latency_correction", {})
+        if (key in covered or not all(isinstance(value, (int, float)) for value in (before, after))
+                or record is None or record.get("elapsed_ms") != after
+                or correction.get("kind") != "documented_final_round_supersession"
+                or correction.get("original_elapsed_ms") != before
+                or correction.get("corrected_elapsed_ms") != after
+                or correction.get("diagnostic_results_sha256") != receipt.get("diagnostic_results_sha256")):
+            return {}
+        covered[key] = before
+    return covered
+
+
 def reference_revision_cases(source) -> dict[str, set[str]]:
     """Return original reference hashes covered by a bound offline correction.
 
@@ -572,6 +621,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
 
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
+    original_latency = latency_correction_original_elapsed(source)
     try:
         for batch in manifests:
             if not isinstance(batch, dict):
@@ -597,7 +647,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             finalized_at = timestamp(post.get("checked_at"))
             if finalized_at < preflight_at:
                 raise ReferenceLifecycleError("Reference postcheck precedes preflight")
-            selected = _selected_records(batch, records) if records is not None else None
+            selected = _selected_records(batch, records, original_latency) if records is not None else None
             observations = None
             if source is not None:
                 raw = contained_path(Path(source), post["evidence_path"]).read_bytes()
@@ -656,7 +706,9 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
                             raise ReferenceLifecycleError("Record reference SHA differs from certificate")
                         began = timestamp(record["started_at"])
                         _fresh(binding["checked_at"], began)
-                        finish = began + timedelta(milliseconds=record["elapsed_ms"])
+                        certificate_elapsed = original_latency.get(
+                            (record.get("provider"), record.get("case_id")), record["elapsed_ms"])
+                        finish = began + timedelta(milliseconds=certificate_elapsed)
                         if record.get("completed_at") is not None:
                             finish = max(finish, timestamp(record["completed_at"]))
                         latest = finish if latest is None else max(latest, finish)
