@@ -63,8 +63,9 @@ if creating or updating:
  if creating:
   result=response
   if not result.get('slug'):raise ValueError('Publication did not return a site slug')
- else:
-  result['last_update']=response
+else:
+  from harness.web_fetch.publication import updated_receipt
+  result=updated_receipt(result,response)
  result['base_url']=BASE
  # Retain manageability without putting edit/claim credentials in console output.
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)

@@ -6,10 +6,20 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
-from harness.web_fetch.publication import put_file, upload_large_archive
+from harness.web_fetch.publication import put_file, updated_receipt, upload_large_archive
 
 
 class ArtifactPublisherTests(unittest.TestCase):
+    def test_updated_receipt_uses_activated_version_as_next_baseline(self):
+        receipt = updated_receipt(
+            {'slug': 'current', 'versionId': 'ver_stale'},
+            {'slug': 'current', 'versionId': 'ver_new'},
+        )
+        self.assertEqual(receipt['versionId'], 'ver_new')
+        self.assertEqual(receipt['last_update']['versionId'], 'ver_new')
+        with self.assertRaisesRegex(ValueError, 'versionId'):
+            updated_receipt(receipt, {'slug': 'current'})
+
     @patch('harness.web_fetch.publication.time.sleep')
     def test_rate_limit_retries_identical_put(self, sleep):
         request = Mock(side_effect=[HTTPError('https://hub/file', 429, 'limited', {'Retry-After':'2'}, None), (200,b'ok')])

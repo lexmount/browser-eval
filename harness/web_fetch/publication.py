@@ -10,6 +10,14 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 
 
+def updated_receipt(receipt, response):
+    """Keep the receipt's concurrency baseline aligned with the activated version."""
+    version = response.get('versionId')
+    if not isinstance(version, str) or not version.startswith('ver_'):
+        raise ValueError('Publication response omitted activated versionId')
+    return {**receipt, 'versionId': version, 'last_update': response}
+
+
 def put_file(request, path, data):
     """Retry only the identical idempotent staging PUT with bounded waits."""
     for attempt in range(4):
