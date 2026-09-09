@@ -114,3 +114,32 @@ vm.runInContext("applyReportAnchor('evidence-firecrawl')",anchors);
 assert.equal(adoptionDetail.open,true);
 assert.deepEqual(anchorSelections.pop(),['method-guide','adoption']);
 console.log('PASS: official capability and adoption anchors reveal their own tab, not a hard-coded tab');
+
+const pairRows=[
+ {dataset:{track:'web',pass:'a c',fail:'b'}},
+ {dataset:{track:'document',pass:'a b c',fail:''}},
+ {dataset:{track:'web',pass:'b',fail:'a c'}},
+ {dataset:{track:'web',pass:'',fail:'a b c'}}
+];
+const pairControls={
+ 'pair-a':{value:'a'},'pair-b':{value:'b'},'pair-relation':{value:'a_pass_b_fail'},'pair-track':{value:''},'pair-count':{textContent:''},
+ 'group-relation':{value:'mixed'},'group-track':{value:''},'group-count':{textContent:''}
+};
+const groupChecks=[{value:'a',checked:true},{value:'b',checked:true},{value:'c',checked:false}];
+const comparison=vm.createContext({window:{addEventListener(){}},document:{
+ getElementById(id){return pairControls[id]},
+ querySelectorAll(selector){if(selector==='#pair-rows tr'||selector==='#group-rows tr')return pairRows;if(selector==='[data-group-method]:checked')return groupChecks.filter(x=>x.checked);return []}
+}});
+vm.runInContext(js,comparison);
+vm.runInContext('comparePair()',comparison);
+assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,true,true]);assert.equal(pairControls['pair-count'].textContent,'找到 1 个任务');
+pairControls['pair-relation'].value='different';pairControls['pair-track'].value='web';
+vm.runInContext('comparePair()',comparison);
+assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,false,true]);
+vm.runInContext('compareGroup()',comparison);
+assert.deepEqual(pairRows.map(r=>r.hidden),[false,true,false,true]);
+pairControls['group-relation'].value='all_fail';vm.runInContext('compareGroup()',comparison);
+assert.deepEqual(pairRows.map(r=>r.hidden),[true,true,true,false]);
+groupChecks[1].checked=false;vm.runInContext('compareGroup()',comparison);
+assert.ok(pairRows.every(r=>r.hidden));assert.equal(pairControls['group-count'].textContent,'请至少选择两个方法');
+console.log('PASS: pairwise and multi-method task comparisons cover asymmetric, shared and mixed outcomes');

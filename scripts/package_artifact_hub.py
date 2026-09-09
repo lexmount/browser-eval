@@ -29,6 +29,7 @@ DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 LOADER=r'''
 const manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()});
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
+const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
  if(!document.querySelector('main'))return;
@@ -59,6 +60,11 @@ async function metadata(index){
  if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse));
  return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
 }
+function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
+ pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label','加载完整内容');pre.textContent=message;
+ const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);fill(pre,true)};
+ pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
+}
 function resolvePath(href,page){
  const base=new URL(page,'https://report.invalid/'),u=new URL(href,base);
  return {path:decodeURIComponent(u.pathname.slice(1)),anchor:decodeURIComponent(u.hash.slice(1))};
@@ -87,12 +93,16 @@ async function fillImages(root,page,m){
   return urls;
  }catch(error){urls.forEach(url=>URL.revokeObjectURL(url));throw error}
 }
-async function fill(pre){
- if(pre.dataset.loaded)return;pre.dataset.loaded='1';pre.textContent='正在加载完整内容…';
+async function fill(pre,force=false){
+ if(pre.dataset.loaded)return;
+ let large=false;
+ if(pre.dataset.file){const m=await manifestPromise;large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
+ if(large&&!force){deferFill(pre);return}
+ pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent='正在加载完整内容…';
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  pre.textContent=text;
- }catch(error){pre.dataset.loaded='';pre.textContent=error.message}
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
+ }catch(error){pre.dataset.loaded='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
 }
 async function render(){
  savePageState();

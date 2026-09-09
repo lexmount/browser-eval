@@ -518,7 +518,8 @@ def _render_headless(out, cases, records):
             '<p class="callout"><b>Moli 版本结论：</b>三版使用相同路线；当前总通过数为 '
             f'Moli 1.0.6 {totals["moli-1.0.6"]}/150、Moli 1.1.1 {totals["moli"]}/150、Moli 1.1.3 {totals["moli-1.1.3"]}/150，'
             f'文档正文分别为 {documents["moli-1.0.6"]}/10、{documents["moli"]}/10、{documents["moli-1.1.3"]}/10。'
-            '本轮没有显示版本越新通过越多；1.1.3 在 document-03 的单次请求失败，不能单独证明产品能力回退。</p>')
+            '本轮没有显示版本越新通过越多。三轮独立配对诊断中，document-03 两版均为 3/3；challenge-01 的 1.1.1 为 1/3、1.1.3 为 0/3，且失败均为空响应。'
+            '这说明正式分差混有请求与页面稳定性，尚不能归因为产品能力回退；主榜仍只保留预定的一次正式调用。</p>')
     if audit:
         reviewer=audit.get('reviewer',{})
         reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)

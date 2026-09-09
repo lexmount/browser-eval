@@ -36,6 +36,27 @@ urls.forEach(url=>URL.revokeObjectURL(url));
 await assert.rejects(vm.runInContext("fillImages(imageRoot,'guide/index.html',{files:{}})",context),/图片文件不存在/);
 console.log('PASS: packaged images resolve relative virtual paths to blob assets; embedded images stay untouched');
 
+const largeListeners=new Map();let replacement=null,largeReads=0;
+const largePre={dataset:{file:'outputs/large.md',readable:'1'},textContent:'',classList:{add(){},remove(){}},
+ setAttribute(name,value){this[name]=value},removeAttribute(name){delete this[name]},
+ addEventListener(name,handler){largeListeners.set(name,handler)},removeEventListener(name){largeListeners.delete(name)},
+ replaceWith(node){replacement=node}};
+const largeContext=vm.createContext({TextDecoder,URL,fetch:async()=>({ok:true,json:async()=>({files:{'outputs/large.md':{size:300000}}})}),
+ window:{addEventListener(){}},document:{addEventListener(){},createElement:()=>({setAttribute(name,value){this[name]=value}})}});
+vm.runInContext(js,largeContext);
+largeContext.readLarge=async()=>{largeReads++;return '完整大文本'};
+vm.runInContext('textFile=readLarge',largeContext);
+largeContext.largePre=largePre;
+await vm.runInContext('fill(largePre)',largeContext);
+assert.equal(largeReads,0,'large evidence must not download during page render');
+assert.equal(largePre.role,'button');assert.match(largePre.textContent,/点击/);
+await largeListeners.get('click')({type:'click',preventDefault(){}});
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(largeReads,1);assert.equal(replacement.tagName,undefined);
+assert.equal(replacement.className,'large-evidence-output');assert.equal(replacement.readOnly,true);
+assert.equal(replacement.value,'完整大文本');
+console.log('PASS: large evidence defers network and DOM insertion until requested, then uses a read-only text control');
+
 // Keep the real render/fillImages path: the old page creates one Blob, then
 // waits for a second image while a newer page finishes rendering.
 function deferred(){

@@ -35,8 +35,11 @@ function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col==
 function chooseTab(group,key){let box=document.getElementById(group);if(!box)return;box.querySelectorAll(':scope > .tab-bar > button').forEach(b=>{let on=b.dataset.tab===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});box.querySelectorAll(':scope > [role="tabpanel"]').forEach(p=>p.hidden=p.dataset.panel!==key)}
 function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;let bs=[...document.getElementById(group).querySelectorAll(':scope > .tab-bar > button')],i=bs.indexOf(event.target);i=event.key==='Home'?0:event.key==='End'?bs.length-1:(i+(event.key==='ArrowRight'?1:-1)+bs.length)%bs.length;event.preventDefault();chooseTab(group,bs[i].dataset.tab);bs[i].focus()}
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
+function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
+function comparePair(){let a=document.getElementById('pair-a'),b=document.getElementById('pair-b'),relation=document.getElementById('pair-relation'),track=document.getElementById('pair-track'),count=document.getElementById('pair-count');if(!a||!b)return;let shown=0,same=a.value===b.value;document.querySelectorAll('#pair-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=!same&&(!track.value||row.dataset.track===track.value);if(match){let ap=pass.has(a.value),bp=pass.has(b.value),af=fail.has(a.value),bf=fail.has(b.value);match={a_pass_b_fail:ap&&bf,a_fail_b_pass:af&&bp,different:(ap&&bf)||(af&&bp),both_pass:ap&&bp,both_fail:af&&bf}[relation.value]}row.hidden=!match;if(match)shown++});count.textContent=same?'请选择两个不同的方法':`找到 ${shown} 个任务`}
+function compareGroup(){let selected=[...document.querySelectorAll('[data-group-method]:checked')].map(x=>x.value),relation=document.getElementById('group-relation'),track=document.getElementById('group-track'),count=document.getElementById('group-count');if(!relation)return;let shown=0;document.querySelectorAll('#group-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=selected.length>=2&&(!track.value||row.dataset.track===track.value);if(match){let ps=selected.filter(x=>pass.has(x)).length,fs=selected.filter(x=>fail.has(x)).length;match={all_pass:ps===selected.length,all_fail:fs===selected.length,mixed:ps>0&&fs>0,exact_pass:ps===selected.length&&pass.size===selected.length}[relation.value]}row.hidden=!match;if(match)shown++});count.textContent=selected.length<2?'请至少选择两个方法':`找到 ${shown} 个任务`}
 function applyReportAnchor(anchor){if(!anchor)return;if(anchor.startsWith('track-')){chooseTab('dataset-hub','cases');let s=document.querySelector('select[data-filter="track"]');if(s){s.value=anchor.slice(6);document.querySelectorAll('select[data-filter]').forEach(x=>{if(x!==s)x.value=''});cascadeFilters(s)}}else if(['references','sources'].includes(anchor)){chooseTab('dataset-hub',anchor)}else{let target=document.getElementById(anchor);for(let p=target;p;p=p.parentElement){if(p.dataset?.panel)chooseTab(p.parentElement.id,p.dataset.panel);if(p.tagName==='DETAILS')p.open=true}}}
-window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));cascadeFilters();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
+window.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.theme=localStorage.getItem('webfetch-theme')||'light';document.querySelectorAll('[data-filter]').forEach(e=>e.addEventListener(e.tagName==='INPUT'?'input':'change',e.tagName==='INPUT'?filterRows:()=>cascadeFilters(e)));document.querySelectorAll('[data-pair-control]').forEach(e=>e.addEventListener('change',comparePair));document.querySelectorAll('[data-group-method],[data-group-control]').forEach(e=>e.addEventListener('change',compareGroup));cascadeFilters();comparePair();compareGroup();document.querySelectorAll('table[data-col]').forEach(paintSort);applyReportAnchor(location.hash.slice(1))});
 window.addEventListener('hashchange',()=>applyReportAnchor(location.hash.slice(1)));
 '''
 EXTRA='''
@@ -73,6 +76,10 @@ EXTRA+='''
 
 EXTRA+='''
 .review-rounds{display:grid;gap:14px;margin-top:18px}.review-round{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.review-round .round-label{color:var(--accent);font-weight:800}.review-round h3{margin:0 0 8px;font-size:19px}.review-round p{margin:5px 0;line-height:1.7}.review-round .round-result{color:var(--muted)}@media(max-width:600px){.review-round{grid-template-columns:1fr;gap:7px}}
+'''
+
+EXTRA+='''
+.method-comparisons{display:grid;grid-template-columns:1fr 1fr;gap:18px}.method-comparison{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.method-comparison h3{margin:0 0 8px}.method-comparison>p{color:var(--muted);margin:0 0 16px}.method-comparison .filters{align-items:end}.method-comparison .filters label{display:grid;gap:5px}.method-checks{display:flex;gap:8px 16px;flex-wrap:wrap;margin:14px 0}.method-checks label{display:flex;align-items:center;gap:6px}.comparison-result{margin-top:22px}.comparison-result h3{margin-bottom:4px}.comparison-table{min-width:760px}.comparison-table td:nth-child(2){min-width:180px}.comparison-table td:nth-last-child(-n+2){min-width:220px}.large-evidence-output{display:block;width:100%;min-height:520px;max-height:70vh;resize:vertical;padding:16px;border:0;border-radius:9px;background:#071722;color:#e6edf3;font:13px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;overflow:auto}.deferred-evidence{cursor:pointer;min-height:110px;display:flex;align-items:center;color:#c9d7e3}.deferred-evidence:focus-visible{outline:3px solid #428bff;outline-offset:3px}@media(max-width:900px){.method-comparisons{grid-template-columns:1fr}}@media(max-width:700px){.large-evidence-output{min-height:360px}.comparison-table{min-width:700px}}
 '''
 
 def esc(s):return html.escape(str(s if s is not None else ''))
@@ -517,6 +524,42 @@ def failure_filters(records,cases):
  categories=sorted({failure_category(r,cases[r['case_id']]) for r in records if measured(r,cases[r['case_id']]) and not succeeded(r,cases[r['case_id']])})
  return [('failureStage','失败环节',[('request','请求失败'),('task','请求成功但任务失败')]),('failureCategory','失败类别',[(x,x) for x in categories])]
 
+def comparison_rows(cases,bycase,names):
+ rows=[]
+ for case_id,c in cases.items():
+  attempts={r['provider']:r for r in bycase[case_id]}
+  passed=[name for name in names if name in attempts and measured(attempts[name],c) and succeeded(attempts[name],c)]
+  failed=[name for name in names if name in attempts and measured(attempts[name],c) and not succeeded(attempts[name],c)]
+  method_links=lambda selected:'、'.join(link('../attempts/'+attempts[name]['attempt_id']+'.html',provider_label(name)) for name in selected) or '—'
+  attrs=(dataset_attrs(c)+f' data-pass="{esc(" ".join(passed))}" data-fail="{esc(" ".join(failed))}"')
+  values=cell(link('../datasets/'+case_id+'.html',c['name'])+f'<br><code class="tiny">{esc(case_id)}</code>')+cell(TRACKS[c.get('track','web')])+cell(method_links(passed))+cell(method_links(failed))
+  rows.append((attrs,values))
+ return rows
+
+def comparison_table(rows,body_id):
+ return table(['任务','类型','成功方法','失败方法'],rows,cls='comparison-table',metrics=[]).replace('<tbody>',f'<tbody id="{body_id}">',1)
+
+def method_comparisons(cases,bycase,names):
+ all_attempts=[attempt for attempts in bycase.values() for attempt in attempts]
+ ordered=sorted(names,key=lambda name:(-sum(succeeded(attempt,cases[attempt['case_id']]) for attempt in all_attempts if attempt['provider']==name),provider_label(name)))
+ if len(ordered)<2:return '<p class="decision-lead">至少需要两种方法才能比较任务交集。</p>'
+ a=ordered[0];b=ordered[1]
+ options=lambda selected:''.join(f'<option value="{esc(name)}"'+(' selected' if name==selected else '')+f'>{esc(provider_label(name))}</option>' for name in ordered)
+ tracks='<option value="">全部类型</option>'+''.join(f'<option value="{esc(key)}">{esc(label)}</option>' for key,label in TRACKS.items())
+ rows=comparison_rows(cases,bycase,names)
+ pair=(f'<article class="method-comparison"><h3>两方法差异</h3><p>找出方法之间真正改变选择的任务；每个方法名可直接打开该次证据。</p><div class="filters">'
+       f'<label>方法 A<select id="pair-a" data-pair-control>{options(a)}</select></label>'
+       f'<label>方法 B<select id="pair-b" data-pair-control>{options(b)}</select></label>'
+       '<label>关系<select id="pair-relation" data-pair-control><option value="different">结果不同</option><option value="a_pass_b_fail">A 成功、B 失败</option><option value="a_fail_b_pass">A 失败、B 成功</option><option value="both_pass">两者都成功</option><option value="both_fail">两者都失败</option></select></label>'
+       f'<label>任务类型<select id="pair-track" data-pair-control>{tracks}</select></label><b id="pair-count" role="status" aria-live="polite"></b></div>'
+       f'<div class="comparison-result">{comparison_table(rows,"pair-rows")}</div></article>')
+ checks=''.join(f'<label><input type="checkbox" value="{esc(name)}" data-group-method checked> {esc(provider_label(name))}</label>' for name in ordered)
+ group=(f'<article class="method-comparison"><h3>多方法交集</h3><p>查看选中方法共同成功、共同失败或出现分歧的任务；“仅这些方法成功”可定位独有能力组合。</p><div class="method-checks">{checks}</div><div class="filters">'
+        '<label>关系<select id="group-relation" data-group-control><option value="mixed">结果有分歧</option><option value="all_pass">选中方法都成功</option><option value="all_fail">选中方法都失败</option><option value="exact_pass">仅选中方法成功</option></select></label>'
+        f'<label>任务类型<select id="group-track" data-group-control>{tracks}</select></label><b id="group-count" role="status" aria-live="polite"></b></div>'
+        f'<div class="comparison-result">{comparison_table(rows,"group-rows")}</div></article>')
+ return '<div class="method-comparisons">'+pair+group+'</div>'
+
 def dataset_attrs(c):
  return f' data-track="{esc(c.get("track","web"))}" data-category="{esc(c["category"])}"'
 
@@ -814,7 +857,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
    body+=section('原始文件字节证据',table(['文件','格式特征','字节数','SHA-256','目标校验'],file_rows,metrics=[]))
   write(out,'attempts/'+r['attempt_id']+'.html',c['name']+' · '+r['provider'],body)
  controls=filter_controls([('provider','方法',[(n,provider_label(n)) for n in names]),('track','类型',list(TRACKS.items())),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
- write(out,'analysis/index.html','结果分析',hero('结果分析','按方法、任务结果、失败环节和失败类别筛选；完整输出见案例详情。')+section('执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
+ comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
+ write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
  write_support(out,records,manifests)
  from .report_changes import render_changes
  render_changes(out,cases,records)
