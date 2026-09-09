@@ -83,6 +83,14 @@ def main() -> None:
     with urllib.request.urlopen(public, timeout=60) as response:
         if response.status != 200:
             raise RuntimeError(f"public report returned {response.status}")
+    preview = urllib.request.Request(
+        f"{BASE}/api/preview/{result['slug']}",
+        headers={"User-Agent": "Browser-Agent-Report-Publisher/1.0"},
+    )
+    with urllib.request.urlopen(preview, timeout=60) as response:
+        body = response.read().decode("utf-8", errors="replace")
+        if response.status != 200 or "Browser Use 公开评测怎么选" not in body:
+            raise RuntimeError("public preview is unavailable or missing the report heading")
     print(json.dumps({"slug": result["slug"], "url": result["share_url"]}, ensure_ascii=False))
 
 
