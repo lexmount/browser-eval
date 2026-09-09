@@ -61,6 +61,7 @@ one retry, reported separately from pass@1.
 
 ```bash
 ./examples/browser_agent/run.sh
+make browser-agent-review EVIDENCE="$HOME/.browser-eval/browser-agent/current"
 make browser-agent-report EVIDENCE="$HOME/.browser-eval/browser-agent/current"
 make browser-agent-report-check EVIDENCE="$HOME/.browser-eval/browser-agent/current"
 ```

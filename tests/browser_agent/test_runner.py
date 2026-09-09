@@ -3,10 +3,15 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_agent.runner import (
     SITE_AUTH_HEADERS,
+    _allow_official_container_hostname,
+    _container_host_gateway,
     _configure_benchmark,
     _login_context,
+    _limit_cowagent_transport_retries,
     _scheduled_tasks,
     _user_prompt,
+    _wait_application_ready,
+    _wait_container_healthy,
 )
 from harness.browser_agent.selection import load_pilot
 
@@ -88,3 +93,85 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
 
     assert stale.closed is True
     assert primary.url == "http://official.test/start"
+
+
+def test_container_host_gateway_returns_literal_ip() -> None:
+    class Result:
+        exit_code = 0
+        output = b"192.168.5.2 host.docker.internal\n"
+
+    class Container:
+        def exec_run(self, command):
+            assert command == ["getent", "hosts", "host.docker.internal"]
+            return Result()
+
+    assert _container_host_gateway(Container()) == "192.168.5.2"
+
+
+def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:
+    class Container:
+        attrs = {"State": {"Health": {"Status": "starting"}}}
+
+        def reload(self):
+            self.attrs = {"State": {"Health": {"Status": "healthy"}}}
+
+    monkeypatch.setattr("harness.browser_agent.runner.time.sleep", lambda _seconds: None)
+    _wait_container_healthy(Container(), timeout_seconds=1)
+
+
+def test_application_readiness_does_not_follow_container_only_hostname(monkeypatch) -> None:
+    calls = []
+
+    class Response:
+        status_code = 302
+
+    def get(url, **kwargs):
+        calls.append((url, kwargs))
+        return Response()
+
+    monkeypatch.setattr("harness.browser_agent.runner.requests.get", get)
+    _wait_application_ready(
+        WebArenaSite.SHOPPING_ADMIN,
+        "/",
+        timeout_seconds=1,
+        stable_responses=1,
+    )
+
+    assert calls == [
+        (
+            "http://127.0.0.1:7780/",
+            {"timeout": 15, "allow_redirects": False},
+        )
+    ]
+
+
+def test_cowagent_transport_retry_limit_is_exactly_one() -> None:
+    calls = []
+
+    class Executor:
+        def _call_llm_stream(
+            self, retry_on_empty=True, retry_count=0, max_retries=3, _overflow_stage=0
+        ):
+            calls.append(max_retries)
+            return "ok"
+
+    _limit_cowagent_transport_retries(Executor)
+
+    assert Executor()._call_llm_stream(max_retries=9) == "ok"
+    assert calls == [1]
+
+
+def test_only_official_container_hostname_bypasses_host_dns_validation() -> None:
+    checked = []
+
+    class Tool:
+        @staticmethod
+        def _validate_url_safe(url):
+            checked.append(url)
+
+    tool = Tool()
+    _allow_official_container_hostname(tool)
+
+    tool._validate_url_safe("http://host.docker.internal:7780/admin")
+    tool._validate_url_safe("https://example.com")
+    assert checked == ["https://example.com"]

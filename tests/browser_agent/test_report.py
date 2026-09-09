@@ -116,7 +116,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         output=output,
         selection_path=Path("evaluation/browser-agent/webarena-verified-pilot.json"),
     )
-    text = report.read_text(encoding="utf-8")
+    text = (output / "reproduction.html").read_text(encoding="utf-8")
 
     for expected in (
         "abc123",
@@ -129,3 +129,8 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
         "official/reddit@sha256:site",
     ):
         assert expected in text
+
+    assert report.is_file()
+    assert (output / "review.html").is_file()
+    report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
+    assert "evidence" not in report_data

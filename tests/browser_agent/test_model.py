@@ -1,7 +1,7 @@
 import pytest
 
 from harness.browser_agent.model import (
-    AstraResponsesModel,
+    OpenAIResponsesModel,
     cow_messages_to_responses,
     cow_tools_to_responses,
     response_to_chat_chunk,
@@ -18,11 +18,13 @@ class _Request:
 
 
 class _Response:
-    def __init__(self, payload):
+    def __init__(self, payload, status_code=200):
         self._payload = payload
+        self.status_code = status_code
 
     def raise_for_status(self):
-        return None
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
 
     def json(self):
         return self._payload
@@ -110,7 +112,7 @@ def test_translates_tool_schema_and_response() -> None:
 
 def test_model_continues_responses_conversation_without_resending_assistant_call() -> None:
     session = _Session()
-    model = AstraResponsesModel(api_key="test", session=session)
+    model = OpenAIResponsesModel(api_key="test", session=session)
     list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))
     list(
         model.call_stream(
@@ -153,13 +155,55 @@ def test_model_rejects_malformed_success_payload() -> None:
         def post(self, _url, **_kwargs):
             return _Response({"output": []})
 
-    model = AstraResponsesModel(api_key="test", session=MalformedSession())
+    model = OpenAIResponsesModel(api_key="test", session=MalformedSession())
 
     with pytest.raises(ValueError, match="non-empty id"):
         list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))
 
 
+def test_model_records_failed_transport_attempts() -> None:
+    class TimeoutSession:
+        def post(self, _url, **_kwargs):
+            raise __import__("requests").Timeout("timed out")
+
+    model = OpenAIResponsesModel(api_key="test", session=TimeoutSession())
+
+    with pytest.raises(__import__("requests").Timeout):
+        list(model.call_stream(_Request([{"role": "user", "content": "open it"}])))
+
+    assert model.request_count == 0
+    assert model.request_attempt_count == 1
+    assert model.transport_errors == [{"type": "Timeout", "message": "timed out"}]
+
+
 def test_model_access_preflight_checks_exact_model() -> None:
-    model = AstraResponsesModel(api_key="test", session=_Session())
+    model = OpenAIResponsesModel(api_key="test", session=_Session())
 
     model.verify_access()
+
+
+def test_model_access_preflight_supports_filtered_collection_gateway() -> None:
+    class GatewaySession:
+        def get(self, url, **_kwargs):
+            if url.endswith("/models/gpt-5.6-sol"):
+                return _Response({"error": "route disabled"}, status_code=403)
+            return _Response({"data": [{"id": "gpt-5.6-sol"}]})
+
+    model = OpenAIResponsesModel(
+        api_key="test", model="gpt-5.6-sol", session=GatewaySession()
+    )
+
+    model.verify_access()
+
+
+def test_model_access_preflight_rejects_missing_gateway_model() -> None:
+    class GatewaySession:
+        def get(self, url, **_kwargs):
+            if url.endswith("/models/gpt-6-astra"):
+                return _Response({"error": "not allowed"}, status_code=403)
+            return _Response({"data": [{"id": "gpt-5.6-sol"}]})
+
+    model = OpenAIResponsesModel(api_key="test", session=GatewaySession())
+
+    with pytest.raises(PermissionError, match="does not expose"):
+        model.verify_access()

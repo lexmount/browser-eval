@@ -108,7 +108,7 @@ def response_to_chat_chunk(response: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class AstraResponsesModel:
+class OpenAIResponsesModel:
     """Minimal adapter: CowAgent loop and tools stay unchanged; only transport differs."""
 
     def __init__(
@@ -122,7 +122,7 @@ class AstraResponsesModel:
         session: requests.Session | None = None,
     ) -> None:
         if reasoning_effort != "low":
-            raise ValueError("pilot protocol fixes GPT-6 Astra reasoning effort to low")
+            raise ValueError("pilot protocol fixes OpenAI reasoning effort to low")
         self.model = model
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
@@ -134,6 +134,8 @@ class AstraResponsesModel:
         self._seen_message_count = 0
         self.usage: dict[str, int] = {}
         self.request_count = 0
+        self.request_attempt_count = 0
+        self.transport_errors: list[dict[str, str]] = []
 
     def reset(self) -> None:
         """Start a fresh Responses conversation for the next benchmark attempt."""
@@ -142,6 +144,8 @@ class AstraResponsesModel:
         self._seen_message_count = 0
         self.usage = {}
         self.request_count = 0
+        self.request_attempt_count = 0
+        self.transport_errors = []
 
     def _normalized_reasoning_effort(self) -> str:
         return self.reasoning_effort
@@ -153,10 +157,30 @@ class AstraResponsesModel:
             headers={"Authorization": f"Bearer {self.api_key}"},
             timeout=30,
         )
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get("id") != self.model:
-            raise ValueError(f"model lookup returned an unexpected id: {payload.get('id')!r}")
+        if response.status_code < 400:
+            payload = response.json()
+            if payload.get("id") != self.model:
+                raise ValueError(f"model lookup returned an unexpected id: {payload.get('id')!r}")
+            return
+        if response.status_code not in {403, 404, 405}:
+            response.raise_for_status()
+
+        # Some OpenAI-compatible gateways expose a team-filtered collection but
+        # disable the single-model route. The collection remains a read-only
+        # access preflight and avoids spending a benchmark model call.
+        collection = self.session.get(
+            f"{self.base_url}/models",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=30,
+        )
+        collection.raise_for_status()
+        ids = {
+            str(item.get("id"))
+            for item in collection.json().get("data") or []
+            if isinstance(item, dict) and item.get("id")
+        }
+        if self.model not in ids:
+            raise PermissionError(f"configured API project does not expose model {self.model!r}")
 
     def call_stream(self, request: Any) -> Iterable[dict[str, Any]]:
         messages = list(request.messages or [])
@@ -178,12 +202,22 @@ class AstraResponsesModel:
             payload["previous_response_id"] = self._previous_response_id
         if getattr(request, "max_tokens", None):
             payload["max_output_tokens"] = int(request.max_tokens)
-        response = self.session.post(
-            f"{self.base_url}/responses",
-            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=self.timeout_seconds,
-        )
+        self.request_attempt_count += 1
+        try:
+            response = self.session.post(
+                f"{self.base_url}/responses",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+                timeout=self.timeout_seconds,
+            )
+        except requests.RequestException as exc:
+            self.transport_errors.append(
+                {"type": type(exc).__name__, "message": str(exc)[:500]}
+            )
+            raise
         response.raise_for_status()
         self.last_response = response.json()
         response_id = self.last_response.get("id")
@@ -204,3 +238,7 @@ class AstraResponsesModel:
         self._previous_response_id = response_id
         self._seen_message_count = len(messages)
         yield response_to_chat_chunk(self.last_response)
+
+
+# Compatibility for callers created before the pilot allowed a non-Astra smoke model.
+AstraResponsesModel = OpenAIResponsesModel

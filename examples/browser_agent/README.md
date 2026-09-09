@@ -18,9 +18,24 @@ repository's `.env`, then run:
 
     ./examples/browser_agent/run.sh
 
+To validate the pipeline with the currently available GPT-5.6 model before an
+Astra-enabled project is available, keep the evidence cohort separate and run:
+
+    BROWSER_AGENT_OUTPUT_DIR="${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-agent/gpt-5.6-sol" \
+      ./examples/browser_agent/run.sh --model gpt-5.6-sol
+
+The selected model is immutable within one evidence directory. GPT-5.6 and
+Astra attempts must never be resumed into or reported as the same cohort.
+
 `COWAGENT_REPO` is a trusted code-execution boundary, not a data input. The
 runner refuses a dirty checkout and records its Git commit in the run config.
 
 Every task runs once per engine. Only a failed official evaluation receives one
 retry. The official benchmark score is calculated from primary attempts only;
 retry recovery is reported separately and never replaces the primary score.
+After the run, create the deterministic per-attempt evidence review before
+building or publishing the report:
+
+    make browser-agent-review EVIDENCE="$BROWSER_AGENT_OUTPUT_DIR"
+    make browser-agent-report EVIDENCE="$BROWSER_AGENT_OUTPUT_DIR"
+    make browser-agent-report-check EVIDENCE="$BROWSER_AGENT_OUTPUT_DIR"

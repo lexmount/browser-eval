@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import importlib.metadata
+import ipaddress
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -13,6 +15,7 @@ import traceback
 import uuid
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import docker
 import requests
@@ -38,7 +41,7 @@ from harness.browser_kernel.runner import (
 )
 
 from .har import CdpHarRecorder
-from .model import AstraResponsesModel
+from .model import OpenAIResponsesModel
 from .selection import PilotTask, load_pilot, validate_against_official
 
 SCHEMA = "lex_browser_agent_attempt/1"
@@ -63,11 +66,17 @@ SITE_AUTH_HEADERS = {
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
-    """Credentials are intentionally read only from this repository's .env."""
+    """Load repository defaults, with explicit process overrides for automation."""
     env_file = repo_root / ".env"
-    if not env_file.exists():
-        return {}
-    return {str(key): str(value) for key, value in dotenv_values(env_file).items() if value}
+    values = (
+        {str(key): str(value) for key, value in dotenv_values(env_file).items() if value}
+        if env_file.exists()
+        else {}
+    )
+    for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "COWAGENT_REPO"):
+        if os.environ.get(key):
+            values[key] = os.environ[key]
+    return values
 
 
 def _git_head(path: Path) -> str:
@@ -117,19 +126,93 @@ def _docker_image_metadata(image: Any) -> dict[str, Any]:
     }
 
 
+def _container_host_gateway(container: Any) -> str:
+    """Return the literal host-gateway address visible to the browser process.
+
+    CowAgent validates URLs in the host process before forwarding them over CDP.
+    On Linux/Colima, ``host.docker.internal`` can exist only in the container's
+    /etc/hosts, so a literal RFC1918 address is required on both sides.
+    """
+    result = container.exec_run(["getent", "hosts", "host.docker.internal"])
+    if int(result.exit_code) != 0:
+        raise RuntimeError("browser container cannot resolve host.docker.internal")
+    line = result.output.decode("utf-8", errors="replace").splitlines()[0]
+    address = line.split()[0]
+    ipaddress.ip_address(address)
+    return address
+
+
+def _limit_cowagent_transport_retries(executor_class: Any) -> None:
+    """Limit CowAgent API errors to the initial request plus one retry."""
+    if getattr(executor_class, "_lex_browser_eval_retry_limit", False):
+        return
+    original = executor_class._call_llm_stream
+
+    def limited(
+        executor: Any,
+        retry_on_empty: bool = True,
+        retry_count: int = 0,
+        max_retries: int = 1,
+        _overflow_stage: int = 0,
+    ) -> Any:
+        return original(
+            executor,
+            retry_on_empty=retry_on_empty,
+            retry_count=retry_count,
+            max_retries=min(int(max_retries), 1),
+            _overflow_stage=_overflow_stage,
+        )
+
+    executor_class._call_llm_stream = limited
+    executor_class._lex_browser_eval_retry_limit = True
+
+
+def _allow_official_container_hostname(tool: Any) -> None:
+    """Allow only the hostname emitted by the official self-hosted images."""
+    original = tool._validate_url_safe
+
+    def validate(url: str) -> None:
+        if urlparse(url).hostname == "host.docker.internal":
+            return
+        original(url)
+
+    tool._validate_url_safe = validate
+
+
 def _configure_benchmark(hostname: str = "host.docker.internal") -> WebArenaVerified:
+    def site_url(site: WebArenaSite, host: str) -> str:
+        return f"http://{host}:{SITE_PORTS[site][0]}{SITE_URL_SUFFIX.get(site, '')}"
+
     environments = {
         site: EnvironmentConfig(
-            urls=[
-                f"http://{hostname}:{SITE_PORTS[site][0]}"
-                f"{SITE_URL_SUFFIX.get(site, '')}"
-            ],
+            # The gateway IP is active. The official images may redirect to
+            # host.docker.internal, so retain that as an equivalent URL for the
+            # package's own derendering and NetworkEventEvaluator logic.
+            urls=list(dict.fromkeys([site_url(site, hostname), site_url(site, "host.docker.internal")])),
             credentials=SITE_CREDENTIALS[site],
             use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
         )
         for site in SITE_PORTS
     }
     return WebArenaVerified(config=WebArenaVerifiedConfig(environments=environments))
+
+
+def _wait_container_healthy(container: Any, *, timeout_seconds: float = 600) -> None:
+    """Wait past GitLab's delayed reconfigure/Puma restart before app probing."""
+    deadline = time.monotonic() + timeout_seconds
+    last_status = "missing"
+    while time.monotonic() < deadline:
+        container.reload()
+        health = (container.attrs.get("State") or {}).get("Health") or {}
+        last_status = str(health.get("Status") or "missing")
+        if last_status == "healthy":
+            return
+        if last_status == "unhealthy":
+            logs = health.get("Log") or []
+            detail = str(logs[-1].get("Output") or "")[-500:] if logs else ""
+            raise RuntimeError(f"GitLab container became unhealthy: {detail}")
+        time.sleep(2)
+    raise RuntimeError(f"GitLab container health timed out in state {last_status!r}")
 
 
 def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
@@ -142,6 +225,9 @@ def _ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     )
     if not ready.success:
         raise RuntimeError(f"{site.value} did not become ready: {ready.message}")
+    if site == WebArenaSite.GITLAB:
+        container = docker.from_env().containers.get(manager.container_name)
+        _wait_container_healthy(container)
     _wait_application_ready(site, manager.config.health_check_path)
 
 
@@ -166,7 +252,13 @@ def _wait_application_ready(
     last_detail = "no response"
     while time.monotonic() < deadline:
         try:
-            response = requests.get(url, timeout=15, allow_redirects=True)
+            # The official shopping images redirect to their configured
+            # host.docker.internal origin. That name is intentionally scoped to
+            # browser containers and may not resolve on the macOS host. A stable
+            # pre-redirect response proves the app port is serving; _login_context
+            # then validates the rendered authenticated page from inside the
+            # actual browser before tracing or model calls begin.
+            response = requests.get(url, timeout=15, allow_redirects=False)
             last_detail = f"HTTP {response.status_code}"
             consecutive = consecutive + 1 if response.status_code < 500 else 0
             if consecutive >= stable_responses:
@@ -315,7 +407,7 @@ def _run_attempt(  # noqa: PLR0913
     container: Any,
     cowagent_repo: Path,
     output_dir: Path,
-    model: AstraResponsesModel,
+    model: OpenAIResponsesModel,
     sample_interval_ms: int,
 ) -> dict[str, Any]:
     task = benchmark.get_task(selected.task_id)
@@ -326,7 +418,10 @@ def _run_attempt(  # noqa: PLR0913
     if str(cowagent_repo) not in sys.path:
         sys.path.insert(0, str(cowagent_repo))
     from agent.protocol.agent import Agent  # noqa: PLC0415
+    from agent.protocol.agent_stream import AgentStreamExecutor  # noqa: PLC0415
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
+
+    _limit_cowagent_transport_retries(AgentStreamExecutor)
 
     attempt_dir = output_dir / engine / str(selected.task_id) / f"attempt-{attempt}"
     attempt_dir.mkdir(parents=True, exist_ok=True)
@@ -343,6 +438,7 @@ def _run_attempt(  # noqa: PLR0913
             "startup_timeout": 90,
         }
     )
+    _allow_official_container_hostname(tool)
     events: list[dict[str, Any]] = []
     resources = DockerStatsResources(container)
     before = resources.counters()
@@ -461,7 +557,12 @@ def _run_attempt(  # noqa: PLR0913
         "cleanup_errors": cleanup_errors,
         "har_capture_errors": recorder.errors,
         "resource": resource,
-        "model_usage": {**model.usage, "request_count": model.request_count},
+        "model_usage": {
+            **model.usage,
+            "request_count": model.request_count,
+            "request_attempt_count": model.request_attempt_count,
+        },
+        "model_transport_errors": model.transport_errors,
         "paths": {
             "network_har": str(har_path),
             "agent_trace": str(trace_path),
@@ -515,6 +616,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     cowagent_repo = Path(args.cowagent_repo or env.get("COWAGENT_REPO", "")).resolve()
     if not (cowagent_repo / "agent/protocol/agent.py").exists():
         raise RuntimeError("--cowagent-repo must point to a CowAgent checkout")
+    harness_commit = _require_clean_git_checkout(repo_root)
     cowagent_commit = _require_clean_git_checkout(cowagent_repo)
 
     output_dir = Path(args.output).expanduser().resolve()
@@ -522,7 +624,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     selection = load_pilot(args.selection)
     benchmark = _configure_benchmark()
     resolved = validate_against_official(selection, benchmark)
-    model = AstraResponsesModel(
+    model = OpenAIResponsesModel(
         api_key=api_key,
         base_url=env.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         model=args.model,
@@ -553,6 +655,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         for site in SITE_PORTS
     }
     browser_metadata: dict[str, dict[str, str]] = {}
+    site_access_host = ""
     docker_info: dict[str, Any] = {}
     try:
         for engine in ENGINE_IMAGES:
@@ -575,17 +678,27 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             endpoints[engine] = _wait_cdp(http_endpoint, container=container)
             browser_metadata[engine] = _cdp_metadata(http_endpoint)
 
+        gateway_addresses = {_container_host_gateway(container) for container in containers.values()}
+        if len(gateway_addresses) != 1:
+            raise RuntimeError(f"browser containers disagree on host gateway: {gateway_addresses}")
+        site_access_host = gateway_addresses.pop()
+        benchmark = _configure_benchmark(hostname=site_access_host)
+        resolved = validate_against_official(selection, benchmark)
+
         _write_or_validate_run_config(
             run_config_file,
             {
                 "schema": "lex_browser_agent_run_config/1",
                 "selection_sha256": selection.sha256,
+                "browser_eval_commit": harness_commit,
                 "cowagent_commit": cowagent_commit,
                 "model": args.model,
                 "reasoning_effort": "low",
+                "model_transport_retries": 1,
                 "browser_images": image_metadata,
                 "site_images": site_image_metadata,
                 "browser_versions": browser_metadata,
+                "site_access_host": site_access_host,
                 "docker_context": subprocess.run(
                     ["docker", "context", "show"],
                     check=True,
@@ -680,17 +793,21 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         "selection": resolved,
         "protocol": {
             "agent": "CowAgent",
+            "browser_eval_commit": harness_commit,
             "cowagent_commit": cowagent_commit,
             "model": args.model,
             "reasoning_effort": "low",
             "primary_attempts_per_engine_task": 1,
             "failure_retries": 1,
+            "task_failure_retries": 1,
+            "model_transport_retries": 1,
             "official_score_uses": "primary attempt only",
             "retry_score_use": "reported separately as recovery diagnostic",
             "evaluator": "official webarena-verified package, unmodified",
             "environment_reset": "official site container reset before every attempt",
             "engine_order": "alternating by task",
             "sites": [site.value for site in SITE_PORTS],
+            "official_container_hostname_allowlist": ["host.docker.internal"],
         },
         "environment": {
             "platform": platform.platform(),
@@ -701,6 +818,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             "browser_images": image_metadata,
             "browser_versions": browser_metadata,
             "site_images": site_image_metadata,
+            "site_access_host": site_access_host,
             "official_evaluator": evaluator_provenance,
         },
     }

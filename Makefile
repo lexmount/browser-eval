@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check browser-agent-report browser-agent-report-check
+.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check browser-agent-review browser-agent-report browser-agent-report-check
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -39,6 +39,10 @@ report-check: runtime-check
 browser-agent-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
 	$(PY) scripts/build_browser_agent_report.py --evidence "$(EVIDENCE)" --output reports/browser-agent
+
+browser-agent-review: runtime-check
+	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
+	$(PY) scripts/review_browser_agent_results.py --evidence "$(EVIDENCE)"
 
 browser-agent-report-check: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
