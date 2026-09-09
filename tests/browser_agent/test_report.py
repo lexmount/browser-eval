@@ -65,6 +65,26 @@ def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) 
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert data["summary"]["chromium"]["score"] == 0
     assert data["summary"]["chromium"]["recovered"] == 1
+    task = (output / "datasets/44.html").read_text(encoding="utf-8")
+    assert "Ground truth · 官方验收合同" in task
+    assert "没有唯一参考点击路径" in task
+    attempt = (output / "attempts/chromium-44-a1.html").read_text(encoding="utf-8")
+    for expected in (
+        "Agent 实际回答",
+        "官方 evaluator 逐规则判定",
+        "CowAgent 自主执行轨迹",
+        "运行、日志与证据",
+        'href="attempts/chromium-44-a1.html#trajectory"',
+    ):
+        assert expected in attempt
+    for artifact in (
+        "agent-response.json",
+        "evaluation.json",
+        "agent-events.json",
+        "trajectory.json",
+        "evidence-metadata.json",
+    ):
+        assert (output / "artifacts/chromium-44-a1" / artifact).is_file()
 
 
 def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:

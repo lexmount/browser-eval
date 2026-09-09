@@ -17,6 +17,16 @@ from typing import Any
 
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
+from .publication import (
+    evaluator_summary,
+    evidence_metadata,
+    read_public_json,
+    result_excerpt,
+    sanitize,
+    task_contract,
+    trajectory,
+    trajectory_label,
+)
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -203,7 +213,9 @@ def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
     try:
         from .runner import _configure_benchmark
 
-        tasks = validate_against_official(selection, _configure_benchmark())
+        benchmark = _configure_benchmark()
+        tasks = validate_against_official(selection, benchmark)
+        official = {int(task["task_id"]): benchmark.get_task(int(task["task_id"])) for task in tasks}
     except Exception:
         tasks = [
             {
@@ -221,7 +233,12 @@ def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
             for t in selection.tasks
         ]
     for task in tasks:
-        task["task_type"] = _task_type(int(task["task_id"]))
+        official_task = official.get(int(task["task_id"])) if "official" in locals() else None
+        contract = task_contract(official_task) if official_task is not None else {}
+        task["contract"] = contract
+        evals = contract.get("evaluation_contract") or []
+        expected = (evals[0].get("expected") or {}) if evals else {}
+        task["task_type"] = str(expected.get("task_type") or _task_type(int(task["task_id"]))).upper()
     return tasks
 
 
@@ -247,12 +264,12 @@ def _group_rows(
     return result
 
 
-REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-agent-theme',n)}catch(e){}}function filterRows(){const f={tier:document.querySelector('[data-filter=tier]')?.value||'',site:document.querySelector('[data-filter=site]')?.value||'',kind:document.querySelector('[data-filter=kind]')?.value||'',result:document.querySelector('[data-filter=result]')?.value||''};document.querySelectorAll('tbody tr[data-tier]').forEach(r=>r.hidden=Object.entries(f).some(([k,v])=>v&&r.dataset[k]!==v));}document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',filterRows));filterRows();});"""
+REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-agent-theme',n)}catch(e){}}function filterRows(){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query));r.hidden=hidden;if(!hidden)visible++;});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);}function sortTable(id,col){const t=document.getElementById(id),b=t?.tBodies[0];if(!b)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=col;t.dataset.dir=dir;}document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',filterRows));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',filterRows));filterRows();});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
 body{overflow-x:hidden}.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
-.top nav{gap:18px;flex-wrap:nowrap}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.filters{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.filters select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}}@media print{.top{display:none!important}.card,.table-wrap{box-shadow:none}}
+.top nav{gap:18px;flex-wrap:nowrap}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px 1fr;gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.evidence-pair{grid-template-columns:1fr}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}}@media print{.top,.filters{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 """
 )
 NAV = [
@@ -295,6 +312,121 @@ def _status(row: dict[str, Any]) -> Safe:
     )
 
 
+def _json_pre(value: Any, *, css_class: str = "json-view") -> str:
+    return f'<pre class="{css_class}">{_e(json.dumps(value, ensure_ascii=False, indent=2))}</pre>'
+
+
+def _task_contract_html(task: dict[str, Any]) -> str:
+    contract = task.get("contract") or {}
+    rules = contract.get("evaluation_contract") or []
+    cards = []
+    for index, rule in enumerate(rules, start=1):
+        evaluator = rule.get("evaluator") or "UnknownEvaluator"
+        expected = rule.get("expected") or {}
+        qualifiers = {
+            key: value
+            for key, value in rule.items()
+            if key not in {"evaluator", "expected"}
+        }
+        cards.append(
+            '<article class="evidence-card"><h3>'
+            + _e(f"规则 {index} · {evaluator}")
+            + "</h3><p><span class=\"badge\">程序化验收</span>该规则必须得分 1.0。</p>"
+            + _json_pre(expected)
+            + (f"<details><summary>匹配选项与结果 schema</summary>{_json_pre(qualifiers)}</details>" if qualifiers else "")
+            + "</article>"
+        )
+    return (
+        '<div class="muted-box"><strong>没有唯一参考点击路径。</strong> WebArena‑Verified 允许 Agent 自主选择任意 UI 路径；'
+        "ground truth 是以下最终回答与必要网络副作用的合取。报告因此比较结果合同，而不把某条人工路径当作标准答案。</div>"
+        + '<div class="evidence-pair">'
+        + "".join(cards)
+        + "</div>"
+    )
+
+
+def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
+    failed = [item for item in evaluator_summary(result) if float(item.get("score") or 0) < 1]
+    if not failed:
+        return "全部官方 evaluator 均通过。"
+    parts = []
+    for item in failed:
+        if item["name"] == "AgentResponseEvaluator":
+            parts.append("最终回答与官方结构化答案不一致")
+        elif item["name"] == "NetworkEventEvaluator":
+            parts.append("未观察到满足合同的必要网络请求或副作用")
+        else:
+            parts.append(f"{item['name']} 未通过")
+        if item.get("error"):
+            parts.append(str(item["error"]))
+    if row.get("error"):
+        parts.append(str(sanitize(row["error"])))
+    response = row.get("agent_response") or {}
+    if response.get("error_details"):
+        parts.append(str(sanitize(response["error_details"])))
+    return "；".join(dict.fromkeys(x.strip() for x in parts if x.strip())) + "。"
+
+
+def _evaluator_result_html(result: dict[str, Any] | None) -> str:
+    items = evaluator_summary(result)
+    if not items:
+        return '<p class="muted-box">没有 evaluator 明细。</p>'
+    cards = []
+    for item in items:
+        passed = float(item.get("score") or 0) == 1
+        detail = {
+            key: item.get(key)
+            for key in ("assertions", "error", "should_not_exist")
+            if item.get(key) not in (None, [], {})
+        }
+        cards.append(
+            f'<article class="evidence-card rule-{"pass" if passed else "fail"}"><h3>规则 {item["index"]} · {_e(item["name"])}</h3>'
+            f'<p>{"通过" if passed else "失败"} · score={_e(item.get("score"))}</p>'
+            '<div class="evidence-pair"><div><h4>官方期望</h4>'
+            + _json_pre(item.get("expected"))
+            + '</div><div><h4>实际归一化结果</h4>'
+            + _json_pre(item.get("actual"))
+            + "</div></div>"
+            + (f"<details open><summary>断言与错误</summary>{_json_pre(detail)}</details>" if detail else "")
+            + "</article>"
+        )
+    return "".join(cards)
+
+
+def _trajectory_html(steps: list[dict[str, Any]]) -> str:
+    if not steps:
+        return '<p class="muted-box">没有可展示的 BrowserTool 调用。</p>'
+    rows = []
+    for step in steps:
+        duration = step.get("duration_seconds")
+        meta = f"Turn {step.get('turn') or '—'} · {_e(step.get('status') or 'unknown')}"
+        if duration is not None:
+            meta += f" · {float(duration):.2f} 秒"
+        rows.append(
+            '<li><div><details><summary>'
+            + _e(trajectory_label(step))
+            + f'</summary><p class="fine">{meta}</p><h4>调用参数</h4>'
+            + _json_pre(step.get("arguments"))
+            + '<h4>执行输出节选</h4>'
+            + f'<pre class="log-view">{_e(result_excerpt(step))}</pre>'
+            + "</details></div></li>"
+        )
+    return '<ol class="trajectory">' + "".join(rows) + "</ol>"
+
+
+def _artifact_links(attempt_id: str) -> str:
+    root = f"artifacts/{attempt_id}"
+    return (
+        '<div class="page-links">'
+        f'<a href="{root}/agent-response.json" download>最终回答 JSON</a>'
+        f'<a href="{root}/evaluation.json" download>Evaluator 明细 JSON</a>'
+        f'<a href="{root}/trajectory.json" download>动作轨迹 JSON</a>'
+        f'<a href="{root}/agent-events.json" download>脱敏事件日志 JSON</a>'
+        f'<a href="{root}/evidence-metadata.json" download>原始证据哈希</a>'
+        "</div>"
+    )
+
+
 def _article_body(
     paired: dict[str, Any], attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
 ) -> str:
@@ -332,8 +464,25 @@ def _standalone_article(body: str) -> str:
     return f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Browser Agent 实测解读</title><style>{REPORT_STYLE}</style></head><body class="standalone-article"><main class="essay"><div class="wrap">{body}</div></main></body></html>'
 
 
-def _filters() -> str:
-    return '<div class="filters"><label>层级 <select data-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label><label>站点 <select data-filter="site"><option value="">全部</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label><label>类型 <select data-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label><label>结果 <select data-filter="result"><option value="">全部</option><option value="pass">通过</option><option value="fail">失败</option></select></label></div>'
+def _filters(*, attempts: bool = False) -> str:
+    extra = (
+        '<label>浏览器 <select data-filter="engine"><option value="">全部</option><option value="chromium">Chromium</option><option value="moli">Moli</option></select></label>'
+        '<label>口径 <select data-filter="attempt"><option value="">全部</option><option value="primary">首轮</option><option value="retry">失败诊断重试</option></select></label>'
+        '<label>失败环节 <select data-filter="failure"><option value="">全部</option><option value="none">无</option><option value="response">最终回答</option><option value="network">网络副作用</option><option value="mixed">多项</option></select></label>'
+        if attempts
+        else ""
+    )
+    return (
+        '<div class="filters"><label>全文搜索 <input data-search type="search" placeholder="任务、意图、答案、错误"></label>'
+        '<label>层级 <select data-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
+        '<label>站点 <select data-filter="site"><option value="">全部</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
+        '<label>类型 <select data-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>'
+        '<label>结果 <select data-filter="result"><option value="">全部</option><option value="pass">通过</option><option value="fail"'
+        + (" selected" if attempts else "")
+        + '>失败</option></select></label>'
+        + extra
+        + '<span class="count-note" data-visible-count></span></div>'
+    )
 
 
 def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
@@ -354,25 +503,51 @@ def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> 
             _status(m) if m else "—",
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
-        rows.append(
-            f'<tr data-tier="{task["tier"]}" data-site="{site}" data-kind="{kind}" data-result="{result}">{cells}</tr>'
+        search = " ".join(
+            str(x)
+            for x in (
+                task_id,
+                task.get("intent"),
+                task.get("rationale"),
+                json.dumps(task.get("contract") or {}, ensure_ascii=False),
+            )
         )
+        rows.append(
+            f'<tr data-tier="{task["tier"]}" data-site="{site}" data-kind="{kind}" data-result="{result}" data-search="{_e(search)}">{cells}</tr>'
+        )
+    labels = ["任务", "层级", "站点", "类型", "最少步", "入选理由", "Chromium", "Moli"]
     headers = "".join(
-        f"<th>{_e(x)}</th>"
-        for x in ["任务", "层级", "站点", "类型", "最少步", "入选理由", "Chromium", "Moli"]
+        f'<th><button class="sort-button" onclick="sortTable(\'task-table\',{i})">{_e(x)} ↕</button></th>'
+        for i, x in enumerate(labels)
     )
     return (
         _filters()
-        + f'<div class="table-wrap"><table><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        + f'<div class="table-wrap"><table id="task-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
     )
 
 
 def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
-    sites = {int(task["task_id"]): task["sites"][0] for task in tasks}
+    task_meta = {int(task["task_id"]): task for task in tasks}
     rows = []
     for row in attempts:
         p = _public_attempt(row)
         result = "pass" if p["score"] == 1 else "fail"
+        result_record = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
+        failed_names = [
+            item["name"]
+            for item in evaluator_summary(result_record)
+            if float(item.get("score") or 0) < 1
+        ]
+        failure = (
+            "none"
+            if not failed_names
+            else "mixed"
+            if len(failed_names) > 1
+            else "network"
+            if failed_names[0] == "NetworkEventEvaluator"
+            else "response"
+        )
+        task = task_meta.get(p["task_id"], {})
         values = [
             Safe(f'<a href="attempts/{p["id"]}.html">{p["id"]}</a>'),
             ENGINE_LABELS[p["engine"]],
@@ -386,8 +561,10 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         rows.append(
-            f'<tr data-tier="{p["tier"]}" data-site="{sites.get(p["task_id"], "")}" '
-            f'data-kind="{_task_type(p["task_id"])}" data-result="{result}">{cells}</tr>'
+            f'<tr data-tier="{p["tier"]}" data-site="{(task.get("sites") or [""])[0]}" '
+            f'data-kind="{task.get("task_type") or _task_type(p["task_id"])}" data-result="{result}" '
+            f'data-engine="{p["engine"]}" data-attempt="{"retry" if p["is_retry"] else "primary"}" data-failure="{failure}" '
+            f'data-search="{_e(" ".join([p["id"], str(task.get("intent") or ""), _failure_diagnosis(result_record, row)]))}">{cells}</tr>'
         )
     headers = "".join(
         f"<th>{_e(x)}</th>"
@@ -404,9 +581,56 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
         ]
     )
     return (
-        _filters()
-        + f'<div class="table-wrap"><table><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        _filters(attempts=True)
+        + f'<div class="table-wrap"><table id="attempt-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
     )
+
+
+def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
+    task_by_id = {int(task["task_id"]): task for task in tasks}
+    rows = []
+    for row in attempts:
+        if int(row["attempt"]) != 1 or float(row["score"]) == 1:
+            continue
+        task_id = int(row["task_id"])
+        result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
+        failed = [
+            item["name"]
+            for item in evaluator_summary(result)
+            if float(item.get("score") or 0) < 1
+        ]
+        rows.append(
+            [
+                Safe(f'<a href="attempts/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
+                task_by_id.get(task_id, {}).get("rationale", f"Task #{task_id}"),
+                "、".join(failed) or "未定位",
+                _failure_diagnosis(result, row),
+                Safe(f'<a href="datasets/{task_id}.html">任务与两浏览器对照</a>'),
+            ]
+        )
+    return _table(["首轮试次", "任务", "失败规则", "直接原因", "同题对照"], rows)
+
+
+def _engine_attempts(engine: str, attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
+    meta = {int(task["task_id"]): task for task in tasks}
+    rows = []
+    for row in attempts:
+        if row["engine"] != engine:
+            continue
+        task = meta[int(row["task_id"])]
+        result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
+        rows.append(
+            [
+                Safe(f'<a href="attempts/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
+                task["rationale"],
+                TIER_LABELS[task["tier"]],
+                "重试" if int(row["attempt"]) == 2 else "首轮",
+                _status(row),
+                _seconds(float(row.get("duration_ms") or 0)),
+                _failure_diagnosis(result, row) if float(row["score"]) < 1 else "—",
+            ]
+        )
+    return _table(["试次", "任务", "层级", "口径", "结果", "耗时", "失败原因"], rows)
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -447,6 +671,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "reproduce",
             "accounts",
             "data",
+            "artifacts",
         ):
             (stage / folder).mkdir()
         (stage / "assets/style.css").write_text(REPORT_STYLE, encoding="utf-8")
@@ -530,6 +755,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         datasets += _section(
             "Mind2Web 的拆分不是 easy / medium / hard",
             "<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 5、中等 10、困难 15 是预注册的操作长度层级。</p>",
+        ) + _section(
+            "怎样阅读任务 ground truth",
+            '<p><strong>WebArena‑Verified 的 ground truth 不是一条固定点击脚本。</strong>每题声明一个结构化最终回答合同，并在需要确认页面副作用时附加一个或多个网络事件合同。所有合同都通过才记 1 分。任务详情同时展示合同、两种浏览器的实际回答、失败规则和 CowAgent 自主轨迹。</p>',
         ) + _section("30 个任务", _task_table(tasks, attempts))
         (stage / "datasets/index.html").write_text(
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
@@ -555,12 +783,13 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             detail = _hero(
                 f"Task #{task_id}",
                 task["rationale"],
-                "公开任务意图与测量结果；参考答案和完整 Agent 回答不发布。",
+                "官方任务合同、两种浏览器的实际结果与完整自主执行证据。",
             )
             detail += _section(
                 "任务身份",
                 f'<div class="detail-grid"><div class="kv"><b>站点</b>{_e(SITE_LABELS.get(site, site))}</div><div class="kv"><b>本项目层级</b>{_e(TIER_LABELS[task["tier"]])} · {_e(task["estimated_min_steps"])} 步起</div><div class="kv"><b>任务类型</b>{_e(task["task_type"])}</div><div class="kv"><b>官方 hard subset</b>{"是" if task["official_hard"] else "否"}</div></div><h3>公开任务意图</h3><p>{_e(task["intent"])}</p><p class="fine">模板 ID {task.get("intent_template_id") or "—"} · revision {task.get("revision") or "—"}</p>',
             )
+            detail += _section("Ground truth · 官方验收合同", _task_contract_html(task))
             detail += _section(
                 "两种浏览器的全部正式试次",
                 _table(["浏览器", "口径", "官方结果", "端到端耗时", "证据"], task_rows)
@@ -568,6 +797,44 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     f'<p class="callout failure"><strong>共同失败诊断：</strong>{_e(FAILURE_NOTES[task_id])}</p>'
                     if task_id in FAILURE_NOTES
                     else ""
+                ),
+            )
+            primary_comparison = []
+            for engine in ENGINE_LABELS:
+                row = by_attempt.get((engine, task_id, 1))
+                if not row:
+                    continue
+                result_record = read_public_json(
+                    Path((row.get("paths") or {}).get("evaluation", ""))
+                )
+                event_record = read_public_json(
+                    Path((row.get("paths") or {}).get("events", ""))
+                )
+                step_count = len(
+                    trajectory(event_record if isinstance(event_record, list) else [])
+                )
+                failed_rules = [
+                    item["name"]
+                    for item in evaluator_summary(result_record)
+                    if float(item.get("score") or 0) < 1
+                ]
+                primary_comparison.append(
+                    [
+                        ENGINE_LABELS[engine],
+                        _status(row),
+                        Safe(_json_pre(sanitize(row.get("agent_response") or {}))),
+                        "、".join(failed_rules) or "无",
+                        _failure_diagnosis(result_record, row),
+                        Safe(
+                            f'<a href="attempts/{_attempt_id(row)}.html#trajectory">查看 {step_count} 步轨迹</a>'
+                        ),
+                    ]
+                )
+            detail += _section(
+                "首轮结果对照",
+                _table(
+                    ["浏览器", "结果", "实际最终回答", "失败规则", "为什么这样判", "执行过程"],
+                    primary_comparison,
                 ),
             )
             (stage / f"datasets/{task_id}.html").write_text(
@@ -643,6 +910,29 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 ],
             ),
         )
+        methodology += _section(
+            "两类程序化 evaluator 到底检查什么",
+            _table(
+                ["Evaluator", "输入", "比较方式", "能证明什么", "不能证明什么"],
+                [
+                    [
+                        "AgentResponseEvaluator",
+                        "Agent 最终 JSON",
+                        "先按 JSON schema 和数据类型归一化，再比较 task_type、status 与 retrieved_data；按题可声明列表有序或无序。",
+                        "最终回答符合该题公开答案合同。",
+                        "没有检查回答是通过哪条 UI 路径得到的，也不评操作效率。",
+                    ],
+                    [
+                        "NetworkEventEvaluator",
+                        "本次浏览器 HAR",
+                        "在网络事件中匹配 URL、方法、状态码以及按需声明的 query、POST、响应字段或 Cookie 条件。",
+                        "导航或页面变更产生了指定的可观察副作用。",
+                        "没有要求复刻固定点击序列；未声明的页面状态不在验收范围内。",
+                    ],
+                ],
+            )
+            + '<p><strong>合取规则：</strong>一题配置的每个 evaluator 都必须得分 1.0，整题才通过。这里没有 LLM-as-a-judge，也没有人工改分。</p>',
+        )
         (stage / "methodology/index.html").write_text(
             _page(title="评测方法", active="methodology", body=methodology, depth=1),
             encoding="utf-8",
@@ -651,7 +941,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         analysis = _hero(
             "Results",
             "从总体配对下钻到每一次执行",
-            "公开必要测量字段，不公开参考答案、完整回答、Cookie、HAR 正文或机器本地路径。",
+            "先定位十个首轮失败的规则与直接原因，再筛选全部 70 次执行并下钻回答、轨迹和日志。",
         )
         analysis += _section(
             "汇总",
@@ -679,7 +969,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 ],
             )
             + '<p class="fine">耗时包含模型响应、页面等待、站点重置与浏览器执行，不能解释为纯内核速度。</p>',
-        ) + _section("70 个试次", _attempt_table(attempts, tasks))
+        )
+        analysis += _section(
+            "首轮失败定位",
+            '<p>两种浏览器在同五题失败。下表不是人工猜测：失败环节来自官方 evaluator，补充说明来自 Agent 最终错误和执行记录。</p>'
+            + _failure_inventory(attempts, tasks),
+        )
+        analysis += _section(
+            "70 个试次",
+            '<p>默认只显示失败；可按浏览器、层级、站点、任务类型、首轮/重试、失败环节和全文关键词筛选。</p>'
+            + _attempt_table(attempts, tasks),
+        )
         (stage / "analysis/index.html").write_text(
             _page(title="结果分析", active="analysis", body=analysis, depth=1), encoding="utf-8"
         )
@@ -690,6 +990,20 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         }
         for row, public in zip(attempts, public_attempts, strict=True):
             item = review_by_key.get((public["engine"], public["task_id"], public["attempt"]), {})
+            task = next(t for t in tasks if int(t["task_id"]) == public["task_id"])
+            paths = row.get("paths") or {}
+            response_record = read_public_json(Path(paths.get("response", "")))
+            evaluation_record = read_public_json(Path(paths.get("evaluation", "")))
+            events_record = read_public_json(Path(paths.get("events", "")))
+            steps = trajectory(events_record if isinstance(events_record, list) else [])
+            metadata = evidence_metadata(row)
+            artifact_dir = stage / "artifacts" / public["id"]
+            artifact_dir.mkdir(parents=True)
+            _write_json(artifact_dir / "agent-response.json", response_record)
+            _write_json(artifact_dir / "evaluation.json", evaluation_record)
+            _write_json(artifact_dir / "agent-events.json", events_record)
+            _write_json(artifact_dir / "trajectory.json", steps)
+            _write_json(artifact_dir / "evidence-metadata.json", metadata)
             usage, resource, checks = (
                 public["model_usage"],
                 public["resource"],
@@ -698,21 +1012,65 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             detail = _hero(
                 public["id"],
                 f"{ENGINE_LABELS[public['engine']]} · Task #{public['task_id']} · {'重试' if public['is_retry'] else '首轮'}",
-                "公开评分、运行计量和证据完整性；敏感正文保留在非公开持久证据中。",
+                "从官方 ground truth、实际回答、规则级判定下钻到 CowAgent 的每一步 BrowserTool 调用。",
+            )
+            # Pages declare <base href="../"> so every internal URL is rooted at
+            # the report bundle, including same-page fragment links.
+            attempt_page = f"attempts/{public['id']}.html"
+            detail += (
+                '<nav class="page-links wrap" aria-label="试次详情导航">'
+                f'<a href="{attempt_page}#comparison">答案对照</a>'
+                f'<a href="{attempt_page}#rules">规则判定</a>'
+                f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
+                f'<a href="{attempt_page}#runtime">运行与证据</a>'
+                "</nav>"
             )
             detail += _section(
                 "结果与运行",
-                f'<div class="detail-grid"><div class="kv"><b>官方结果</b>{_status(row)}</div><div class="kv"><b>端到端耗时</b>{_seconds(public["duration_ms"])}</div><div class="kv"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div><div class="kv"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div><div class="kv"><b>传输错误</b>{public["transport_error_count"]}</div><div class="kv"><b>证据复核</b>{_e(item.get("outcome") or "未记录")}</div></div>',
+                f'<div class="detail-grid"><div class="kv"><b>官方结果</b>{_status(row)}</div><div class="kv"><b>失败定位</b>{_e(_failure_diagnosis(evaluation_record, row))}</div><div class="kv"><b>自主操作</b>{len(steps)} 次 BrowserTool 调用</div><div class="kv"><b>端到端耗时</b>{_seconds(public["duration_ms"])}</div><div class="kv"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div><div class="kv"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div><div class="kv"><b>传输错误</b>{public["transport_error_count"]}</div><div class="kv"><b>证据复核</b>{_e(item.get("outcome") or "未记录")}</div></div>',
             )
-            detail += _section(
-                "资源诊断",
-                _table(["指标", "值"], resource.items())
-                + '<p class="fine">整次 Agent 运行的容器计量只作诊断；不同进程模型下不直接比较内存或 PID。</p>',
-            ) + _section(
-                "证据完整性检查",
-                _table(
+            detail += '<div id="comparison"></div>' + _section(
+                "Ground truth 与实际最终回答",
+                '<div class="evidence-pair"><article class="evidence-card"><h3>官方任务合同</h3>'
+                + _task_contract_html(task)
+                + '</article><article class="evidence-card"><h3>Agent 实际回答</h3>'
+                + _json_pre(response_record)
+                + "</article></div>",
+            )
+            detail += '<div id="rules"></div>' + _section(
+                "官方 evaluator 逐规则判定",
+                '<p>所有规则都必须得分 1.0；这里使用 evaluator 已归一化的实际值与期望值直接对照。</p>'
+                + _evaluator_result_html(evaluation_record),
+            )
+            detail += '<div id="trajectory"></div>' + _section(
+                "CowAgent 自主执行轨迹",
+                '<p>以下顺序来自本次执行的 Agent 事件流，不是固定动作回放。展开可查看调用参数和输出摘录；完整脱敏日志可下载。</p>'
+                + _trajectory_html(steps),
+            )
+            detail += '<div id="runtime"></div>' + _section(
+                "运行、日志与证据",
+                _artifact_links(public["id"])
+                + '<p class="fine">公开包包含脱敏的回答、evaluator、事件流与轨迹。原始 HAR 和 Playwright trace 可能携带登录态、Cookie、页面快照或请求正文，因此不公开；其字节数和 SHA-256 保留用于证明证据绑定。</p>'
+                + _table(["指标", "值"], resource.items())
+                + '<p class="fine">整次 Agent 运行的容器计量只作诊断；不同进程模型下不直接比较内存或 PID。</p>'
+                + '<h3>证据完整性检查</h3>'
+                + _table(
                     ["检查", "结果"],
                     [[key, "通过" if value else "未通过"] for key, value in checks.items()],
+                )
+                + '<h3>原始证据文件绑定</h3>'
+                + _table(
+                    ["证据", "存在", "字节", "SHA-256", "公开策略"],
+                    [
+                        [
+                            label,
+                            "是" if value.get("present") else "否",
+                            value.get("bytes"),
+                            value.get("sha256") or "—",
+                            value.get("publication"),
+                        ]
+                        for label, value in (metadata.get("files") or {}).items()
+                    ],
                 )
                 + f'<p class="page-links"><a href="datasets/{public["task_id"]}.html">返回任务页</a></p>',
             )
@@ -723,11 +1081,13 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         coverage = review.get("coverage") or {}
         review_rows = [
             [
-                x["engine"],
-                x["task_id"],
-                x["attempt"],
+                Safe(
+                    f'<a href="attempts/{x["engine"]}-{int(x["task_id"])}-a{int(x["attempt"])}.html">'
+                    f'{x["engine"]}-{int(x["task_id"])}-a{int(x["attempt"])}</a>'
+                ),
                 x["outcome"],
                 sum(not v for v in (x.get("checks") or {}).values()),
+                ", ".join(k for k, v in (x.get("checks") or {}).items() if not v) or "—",
             ]
             for x in review.get("attempts") or []
         ]
@@ -739,8 +1099,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         review_page += _section(
             "核验结论",
             f'<div class="result-grid"><div class="card"><span class="tiny">记录试次</span><div class="n">{coverage.get("recorded_attempts", 0)}</div></div><div class="card"><span class="tiny">已复核</span><div class="n">{coverage.get("reviewed_attempts", 0)}</div></div><div class="card"><span class="tiny">记分分歧</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>检查回答、HAR、Agent trace、事件和 evaluator 明细是否存在，并核对哈希、分数、状态、官方版本和模型传输尝试。</p>',
-        ) + _section(
-            "逐试次覆盖", _table(["浏览器", "任务", "试次", "结论", "失败检查"], review_rows)
+        )
+        review_page += _section(
+            "复核协议",
+            _json_pre(review.get("protocol") or {})
+            + '<p>人工或二次模型不得修改官方分数；复核只验证文件存在、哈希绑定、状态/分数一致、官方版本一致和传输尝试计数。</p>',
+        )
+        review_page += _section(
+            "逐试次覆盖",
+            _table(["试次", "结论", "失败检查数", "失败检查项"], review_rows),
         )
         (stage / "review/index.html").write_text(
             _page(title="核验记录", active="review", body=review_page, depth=1), encoding="utf-8"
@@ -801,7 +1168,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 ]
             )
             body = _hero(
-                "Engine", ENGINE_LABELS[engine], "本轮浏览器运行身份与汇总结果。"
+                "Engine", ENGINE_LABELS[engine], "本轮浏览器运行身份、完整任务结果与失败证据入口。"
             ) + _section(
                 "运行身份",
                 _table(
@@ -816,6 +1183,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     ],
                 )
                 + '<p class="fine">版本与镜像身份用于限定复现边界，不参与评分。</p>',
+            )
+            body += _section(
+                "全部执行记录",
+                '<p>首轮决定主分；仅失败任务有一次诊断重试，重试不回写主分。</p>'
+                + _engine_attempts(engine, attempts, tasks),
             )
             (stage / f"engines/{engine}.html").write_text(
                 _page(title=ENGINE_LABELS[engine], active="adoption", body=body, depth=1),
@@ -850,7 +1222,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a></div>',
+            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个试次的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;attempt-id&gt;/</code>，也可从试次详情页直接下载。</p>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -979,6 +1351,30 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     "unresolved",
                     "attempts",
                 )
+            },
+        )
+        _write_json(
+            stage / "data/publication-privacy.json",
+            {
+                "schema": "lex_browser_agent_publication_privacy/1",
+                "published": [
+                    "official task intent and evaluator contracts",
+                    "sanitized final agent response",
+                    "sanitized evaluator expected/actual/assertions/errors",
+                    "sanitized CowAgent event stream and BrowserTool trajectory",
+                    "artifact byte sizes and SHA-256 bindings",
+                ],
+                "private_only": [
+                    "raw HAR because it may contain cookies, headers and request bodies",
+                    "raw Playwright trace because it may contain session state and page snapshots",
+                    "model API credentials and local filesystem paths",
+                ],
+                "redactions": [
+                    "known benchmark credentials",
+                    "authorization, cookie, password, secret, token and API-key fields",
+                    "local service origins replaced with benchmark URL placeholders",
+                    "machine-local filesystem paths",
+                ],
             },
         )
         (stage / ".generated-report").write_text("browser-agent-report/2\n", encoding="utf-8")

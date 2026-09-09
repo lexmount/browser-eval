@@ -10,7 +10,7 @@
       "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
       "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
       "changes": [
-        ["证据应用与独立解读", "只有栏目分页仍不足以核对任务选择、逐次执行、复核覆盖和结论依据。", "首页作为决策入口；另生成同源的完整解读与无 JavaScript 独立文章，并提供 30 个任务页、70 个试次页、双浏览器身份页、筛选表和五类脱敏下载数据。", "出版结构与公开证据粒度改变；任务、分母、原始输出、分数与证据绑定均未修改。"],
+        ["证据应用与独立解读", "只有栏目分页仍不足以核对任务选择、逐次执行、复核覆盖和结论依据。", "首页作为决策入口；30 个任务页公开官方 ground truth 与两浏览器首轮对照；70 个试次页公开实际回答、规则级 expected/actual、CowAgent 自主轨迹、输出摘录和脱敏事件下载。", "出版结构与公开证据粒度改变；任务、分母、原始输出、分数与证据绑定均未修改。原始 HAR 与 Playwright trace 因含登录态只公开哈希和大小。"],
         ["明确自主 Agent 轨道", "仓库同时存在执行层 browser_kernel harness 和自主 browser_agent harness，若统称为“原 30 题”会误读运行方式。", "本报告的 30 个 WebArena-Verified 任务明确由 CowAgent 自主观察、规划和操作；browser_kernel 作为另一条执行层微基准单独说明。", "本轮成绩只来自自主 Agent 轨道；两类 harness 不合并计分。"],
         ["公开 benchmark 选型", "模型厂商使用的 browser-use、computer-use、离线动作预测和 agentic search 口径混杂。", "按一手机构采用情况梳理 Mind2Web、WebArena、WebVoyager，并比较 Online-Mind2Web、BU Bench、Odysseys 等评测对象和 judge。", "首轮选择可自托管、确定性结果验收的 WebArena-Verified；实时网站和 LLM judge 留到后续泛化阶段。"],
         ["完整正式运行", "需要同时覆盖短、中、长操作链，且避免运行后换题或挑结果。", "预注册 5/10/15 题操作长度分层；每个题×浏览器只以第一次正式执行计 pass@1，失败最多重试一次且只作诊断。", "Chromium 与 Moli 均为 25/30；共同失败 5 题、单边胜出 0 题，30 题 pilot 未观察到成功率差异。"],

@@ -69,10 +69,23 @@ def check(
             "summary.json",
             "environment.json",
             "review.json",
+            "publication-privacy.json",
+        )
+    )
+    artifact_files = tuple(
+        report_dir / "artifacts" / page.stem / name
+        for page in attempt_pages
+        for name in (
+            "agent-response.json",
+            "evaluation.json",
+            "agent-events.json",
+            "trajectory.json",
+            "evidence-metadata.json",
         )
     )
     if not all(
-        path.is_file() for path in (*pages, *task_pages, *attempt_pages, *data_files, audit_path)
+        path.is_file()
+        for path in (*pages, *task_pages, *attempt_pages, *data_files, *artifact_files, audit_path)
     ):
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
@@ -110,11 +123,21 @@ def check(
     rendered_pages = {
         page: page.read_text(encoding="utf-8") for page in (*pages, *task_pages, *attempt_pages)
     }
-    if any(
-        "expected_response" in text or "reference_answer" in text
-        for text in rendered_pages.values()
+    if task_pages and any(
+        "Ground truth · 官方验收合同" not in rendered_pages[page] for page in task_pages
     ):
-        raise ValueError("private evaluator answers must not be published")
+        raise ValueError("every task page must publish its official evaluation contract")
+    if attempt_pages and any(
+        marker not in rendered_pages[page]
+        for page in attempt_pages
+        for marker in (
+            "Agent 实际回答",
+            "官方 evaluator 逐规则判定",
+            "CowAgent 自主执行轨迹",
+            "运行、日志与证据",
+        )
+    ):
+        raise ValueError("every attempt page must expose result, evaluator, trajectory and logs")
     html = rendered_pages[index]
     standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
     if "<script" in standalone or "assets/" in standalone:
@@ -136,8 +159,6 @@ def check(
     forbidden = {
         "agent_response",
         "paths",
-        "expected_response",
-        "reference_answer",
         "model_transport_errors",
     }
     if any(forbidden & set(item) for item in public_results):
@@ -202,6 +223,19 @@ def check(
         for _page, text in rendered_pages.items():
             if str(evidence_dir.resolve()) in text:
                 raise ValueError("published pages must not contain machine-local evidence paths")
+        forbidden_text = (
+            "Password.123",
+            "admin1234",
+            "test1234",
+            "hello1234",
+            "host.docker.internal",
+            "192.168.5.2",
+        )
+        for path in report_dir.rglob("*"):
+            if path.is_file() and path.suffix in {".html", ".json", ".jsonl", ".js", ".css"}:
+                text = path.read_text(encoding="utf-8")
+                if any(secret in text for secret in forbidden_text):
+                    raise ValueError(f"published evidence contains a secret or local origin: {path}")
 
 
 def main() -> None:
