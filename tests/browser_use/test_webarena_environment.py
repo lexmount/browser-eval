@@ -263,7 +263,8 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
     ]
 
 
-def test_gitlab_backend_disables_entrypoint_port_reconfigure():
+@pytest.mark.parametrize("site", ["shopping_admin", "shopping", "reddit", "gitlab"])
+def test_stateful_backend_disables_duplicate_entrypoint_reconfigure(site):
     calls = []
 
     class Containers:
@@ -273,8 +274,8 @@ def test_gitlab_backend_disables_entrypoint_port_reconfigure():
     backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
 
     backend.container_run(
-        name="webarena_verified_gitlab",
-        image="gitlab@sha256:digest",
+        name=f"webarena_verified_{site}",
+        image=f"{site}@sha256:digest",
         port_mappings={18023: 8023, 18024: 8877},
         volume_mappings={},
         env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023"},

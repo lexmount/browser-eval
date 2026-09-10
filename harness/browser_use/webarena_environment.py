@@ -21,6 +21,9 @@ from webarena_verified.types.task import WebArenaSite
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
+STATEFUL_CONTAINER_NAMES = frozenset(
+    f"webarena_verified_{site}" for site in STATEFUL_SITES
+)
 
 
 class _DockerClientBackend:
@@ -60,10 +63,10 @@ class _DockerClientBackend:
         env_vars: dict[str, str] | None = None,
     ) -> None:
         environment = dict(env_vars or {})
-        if name == "webarena_verified_gitlab":
-            # The slim GitLab entrypoint otherwise changes nginx's internal
-            # listen port to the external host port. Keep the baked 8023 port
-            # for env-ctrl health checks; configure external_url after start.
+        if name in STATEFUL_CONTAINER_NAMES:
+            # Configure the public URL exactly once after internal services are
+            # ready.  This avoids a duplicate, I/O-heavy entrypoint rewrite;
+            # GitLab additionally needs its baked internal 8023 port preserved.
             environment["WA_ENV_CTRL_SKIP_RECONFIGURE"] = "true"
         self.client.containers.run(
             image,
