@@ -180,6 +180,14 @@ reset, and site state are validated against the site daemon. This permits a root
 browser runtime to reach rootless WebArena sites whose storage remains under `/data`, without moving
 or restarting unrelated rootful Docker workloads.
 
+On a rootless daemon, synchronous deletion of a Magento or GitLab writable layer can take hours.
+`defer_stateful_container_removal` may therefore be enabled in the external runtime config. Reset
+then stops and uniquely renames the previous container before creating a new container from the same
+immutable pinned image and fixed ports. The official stateful images must have no shared writable
+mounts; the reset receipt records every retired container. Garbage collection is deferred until the
+declared run is complete, so deletion latency cannot enter an individual browser sample or cause
+state reuse.
+
 The site runtime is not tied to trajectory replay. The pinned images, URLs, test credentials,
 health checks, reset behavior, login preparation, and WebArena-Verified evaluator form one shared
 environment contract. A later autonomous-agent runner must reuse that contract and the same evidence

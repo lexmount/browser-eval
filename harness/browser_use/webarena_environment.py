@@ -41,8 +41,10 @@ _LEGACY_ORIGIN_RE = re.compile(
 class _DockerClientBackend:
     """Bind WebArena's container manager to an explicit Docker SDK client."""
 
-    def __init__(self, client: Any) -> None:
+    def __init__(self, client: Any, *, defer_removal: bool = False) -> None:
         self.client = client
+        self.defer_removal = defer_removal
+        self.retired_containers: list[str] = []
 
     def _container(self, name: str) -> Any | None:
         try:
@@ -63,7 +65,20 @@ class _DockerClientBackend:
     def container_remove(self, *, name: str) -> None:
         container = self._container(name)
         if container is not None:
-            container.remove(force=True)
+            if not self.defer_removal:
+                container.remove(force=True)
+                return
+            # Removing WebArena's tens-of-gigabytes writable layer can block a
+            # rootless daemon for hours.  Stopping releases the fixed ports;
+            # renaming preserves the old layer for deferred garbage collection.
+            # The next container still starts from the immutable pinned image,
+            # and these official images have no shared writable mounts.
+            container.reload()
+            if container.status == "running":
+                container.stop(timeout=10)
+            retired_name = f"{name}__retired__{container.id[:12]}"
+            container.rename(retired_name)
+            self.retired_containers.append(retired_name)
 
     def container_run(
         self,
@@ -75,6 +90,10 @@ class _DockerClientBackend:
         env_vars: dict[str, str] | None = None,
     ) -> None:
         environment = dict(env_vars or {})
+        if self.defer_removal and volume_mappings:
+            raise RuntimeError(
+                "deferred WebArena container removal requires no shared writable mounts"
+            )
         if name in {
             "webarena_verified_shopping",
             "webarena_verified_shopping_admin",
@@ -386,10 +405,16 @@ class WebArenaEnvironment:
                         "host_env_ctrl_port": control_port,
                     }
                 )
+                defer_removal = bool(
+                    self.config.get("defer_stateful_container_removal", False)
+                )
+                backend = _DockerClientBackend(
+                    docker_client, defer_removal=defer_removal
+                )
                 manager = ContainerManager(
                     site=WebArenaSite(site),
                     config=config,
-                    backend=_DockerClientBackend(docker_client),
+                    backend=backend,
                     hostname=str(self.config.get("docker_site_hostname") or "host.docker.internal"),
                 )
                 started = manager.start(
@@ -401,7 +426,11 @@ class WebArenaEnvironment:
                 container.reload()
                 receipts[site] = {
                     "mode": "local_docker",
-                    "reset": "container_recreated_from_pinned_image",
+                    "reset": (
+                        "container_recreated_from_pinned_image_deferred_gc"
+                        if defer_removal
+                        else "container_recreated_from_pinned_image"
+                    ),
                     "container_name": manager.container_name,
                     "site_url": started.url,
                     "control_url": started.env_ctrl_url,
@@ -409,6 +438,7 @@ class WebArenaEnvironment:
                     "container_id": container.id,
                     "image_id": container.image.id,
                     "repo_digests": sorted(container.image.attrs.get("RepoDigests") or []),
+                    "retired_containers": list(backend.retired_containers),
                 }
                 self._wait_ready(url, timeout_seconds=timeout_seconds)
                 if site == "gitlab":

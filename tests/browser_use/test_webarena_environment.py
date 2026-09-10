@@ -43,6 +43,13 @@ class _Container:
     def reload(self):
         return None
 
+    def stop(self, timeout):
+        self.status = "exited"
+        self.stop_timeout = timeout
+
+    def rename(self, name):
+        self.renamed_to = name
+
     def exec_run(self, command, demux=False):
         self.exec_calls.append((command, demux))
         if command == ["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"]:
@@ -240,6 +247,7 @@ def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypa
     assert starts[0]["env_ctrl_port"] == 17781
     assert result["sites"]["shopping_admin"]["reset"] == ("container_recreated_from_pinned_image")
     assert result["sites"]["shopping_admin"]["repo_digests"] == [pinned]
+    assert result["sites"]["shopping_admin"]["retired_containers"] == []
     assert result["sites"]["shopping_admin"]["external_url_configuration"] == {
         "external_url": "http://host.docker.internal:17780",
         "mode": "entrypoint_init_verified",
@@ -382,6 +390,37 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
         "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
         "WA_ENV_CTRL_SKIP_RECONFIGURE": "true",
     }
+
+
+def test_stateful_backend_can_defer_large_container_removal():
+    container = _Container([])
+    backend = _DockerClientBackend(
+        SimpleNamespace(containers=_Containers(container)), defer_removal=True
+    )
+
+    backend.container_remove(name="webarena_verified_shopping_admin")
+
+    assert container.stop_timeout == 10
+    assert container.renamed_to == (
+        "webarena_verified_shopping_admin__retired__container-id"
+    )
+    assert backend.retired_containers == [container.renamed_to]
+
+
+def test_deferred_removal_rejects_shared_writable_mounts():
+    backend = _DockerClientBackend(
+        SimpleNamespace(containers=SimpleNamespace(run=lambda *_args, **_kwargs: None)),
+        defer_removal=True,
+    )
+
+    with pytest.raises(RuntimeError, match="requires no shared writable mounts"):
+        backend.container_run(
+            name="webarena_verified_shopping",
+            image="shopping@sha256:digest",
+            port_mappings={17770: 80},
+            volume_mappings={"shared": "/var/lib/mysql"},
+            env_vars={},
+        )
 
 
 def test_gitlab_initializer_fails_closed_on_invalid_response():
