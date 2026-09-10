@@ -32,3 +32,4 @@ run.log
 artifacts/trajectory_replay/
 artifacts/browser_use/
 /docs/reports/trajectory-replay-evaluation-*
+.ai/topics/
