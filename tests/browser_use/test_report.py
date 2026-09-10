@@ -353,7 +353,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     assert 'id="f-attempt"' not in analysis
     assert '<option value="fail" selected>错误</option>' in analysis
     assert 'aria-live="polite"' in analysis
-    assert "答案对照" in detail
+    assert "验收规则：预期、实际与判定" in detail
     assert "unique-answer" in detail
     assert "未产生（过程失败）" in detail
     assert "未判定" in detail
@@ -418,7 +418,7 @@ def test_detail_merges_attempts_and_deduplicates_raw_evidence():
     assert body.count("SHARED OUTPUT") == 1
     assert body.count("FULL EXCEPTION &lt;script&gt;") == 1
     assert "FULL EXCEPTION <script>" not in body
-    assert body.count("<caption>答案对照</caption>") == 1
+    assert body.count("<caption>验收规则：预期、实际与判定</caption>") == 1
     assert body.count("<caption>参考操作与执行对照</caption>") == 1
     assert body.count("<caption>资源对照</caption>") == 1
     assert body.count("未执行") == 2
@@ -466,6 +466,56 @@ def test_detail_preserves_success_and_divergent_actual_calls():
     assert "extra" in body
     assert "未记录资源采样" in body
     assert 'class="ok">通过' in body
+
+
+def test_detail_renders_webarena_evaluators_as_readable_rules():
+    body = _task_detail_body(
+        "webarena-521",
+        "Subscribe",
+        "chromium",
+        {"tool_calls": [{"action": "click", "selector": "button"}]},
+        [
+            {
+                "status": "fail",
+                "validation": [
+                    {
+                        "evaluator_name": "AgentResponseEvaluator",
+                        "status": "success",
+                        "score": 1,
+                        "expected": {"task_type": "mutate", "status": "success"},
+                        "actual": {"task_type": "mutate", "status": "success"},
+                    },
+                    {
+                        "evaluator_name": "NetworkEventEvaluator",
+                        "status": "failure",
+                        "score": 0,
+                        "expected": {"http_method": "POST", "url": {"base_url": "/save"}},
+                        "actual": [],
+                        "assertions": [
+                            {
+                                "assertion_name": "missing_navigation_event",
+                                "status": "failure",
+                                "assertion_msgs": ["No matching network event found."],
+                            }
+                        ],
+                    },
+                ],
+                "trace": [],
+                "process_validation": {"passed": False},
+            }
+        ],
+        None,
+    )
+
+    assert body.count("<td>AgentResponseEvaluator</td>") == 1
+    assert body.count("<td>NetworkEventEvaluator</td>") == 1
+    assert "核对任务类型、完成状态和需要返回的答案" in body
+    assert "在 HAR 中核对请求 URL、方法、请求数据和响应条件" in body
+    assert "No matching network event found." in body
+    assert "实际：0 条记录" in body
+    assert "完整预期" in body
+    assert "完整实际值" in body
+    assert "逐条断言" in body
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):

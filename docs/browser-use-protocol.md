@@ -73,11 +73,14 @@ Chromium run passes the same WebArena-Verified evaluator. Original and corrected
 diffs, evidence hashes, and correction reasons are retained. A task that cannot be completed and
 independently verified is marked skipped with a public reason.
 
-HAR creator version 2 combines CDP's base request/response events with
+HAR creator version 3 combines CDP's base request/response events with
 `Network.requestWillBeSentExtraInfo` and `Network.responseReceivedExtraInfo`. The extra events are
 required because Chromium emits navigation-defining `Accept` and `Sec-Fetch-*` request headers
-there rather than in the base request event. HAR keeps request methods, URLs, bodies, status codes,
-and header names needed for evaluator and audit use, but redacts `Authorization`, proxy
+there rather than in the base request event. Version 3 also preserves every redirect hop: CDP
+reuses one request ID across a POST, its redirect response, and the following GET, so retaining
+only the last event would silently remove evaluator-relevant state-changing requests. HAR keeps
+request methods, URLs, bodies, status codes, and header names needed for evaluator and audit use,
+but redacts `Authorization`, proxy
 authorization, cookies, `Set-Cookie`, and WebArena
 auto-login header values before the file is written. The only cookie values retained are the
 evaluator-required non-authentication fields `mage-messages` and `_osm_directions_engine`; all other
@@ -157,13 +160,15 @@ setting. Keep host-specific addresses in the external runtime config and measure
 the canonical suite. Validate the choice from a disposable container: the page must load and any
 redirect or cookie domain must remain on the configured origin.
 
-GitLab needs one additional port rule when the public host port differs from upstream port 8023.
-Its slim-image entrypoint otherwise rewrites nginx's internal listen port from the public URL, while
-the bundled env-ctrl health probe continues to check `localhost:8023`. The harness disables that
-entrypoint rewrite, maps the chosen host port to container port 8023, waits for the baked service to
-be ready, and then calls the official `env-ctrl init --base-url` operation to change only GitLab's
-public URL. Qualification must fail if either the internal health check or the public URL is not
-ready; Docker's container health status alone is insufficient.
+GitLab needs one additional port rule when the public host port differs from upstream port 8023:
+the harness maps the chosen host port to the image's internal 8023 listener. For GitLab and every
+other stateful fixture, the browser-facing URL is passed once as
+`WA_ENV_CTRL_EXTERNAL_SITE_URL` and the official image entrypoint performs its one initialization.
+The harness must not run a second `env-ctrl init`; concurrent Magento or GitLab reconfiguration can
+stall both the site and Docker daemon. Qualification waits for control-plane readiness, then for the
+entrypoint initialization process to exit, and finally requires two public-site responses whose
+final origin still matches the configured origin. Docker health alone, or an HTTP response that
+redirects to the image's baked CMU origin, is insufficient.
 
 `site_docker_host` may point to an absolute Unix socket when browser and site containers deliberately
 use different daemons. Resource limits are validated against the browser daemon; image identity,

@@ -266,6 +266,7 @@ def _shell(
 [hidden]{{display:none!important}}.section-heading{{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}}.section-heading h2,.section-heading h3{{margin:0}}.section-heading>a{{font-size:13px;text-decoration:none}}.provider-failure-link{{display:inline-flex;gap:12px;align-items:center;white-space:nowrap;border:1px solid #d7e1fa;background:#f3f6ff;padding:5px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:650}}.provider-failure-link:hover{{background:#e5edff}}.provider-failure-link:focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.suite-filter-panel{{background:#f8faff}}.suite-filter-controls{{display:grid;grid-template-columns:minmax(200px,1.8fr) minmax(110px,1fr) minmax(160px,1.4fr) minmax(110px,1fr) auto;gap:12px;align-items:end}}.suite-filter-controls label{{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:650;color:var(--muted)}}.suite-filter-controls input,.suite-filter-controls select,.suite-filter-controls button{{width:100%;min-width:0;height:40px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px system-ui;background:white;color:var(--ink)}}.suite-filter-controls button{{color:var(--accent);cursor:pointer;font-weight:650}}.suite-filter-controls :is(input,select,button):focus-visible{{outline:2px solid var(--accent);outline-offset:2px}}.empty-state{{text-align:center;padding:44px;color:var(--muted)}}@media(max-width:900px){{.suite-filter-controls{{grid-template-columns:repeat(2,minmax(0,1fr))}}.suite-search{{grid-column:1/-1}}}}@media(max-width:600px){{.section-heading{{align-items:flex-start;flex-wrap:wrap}}}}
 .case-header{{display:flex;align-items:center;gap:24px;padding:15px 0;font-size:13px}}.case-header a{{text-decoration:none}}.case-header span{{margin-left:auto}}.case-detail h1{{font-size:25px}}.case-detail h2{{font-size:19px}}.case-detail h3{{font-size:14px}}.case-id{{font-size:12px;overflow-wrap:anywhere}}.case-facts{{display:flex;gap:40px;padding:12px 0}}.case-facts span,.case-facts strong{{display:block}}.case-facts span{{font-size:12px;color:var(--muted)}}.case-facts strong{{font-size:19px}}.case-detail .diagnosis-panel{{padding:12px 14px;margin:10px 0}}.case-detail .diagnosis-panel>span{{margin-left:16px;font-size:13px}}.case-start{{font-size:13px;overflow-wrap:anywhere}}.case-nav{{position:sticky;top:0;z-index:2;background:#edf2f8;padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:16px}}.case-nav a{{background:#fff;border:1px solid var(--line);font-size:13px}}.case-nav a:hover{{background:#e8eeff}}.case-detail [id]{{scroll-margin-top:66px}}.case-detail table{{min-width:600px}}.case-detail th,.case-detail td{{padding:9px 12px;font-size:13px;overflow-wrap:anywhere}}.step-comparison table{{table-layout:fixed}}.step-comparison th:first-child{{width:50px}}.step-comparison th:nth-child(2){{width:38%}}.step-comparison small{{display:block;color:var(--muted)}}.evidence-link{{display:block;font-size:12px;margin-top:3px}}.evidence-item{{border-top:1px solid var(--line);padding:16px 0 4px}}.evidence-item .section-heading{{margin-bottom:4px}}.evidence-item p{{font-size:12px}}.evidence-item pre{{max-height:260px;overflow:auto;margin:8px 0;line-height:1.55}}.evidence-item:target{{outline:2px solid var(--accent);outline-offset:5px}}.case-detail a:focus-visible,.case-detail pre:focus-visible,.case-header a:focus-visible{{outline:2px solid var(--accent);outline-offset:3px}}@media(max-width:650px){{.case-header{{flex-wrap:wrap;gap:8px 18px}}.case-header span{{margin-left:0;width:100%}}.case-facts{{flex-wrap:wrap;gap:12px 24px}}.case-detail .diagnosis-panel>span{{display:block;margin:4px 0}}.case-detail h1{{font-size:22px}}}}
 .action-name{{display:block;width:fit-content;background:#eaf0fb;color:#234887;border:1px solid #d8e3f4;border-radius:5px;padding:1px 6px;margin-bottom:5px;font-size:12px;font-weight:650}}.expected-values{{margin:10px 0 0}}.expected-values>div{{display:grid;grid-template-columns:minmax(90px,140px) 1fr;gap:16px;padding:6px 0;border-top:1px solid var(--line)}}.expected-values dt{{font:12px/1.8 ui-monospace,monospace;color:var(--muted);overflow-wrap:anywhere}}.expected-values dd{{margin:0;overflow-wrap:anywhere}}.source-mark{{font-family:system-ui;color:#5f6c81;background:#e2e8f0;border-radius:3px;padding:0 3px;margin-left:2px}}.task-verification .source-mark{{display:inline;margin:0 0 0 2px}}.source-mark-note{{font-size:12px;color:var(--muted);margin-top:8px}}.evidence-index{{display:none}}.evidence-enhanced .evidence-index{{display:block}}.evidence-enhanced .evidence-item{{display:none}}.evidence-index .evidence-link{{display:grid;grid-template-columns:64px 1fr 36px;gap:12px;align-items:start;border-top:1px solid var(--line);padding:10px 0;text-decoration:none;font-size:13px}}.evidence-index .evidence-link>span:nth-child(2){{color:var(--ink)}}.evidence-index .evidence-link:hover{{background:var(--panel)}}html.evidence-enhanced{{scrollbar-gutter:stable}}html.evidence-modal-open{{overflow:hidden}}#evidence-dialog{{width:min(960px,calc(100vw - 40px));max-height:85vh;padding:24px;border:1px solid var(--line);border-radius:14px;color:var(--ink);box-shadow:0 24px 80px #10182840}}#evidence-dialog[open]{{display:flex;flex-direction:column}}#evidence-dialog::backdrop{{background:rgba(15,23,42,.48)}}.dialog-heading{{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}}.dialog-heading h2{{font-size:19px;margin:0;line-height:1.4}}.dialog-heading p{{font-size:13px;margin:5px 0 12px}}.dialog-heading button{{padding:7px 14px;background:#f4f7fb;border:1px solid var(--line);border-radius:7px;color:var(--ink);cursor:pointer;white-space:nowrap}}#evidence-dialog pre{{min-height:70px;min-width:0;max-height:65vh;overflow:auto;margin:8px 0 0;font-size:13px;line-height:1.65;flex:1}}#evidence-action{{font-size:13px;margin:0 0 6px}}#evidence-dialog :focus-visible{{outline:2px solid var(--accent);outline-offset:3px}}@media(max-width:600px){{#evidence-dialog{{width:calc(100vw - 20px);padding:16px;max-height:90vh}}.expected-values>div{{grid-template-columns:90px 1fr;gap:8px}}}}@media print{{.evidence-enhanced .evidence-item{{display:block}}.evidence-index,#evidence-dialog{{display:none!important}}}}
+.rule-comparison table{{min-width:900px}}.rule-reason,.rule-actual{{display:block;margin-top:5px}}.rule-reason{{color:var(--bad)}}.rule-actual{{color:var(--muted)}}
 </style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount Browser Provider Evaluation</footer></body></html>"""
 
 
@@ -765,33 +766,116 @@ def _task_detail_body(
     overview += f'<p class="case-start">起始页面 <a href="{_e(safe_url)}" target="_blank" rel="noopener">{_e(url)}</a></p></section>'
 
     expected = (spec.get("ground_truth") or {}).get("expected_outputs") or {}
-    validations = [{str(v.get("output")): v for v in a.get("validation") or []} for a in attempts]
-    outputs = list(dict.fromkeys([*expected, *(k for values in validations for k in values)]))
-    answer_rows = []
-    for output in outputs:
-        expected_value = expected.get(
-            output, next((v[output].get("expected") for v in validations if output in v), "未声明")
-        )
-        cells = [output, str(expected_value)]
-        for values in validations:
-            item = values.get(output)
-            cells.append(
-                ComparedValue(
-                    f"{'（空字符串）' if item.get('actual') == '' else item.get('actual')} · {status_cell(item.get('passed'))}",
-                    "ok"
-                    if item.get("passed") is True
-                    else "bad"
-                    if item.get("passed") is False
-                    else "",
-                )
-                if item
-                else "未产生（过程失败） · 未判定"
+
+    def validation_key(item: dict[str, Any], index: int) -> str:
+        output = item.get("output")
+        if output is not None:
+            return str(output)
+        return str(item.get("evaluator_name") or f"规则 {index + 1}")
+
+    validation_maps = [
+        {
+            validation_key(item, index): item
+            for index, item in enumerate(attempt.get("validation") or [])
+        }
+        for attempt in attempts
+    ]
+    rules = list(
+        dict.fromkeys([*expected, *(key for values in validation_maps for key in values)])
+    )
+
+    def rule_purpose(rule: str, item: dict[str, Any] | None) -> str:
+        evaluator = str((item or {}).get("evaluator_name") or "")
+        if evaluator == "AgentResponseEvaluator":
+            return "核对任务类型、完成状态和需要返回的答案"
+        if evaluator == "NetworkEventEvaluator":
+            return "在 HAR 中核对请求 URL、方法、请求数据和响应条件"
+        if (item or {}).get("output") is not None or rule in expected:
+            return f"核对输出 {rule} 是否与固定答案严格相等"
+        return "执行该任务声明的程序化验收规则"
+
+    def rule_passed(item: dict[str, Any]) -> bool | None:
+        if isinstance(item.get("passed"), bool):
+            return item["passed"]
+        status = str(item.get("status") or "").lower()
+        if status in {"success", "pass", "passed"}:
+            return True
+        if status in {"failure", "fail", "failed", "error"}:
+            return False
+        score = item.get("score")
+        return score == 1 if isinstance(score, (int, float)) else None
+
+    def compact(value: Any) -> str:
+        if value is None:
+            return "null"
+        if value == "":
+            return "（空字符串）"
+        if isinstance(value, list):
+            return f"{len(value)} 条记录"
+        if isinstance(value, dict):
+            preferred = [
+                key
+                for key in ("task_type", "status", "url", "http_method")
+                if key in value
+            ]
+            keys = preferred or list(value)[:3]
+            return "；".join(f"{key}={compact(value[key])}" for key in keys)
+        text = str(value)
+        return text if len(text) <= 180 else text[:177] + "…"
+
+    def failure_reason(item: dict[str, Any]) -> str:
+        messages = [str(item.get("error_msg") or "").strip()]
+        for assertion in item.get("assertions") or []:
+            messages.extend(
+                str(value).strip() for value in assertion.get("assertion_msgs") or []
             )
-        answer_rows.append(cells)
+            messages.append(str(assertion.get("error_msg") or "").strip())
+        return next((message for message in messages if message), "")
+
+    answer_rows = []
+    for rule in rules:
+        first = next((values[rule] for values in validation_maps if rule in values), None)
+        expected_value = expected.get(rule, (first or {}).get("expected", "未声明"))
+        expected_html = _annotate_source_marks(_e(compact(expected_value)))
+        if isinstance(expected_value, (dict, list)):
+            expected_html += evidence_link(expected_value, f"{rule} · 完整预期", "完整预期")
+        cells = [
+            f"<td>{_e(rule)}</td>",
+            f"<td>{_e(rule_purpose(rule, first))}</td>",
+            f"<td>{expected_html}</td>",
+        ]
+        for label, values in zip(labels, validation_maps, strict=True):
+            item = values.get(rule)
+            if item is None:
+                cells.append('<td class="muted">未产生（过程失败） · 未判定</td>')
+                continue
+            passed = rule_passed(item)
+            verdict = "通过" if passed is True else "失败" if passed is False else "未判定"
+            css_class = "ok" if passed is True else "bad" if passed is False else ""
+            reason = failure_reason(item)
+            cell = f'<strong class="{css_class}">{verdict}</strong>' if css_class else verdict
+            if reason:
+                cell += f'<span class="rule-reason">{_e(reason)}</span>'
+            cell += f'<span class="rule-actual">实际：{_e(compact(item.get("actual")))}</span>'
+            if isinstance(item.get("actual"), (dict, list)):
+                cell += evidence_link(
+                    item["actual"], f"{label} · {rule} · 实际值", "完整实际值"
+                )
+            if item.get("assertions"):
+                cell += evidence_link(
+                    item["assertions"], f"{label} · {rule} · 逐条断言", "逐条断言"
+                )
+            cells.append(f"<td>{cell}</td>")
+        answer_rows.append("<tr>" + "".join(cells) + "</tr>")
     answers = (
-        _table(["输出", "标准答案", *labels], answer_rows, "答案对照", source_marks=True)
-        if outputs
-        else '<p class="muted">未声明标准答案。</p>'
+        '<div class="table-wrap rule-comparison"><table><caption>验收规则：预期、实际与判定</caption>'
+        '<thead><tr><th>规则</th><th>验收目的</th><th>预期</th>'
+        + "".join(f"<th>{_e(label)}</th>" for label in labels)
+        + "</tr></thead><tbody>"
+        + "".join(answer_rows)
+        + "</tbody></table></div>"
+        if rules
+        else '<p class="muted">本次执行未生成可展示的验收规则。</p>'
     )
     answers += _source_mark_note(expected)
     derivation = (spec.get("ground_truth") or {}).get("derivation")
