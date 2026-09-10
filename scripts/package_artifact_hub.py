@@ -29,6 +29,7 @@ DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
 LOADER=r'''
 const manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error('数据目录加载失败');return r.json()});
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
+const LARGE_TEXT_BYTES=256*1024;
 const pageStates=new Map();
 function savePageState(){
  if(!document.querySelector('main'))return;
@@ -59,6 +60,13 @@ async function metadata(index){
  if(!recordsPromise)recordsPromise=textFile('results.jsonl').then(s=>s.trim().split('\n').map(JSON.parse));
  return JSON.stringify((await recordsPromise)[index].provider_metadata||{},null,2);
 }
+function deferFill(pre,message='完整内容较大，点击后在只读文本框中加载；也可直接下载原始输出。'){
+ if(pre.dataset.deferred)return;
+ pre.dataset.deferred='1';
+ pre.classList.add('deferred-evidence');pre.tabIndex=0;pre.setAttribute('role','button');pre.setAttribute('aria-label','加载完整内容');pre.textContent=message;
+ const activate=event=>{if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;event.preventDefault();pre.removeEventListener('click',activate);pre.removeEventListener('keydown',activate);pre.dataset.deferred='';fill(pre,true)};
+ pre.addEventListener('click',activate);pre.addEventListener('keydown',activate);
+}
 function resolvePath(href,page){
  const base=new URL(page,'https://report.invalid/'),u=new URL(href,base);
  return {path:decodeURIComponent(u.pathname.slice(1)),anchor:decodeURIComponent(u.hash.slice(1))};
@@ -87,12 +95,16 @@ async function fillImages(root,page,m){
   return urls;
  }catch(error){urls.forEach(url=>URL.revokeObjectURL(url));throw error}
 }
-async function fill(pre){
- if(pre.dataset.loaded)return;pre.dataset.loaded='1';pre.textContent='正在加载完整内容…';
+async function fill(pre,force=false){
+ if(pre.dataset.loaded)return;
+ let large=false;
+ if(pre.dataset.file){const m=await manifestPromise;large=(m.files[pre.dataset.file]?.size||0)>LARGE_TEXT_BYTES}
+ if(large&&!force){deferFill(pre);return}
+ pre.dataset.loaded='1';pre.classList.remove('deferred-evidence');pre.removeAttribute('role');pre.textContent='正在加载完整内容…';
  try{let text=pre.dataset.record?await metadata(Number(pre.dataset.record)-1):await textFile(pre.dataset.file);
   if(pre.dataset.readable)text=text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,c=>'\\x'+c.charCodeAt(0).toString(16).padStart(2,'0'));
-  pre.textContent=text;
- }catch(error){pre.dataset.loaded='';pre.textContent=error.message}
+  if(large){const box=document.createElement('textarea');box.className='large-evidence-output';box.readOnly=true;box.value=text;box.setAttribute('aria-label','完整实际返回');pre.replaceWith(box)}else pre.textContent=text;
+ }catch(error){pre.dataset.loaded='';pre.dataset.deferred='';if(large)deferFill(pre,'加载失败：'+error.message+'。点击重试，或下载原始输出。');else pre.textContent=error.message}
 }
 async function render(){
  savePageState();
@@ -141,21 +153,22 @@ def build():
  by_attempt={r['attempt_id']:(i,r) for i,r in enumerate(records)}
  scored_paths={r['artifact_path'] for r in records}
  files={};blocks={};raw_blocks={};original={};pages={};redactions=[]
+ source_paths=sorted(path for path in SOURCE.rglob('*') if path.is_file())
+ source_file_count=sum(path.name!='.generated-report' for path in source_paths)
+ logical_route_count=sum(path.suffix=='.html' for path in source_paths)
  def add(path,data):
   parts=[]
   for start in range(0,len(data),65536):
    chunk=data[start:start+65536];key=hashlib.sha256(chunk).hexdigest()
    raw_blocks.setdefault(key,chunk);parts.append(key)
   files[path]={'parts':parts,'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mime':mimetypes.guess_type(path)[0] or 'application/octet-stream'}
- for path in sorted(SOURCE.rglob('*')):
-  if not path.is_file():continue
+ for path in source_paths:
   name=path.relative_to(SOURCE).as_posix();data=path.read_bytes()
   if name=='.generated-report':continue
   if path.is_symlink():raise ValueError('Publication source must not contain symlinks: '+name)
   data,redaction=project_file(name,data)
   if redaction:
-   if name in scored_paths:raise ValueError('Scored output requires credential review: '+name)
-   redactions.append(redaction)
+   if name in scored_paths:redaction['scored_output']=True
   if path.suffix=='.html':
    text=data.decode()
    if path.parent.name=='attempts':
@@ -182,9 +195,15 @@ def build():
     text=re.sub(r'<pre>.*?</pre>',f'<pre data-file="references/{path.stem}.txt"></pre>',text,count=1,flags=re.S)
    data=text.encode();pages[name]=text
   else:original[name]=hashlib.sha256(data).hexdigest()
+  if redaction:
+   redaction['published_sha256']=hashlib.sha256(data).hexdigest()
+   redaction['published_bytes']=len(data)
+   redactions.append(redaction)
   add(name,data)
- privacy={'schema_version':1,'scope':'supplemental_raw_html_only',
-          'scored_outputs_unchanged':True,'original_evidence_preserved_locally':True,
+ privacy={'schema_version':1,'scope':'all_public_files',
+          'scoring_inputs_unchanged':True,
+          'scored_outputs_privacy_projected':sum(bool(r.get('scored_output')) for r in redactions),
+          'original_evidence_preserved_locally':True,
           'detection_limits':'Pattern-based scan; not a guarantee of detecting every secret. Key validity is not tested.',
           'files':redactions}
  add('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
@@ -201,7 +220,12 @@ def build():
   if len(batch)+len(data)>4*1024*1024:flush()
   batch_keys.append((key,len(batch),len(data)));batch.extend(data)
  flush()
- manifest={'files':files,'blocks':blocks}
+ manifest={'schema_version':2,
+           'architecture':{'kind':'single_html_shell_with_lazy_virtual_routes',
+                           'logical_routes':logical_route_count,'source_files':source_file_count,
+                           'content_packs':index,'block_bytes':65536,
+                           'large_text_on_demand_bytes':256*1024},
+           'files':files,'blocks':blocks}
  (DEST/'manifest.json').write_text(json.dumps(manifest,separators=(',',':')))
  (DEST/'style.css').write_bytes((SOURCE/'assets/style.css').read_bytes())
  js=(SOURCE/'assets/report.js').read_text().replace("window.addEventListener('DOMContentLoaded',", "window.addEventListener('report-ready',")
@@ -231,7 +255,13 @@ def build():
   for key,b in blocks.items():
    if b['pack']==name:assert hashlib.sha256(raw[b['offset']:b['offset']+b['size']]).hexdigest()==key
  total=sum(p.stat().st_size for p in DEST.rglob('*') if p.is_file())
- print(json.dumps({'original_files':len(files),'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,'all_downloads_byte_identical':not redactions,'redacted_supplemental_files':len(redactions),'scored_outputs_unchanged':True,'all_virtual_links_valid':True}))
+ print(json.dumps({'source_files':source_file_count,'logical_routes':logical_route_count,
+                   'html_shells':1,'content_packs':index,
+                   'published_files':len(list(DEST.rglob('*')))-1,'published_bytes':total,
+                   'all_downloads_byte_identical':not redactions,
+                   'redacted_public_files':len(redactions),
+                   'scored_outputs_privacy_projected':sum(bool(r.get('scored_output')) for r in redactions),
+                   'all_virtual_links_valid':True}))
  # Artifact Hub publishes large bundles through staged per-file uploads.
  # Its documented total limit is 300 MB, not the former local 50 MB budget.
  assert total<=300_000_000, 'Published package exceeds the 300 MB service limit'

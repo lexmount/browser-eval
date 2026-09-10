@@ -203,7 +203,7 @@ for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.1'),('moli-1.1.3','
       'structure':'普通网页输出 Markdown；直接文档或媒体输出序列化 HTML 或原始字节。',
       'access':'每次新进程；本地二进制，不使用托管服务凭据。',
       'notes':'正文与文件是不同交付契约。直接文档若返回原始字节，评测在同一次预算内解析；直接媒体只校验格式、长度和冻结 SHA-256，不进行内容理解。1.0.6 与 1.1.1 的裸 fetch 行为由官方发行二进制实测确认，1.1.3 还在 CLI 帮助中明确说明。',
-      'tested':'普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；每个任务只调用一次，端到端预算 45 秒。',
+      'tested':'普通网页 --dump markdown；直接 PDF、DOCX 和媒体不传 --dump；本轮没有启用失败重试，端到端预算 45 秒。',
     }
 
 def render_capabilities(out, names, *, table, cell, link):

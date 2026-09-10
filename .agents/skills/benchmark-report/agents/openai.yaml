@@ -1,0 +1,6 @@
+interface:
+  display_name: "Benchmark Report"
+  short_description: "生成可审计、可复现、可发布的评测报告"
+  default_prompt: "Use $benchmark-report to build and independently audit an evidence-backed benchmark report."
+policy:
+  allow_implicit_invocation: true

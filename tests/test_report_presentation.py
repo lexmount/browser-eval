@@ -1,6 +1,8 @@
+import tempfile
+from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters
-from harness.web_fetch.report_interfaces import SPECS
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write
+from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 
 class ReportRevisionTests(unittest.TestCase):
  def row(self,**kw):return dict({'ok':True,'metrics':{'content_pass':False,'length_pass':True}},**kw)
@@ -36,3 +38,28 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertTrue(s['params'] and s['fields'] and s['request'] and s['source'])
  def test_regional_endpoint_distinct(self):
   self.assertNotEqual(SPECS['lexmount-cn']['entry'],SPECS['lexmount-global']['entry'])
+ def test_review_label_names_codex(self):
+  audit={'attempts':[{'attempt_id':'one','final_verdict':'pass'}]}
+  row=review_cell(audit,[{'attempt_id':'one'}])
+  self.assertIn('1/1 · Codex 已核验',row)
+ def test_headless_access_covers_every_method_and_lists_setup_variables(self):
+  self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','chromium'})
+  for access in HEADLESS_ACCESS.values():
+   self.assertTrue(access['env_vars'])
+   self.assertTrue(access['links'])
+ def test_language_toggle_uses_one_shared_report_tree(self):
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory)
+   write(root,'index.html','中文','<p>正文</p>')
+   from harness.web_fetch.report_i18n import write_english_report
+   write_english_report(root)
+   zh=(root/'index.html').read_text();en=(root/'en/index.html').read_text()
+   self.assertIn('href="en/index.html" hreflang="en">English</a>',zh)
+   self.assertIn('lang="en"',en)
+   self.assertIn('href="../index.html" hreflang="zh-CN">中文</a>',en)
+   self.assertNotIn('>首页</a>',zh)
+   self.assertNotIn('>Home</a>',en)
+ def test_english_tables_can_localize_the_index_header(self):
+  rendered=table(['Method'],[('', '<td>Moli</td>')],index_header='No.')
+  self.assertIn('<th>No.</th>',rendered)
+  self.assertNotIn('<th>序号</th>',rendered)

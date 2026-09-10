@@ -8,6 +8,29 @@ def _sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def review_input_identity(record):
+    """Return every record field that can select evidence shown to a reviewer."""
+    metadata = record.get('provider_metadata', {})
+    files = metadata.get('file_evaluation', {}).get('files', [])
+    return {
+        'provider': record.get('provider'),
+        'case_id': record.get('case_id'),
+        'artifact_path': record.get('artifact_path'),
+        'request_ok': record.get('ok'),
+        'error_type': record.get('error_type'),
+        'content_sha256': record.get('metrics', {}).get('content_sha256'),
+        'file_artifacts': [
+            {key: item.get(key) for key in
+             ('artifact_path', 'sha256', 'bytes', 'mime', 'pass')}
+            for item in files if item.get('artifact_path')
+        ],
+        'raw_response_artifact': {
+            'path': metadata.get('raw_stdout_path'),
+            'sha256': metadata.get('raw_stdout_sha256'),
+        } if metadata.get('raw_stdout_path') else None,
+    }
+
+
 def require_result_review(source, dataset, records):
     required = dataset.get('comparison', {}).get('require_independent_result_review', False)
     path = source / 'result-review.json'

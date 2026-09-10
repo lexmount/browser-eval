@@ -94,12 +94,15 @@ def run_evaluation(
     timeout: float,
     delay: float,
     provider_concurrency: int = 1,
+    max_failure_retries: int = 0,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     if provider_concurrency < 1:
         raise ValueError("provider_concurrency must be at least 1")
     if not math.isfinite(timeout) or timeout <= 0:
         raise ValueError('timeout must be positive and finite')
+    if max_failure_retries not in {0, 1}:
+        raise ValueError('max_failure_retries must be 0 or 1')
     for provider in providers:
         safe_identifier(provider.name)
     for case in cases:
@@ -146,6 +149,8 @@ def run_evaluation(
             "delay": delay,
             "provider_concurrency": min(provider_concurrency, max(1, len(providers))),
             "concurrency_scope": "providers_parallel_cases_sequential_per_provider",
+            "max_failure_retries": max_failure_retries,
+            "retry_selection": "retry_only_after_failed_task; final_physical_attempt_is_authoritative",
         },
         "environment": {
             "python": sys.version.split()[0],
@@ -188,40 +193,88 @@ def run_evaluation(
                     # Outside provider exception handling: expired references
                     # stop measurement, never create a supplier failure record.
                     check_case_reference_fresh(case, dataset_path, binding)
-                    physical_begin = time.perf_counter()
                     started = utc_now()
-                    pending = None
-                    try:
-                        result, pending = fetch_with_deadline(provider, case, timeout)
-                    except Exception as error:  # each failure must remain inspectable
-                        error_type, error_message = classify_exception(error)
-                        result = ProviderResult(
-                            ok=False,
-                            content=traceback.format_exc(),
-                            error_type=error_type,
-                            error_message=error_message,
+                    physical_attempts = []
+                    stopped_provider = False
+                    for physical_attempt in range(1, max_failure_retries + 2):
+                        retry_throttle_wait_ms = 0.0
+                        if physical_attempt > 1 and provider.min_interval_seconds:
+                            remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
+                            if remaining > 0:
+                                retry_throttle_wait_ms = round(remaining * 1000, 2)
+                                time.sleep(remaining)
+                        physical_started = utc_now()
+                        physical_begin = time.perf_counter()
+                        pending = None
+                        try:
+                            result, pending = fetch_with_deadline(provider, case, timeout)
+                        except Exception as error:  # each physical failure remains inspectable
+                            error_type, error_message = classify_exception(error)
+                            result = ProviderResult(
+                                ok=False,
+                                content=traceback.format_exc(),
+                                error_type=error_type,
+                                error_message=error_message,
+                            )
+                        physical_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        previous_request_completed = time.monotonic()
+                        if case.task_kind == 'file':
+                            result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
+                                'scope': 'returned_bytes_signature_length_sha256'})
+                        suffix = (f'run-{run_number:03d}.txt' if max_failure_retries == 0 else
+                                  f'run-{run_number:03d}-physical-{physical_attempt:03d}.txt')
+                        artifact_rel = Path('artifacts') / provider.name / case.id / suffix
+                        artifact = persist_result_artifacts(output_dir, artifact_rel, result)
+                        artifact_bytes = result.content.encode('utf-8', errors='replace')
+                        measured = score_attempt(
+                            case, artifact_bytes, ok=result.ok, metadata=result.metadata,
+                            list_reference=load_list_reference(case, dataset_path.parent),
+                            status_code=result.status_code,
+                            prepared_answer=result.prepared_answer,
                         )
-                    elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
-                    previous_request_completed = time.monotonic()
-                    if case.task_kind == 'file':
-                        result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
-                            'scope': 'returned_bytes_signature_length_sha256'})
-                    artifact_rel = (Path('artifacts') / provider.name / case.id /
-                                    f'run-{run_number:03d}.txt')
-                    artifact = persist_result_artifacts(output_dir, artifact_rel, result)
-                    artifact_bytes = result.content.encode('utf-8', errors='replace')
-                    measured = score_attempt(
-                        case, artifact_bytes, ok=result.ok, metadata=result.metadata,
-                        list_reference=load_list_reference(case, dataset_path.parent),
-                        status_code=result.status_code,
-                        prepared_answer=result.prepared_answer,
-                    )
-                    measured['deadline_overrun'] = elapsed_ms > timeout * 1000
-                    measured['deadline_budget_ms'] = timeout * 1000
-                    if binding is not None:
-                        measured['reference_sha256'] = binding['reference_sha256']
-                    stopped_provider = (result.error_type == 'timeout' and pending is not None
-                                        and pending.is_alive())
+                        measured['deadline_overrun'] = physical_elapsed_ms > timeout * 1000
+                        measured['deadline_budget_ms'] = timeout * 1000
+                        if binding is not None:
+                            measured['reference_sha256'] = binding['reference_sha256']
+                        physical_passed = task_passed(result.ok, measured, case.task_kind)
+                        artifact_paths = [artifact_rel.as_posix()]
+                        for key in ('rendered_html_path', 'raw_stdout_path'):
+                            if result.metadata.get(key):
+                                artifact_paths.append(result.metadata[key])
+                        artifact_paths.extend(
+                            item['artifact_path']
+                            for item in result.metadata.get('file_evaluation', {}).get('files', [])
+                            if item.get('artifact_path')
+                        )
+                        physical_attempts.append({
+                            'physical_attempt': physical_attempt,
+                            'started_at': physical_started,
+                            'completed_at': utc_now(),
+                            'elapsed_ms': physical_elapsed_ms,
+                            'retry_throttle_wait_ms': retry_throttle_wait_ms,
+                            'ok': result.ok,
+                            'status_code': result.status_code,
+                            'error_type': result.error_type,
+                            'error_message': result.error_message,
+                            'task_pass': physical_passed,
+                            'content_sha256': measured['content_sha256'],
+                            'artifact_path': artifact_rel.as_posix(),
+                            'artifact_paths': artifact_paths,
+                        })
+                        stopped_provider = (result.error_type == 'timeout' and pending is not None
+                                            and pending.is_alive())
+                        if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
+                            break
+                    elapsed_ms = round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
+                                           for item in physical_attempts), 2)
+                    if len(physical_attempts) > 1:
+                        result.metadata['retry'] = {
+                            'physical_attempts': len(physical_attempts),
+                            'retries_used': len(physical_attempts) - 1,
+                            'trigger': 'previous physical attempt failed the task predicate',
+                            'selection': 'final physical attempt is authoritative; no best-of selection',
+                            'attempts': physical_attempts,
+                        }
                     finished = utc_now()
                     if hashlib.sha256(artifact.read_bytes()).hexdigest() != measured['content_sha256']:
                         raise ValueError('Persisted output differs from scored bytes')

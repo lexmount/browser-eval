@@ -105,7 +105,7 @@ make test
 
 参考与评分规则更新时，依次执行 `uv run --frozen python scripts/prepare_references.py`、`uv run --frozen python scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
 
-采用统计用 `python3 research/search_method_adoption.py` 发现候选，再统一核验；`python3 research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
+采用统计用 `uv run --frozen python research/search_method_adoption.py` 发现候选，再统一核验；`uv run --frozen python research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
 
 `reports/` 和 `publish/` 是可重建产物及本地发布回执，不提交 Git；发布凭据不得写入仓库。
 
@@ -142,15 +142,15 @@ uv run --frozen python scripts/run_benchmark.py --track dynamic --providers lexm
 ## 发布
 
 ```bash
-export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.dev.lexmount.net/api/preview/bWkRP157EtF6
+export WEBFETCH_REPORT_PUBLIC_URL=https://artifact-hub.app.lexmount.com/api/preview/UUAhhQMnrGwm
 make report EVIDENCE=/absolute/path/to/evidence
 make report-check
 uv run --frozen python scripts/package_artifact_hub.py
-uv run --frozen python scripts/verify_artifact_hub.py --slug bWkRP157EtF6
+uv run --frozen python scripts/verify_artifact_hub.py --slug UUAhhQMnrGwm --expected-archive publish/webfetch-sites.zip
 uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Artifact Hub 发布令牌默认保存在 `~/.config/artifact-hub/token`（权限 0600），供同一用户的工作区复用；仓库 `.env` 或显式环境变量中的 `ARTIFACT_HUB_TOKEN` 可覆盖它。其他评测密钥仍只读取仓库配置。五浏览器报告使用独立站点 `bWkRP157EtF6`，不覆盖原报告 `UeZE1vfcEOrM`。构建和打包须使用同一公开地址环境变量；独立回执中的 slug 决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌只从显式进程环境或 `~/.config/artifact-hub/token`（权限 0600）读取，不加载仓库 `.env`，避免评测密钥或旧部署令牌覆盖发布身份。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

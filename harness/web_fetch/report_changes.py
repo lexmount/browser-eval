@@ -7,6 +7,20 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 
 
+def require_review_rounds(data):
+    """Keep the compact public review log present across future releases."""
+    rounds = data.get('review_rounds')
+    if not isinstance(rounds, list) or not rounds:
+        raise ValueError('report-changes.json requires a nonempty top-level review_rounds list')
+    required = {'date', 'title', 'scope', 'finding', 'fix', 'pending'}
+    for index, row in enumerate(rounds, 1):
+        if not isinstance(row, dict) or any(not str(row.get(key, '')).strip() for key in required):
+            raise ValueError(
+                f'Review round {index} must include date, title, scope, finding, fix and pending'
+            )
+    return rounds
+
+
 def first_correction(history, releases):
     release=next(r for r in releases if r['id']=='2026-09-03-fairness-correction')
     digest=release['scoring_revision_input_sha256']
@@ -46,6 +60,7 @@ def render_changes(out, cases, records):
     from .storage import research_evidence_dir
     evidence_root=research_evidence_dir()
     data=json.loads((ROOT/'research/report-changes.json').read_text())
+    require_review_rounds(data)
     shutil.copy2(ROOT/'research/report-changes.json',out/'report-changes.json')
     latest,*older=data['releases']
     body=hero('报告版本说明','每个版本只记录影响读者判断的正式修正；结论与分数影响直接展示，技术证据按需展开。')
@@ -91,5 +106,5 @@ def render_changes(out, cases, records):
     revision=out/'scoring-revisions.json'
     if revision.exists():
         require_revision_release_bindings(json.loads(revision.read_text()),data['releases'])
-    body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/pull/6','对应修复 PR')+'</p>')
+    body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/commits/main','查看仓库变更')+'</p>')
     write(out,'changes/index.html','报告版本说明','<div class="change-log">'+body+'</div>')

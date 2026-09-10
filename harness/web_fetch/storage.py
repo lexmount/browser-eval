@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from pathlib import Path
 
 
@@ -83,3 +84,61 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
         } if actual.is_dir() else {}
         if actual_files != expected_files:
             raise ValueError(f"Persistent evidence differs from canonical input tree: {relative}")
+
+
+def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
+    """Reject evidence from another valid cohort when building the current report."""
+    profile = json.loads(profile_path.read_text())
+    dataset = json.loads((evidence / "dataset.json").read_text())
+    records = [json.loads(line) for line in (evidence / "results.jsonl").read_text().splitlines()]
+    comparison = dataset.get("comparison", {})
+    providers = set(profile["providers"])
+    if len(providers) != len(profile["providers"]):
+        raise ValueError("evaluation/current-report.json contains duplicate providers")
+    coverage = dataset.get("coverage_plan", {})
+    cases = dataset.get("cases", [])
+    case_ids = [case.get("id") for case in cases]
+    failures = []
+    if dataset.get("id") != profile["dataset_id"]:
+        failures.append("dataset_id")
+    if len(dataset.get("cases", [])) != profile["case_count"]:
+        failures.append("case_count")
+    if comparison.get("kind") != profile["comparison_kind"]:
+        failures.append("comparison_kind")
+    if comparison.get("timeout_seconds") != profile["timeout_seconds"]:
+        failures.append("timeout_seconds")
+    if comparison.get("runs_per_case") != profile["runs_per_case"]:
+        failures.append("runs_per_case")
+    if comparison.get("conversion") != profile["conversion"]:
+        failures.append("conversion")
+    for key in ("concurrency", "reference_binding_mode", "publication_state",
+                "unverified_reference_cases", "require_independent_result_review"):
+        if comparison.get(key) != profile[key]:
+            failures.append(key)
+    tracks = {case.get("track", "web") for case in cases}
+    if (set(coverage) != tracks
+            or any(len(names) != len(providers) or set(names) != providers
+                   for names in coverage.values())):
+        failures.append("provider_coverage")
+    if {row.get("provider") for row in records} != providers:
+        failures.append("record_providers")
+    expected_records = profile["case_count"] * len(providers) * profile["runs_per_case"]
+    if len(records) != expected_records:
+        failures.append("record_count")
+    if len(case_ids) != len(set(case_ids)) or any(not identifier for identifier in case_ids):
+        failures.append("case_ids")
+    expected_matrix = Counter(
+        (provider, case_id)
+        for provider in providers for case_id in case_ids
+        for _ in range(profile["runs_per_case"])
+    )
+    actual_matrix = Counter((row.get("provider"), row.get("case_id")) for row in records)
+    if actual_matrix != expected_matrix:
+        failures.append("provider_case_matrix")
+    attempt_ids = [row.get("attempt_id") for row in records]
+    if any(not identifier for identifier in attempt_ids) or len(attempt_ids) != len(set(attempt_ids)):
+        failures.append("attempt_ids")
+    if failures:
+        raise ValueError(
+            "Evidence does not match evaluation/current-report.json: " + ", ".join(failures)
+        )

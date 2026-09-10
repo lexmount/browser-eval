@@ -46,6 +46,60 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertNotIn('physical_attempt_count', manifest)
 
+    def test_explicit_failure_retry_keeps_both_calls_and_uses_second(self):
+        class Flaky(Provider):
+            def __init__(self):
+                super().__init__('flaky', {'type': 'fixture'})
+                self.calls = 0
+
+            def fetch(self, case, timeout):
+                self.calls += 1
+                return ProviderResult(True, 'wrong' if self.calls == 1 else 'Expected')
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        provider = Flaky()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records, _ = run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+                max_failure_retries=1)
+            self.assertEqual(provider.calls, 2)
+            self.assertEqual(len(records), 1)
+            self.assertTrue(records[0]['metrics']['content_pass'])
+            retry = records[0]['provider_metadata']['retry']
+            self.assertEqual(retry['physical_attempts'], 2)
+            self.assertEqual(retry['retries_used'], 1)
+            self.assertEqual([item['task_pass'] for item in retry['attempts']], [False, True])
+            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), 'wrong')
+            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'Expected')
+            manifest = json.loads((root / 'manifest.json').read_text())
+            self.assertEqual(manifest['attempt_count'], 1)
+            self.assertEqual(manifest['parameters']['max_failure_retries'], 1)
+
+    def test_explicit_failure_retry_never_selects_better_first_call(self):
+        class TwiceFailed(Provider):
+            def __init__(self):
+                super().__init__('twice-failed', {'type': 'fixture'})
+                self.calls = 0
+
+            def fetch(self, case, timeout):
+                self.calls += 1
+                return ProviderResult(False, f'failure-{self.calls}', error_type='network')
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        provider = TwiceFailed()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records, _ = run_evaluation(output_dir=root, dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
+                provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+                max_failure_retries=1)
+            self.assertEqual(provider.calls, 2)
+            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'failure-2')
+            self.assertEqual(records[0]['provider_metadata']['retry']['selection'],
+                             'final physical attempt is authoritative; no best-of selection')
+
     def test_jsonl_escapes_unicode_line_separators_without_changing_output(self):
         value = 'before\u0085middle\u2028after\u2029end'
         class TextProvider(Provider):

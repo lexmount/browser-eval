@@ -1,19 +1,52 @@
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.reference_lifecycle import preflight_reference_checks, sha256, require_verified_reference_checks
+from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
+    require_verified_reference_checks, valid_scoring_revision)
 from harness.web_fetch.report_explainer import headless_evidence, render_explainer
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
+                                       bind_assembled_scoring_revision,
                                        _prune_shadowed_batch_attempts)
 from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_assembled_scoring_history_is_bound_to_exact_reviewed_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            dataset={'comparison':{'require_independent_result_review':True},
+                     'cases':[{'id':'body','task_kind':'body'}]}
+            record={'attempt_id':'p__body__r001','provider':'p','case_id':'body','ok':True,
+                    'metrics':{'content_pass':True}}
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+            review={'schema_version':1,'bindings':{
+                'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
+                'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()},
+                'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
+                'attempts':[{'attempt_id':record['attempt_id'],'machine_verdict':'pass',
+                             'agent_verdict':'pass','final_verdict':'pass'}]}
+            (root/'result-review.json').write_text(json.dumps(review))
+            history=[{'kind':'audited_scoring_rule_revision','provider_calls':0,
+                      'output_dataset_sha256':'old','output_results_sha256':'old',
+                      'changed_cases':[],'task_decision_changes':[]}]
+            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            self.assertTrue(bind_assembled_scoring_revision(root))
+            self.assertTrue(valid_scoring_revision(root))
+            bound=json.loads((root/'scoring-revisions.json').read_text())[-1]
+            self.assertEqual(bound['input_results_sha256'],bound['output_results_sha256'])
+            self.assertFalse(bind_assembled_scoring_revision(root))
+            history=json.loads((root/'scoring-revisions.json').read_text())
+            history[0]['changed_cases']=[{'case_id':'tampered','fields':[]}]
+            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            self.assertFalse(valid_scoring_revision(root))
+
     def test_prior_review_is_copied_only_when_dataset_and_results_are_identical(self):
         import hashlib
         with tempfile.TemporaryDirectory() as temp:

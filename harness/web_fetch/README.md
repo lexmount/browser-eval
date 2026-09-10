@@ -22,7 +22,7 @@ file bytes cannot be reconstructed from a URL. An independent HTTP control can
 exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
-python -B scripts/check_file_delivery.py --output ~/.browser-eval/evidence/research/file-delivery-check
+uv run --frozen python -B scripts/check_file_delivery.py --output ~/.browser-eval/evidence/research/file-delivery-check
 ```
 
 This writes three fresh call records, returned binaries and their target-hash
@@ -65,6 +65,16 @@ local extraction and required answer normalization. Artifact persistence, scorin
 reporting and between-call throttling are outside this latency. Runtime source and
 configuration hashes are captured before calls. Moli binary hashing occurs during
 validation, not each measured fetch; a changed binary requires revalidation.
+
+Runs default to no benchmark-level retry. A run may predeclare one failure retry
+with `max_failure_retries=1` (the headless CLI flag is
+`--max-failure-retries 1`). The retry is triggered only after the first physical
+call fails the shared task predicate. Both physical outputs and supplemental
+artifacts are retained; the logical record always uses the final physical call,
+never whichever response scored better. Its displayed latency sums both physical
+call intervals and any provider-required wait between them. A correction for a
+proven wrong command, version, scorer or reference is not a retry: supersede the
+affected result explicitly and rerun the complete declared correction scope.
 
 Late answers cannot pass. A common daemon boundary stops accepting output at the
 deadline and requests cancellation. An adapter that cannot cancel is quarantined:
@@ -153,10 +163,12 @@ Credentials and local executable/repository paths belong in the root `.env`
 (copy `.env.example` and fill only the methods you use). Exported environment
 variables take precedence; `--env-file` overrides which file is read.
 
-`moli-webfetch` invokes the official local `moli fetch --dump markdown` CLI;
-set `MOLI_BINARY` when it is not on PATH. It needs no API key. No alternate
-provider or output-format fallback is used after a failed call. Screenshots
-and PDF export are official Moli capabilities, not enabled by this text adapter.
+`moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
+is not on PATH. Body tasks use `moli fetch --dump markdown`. Direct file tasks
+use bare `moli fetch URL`, without `--dump` or page-wait flags, so the evaluator
+can receive and verify original bytes. No alternate provider or output-format
+fallback is used after a failed call. The seven-method cohort's direct PDF and
+DOCX body route is defined separately in [HEADLESS.md](HEADLESS.md).
 
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.
@@ -241,7 +253,7 @@ capture outcome or prove full-page completeness. Retain the actual evidence.
 Run the synthetic checks without credentials or network:
 
 ```sh
-python -B -m unittest discover -s tests -p 'test_render_evidence.py'
+uv run --frozen python -B -m unittest discover -s tests -p 'test_render_evidence.py'
 ```
 
 Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;

@@ -60,7 +60,7 @@ def main() -> int:
         print("Broken local links:")
         print("\n".join(missing))
         return 1
-    print(f"Report link check: {len(pages)} HTML pages, 0 broken local links")
+    print(f"Report link check: {len(pages)} logical report routes, 0 broken local links")
     return 0
 
 
