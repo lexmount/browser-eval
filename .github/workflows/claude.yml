@@ -92,7 +92,7 @@ jobs:
             ${{ env.CLAUDE_REVIEW_STANDARDS }}
 
             输出要求：
-            - 最多列 8 条发现；只报告会影响合并判断的问题。
+            - 只报告会影响合并判断的问题；不要省略任何符合这一标准的发现。
             - 每条发现必须包含优先级、文件行号、问题、建议。
             - 优先级使用 P0/P1/P2：P0 阻塞合并，P1 合并前建议修，P2 可后续优化。
             - Only post GitHub comments - don't submit review text as messages.
