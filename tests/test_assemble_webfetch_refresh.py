@@ -95,7 +95,10 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             "id": "webfetch",
             "cases": self.canonical_cases,
             "coverage_plan": {"web": PROVIDERS},
-            "comparison": {"case_replacements": REPLACEMENTS},
+            "comparison": {
+                "case_replacements": REPLACEMENTS,
+                "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
+            },
         }
         self.canonical_path = self.root / "evaluation" / "dataset.json"
         self.canonical_path.parent.mkdir()
@@ -305,6 +308,41 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 plan=self.plan_path,
             )
         self.assertFalse(output.exists())
+
+    def test_equivalent_capture_mode_allows_only_timestamp_drift(self) -> None:
+        canonical_case = self.canonical["cases"][0]
+        canonical_case["source_verification"] = {
+            "checked_at": "2026-09-10T00:00:00+00:00",
+            "reference_sha256": "a" * 64,
+        }
+        self.write_json(self.canonical_path, self.canonical)
+        dataset = json.loads((self.main / "dataset.json").read_text())
+        dataset["comparison"] = self.canonical["comparison"]
+        dataset["cases"][0]["source_verification"] = {
+            "checked_at": "2026-09-10T00:10:00+00:00",
+            "reference_sha256": "a" * 64,
+        }
+        self.write_json(self.main / "dataset.json", dataset)
+        assemble(
+            self.baseline,
+            [self.main],
+            self.speed,
+            self.root / "timestamp-output",
+            canonical_dataset=self.canonical_path,
+            plan=self.plan_path,
+        )
+
+        dataset["cases"][0]["source_verification"]["reference_sha256"] = "b" * 64
+        self.write_json(self.main / "dataset.json", dataset)
+        with self.assertRaisesRegex(ValueError, "differs from canonical"):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                self.root / "changed-reference-output",
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
 
     def test_baseline_hash_mismatch_fails_closed(self) -> None:
         self.plan["baseline"]["results_sha256"] = "0" * 64

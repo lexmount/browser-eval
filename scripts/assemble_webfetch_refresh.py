@@ -193,13 +193,26 @@ def _validate_source_batches(
 
 
 def _require_canonical_cases(
-    dataset: dict, canonical_cases: dict[str, dict], rows: list[dict], label: str
+    dataset: dict,
+    canonical_cases: dict[str, dict],
+    rows: list[dict],
+    label: str,
+    *,
+    equivalent_capture_bindings: bool = False,
 ) -> None:
     supplied = {case.get("id"): case for case in dataset.get("cases", [])}
     if len(supplied) != len(dataset.get("cases", [])):
         raise ValueError(f"{label} has duplicate case definitions")
     for case_id in {row["case_id"] for row in rows}:
-        if supplied.get(case_id) != canonical_cases.get(case_id):
+        incoming = deepcopy(supplied.get(case_id))
+        canonical = deepcopy(canonical_cases.get(case_id))
+        if equivalent_capture_bindings and incoming is not None and canonical is not None:
+            # Independently refreshed short batches may have different capture
+            # timestamps while binding the exact same reference bytes and task
+            # contract.  Every other source-verification field remains strict.
+            incoming.get("source_verification", {}).pop("checked_at", None)
+            canonical.get("source_verification", {}).pop("checked_at", None)
+        if incoming != canonical:
             raise ValueError(f"{label} case/reference binding differs from canonical: {case_id}")
 
 
@@ -280,10 +293,20 @@ def _assemble(
     rerun_by_pair: dict[tuple[str, str], tuple[dict, Path]] = {}
     rerun_batches: list[tuple[list[dict], list[dict], Path, Path]] = []
     source_identities = []
+    equivalent_capture_bindings = (
+        canonical.get("comparison", {}).get("reference_binding_mode")
+        == "equivalent_reference_bytes_with_independent_batch_captures"
+    )
     for root in main_reruns:
         dataset = _read_json(root / "dataset.json")
         rows = _read_records(root)
-        _require_canonical_cases(dataset, canonical_cases, rows, "main rerun")
+        _require_canonical_cases(
+            dataset,
+            canonical_cases,
+            rows,
+            "main rerun",
+            equivalent_capture_bindings=equivalent_capture_bindings,
+        )
         validate_report_ids(canonical, rows)
         _verify_artifacts(root, rows)
         batches, execution_path = _validate_source_batches(root, dataset, rows, references=True)
@@ -358,7 +381,13 @@ def _assemble(
     expected_speed = {(provider, case_id) for provider in providers for case_id in speed_cases}
     if speed_plan.get("planned_new_calls") != len(expected_speed):
         raise ValueError("Speed call count differs from its exact matrix")
-    _require_canonical_cases(speed_dataset, canonical_cases, speed_rows, "speed cohort")
+    _require_canonical_cases(
+        speed_dataset,
+        canonical_cases,
+        speed_rows,
+        "speed cohort",
+        equivalent_capture_bindings=equivalent_capture_bindings,
+    )
     _validate_record_identity(speed_rows, allowed_pairs=expected_speed, label="speed cohort")
     _verify_artifacts(speed_cohort, speed_rows)
     _speed_batches, speed_execution = _validate_source_batches(
