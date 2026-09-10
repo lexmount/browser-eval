@@ -135,10 +135,77 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
         def _submit(self, callback):
             return callback()
 
-    _login_context(Service(), (), object(), ["http://official.test/start"])
+    readiness_retries = _login_context(
+        Service(), (), object(), ["http://official.test/start"]
+    )
 
+    assert readiness_retries == 0
     assert stale.closed is True
     assert primary.url == "http://official.test/start"
+
+
+def test_login_context_recovers_one_transient_unloaded_context(monkeypatch) -> None:
+    calls = 0
+
+    class Service:
+        def _submit(self, callback):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("Protocol error: BrowserContextNotLoaded")
+            return callback()
+
+        class Context:
+            pages = []
+
+            @staticmethod
+            def clear_cookies() -> None:
+                pass
+
+            @staticmethod
+            def set_extra_http_headers(_headers) -> None:
+                pass
+
+        class Page:
+            @staticmethod
+            def set_default_timeout(_timeout: int) -> None:
+                pass
+
+            @staticmethod
+            def set_default_navigation_timeout(_timeout: int) -> None:
+                pass
+
+            @staticmethod
+            def goto(_url: str, **_kwargs) -> None:
+                pass
+
+            @staticmethod
+            def wait_for_timeout(_timeout: int) -> None:
+                pass
+
+        _context = Context()
+        _page = Page()
+
+    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+
+    assert _login_context(Service(), (), object(), ["http://official.test/start"]) == 1
+    assert calls == 2
+
+
+def test_login_context_does_not_retry_other_setup_errors(monkeypatch) -> None:
+    calls = 0
+
+    class Service:
+        def _submit(self, _callback):
+            nonlocal calls
+            calls += 1
+            raise RuntimeError("authentication failed")
+
+    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+
+    with pytest.raises(RuntimeError, match="authentication failed"):
+        _login_context(Service(), (), object(), ["http://official.test/start"])
+    assert calls == 1
 
 
 def test_container_host_gateway_returns_literal_ip() -> None:

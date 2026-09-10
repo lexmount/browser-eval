@@ -373,7 +373,7 @@ def _login_context(
     sites: tuple[WebArenaSite, ...],
     benchmark: WebArenaVerified,
     start_urls: list[str],
-) -> None:
+) -> int:
     def login() -> None:
         context = service._context
         assert context is not None
@@ -430,7 +430,21 @@ def _login_context(
         primary_page.goto(start_urls[0], wait_until="domcontentloaded")
         primary_page.wait_for_timeout(500)
 
-    service._submit(login)
+    readiness_retries = 0
+    try:
+        service._submit(login)
+    except Exception as exc:
+        # Moli can expose its CDP endpoint just before the default browser
+        # context is ready. This is a session precondition failure: no Agent
+        # step has started and no score-bearing attempt exists yet. Recover it
+        # once, record the recovery on the eventual attempt, and keep every
+        # other setup failure fatal.
+        if "BrowserContextNotLoaded" not in str(exc):
+            raise
+        readiness_retries = 1
+        time.sleep(1)
+        service._submit(login)
+    return readiness_retries
 
 
 def _system_prompt() -> str:
@@ -586,6 +600,7 @@ def _run_attempt(  # noqa: PLR0913
     recorder = CdpHarRecorder()
     sampler_started = False
     browser_session_setup_ms = 0.0
+    browser_session_readiness_retries = 0
     agent_run_ms = 0.0
     evidence_finalize_ms = 0.0
     evaluation_ms = 0.0
@@ -595,7 +610,9 @@ def _run_attempt(  # noqa: PLR0913
         model.reset()
         service = tool._get_service()
         service._submit(lambda: None)
-        _login_context(service, sites, benchmark, start_urls)
+        browser_session_readiness_retries = _login_context(
+            service, sites, benchmark, start_urls
+        )
         service._submit(
             lambda: (
                 recorder.start(service._context),
@@ -716,6 +733,7 @@ def _run_attempt(  # noqa: PLR0913
             "evaluation_ms": round(evaluation_ms, 3),
             "measured_run_wall_ms": round(duration_ms, 3),
         },
+        "browser_session_readiness_retries": browser_session_readiness_retries,
         "agent_response": parsed_response,
         "error": error,
         "cleanup_errors": cleanup_errors,
