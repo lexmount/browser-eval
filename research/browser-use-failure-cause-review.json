@@ -1,0 +1,64 @@
+{
+  "schema": "lex_browser_use_failure_cause_review/1",
+  "benchmark": "WebArena-Verified 1.2.3",
+  "bindings": {
+    "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7"
+  },
+  "review_protocol": {
+    "unit": "one score-bearing logical result per browser and task",
+    "method": "manual root-cause verification against the official task contract, score-bearing final response, evaluator assertions, network evidence, and autonomous Agent event trajectory",
+    "rule": "automatic evaluator classification remains available; root-cause subcategory and reason remain empty until status is verified"
+  },
+  "results": {
+    "chromium-68": {
+      "status": "verified",
+      "subcategory": {"code": "benchmark_contract", "zh": "评测合同缺陷", "en": "Benchmark contract defect"},
+      "reason": {"zh": "官方 expected 要求第二条图书记录的 author 为 null，但同题公开 results_schema 规定 author 只能是 string；官方答案与自身输出合同冲突。", "en": "The official expected value requires a null author for the second book record, while the task's published results_schema permits only a string; the official answer conflicts with its own output contract."}
+    },
+    "moli-68": {
+      "status": "verified",
+      "subcategory": {"code": "benchmark_contract", "zh": "评测合同缺陷", "en": "Benchmark contract defect"},
+      "reason": {"zh": "官方 expected 要求第二条图书记录的 author 为 null，但同题公开 results_schema 规定 author 只能是 string；官方答案与自身输出合同冲突。", "en": "The official expected value requires a null author for the second book record, while the task's published results_schema permits only a string; the official answer conflicts with its own output contract."}
+    },
+    "chromium-124": {
+      "status": "verified",
+      "subcategory": {"code": "agent_strategy", "zh": "Agent 策略缺陷", "en": "Agent strategy defect"},
+      "reason": {"zh": "Agent 直接对 Magento 全文搜索结果取价格极值，没有逐项确认商品是否属于“无线耳机”；最终把投影仪 17774.32 当成目标品类最高价。", "en": "The Agent took a price extreme directly from Magento full-text search results without verifying that each item was a wireless earphone; it returned a 17774.32 projector price as the category maximum."}
+    },
+    "moli-124": {
+      "status": "verified",
+      "subcategory": {"code": "agent_strategy", "zh": "Agent 策略缺陷", "en": "Agent strategy defect"},
+      "reason": {"zh": "Agent 直接对 Magento 全文搜索结果取价格极值，没有逐项确认商品是否属于“无线耳机”；最终把投影仪 17774.32 当成目标品类最高价。", "en": "The Agent took a price extreme directly from Magento full-text search results without verifying that each item was a wireless earphone; it returned a 17774.32 projector price as the category maximum."}
+    },
+    "chromium-142": {
+      "status": "verified",
+      "subcategory": {"code": "benchmark_acceptance", "zh": "验收边界缺失", "en": "Undefined acceptance boundary"},
+      "reason": {"zh": "任务未给出“hair care and hair style”的可观察归类规则。Agent 按商品名纳入 11.99 的 Crystal Headband，官方答案却排除该商品，现有页面和合同无法推出这一边界。", "en": "The task gives no observable membership rule for 'hair care and hair style'. The Agent included the 11.99 Crystal Headband by product name, while the official answer excludes it; the boundary cannot be derived from the page or contract."}
+    },
+    "moli-142": {
+      "status": "verified",
+      "subcategory": {"code": "benchmark_acceptance", "zh": "验收边界缺失", "en": "Undefined acceptance boundary"},
+      "reason": {"zh": "任务未给出“hair care and hair style”的可观察归类规则。Agent 按商品名纳入 11.99 的 Crystal Headband，官方答案却排除该商品，现有页面和合同无法推出这一边界。", "en": "The task gives no observable membership rule for 'hair care and hair style'. The Agent included the 11.99 Crystal Headband by product name, while the official answer excludes it; the boundary cannot be derived from the page or contract."}
+    },
+    "chromium-168": {
+      "status": "verified",
+      "subcategory": {"code": "harness_protocol", "zh": "Agent 适配协议缺陷", "en": "Agent adapter protocol defect"},
+      "reason": {"zh": "站点中没有符合条件的项目，但本项目系统协议错误地要求所有 RETRIEVE 返回列表，且未规定零结果必须映射为 NOT_FOUND_ERROR；Agent 因而输出 SUCCESS 与空列表。", "en": "No matching project existed, but this project's system protocol incorrectly required every RETRIEVE result to be a list and did not map zero results to NOT_FOUND_ERROR; the Agent therefore emitted SUCCESS with an empty list."}
+    },
+    "moli-168": {
+      "status": "verified",
+      "subcategory": {"code": "harness_protocol", "zh": "Agent 适配协议缺陷", "en": "Agent adapter protocol defect"},
+      "reason": {"zh": "站点中没有符合条件的项目，但本项目系统协议错误地要求所有 RETRIEVE 返回列表，且未规定零结果必须映射为 NOT_FOUND_ERROR；Agent 因而输出 SUCCESS 与空列表。", "en": "No matching project existed, but this project's system protocol incorrectly required every RETRIEVE result to be a list and did not map zero results to NOT_FOUND_ERROR; the Agent therefore emitted SUCCESS with an empty list."}
+    },
+    "chromium-506": {
+      "status": "verified",
+      "subcategory": {"code": "evidence_capture", "zh": "证据采集缺陷", "en": "Evidence-capture defect"},
+      "reason": {"zh": "结账实际完成，成功页和订单号已出现，response、商品、付款及成功页规则均通过；只有购物车总额规则失败，因为 HAR 到运行结束才读取付款响应体，此时 CDP 已淘汰该 body。该零分是采集假阴性。", "en": "Checkout completed and the success page and order number appeared; response, product, payment, and success-page checks passed. Only the cart-total rule failed because the HAR collector fetched the payment response body at run end after CDP had evicted it. This zero score is a collection false negative."}
+    },
+    "moli-506": {
+      "status": "verified",
+      "subcategory": {"code": "completion_budget", "zh": "完成确认失败", "en": "Completion-confirmation failure"},
+      "reason": {"zh": "第 30 个决策回合才发出 Place order 点击，之后没有剩余回合观察付款结果；证据中没有付款或成功事件，但超限收尾仍生成成功形态回答，导致任务未被确认完成。", "en": "The Agent issued the Place order click only on decision turn 30, leaving no turn to observe the payment result. The evidence contains no payment or success event, yet max-step finalization emitted a success-shaped answer, so completion was never confirmed."}
+    }
+  }
+}

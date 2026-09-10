@@ -428,6 +428,17 @@ for _diagnosis in _FAILURE_ANALYSIS["tasks"].values():
         if isinstance(_localized, dict) and _localized.get("zh") and _localized.get("en"):
             TEXT[str(_localized["zh"])] = str(_localized["en"])
 
+_FAILURE_CAUSE_REVIEW = json.loads(
+    (Path(__file__).parents[2] / "research/browser-use-failure-cause-review.json").read_text(
+        encoding="utf-8"
+    )
+)
+for _cause in _FAILURE_CAUSE_REVIEW["results"].values():
+    for _field in ("subcategory", "reason"):
+        _localized = _cause.get(_field)
+        if isinstance(_localized, dict) and _localized.get("zh") and _localized.get("en"):
+            TEXT[str(_localized["zh"])] = str(_localized["en"])
+
 # Browser Use-specific prose is intentionally translated here rather than in
 # the shared Web Fetch catalog.  Task intent and measured evidence are not
 # listed: unmatched task text stays verbatim, and Localizer preserves pre/code
@@ -766,6 +777,12 @@ TEXT.update(
         "Agent 耗时": "Agent latency",
         "BrowserTool 耗时": "BrowserTool latency",
         "失败原因": "Failure reason",
+        "程序自动定位": "Automatic failure locator",
+        "核验根因子类": "Verified root-cause subtype",
+        "核验原因": "Verified cause",
+        "最终回答验收失败": "Final-answer acceptance failure",
+        "网络副作用验收失败": "Network-side-effect acceptance failure",
+        "多项验收失败": "Multiple acceptance failures",
         "60 个任务×浏览器结果均保留最终回答、官方 evaluator 结果、Agent 事件和证据哈希。": "All 60 task-browser results retain the final answer, official evaluator result, agent events, and evidence hashes.",
         "60/60 个逻辑结果已覆盖，0 个未决。它不重新判题，也不是独立语义复核。": "Evidence-integrity checks cover all 60 logical results with no unresolved integrity issue. They do not rescore tasks or constitute independent semantic review.",
         "60/60 个逻辑结果完成证据完整性审计": "Evidence integrity checked for all 60 logical results",

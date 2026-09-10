@@ -21,6 +21,10 @@
   "scoring_authority": "unmodified official programmatic evaluator",
   "review_kind": "deterministic evidence integrity audit",
   "independent_semantic_review": false,
+  "failure_cause_review": {
+    "required_for_publication": true,
+    "source_sha256": "91125db4f0fc5bed9424267505fa372b7cf44bb2fec3b742cd5f1ee9f2aefdd2"
+  },
   "tasks_without_measured_success_path": [
     68,
     124,

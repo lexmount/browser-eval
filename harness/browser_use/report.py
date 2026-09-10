@@ -18,6 +18,13 @@ from typing import Any
 
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
+from .failure_cause_review import (
+    DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
+    load_failure_cause_review,
+    localized_cause,
+    sha256 as file_sha256,
+    validate_failure_cause_review,
+)
 from .publication import (
     evaluator_summary,
     evidence_metadata,
@@ -992,6 +999,23 @@ def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
     ]
 
 
+def _automatic_failure_type(result: dict[str, Any] | None) -> tuple[str, str]:
+    """Classify the observable evaluator failure without claiming root cause."""
+
+    names = {
+        item["name"]
+        for item in evaluator_summary(result)
+        if float(item.get("score") or 0) < 1
+    }
+    if not names:
+        return "", ""
+    if names == {"AgentResponseEvaluator"}:
+        return "response", "最终回答验收失败"
+    if names == {"NetworkEventEvaluator"}:
+        return "network", "网络副作用验收失败"
+    return "mixed", "多项验收失败"
+
+
 def _failure_brief(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     labels = _failed_rule_labels(result)
     if labels:
@@ -1260,27 +1284,20 @@ def _task_table(tasks: list[dict[str, Any]]) -> str:
     )
 
 
-def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> str:
+def _attempt_table(
+    attempts: list[dict[str, Any]],
+    tasks: list[dict[str, Any]],
+    verified_causes: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    verified_causes = verified_causes or {}
     task_meta = {int(task["task_id"]): task for task in tasks}
     rows = []
     for row in attempts:
         p = _public_attempt(row)
         result = "pass" if p["score"] == 1 else "fail"
         result_record = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
-        failed_names = {
-            item["name"]
-            for item in evaluator_summary(result_record)
-            if float(item.get("score") or 0) < 1
-        }
-        failure = (
-            "none"
-            if not failed_names
-            else "mixed"
-            if len(failed_names) > 1
-            else "network"
-            if "NetworkEventEvaluator" in failed_names
-            else "response"
-        )
+        failure, automatic_failure = _automatic_failure_type(result_record)
+        subcategory, reason = localized_cause(verified_causes, p["id"])
         task = task_meta.get(p["task_id"], {})
         values = [
             Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
@@ -1292,13 +1309,16 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
             _seconds(p["browser_tool_duration_ms"]),
             p["action_count"],
             _number(p["model_usage"]["total_tokens"]),
+            automatic_failure,
+            subcategory,
+            reason,
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         rows.append(
             f'<tr data-tier="{p["tier"]}" data-site="{(task.get("sites") or [""])[0]}" '
             f'data-kind="{task.get("task_type") or _task_type(p["task_id"])}" data-result="{result}" '
             f'data-engine="{p["engine"]}" data-failure="{failure}" '
-            f'data-search="{_e(" ".join([p["id"], str(task.get("intent") or ""), _failure_diagnosis(result_record, row)]))}">{cells}</tr>'
+            f'data-search="{_e(" ".join([p["id"], str(task.get("intent") or ""), automatic_failure, subcategory, reason, _failure_diagnosis(result_record, row)]))}">{cells}</tr>'
         )
     headers = "".join(
         f"<th>{_e(x)}</th>"
@@ -1312,6 +1332,9 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
             "BrowserTool 累计耗时",
             "动作数",
             "Tokens",
+            "程序自动定位",
+            "核验根因子类",
+            "核验原因",
         ]
     )
     return (
@@ -1321,8 +1344,12 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
 
 
 def _engine_attempts(
-    engine: str, attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
+    engine: str,
+    attempts: list[dict[str, Any]],
+    tasks: list[dict[str, Any]],
+    verified_causes: dict[str, dict[str, Any]] | None = None,
 ) -> str:
+    verified_causes = verified_causes or {}
     meta = {int(task["task_id"]): task for task in tasks}
     rows = []
     for row in attempts:
@@ -1330,6 +1357,8 @@ def _engine_attempts(
             continue
         task = meta[int(row["task_id"])]
         result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
+        automatic_failure = _automatic_failure_type(result)[1]
+        subcategory, reason = localized_cause(verified_causes, _attempt_id(row))
         rows.append(
             [
                 Safe(f'<a href="results/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
@@ -1339,7 +1368,9 @@ def _engine_attempts(
                 _seconds(float(row.get("duration_ms") or 0)),
                 _seconds(float(row.get("browser_tool_duration_ms") or 0)),
                 int(row.get("action_count") or 0),
-                _failure_diagnosis(result, row) if float(row["score"]) < 1 else "—",
+                automatic_failure,
+                subcategory,
+                reason,
             ]
         )
     return _table(
@@ -1351,7 +1382,9 @@ def _engine_attempts(
             "Agent 链路耗时",
             "BrowserTool 耗时",
             "动作数",
-            "失败原因",
+            "程序自动定位",
+            "核验根因子类",
+            "核验原因",
         ],
         rows,
         table_id="engine-result-table",
@@ -1447,6 +1480,23 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     protocol, environment = manifest.get("protocol") or {}, manifest.get("environment") or {}
     attempts = _logical_results(source_attempts, protocol)
     public_attempts = [_public_attempt(r) for r in attempts]
+    attempts_sha256 = _sha256(evidence / "attempts.jsonl")
+    failed_result_ids = {
+        row["id"] for row in public_attempts if float(row.get("score") or 0) < 1
+    }
+    failure_cause_review = load_failure_cause_review()
+    verified_causes = validate_failure_cause_review(
+        failure_cause_review,
+        attempts_sha256=attempts_sha256,
+        failed_result_ids=failed_result_ids,
+        require_complete=False,
+    )
+    for source, public in zip(attempts, public_attempts, strict=True):
+        evaluation = read_public_json(Path((source.get("paths") or {}).get("evaluation", "")))
+        public["automatic_failure_type"] = _automatic_failure_type(evaluation)[1]
+        subcategory, reason = localized_cause(verified_causes, public["id"])
+        public["verified_failure_subcategory"] = subcategory
+        public["verified_failure_reason"] = reason
     official = (manifest.get("environment") or {}).get("official_evaluator") or {}
     tasks = _resolve_tasks(
         selection, expected_data_checksum=str(official.get("data_checksum") or "") or None
@@ -1816,7 +1866,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         analysis += _section(
             "60 个逻辑结果",
             "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
-            + _attempt_table(attempts, tasks),
+            + _attempt_table(attempts, tasks, verified_causes),
         )
         (stage / "analysis/index.html").write_text(
             _page(title="结果分析", active="analysis", body=analysis, depth=1), encoding="utf-8"
@@ -1881,16 +1931,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 "任务要求与验收结果",
                 _verification_html(task, evaluation_record, response_record)
                 + (
-                    '<div class="callout"><strong>根因：</strong>'
-                    + _e(_finding_text(SHARED_FAILURE_DIAGNOSES[public["task_id"]], "root_cause"))
-                    + " <strong>根治措施：</strong>"
-                    + _e(
-                        _finding_text(
-                            SHARED_FAILURE_DIAGNOSES[public["task_id"]], "corrective_action"
-                        )
-                    )
+                    '<div class="callout"><strong>程序自动定位：</strong>'
+                    + _e(public["automatic_failure_type"])
+                    + " <strong>核验根因子类：</strong>"
+                    + _e(public["verified_failure_subcategory"])
+                    + "<br><strong>核验原因：</strong>"
+                    + _e(public["verified_failure_reason"])
                     + "</div>"
-                    if public["task_id"] in SHARED_FAILURE_DIAGNOSES
+                    if float(public["score"]) < 1
                     else ""
                 )
                 + '<p class="fine">所有规则均为官方程序化验收，必须全部得分 1.0。页面先给出可读结论；官方期望、实际观察和断言保留在折叠技术明细及下载文件中。</p>',
@@ -2044,7 +2092,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             body += _section(
                 "全部逻辑结果",
                 "<p>每题只展示一个最终逻辑结果；端到端耗时与模型用量包含获得该结果所需的全部执行。</p>"
-                + _engine_attempts(engine, attempts, tasks),
+                + _engine_attempts(engine, attempts, tasks, verified_causes),
             )
             (stage / f"engines/{engine}.html").write_text(
                 _page(title=ENGINE_LABELS[engine], active="adoption", body=body, depth=1),
@@ -2120,7 +2168,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个逻辑结果的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 60 个逻辑结果的页面与下载路径。</p>',
+            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个逻辑结果的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 60 个逻辑结果的页面与下载路径。</p>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -2172,6 +2220,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             encoding="utf-8",
         )
         _write_json(
+            stage / "data/failure-cause-review.json",
+            {
+                "schema": failure_cause_review.get("schema"),
+                "bindings": failure_cause_review.get("bindings") or {},
+                "review_protocol": failure_cause_review.get("review_protocol") or {},
+                "results": verified_causes,
+            },
+        )
+        _write_json(
             stage / "data/evidence-index.json",
             {
                 "schema": "lex_browser_use_public_evidence_index/2",
@@ -2204,8 +2261,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "paired_summary": paired,
             "selection_sha256": selection.sha256,
             "evidence_bindings": {
-                "attempts_sha256": _sha256(evidence / "attempts.jsonl"),
+                "attempts_sha256": attempts_sha256,
                 "manifest_sha256": _sha256(evidence / "manifest.json"),
+            },
+            "failure_cause_review": {
+                "status": "complete"
+                if set(verified_causes) == failed_result_ids
+                else "incomplete",
+                "reviewed_failures": len(verified_causes),
+                "failed_results": len(failed_result_ids),
+                "bindings": failure_cause_review.get("bindings") or {},
+                "source_sha256": file_sha256(FAILURE_CAUSE_REVIEW_PATH),
             },
             "review": {
                 "coverage": review.get("coverage"),

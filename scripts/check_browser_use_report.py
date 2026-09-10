@@ -9,6 +9,12 @@ import json
 import re
 from pathlib import Path
 
+from harness.browser_use.failure_cause_review import (
+    DEFAULT_REVIEW_PATH as FAILURE_CAUSE_REVIEW_PATH,
+    load_failure_cause_review,
+    sha256 as file_sha256,
+    validate_failure_cause_review,
+)
 from harness.browser_use.report import _logical_results
 from harness.browser_use.selection import load_pilot
 
@@ -88,6 +94,7 @@ def check(
             "review.json",
             "publication-privacy.json",
             "evidence-index.json",
+            "failure-cause-review.json",
         )
     )
     artifact_files = tuple(
@@ -382,6 +389,39 @@ def check(
         }
         if reviewed_keys != set(by_key):
             raise ValueError("result review attempt inventory differs from measured evidence")
+        failed_result_ids = {
+            f"{row['engine']}-{int(row['task_id'])}"
+            for row in logical_rows
+            if float(row.get("score") or 0) < 1
+        }
+        cause_review = load_failure_cause_review()
+        verified_causes = validate_failure_cause_review(
+            cause_review,
+            attempts_sha256=_sha256(attempts_path),
+            failed_result_ids=failed_result_ids,
+            require_complete=bool(
+                (profile.get("failure_cause_review") or {}).get(
+                    "required_for_publication"
+                )
+            ),
+        )
+        cause_profile = profile.get("failure_cause_review") or {}
+        if cause_profile.get("source_sha256") != file_sha256(FAILURE_CAUSE_REVIEW_PATH):
+            raise ValueError("current report profile is not bound to the failure-cause review")
+        if set(verified_causes) != failed_result_ids:
+            raise ValueError("every failed logical result must have a verified root cause")
+        published_cause_review = json.loads(
+            (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")
+        )
+        if published_cause_review.get("results") != verified_causes:
+            raise ValueError("published failure causes differ from the verified review")
+        public_by_id = {str(item["id"]): item for item in public_results}
+        for result_id, item in public_by_id.items():
+            has_verified_cause = result_id in verified_causes
+            if bool(item.get("verified_failure_subcategory")) != has_verified_cause:
+                raise ValueError(f"failure subcategory review state mismatch: {result_id}")
+            if bool(item.get("verified_failure_reason")) != has_verified_cause:
+                raise ValueError(f"failure reason review state mismatch: {result_id}")
         report_review = audit.get("review") or {}
         if report_review.get("bindings") != bindings:
             raise ValueError("rendered report is not bound to the current result review")
