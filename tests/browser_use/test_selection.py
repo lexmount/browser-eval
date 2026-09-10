@@ -175,3 +175,30 @@ def test_official_contract_validation_rejects_task_68_null_author() -> None:
         enforce_contract_integrity=False,
     )
     assert resolved[0]["task_id"] == 68
+
+
+def test_task_type_count_validation_reports_missing_response_evaluator() -> None:
+    task = SimpleNamespace(
+        eval=[],
+        sites=[SimpleNamespace(value="reddit")],
+        intent="intent",
+        intent_template_id=1,
+        revision=0,
+        start_urls=["__REDDIT__"],
+    )
+    selection = PilotSelection(
+        tasks=(PilotTask(1, "easy", 1, "rationale", False),),
+        source_path=Path("selection.json"),
+        sha256="0" * 64,
+        metadata={
+            "site_counts": {"reddit": 1},
+            "task_type_counts": {"RETRIEVE": 1},
+        },
+    )
+
+    with pytest.raises(ValueError, match="missing AgentResponseEvaluator"):
+        validate_against_official(
+            selection,
+            SimpleNamespace(get_task=lambda _: task),
+            enforce_contract_integrity=False,
+        )

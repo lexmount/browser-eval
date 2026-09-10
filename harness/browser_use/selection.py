@@ -300,8 +300,18 @@ def validate_against_official(
         for selected in selection.tasks:
             task = benchmark.get_task(selected.task_id)
             response_evaluator = next(
-                item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
+                (
+                    item
+                    for item in task.eval
+                    if item.evaluator == "AgentResponseEvaluator"
+                ),
+                None,
             )
+            if response_evaluator is None:
+                raise ValueError(
+                    f"task {selected.task_id}: missing AgentResponseEvaluator "
+                    "for task_type_counts"
+                )
             task_type = response_evaluator.expected.task_type
             task_type_counts[getattr(task_type, "value", str(task_type))] += 1
         if expected_task_type_counts != dict(task_type_counts):
