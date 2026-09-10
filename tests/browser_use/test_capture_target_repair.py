@@ -47,3 +47,21 @@ def test_capture_target_rejects_mutation_task():
         propose_capture_target(
             _suite("mutate"), "webarena-58", action_index=2, output_name="name"
         )
+
+
+def test_capture_target_can_extract_a_browser_derived_subfield():
+    proposal = propose_capture_target(
+        _suite(),
+        "webarena-58",
+        action_index=2,
+        output_name="cafe_name_and_address",
+        regex=r"^([^,]+)",
+    )
+
+    assert proposal["response_builder"]["shape"] == [
+        {
+            "$output": "cafe_name_and_address",
+            "regex": r"^([^,]+)",
+            "group": 1,
+        }
+    ]

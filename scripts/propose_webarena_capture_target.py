@@ -10,7 +10,12 @@ from typing import Any
 
 
 def propose_capture_target(
-    suite: dict[str, Any], task_id: str, *, action_index: int, output_name: str
+    suite: dict[str, Any],
+    task_id: str,
+    *,
+    action_index: int,
+    output_name: str,
+    regex: str | None = None,
 ) -> dict[str, Any]:
     matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
     if len(matches) != 1:
@@ -35,6 +40,11 @@ def propose_capture_target(
     if "tab_index" in clicked:
         capture["tab_index"] = clicked["tab_index"]
     actions.insert(action_index - 1, capture)
+    output_reference: dict[str, Any] = {"$output": output_name}
+    if regex is not None:
+        if not regex:
+            raise ValueError("regex must be non-empty when provided")
+        output_reference.update({"regex": regex, "group": 1})
     return {
         "schema": "lex_browser_use_repair_proposal/1",
         "task_id": task_id,
@@ -42,7 +52,7 @@ def propose_capture_target(
         "response_builder": {
             "kind": "observed_shape",
             "task_type": "retrieve",
-            "shape": [{"$output": output_name}],
+            "shape": [output_reference],
         },
         "reason": (
             f"Capture the visible text of recorded click target at step {action_index} before "
@@ -57,6 +67,7 @@ def main() -> None:
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--action-index", type=int, required=True)
     parser.add_argument("--output-name", required=True)
+    parser.add_argument("--regex")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     proposal = propose_capture_target(
@@ -64,6 +75,7 @@ def main() -> None:
         args.task_id,
         action_index=args.action_index,
         output_name=args.output_name,
+        regex=args.regex,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
