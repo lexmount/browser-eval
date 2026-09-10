@@ -1,10 +1,13 @@
 import json
 from pathlib import Path
 
+import harness.browser_agent.report as report_module
 from harness.browser_agent.report import (
+    _action_duration_cards,
     _failure_diagnosis,
     _logical_results,
     _paired_summary,
+    _same_task_comparison,
     build_report,
 )
 
@@ -24,6 +27,47 @@ def test_paired_summary_uses_final_logical_results() -> None:
     assert summary["both_pass"] == 1
     assert summary["moli_only"] == 1
     assert summary["mcnemar_exact_p"] == 1.0
+
+
+def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        report_module,
+        "ENGINE_LABELS",
+        {"chromium": "Chromium", "moli": "Moli", "third": "Third Browser"},
+    )
+    tasks = [
+        {
+            "task_id": 1,
+            "rationale": "One task",
+            "tier": "easy",
+            "sites": ["gitlab"],
+            "task_type": "NAVIGATE",
+        }
+    ]
+    attempts = [
+        {
+            "engine": engine,
+            "task_id": 1,
+            "score": score,
+            "browser_tool_duration_by_action_ms": {"click": duration},
+            "browser_tool_count_by_action": {"click": count},
+        }
+        for engine, score, duration, count in (
+            ("chromium", 1, 100, 2),
+            ("moli", 0, 180, 2),
+            ("third", 1, 120, 3),
+        )
+    ]
+
+    comparison = _same_task_comparison(tasks, attempts)
+    actions = _action_duration_cards(attempts)
+
+    assert comparison.count('data-compare-engine') == 3
+    assert 'data-pass="chromium third"' in comparison
+    assert 'data-fail="moli"' in comparison
+    assert "Third Browser" in comparison
+    assert "Third Browser" in actions
+    assert "0.040 秒" in actions
 
 
 def test_logical_results_obey_legacy_frozen_score_authority() -> None:
@@ -140,8 +184,17 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
     for expected in ("均值", "P50", "P95", "comparison-winner"):
         assert expected in analysis
+    for expected in (
+        "BrowserTool 动作延迟",
+        "action-card-grid",
+        "浏览器组合对比",
+        "browser-comparison",
+        "data-compare-engine",
+    ):
+        assert expected in analysis
     assert "中位数" not in analysis
     assert "失败结果定位" not in analysis
+    assert 'id="pair-table"' not in analysis
     review = (output / "review/index.html").read_text(encoding="utf-8")
     assert "核验与修订记录" in review
     assert "核验轮次" in review
@@ -153,6 +206,8 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
         "CowAgent 自主执行轨迹",
         "运行、日志与证据",
         'href="results/chromium-44.html#trajectory"',
+        "attempt-summary",
+        "查看逐规则判定",
     ):
         assert expected in attempt
     for artifact in (

@@ -173,15 +173,18 @@ def check(
     for marker in (
         "Agent 链路累计耗时",
         "BrowserTool 累计耗时",
-        "浏览器两两比较",
         "均值",
         "P50",
         "P95",
         "comparison-winner",
+        "BrowserTool 动作延迟",
+        "action-card-grid",
+        "浏览器组合对比",
+        "data-compare-engine",
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
-    for forbidden in ("中位数", "失败结果定位", 'id="failure-table"'):
+    for forbidden in ("中位数", "失败结果定位", 'id="failure-table"', 'id="pair-table"'):
         if forbidden in analysis_index:
             raise ValueError(f"analysis contains a redundant or retired presentation: {forbidden}")
     participant_index = rendered_pages[report_dir / "adoption/index.html"]
@@ -198,6 +201,8 @@ def check(
             "官方 evaluator 逐规则判定",
             "CowAgent 自主执行轨迹",
             "运行、日志与证据",
+            "attempt-summary",
+            "查看逐规则判定",
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
@@ -258,6 +263,9 @@ def check(
         ".method-figure img{min-width:960px",
         ".detail-grid .kv{overflow-wrap:anywhere",
         ".comparison-winner{",
+        ".browser-comparison{",
+        ".action-card-grid{",
+        ".attempt-summary{",
         ".review-round{",
         ".page-main{overflow-x:clip}",
     ):

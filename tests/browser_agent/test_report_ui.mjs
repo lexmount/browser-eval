@@ -19,18 +19,26 @@ const rows = [
   {dataset: {tier: 'easy', result: 'pass', engine: 'chromium'}, textContent: 'complete'},
 ];
 const count = {textContent: ''};
-const pairControls = [
-  {dataset: {pairFilter: 'relation'}, value: 'all_fail', addEventListener() {}},
+const browserControls = {
+  'browser-a': {value: 'chromium', addEventListener() {}},
+  'browser-relation': {value: 'mixed', addEventListener() {}},
+  'browser-kind': {value: '', addEventListener() {}},
+  'browser-compare-count': {textContent: ''},
+};
+const comparisonLabel = {classList: {toggle() {}}};
+const compareChecks = [
+  {value: 'chromium', checked: false, disabled: false, closest() { return comparisonLabel; }, addEventListener() {}},
+  {value: 'moli', checked: true, disabled: false, closest() { return comparisonLabel; }, addEventListener() {}},
 ];
-const pairedRows = [
-  {dataset: {relation: 'all_fail'}},
-  {dataset: {relation: 'all_pass'}},
-  {dataset: {relation: 'mixed'}},
+const comparisonRows = [
+  {dataset: {pass: 'chromium', fail: 'moli', kind: 'RETRIEVE'}},
+  {dataset: {pass: 'chromium moli', fail: '', kind: 'NAVIGATE'}},
+  {dataset: {pass: '', fail: 'chromium moli', kind: 'MUTATE'}},
 ];
-const pairCount = {textContent: ''};
 const listeners = {};
 const storage = new Map();
 let replaced = '';
+let scrolledTo = null;
 const location = {
   href: 'https://example.test/analysis/?f_result=fail&q=missing',
   pathname: '/analysis/',
@@ -45,13 +53,13 @@ const document = {
     if (selector === '[data-search]') return [search];
     if (selector === 'tbody tr[data-tier]') return rows;
     if (selector === '[data-visible-count]') return [count];
-    if (selector === '[data-pair-filter]') return pairControls;
-    if (selector === '#pair-rows tr') return pairedRows;
-    if (selector === '[data-pair-count]') return [pairCount];
+    if (selector === '[data-browser-compare-control],[data-compare-engine]') return [...Object.values(browserControls).filter(x => x.addEventListener), ...compareChecks];
+    if (selector === '[data-compare-engine]') return compareChecks;
+    if (selector === '#browser-compare-rows tr') return comparisonRows;
     return [];
   },
   querySelector(selector) { return selector === '[data-search]' ? search : null; },
-  getElementById() { return null; },
+  getElementById(id) { return browserControls[id] ?? null; },
 };
 const context = vm.createContext({
   URL,
@@ -65,7 +73,7 @@ const context = vm.createContext({
     setItem(key, value) { storage.set(key, value); },
   },
   requestAnimationFrame(callback) { callback(); },
-  scrollTo() {},
+  scrollTo(_x, y) { scrolledTo = y; },
   scrollY: 240,
   addEventListener(name, callback) { listeners[name] = callback; },
 });
@@ -76,13 +84,14 @@ assert.equal(search.value, 'missing');
 assert.equal(controls[0].value, 'fail');
 assert.deepEqual(rows.map(row => row.hidden), [false, true]);
 assert.equal(count.textContent, '1 / 2');
-assert.deepEqual(pairedRows.map(row => row.hidden), [false, true, true]);
-assert.equal(pairCount.textContent, '找到 1 个任务');
+assert.deepEqual(comparisonRows.map(row => row.hidden), [false, true, true]);
+assert.equal(browserControls['browser-compare-count'].textContent, '找到 1 个任务');
+assert.equal(compareChecks[0].disabled, true);
 
-pairControls[0].value = 'mixed';
-vm.runInContext('pairRows()', context);
-assert.deepEqual(pairedRows.map(row => row.hidden), [true, true, false]);
-assert.match(replaced, /p_relation=mixed/);
+browserControls['browser-relation'].value = 'all_fail';
+vm.runInContext('compareBrowsers()', context);
+assert.deepEqual(comparisonRows.map(row => row.hidden), [true, true, false]);
+assert.match(replaced, /b_relation=all_fail/);
 
 controls[0].value = 'pass';
 search.value = '';
@@ -90,6 +99,12 @@ vm.runInContext('filterRows()', context);
 assert.deepEqual(rows.map(row => row.hidden), [true, false]);
 assert.match(replaced, /f_result=pass/);
 assert.doesNotMatch(replaced, /q=/);
+
+scrolledTo = null;
+location.hash = '#same-task';
+storage.set('browser-agent-scroll:/analysis/?f_result=fail&q=missing', '999');
+vm.runInContext('restoreView()', context);
+assert.equal(scrolledTo, null, 'an explicit fragment must take precedence over saved scroll');
 
 listeners.pagehide();
 assert.equal(storage.get('browser-agent-scroll:/analysis/?f_result=fail&q=missing'), '240');

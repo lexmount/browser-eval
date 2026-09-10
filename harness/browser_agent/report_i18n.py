@@ -453,6 +453,9 @@ TEXT.update(
         "BrowserTool 执行耗时": "BrowserTool execution latency",
         "是事件流中每次 browser 工具调用墙钟时间之和，包含工具封装、CDP 往返与页面等待，仍不是纯内核 CPU 时间。": "The sum of wall-clock durations for browser tool calls in the event stream. It includes tool-wrapper, CDP round-trip, and page-wait overhead, so it is still not pure browser-core CPU time.",
         "浏览器动作耗时拆分": "Browser action latency breakdown",
+        "BrowserTool 动作延迟": "BrowserTool action latency",
+        "每张卡对应一种 CowAgent action。以单次调用墙钟均值作为主要比较值并标记较低者；总耗时与调用数用于解释工作量，不判优。该指标仍包含工具封装、CDP 往返和页面等待，不是纯内核 CPU 时间。": "Each card represents one CowAgent action. Mean wall-clock time per call is the primary comparison and the lower value is marked; total latency and call count describe workload and are not ranked. The metric still includes tool-wrapper, CDP round-trip, and page-wait overhead, so it is not pure browser-core CPU time.",
+        "单次调用墙钟时间": "Wall time per call",
         "按 CowAgent 发出的 BrowserTool action 聚合调用次数与墙钟时间，用于定位 navigate、click、input、snapshot 等动作在哪个浏览器上更慢。该指标比 Agent 总耗时更接近浏览器执行层，但仍包含工具与 CDP 开销。": "Aggregate call counts and wall-clock time by BrowserTool action emitted by CowAgent to locate whether navigate, click, input, snapshot, and other actions are slower in one browser. This metric is closer to the browser execution layer than total agent latency, but still includes tool and CDP overhead.",
         "动作": "Action",
         "浏览器两两比较": "Pairwise browser comparisons",
@@ -462,6 +465,22 @@ TEXT.update(
         "左侧单独通过": "Left-only passes",
         "右侧单独通过": "Right-only passes",
         "同题浏览器结果矩阵": "Same-task browser result matrix",
+        "浏览器组合对比": "Browser-set comparison",
+        "按同一任务比较所选浏览器，不用各浏览器不同的成功样本拼接结论。基准浏览器单选，对比浏览器可多选；新增浏览器只增加选项和结果标签，不改变页面结构。": "Compare selected browsers on the same task instead of combining different success subsets. Choose one baseline browser and one or more comparison browsers; adding a browser only adds an option and outcome label without changing the page structure.",
+        "同题结果组合": "Same-task outcome combinations",
+        "选择一个基准浏览器和一个或多个对比浏览器；浏览器标签可直达该题完整结果。": "Choose one baseline browser and one or more comparison browsers. Browser labels link directly to the complete task result.",
+        "浏览器 A": "Browser A",
+        "比较条件": "Comparison condition",
+        "A 通过，其余失败": "A passes, all others fail",
+        "A 失败，其余通过": "A fails, all others pass",
+        "所选浏览器全部通过": "All selected browsers pass",
+        "所选浏览器全部失败": "All selected browsers fail",
+        "仅所选浏览器通过": "Only the selected browsers pass",
+        "全部类型": "All task types",
+        "对比浏览器（可多选）": "Comparison browsers (select multiple)",
+        "通过浏览器": "Passing browsers",
+        "失败浏览器": "Failing browsers",
+        "请至少选择一个对比浏览器": "Select at least one comparison browser",
         "每行是一道任务，浏览器作为可扩展列生成；以后增加浏览器时沿用同一张矩阵，不再把页面结构写死为 Chromium 与 Moli。关系筛选只改变可见行，不产生新分数。": "Each row is one task, with browsers generated as extensible columns. Future browsers use the same matrix instead of hard-coding Chromium and Moli into the page structure. Relationship filters change visible rows only and create no new scores.",
         "全部通过": "All pass",
         "全部失败": "All fail",
@@ -472,6 +491,11 @@ TEXT.update(
         "失败结果定位": "Failed-result inventory",
         "默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。": "Failures are shown by default. Filter by browser, tier, site, task type, failure stage, or full-text query.",
         "动作数": "Actions",
+        "查看逐规则判定": "View rule-level verdicts",
+        "累计自主操作": "Cumulative autonomous actions",
+        "Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。": "Agent-stack latency includes session preparation, sign-in, model inference, orchestration, tool execution, and cleanup, but excludes Docker site reset. BrowserTool latency is the sum of wall-clock time for all browser tool calls and is not pure browser-core time.",
+        "执行未完成；错误信息见运行与证据。": "Execution did not complete; see runtime and evidence for the error.",
+        "全部官方 evaluator 均通过。": "All official evaluators passed.",
 
         # Result pages and audit boundaries.
         "Agent 端到端耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 执行耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。": "Agent end-to-end latency includes session preparation, sign-in, model inference, orchestration, tool execution, and cleanup, but excludes Docker site reset. BrowserTool execution latency is the sum of wall-clock time for all browser tool calls and is not pure browser-core time.",
@@ -616,6 +640,11 @@ TEXT.update(
         "遗留事项": "Remaining items",
         "已处理": "Resolved",
         "无阻塞项。": "No blocking items.",
+        "多浏览器比较与结果详情核验": "Multi-browser comparison and result-detail review",
+        "同题比较交互、BrowserTool 动作延迟和单结果详情首屏。": "Same-task comparison interaction, BrowserTool action latency, and the opening section of result-detail pages.",
+        "同题视图虽动态生成列，但交互仍以两浏览器关系为中心；动作表层级拥挤且对不同调用量的总耗时判优；完整 evaluator 错误被放入窄指标卡。": "The same-task view generated columns dynamically but still centered its interaction on a two-browser relationship; the action table was visually congested and ranked totals with unequal call counts; full evaluator errors appeared in narrow KPI cards.",
+        "同题比较改为基准浏览器加多选对比浏览器和明确关系条件；动作延迟改为按 action 分卡并只比较单次均值；详情首屏只保留简明规则定位，完整 expected、actual 和错误进入规则证据区。": "Changed same-task comparison to one baseline browser, multi-select comparison browsers, and explicit outcome relations; split action latency into action cards and compare only mean per call; kept only concise rule labels in the result summary and moved complete expected, actual, and error evidence to the rule section.",
+        "当前仅有两个参评浏览器；扩展行为已由三浏览器测试模型覆盖，新增真实浏览器仍需形成完整同题结果。": "Only two browser participants are currently measured. A three-browser test model covers extensibility behavior, while any additional real browser still requires complete same-task results.",
         "参评浏览器 · Browser Use 评测": "Browser participants · Browser Use evaluation",
         "参评浏览器与统一实验条件": "Browser participants and shared experimental controls",
         "Chromium 与 Moli 作为浏览器后端参与同题对照；Agent、模型、任务、资源上限、站点与 evaluator 保持一致。": "Chromium and Moli participate as browser backends in a same-task comparison; the agent, model, tasks, resource limits, sites, and evaluators are held constant.",
@@ -638,6 +667,8 @@ TEXT.update(
         "异常清理可能遮蔽原始错误；HAR 停止操作缺少幂等保护；异常响应和原始证据目录需要更严格保护。": "Cleanup exceptions could mask primary failures; HAR stop lacked idempotency; and malformed responses and raw-evidence directories needed stricter protection.",
         "隔离清理异常、使 HAR 停止幂等、加强模型响应结构校验，并阻止原始浏览器证据进入 Git。": "Isolated cleanup failures, made HAR stop idempotent, strengthened model-response validation, and prevented raw browser evidence from entering Git.",
         "统一比较统计与核验记录": "Standardize comparison statistics and review history",
+        "统一比较统计与可扩展浏览器对比": "Standardize comparison statistics and scalable browser comparison",
+        "比较摘要统一展示均值、P50、P95；同题比较采用基准浏览器与多选浏览器组合；动作延迟按 action 分卡并只对单次均值判优；结果详情将长 evaluator 证据移出指标卡。Chromium 与 Moli 的官方成绩仍均为 25/30。": "Comparison summaries now show mean, P50, and P95. Same-task comparison uses one baseline browser and multiple comparison browsers. Action latency is grouped by action and ranks only mean per call, while long evaluator evidence has moved out of result KPI cards. Official scores remain 25/30 for both Chromium and Moli.",
         "比较摘要统一展示均值、P50、P95，并按指标方向突出唯一优胜者；结果页删除与筛选结果重复的失败清单；核验页改为按轮次记录核验与修订。Chromium 与 Moli 的官方成绩仍均为 25/30。": "Comparison summaries now show mean, P50, and P95 and mark unique winners according to metric direction. The results page no longer duplicates the filterable failure inventory, and the review page records review and revision rounds. Official scores remain 25/30 for both Chromium and Moli.",
         "统计摘要": "Summary statistics",
         "耗时和 Tokens 的集中趋势与尾部表现未采用统一展示结构。": "Latency and token central tendency and tail behavior did not use a consistent presentation.",
@@ -651,6 +682,14 @@ TEXT.update(
         "失败清单与结果筛选重复，核验页混入逐结果覆盖表。": "The failure inventory duplicated result filters, and the review page included a per-result coverage table.",
         "结果库保留成功/失败筛选和任务详情；核验页只呈现核验轮次、处理和遗留事项。": "The result library retains pass/fail filters and task details; the review page now contains only review rounds, corrections, and remaining items.",
         "减少重复内容，不删除结果证据。": "Duplicate presentation was removed without deleting result evidence.",
+        "多浏览器对比": "Multi-browser comparison",
+        "同题矩阵会随浏览器数量横向增宽，关系筛选也无法表达一个基准浏览器与多个对比浏览器的组合。": "The same-task matrix widened with every browser, and its relationship filter could not express one baseline browser against multiple comparison browsers.",
+        "改为基准浏览器单选、对比浏览器多选和明确结果关系；任务行按通过与失败浏览器分组，浏览器标签链接完整结果。": "Changed to one baseline browser, multi-select comparison browsers, and explicit outcome relations. Task rows group passing and failing browsers, with browser labels linking to complete results.",
+        "页面结构可直接容纳新增浏览器；当前结果和分数不变。": "The page structure now accepts additional browsers directly; current results and scores are unchanged.",
+        "动作延迟与详情页": "Action latency and result details",
+        "动作表把三项指标压入浏览器单元格，并对调用量不同的总耗时判优；详情首屏的长错误文本破坏阅读层级。": "The action table compressed three metrics into each browser cell and ranked totals despite unequal call counts; long error text disrupted the hierarchy of result-detail pages.",
+        "每个 action 使用独立比较卡，只以单次均值判优并将总耗时、调用数保持中性；详情首屏只显示简明失败规则，完整诊断保留在逐规则证据区。": "Each action now has a dedicated comparison card. Only mean per call is ranked, while total latency and call count remain neutral. Result summaries show concise failed-rule labels, with complete diagnostics retained in rule-level evidence.",
+        "修正比较解释与页面层级，不改变测量值、判分或证据。": "This corrects comparison interpretation and page hierarchy without changing measurements, verdicts, or evidence.",
     }
 )
 
@@ -738,6 +777,8 @@ PHRASES = {
     " 次 BrowserTool 调用": " BrowserTool calls",
     " 次调用 / ": " calls / ",
     " 次传输尝试": " transport attempts",
+    "总耗时 ": "Total ",
+    " 次调用": " calls",
     "查看 ": "View ",
     " 步轨迹": "-step trajectory",
     "成功轨迹": "successful trajectory",
@@ -794,6 +835,14 @@ def translate_text(value: str) -> str:
                 r"(\d+)/(\d+) 题至少有一条自主成功轨迹；其余 (\d+) 题仅有官方验收合同。",
                 lambda match: (
                     f"{match.group(1)}/{match.group(2)} tasks have at least one autonomous successful trajectory; the remaining {match.group(3)} have only an official acceptance contract."
+                ),
+            ),
+            (
+                r"(\d+) 项规则未通过：(.+)。",
+                lambda match: (
+                    f"{match.group(1)} rule{'s' if match.group(1) != '1' else ''} failed: "
+                    + match.group(2).replace("规则 ", "Rule ").replace("、", ", ")
+                    + "."
                 ),
             ),
         )

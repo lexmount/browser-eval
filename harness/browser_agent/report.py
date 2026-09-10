@@ -12,7 +12,6 @@ import statistics
 import tempfile
 from collections import defaultdict
 from collections.abc import Iterable
-from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -360,48 +359,6 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {"paired": len(ids), **counts, "mcnemar_exact_p": p}
 
 
-def _pairwise_browser_rows(rows: list[dict[str, Any]]) -> list[list[Any]]:
-    by_key = {(str(row["engine"]), int(row["task_id"])): row for row in rows}
-    result: list[list[Any]] = []
-    for left, right in combinations(ENGINE_LABELS, 2):
-        task_ids = sorted(
-            task_id
-            for engine, task_id in by_key
-            if engine == left and (right, task_id) in by_key
-        )
-        left_only = right_only = both_pass = both_fail = 0
-        for task_id in task_ids:
-            left_pass = float(by_key[(left, task_id)]["score"]) == 1
-            right_pass = float(by_key[(right, task_id)]["score"]) == 1
-            if left_pass and right_pass:
-                both_pass += 1
-            elif left_pass:
-                left_only += 1
-            elif right_pass:
-                right_only += 1
-            else:
-                both_fail += 1
-        result.append(
-            [
-                f"{ENGINE_LABELS[left]} ↔ {ENGINE_LABELS[right]}",
-                len(task_ids),
-                both_pass,
-                _winner(
-                    str(left_only),
-                    won=left_only > right_only,
-                    label=f"{ENGINE_LABELS[left]} 单边通过更多",
-                ),
-                _winner(
-                    str(right_only),
-                    won=right_only > left_only,
-                    label=f"{ENGINE_LABELS[right]} 单边通过更多",
-                ),
-                both_fail,
-            ]
-        )
-    return result
-
-
 def _resolve_tasks(
     selection: PilotSelection, *, expected_data_checksum: str | None = None
 ) -> list[dict[str, Any]]:
@@ -528,79 +485,84 @@ def _adoption_top3(evidence: dict[str, Any]) -> str:
     )
 
 
-def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
-    results = {
-        (str(row["engine"]), int(row["task_id"])): row
-        for row in attempts
-    }
+def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
+    results = {(str(row["engine"]), int(row["task_id"])): row for row in attempts}
+    ordered = sorted(
+        ENGINE_LABELS,
+        key=lambda engine: (
+            -sum(
+                float(row["score"]) == 1
+                for row in attempts
+                if row["engine"] == engine
+            ),
+            ENGINE_LABELS[engine],
+        ),
+    )
+    if len(ordered) < 2:
+        return '<p class="muted-box">至少需要两个参评浏览器才能进行同题比较。</p>'
+
     rows = []
     for task in tasks:
         task_id = int(task["task_id"])
-        engine_rows = [results.get((engine, task_id)) for engine in ENGINE_LABELS]
-        if any(row is None for row in engine_rows):
-            continue
-        passes = [float(row["score"]) == 1 for row in engine_rows if row]
-        relation = "all_pass" if all(passes) else "all_fail" if not any(passes) else "mixed"
-        relation_label = {"all_pass": "全部通过", "mixed": "结果有分歧", "all_fail": "全部失败"}[relation]
+        present = [engine for engine in ordered if (engine, task_id) in results]
+        passed = [engine for engine in present if float(results[(engine, task_id)]["score"]) == 1]
+        failed = [engine for engine in present if engine not in passed]
+
+        def outcome_links(engines: list[str], state: str) -> str:
+            if not engines:
+                return "—"
+            return '<span class="outcome-list">' + "".join(
+                f'<a class="outcome-pill {state}" href="results/{engine}-{task_id}.html">'
+                f'{_e(ENGINE_LABELS[engine])}</a>'
+                for engine in engines
+            ) + "</span>"
+
         site = str(task["sites"][0])
-
-        def metrics(row: dict[str, Any], *, won: bool) -> str:
-            public = _public_attempt(row)
-            usage = row.get("model_usage") or {}
-            body = (
-                f'{_status(row)}<br><span class="fine">{public["action_count"]} 次动作 · '
-                f'BrowserTool 累计 {_seconds(public["browser_tool_duration_ms"])} · '
-                f"{int(usage.get('request_count') or 0)} 次模型请求 · "
-                f"Agent 链路累计 {_seconds(float(row.get('duration_ms') or 0))}</span>"
-            )
-            return (
-                f'<div class="comparison-winner winner-cell">{body}'
-                '<span class="winner-mark" aria-label="更优">优</span></div>'
-                if won else body
-            )
-
-        search = " ".join(
-            (str(task_id), task["rationale"], str(task.get("intent") or ""), relation_label)
-        )
         attrs = (
-            f' data-relation="{relation}" data-tier="{_e(task["tier"])}"'
-            f' data-site="{_e(site)}" data-kind="{_e(task["task_type"])}"'
-            f' data-search="{_e(search)}"'
+            f' data-pass="{_e(" ".join(passed))}" data-fail="{_e(" ".join(failed))}"'
+            f' data-kind="{_e(task["task_type"])}"'
+        )
+        task_cell = (
+            f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
+            f'{_e(task["rationale"])}</a><div class="task-meta">'
+            f'<span class="track-badge">{_e(TIER_LABELS[task["tier"]])}</span>'
+            f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
+            f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
         )
         rows.append(
-            f'<tr{attrs}><td><a href="datasets/{task_id}.html">#{task_id}</a>'
-            f'<div class="fine">{_e(task["rationale"])}</div></td>'
-            f"<td>{_e(TIER_LABELS[task['tier']])}</td>"
-            f"<td>{_e(SITE_LABELS.get(site, site))}</td><td>{_e(task['task_type'])}</td>"
-            + "".join(
-                f'<td>{metrics(row, won=relation == "mixed" and float(row["score"]) == 1)}</td>'
-                for row in engine_rows if row
-            )
-            + f'<td><span class="status-{"pass" if relation == "all_pass" else "fail"}">{_e(relation_label)}</span></td>'
-            + f'<td><a href="datasets/{task_id}.html">任务合同</a></td></tr>'
+            f'<tr{attrs}><td>{task_cell}</td><td>{outcome_links(passed, "pass")}</td>'
+            f'<td>{outcome_links(failed, "fail")}</td></tr>'
         )
-    controls = (
-        '<div class="pair-controls">'
-        '<label>关系 <select id="pair-relation" data-pair-filter="relation">'
-        '<option value="">全部</option><option value="mixed">结果有分歧</option>'
-        '<option value="all_pass">全部通过</option><option value="all_fail" selected>全部失败</option>'
-        "</select></label>"
-        '<label>层级 <select data-pair-filter="tier"><option value="">全部</option>'
-        '<option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
-        '<label>站点 <select data-pair-filter="site"><option value="">全部</option>'
-        '<option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option>'
-        '<option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
-        '<label>类型 <select data-pair-filter="kind"><option value="">全部</option>'
-        "<option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>"
-        '<span class="comparison-count" data-pair-count></span></div>'
+
+    options = "".join(
+        f'<option value="{_e(engine)}"{" selected" if engine == ordered[0] else ""}>'
+        f'{_e(ENGINE_LABELS[engine])}</option>'
+        for engine in ordered
+    )
+    checks = "".join(
+        f'<label><input type="checkbox" value="{_e(engine)}" data-compare-engine'
+        f'{" checked" if engine == ordered[1] else ""}> {_e(ENGINE_LABELS[engine])}</label>'
+        for engine in ordered
+    )
+    kinds = '<option value="">全部类型</option>' + "".join(
+        f'<option value="{kind}">{kind}</option>' for kind in ("RETRIEVE", "NAVIGATE", "MUTATE")
     )
     return (
-        controls
-        + '<div class="table-wrap"><table id="pair-table"><thead><tr><th>任务</th><th>层级</th>'
-        + "<th>站点</th><th>类型</th>"
-        + "".join(f"<th>{_e(label)}</th>" for label in ENGINE_LABELS.values())
-        + "<th>横向关系</th><th>任务定义</th>"
-        '</tr></thead><tbody id="pair-rows">' + "".join(rows) + "</tbody></table></div>"
+        '<article class="browser-comparison"><header class="comparison-heading"><div>'
+        '<h3>同题结果组合</h3><p>选择一个基准浏览器和一个或多个对比浏览器；浏览器标签可直达该题完整结果。</p>'
+        '</div><b class="comparison-count" id="browser-compare-count" role="status" aria-live="polite"></b></header>'
+        '<div class="comparison-controls">'
+        f'<label>浏览器 A<select id="browser-a" data-browser-compare-control>{options}</select></label>'
+        '<label>比较条件<select id="browser-relation" data-browser-compare-control>'
+        '<option value="mixed">结果有分歧</option><option value="a_pass_others_fail">A 通过，其余失败</option>'
+        '<option value="a_fail_others_pass">A 失败，其余通过</option><option value="all_pass">所选浏览器全部通过</option>'
+        '<option value="all_fail" selected>所选浏览器全部失败</option><option value="exact_pass">仅所选浏览器通过</option>'
+        f'</select></label><label>任务类型<select id="browser-kind" data-browser-compare-control>{kinds}</select></label></div>'
+        '<fieldset class="comparison-browsers"><legend>对比浏览器（可多选）</legend>'
+        f'<div class="browser-checks">{checks}</div></fieldset>'
+        '<div class="comparison-result"><div class="table-wrap"><table class="comparison-table">'
+        '<thead><tr><th>任务</th><th>通过浏览器</th><th>失败浏览器</th></tr></thead>'
+        f'<tbody id="browser-compare-rows">{"".join(rows)}</tbody></table></div></div></article>'
     )
 
 
@@ -632,7 +594,7 @@ def _group_rows(
     return result
 
 
-def _action_duration_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
+def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
     actions = sorted(
         {
             action
@@ -640,9 +602,8 @@ def _action_duration_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
             for action in (row.get("browser_tool_duration_by_action_ms") or {})
         }
     )
-    rows: list[list[Any]] = []
+    cards: list[str] = []
     for action in actions:
-        line: list[Any] = [action]
         metrics: dict[str, tuple[float, int, float | None]] = {}
         for engine in ENGINE_LABELS:
             total = sum(
@@ -656,29 +617,26 @@ def _action_duration_rows(attempts: list[dict[str, Any]]) -> list[list[Any]]:
                 if row["engine"] == engine
             )
             metrics[engine] = (total, count, total / count if count else None)
-        total_winners = _best(
-            {engine: values[0] for engine, values in metrics.items()}, higher=False
-        )
         average_winners = _best(
             {engine: values[2] for engine, values in metrics.items()}, higher=False
         )
+        maximum = max((values[2] or 0 for values in metrics.values()), default=0)
+        browser_rows = []
         for engine in ENGINE_LABELS:
             total, count, average = metrics[engine]
-            line.append(
-                _metric_stack(
-                    [
-                        ("总耗时", f"{total / 1000:.1f} 秒", engine in total_winners),
-                        (
-                            "单次均值",
-                            "—" if average is None else f"{average / 1000:.3f} 秒",
-                            engine in average_winners,
-                        ),
-                        ("调用数", str(count), False),
-                    ]
-                )
+            width = 0 if average is None or maximum <= 0 else max(2.0, average / maximum * 100)
+            average_text = "—" if average is None else f"{average / 1000:.3f} 秒"
+            browser_rows.append(
+                f'<div class="action-browser-row{" action-winner" if engine in average_winners else ""}"><div class="action-browser-head">'
+                f'<b>{_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=engine in average_winners, label="单次均值更低")}'
+                f'</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div>'
+                f'<div class="action-browser-meta">总耗时 {total / 1000:.1f} 秒 · {count} 次调用</div></div>'
             )
-        rows.append(line)
-    return rows
+        cards.append(
+            '<article class="action-card"><header><code>' + _e(action) + '</code>'
+            '<span>单次调用墙钟时间</span></header>' + "".join(browser_rows) + "</article>"
+        )
+    return '<div class="action-card-grid">' + "".join(cards) + "</div>"
 
 
 def _summary_comparison_rows(summary: dict[str, dict[str, Any]]) -> list[list[Any]]:
@@ -748,9 +706,11 @@ function updateViewUrl(){const u=new URL(location.href),q=document.querySelector
 function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
 function applySort(t,col,dir){const b=t?.tBodies[0];if(!b)return;[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=String(col);t.dataset.dir=dir}
 function sortTable(id,col){const t=document.getElementById(id);if(!t)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';applySort(t,col,dir);const u=new URL(location.href);u.searchParams.set('sort',id+':'+col+':'+dir);history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString()+u.hash)}
-function pairRows(save=true){const controls=[...document.querySelectorAll('[data-pair-filter]')];let shown=0;document.querySelectorAll('#pair-rows tr').forEach(r=>{const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.pairFilter]!==c.value);r.hidden=hidden;if(!hidden)shown++});document.querySelectorAll('[data-pair-count]').forEach(x=>x.textContent=(document.documentElement.lang==='en'?'Showing ':'找到 ')+shown+(document.documentElement.lang==='en'?' tasks':' 个任务'));if(save){const u=new URL(location.href);[...u.searchParams.keys()].filter(k=>k.startsWith('p_')).forEach(k=>u.searchParams.delete(k));controls.forEach(c=>{if(c.value)u.searchParams.set('p_'+c.dataset.pairFilter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}}
-function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null)c.value=v});document.querySelectorAll('[data-pair-filter]').forEach(c=>{const v=p.get('p_'+c.dataset.pairFilter);if(v!==null)c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);pairRows(false);try{const y=sessionStorage.getItem('browser-agent-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}restoreView();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-pair-filter]').forEach(x=>x.addEventListener('change',()=>pairRows()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-agent-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
+function browserOutcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
+function compareBrowsers(save=true){const a=document.getElementById('browser-a'),relation=document.getElementById('browser-relation'),kind=document.getElementById('browser-kind'),count=document.getElementById('browser-compare-count');if(!a||!relation||!kind||!count)return;const boxes=[...document.querySelectorAll('[data-compare-engine]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});const others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others];let shown=0;document.querySelectorAll('#browser-compare-rows tr').forEach(row=>{const pass=browserOutcomes(row,'pass'),fail=browserOutcomes(row,'fail');let match=others.length>0&&(!kind.value||row.dataset.kind===kind.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?(document.documentElement.lang==='en'?shown+' tasks found':'找到 '+shown+' 个任务'):(document.documentElement.lang==='en'?'Select at least one comparison browser':'请至少选择一个对比浏览器');if(save){const u=new URL(location.href);['b_a','b_relation','b_kind','b_others'].forEach(k=>u.searchParams.delete(k));u.searchParams.set('b_a',a.value);u.searchParams.set('b_relation',relation.value);if(kind.value)u.searchParams.set('b_kind',kind.value);if(others.length)u.searchParams.set('b_others',others.join(','));history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}}
+function applyAnchor(){if(!location.hash)return;const id=decodeURIComponent(location.hash.slice(1)),target=document.getElementById(id);if(target?.scrollIntoView)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}))}
+function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null)c.value=v});const a=document.getElementById('browser-a'),relation=document.getElementById('browser-relation'),kind=document.getElementById('browser-kind'),others=new Set((p.get('b_others')||'').split(',').filter(Boolean));if(a&&p.has('b_a'))a.value=p.get('b_a')||a.value;if(relation&&p.has('b_relation'))relation.value=p.get('b_relation')||relation.value;if(kind&&p.has('b_kind'))kind.value=p.get('b_kind')||'';document.querySelectorAll('[data-compare-engine]').forEach(box=>{if(p.has('b_others'))box.checked=others.has(box.value)});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);compareBrowsers(false);try{if(!location.hash){const y=sessionStorage.getItem('browser-agent-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}}catch(e){}}
+document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-browser-compare-control],[data-compare-engine]').forEach(x=>x.addEventListener('change',()=>compareBrowsers()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-agent-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
@@ -785,8 +745,14 @@ REPORT_STYLE = (
 .release-current{border-top:4px solid var(--accent)}
 .release-history>summary,.release-current details>summary,.release-archive details>summary{cursor:pointer;font-weight:800;padding:8px 0}
 .comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
+.browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(240px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:750}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-browsers{border:0;padding:0;margin:20px 0 0}.comparison-browsers legend{font-weight:750;margin-bottom:10px}.browser-checks{display:flex;gap:8px;flex-wrap:wrap}.browser-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.browser-checks label.disabled{opacity:.45;cursor:not-allowed}.browser-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.table-wrap .comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:first-child,.comparison-table td:first-child{width:48%}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2),.comparison-table th:nth-child(3),.comparison-table td:nth-child(3){width:26%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}
+.action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
+.attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
 .page-main{overflow-x:clip}
-@media(max-width:600px){.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields{grid-template-columns:1fr}}
+.section[id]{scroll-margin-top:76px}
+@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.browser-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.action-card-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields,.attempt-summary,.attempt-secondary{grid-template-columns:1fr}}
 """
 )
 NAV = [
@@ -941,6 +907,15 @@ def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
         for item in evaluator_summary(result)
         if float(item.get("score") or 0) < 1
     ]
+
+
+def _failure_brief(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
+    labels = _failed_rule_labels(result)
+    if labels:
+        return f'{len(labels)} 项规则未通过：{"、".join(labels)}。'
+    if row.get("error"):
+        return "执行未完成；错误信息见运行与证据。"
+    return "全部官方 evaluator 均通过。"
 
 
 def _evaluator_result_html(result: dict[str, Any] | None) -> str:
@@ -1639,23 +1614,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             + '<p class="fine"><strong>Agent 链路累计耗时</strong>把获得该任务结果实际发生的执行相加；每次从浏览器会话准备开始，到 CowAgent 完成、验收所需证据落盘前结束，包含登录、模型推理、调度、页面等待、BrowserTool 与收尾，不包含此前的 Docker 站点重置。<strong>BrowserTool 累计耗时</strong>是事件流中全部 browser 工具调用墙钟时间之和，包含工具封装、CDP 往返与页面等待，仍不是纯内核 CPU 时间。</p>',
         )
         analysis += _section(
-            "浏览器动作耗时拆分",
-            "<p>按 CowAgent 发出的 BrowserTool action 聚合总墙钟时间、单次均值与调用数。耗时较低者标记为更优；调用数描述 Agent 行为，不判优。该指标比 Agent 总耗时更接近浏览器执行层，但仍包含工具与 CDP 开销。</p>"
-            + _table(["动作"] + list(ENGINE_LABELS.values()), _action_duration_rows(attempts)),
+            "BrowserTool 动作延迟",
+            "<p>每张卡对应一种 CowAgent action。以单次调用墙钟均值作为主要比较值并标记较低者；总耗时与调用数用于解释工作量，不判优。该指标仍包含工具封装、CDP 往返和页面等待，不是纯内核 CPU 时间。</p>"
+            + _action_duration_cards(attempts),
         )
         analysis += _section(
-            "浏览器两两比较",
-            "<p>新增浏览器后自动生成每一对浏览器的同题比较；每一行只使用双方都完成的任务，避免把三种以上浏览器压成一个含义不清的总胜负。</p>"
-            + _table(
-                ["浏览器对", "共同任务", "共同通过", "左侧单独通过", "右侧单独通过", "共同失败"],
-                _pairwise_browser_rows(attempts),
-            ),
-        )
-        analysis += '<div id="same-task"></div>' + _section(
-            "同题浏览器结果矩阵",
-            "<p>每行是一道任务，浏览器作为可扩展列生成；以后增加浏览器时沿用同一张矩阵，不再把页面结构写死为 Chromium 与 Moli。关系筛选只改变可见行，不产生新分数。</p>"
-            + _paired_task_table(tasks, attempts),
-        )
+            "浏览器组合对比",
+            "<p>按同一任务比较所选浏览器，不用各浏览器不同的成功样本拼接结论。基准浏览器单选，对比浏览器可多选；新增浏览器只增加选项和结果标签，不改变页面结构。</p>"
+            + _same_task_comparison(tasks, attempts),
+        ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
             "60 个逻辑结果",
             "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
@@ -1710,7 +1677,18 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             detail += _section(
                 "结果与运行",
-                f'<div class="detail-grid"><div class="kv"><b>官方结果</b>{_status(row)}</div><div class="kv"><b>失败定位</b>{_e(_failure_diagnosis(evaluation_record, row))}</div><div class="kv"><b>累计自主操作</b>{public["action_count"]} 次 BrowserTool 调用</div><div class="kv"><b>Agent 链路累计耗时</b>{_seconds(public["duration_ms"])}</div><div class="kv"><b>BrowserTool 累计耗时</b>{_seconds(public["browser_tool_duration_ms"])}</div><div class="kv"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div><div class="kv"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div><div class="kv"><b>传输错误</b>{public["transport_error_count"]}</div><div class="kv"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div><div class="kv"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div><p class="fine">Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。</p>',
+                f'<div class="attempt-summary"><article class="attempt-verdict{" failure" if float(row["score"]) < 1 else ""}">'
+                f'<span class="status-line">{_status(row)}</span><p>{_e(_failure_brief(evaluation_record, row))}</p>'
+                f'<div class="attempt-jumps"><a href="{attempt_page}#rules">查看逐规则判定</a></div></article>'
+                f'<div class="attempt-fact"><b>累计自主操作</b>{public["action_count"]} 次 BrowserTool 调用</div>'
+                f'<div class="attempt-fact"><b>Agent 链路累计耗时</b>{_seconds(public["duration_ms"])}</div>'
+                f'<div class="attempt-fact"><b>BrowserTool 累计耗时</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
+                f'<div class="attempt-fact"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div></div>'
+                f'<div class="attempt-secondary"><div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div>'
+                f'<div class="attempt-fact"><b>传输错误</b>{public["transport_error_count"]}</div>'
+                f'<div class="attempt-fact"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div>'
+                f'<div class="attempt-fact"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div>'
+                '<p class="fine">Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。</p>',
             )
             detail += '<div id="comparison"></div>' + _section(
                 "Ground truth 与实际最终回答",
