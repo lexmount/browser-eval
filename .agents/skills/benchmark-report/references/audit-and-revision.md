@@ -18,6 +18,8 @@ release manifest + deployed bytes
 
 Hash and bind transitions where accidental mixing is plausible. Validate exact cardinality and uniqueness, not only totals. Treat raw outputs, timestamps, request status, method version, and call IDs as immutable measured evidence.
 
+Source-dependent calls require a fail-closed boundary: capture and freeze the declared reference scope immediately before execution, repeat the independent observation after execution, and bind both checks to the complete cohort. A process exit, partial attempt count, changed reference, or missing post-check makes the cohort diagnostic rather than publishable; never salvage its successful rows into the release matrix.
+
 ## Independent result review
 
 Review every attempt against the case contract and complete output. Include machine passes because false positives can be more damaging than visible failures. Whenever practical, hide the machine verdict and score from the reviewer until an independent judgment is recorded.
