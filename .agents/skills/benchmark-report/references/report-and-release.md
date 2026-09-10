@@ -20,6 +20,10 @@ For a multilingual report, generate every language from one semantic report mode
 
 Use a compact review page resembling release history: current reviewed coverage and unresolved count, then one card or row per review round with scope, findings, corrections, and remaining work. Do not publish agent work logs, giant execution manifests, or downloads merely because the evidence exists.
 
+Expose one logical result per method and task. A declared second execution after failure is an orchestration detail: preserve its immutable evidence, let the final execution determine the result, and add every execution's latency and cost. Do not split the public result table into first-versus-retry rows unless that distinction is the preregistered research question.
+
+Never publish user prompts, assistant reasoning, plans, internal notes, conversational back-and-forth, or tool-work narration. A formal report explains the benchmark and evidence; it is not the authoring notebook.
+
 ## Claims and rankings
 
 Pair every ranking with its task family, denominator, acceptance meaning, a typical input-to-output route, and limits. Keep task acceptance separate from continuous quality, latency, cost, and title/body diagnostics. Do not call conditional averages global quality or explain a correlation as a verified mechanism.
@@ -38,6 +42,10 @@ Before publication:
 6. publish atomically or create a new site when explicitly requested;
 7. fetch the unauthenticated share URL and compare the deployed file tree or archive with the submitted package;
 8. record a concise release entry with score/denominator effects and remaining limits.
+
+The responsive/visual gate must cover every core route class, both languages, desktop and narrow widths, and light and dark themes. Check that short headers do not wrap one character per line, long cells receive deliberate width or scrolling, filters remain operable, code and evidence blocks have readable contrast, and text-heavy diagrams use scalable/vector rendering or retain a readable minimum width. A screenshot of only the home page is insufficient.
+
+Render release history like a report, not a heading plus a raw table: show the current version summary first, keep evidence/handling/impact details expandable, retain older versions in a compact history, and provide the structured record download. Each entry states what changed, why, the formal handling, and the score, denominator, latency, evidence, and limitation effects.
 
 Credentials belong in the approved secret store, never HTML or Git. If a service requires an account, list the account and official acquisition location in the report. Do not include live keys.
 

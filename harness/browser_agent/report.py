@@ -91,14 +91,24 @@ def _probability(value: float | None) -> str:
     return "—" if value is None else f"{value:.3f}"
 
 
-def _table(headers: list[str], rows: Iterable[Iterable[Any]], *, caption: str = "") -> str:
+def _table(
+    headers: list[str],
+    rows: Iterable[Iterable[Any]],
+    *,
+    caption: str = "",
+    table_id: str = "",
+    classes: str = "",
+) -> str:
     head = "".join(f"<th>{_e(x)}</th>" for x in headers)
     body = "".join(
         "<tr>" + "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in row) + "</tr>"
         for row in rows
     )
     cap = f"<caption>{_e(caption)}</caption>" if caption else ""
-    return f'<div class="table-wrap"><table>{cap}<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
+    attrs = (f' id="{_e(table_id)}"' if table_id else "") + (
+        f' class="{_e(classes)}"' if classes else ""
+    )
+    return f'<div class="table-wrap"><table{attrs}>{cap}<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
 def _task_type(task_id: int) -> str:
@@ -108,7 +118,63 @@ def _task_type(task_id: int) -> str:
 
 
 def _attempt_id(row: dict[str, Any]) -> str:
-    return f"{row['engine']}-{int(row['task_id'])}-a{int(row['attempt'])}"
+    return f"{row['engine']}-{int(row['task_id'])}"
+
+
+def _logical_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Project physical executions into one authoritative result per browser and task.
+
+    A failed task may be executed once more. The last execution is authoritative,
+    while additive cost and latency include every execution used to obtain it.
+    """
+    grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[(str(row["engine"]), int(row["task_id"]))].append(row)
+    results: list[dict[str, Any]] = []
+    for key in sorted(grouped, key=lambda item: (item[0], item[1])):
+        executions = sorted(grouped[key], key=lambda row: int(row["attempt"]))
+        if [int(row["attempt"]) for row in executions] != list(range(1, len(executions) + 1)):
+            raise ValueError(f"non-contiguous execution sequence for {key}")
+        if len(executions) > 2:
+            raise ValueError(f"more than two executions for {key}")
+        final = dict(executions[-1])
+        final["duration_ms"] = sum(float(row.get("duration_ms") or 0) for row in executions)
+        usage_keys = (
+            "input_tokens",
+            "output_tokens",
+            "reasoning_tokens",
+            "total_tokens",
+            "request_count",
+            "request_attempt_count",
+        )
+        final["model_usage"] = {
+            name: sum(int((row.get("model_usage") or {}).get(name) or 0) for row in executions)
+            for name in usage_keys
+        }
+        final["model_transport_errors"] = [
+            error for row in executions for error in (row.get("model_transport_errors") or [])
+        ]
+        resources = [row.get("resource") or {} for row in executions]
+        final["resource"] = {
+            **{
+                name: sum(float(resource.get(name) or 0) for resource in resources)
+                for name in ("cpu_ms", "network_rx_bytes", "network_tx_bytes")
+            },
+            **{
+                name: max((float(resource.get(name) or 0) for resource in resources), default=0)
+                for name in ("memory_peak_bytes", "memory_retained_bytes", "pids_current_peak")
+            },
+        }
+        weighted_duration = sum(float(row.get("duration_ms") or 0) for row in executions)
+        if weighted_duration:
+            final["resource"]["cpu_average_utilization_pct"] = sum(
+                float((row.get("resource") or {}).get("cpu_average_utilization_pct") or 0)
+                * float(row.get("duration_ms") or 0)
+                for row in executions
+            ) / weighted_duration
+        final["_source_executions"] = executions
+        results.append(final)
+    return results
 
 
 def _public_attempt(row: dict[str, Any]) -> dict[str, Any]:
@@ -119,8 +185,6 @@ def _public_attempt(row: dict[str, Any]) -> dict[str, Any]:
         "engine": str(row["engine"]),
         "task_id": int(row["task_id"]),
         "tier": str(row["tier"]),
-        "attempt": int(row["attempt"]),
-        "is_retry": bool(row.get("is_retry") or int(row["attempt"]) == 2),
         "score": float(row["score"]),
         "status": str(row.get("status") or ("success" if float(row["score"]) == 1 else "failure")),
         "duration_ms": round(float(row.get("duration_ms") or 0), 3),
@@ -164,17 +228,14 @@ def _percentile(values: list[float], q: float) -> float | None:
 def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     result = {}
     for engine in ENGINE_LABELS:
-        primary = [r for r in rows if r["engine"] == engine and int(r["attempt"]) == 1]
-        retries = [r for r in rows if r["engine"] == engine and int(r["attempt"]) == 2]
-        durations = [float(r.get("duration_ms") or 0) for r in primary]
-        tokens = [int((r.get("model_usage") or {}).get("total_tokens") or 0) for r in primary]
-        passed = sum(float(r["score"]) == 1 for r in primary)
+        logical = [r for r in rows if r["engine"] == engine]
+        durations = [float(r.get("duration_ms") or 0) for r in logical]
+        tokens = [int((r.get("model_usage") or {}).get("total_tokens") or 0) for r in logical]
+        passed = sum(float(r["score"]) == 1 for r in logical)
         result[engine] = {
-            "completed": len(primary),
+            "completed": len(logical),
             "passed": passed,
-            "score": passed / len(primary) if primary else None,
-            "retry_count": len(retries),
-            "recovered": sum(float(r["score"]) == 1 for r in retries),
+            "score": passed / len(logical) if logical else None,
             "median_duration_ms": statistics.median(durations) if durations else None,
             "p95_duration_ms": _percentile(durations, 0.95),
             "median_tokens": statistics.median(tokens) if tokens else None,
@@ -186,7 +247,6 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     primary = {
         (str(r["engine"]), int(r["task_id"])): float(r["score"]) == 1
         for r in rows
-        if int(r["attempt"]) == 1
     }
     ids = sorted(
         task_id
@@ -286,7 +346,6 @@ def _task_family_summary(
     primary = {
         (str(row["engine"]), int(row["task_id"])): float(row["score"]) == 1
         for row in attempts
-        if int(row["attempt"]) == 1
     }
     result = []
     for kind in ("RETRIEVE", "NAVIGATE", "MUTATE"):
@@ -338,7 +397,6 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
     primary = {
         (str(row["engine"]), int(row["task_id"])): row
         for row in attempts
-        if int(row["attempt"]) == 1
     }
     rows = []
     for task in tasks:
@@ -391,7 +449,7 @@ def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any
             f"<td>{_e(SITE_LABELS.get(site, site))}</td><td>{_e(task['task_type'])}</td>"
             f"<td>{metrics(chromium)}</td><td>{metrics(moli)}</td>"
             f'<td><span class="status-{"pass" if relation == "both_pass" else "fail"}">{_e(relation_label)}</span></td>'
-            f'<td><a href="datasets/{task_id}.html">查看两种浏览器全部试次</a></td></tr>'
+            f'<td><a href="datasets/{task_id}.html">查看两种浏览器结果</a></td></tr>'
         )
     controls = (
         '<div class="pair-controls">'
@@ -423,10 +481,9 @@ def _group_rows(
     meta = {int(t["task_id"]): t for t in tasks}
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in attempts:
-        if int(row["attempt"]) == 1:
-            value = meta[int(row["task_id"])][field]
-            value = value[0] if isinstance(value, list) else value
-            grouped[(str(value), str(row["engine"]))].append(row)
+        value = meta[int(row["task_id"])][field]
+        value = value[0] if isinstance(value, list) else value
+        grouped[(str(value), str(row["engine"]))].append(row)
     result = []
     for value in sorted({key[0] for key in grouped}):
         line: list[Any] = [SITE_LABELS.get(value, TIER_LABELS.get(value, value))]
@@ -450,8 +507,44 @@ document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.d
 REPORT_STYLE = (
     SHARED_STYLE
     + """
-.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
+.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:break-word;word-break:normal}
 .top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
+/* Publication QA overrides: readable dense tables, code, and text-heavy figures. */
+.table-wrap{overflow-x:auto;max-width:100%;contain:inline-size;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.table-wrap table{min-width:860px;margin:0;border:0}
+.table-wrap th{white-space:nowrap}
+.table-wrap th,.table-wrap td{word-break:normal;overflow-wrap:break-word;vertical-align:top}
+#task-table{min-width:1660px}
+#task-table th:nth-child(1),#task-table td:nth-child(1){min-width:76px;white-space:nowrap}
+#task-table th:nth-child(2),#task-table td:nth-child(2),#task-table th:nth-child(4),#task-table td:nth-child(4),#task-table th:nth-child(5),#task-table td:nth-child(5){min-width:88px;white-space:nowrap}
+#task-table th:nth-child(3),#task-table td:nth-child(3){min-width:140px;white-space:nowrap}
+#task-table th:nth-child(6),#task-table td:nth-child(6){min-width:250px}
+#task-table th:nth-child(7),#task-table td:nth-child(7){min-width:430px}
+#task-table th:nth-child(8),#task-table td:nth-child(8){min-width:160px}
+#task-table th:nth-child(9),#task-table td:nth-child(9),#task-table th:nth-child(10),#task-table td:nth-child(10){min-width:112px;white-space:nowrap}
+#pair-table{min-width:1320px}
+#pair-table th:nth-child(-n+4),#pair-table td:nth-child(-n+4){white-space:nowrap}
+#pair-table th:nth-child(1),#pair-table td:nth-child(1){min-width:260px;white-space:normal}
+#pair-table th:nth-child(5),#pair-table td:nth-child(5),#pair-table th:nth-child(6),#pair-table td:nth-child(6){min-width:235px}
+#failure-table{min-width:1480px}
+#failure-table th:nth-child(1),#failure-table td:nth-child(1){min-width:150px;white-space:nowrap}
+#failure-table th:nth-child(2),#failure-table td:nth-child(2){min-width:270px}
+#failure-table th:nth-child(3),#failure-table td:nth-child(3){min-width:220px}
+#failure-table th:nth-child(4),#failure-table td:nth-child(4){min-width:620px}
+#failure-table th:nth-child(5),#failure-table td:nth-child(5){min-width:180px}
+#result-table,#engine-result-table,#review-result-table,#change-table{min-width:1080px}
+#result-table td:first-child,#engine-result-table td:first-child,#review-result-table td:first-child{white-space:nowrap;min-width:150px}
+.json-view,.log-view{background:var(--code-bg)!important;color:var(--code-ink)!important;border-color:#334b68!important;line-height:1.65}
+.json-view code,.log-view code{color:inherit!important;background:transparent!important}
+.detail-grid .kv{overflow-wrap:anywhere;word-break:break-word}
+.method-figure{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}
+.method-figure img{min-width:960px;border:0;border-radius:0}
+.method-figure figcaption{padding:0 16px 14px}
+.release-current,.release-archive{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}
+.release-current{border-top:4px solid var(--accent)}
+.release-history>summary,.release-current details>summary,.release-archive details>summary{cursor:pointer;font-weight:800;padding:8px 0}
+.page-main{overflow-x:clip}
+@media(max-width:600px){.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}}
 """
 )
 NAV = [
@@ -684,7 +777,7 @@ def _article_body(
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Agent 实测解读</div>'
         f"<h1>{chromium['passed']} 比 {moli['passed']} 不是“内核等价”：当前样本没有产生分歧</h1>"
         f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务没有一个出现单边胜出。这个结果证明对照流程跑通，却没有为内核优劣提供方向性证据。</p>'
-        '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；首轮 pass@1；失败最多一次诊断重试；官方确定性 evaluator；无 LLM judge。</p></header>'
+        '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；每题×浏览器一个最终逻辑结果；官方确定性 evaluator；无 LLM judge。</p></header>'
         "<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>"
         f"<p>Chromium 与 Moli 分别通过 {chromium['passed']}/{chromium['completed']} 和 {moli['passed']}/{moli['completed']}。逐题配对后，{paired['both_pass']} 题共同通过、{paired['both_fail']} 题共同失败，两个浏览器单边通过都是 0。精确 McNemar 双侧 p={_probability(paired['mcnemar_exact_p'])}，但这里最有解释力的不是 p 值，而是检验没有拿到任何不一致样本。</p>"
         + _table(
@@ -695,11 +788,11 @@ def _article_body(
                 ["仅 Moli", paired["moli_only"], "本轮未观察到"],
                 ["两者都失败", paired["both_fail"], "优先排查共同链路"],
             ],
-            caption="表 1｜30 个首轮任务的逐题配对；重试不并入主分。",
+            caption="表 1｜30 个任务的逐题最终结果配对。",
         )
         + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
         "<section><h2>二、共同失败是待核验线索，不是已证实根因</h2>"
-        f"<p>{paired['both_fail']} 个共同失败任务的 {chromium['retry_count'] + moli['retry_count']} 次诊断重试均未恢复。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>"
+        f"<p>{paired['both_fail']} 个共同失败任务均未满足官方验收合同。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>"
         + _table(
             ["任务", "公开诊断"],
             failures,
@@ -709,14 +802,14 @@ def _article_body(
         + _table(
             ["本项目分层", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "tier"),
-            caption="表 3｜各层级首轮通过数/任务数。",
+            caption="表 3｜各层级最终通过数/任务数。",
         )
         + _table(
             ["站点", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "sites"),
             caption="表 4｜四个可重置自托管站点。",
         )
-        + '</section><section><h2>四、选择 WebArena‑Verified 是为了归因，不是因为它最流行</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、下一轮应主动寻找内核敏感样本</h2><p>保留 CowAgent、模型、reasoning=low、pass@1 和一次失败诊断重试，扩大稳定可验收的配对样本；新增长页面、上传下载、复杂编辑器、弹窗、多标签页等更可能诱发内核差异的任务。实时网站另开 Online‑Mind2Web / WebVoyager 泛化轨道，LLM judge 与人工抽检单列。</p><div class="essay-note"><h3>决策边界</h3><p>本轮支持“流程可比、当前样本无方向性差异”；不支持“内核等价”“Moli 已全面替代 Chromium”或“端到端耗时就是纯内核速度”。Astra 获权后必须形成独立运行。</p></div></section></article>'
+        + '</section><section><h2>四、选择 WebArena‑Verified 是为了归因，不是因为它最流行</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、下一轮应主动寻找内核敏感样本</h2><p>保留 CowAgent、模型、reasoning=low 和每题最多两次执行的固定协议，扩大稳定可验收的配对样本；新增长页面、上传下载、复杂编辑器、弹窗、多标签页等更可能诱发内核差异的任务。实时网站另开 Online‑Mind2Web / WebVoyager 泛化轨道，LLM judge 与人工抽检单列。</p><div class="essay-note"><h3>决策边界</h3><p>本轮支持“流程可比、当前样本无方向性差异”；不支持“内核等价”“Moli 已全面替代 Chromium”或“端到端耗时就是纯内核速度”。Astra 获权后必须形成独立运行。</p></div></section></article>'
     )
 
 
@@ -727,7 +820,6 @@ def _standalone_article(body: str) -> str:
 def _filters(*, attempts: bool = False) -> str:
     extra = (
         '<label>浏览器 <select data-filter="engine"><option value="">全部</option><option value="chromium">Chromium</option><option value="moli">Moli</option></select></label>'
-        '<label>口径 <select data-filter="attempt"><option value="">全部</option><option value="primary">首轮</option><option value="retry">失败诊断重试</option></select></label>'
         '<label>失败环节 <select data-filter="failure"><option value="">全部</option><option value="none">无</option><option value="response">最终回答</option><option value="network">网络副作用</option><option value="mixed">多项</option></select></label>'
         if attempts
         else ""
@@ -752,7 +844,7 @@ def _filters(*, attempts: bool = False) -> str:
 
 
 def _task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
-    primary = {(r["engine"], int(r["task_id"])): r for r in attempts if int(r["attempt"]) == 1}
+    primary = {(r["engine"], int(r["task_id"])): r for r in attempts}
     rows = []
     for task in tasks:
         task_id, site, kind = int(task["task_id"]), task["sites"][0], task["task_type"]
@@ -837,40 +929,36 @@ def _attempt_table(attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]) 
         )
         task = task_meta.get(p["task_id"], {})
         values = [
-            Safe(f'<a href="attempts/{p["id"]}.html">{p["id"]}</a>'),
+            Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
             ENGINE_LABELS[p["engine"]],
             p["task_id"],
             TIER_LABELS[p["tier"]],
-            "重试" if p["is_retry"] else "首轮",
             _status(row),
             _seconds(p["duration_ms"]),
             _number(p["model_usage"]["total_tokens"]),
-            p["transport_error_count"],
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         rows.append(
             f'<tr data-tier="{p["tier"]}" data-site="{(task.get("sites") or [""])[0]}" '
             f'data-kind="{task.get("task_type") or _task_type(p["task_id"])}" data-result="{result}" '
-            f'data-engine="{p["engine"]}" data-attempt="{"retry" if p["is_retry"] else "primary"}" data-failure="{failure}" '
+            f'data-engine="{p["engine"]}" data-failure="{failure}" '
             f'data-search="{_e(" ".join([p["id"], str(task.get("intent") or ""), _failure_diagnosis(result_record, row)]))}">{cells}</tr>'
         )
     headers = "".join(
         f"<th>{_e(x)}</th>"
         for x in [
-            "试次",
+            "结果",
             "浏览器",
             "任务",
             "层级",
-            "口径",
-            "结果",
+            "判定",
             "端到端耗时",
             "Tokens",
-            "传输重试",
         ]
     )
     return (
         _filters(attempts=True)
-        + f'<div class="table-wrap"><table id="attempt-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        + f'<div class="table-wrap"><table id="result-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
     )
 
 
@@ -878,21 +966,25 @@ def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any
     task_by_id = {int(task["task_id"]): task for task in tasks}
     rows = []
     for row in attempts:
-        if int(row["attempt"]) != 1 or float(row["score"]) == 1:
+        if float(row["score"]) == 1:
             continue
         task_id = int(row["task_id"])
         result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
         failed = _failed_rule_labels(result)
         rows.append(
             [
-                Safe(f'<a href="attempts/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
+                Safe(f'<a href="results/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
                 task_by_id.get(task_id, {}).get("rationale", f"Task #{task_id}"),
                 "、".join(failed) or "未定位",
                 _failure_diagnosis(result, row),
                 Safe(f'<a href="datasets/{task_id}.html">任务与两浏览器对照</a>'),
             ]
         )
-    return _table(["首轮试次", "任务", "失败规则", "记录中的验收差异", "同题对照"], rows)
+    return _table(
+        ["结果", "任务", "失败规则", "记录中的验收差异", "同题对照"],
+        rows,
+        table_id="failure-table",
+    )
 
 
 def _engine_attempts(
@@ -907,16 +999,19 @@ def _engine_attempts(
         result = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
         rows.append(
             [
-                Safe(f'<a href="attempts/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
+                Safe(f'<a href="results/{_attempt_id(row)}.html">{_attempt_id(row)}</a>'),
                 task["rationale"],
                 TIER_LABELS[task["tier"]],
-                "重试" if int(row["attempt"]) == 2 else "首轮",
                 _status(row),
                 _seconds(float(row.get("duration_ms") or 0)),
                 _failure_diagnosis(result, row) if float(row["score"]) < 1 else "—",
             ]
         )
-    return _table(["试次", "任务", "层级", "口径", "结果", "耗时", "失败原因"], rows)
+    return _table(
+        ["结果", "任务", "层级", "判定", "耗时", "失败原因"],
+        rows,
+        table_id="engine-result-table",
+    )
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -924,9 +1019,58 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _release_details(release: dict[str, Any]) -> str:
+    rows = release.get("changes") or []
+    details = (
+        '<details><summary>查看修正依据、处理与影响</summary>'
+        + _table(
+            ["项目", "发现的问题", "正式处理", "结果影响与边界"],
+            rows,
+            table_id="change-table",
+        )
+        + "</details>"
+        if rows
+        else ""
+    )
+    return (
+        f'<div class="eyebrow">{_e(release.get("date") or "未记录")}</div>'
+        f'<h3>{_e(release.get("title") or "未命名版本")}</h3>'
+        f'<p>{_e(release.get("summary") or "")}</p>{details}'
+    )
+
+
+def _release_history(releases: list[dict[str, Any]], history_scope: str) -> str:
+    if not releases:
+        return "<p>暂无发布记录。</p>"
+    latest, *older = releases
+    body = _section(
+        "当前版本",
+        f'<article class="release-current" id="{_e(latest.get("id") or "current")}">'
+        + _release_details(latest)
+        + "</article>",
+    )
+    if older:
+        entries = "".join(
+            f'<article class="release-archive" id="{_e(release.get("id") or "")}">'
+            + _release_details(release)
+            + "</article>"
+            for release in older
+        )
+        body += _section(
+            "历史版本",
+            f'<details class="release-history"><summary>展开 {len(older)} 个较早版本</summary>{entries}</details>',
+        )
+    body += _section(
+        "范围与下载",
+        f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>下载结构化版本记录</a><a href="https://github.com/lexmount/browser-eval/commits/main">查看仓库变更</a></p>',
+    )
+    return body
+
+
 def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     selection = load_pilot(selection_path)
-    attempts = _read_attempts(evidence)
+    source_attempts = _read_attempts(evidence)
+    attempts = _logical_results(source_attempts)
     public_attempts = [_public_attempt(r) for r in attempts]
     manifest, config, review = (
         _read_json(evidence / name)
@@ -961,7 +1105,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         for folder in (
             "assets",
             "datasets",
-            "attempts",
+            "results",
             "engines",
             "guide",
             "changes",
@@ -1005,7 +1149,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "先看结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium pass@1</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])} · 95% CI {_pct(c_ci[0])}–{_pct(c_ci[1])}</p></div><div class="card"><span class="tiny">Moli pass@1</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])} · 95% CI {_pct(m_ci[0])}–{_pct(m_ci[1])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">失败重试恢复</span><div class="n">{c["recovered"] + m["recovered"]}/{c["retry_count"] + m["retry_count"]}</div><p>不回写主分</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout failure"><strong>归因边界：</strong>{paired["both_fail"]} 个共同失败任务没有任何成功轨迹。报告只能确认结果未满足官方合同，尚不能证明任务在当前快照可完成，也不能归因给 Agent 或浏览器。</p>',
+            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])} · 95% CI {_pct(c_ci[0])}–{_pct(c_ci[1])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])} · 95% CI {_pct(m_ci[0])}–{_pct(m_ci[1])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>需要可完成性核验</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout failure"><strong>归因边界：</strong>{paired["both_fail"]} 个共同失败任务没有任何成功轨迹。报告只能确认结果未满足官方合同，尚不能证明任务在当前快照可完成，也不能归因给 Agent 或浏览器。</p>',
         )
         home += _section(
             "任务族覆盖",
@@ -1015,14 +1159,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         home += _section(
             "运行与证据是否完整",
             '<div class="audit-strip">'
-            f'<p class="callout success"><strong>正式调用：</strong>{len(attempts)} 个试次均保留回答、官方 evaluator 结果、Agent 事件和证据哈希；每题每浏览器首轮一次，只有失败任务再诊断重试一次。</p>'
-            f'<p class="callout success"><strong>证据完整性审计：</strong>{coverage.get("reviewed_attempts", 0)}/{coverage.get("recorded_attempts", len(attempts))} 个试次完成确定性一致性检查，{len(review.get("unresolved") or [])} 个未决。它不重新判题，也不是独立语义复核。</p>'
+            f'<p class="callout success"><strong>逻辑结果：</strong>{len(attempts)} 个任务×浏览器结果均保留最终回答、官方 evaluator 结果、Agent 事件和证据哈希。</p>'
+            f'<p class="callout success"><strong>证据完整性审计：</strong>{len(attempts)}/{len(attempts)} 个逻辑结果已覆盖，{len(review.get("unresolved") or [])} 个未决。它不重新判题，也不是独立语义复核。</p>'
             f'<p class="callout"><strong>可完成性覆盖：</strong>{len(measured_solvable_ids)}/{len(tasks)} 题至少有一条自主成功轨迹；其余 {len(unproven_ids)} 题仅有官方验收合同。</p>'
             "</div>",
         )
         home += _section(
             "从结论进入证据",
-            '<div class="grid"><article class="card article-entry" style="grid-column:span 6"><h3>报告解读</h3><p>对零分歧、共同失败和下一轮设计的完整论证。</p><a href="guide/">阅读完整解读 →</a></article><article class="card" style="grid-column:span 3"><h3>30 个任务</h3><p>筛选并下钻两种浏览器试次。</p><a href="datasets/">打开任务库 →</a></article><article class="card" style="grid-column:span 3"><h3>70 个试次</h3><p>首轮、唯一重试和核验状态。</p><a href="analysis/">打开结果库 →</a></article></div>',
+            '<div class="grid"><article class="card article-entry" style="grid-column:span 6"><h3>报告解读</h3><p>对零分歧、共同失败和下一轮设计的完整论证。</p><a href="guide/">阅读完整解读 →</a></article><article class="card" style="grid-column:span 3"><h3>30 个任务</h3><p>筛选并下钻两种浏览器结果。</p><a href="datasets/">打开任务库 →</a></article><article class="card" style="grid-column:span 3"><h3>60 个逻辑结果</h3><p>查看最终判定、耗时、轨迹和核验状态。</p><a href="analysis/">打开结果库 →</a></article></div>',
         )
         home += _section(
             "逐题配对比总分更重要",
@@ -1034,7 +1178,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     ["仅 Moli", paired["moli_only"]],
                     ["两者都失败", paired["both_fail"]],
                 ],
-                caption="同一任务的两个首轮结果；重试不参与配对主分。",
+                caption="同一任务的两个浏览器最终逻辑结果。",
             )
             + f'<p class="fine">精确 McNemar 双侧 p={_probability(paired["mcnemar_exact_p"])}。零个不一致配对意味着当前样本无法估计内核方向性效应。</p><p class="page-links"><a href="analysis/#paired">打开逐题横向对照 →</a></p>',
         )
@@ -1058,20 +1202,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             _page(title="报告解读", active="guide", body=guide, depth=1), encoding="utf-8"
         )
         (stage / "guide/article.html").write_text(_standalone_article(article), encoding="utf-8")
-        releases = (
-            _read_json(Path("research/report-changes.json")).get("browser_agent_releases") or []
-        )
-        changes_rows = releases[0].get("changes") or [] if releases else []
+        release_data = _read_json(Path("research/report-changes.json"))
+        releases = release_data.get("browser_agent_releases") or []
         changes = _hero(
-            "Release notes",
-            "变更记录只写会影响理解和复现的正式变化",
-            "分数、分母与证据绑定没有因出版结构变化而改变。",
-        ) + _section(
-            "当前发布",
-            _table(["变更", "原因", "处理", "影响"], changes_rows)
-            if changes_rows
-            else "<p>暂无发布记录。</p>",
-        )
+            "Report releases",
+            "报告版本说明",
+            "每个版本只记录影响读者判断的正式修正；结论、分母、耗时与证据影响直接展示，技术依据按需展开。",
+        ) + _release_history(releases, str(release_data.get("history_scope") or ""))
+        _write_json(stage / "report-changes.json", release_data)
         (stage / "changes/index.html").write_text(
             _page(title="变更记录", active="changes", body=changes, depth=1), encoding="utf-8"
         )
@@ -1104,7 +1242,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
         )
 
-        by_attempt = {(r["engine"], int(r["task_id"]), int(r["attempt"])): r for r in attempts}
+        by_attempt = {(r["engine"], int(r["task_id"])): r for r in attempts}
         for task in tasks:
             task_id, site = int(task["task_id"]), task["sites"][0]
             measured_passes = [
@@ -1114,18 +1252,16 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             ]
             task_rows = []
             for engine in ENGINE_LABELS:
-                for attempt_no in (1, 2):
-                    row = by_attempt.get((engine, task_id, attempt_no))
-                    if row:
-                        task_rows.append(
-                            [
-                                ENGINE_LABELS[engine],
-                                "首轮" if attempt_no == 1 else "失败诊断重试",
-                                _status(row),
-                                _seconds(float(row["duration_ms"])),
-                                Safe(f'<a href="attempts/{_attempt_id(row)}.html">查看试次</a>'),
-                            ]
-                        )
+                row = by_attempt.get((engine, task_id))
+                if row:
+                    task_rows.append(
+                        [
+                            ENGINE_LABELS[engine],
+                            _status(row),
+                            _seconds(float(row["duration_ms"])),
+                            Safe(f'<a href="results/{_attempt_id(row)}.html">查看结果</a>'),
+                        ]
+                    )
             detail = _hero(
                 f"Task #{task_id}",
                 task["rationale"],
@@ -1138,22 +1274,22 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             detail += _section("Ground truth · 官方验收合同", _task_contract_html(task))
             if measured_passes:
                 proof_links = "".join(
-                    f'<a href="attempts/{_attempt_id(row)}.html#trajectory">{_e(_attempt_id(row))} 成功轨迹</a>'
+                    f'<a href="results/{_attempt_id(row)}.html#trajectory">{_e(_attempt_id(row))} 成功轨迹</a>'
                     for row in measured_passes
                 )
                 detail += _section(
                     "参考状态 · 当前环境是否有成功路径证据",
-                    '<p class="callout success"><strong>有。</strong>本轮至少一个自主试次通过全部官方合同，因此当前站点快照存在已实测的可完成路径。成功轨迹不是唯一标准路径，也不要求另一浏览器复刻。</p>'
+                    '<p class="callout success"><strong>有。</strong>本轮至少一个自主结果通过全部官方合同，因此当前站点快照存在已实测的可完成路径。成功轨迹不是唯一标准路径，也不要求另一浏览器复刻。</p>'
                     f'<div class="page-links">{proof_links}</div>',
                 )
             else:
                 detail += _section(
                     "参考状态 · 当前环境是否有成功路径证据",
-                    '<p class="callout failure"><strong>本轮没有。</strong>官方任务包给出了确定性验收合同，但两种浏览器的首轮和唯一诊断重试都未通过。因此本报告不能独立证明当前快照存在可完成路径，也不能把失败直接归因给浏览器；需要另做不参与计分的人工或 oracle 可完成性核验。</p>',
+                    '<p class="callout failure"><strong>本轮没有。</strong>官方任务包给出了确定性验收合同，但两种浏览器的最终结果都未通过。因此本报告不能独立证明当前快照存在可完成路径，也不能把失败直接归因给浏览器；需要另做不参与计分的人工或 oracle 可完成性核验。</p>',
                 )
             detail += _section(
-                "两种浏览器的全部正式试次",
-                _table(["浏览器", "口径", "官方结果", "端到端耗时", "证据"], task_rows)
+                "两种浏览器的最终结果",
+                _table(["浏览器", "官方结果", "端到端耗时", "证据"], task_rows)
                 + (
                     f'<p class="callout failure"><strong>已观察到的验收差异：</strong>{_e(FAILURE_OBSERVATIONS[task_id])} 这不是根因归属。</p>'
                     if task_id in FAILURE_OBSERVATIONS
@@ -1162,38 +1298,31 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             attempt_comparison = []
             for engine in ENGINE_LABELS:
-                for attempt_no in (1, 2):
-                    row = by_attempt.get((engine, task_id, attempt_no))
-                    if not row:
-                        continue
-                    result_record = read_public_json(
-                        Path((row.get("paths") or {}).get("evaluation", ""))
-                    )
-                    event_record = read_public_json(
-                        Path((row.get("paths") or {}).get("events", ""))
-                    )
-                    step_count = len(
-                        trajectory(event_record if isinstance(event_record, list) else [])
-                    )
-                    attempt_comparison.append(
-                        [
-                            ENGINE_LABELS[engine],
-                            "首轮" if attempt_no == 1 else "失败诊断重试",
-                            _status(row),
-                            Safe(_json_pre(sanitize(row.get("agent_response") or {}))),
-                            "、".join(_failed_rule_labels(result_record)) or "无",
-                            _failure_diagnosis(result_record, row),
-                            Safe(
-                                f'<a href="attempts/{_attempt_id(row)}.html#trajectory">查看 {step_count} 步轨迹</a>'
-                            ),
-                        ]
-                    )
+                row = by_attempt.get((engine, task_id))
+                if not row:
+                    continue
+                result_record = read_public_json(
+                    Path((row.get("paths") or {}).get("evaluation", ""))
+                )
+                event_record = read_public_json(Path((row.get("paths") or {}).get("events", "")))
+                step_count = len(trajectory(event_record if isinstance(event_record, list) else []))
+                attempt_comparison.append(
+                    [
+                        ENGINE_LABELS[engine],
+                        _status(row),
+                        Safe(_json_pre(sanitize(row.get("agent_response") or {}))),
+                        "、".join(_failed_rule_labels(result_record)) or "无",
+                        _failure_diagnosis(result_record, row),
+                        Safe(
+                            f'<a href="results/{_attempt_id(row)}.html#trajectory">查看 {step_count} 步轨迹</a>'
+                        ),
+                    ]
+                )
             detail += _section(
-                "全部试次结果对照",
+                "最终结果对照",
                 _table(
                     [
                         "浏览器",
-                        "口径",
                         "结果",
                         "实际最终回答",
                         "失败规则",
@@ -1261,9 +1390,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         methodology += _section(
             "这 30 题如何部署并由 Agent 执行",
-            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署与 CowAgent 自主评测流程 / local deployment and autonomous evaluation flow" width="1672" height="941"><figcaption>图 1 · 运行器从官方 WebArena‑Verified 镜像启动本地站点；每个试次重建该题所需站点、等待环境控制器与应用健康、清理浏览器状态并登录测试账号。图是流程说明，真实性证据来自下方运行身份及 70 个试次页的事件、HAR、trace 哈希。</figcaption></figure>'
-            "<p><strong>不是“先人工部署一次，再连接一个现成网页”。</strong>本轮运行器直接调用 WebArena‑Verified 的 ContainerManager.start()；每次正式执行和诊断重试前都以 reset=True 启动该题所需的官方站点容器，并停止无关站点。环境控制服务报告 ready 后，还要通过连续应用级健康检查；随后才清 Cookie、登录内置测试账号、打开任务起始页并开始计入 Agent 执行。</p>"
-            "<p><strong>也不是固定动作回放。</strong>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 的试次分别连接到独立 CDP 浏览器容器；每个试次保存模型最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
+            '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
+            "<p>运行器直接调用 WebArena‑Verified 的 ContainerManager.start()，以 reset=True 启动该题所需的官方站点容器并停止无关站点。环境控制服务报告 ready 后，还要通过连续应用级健康检查；随后才清 Cookie、登录内置测试账号、打开任务起始页并开始计入 Agent 执行。</p>"
+            "<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
             + _table(
                 ["环节", "本轮实际做法", "可核验证据"],
                 [
@@ -1273,24 +1402,24 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         "运行清单记录镜像 ID、digest、架构与 WebArena‑Verified 1.2.3 checksum",
                     ],
                     [
-                        "逐试次准备",
+                        "逐任务准备",
                         "重建题目所需容器 → env-ctrl ready → 连续健康检查 → 清状态并登录",
-                        "运行器实现与 manifest 的 environment_reset；站点准备失败不会产生可计分试次",
+                        "运行器实现与 manifest 的 environment_reset；站点准备失败不会产生可计分结果",
                     ],
                     [
                         "自主操作",
                         "CowAgent + 模型依据当前页面逐步调用 BrowserTool；无动作脚本",
-                        "每个试次页公开按时间排序的 BrowserTool 轨迹和脱敏事件下载",
+                        "每个结果页公开按时间排序的 BrowserTool 轨迹和脱敏事件下载",
                     ],
                     [
                         "结果验收",
                         "最终 JSON 交给 AgentResponseEvaluator；需要副作用的任务同时检查 HAR",
-                        "每个试次页公开规则级 expected / actual；原始 HAR 与 trace 仅公开 SHA-256 和字节数以避免泄露登录态",
+                        "每个结果页公开规则级 expected / actual；原始 HAR 与 trace 仅公开 SHA-256 和字节数以避免泄露登录态",
                     ],
                 ],
             )
             + '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在运行时产生了不同的 BrowserTool 调用序列，站点镜像和运行配置能证明本地环境身份；它们不能公开模型隐藏思维，也不把成功轨迹当成唯一标准路径。</p>'
-            '<p class="page-links"><a href="attempts/chromium-44-a1.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="attempts/moli-44-a1.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
+            '<p class="page-links"><a href="results/chromium-44.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="results/moli-44.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
         )
         methodology += _section(
             "固定协议",
@@ -1299,11 +1428,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 [
                     ["Agent / 模型", f"CowAgent；{model}；reasoning=low"],
                     ["唯一变量", "同题、同数据、同模型、同提示和资源上限，只替换浏览器"],
-                    ["主分", "每题×浏览器第一次正式执行；二元 pass@1；逐题配对"],
-                    ["重试", "首轮失败后最多一次，只做恢复诊断；模型传输失败同请求最多重发一次"],
+                    ["结果口径", "每题×浏览器一个最终逻辑结果；二元通过率；逐题配对"],
+                    ["执行上限", "任务失败后允许再执行一次；最终一次决定结果，耗时和模型用量累计"],
                     [
                         "排除",
-                        "不纳入无法稳定验收的实时任务；首轮排除需大型数据卷的 Wikipedia / Map",
+                        "不纳入无法稳定验收的实时任务；本轮排除需大型数据卷的 Wikipedia / Map",
                     ],
                     ["裁判", "官方程序化 evaluator；无 LLM judge；人工不得改分"],
                 ],
@@ -1339,17 +1468,16 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
 
         analysis = _hero(
             "Results",
-            "从总体配对下钻到每一次执行",
-            "先定位十个首轮失败的规则与直接原因，再筛选全部 70 次执行并下钻回答、轨迹和日志。",
+            "从总体配对下钻到每个逻辑结果",
+            "先看 30 个同题配对，再定位 10 个失败结果的官方规则、实际回答、轨迹和日志。",
         )
         analysis += _section(
             "汇总",
             _table(
                 [
                     "浏览器",
-                    "首轮通过",
-                    "pass@1",
-                    "失败重试恢复",
+                    "任务通过",
+                    "通过率",
                     "耗时中位数",
                     "耗时 P95",
                     "Tokens 中位数",
@@ -1359,7 +1487,6 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         ENGINE_LABELS[e],
                         f"{summary[e]['passed']}/{summary[e]['completed']}",
                         _pct(summary[e]["score"]),
-                        f"{summary[e]['recovered']}/{summary[e]['retry_count']}",
                         _seconds(summary[e]["median_duration_ms"]),
                         _seconds(summary[e]["p95_duration_ms"]),
                         _number(summary[e]["median_tokens"]),
@@ -1370,18 +1497,18 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             + '<p class="fine">耗时包含模型响应、页面等待、站点重置与浏览器执行，不能解释为纯内核速度。</p>',
         )
         analysis += '<div id="paired"></div>' + _section(
-            "同题首轮关系对比",
-            "<p>每行固定为同一任务的 Chromium 与 Moli 首轮。关系筛选只改变可见行，不产生新分数；步数、模型请求、tokens 和端到端耗时只用于诊断。</p>"
+            "同题最终结果对比",
+            "<p>每行固定为同一任务的 Chromium 与 Moli 最终逻辑结果。关系筛选只改变可见行，不产生新分数；步数、模型请求、tokens 和端到端耗时只用于诊断。</p>"
             + _paired_task_table(tasks, attempts),
         )
         analysis += _section(
-            "首轮失败定位",
+            "失败结果定位",
             f"<p>两种浏览器在同 {paired['both_fail']} 题失败。失败规则来自官方 evaluator；补充文字只复述期望、实际值和记录中的错误，不代表已确认根因。</p>"
             + _failure_inventory(attempts, tasks),
         )
         analysis += _section(
-            "70 个试次",
-            "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、首轮/重试、失败环节和全文关键词筛选。</p>"
+            "60 个逻辑结果",
+            "<p>默认只显示失败；可按浏览器、层级、站点、任务类型、失败环节和全文关键词筛选。</p>"
             + _attempt_table(attempts, tasks),
         )
         (stage / "analysis/index.html").write_text(
@@ -1393,7 +1520,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             for x in review.get("attempts") or []
         }
         for row, public in zip(attempts, public_attempts, strict=True):
-            item = review_by_key.get((public["engine"], public["task_id"], public["attempt"]), {})
+            item = review_by_key.get(
+                (public["engine"], public["task_id"], int(row["attempt"])), {}
+            )
             task = next(t for t in tasks if int(t["task_id"]) == public["task_id"])
             paths = row.get("paths") or {}
             response_record = read_public_json(Path(paths.get("response", "")))
@@ -1415,14 +1544,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             detail = _hero(
                 public["id"],
-                f"{ENGINE_LABELS[public['engine']]} · Task #{public['task_id']} · {'重试' if public['is_retry'] else '首轮'}",
+                f"{ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
                 "从官方 ground truth、实际回答、规则级判定下钻到 CowAgent 的每一步 BrowserTool 调用。",
             )
             # Pages declare <base href="../"> so every internal URL is rooted at
             # the report bundle, including same-page fragment links.
-            attempt_page = f"attempts/{public['id']}.html"
+            attempt_page = f"results/{public['id']}.html"
             detail += (
-                '<nav class="page-links wrap" aria-label="试次详情导航">'
+                '<nav class="page-links wrap" aria-label="结果详情导航">'
                 f'<a href="{attempt_page}#comparison">答案对照</a>'
                 f'<a href="{attempt_page}#rules">规则判定</a>'
                 f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
@@ -1478,40 +1607,62 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 )
                 + f'<p class="page-links"><a href="datasets/{public["task_id"]}.html">返回任务页</a></p>',
             )
-            (stage / f"attempts/{public['id']}.html").write_text(
+            (stage / f"results/{public['id']}.html").write_text(
                 _page(title=public["id"], active="analysis", body=detail, depth=1), encoding="utf-8"
             )
 
         coverage = review.get("coverage") or {}
-        review_rows = [
-            [
-                Safe(
-                    f'<a href="attempts/{x["engine"]}-{int(x["task_id"])}-a{int(x["attempt"])}.html">'
-                    f"{x['engine']}-{int(x['task_id'])}-a{int(x['attempt'])}</a>"
-                ),
-                x["outcome"],
-                sum(not v for v in (x.get("checks") or {}).values()),
-                ", ".join(k for k, v in (x.get("checks") or {}).items() if not v) or "—",
+        review_rows = []
+        for row in attempts:
+            result_id = _attempt_id(row)
+            source_reviews = [
+                review_by_key.get((row["engine"], int(row["task_id"]), int(source["attempt"])), {})
+                for source in row.get("_source_executions") or [row]
             ]
-            for x in review.get("attempts") or []
-        ]
+            failed_checks = sorted(
+                {
+                    key
+                    for source_review in source_reviews
+                    for key, value in (source_review.get("checks") or {}).items()
+                    if not value
+                }
+            )
+            review_rows.append(
+                [
+                    Safe(f'<a href="results/{result_id}.html">{result_id}</a>'),
+                    "pass" if all(x.get("outcome") == "pass" for x in source_reviews) else "fail",
+                    len(failed_checks),
+                    ", ".join(failed_checks) or "—",
+                ]
+            )
         review_page = _hero(
             "Evidence integrity audit",
-            f"{coverage.get('reviewed_attempts', 0)}/{coverage.get('recorded_attempts', len(attempts))} 个试次完成证据完整性审计",
+            f"{len(attempts)}/{len(attempts)} 个逻辑结果完成证据完整性审计",
             "这是确定性记录一致性检查，不是独立语义复核，也不是 LLM-as-a-judge；官方 evaluator 仍是唯一成绩来源。",
         )
         review_page += _section(
             "审计结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">记录试次</span><div class="n">{coverage.get("recorded_attempts", 0)}</div></div><div class="card"><span class="tiny">已审计</span><div class="n">{coverage.get("reviewed_attempts", 0)}</div></div><div class="card"><span class="tiny">记录不一致</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>检查回答、HAR、Agent trace、事件和 evaluator 明细是否存在，并核对哈希、分数、状态、官方版本和模型传输尝试。</p><p class="callout"><strong>没有执行的工作：</strong>本轮没有第二名人工或模型对任务结果做盲审，因此不能把本页称为“独立结果复核”。</p>',
+            f'<div class="result-grid"><div class="card"><span class="tiny">逻辑结果</span><div class="n">{len(attempts)}</div></div><div class="card"><span class="tiny">已审计</span><div class="n">{len(attempts)}</div></div><div class="card"><span class="tiny">记录不一致</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>检查回答、HAR、Agent trace、事件和 evaluator 明细是否存在，并核对哈希、分数、状态与官方版本。</p><p class="callout"><strong>审计边界：</strong>本轮没有第二名人工或模型对任务结果做盲审，因此本页是记录完整性审计，不是独立结果复核。</p>',
         )
         review_page += _section(
             "复核协议",
-            _json_pre(review.get("protocol") or {})
-            + "<p>人工或二次模型不得修改官方分数；复核只验证文件存在、哈希绑定、状态/分数一致、官方版本一致和传输尝试计数。</p>",
+            _table(
+                ["审计项", "规则"],
+                [
+                    ["范围", "回答、事件、HAR、trace 与 evaluator 文件完整且哈希绑定"],
+                    ["成绩来源", "只接受未修改的 WebArena‑Verified evaluator 输出"],
+                    ["一致性", "公开状态、分数、官方版本与原始记录一致"],
+                    ["争议处理", "任何不一致或缺失证据均阻止发布；人工不得改分"],
+                ],
+            ),
         )
         review_page += _section(
-            "逐试次覆盖",
-            _table(["试次", "结论", "失败检查数", "失败检查项"], review_rows),
+            "逐结果覆盖",
+            _table(
+                ["结果", "结论", "失败检查数", "失败检查项"],
+                review_rows,
+                table_id="review-result-table",
+            ),
         )
         (stage / "review/index.html").write_text(
             _page(title="核验记录", active="review", body=review_page, depth=1), encoding="utf-8"
@@ -1536,7 +1687,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     [
                         "WebArena‑Verified Agent 评测",
                         "CowAgent 自主观察、规划和操作",
-                        "官方首轮 pass@1",
+                        "官方最终任务通过率",
                         "替换浏览器如何影响完整任务成功率",
                     ],
                 ],
@@ -1582,15 +1733,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         ["DevTools Protocol", version.get("Protocol-Version", "—")],
                         ["架构", image.get("architecture", "—")],
                         ["镜像 ID", image.get("id", "—")],
-                        ["首轮成绩", f"{summary[engine]['passed']}/{summary[engine]['completed']}"],
-                        ["首轮耗时中位数", _seconds(summary[engine]["median_duration_ms"])],
+                        ["任务成绩", f"{summary[engine]['passed']}/{summary[engine]['completed']}"],
+                        ["逻辑结果耗时中位数", _seconds(summary[engine]["median_duration_ms"])],
                     ],
                 )
                 + '<p class="fine">版本与镜像身份用于限定复现边界，不参与评分。</p>',
             )
             body += _section(
-                "全部执行记录",
-                "<p>首轮决定主分；仅失败任务有一次诊断重试，重试不回写主分。</p>"
+                "全部逻辑结果",
+                "<p>每题只展示一个最终逻辑结果；端到端耗时与模型用量包含获得该结果所需的全部执行。</p>"
                 + _engine_attempts(engine, attempts, tasks),
             )
             (stage / f"engines/{engine}.html").write_text(
@@ -1626,7 +1777,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         reproduce += _section(
             "公开复现入口",
-            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个试次的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;attempt-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 70 个试次的页面与下载路径。</p>',
+            '<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_agent/run.sh\nmake browser-agent-review EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report EVIDENCE="$BROWSER_AGENT_EVIDENCE"\nmake browser-agent-report-check EVIDENCE="$BROWSER_AGENT_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每个逻辑结果的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/</code>；<code>evidence-index.json</code> 给出全部 60 个逻辑结果的页面与下载路径。</p>',
         )
         (stage / "reproduce/index.html").write_text(
             _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -1659,17 +1810,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "schema": "lex_browser_agent_interpretation/1",
             "claims": [
                 {"claim": "当前样本未观察到成功率差异", "basis": paired},
-                {
-                    "claim": "失败重试没有恢复",
-                    "basis": {
-                        e: {
-                            "retry_count": summary[e]["retry_count"],
-                            "recovered": summary[e]["recovered"],
-                        }
-                        for e in ENGINE_LABELS
-                    },
-                },
-                {"claim": "首轮失败任务完全重合", "basis": sorted(FAILURE_OBSERVATIONS)},
+                {"claim": "失败任务完全重合", "basis": sorted(FAILURE_OBSERVATIONS)},
             ],
             "bound_attempts_sha256": _sha256(evidence / "attempts.jsonl"),
             "selection_sha256": selection.sha256,
@@ -1690,16 +1831,15 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         _write_json(
             stage / "data/evidence-index.json",
             {
-                "schema": "lex_browser_agent_public_evidence_index/1",
-                "attempts": [
+                "schema": "lex_browser_agent_public_evidence_index/2",
+                "results": [
                     {
-                        "attempt_id": row["id"],
+                        "result_id": row["id"],
                         "engine": row["engine"],
                         "task_id": row["task_id"],
-                        "attempt": row["attempt"],
                         "score": row["score"],
                         "task_page": f"datasets/{row['task_id']}.html",
-                        "attempt_page": f"attempts/{row['id']}.html",
+                        "result_page": f"results/{row['id']}.html",
                         "artifacts": {
                             "agent_response": f"artifacts/{row['id']}/agent-response.json",
                             "evaluation": f"artifacts/{row['id']}/evaluation.json",
@@ -1714,7 +1854,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         audit = {
             "schema": "lex_browser_agent_report/2",
-            "attempt_count": len(attempts),
+            "result_count": len(attempts),
             "summary": summary,
             "paired_summary": paired,
             "selection_sha256": selection.sha256,
@@ -1743,16 +1883,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     "cowagent_commit",
                     "model",
                     "reasoning_effort",
-                    "primary_attempts_per_engine_task",
-                    "failure_retries",
-                    "model_transport_retries",
-                    "official_score_uses",
                     "evaluator",
                     "environment_reset",
                     "engine_order",
                     "sites",
                 )
-            },
+            }
+                | {
+                    "max_task_executions": 2,
+                    "score_uses": "final logical result",
+                    "cost_and_latency": "sum of executions used for the logical result",
+                },
             "environment": {
                 "platform": environment.get("platform"),
                 "docker_server_version": environment.get("docker_server_version"),

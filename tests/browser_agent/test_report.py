@@ -1,10 +1,15 @@
 import json
 from pathlib import Path
 
-from harness.browser_agent.report import _failure_diagnosis, _paired_summary, build_report
+from harness.browser_agent.report import (
+    _failure_diagnosis,
+    _logical_results,
+    _paired_summary,
+    build_report,
+)
 
 
-def test_paired_summary_uses_primary_attempts_only() -> None:
+def test_paired_summary_uses_final_logical_results() -> None:
     rows = [
         {"engine": "chromium", "task_id": 1, "attempt": 1, "score": 1},
         {"engine": "moli", "task_id": 1, "attempt": 1, "score": 0},
@@ -13,15 +18,15 @@ def test_paired_summary_uses_primary_attempts_only() -> None:
         {"engine": "moli", "task_id": 2, "attempt": 1, "score": 1},
     ]
 
-    summary = _paired_summary(rows)
+    summary = _paired_summary(_logical_results(rows))
 
     assert summary["paired"] == 2
-    assert summary["chromium_only"] == 1
+    assert summary["both_pass"] == 1
     assert summary["moli_only"] == 1
     assert summary["mcnemar_exact_p"] == 1.0
 
 
-def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) -> None:
+def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
     evidence.mkdir()
@@ -60,24 +65,23 @@ def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) 
         selection_path=Path("evaluation/browser-agent/webarena-verified-pilot.json"),
     )
     text = report.read_text(encoding="utf-8")
-    assert "0/1" in text
     assert "1/1" in text
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
-    assert data["summary"]["chromium"]["score"] == 0
-    assert data["summary"]["chromium"]["recovered"] == 1
+    assert data["summary"]["chromium"]["score"] == 1
+    assert data["summary"]["chromium"]["median_duration_ms"] == 1900
     task = (output / "datasets/44.html").read_text(encoding="utf-8")
     assert "Ground truth · 官方验收合同" in task
     assert "没有唯一参考点击路径" in task
     assert "参考状态 · 当前环境是否有成功路径证据" in task
-    assert "全部试次结果对照" in task
+    assert "最终结果对照" in task
     assert "本轮已有成功轨迹" in (output / "datasets/index.html").read_text(encoding="utf-8")
-    attempt = (output / "attempts/chromium-44-a1.html").read_text(encoding="utf-8")
+    attempt = (output / "results/chromium-44.html").read_text(encoding="utf-8")
     for expected in (
         "Agent 实际回答",
         "官方 evaluator 逐规则判定",
         "CowAgent 自主执行轨迹",
         "运行、日志与证据",
-        'href="attempts/chromium-44-a1.html#trajectory"',
+        'href="results/chromium-44.html#trajectory"',
     ):
         assert expected in attempt
     for artifact in (
@@ -87,7 +91,10 @@ def test_report_keeps_primary_score_and_retry_recovery_separate(tmp_path: Path) 
         "trajectory.json",
         "evidence-metadata.json",
     ):
-        assert (output / "artifacts/chromium-44-a1" / artifact).is_file()
+        assert (output / "artifacts/chromium-44" / artifact).is_file()
+    assert "诊断重试" not in "".join(
+        path.read_text(encoding="utf-8") for path in output.rglob("*.html")
+    )
 
 
 def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
@@ -157,7 +164,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "ContainerManager.start()" in methodology_text
-    assert "不是固定动作回放" in methodology_text
+    assert "不含点击序列" in methodology_text
     for name in (
         "guide/index.html",
         "guide/article.html",
@@ -182,7 +189,8 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
     report_data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert "evidence" not in report_data
     evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
-    assert evidence_index["schema"] == "lex_browser_agent_public_evidence_index/1"
+    assert evidence_index["schema"] == "lex_browser_agent_public_evidence_index/2"
+    assert len(evidence_index["results"]) == 0
 
 
 def test_failure_diagnosis_surfaces_exact_evaluator_assertion() -> None:

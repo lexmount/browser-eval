@@ -18,14 +18,15 @@ RECEIPT = Path("publish/browser-agent-artifact-hub-receipt.json")
 PROFILE = Path("evaluation/browser-agent/current-report.json")
 
 
-def publication_target() -> tuple[str, str]:
+def publication_target() -> tuple[str, str, str]:
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     publication = profile.get("publication") or {}
     base = str(publication.get("base_url") or "").rstrip("/")
     slug = str(publication.get("site_slug") or "")
-    if not base.startswith("https://") or not slug:
+    version = str(publication.get("expected_version") or "")
+    if not base.startswith("https://") or not slug or not version.startswith("ver_"):
         raise ValueError("current Browser Agent report has no valid publication target")
-    return base, slug
+    return base, slug, version
 
 
 def request(
@@ -35,7 +36,7 @@ def request(
     *,
     method: str | None = None,
 ):
-    base, _ = publication_target()
+    base, _, _ = publication_target()
     headers = {
         "Authorization": "Bearer " + load_token(),
         "User-Agent": "Browser-Agent-Report-Publisher/1.0",
@@ -83,7 +84,7 @@ def save_receipt(result: dict) -> None:
 
 def main(*, create: bool = False) -> None:
     payload, content_type = multipart_archive()
-    base, expected_slug = publication_target()
+    base, expected_slug, expected_version = publication_target()
     if create:
         status, raw = request("/api/sites", payload, content_type)
         result = json.loads(raw)
@@ -103,7 +104,9 @@ def main(*, create: bool = False) -> None:
         version_id = (current.get("site") or {}).get("currentVersionId")
         if status != 200 or not version_id:
             raise RuntimeError("could not resolve the current Artifact Hub version")
-        query = urllib.parse.urlencode({"expected_version": version_id})
+        if version_id != expected_version:
+            raise ValueError("Artifact Hub current version differs from current-report authority")
+        query = urllib.parse.urlencode({"expected_version": expected_version})
         status, raw = request(
             f"/api/sites/{result['slug']}/versions?{query}", payload, content_type
         )

@@ -20,6 +20,8 @@ Read the repository's `AGENTS.md` first. Project rules override this general ski
 7. Rerun only calls whose inputs, provider route/version, runtime contract, or source validity changed. Recompute downstream scores and reports without provider calls when only scoring, annotations, or presentation changed. Never retry merely to obtain a better result.
 8. Build the public report from the frozen evidence. Every page should answer a reader question. Show task and run identifiers, the exact expected-versus-actual evidence behind a verdict, denominators and unavailable metrics, method differences, limits, concise reproduction instructions, and a compact review history.
 9. Release only after code tests, evidence integrity, report links, responsive/visual checks, secret scans, target-site checks, and deployed-output verification pass. Preserve earlier sites unless replacement was explicitly requested.
+10. Present one authoritative logical result per method and task. If the frozen protocol permits one additional execution after failure, keep physical calls in the evidence chain, use the final execution without best-of selection, and aggregate all latency and cost. Do not make execution ordinal labels part of the public comparison unless retry behavior is the declared subject.
+11. Treat visual QA as evidence QA. Inspect every core route class at desktop and narrow widths in light and dark themes. Reject one-character vertical table wrapping, unreadable code/evidence contrast, clipped controls, text-heavy raster diagrams, and mobile layouts that merely shrink dense content below readable size.
 
 ## Stop conditions
 
