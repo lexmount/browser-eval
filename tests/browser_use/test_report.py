@@ -309,6 +309,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
                     "reasoning_effort": "low",
                 },
                 "environment": {
+                    "site_access_host": "192.168.5.2",
                     "docker_architecture": "aarch64",
                     "docker_server_version": "28.0",
                     "webarena_verified_version": "1.2.3",

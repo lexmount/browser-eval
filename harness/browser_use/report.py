@@ -1514,6 +1514,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     task_count = len(tasks)
     result_count = len(attempts)
     max_agent_steps = int(config.get("max_agent_steps") or protocol.get("max_agent_steps") or 0)
+    site_access_host = str(environment.get("site_access_host") or config.get("site_access_host") or "未记录")
+    preparation_receipt_count = sum(
+        Path(str((row.get("paths") or {}).get("environment_prepare") or "")).is_file()
+        for row in source_attempts
+    )
+    preparation_receipts_complete = bool(source_attempts) and preparation_receipt_count == len(
+        source_attempts
+    )
     tier_counts = {
         tier: sum(task["tier"] == tier for task in tasks) for tier in ("easy", "medium", "hard")
     }
@@ -1765,29 +1773,37 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         methodology += _section(
             f"这 {task_count} 题如何部署并由 Agent 执行",
             '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
-            "<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；本轮 Colima VM 地址是 <code>192.168.5.3</code>，其默认路由指向 <code>192.168.5.2</code>。后者是 VM 视角下的 macOS 宿主网关，不是虚拟机地址，也不是评测网站。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个宿主入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
+            f"<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；运行配置记录的 <code>{_e(site_access_host)}</code> 是浏览器容器访问 macOS 宿主发布端口所用的 Colima 网关，不是评测网站自身地址。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
             f"<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 {task_count} 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
-            "<p>运行器代码在每个执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前冻结证据保存了代码提交、运行协议和镜像身份；事件流从环境准备完成后开始，因此逐次 reset、ready 与 health 结果未形成独立绑定的准备回执。新版运行协议已要求保存该回执。</p>"
-            f"<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 {max_agent_steps} 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
+            + (
+                f"<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。本轮 {preparation_receipt_count}/{len(source_attempts)} 个物理执行都保存了环境准备回执，并与对应执行记录绑定。</p>"
+                if preparation_receipts_complete
+                else "<p>运行器在每个物理执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前证据尚未完整保存逐执行环境准备回执，因此不能把每次准备成功当成已独立核验的事实。</p>"
+            )
+            + f"<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 {max_agent_steps} 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
             + _table(
                 ["站点", "本轮访问地址", "应用端口", "环境控制端口", "状态"],
                 [
-                    ["Shopping", "http://192.168.5.2:7770", "7770", "7771", "本轮已部署"],
+                    ["Shopping", f"http://{site_access_host}:7770", "7770", "7771", "本轮已部署"],
                     [
                         "Shopping Admin",
-                        "http://192.168.5.2:7780/admin",
+                        f"http://{site_access_host}:7780/admin",
                         "7780",
                         "7781",
                         "本轮已部署",
                     ],
-                    ["Reddit", "http://192.168.5.2:9999", "9999", "9998", "本轮已部署"],
-                    ["GitLab", "http://192.168.5.2:8023", "8023", "8024", "本轮已部署"],
+                    ["Reddit", f"http://{site_access_host}:9999", "9999", "9998", "本轮已部署"],
+                    ["GitLab", f"http://{site_access_host}:8023", "8023", "8024", "本轮已部署"],
                     ["Wikipedia", "—", "8888", "8889", f"未部署；不在 {task_count} 题"],
                     ["Map", "—", "3030", "3031", f"未部署；不在 {task_count} 题"],
                 ],
             )
-            + '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。当前证据没有独立的逐次环境准备 receipt，因此报告不把“每次重置均成功”当成已经独立核验的事实。</p>'
-            '<p class="page-links"><a href="results/chromium-44.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="results/moli-44.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
+            + (
+                f'<p class="callout success"><strong>环境准备证据：</strong>{preparation_receipt_count}/{len(source_attempts)} 个物理执行均记录 reset、ready、应用健康检查和登录准备状态；事件流随后证明 CowAgent 自主产生 BrowserTool 调用序列。</p>'
+                if preparation_receipts_complete
+                else '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。逐执行环境准备回执尚不完整。</p>'
+            )
+            + '<p class="page-links"><a href="results/chromium-44.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="results/moli-44.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
         )
         methodology += _section(
             "Mac 上可以继续扩展哪些实例",
@@ -2180,7 +2196,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     for site, image in site_images.items()
                 ],
             )
-            + '<p class="fine">逐执行的环境准备 receipt 尚未包含在这批冻结证据中；现有记录可核对运行器配置与镜像身份，但不能独立重放每次 reset/ready/health 的完整证明链。</p>',
+            + (
+                f'<p class="fine">本轮 {preparation_receipt_count}/{len(source_attempts)} 个物理执行均保存环境准备回执；公开环境摘要保留逐项状态，原始登录态不发布。</p>'
+                if preparation_receipts_complete
+                else '<p class="fine">逐执行环境准备回执尚不完整；现有记录只能核对运行器配置与镜像身份。</p>'
+            ),
         )
         reproduce += _section(
             "公开复现入口",
