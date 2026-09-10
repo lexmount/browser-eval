@@ -11,7 +11,7 @@ import re
 import shutil
 import statistics
 import tempfile
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
@@ -1575,6 +1575,33 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         c, m = summary["chromium"], summary["moli"]
         families = _task_family_summary(tasks, attempts)
         coverage = review.get("coverage") or {}
+        participant_score_cards = "".join(
+            '<div class="card"><span class="tiny">'
+            + _e(f"{ENGINE_LABELS[engine]} 任务通过")
+            + f'</span><div class="n">{values["passed"]}/{values["completed"]}</div>'
+            + f'<p>{_pct(values["score"])}</p></div>'
+            for engine, values in summary.items()
+        )
+        cause_counts = Counter(
+            str((item.get("subcategory") or {}).get("zh") or "未分类")
+            for item in verified_causes.values()
+        )
+        cause_cards = "".join(
+            f'<div class="card"><span class="tiny">{_e(category)}</span><div class="n">{count}</div><p>个失败结果</p></div>'
+            for category, count in sorted(cause_counts.items())
+        )
+        if failed_result_ids and set(verified_causes) == failed_result_ids:
+            failure_overview = (
+                f'<div class="result-grid">{cause_cards}</div>'
+                f'<p class="callout success"><strong>根因核验：</strong>{len(verified_causes)}/{len(failed_result_ids)} 个失败结果已逐个绑定当前证据并完成核验。</p>'
+                '<p><a href="guide/#failure-findings">查看逐结果根因与证据边界 →</a></p>'
+            )
+        elif failed_result_ids:
+            failure_overview = (
+                f'<p class="callout"><strong>根因核验：</strong>{len(verified_causes)}/{len(failed_result_ids)} 个失败结果已完成；未核验结果不展示推测性原因。</p>'
+            )
+        else:
+            failure_overview = '<p class="callout success"><strong>根因核验：</strong>本轮没有失败结果。</p>'
         family_cards = "".join(
             '<article class="overview-card">'
             f'<span class="tiny">{_e(family["kind"])}</span>'
@@ -1591,14 +1618,12 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "先看结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同零分</span><div class="n">{paired["both_fail"]}</div><p>不等于共同根因</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout"><strong>根因结论：</strong>#68 是官方任务合同冲突，#124 是候选语义核验缺失，#142 是类别验收边界未定义，#168 是本项目响应协议错误；#506 的 Chromium 是 HAR 采集误判，Moli 是执行步数与完成确认问题。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
+            f'<div class="result-grid">{participant_score_cards}<div class="card"><span class="tiny">单边通过</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>不等于共同根因</p></div></div><p class="callout"><strong>结果边界：</strong>本轮观察到 {paired["chromium_only"] + paired["moli_only"]} 个浏览器间不一致配对；结论只适用于这批受控任务，不证明内核等价或全面替代关系。</p><p class="fine">这是固定选择的 {task_count} 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
         )
         home += _section(
-            "共同失败是报告解读的核心证据",
-            "<p>25:25 只说明当前样本没有产生浏览器分歧。理解这个结果必须继续看五个共同失败发生在哪个验收点，而不是把平分直接解释成内核等价。</p>"
-            '<div class="result-grid"><div class="card"><span class="tiny">任务合同问题</span><div class="n">2 题</div><p>#68 schema 冲突；#142 类别口径缺失</p></div><div class="card"><span class="tiny">Agent 协议与策略</span><div class="n">2 题</div><p>#124 未核验候选；#168 空结果状态错误</p></div><div class="card"><span class="tiny">不同根因的同分</span><div class="n">1 题</div><p>#506：Chromium 采集误判；Moli 未确认完成</p></div></div>'
-            '<p class="callout"><strong>处理原则：</strong>合同不稳定的任务退出下一轮样本；代码与协议缺陷修复后只通过新执行验证，不覆盖历史官方分数。</p>'
-            '<p><a href="guide/#failure-findings">查看五题根因、证据闭环与复测门槛 →</a></p>',
+            "失败根因是报告解读的核心证据",
+            "<p>官方 evaluator 的错误信息只定位未满足的验收规则；根因核验继续检查任务合同、最终回答、网络记录和自主轨迹。未完成核验前，报告保留自动分类，但不展示推测性根因。</p>"
+            + failure_overview,
         )
         home += _section(
             "任务族覆盖",
@@ -1638,7 +1663,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         guide = (
             _hero(
                 "Report interpretation",
-                "从 25 比 25 读出下一轮该怎么做",
+                f"从 {c['passed']}/{c['completed']} 对 {m['passed']}/{m['completed']} 读出下一轮该怎么做",
                 "完整文章与首页共用同一份测量数据；另提供无 JavaScript 的独立导出版。",
             )
             + _section(
