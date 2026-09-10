@@ -102,6 +102,7 @@ def main() -> None:
     )
     parser.add_argument("--engines", default="chromium,moli")
     parser.add_argument("--qualification-run", action="store_true")
+    parser.add_argument("--trajectory-authoring-run", action="store_true")
     parser.add_argument(
         "--task-ids",
         help="comma-separated task IDs; used for site-grouped WebArena batches",
@@ -136,7 +137,11 @@ def main() -> None:
             else None
         )
     )
-    lock = qualification_lock(args.output) if args.qualification_run else nullcontext()
+    lock = (
+        qualification_lock(args.output)
+        if args.qualification_run or args.trajectory_authoring_run
+        else nullcontext()
+    )
     with lock:
         run_evaluation(
             suite_path=args.suite,
@@ -154,6 +159,7 @@ def main() -> None:
             webarena_config_path=args.webarena_config,
             engines=tuple(item.strip() for item in args.engines.split(",") if item.strip()),
             qualification_run=args.qualification_run,
+            trajectory_authoring_run=args.trajectory_authoring_run,
             task_ids=selected_task_ids,
             task_selection=(
                 {

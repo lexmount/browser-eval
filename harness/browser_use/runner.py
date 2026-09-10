@@ -556,6 +556,7 @@ def run_evaluation(
     webarena_config_path: str | Path | None = None,
     engines: tuple[str, ...] = ("chromium", "moli"),
     qualification_run: bool = False,
+    trajectory_authoring_run: bool = False,
     task_ids: tuple[str, ...] | None = None,
     task_selection: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -569,9 +570,13 @@ def run_evaluation(
         or any(engine not in ENGINE_IMAGES for engine in engines)
     ):
         raise ValueError(f"engines must be a unique subset of {tuple(ENGINE_IMAGES)}")
-    if qualification_run and (engines != ("chromium",) or max_retries != 0):
+    if qualification_run and trajectory_authoring_run:
+        raise ValueError("qualification_run and trajectory_authoring_run are mutually exclusive")
+    if (qualification_run or trajectory_authoring_run) and (
+        engines != ("chromium",) or max_retries != 0
+    ):
         raise ValueError(
-            "qualification_run requires exactly one primary Chromium attempt and no retries"
+            "qualification and trajectory authoring require one Chromium attempt and no retries"
         )
     suite = load_suite(suite_path)
     declared_ids = {task.task_id for task in suite.tasks}
@@ -592,12 +597,20 @@ def run_evaluation(
         for task in selected_tasks
         if (task.environment or {}).get("kind") == "webarena_verified"
     }
-    allowed_states = {"pending"} if qualification_run else {"eligible", "skipped"}
+    allowed_states = (
+        {"pending"} if qualification_run or trajectory_authoring_run else {"eligible", "skipped"}
+    )
     invalid_states = {
         task_id: state for task_id, state in webarena_states.items() if state not in allowed_states
     }
     if invalid_states:
-        mode = "qualification" if qualification_run else "formal measurement"
+        mode = (
+            "qualification"
+            if qualification_run
+            else "trajectory authoring"
+            if trajectory_authoring_run
+            else "formal measurement"
+        )
         raise ValueError(
             f"WebArena {mode} has invalid qualification states: {invalid_states}; "
             f"allowed states are {sorted(allowed_states)}"
@@ -608,6 +621,12 @@ def run_evaluation(
         if qualification_run
         or (task.ground_truth.get("qualification") or {}).get("status") != "skipped"
     )
+    if trajectory_authoring_run:
+        non_retrieve = [task.task_id for task in runnable_tasks if "retrieve" not in task.tags]
+        if non_retrieve:
+            raise ValueError(
+                "trajectory_authoring_run permits retrieve tasks only: " + ", ".join(non_retrieve)
+            )
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
         if ground_truth_evidence_path is not None
@@ -649,6 +668,7 @@ def run_evaluation(
     if uses_local_fixtures:
         fixture_runtime = _start_fixture_server(Path(suite_path).resolve().parent / "fixtures")
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
+    authoring_initialized_sites: set[str] = set()
     try:
         for engine in engines:
             network = client.networks.create(
@@ -697,7 +717,17 @@ def run_evaluation(
                     environment_reset = None
                     if (task.environment or {}).get("kind") == "webarena_verified":
                         assert webarena_environment is not None
-                        environment_reset = webarena_environment.reset(task, site_client)
+                        task_sites = set((task.environment or {}).get("sites") or [])
+                        if trajectory_authoring_run and task_sites <= authoring_initialized_sites:
+                            environment_reset = {
+                                "diagnostic_only": True,
+                                "mode": "warm_retrieve_authoring_reuse",
+                                "sites": sorted(task_sites),
+                            }
+                        else:
+                            environment_reset = webarena_environment.reset(task, site_client)
+                            if trajectory_authoring_run:
+                                authoring_initialized_sites.update(task_sites)
                         pages[engine] = webarena_environment.prepare(task, pages[engine])
                     row = _run_task(
                         engine,
@@ -713,6 +743,7 @@ def run_evaluation(
                     )
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run
+                    row["trajectory_authoring_run"] = trajectory_authoring_run
                     row["environment_reset"] = environment_reset
                     row["task_contract_sha256"] = task_contract_sha256(
                         {
@@ -833,6 +864,13 @@ def run_evaluation(
                 "engine_order": "balanced by task index",
                 "engines": list(engines),
                 "qualification_run": qualification_run,
+                "trajectory_authoring_run": trajectory_authoring_run,
+                "trajectory_authoring_scope": (
+                    "diagnostic-only retrieve tasks; one site reset before each site's warm batch; "
+                    "never accepted as qualification evidence"
+                    if trajectory_authoring_run
+                    else None
+                ),
                 "task_filter": [task.task_id for task in selected_tasks],
                 "task_selection": task_selection,
                 "skipped_qualified_tasks": [
@@ -883,7 +921,7 @@ def run_evaluation(
             reasoning_effort=diagnosis_reasoning_effort,
         )
         _write_run_artifacts(output, rows, summary, manifest)
-        if not qualification_run:
+        if not qualification_run and not trajectory_authoring_run:
             write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:

@@ -203,6 +203,18 @@ pre-registered IDs for the active site group:
 uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/<batch>
 ```
 
+Codex may first use a warm-site authoring run to inspect and repair pending retrieve-only
+trajectories in batches. This mode resets each involved site once, but still creates a fresh browser
+context for every task. It is diagnostic only: its manifest and attempts are explicitly marked
+`trajectory_authoring_run`, it cannot include state-changing tasks or retries, and its output is
+never accepted by the qualification gate. Every proposed trajectory must subsequently pass a clean
+Chromium qualification run with the normal per-task reset and complete HAR, screenshot, final-page,
+and evaluator evidence.
+
+```text
+uv run --frozen python -m harness.browser_use.cli --suite <evidence>/authoring/retrieve-suite.json --webarena-config <runtime-config> --trajectory-authoring-run --engines chromium --failure-retries 0 --output <evidence>/authoring/retrieve
+```
+
 For the pre-registered single-host amd64 run, select an immutable batch directly. The CLI verifies
 that the scope is bound to the exact suite SHA before starting Docker:
 

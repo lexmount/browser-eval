@@ -67,6 +67,63 @@ def test_measured_run_rejects_unlimited_cpu(tmp_path):
         )
 
 
+def test_trajectory_authoring_requires_one_chromium_attempt(tmp_path):
+    with pytest.raises(ValueError, match="one Chromium attempt"):
+        runner.run_evaluation(
+            suite_path=tmp_path / "not-read.json",
+            output_dir=tmp_path / "output",
+            reports_dir=tmp_path / "reports",
+            trajectory_authoring_run=True,
+            engines=("chromium", "moli"),
+            max_retries=0,
+        )
+
+
+def test_trajectory_authoring_and_qualification_are_mutually_exclusive(tmp_path):
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        runner.run_evaluation(
+            suite_path=tmp_path / "not-read.json",
+            output_dir=tmp_path / "output",
+            reports_dir=tmp_path / "reports",
+            trajectory_authoring_run=True,
+            qualification_run=True,
+            engines=("chromium",),
+            max_retries=0,
+        )
+
+
+def test_trajectory_authoring_rejects_state_mutation_tasks_before_docker(
+    tmp_path, monkeypatch
+):
+    task = BrowserTask(
+        task_id="webarena-1",
+        title="Mutation",
+        tool_calls=({"name": "click", "arguments": {}},),
+        assertions=(),
+        tags=("state_mutation",),
+        difficulty="simple",
+        ground_truth={"qualification": {"status": "pending"}},
+        source={},
+        environment={"kind": "webarena_verified", "sites": ["shopping"]},
+    )
+    monkeypatch.setattr(runner, "load_suite", lambda _: TaskSuite("test", (task,)))
+    client = MagicMock()
+    monkeypatch.setattr(runner.docker, "from_env", lambda: client)
+
+    with pytest.raises(ValueError, match="permits retrieve tasks only: webarena-1"):
+        runner.run_evaluation(
+            suite_path=tmp_path / "suite.json",
+            output_dir=tmp_path / "output",
+            reports_dir=tmp_path / "reports",
+            trajectory_authoring_run=True,
+            engines=("chromium",),
+            max_retries=0,
+            webarena_config_path=tmp_path / "webarena.json",
+        )
+
+    client.networks.create.assert_not_called()
+
+
 def test_measured_run_rejects_missing_cgroup_controls_before_creating_output(
     tmp_path, monkeypatch
 ):
