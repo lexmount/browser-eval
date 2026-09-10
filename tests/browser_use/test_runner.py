@@ -56,10 +56,24 @@ def test_system_contract_fails_empty_retrieve_as_not_found() -> None:
 
 
 def test_agent_step_exhaustion_requires_a_final_tool_call() -> None:
-    exhausted = [{"type": "turn_end", "data": {"turn": 40, "has_tool_calls": True}}]
-    completed = [{"type": "turn_end", "data": {"turn": 40, "has_tool_calls": False}}]
+    exhausted = [
+        {"type": "turn_end", "data": {"turn": turn, "has_tool_calls": True}}
+        for turn in range(1, 41)
+    ]
+    zero_indexed = [
+        {"type": "turn_end", "data": {"turn": turn, "has_tool_calls": True}}
+        for turn in range(40)
+    ]
+    completed = [
+        {
+            "type": "turn_end",
+            "data": {"turn": turn, "has_tool_calls": turn != 40},
+        }
+        for turn in range(1, 41)
+    ]
 
     assert _exhausted_agent_steps(exhausted, 40) is True
+    assert _exhausted_agent_steps(zero_indexed, 40) is True
     assert _exhausted_agent_steps(completed, 40) is False
     assert _max_steps_response("retrieve", 40) == {
         "task_type": "RETRIEVE",

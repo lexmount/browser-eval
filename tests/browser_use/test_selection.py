@@ -100,6 +100,21 @@ def test_json_schema_validates_nested_contract_keywords() -> None:
         )
 
 
+def test_json_schema_treats_official_format_as_hint_and_rejects_unknown_keywords() -> None:
+    _validate_json_schema(
+        "2026-09-10",
+        {"type": "string", "format": "date", "title": "Arrival date"},
+        path="expected.retrieved_data",
+    )
+    for keyword in ("allOf", "$ref", "pattern", "minimum"):
+        with pytest.raises(ValueError, match="unsupported schema keyword"):
+            _validate_json_schema(
+                "value",
+                {"type": "string", keyword: []},
+                path="expected.retrieved_data",
+            )
+
+
 def test_official_contract_validation_rejects_task_68_null_author() -> None:
     evaluator = SimpleNamespace(
         evaluator="AgentResponseEvaluator",

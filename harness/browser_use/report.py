@@ -63,7 +63,7 @@ MAC_COUNTS = MAC_EXPANSION["official_counts"]
 
 
 def _finding_text(diagnosis: dict[str, Any], field: str) -> str:
-    value = diagnosis[field]
+    value = diagnosis.get(field, {})
     return str(value.get("zh") or value.get("en") or "") if isinstance(value, dict) else str(value)
 
 

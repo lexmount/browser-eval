@@ -460,7 +460,7 @@ def _exhausted_agent_steps(events: list[dict[str, Any]], max_steps: int) -> bool
     if not turns:
         return False
     data = turns[-1].get("data") or {}
-    return int(data.get("turn") or 0) >= max_steps and bool(data.get("has_tool_calls"))
+    return len(turns) >= max_steps and bool(data.get("has_tool_calls"))
 
 
 def _max_steps_response(task_type: str, max_steps: int) -> dict[str, Any]:

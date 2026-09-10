@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
@@ -54,9 +55,33 @@ def _json_equal(left: Any, right: Any) -> bool:
 
 
 def _validate_json_schema(value: Any, schema: Any, *, path: str) -> None:
-    """Validate the JSON Schema subset used by official response contracts."""
+    """Validate the JSON Schema subset used by official response contracts.
+
+    The current official dataset uses structural keywords plus ``format`` as a
+    normalization hint. Unknown validation keywords fail closed so a future
+    contract cannot silently bypass this preflight.
+    """
     if not isinstance(schema, dict):
         raise ValueError(f"{path}: schema must be an object")
+    supported = {
+        "anyOf",
+        "oneOf",
+        "const",
+        "enum",
+        "type",
+        "required",
+        "properties",
+        "items",
+        "format",
+        "title",
+    }
+    unsupported = sorted(set(schema) - supported)
+    if unsupported:
+        raise ValueError(f"{path}: unsupported schema keyword {unsupported[0]!r}")
+    if "format" in schema and not isinstance(schema["format"], str):
+        raise ValueError(f"{path}: format must be a string")
+    if "title" in schema and not isinstance(schema["title"], str):
+        raise ValueError(f"{path}: title must be a string")
 
     for keyword in ("anyOf", "oneOf"):
         if keyword not in schema:
@@ -162,12 +187,19 @@ def _validate_agent_response_contract(task_id: int, task: Any) -> None:
             ) from exc
 
 
-def _task_exclusion(task_id: int) -> dict[str, str] | None:
+@lru_cache(maxsize=1)
+def _task_exclusions() -> dict[str, dict[str, str]]:
     payload = json.loads(TASK_EXCLUSIONS_PATH.read_text(encoding="utf-8"))
     if payload.get("schema") != "lex_browser_use_task_exclusions/1":
         raise ValueError("unsupported Browser Use task-exclusion schema")
-    item = (payload.get("tasks") or {}).get(str(task_id))
-    return {str(key): str(value) for key, value in item.items()} if item else None
+    return {
+        str(task_id): {str(key): str(value) for key, value in item.items()}
+        for task_id, item in (payload.get("tasks") or {}).items()
+    }
+
+
+def _task_exclusion(task_id: int) -> dict[str, str] | None:
+    return _task_exclusions().get(str(task_id))
 
 
 def load_pilot(path: str | Path) -> PilotSelection:
