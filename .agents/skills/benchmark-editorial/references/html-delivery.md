@@ -1,23 +1,27 @@
 # HTML article delivery
 
-The current dashboard is a report application. The reading page and standalone article are two presentations of one authored body, not competing report versions.
+The dashboard reading page and standalone HTML are two presentations of the same authored article. Use the current report renderer and preserve its integrity, safety and localization contracts.
 
-## Layout and interaction
+## Reading layout
 
-- Prefer a restrained editorial layout: readable line length, clear headline/deck, generous paragraph leading and a small optional contents list. Avoid converting every paragraph into a card.
-- The narrative and all essential conclusions must be visible without JavaScript, expanding accordions, selecting tabs or hovering. Expandable detail may contain derivations or extra evidence, never the main argument.
-- Use real HTML tables and inline SVG/HTML figures with exact text labels. Keep charts local; no CDN chart library or screenshot of a data table. Provide figure captions explaining the comparison and its scope.
-- Collapse the article to one column on small screens. Only data figures may scroll horizontally inside their containers; the page itself must not overflow. Keep touch targets and keyboard focus usable. Provide light/dark contrast and print rules that remove dashboard navigation and avoid clipping.
-- Generate a self-contained HTML export with inline styles, no scripts, no local path references and no external font dependency. It must open independently of the dashboard and use working absolute evidence links. Reuse the same authored body so export and site prose cannot diverge.
+Choose a clear hierarchy for title, introduction, sections, body and captions. Align headings and their supporting figures deliberately, keep body lines readable, and check the result at actual display sizes. Do not create an oversized heading from an editing instruction or shrink a necessary qualification into unreadable text.
 
-## Safety and verification
+Use each visual to convey information: a measured comparison, a reference/output correspondence, a process whose stages explain the result, or a documented failure. Omit decoration that adds no understanding. Keep measured values and version labels as real text in HTML/SVG rather than baking them into generated images. Real screenshots and returned files are evidence; generated illustrations are not.
 
-Escape dataset-derived text before inserting it into HTML. Link only to validated IDs and known schemes. Never publish .env, cookies, tokens, internal review notes, personal file paths or the user's internal sample URLs. A secret scan supplements per-snippet review; it is not proof that a document is safe.
+Put the key measured values, units and scope with the finding they support, including summary cards. Prefer inspectable charts and real tables to screenshots of tables. Do not rely on color, hover or a remote asset for essential meaning.
 
-Run the project's unit and JS tests, report integrity and local link checks, then test the packaged reading page. Inspect a desktop and narrow-screen view, including one data figure. Check print CSS and standalone HTML without scripts. Preserve the existing Artifact Hub share link when publishing is authorized. Verify the remote export against the submitted bundle; never treat an upload acknowledgement as sufficient validation of the reader's page.
+Use compact evidence views when they reduce repetition. Tabs can switch cases; disclosures can hold detailed rules or long output. Keep the main finding, necessary background and scope visible without interaction. Choose the initial case to serve the reading sequence and argument. Test every case, keyboard navigation and narrow-screen behavior. Print should expose the evidence that would otherwise require interaction. Interactivity is optional, not a prescribed template.
 
-## Skills assessed
+Reference and actual output should be easy to compare. Preserve original snippets and label excerpts. Make horizontal scrolling discoverable for wide data; the page itself must not overflow. Keep full-report and per-case links clearly labeled and usable, while making the article independently understandable.
 
-[html-research-reports](https://github.com/f-labs-io/agent-html-skills/blob/main/plugins/html-skills/skills/html-research-reports/SKILL.md) supplies useful semantic HTML, source attribution, secret hygiene, responsive and print requirements. Its Claude-local listener and feedback/publish callbacks do not belong in a public article, so the full plugin is not activated here. This project implements the relevant delivery requirements locally.
+## Artifact verification
 
-The installed `html-report-publisher` is primarily a packaging/publishing workflow for a different service. Its path and resource checks are useful, but it does not replace editorial analysis. Native OpenAI Sites is also a different service from this project's user-selected Artifact Hub. Do not migrate providers or create another public site as a side effect of writing.
+Generate the integrated and self-contained views from the same source. The standalone file must work without the dashboard, external fonts or CDN libraries; use the repository's script-free export contract. Inspect light/dark, desktop/phone and print presentations after the final change, not only an earlier screenshot.
+
+Escape dataset-derived text and validate links and paths. Exclude credentials, local paths, private reference URLs, work logs and editing discussion from the public bundle. Secret scans supplement source inspection.
+
+For localization, translate authored prose, formatted rule explanations and accessibility labels. Preserve measured output, source references, IDs, URLs and numeric meaning. Do not misclassify programmatically written explanatory text as immutable evidence merely because it is inside a code block.
+
+Run project tests and report checks appropriate to the changes, including route, link and bilingual consistency checks. Those establish artifact integrity, not editorial quality. Complete the reader review on the final artifact separately.
+
+Publishing uses the target and expected remote version bound by `evaluation/current-report.json`, only when authorized. Verify deployed bytes and the article after publishing. A local writing task does not authorize a new site, provider migration or publication.

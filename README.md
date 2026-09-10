@@ -103,6 +103,8 @@ make test
 不得改用系统 `python` / `python3`。环境不满足时立即失败，不降级执行。
 构建不调用供应商、不修改当前测量成绩。输出校验失败会中止；重建会替换整个已标记的生成目录，避免旧页面残留。
 
+解读配图保存在数据目录的 `editorial/moli-webfetch/`（默认 `~/.browser-eval/`），不提交 Git。`research/editorial-figures.json` 登记文件指纹、用途及语言版本；构建会核验图片并生成在线资源和内嵌图片的独立文章。变更配图须重新核对图中文字、数字和对应测量记录，再更新指纹。
+
 参考与评分规则更新时，依次执行 `uv run --frozen python scripts/prepare_references.py`、`uv run --frozen python scripts/rescore_content.py`，再构建报告。前者仅规范化评分参考，原始源页快照不改；后者校验每份原始输出的 SHA-256，并仅重新计算机械评分，不调用供应商。零宽排版字符、Unicode 和 Markdown 可见文本规则对所有方法一致；真正缺失的内容不能用模糊相似度放行。运行 ID 根据执行记录及开始时间稳定生成，区别于详情中供应商返回的请求 ID。
 
 采用统计用 `uv run --frozen python research/search_method_adoption.py` 发现候选，再统一核验；`uv run --frozen python research/refresh_adoption_candidates.py` 可复查已有候选。候选文件目录独立保留，暂时未达星数或活跃条件不丢失；只有完整核验成功才原子替换当前统计。原始发现快照仅作候选来源，计数以当前默认分支文件证据为准，不能解释为全网生产用户数。
@@ -150,7 +152,7 @@ uv run --frozen python scripts/verify_artifact_hub.py --slug UUAhhQMnrGwm --expe
 uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌只从显式进程环境或 `~/.config/artifact-hub/token`（权限 0600）读取，不加载仓库 `.env`，避免评测密钥或旧部署令牌覆盖发布身份。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖。host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 

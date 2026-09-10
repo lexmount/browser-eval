@@ -1,23 +1,40 @@
 ---
 name: benchmark-editorial
-description: Write or substantially revise a standalone, publication-ready Chinese technical article interpreting this project's benchmark evidence; also prepare its HTML reading and export formats. Use for report interpretation, official blog or public-account articles, not routine result-table rebuilds or release notes.
+description: Write or revise standalone articles interpreting this project's benchmark evidence for official blogs and public accounts. Use for editorial argument, explanation and reading formats, not routine benchmark maintenance or release notes.
 ---
 
 # Benchmark editorial
 
-Deliver an article that a reader can understand without opening the benchmark dashboard. It must help a technical or technically curious reader explain a result and make a decision. A tour of report sections, a metrics glossary, a compressed report summary, and a transcript of the author's work are different deliverables.
+Produce a reader-facing article whose conclusions, examples and background remain understandable without opening the source report. The benchmark supplies evidence; the article explains what the results mean and why they matter.
 
-Keep this skill and its dependencies inside this repository. Read [references/editorial-standard.md](references/editorial-standard.md) before substantial writing, [references/html-delivery.md](references/html-delivery.md) before HTML work, and the sibling [Humanizer](../humanizer/SKILL.md) before the final prose pass. Humanizer runs in embedded/file mode: only the finished article belongs in public artifacts. These requirements do not authorize publishing, spending on provider calls, changing scores or reading credentials outside the repo.
+Keep this skill and its dependencies in the repository. Read [editorial-standard.md](references/editorial-standard.md) before writing or revising, and [html-delivery.md](references/html-delivery.md) for HTML. Use the complete [Humanizer Chinese](../humanizer-chinese/SKILL.md) for Chinese prose and [Humanizer](../humanizer/SKILL.md) for English. Apply them in embedded/file mode: only finished prose enters the article.
 
-## Workflow
+## Choose the work being requested
 
-1. **Establish the evidence.** Read root AGENTS.md, the canonical dataset, persisted outputs, runtime configuration and current scoring code. Build the current report so API-success normalization matches the dashboard. Identify the measured unit, denominators, task types, dates and incomparable groups. Keep observed results, mechanically derived results, mechanism experiments and hypotheses distinct. Do not start with the old article's outline.
-2. **Find the argument.** Study the user's references in full. Choose an important phenomenon supported by this run: a rank reversal, a failure concentration, a simpler method working well, or a change that did not improve the outcome. Form a claim, ask what alternative explanation could produce it, and inspect representative and counterexample records. Explore at least one decision-relevant question beyond existing tables when the data supports it (e.g. failure overlap or matched-task latency). Do not force this run's thesis onto future runs.
-3. **Build a private claim ledger.** Record the question, source paths/IDs, calculation, interpretation and limit for the claims that carry the article. Store the editorial audit outside `reports/`; never publish assistance requests, discarded drafts, prompt instructions or reviewer chatter. Missing evidence limits the claim; it is not permission to invent data.
-4. **Write the article.** Start with a concrete finding or problem and explain enough context to make it matter. Follow the reader's questions, not the database schema. Definitions belong at the point of use. A reader should get the task, observed difference, plausible mechanism, counterexample and practical consequence in one reading. Charts should carry exact comparisons while prose does the reasoning. There is no required chapter count, FAQ, TL;DR, hero image or word quota.
-5. **Edit twice.** First check factual scope and denominators against code and artifacts. Then run Humanizer's draft → audit → final loop, using the user's Chinese examples for register and punctuation. Remove drafting announcements, repeated negations, inflated claims and formulaic endings. Do not add invented personal experience or trade factual caution for confidence. Recheck every number and claim after editing.
-6. **Deliver and validate.** Use the current `harness/web_fetch/report_explainer.py` and its authored template; do not introduce a versioned renderer. Generate a dashboard-integrated reading page and a self-contained HTML article for redistribution from the same text. Test data-derived figures and evidence links. Check desktop, narrow-screen and print styles. When publication is authorized, use the existing Artifact Hub site, verify the published bytes and test the deployed article.
+For a new article, establish its audience, question and supported argument before choosing a structure. For a revision, read the entire current article and the still-applicable conversation requirements first. Preserve working explanations, evidence and format unless the feedback or a verified problem requires changing them. Local corrections do not authorize a new thesis or wholesale compression. A requested outline is an outline; a cancelled article is not an invitation to generate a replacement.
 
-## Stop conditions and handoff
+Treat feedback as editorial input, not publishable copy. Identify the reader problem behind it and fix that problem in the article. Keep revision plans, compliance reminders, reviewer discussion and prompt language out of headings, captions and prose. Legitimate methodological scope still belongs in the article, expressed once where it helps the reader interpret a result.
 
-Do not certify literary quality from a passing regex or word-count test. Complete a substantive editorial review with explicit evidence of fixes. A missing service credential blocks publication, not local writing. A disputed score requires a separate scoring investigation; prose editing must not silently change it. For sign-off, provide the article link/file, the reusable skill location, and material evidence limitations. Do not paste the entire article into the conversation unless asked.
+## Evidence and argument
+
+Read the supplied reports and relevant reference articles, including their charts, cases and methodology. Track material that could not be inspected privately; do not claim full coverage from a landing page. Study how reference articles develop their reasoning as well as how they look. Their facts are not evidence for this benchmark.
+
+For this repository, use `evaluation/current-report.json`, the normalized persisted results and the current scoring implementation. Read [benchmark-report](../benchmark-report/SKILL.md) when building or auditing them. Keep a private ledger for consequential claims: evidence, calculation, interpretation and limits. Do not rerun providers, alter scores or select better attempts to improve a narrative.
+
+Choose an argument that the evidence supports, including exceptions that change its meaning. Comparative claims need nearby magnitudes, units and a defined comparison set, including when they appear in a heading or summary card. A correct ranking alone does not tell the reader the size of a difference. See the publication standard for interpreting distributions, task acceptance and quality metrics.
+
+## Write and revise
+
+Develop the reader's understanding through concrete results, necessary background and inspectable examples. Explain unfamiliar concepts through their purpose and operation; a sentence excluding them from the benchmark is not an explanation. Use charts and specimens to carry data so prose can explain the result instead of repeating it. There is no fixed chapter count, case count, headline formula or required hero image.
+
+When revising, check the whole article for the same underlying problem, then make the smallest coherent repair. Review any removed material for lost explanations, evidence, limitations or transitions. Broader restructuring is justified when the argument or organization is defective, not simply because a paragraph received criticism. If a needed fact is absent, investigate it or narrow the claim; do not replace it with confidence or invented precision.
+
+Run the language-appropriate Humanizer pass on headings, prose and captions. This is a prose edit, not a substitute for evidence or editorial judgment. Preserve technical meaning, natural language conventions and original measured text. Do not manufacture casual language or personal experience.
+
+## Review and delivery
+
+Use separate evidence and reader reviews for substantial articles. The evidence review traces claims, versions, denominators, routes and timing to sources. The reader review reads the actual artifact without the conversation, checking whether its argument and examples work for the intended audience. For revisions, also compare what was retained and removed. A style checklist or successful build is not reader approval. Fix findings and re-review the affected artifact. After structural changes, repeat the whole-article reader review; a previous sign-off does not establish that the new reading sequence works. Keep review records outside the public bundle.
+
+Use the existing renderer and authored template for HTML, not a parallel implementation. Inspect the actual delivered page at desktop and phone sizes, including all interactive states needed to inspect evidence. Keep localized facts and original evidence aligned. Run the repository validation gates when rebuilding a report.
+
+Publishing and benchmark changes require their own authorization. When publication is authorized, use the target and expected version bound by `evaluation/current-report.json`. Otherwise deliver the requested local artifact and any material unresolved limitation. Do not present a draft as approved or promise that a skill makes editorial failures impossible.

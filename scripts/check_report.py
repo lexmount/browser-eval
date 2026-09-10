@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
+from scripts.report_asset_parity import ArticleAssetParity
 
 class Tables(HTMLParser):
  def __init__(self):super().__init__();self.in_th=False;self.first=False;self.headers=[]
@@ -43,15 +44,20 @@ class EnglishNarrative(HTMLParser):
    self.untranslated.append(value)
 
 class PageShape(HTMLParser):
- def __init__(self):
+ def __init__(self,page=None,assets=None):
   super().__init__();self.tags=Counter();self.ids=set();self.data=[];self.links=[];self.skip=0;self.numbers=[]
+  self.page=page;self.assets=assets;self.figures=[];self.images=[]
  def handle_starttag(self,tag,attrs):
+  if tag=='figure':self.figures.append(dict(attrs).get('id'))
+  if self.assets and self.figures:attrs=self.assets.rewrite(self.page,self.figures[-1],tag,attrs)
   values=dict(attrs);self.tags[tag]+=1
   if values.get('id'):self.ids.add(values['id'])
   self.data.extend((key,value) for key,value in attrs if key.startswith('data-'))
   if values.get('href') and not values.get('hreflang'):self.links.append(values['href'])
+  if tag=='img' and values.get('src'):self.images.append(values['src'])
   if tag in {'pre','code','script','style'}:self.skip+=1
  def handle_endtag(self,tag):
+  if tag=='figure' and self.figures:self.figures.pop()
   if tag in {'pre','code','script','style'}:self.skip=max(0,self.skip-1)
  def handle_data(self,text):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
@@ -105,9 +111,11 @@ def canonical_link(page,value):
  return target.as_posix()+(('?'+parsed.query) if parsed.query else '')+(('#'+parsed.fragment) if parsed.fragment else '')
 
 bilingual_issues=[]
+asset_manifest=Path(__file__).resolve().parents[1]/'research/editorial-figures.json'
+article_assets=ArticleAssetParity(root,asset_manifest) if asset_manifest.exists() and (root/'assets/editorial').exists() else None
 for relative in sorted(zh_pages):
  zh_path=root/relative;en_path=root/'en'/relative
- zh=PageShape();zh.feed(zh_path.read_text());en=PageShape();en.feed(en_path.read_text())
+ zh=PageShape(zh_path,article_assets);zh.feed(zh_path.read_text());en=PageShape(en_path,article_assets);en.feed(en_path.read_text())
  if zh.tags!=en.tags:bilingual_issues.append((relative,'semantic tag counts differ'))
  if zh.ids!=en.ids:bilingual_issues.append((relative,'element IDs differ'))
  if Counter(zh.data)!=Counter(en.data):bilingual_issues.append((relative,'data attributes differ'))
@@ -117,6 +125,9 @@ for relative in sorted(zh_pages):
  zh_links=Counter(canonical_link(zh_path,value) for value in zh.links)
  en_links=Counter(canonical_link(en_path,value) for value in en.links)
  if zh_links!=en_links:bilingual_issues.append((relative,'evidence or navigation links differ'))
+ if relative in {Path('guide/index.html'),Path('guide/article.html')}:
+  if Counter(canonical_link(zh_path,value) for value in zh.images)!=Counter(canonical_link(en_path,value) for value in en.images):
+   bilingual_issues.append((relative,'article image sources differ'))
 assert not bilingual_issues,('Chinese/English page parity failed',bilingual_issues[:200],len(bilingual_issues))
 english_primary=[Path(name) for name in ('index.html','methodology/index.html','review/index.html',
  'guide/index.html','adoption/index.html','reproduce/index.html','changes/index.html','accounts/index.html')]

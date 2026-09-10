@@ -118,3 +118,83 @@ assert.deepEqual(Array.from(vm.runInContext('currentImageUrls',raceContext)),['b
 assert.deepEqual(revoked,['blob:initial','blob:test-1'],
  'release only the replaced page and failed render Blobs, never the live new image');
 console.log('PASS: rejected stale render preserves the newer page and releases only its own partial image Blobs');
+
+// One transient request failure must not poison a cached promise for this visit.
+let manifestCalls=0,packCalls=0;
+const retryContext=vm.createContext({TextDecoder,URL,Response,DecompressionStream,
+ window:{addEventListener(){}},document:{addEventListener(){}},
+ fetch:async path=>{
+  if(path==='manifest.json'){
+   manifestCalls++;
+   if(manifestCalls===1)throw new TypeError('Failed to fetch');
+   return {ok:true,json:async()=>({files:{}})};
+  }
+  packCalls++;
+  if(packCalls===1)throw new TypeError('Failed to fetch');
+  const {gzipSync}=await import('node:zlib');
+  return new Response(gzipSync(Buffer.from('recovered evidence')));
+ }
+});
+vm.runInContext(js,retryContext);
+await assert.rejects(vm.runInContext('manifest()',retryContext),/Failed to fetch/);
+await vm.runInContext('Promise.all([manifest(),manifest()])',retryContext);
+assert.equal(manifestCalls,2,'retry manifest once and share successful/in-flight requests');
+await assert.rejects(vm.runInContext("pack('data/033.gz')",retryContext),/Failed to fetch/);
+const recovered=await vm.runInContext("pack('data/033.gz')",retryContext);
+assert.equal(new TextDecoder().decode(recovered),'recovered evidence');
+await vm.runInContext("pack('data/033.gz')",retryContext);
+assert.equal(packCalls,2,'successful content remains cached after retry');
+console.log('PASS: transient manifest and content failures can recover without refreshing the report');
+
+let retryButton;
+const failedBody={replaceChildren(){},append(node){if(node.type==='button')retryButton=node}};
+const failureContext=vm.createContext({TextDecoder,URL,URLSearchParams,location:{hash:'#page=attempts%2Fexample.html'},
+ window:{addEventListener(){},scrollX:0,scrollY:0},
+ document:{body:failedBody,addEventListener(){},querySelector:()=>null,
+ createElement:()=>({addEventListener(name,handler){this[name]=handler}})},
+ fetch:async()=>{throw new TypeError('Failed to fetch')}
+});
+vm.runInContext(js,failureContext);
+await vm.runInContext('render()',failureContext);
+assert.equal(retryButton.textContent,'重新加载');
+assert.equal(typeof retryButton.click,'function');
+assert.equal(retryButton.click,vm.runInContext('render',failureContext));
+console.log('PASS: failed report route offers an explicit reload action without altering its result');
+let metadataCalls=0;
+retryContext.readRecords=async()=>{
+ metadataCalls++;
+ if(metadataCalls===1)throw new TypeError('Failed to fetch');
+ return JSON.stringify({provider_metadata:{status:'preserved'}});
+};
+vm.runInContext('textFile=readRecords',retryContext);
+await assert.rejects(vm.runInContext('metadata(0)',retryContext),/Failed to fetch/);
+assert.equal(JSON.parse(await vm.runInContext('metadata(0)',retryContext)).status,'preserved');
+assert.equal(metadataCalls,2);
+console.log('PASS: metadata retries also discard rejected parsed-record promises');
+
+const smallListeners=new Map();let smallReads=0;
+const smallPre={dataset:{file:'outputs/small.md'},classList:{add(){},remove(){}},
+ setAttribute(name,value){this[name]=value},removeAttribute(name){delete this[name]},
+ addEventListener(name,handler){smallListeners.set(name,handler)},removeEventListener(name){smallListeners.delete(name)}};
+retryContext.smallPre=smallPre;
+retryContext.readSmall=async()=>{
+ if(++smallReads===1)throw new TypeError('Failed to fetch');
+ return 'original output bytes';
+};
+vm.runInContext('textFile=readSmall',retryContext);
+await vm.runInContext('fill(smallPre)',retryContext);
+assert.equal(smallPre.role,'button');assert.match(smallPre.textContent,/点击重试/);
+await smallListeners.get('click')({type:'click',preventDefault(){}});
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(smallPre.textContent,'original output bytes');
+assert.equal(smallReads,2);assert.equal(smallPre.role,undefined);
+console.log('PASS: small evidence has a working retry action just like large evidence');
+vm.runInContext("location.hash='#page=en%2Fattempts%2Fexample.html'",failureContext);
+await vm.runInContext('render()',failureContext);
+assert.equal(retryButton.textContent,'Reload','failed English route uses its requested path before render completes');
+vm.runInContext("currentPage='en/attempts/example.html';textFile=async()=>{throw new Error('Network error')}",retryContext);
+smallPre.dataset.loaded='';
+await vm.runInContext('fill(smallPre)',retryContext);
+assert.match(smallPre.textContent,/Click to retry/);
+assert.equal(smallPre['aria-label'],'Load complete content');
+console.log('PASS: route and evidence retry controls use the active report language');

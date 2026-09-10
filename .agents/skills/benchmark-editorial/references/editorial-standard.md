@@ -1,46 +1,55 @@
 # Publication standard
 
-## Reader and voice
+## Write for a reader, not the editing session
 
-Write for practitioners in this field, engineers from adjacent fields, and curious non-specialists. Keep the technical depth; explain unfamiliar concepts with a concrete task and outcome. Use a calm editorial voice with accountable judgments. “We” may refer to documented project work, but never imply a human biography, interview or experiment that did not occur.
+The article must establish its question, explain the concepts needed to follow it, and support a conclusion. A reader should not need to reconstruct the author's assignment. A heading names the subject or conveys a finding; it does not instruct the editor to compare outputs, clarify scope or improve the layout.
 
-The article must stand alone when copied into an official blog or public account. Links are evidence and optional depth, not substitutes for explanation. Avoid “click here to understand the result” as the main payoff. The top-level report stays an evidence browser; the article is an argument supported by that evidence.
+Distinguish three kinds of material: measured evidence, the author's interpretation, and private editing instructions. The first two may belong in an article. The third guides revision and stays outside it. Do not hide essential methodology to avoid sounding procedural: state the population, output contract or version choice where it changes the interpretation, in proportion to its importance.
 
-## Evidence-to-argument discipline
+Introduce a technical concept by explaining what it does, what enters and leaves it, and a concrete use. When distinguishing related concepts, preserve enough explanation of both for an unfamiliar reader to understand the difference. Defining what a benchmark excludes does not replace this background.
 
-- State exactly what passed. Transport success, content-rule pass, full-text overlap and independently confirmed entity identity answer different questions.
-- Compute numerators and denominators from current normalized records. Name the sample and time window. Separate missing evaluation from measured product failure, current configuration from official capability, and static snapshots from live content.
-- Explain rank reversals with actual cases and implementation evidence. An implementation probe establishes what that function did on its input; it does not establish the historical causal contribution to all benchmark results.
-- Compare latency on common tasks if arguing that one method is faster. A successful-task median is not expected production latency. An offline union of pass sets is not a tested fallback service or a guarantee.
-- A useful conclusion includes the choice it changes: which interface to test, which data contract to define, or which fallback deserves a controlled trial. Do not claim price/performance without measured costs.
-- Explain a real limitation where it changes an interpretation. Avoid a generic disclaimer pile that repairs stronger claims made earlier.
+## Make comparisons informative
 
-## Editorial pass
+Audit comparative wording across the whole article, including its headline, introduction, cards, charts and conclusion. Words such as faster, more accurate, higher, leading or comprehensive need an observable meaning and supporting evidence. Qualitative description is welcome when it explains a mechanism or experience; avoid adjectives that merely repeat approval.
 
-Read the draft in order without its links. Does it identify a problem and advance an explanation, or does each heading merely start a new summary? Are there paragraphs with nothing but a title restatement, an announced transition, a list of names, or a warning? Rewrite those paragraphs around the useful fact.
+For a quantitative claim, put the magnitude, unit and essential comparison scope beside the claim. Usually show both compared values, or a value and clearly named baseline with the difference. A chart or caption can provide these details without bloating a heading, but do not make the reader search another section or hover to discover them. Absolute performance matters even when the rank is known. Calculate relative changes against the stated baseline and distinguish percentages from percentage points.
 
-Apply Humanizer in context. Chinese quotation marks and necessary technical terms are not defects. Repeated “不是 X，而是 Y”, forced three-part slogans, mock-candid hooks, staged questions, and tiny dramatic fragments usually are. Preserve natural variation in paragraph length. Do not manufacture jokes, first-person anecdotes or a falsely decisive closing.
+Describe exactly what the metric measures. Task acceptance, request success, text overlap, factual correctness and freshness are not interchangeable. State both completed tasks and the total when completion is the claim; do not make a numerator look like the dataset size. Missing coverage is unavailable, not zero or perfect.
 
-## Acceptance questions
+For speed, compare the same task population and disclose the processing included. Show the available distribution statistics that affect the conclusion, not only the statistic with the best rank. Explain their practical meaning at first use. Small-sample percentiles need a proportionate limitation. Do not quietly change the cohort, version or timing boundary to obtain a cleaner claim. Differences in conversion, execution location or post-processing belong beside the result they explain.
 
-1. Can a reader explain what was tested and what the main result changes without opening any link?
-2. Is there meaningful reasoning beyond what a reader could obtain by copying the rankings?
-3. Does each causal statement have evidence, and are rival explanations addressed where important?
-4. Does at least one actual case carry the reasoning rather than merely decorate it?
-5. Are all major task families represented when their omission would distort the overall judgment?
-6. Can a reader tell what is measured, derived, proposed or unmeasured?
-7. Do figures have scopes, denominators and captions, and remain readable without hover or color perception?
-8. Would removing the last paragraph lose a useful decision or fact? If not, remove it.
+Keep measured findings, implementation-based explanations and untested hypotheses distinct. A plausible mechanism alone does not establish causation. Unsupported superiority claims should be narrowed or removed, never repaired by inventing numbers. Explain meaningful counterexamples without turning the article into repeated disclaimers.
 
-This checklist is an editorial review, not an automatic quality score. Keep the review private to the source repository.
+## Let examples show the evidence
 
-## Reference readings and selection
+Choose cases because they explain the article's argument or an important exception. Where evaluation is central, let the reader inspect the actual input, independent reference or acceptance contract, original returned material and the checks behind the verdict. Arrange the reference and output so corresponding parts can be compared directly. A statement that checks passed is not a replacement for the material checked.
 
-Read relevant examples again when the assignment changes; emulate their reasoning, not their wording or marketing claims.
+Select excerpts honestly and label their scope. Preserve original evidence; distinguish translated explanation from quoted text. A changing list may have a stable structure contract rather than a fixed item list. Do not fabricate a conventional answer to make the layout symmetrical. Where a failure comparison carries a claim, show its specific unmet requirement and provide its evidence too.
 
-- Browser Use, [state-of-the-art technical report](https://browser-use.com/posts/sota-technical-report): leads with a concrete result, explains task exclusions and evaluator correction, then questions what the benchmark actually measures. Its WebVoyager scores are unrelated to this project's URL extraction tasks; never plot them together.
-- User-provided [income-certificate RSI report](http://10.3.150.202/gallery/reports/benchmarks/eoffice-income-certificate-rsi.html): organizes evidence around the surprising retention of the baseline despite local repairs, separates incompatible evaluation suites, and traces selected conclusions to cases. It is a voice/structure reference, not a source for Web Fetch facts. Do not expose this internal address in the public article.
-- [Sentry blog-writing-guide](https://github.com/getsentry/skills/blob/main/skills/blog-writing-guide/SKILL.md): specific opening, informative headings, actual implementation details and honest trade-offs. Its brand, named-author and SEO conventions are not this project's requirements.
-- [blog-writing-specialist](https://github.com/manojbajaj95/claude-gtm-plugin/blob/main/skills/blog-writing-specialist/SKILL.md): covers benchmark articles but bundles marketing, named-person voices and SEO scaffolding; do not import those defaults.
-- [results-report](https://github.com/galaxy-dawn/claude-scholar/blob/main/skills/results-report/SKILL.md): useful separation of analysis and writing, but aimed at internal research wrap-ups with Obsidian and fixed prerequisite documents. Not installed as this workflow.
-- Local Humanizer is an unmodified MIT-licensed copy from `blader/humanizer`, commit `e2e92e7b4b8229253ed5c8e81dc65463fdeddda5`, metadata version 2.11.2. Its license is stored beside SKILL.md. No global installation or live service is required.
+Give enough criteria to explain the verdict without copying a scorer manual into the narrative. Explain what important checks do not establish. Threshold provenance matters when it changes the confidence in the finding; do not imply calibration or prior freezing that did not occur.
+
+## Revision and reader acceptance
+
+Before editing, identify the existing article's argument, useful background and evidence. Map feedback to the reader difficulty it reveals. After editing, compare the complete before and after versions for lost meaning as well as local improvements. Do not mechanically preserve erroneous content, but do not remove a working explanation merely because a nearby sentence was criticized.
+
+Review from the reader's perspective:
+
+- Can someone unfamiliar with the discussion explain the task, concepts and main finding?
+- Does each consequential comparison communicate its scale and scope, not just a rank?
+- Can the reader inspect the evidence behind a representative result and its interpretation?
+- Do headings advance the article instead of narrating how it was assembled?
+- Did revision retain the useful context and evidence needed by the remaining argument?
+- Do limitations change an interpretation, rather than repeat defensive caveats?
+
+These questions guide editorial judgment. They are not a word blacklist, a required article structure or a certificate of writing quality.
+
+## Prose and reference reading
+
+Use the language-specific Humanizer as an editing aid. Keep concrete details and natural variation in sentence and paragraph length. Remove stock transitions, staged questions, redundant summaries and inflated claims without erasing useful explanation. Do not invent first-person experience or force slang to appear human.
+
+Read user-selected examples in full and assess them critically. Borrow useful argument structure, explanatory depth and visual hierarchy, not their vocabulary, numerical claims or faults. Supplementary references:
+
+- [Browser Use technical report](https://browser-use.com/posts/sota-technical-report): results interpreted through task scope and evaluator limitations; its benchmark scores are unrelated to this project's results.
+- [Sentry blog-writing guide](https://github.com/getsentry/skills/blob/main/skills/blog-writing-guide/SKILL.md): concrete openings, informative headings and implementation details; its brand and SEO conventions do not apply automatically.
+
+The repository's Humanizer dependencies are upstream skills with their own licenses and source metadata. Keep their original instructions separate from project-specific editorial rules. They are prose aids, not benchmark evidence or automatic quality validators.
