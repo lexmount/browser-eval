@@ -171,6 +171,18 @@ reset, and site state are validated against the site daemon. This permits a root
 browser runtime to reach rootless WebArena sites whose storage remains under `/data`, without moving
 or restarting unrelated rootful Docker workloads.
 
+The site runtime is not tied to trajectory replay. The pinned images, URLs, test credentials,
+health checks, reset behavior, login preparation, and WebArena-Verified evaluator form one shared
+environment contract. A later autonomous-agent runner must reuse that contract and the same evidence
+layout; it replaces only the action producer. Deterministic replay reads declared trajectory actions,
+while an agent produces actions online. Neither path may maintain a separate copy of the WebArena
+sites or scoring rules.
+
+`scripts.manage_webarena_environment` remains the operator interface for setting up large read-only
+assets and starting, inspecting, or stopping a pinned site. Site data may live on the rootless Docker
+daemon under `/data`; measured browsers and agent containers remain on the resource-controlled
+browser daemon. This daemon split is a storage and isolation choice, not a benchmark-specific fork.
+
 ## Formal measurement
 
 Only eligible tasks enter the paired run. Chromium and Moli receive the same task revision,
