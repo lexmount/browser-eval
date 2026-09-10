@@ -110,7 +110,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         providers = set(profile['providers'])
         main = plan['main_matrix']
         speed = plan['same_window_speed_cohort']
-        self.assertEqual(len(main['rerun_case_ids']), 12)
+        self.assertEqual(len(main['rerun_case_ids']), 13)
         self.assertTrue(set(main['rerun_case_ids']) <= case_ids)
         self.assertEqual(set(main['full_rerun_providers']), {
             'crawl4ai', 'langchain-webbase',

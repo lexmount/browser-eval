@@ -15,6 +15,7 @@
       "stable-xml10-recommendation",
       "stable-rfc-6455-websocket",
       "stable-rfc-8259-json",
+      "lm-feishu-help",
       "document-03",
       "live-025-api-reference",
       "live-033-nasa-science",
@@ -30,7 +31,7 @@
       "cowagent-built-in__lm-rust-learn__r001",
       "cowagent-built-in__document-05__r001"
     ],
-    "planned_new_calls": 422,
+    "planned_new_calls": 432,
     "final_logical_attempts": 1800
   },
   "same_window_speed_cohort": {
@@ -62,5 +63,5 @@
     "planned_new_calls": 240,
     "require_independent_result_review": true
   },
-  "total_planned_new_calls": 662
+  "total_planned_new_calls": 672
 }

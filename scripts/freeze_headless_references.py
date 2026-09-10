@@ -73,16 +73,21 @@ def main():
                       else 'Independent visible browser DOM; complete declared scope')
         else:
             row = audit[cid]
-            if row.get('status') != 200 or row.get('missing_facts'):
+            # Capture-time fact diagnostics were evaluated against the input
+            # dataset used for capture and may be stale during a reviewed task
+            # correction. Re-evaluate the selected dataset's facts below.
+            if row.get('status') != 200:
                 p.error('Reference requires independent browser observation: ' + cid)
             raw_text = (args.captures/cid/'reference.txt').read_text()
             text = clean_reference_text(raw_text)
             timestamp = row['checked_at']
             selector = row['selector']
             method = 'Independent HTTP response and reviewed article selector'
-        for fact in case.get('required_facts', []):
-            if not any(normalize_for_match(a) in normalize_for_match(text) for a in fact['alternatives']):
-                p.error('Required fact missing from independent reference: ' + cid + '/' + fact['id'])
+        missing_facts = [fact['id'] for fact in case.get('required_facts', [])
+                         if not any(normalize_for_match(a) in normalize_for_match(text)
+                                    for a in fact['alternatives'])]
+        if missing_facts:
+            p.error('Required fact missing from independent reference: ' + cid + '/' + missing_facts[0])
         old = case['ground_truth_main_content']
         # Preserve exact original bytes when independently observed normalized
         # text is unchanged. No provider output is read by this script.
@@ -96,6 +101,13 @@ def main():
             case['body_requirements'] = body_requirements(text)
         case['source_verification'].update(state='valid', checked_at=timestamp, selector=selector,
             method=method, reference_sha256=hashlib.sha256(text.encode()).hexdigest())
+        if cid not in observations:
+            case['source_verification'].update(
+                http_status=row['status'], source_snapshot_sha256=row['sha256'],
+                extracted_reference_sha256=row.get('extracted_sha256'))
+            if row.get('extracted_sha256') == hashlib.sha256(text.encode()).hexdigest():
+                case['source_verification'].pop('extracted_reference_sha256', None)
+                case['source_verification'].pop('reference_normalization', None)
         if raw_text != text:
             case['source_verification'].update(
                 extracted_reference_sha256=hashlib.sha256(raw_text.encode()).hexdigest(),
@@ -116,7 +128,16 @@ def main():
             (target/'current-browser-observation.json').write_text(json.dumps(observations[cid],ensure_ascii=False,indent=2))
         else:
             shutil.copy2(args.captures/cid/'source.html', target/'current-source.html.txt')
-            shutil.copy2(args.captures/cid/'evidence.json', target/'current-capture.json')
+            capture_record = dict(row)
+            capture_record['missing_facts'] = missing_facts
+            capture_record['quality_issues'] = [
+                issue for issue in row.get('quality_issues', [])
+                if not (issue.startswith('fact_absent_from_reference:')
+                        or issue.startswith('duplicate_fact:'))]
+            capture_record['state'] = ('captured' if row.get('status') == 200
+                                       and not capture_record['quality_issues'] else 'needs_review')
+            (target/'current-capture.json').write_text(
+                json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
         (target/'reference.txt').write_text(case['ground_truth_main_content'])
     (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
     (args.output/'reference-refresh.json').write_text(json.dumps({'changed':changes,
