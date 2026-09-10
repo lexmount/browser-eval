@@ -567,6 +567,46 @@ def test_evidence_revalidation_includes_direct_and_corrected_eligible_tasks():
     assert result["benchmark"]["evidence_revalidation"]["task_count"] == 2
 
 
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "observed_json_zip",
+        "observed_json_filter_zip",
+        "observed_ranked_labels",
+        "observed_review_authors_matching",
+    ],
+)
+def test_evidence_revalidation_accepts_supported_structured_observation_builders(kind):
+    suite = {
+        "benchmark": {},
+        "tasks": [
+            {
+                "id": "corrected",
+                "trajectory": {
+                    "schema": "lex_browser_trajectory/1",
+                    "actions": [{"action": "click"}],
+                },
+                "ground_truth": {"expected_actions": ["click"]},
+            }
+        ],
+    }
+    qualification = {
+        "tasks": [
+            {
+                "task_id": "corrected",
+                "adjudication": {
+                    "status": "eligible",
+                    "response_builder": {"kind": kind},
+                },
+            }
+        ]
+    }
+
+    result = build_evidence_revalidation_suite(suite, qualification)
+
+    assert result["tasks"][0]["ground_truth"]["response_builder"] == {"kind": kind}
+
+
 def test_skipped_task_requires_public_reason():
     suite = {
         "benchmark": {},

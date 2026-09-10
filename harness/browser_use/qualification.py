@@ -219,6 +219,10 @@ def _apply_material_change(task: dict[str, Any], adjudication: dict[str, Any]) -
             "observed_shape",
             "observed_json",
             "observed_json_concat",
+            "observed_json_zip",
+            "observed_json_filter_zip",
+            "observed_ranked_labels",
+            "observed_review_authors_matching",
             "observed_currency_range",
             "observed_not_found",
         }:
