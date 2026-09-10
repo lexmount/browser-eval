@@ -1,4 +1,4 @@
-"""Propose minimal no-wait corrections only when trace evidence proves click completion."""
+"""Propose bounded click-timeout corrections when trace proves action completion."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def propose_autowait_repair(
     response_builder = (task.get("ground_truth") or {}).get("response_builder")
     if not isinstance(response_builder, dict):
         raise ValueError(f"{task_id}: an existing response builder is required")
-    actions[index - 1]["no_wait_after"] = True
+    actions[index - 1]["accept_completed_action_navigation_timeout"] = True
     return {
         "schema": "lex_browser_use_repair_proposal/1",
         "task_id": task_id,
@@ -44,8 +44,8 @@ def propose_autowait_repair(
         "response_builder": deepcopy(response_builder),
         "reason": (
             f"Step {index} completed its click but timed out only while Playwright waited for "
-            "scheduled navigation; disable that implicit wait and let the next declared locator "
-            "provide readiness."
+            "scheduled navigation; accept only this proven post-action timeout and retain the "
+            "full wait so the request remains observable to the official evaluator."
         ),
     }
 

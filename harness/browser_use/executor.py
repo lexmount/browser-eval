@@ -12,6 +12,14 @@ from .suite import validate_selector
 from .targets import locator_for
 
 
+def _completed_action_navigation_timeout(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "click action done" in message
+        and "waiting for scheduled navigations to finish" in message
+    )
+
+
 def _body_text(page: Any, timeout: int, limit: int) -> str:
     return page.locator("body").first.inner_text(timeout=timeout)[:limit]
 
@@ -114,10 +122,21 @@ def execute_steps(
                     else nullcontext()
                 )
                 with navigation:
-                    locator_for(action_page, call).click(
-                        timeout=timeout,
-                        no_wait_after=bool(call.get("no_wait_after", False)),
-                    )
+                    try:
+                        locator_for(action_page, call).click(
+                            timeout=timeout,
+                            no_wait_after=bool(call.get("no_wait_after", False)),
+                        )
+                    except Exception as exc:
+                        if not (
+                            call.get("accept_completed_action_navigation_timeout")
+                            and _completed_action_navigation_timeout(exc)
+                        ):
+                            raise
+                        record["accepted_navigation_timeout"] = {
+                            "reason": "click completed before scheduled-navigation timeout",
+                            "error": f"{type(exc).__name__}: {exc}",
+                        }
                 observation = "Clicked successfully."
             elif action == "double_click":
                 locator_for(action_page, call).dblclick(

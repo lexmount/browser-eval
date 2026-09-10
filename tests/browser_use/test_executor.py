@@ -207,6 +207,65 @@ def test_navigation_triggering_actions_can_disable_playwright_auto_wait(
     assert record[-1]["no_wait_after"] is True
 
 
+def test_click_may_accept_only_a_proven_completed_action_navigation_timeout():
+    page = FakePage()
+    trace = []
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def click(self, **kwargs):
+            raise TimeoutError(
+                "Locator.click timed out\n"
+                "- performing click action\n"
+                "- click action done\n"
+                "- waiting for scheduled navigations to finish"
+            )
+
+    page.locator = lambda _selector: Locator()
+    execute_steps(
+        page,
+        (
+            {
+                "action": "click",
+                "selector": "#submit",
+                "accept_completed_action_navigation_timeout": True,
+            },
+        ),
+        trace=trace,
+    )
+
+    assert trace[0]["status"] == "pass"
+    assert trace[0]["accepted_navigation_timeout"]["reason"].startswith("click completed")
+
+
+def test_click_does_not_accept_an_actionability_timeout():
+    page = FakePage()
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def click(self, **kwargs):
+            raise TimeoutError("waiting for element to be visible")
+
+    page.locator = lambda _selector: Locator()
+    with pytest.raises(TimeoutError, match="visible"):
+        execute_steps(
+            page,
+            (
+                {
+                    "action": "click",
+                    "selector": "#submit",
+                    "accept_completed_action_navigation_timeout": True,
+                },
+            ),
+        )
+
+
 def test_page_observer_runs_before_the_measured_action():
     page = FakePage()
 
