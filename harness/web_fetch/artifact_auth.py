@@ -7,10 +7,8 @@ import uuid
 from urllib.parse import urlsplit
 
 
-def token_path(base_url=None):
+def token_path(base_url):
     root = Path.home() / '.config/artifact-hub'
-    if base_url is None:
-        return root / 'token'
     parsed = urlsplit(base_url)
     host = parsed.netloc.lower()
     if (parsed.scheme not in {'http', 'https'} or not parsed.hostname
@@ -27,26 +25,18 @@ def validate_token(token):
     return token
 
 
-def load_token(path=None, *, base_url=None):
-    # Explicit process environment, target host, then the legacy file. Never .env.
+def load_token(*, base_url):
+    # Explicit process environment, then the target host. Never .env.
+    path = token_path(base_url)
     token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
     if not token:
-        if path is not None:
-            token = Path(path).read_text().strip()
-        else:
-            try:
-                token = token_path(base_url).read_text().strip()
-            except FileNotFoundError:
-                if base_url is None:
-                    raise
-            if not token:
-                token = token_path().read_text().strip()
+        token = path.read_text().strip()
     return validate_token(token)
 
 
-def save_token(token, path=None, *, base_url=None, replace_existing=False):
+def save_token(token, *, base_url, replace_existing=False):
     token = validate_token(token)
-    destination = Path(path) if path is not None else token_path(base_url)
+    destination = token_path(base_url)
     destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     try:
         descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL |

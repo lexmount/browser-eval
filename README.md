@@ -132,7 +132,7 @@ uv run --frozen python scripts/verify_artifact_hub.py --slug UUAhhQMnrGwm --expe
 uv run --frozen python scripts/publish_artifact_hub.py --receipt publish/headless-site-receipt.json --update --expected-version <新站点当前服务端版本标识>
 ```
 
-打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>`、旧位置 `~/.config/artifact-hub/token` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖。host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
+打包输出 `publish/webfetch-sites.zip`，将完整证据去重压缩并按需加载。Sites 发布令牌依次从显式进程环境 `ARTIFACT_HUB_TOKEN`、目标服务的 `~/.config/artifact-hub/tokens/<host>` 读取，不加载仓库 `.env`。新授权按目标 host 保存，文件权限为 0600；不同部署的令牌不通用，也不互相覆盖。host 包含显式端口（如有）。其他评测密钥仍只读取仓库配置。当前五浏览器报告使用 `https://artifact-hub.app.lexmount.com` 的独立站点 `UUAhhQMnrGwm`；旧 `.dev` 站点 `bWkRP157EtF6` 和原报告 `UeZE1vfcEOrM` 均保留。构建和打包须使用当前报告配置中的公开地址；回执的服务地址与 slug 共同决定更新目标。服务端版本标识仅用于并发保护。发布令牌和管理回执不得提交或放入站点。
 
 ## 内容规范
 
