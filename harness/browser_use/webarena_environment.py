@@ -22,6 +22,7 @@ from webarena_verified.types.task import WebArenaSite
 from .suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
+MAGENTO_INIT_TIMEOUT_SECONDS = 600
 LEGACY_PORT_SITES = {
     3000: "map",
     4399: "reddit",
@@ -74,6 +75,17 @@ class _DockerClientBackend:
         env_vars: dict[str, str] | None = None,
     ) -> None:
         environment = dict(env_vars or {})
+        if name in {
+            "webarena_verified_shopping",
+            "webarena_verified_shopping_admin",
+        }:
+            # Magento's official init performs cache/database work after the
+            # services become healthy.  The image default of 180 seconds is
+            # too short on a busy qualification host and can leave the baked
+            # CMU origin active even though env-ctrl /status is healthy.
+            environment["WA_ENV_CTRL_CMD_TIMEOUT_SEC"] = str(
+                MAGENTO_INIT_TIMEOUT_SECONDS
+            )
         # GitLab's image entrypoint does not run env-ctrl init.  Its fallback
         # reconfiguration also rewrites the internal nginx listener to the
         # public host port, breaking Docker's host-port -> 8023 mapping.  Keep
@@ -413,9 +425,15 @@ class WebArenaEnvironment:
                     self._wait_container_initialization(
                         container, timeout_seconds=timeout_seconds
                     )
+                    self._verify_entrypoint_initialization(container)
                     receipts[site]["external_url_configuration"] = {
                         "external_url": started.url,
                         "mode": "entrypoint_init_verified",
+                        **(
+                            {"command_timeout_seconds": MAGENTO_INIT_TIMEOUT_SECONDS}
+                            if site in {"shopping", "shopping_admin"}
+                            else {}
+                        ),
                     }
             else:
                 receipts[site] = {
@@ -489,6 +507,19 @@ class WebArenaEnvironment:
         if result.exit_code != 0 or payload.get("success") is not True:
             message = str(payload.get("message") or "official initializer failed")
             raise RuntimeError(f"WebArena GitLab init failed: {message}")
+
+    @staticmethod
+    def _verify_entrypoint_initialization(container: Any) -> None:
+        """Fail immediately if the official supervisor init did not finish cleanly."""
+        result = container.exec_run(
+            ["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"],
+            demux=False,
+        )
+        output = result.output
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        if result.exit_code != 0 or str(output or "").strip() != "[OK]":
+            raise RuntimeError("WebArena entrypoint initialization failed")
 
     @staticmethod
     def _wait_site_ready(url: str, *, timeout_seconds: float) -> None:

@@ -167,7 +167,10 @@ reconfiguration also changes nginx's internal listener to the public port. The h
 sets `WA_ENV_CTRL_SKIP_RECONFIGURE=true` only for GitLab, waits for the baked 8023 service to become
 healthy, and then runs the image's official `env-ctrl init --base-url` exactly once. Other stateful
 fixtures continue to receive `WA_ENV_CTRL_EXTERNAL_SITE_URL` and use their entrypoint's single
-initialization. Qualification then requires two public-site responses whose final origin still
+initialization. Magento's official initialization command timeout is raised from 180 to 600 seconds
+because a timed-out cache/database update can leave the control plane healthy while the baked CMU
+origin remains active; the harness requires the initializer's `[OK]` receipt rather than inferring
+success from process exit. Qualification then requires two public-site responses whose final origin still
 matches the configured origin. Docker health alone, or an HTTP response that redirects to the
 image's baked CMU origin, is insufficient.
 

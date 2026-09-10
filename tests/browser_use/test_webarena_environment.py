@@ -45,6 +45,8 @@ class _Container:
 
     def exec_run(self, command, demux=False):
         self.exec_calls.append((command, demux))
+        if command == ["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"]:
+            return SimpleNamespace(exit_code=0, output=b"[OK]\n")
         return SimpleNamespace(
             exit_code=0,
             output=b'{"success": true, "message": "configured", "details": {}}',
@@ -241,8 +243,11 @@ def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypa
     assert result["sites"]["shopping_admin"]["external_url_configuration"] == {
         "external_url": "http://host.docker.internal:17780",
         "mode": "entrypoint_init_verified",
+        "command_timeout_seconds": 600,
     }
-    assert docker_client.containers.container.exec_calls == []
+    assert docker_client.containers.container.exec_calls == [
+        (["sh", "-lc", "tail -n 1 /tmp/env-ctrl-init.log"], False)
+    ]
 
 
 def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, monkeypatch):
@@ -348,6 +353,11 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     assert calls[0][1]["ports"] == {"8023/tcp": 18023, "8877/tcp": 18024}
     assert calls[0][1]["environment"] == {
         "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
+        **(
+            {"WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"}
+            if site in {"shopping", "shopping_admin"}
+            else {}
+        ),
     }
 
 
@@ -383,6 +393,17 @@ def test_gitlab_initializer_fails_closed_on_invalid_response():
         WebArenaEnvironment._configure_gitlab_external_url(
             container, "http://10.2.131.41:18023"
         )
+
+
+def test_entrypoint_initializer_fails_closed_on_timeout_log():
+    container = SimpleNamespace(
+        exec_run=lambda *_args, **_kwargs: SimpleNamespace(
+            exit_code=0, output=b"[FAILED]: Command timed out after 180s\n"
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="entrypoint initialization failed"):
+        WebArenaEnvironment._verify_entrypoint_initialization(container)
 
 
 def test_stateful_reset_requires_explicit_distinct_ports(tmp_path):
