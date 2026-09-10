@@ -46,6 +46,7 @@ def test_authoring_suite_selects_only_pending_retrieve_repairs_for_site():
 
     assert [task["id"] for task in result["tasks"]] == ["webarena-1"]
     task = result["tasks"][0]
+    assert task["trajectory"]["actions"][0]["timeout_ms"] == 5_000
     assert task["trajectory"]["actions"][-1]["save_as"] == "authoring_page"
     assert task["ground_truth"]["qualification"]["status"] == "pending"
     assert result["benchmark"]["trajectory_authoring"] == {
@@ -55,6 +56,7 @@ def test_authoring_suite_selects_only_pending_retrieve_repairs_for_site():
         "task_type": "retrieve",
         "site": "map",
         "task_count": 1,
+        "diagnostic_target_timeout_ms": 5_000,
         "qualification_evidence": False,
     }
 
