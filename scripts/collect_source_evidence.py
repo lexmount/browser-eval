@@ -69,6 +69,14 @@ def extract_html(raw: bytes, url: str):
     elif host.endswith('w3schools.com'):
         selectors = ['#main', 'body']
     selector, root = next(((s, soup.select_one(s)) for s in selectors if soup.select_one(s)), ('body', soup))
+    if host == 'browser.lexmount.com':
+        # Fumadocs keeps the page breadcrumb and adjacent-page cards inside
+        # ``article``. They are navigation, not the selected document body.
+        for node in root.find_all('div', recursive=False):
+            classes = set(node.get('class', []))
+            if ({'text-sm', 'text-fd-muted-foreground'} <= classes
+                    or {'grid', 'grid-cols-2'} <= classes):
+                node.decompose()
     for node in root.select('script,style,noscript,nav,footer,[aria-hidden=true],.mw-editsection,.vector-toc,.sidebar,.sphinxsidebar,.ws-share'):
         node.decompose()
     text = '\n'.join(line.strip() for line in root.get_text('\n').splitlines() if line.strip())

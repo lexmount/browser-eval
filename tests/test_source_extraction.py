@@ -20,6 +20,18 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotIn('Share', text)
         self.assertNotIn('Link Copied', text)
 
+    def test_excludes_lexmount_breadcrumb_and_adjacent_page_cards(self):
+        from scripts.collect_source_evidence import extract_html
+        raw = b'''<html><body><article>
+        <div class="text-sm text-fd-muted-foreground">WebFetch API</div>
+        <h1>Quick Start</h1><div class="prose flex-1">Request body</div>
+        <div class="grid grid-cols-2"><a>All-in-One Extract</a></div>
+        </article></body></html>'''
+        _, text, selector, _ = extract_html(
+            raw, 'https://browser.lexmount.com/docs/webfetch/quickstart')
+        self.assertEqual(selector, 'article')
+        self.assertEqual(text, 'Quick Start\nRequest body')
+
     def test_feishu_uses_article_structure_not_navigation(self):
         from scripts.collect_source_evidence import extract_html
         payload={'article':[{'html':{'html':'<article>正文 <b>AI</b> <span>此处是{{icon_info_outlined}}icon</span><table><tr><td>指标</td><td>含义</td></tr></table></article>'}}], 'faq':[{'question':'问题？','answer':'折叠回答'}]}
