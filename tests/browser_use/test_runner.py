@@ -110,7 +110,9 @@ def test_trajectory_authoring_rejects_state_mutation_tasks_before_docker(
     client = MagicMock()
     monkeypatch.setattr(runner.docker, "from_env", lambda: client)
 
-    with pytest.raises(ValueError, match="permits retrieve tasks only: webarena-1"):
+    with pytest.raises(
+        ValueError, match="permits non-mutating retrieve/navigate tasks only: webarena-1"
+    ):
         runner.run_evaluation(
             suite_path=tmp_path / "suite.json",
             output_dir=tmp_path / "output",

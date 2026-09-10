@@ -622,10 +622,16 @@ def run_evaluation(
         or (task.ground_truth.get("qualification") or {}).get("status") != "skipped"
     )
     if trajectory_authoring_run:
-        non_retrieve = [task.task_id for task in runnable_tasks if "retrieve" not in task.tags]
-        if non_retrieve:
+        state_changing = [
+            task.task_id
+            for task in runnable_tasks
+            if "mutate" in task.tags
+            or not ({"retrieve", "navigate"} & set(task.tags))
+        ]
+        if state_changing:
             raise ValueError(
-                "trajectory_authoring_run permits retrieve tasks only: " + ", ".join(non_retrieve)
+                "trajectory_authoring_run permits non-mutating retrieve/navigate tasks only: "
+                + ", ".join(state_changing)
             )
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
@@ -721,7 +727,7 @@ def run_evaluation(
                         if trajectory_authoring_run and task_sites <= authoring_initialized_sites:
                             environment_reset = {
                                 "diagnostic_only": True,
-                                "mode": "warm_retrieve_authoring_reuse",
+                                "mode": "warm_non_mutating_authoring_reuse",
                                 "sites": sorted(task_sites),
                             }
                         else:
@@ -866,8 +872,8 @@ def run_evaluation(
                 "qualification_run": qualification_run,
                 "trajectory_authoring_run": trajectory_authoring_run,
                 "trajectory_authoring_scope": (
-                    "diagnostic-only retrieve tasks; one site reset before each site's warm batch; "
-                    "never accepted as qualification evidence"
+                    "diagnostic-only non-mutating retrieve/navigate tasks; one site reset before "
+                    "each site's warm batch; never accepted as qualification evidence"
                     if trajectory_authoring_run
                     else None
                 ),

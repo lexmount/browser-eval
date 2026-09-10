@@ -53,7 +53,7 @@ def test_authoring_suite_selects_only_pending_retrieve_repairs_for_site():
         "non_canonical": True,
         "diagnostic_only": True,
         "source_disposition": "needs_trace_repair",
-        "task_type": "retrieve",
+        "task_types": ["retrieve"],
         "site": "map",
         "task_count": 1,
         "diagnostic_target_timeout_ms": 5_000,
@@ -62,7 +62,7 @@ def test_authoring_suite_selects_only_pending_retrieve_repairs_for_site():
 
 
 def test_authoring_suite_rejects_empty_scope():
-    with pytest.raises(ValueError, match="no retrieve-only"):
+    with pytest.raises(ValueError, match="no non-mutating"):
         build_authoring_suite(
             {"tasks": [_task("webarena-1", "mutate", "reddit")]},
             {
@@ -94,3 +94,31 @@ def test_authoring_suite_can_resume_an_exact_subset():
     )
 
     assert [task["id"] for task in result["tasks"]] == ["webarena-2"]
+
+
+def test_authoring_suite_can_explicitly_include_navigation_without_mutation():
+    suite = {
+        "tasks": [
+            _task("webarena-1", "navigate", "gitlab"),
+            _task("webarena-2", "mutate", "gitlab"),
+        ]
+    }
+    qualification = {
+        "tasks": [
+            {"task_id": "webarena-1", "disposition": "needs_trace_repair"},
+            {"task_id": "webarena-2", "disposition": "needs_trace_repair"},
+        ]
+    }
+
+    result = build_authoring_suite(
+        suite,
+        qualification,
+        site="gitlab",
+        task_types={"retrieve", "navigate"},
+    )
+
+    assert [task["id"] for task in result["tasks"]] == ["webarena-1"]
+    assert result["benchmark"]["trajectory_authoring"]["task_types"] == [
+        "navigate",
+        "retrieve",
+    ]
