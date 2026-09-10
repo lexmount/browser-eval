@@ -118,7 +118,7 @@ class ScoringTests(unittest.TestCase):
         self.assertTrue(partial["stable_structure_pass"])
         self.assertEqual(partial["content_check_coverage"], .5)
 
-    def test_quote_fields_survive_missing_inline_whitespace(self):
+    def test_quote_fields_reject_lost_tag_boundaries(self):
         quote = "“The world as we have created it is a process of our thinking.”"
         contract = {
             "version": 1, "schema": "quote", "minimum_records": 1,
@@ -133,9 +133,11 @@ class ScoringTests(unittest.TestCase):
         output = (quote + "byAlbert EinsteinTags:changedeep-thoughtsthinkingworld"
                   "\n\n##### Loading...\n\nQuotes by: GoodReads.com").encode()
         measured = score_attempt(case(acceptance_contract=contract, required_facts=facts), output, ok=True)
-        self.assertTrue(task_passed(True, measured))
-        self.assertEqual(measured["fact_coverage"], 1)
-        self.assertEqual(measured["stable_anchor_coverage"], 1)
+        self.assertFalse(task_passed(True, measured))
+        self.assertEqual(measured["fact_coverage"], 0)
+        self.assertEqual(measured["stable_anchor_coverage"], 0)
+        self.assertTrue(measured["stable_structure_pass"])
+        self.assertFalse(measured["stable_content_pass"])
 
     def test_no_declared_groups_is_unmeasured_even_with_markers_or_old_facts(self):
         rules = stable_contract()

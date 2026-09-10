@@ -54,15 +54,17 @@ class ReportBodyScopeTests(unittest.TestCase):
         r['diagnosis']={'evidence':'CLI 请求失败：curl request failed'}
         self.assertEqual(reason(r,c),'CLI 请求失败：curl request failed')
 
-    def test_quote_inline_whitespace_loss_preserves_complete_owned_fields(self):
+    def test_quote_inline_whitespace_loss_exposes_invalid_tag_boundaries(self):
         anchor={'id':'fixed','alternatives':['“An independent thought.”\nby Some Author\nTags: first second']}
         metrics=evaluate_stable_task(
             '“An independent thought.”bySome AuthorTags:firstsecond',
             {'version':1,'schema':'quote','minimum_records':1,'maximum_records':1,
              'stable_text_anchors':[anchor]})
-        self.assertTrue(metrics['stable_task_pass'])
+        self.assertTrue(metrics['stable_structure_pass'])
+        self.assertFalse(metrics['stable_content_pass'])
         rendered=stable_anchor_evidence(metrics,'“An independent thought.”bySome AuthorTags:firstsecond')
-        for phrase in ['An independent thought.','Some Author','firstsecond','命中']:
+        for phrase in ['An independent thought.','Some Author','firstsecond','字段边界不合格',
+                       '文字齐全，但分隔丢失']:
             self.assertIn(phrase,rendered)
 
     def test_result_review_page_prioritizes_rounds_over_attempt_dump(self):

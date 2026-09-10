@@ -450,11 +450,10 @@ def _anchor_matches(anchor, records, visible, schema):
         def field_matches(record, fields, field):
             actual = normalize_for_match(record["fields"][field]).strip('“”"‘’ ')
             expected = normalize_for_match(fields[field]).strip('“”"‘’ ')
-            # Some native Markdown converters omit whitespace at inline DOM
-            # boundaries. In name/description cards the owned record still
-            # proves the boundary; quote tags are likewise a declared tag list,
-            # so compact-equivalent serialization retains the same values.
-            compact = schema == "name_description" or (schema == "quote" and field == "tags")
+            # Name/description card ownership provides a structural boundary
+            # even if an inline DOM separator is omitted. Quote tags are a
+            # set-like field, so their separators must remain observable.
+            compact = schema == "name_description"
             return (actual.replace(" ", "") == expected.replace(" ", "")
                     if compact else actual == expected)
         return [value for value, fields in owned if any(record["valid"] and all(

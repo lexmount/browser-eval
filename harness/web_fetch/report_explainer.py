@@ -511,89 +511,209 @@ def headless_evidence(cases, records):
     return data
 
 
+def _headless_article_input(cases, records, providers):
+    """Bind measured article inputs while ignoring report-only annotations."""
+    derived_fields = {'diagnosis', 'failure_category', 'title_quality'}
+    return {
+        'cases': cases,
+        'records': sorted(
+            [{key: value for key, value in record.items() if key not in derived_fields}
+             for record in records if record['provider'] in providers],
+            key=lambda record: record['attempt_id']),
+    }
+
+
+def _article_speed_population(cases, records, providers, *, execution_scope):
+    """Describe one common-pass diagnostic over a complete declared matrix."""
+    indexed = {}
+    for record in records:
+        if record['provider'] not in providers:
+            continue
+        key = (record['provider'], record['case_id'])
+        if key in indexed:
+            raise ValueError('Article latency requires one authoritative record per provider and task')
+        indexed[key] = record
+    if any((provider, cid) not in indexed for provider in providers for cid in cases):
+        raise ValueError('Article latency requires the complete declared matrix')
+    common = sorted(cid for cid, case in cases.items() if all(
+        task_passed(indexed[provider, cid]['ok'], indexed[provider, cid]['metrics'],
+                    case.get('task_kind', 'body'))
+        for provider in providers))
+    if not common:
+        raise ValueError('Article latency has no commonly accepted tasks')
+    rows = []
+    for provider in providers:
+        records_for_provider = [indexed[provider, cid] for cid in common]
+        values = [record['elapsed_ms'] for record in records_for_provider]
+        times = [record['started_at'] for record in records_for_provider if record.get('started_at')]
+        rows.append({
+            'provider': provider,
+            'attempts': len(common),
+            'values_ms': values,
+            'mean_ms': statistics.mean(values),
+            'p50_ms': percentile(values, .5),
+            'p95_ms': percentile(values, .95),
+            'recorded_start_dates': dict(sorted(Counter(time[:10] for time in times).items())),
+            'latency_corrected_cases': [
+                record['case_id'] for record in records_for_provider
+                if 'latency_correction' in record.get('provider_metadata', {})
+            ],
+        })
+    return {
+        'providers': providers,
+        'planned_case_count': len(cases),
+        'common_pass_count': len(common),
+        'common_pass_cases': common,
+        'track_counts': dict(sorted(Counter(
+            cases[cid].get('track', 'web') for cid in common).items())),
+        'execution_scope': execution_scope,
+        'rows': rows,
+    }
+
+
+def _render_article_speed(population):
+    size = population['common_pass_count']
+    metrics = [('mean_ms', '平均耗时', '全部耗时相加，再除以任务数'),
+               ('p50_ms', 'P50 · 中位数', '一半任务的等待不超过这个值'),
+               ('p95_ms', 'P95 · 较慢一端',
+                f'本组仅 {size} 题，按报告算法等于最慢一题' if size < 20
+                else '95% 的任务耗时不超过这个值')]
+    html = '<div class="m-speed-grid">'
+    for metric, title, explanation in metrics:
+        values = [(row['provider'], row[metric]) for row in population['rows']]
+        best, top = min(value for _, value in values), max(value for _, value in values)
+        html += f'<div class="m-speed-column"><h4>{title}</h4><p>{explanation}</p>'
+        for provider, value in values:
+            label = escape(PROVIDER_NAMES.get(provider, provider.title()))
+            html += (f'<div class="m-speed-row"><span>{label}</span><b>{value/1000:.2f} s</b>'
+                     '<div class="m-speed-track">'
+                     f'<i class="{"best" if value == best else ""}" style="width:{value/top*100:.3f}%"></i>'
+                     '</div></div>')
+        html += '</div>'
+    return html + '</div>'
+
+
 def _render_headless(out, cases, records):
+    """Five-browser editorial view, derived from the unchanged report evidence."""
+    from .report_components import comparable_body_reference
     data = headless_evidence(cases, records)
-    audit_path=contained_path(out,'result-review.json')
-    audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
-    data['independent_result_audit']=audit
-    provenance={}
-    provenance_path=contained_path(out,'implementation-provenance.json')
-    if provenance_path.is_file():
-        provenance={x['binary_sha256']:x for x in json.loads(provenance_path.read_text()).get('implementations',[])}
-    def num(value):
-        return '—' if value is None else f'{value:,.0f}'
-    overview = _table(['浏览器', *TRACK_NAMES.values()], [
-        (escape(PROVIDER_NAMES.get(name,name)), *(f'{data["tracks"][t]["providers"][name]["passed"]}/{data["tracks"][t]["providers"][name]["attempts"]}'
-            if name in data['tracks'][t]['providers'] else '—' for t in TRACK_NAMES))
-        for name in data['providers']], '任务通过数 / 实际调用数。六类任务不合成总分；未执行不记为失败。')
-    pairs = _table(['浏览器 vs Chromium','共同通过网页','本方法 P50 ms','Chromium P50 ms','仅本方法通过','仅 Chromium 通过'],[
-        (escape(PROVIDER_NAMES.get(p['provider'],p['provider'])),str(len(p['both_pass_ids'])),num(p['provider_p50_ms']),num(p['chromium_p50_ms']),str(len(p['provider_only'])),str(len(p['chromium_only'])))
-        for p in data['pairs']], '每行只比较双方共同通过的网页。同一行分母相同，不同行的配对样本可能不同；P50 包含客户端、启动、取页与形成 Markdown 的全部开销。')
-    latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
-        (escape(PROVIDER_NAMES.get(name,name)),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
-        for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
-    speed_table, speed_note, speed = _speed_comparison(out)
-    if speed:
-        latency, pairs = speed_table, speed_note
-    dynamic = _table(['任务',*data['providers']], [
-        (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
-        for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
-    stages=_table(['浏览器','实际路径','本次请求','原生 Markdown ms','取 HTML ms','转换 ms','服务端浏览器 ms','端到端 ms'],[
-        (_link('attempts/'+r['attempt_id']+'.html',PROVIDER_NAMES.get(r['provider'],r['provider'])),escape(r.get('extractor') or '—'),'成功' if r['ok'] else '未成功',num(r['native_markdown_ms']),num(r['fetch_html_ms']),num(r['conversion_ms']),num(float(r['browser_ms_used'])) if r.get('browser_ms_used') else '—',num(r['elapsed_ms']))
-        for r in data['encyclopedia']], 'Wikipedia 单页实测。原生路径不会虚构 HTML/转换拆分；Cloudflare 的 browser_ms_used 是服务端计费诊断，不等于客户端端到端耗时；超时缺少阶段数据时记为 —。')
-    quality=_table(['浏览器','有全文指标的网页调用','纯净度','完整度','F1'],[
-        (escape(PROVIDER_NAMES.get(n,n)),str(r['attempts']),*(_percent(r[k]) for k in ('word_precision','word_recall','word_f1')))
-        for n,r in data['quality'].items()], '逐次词级指标的算术平均，包含已测失败调用；未通过任务不会把已有重合归零。完整度与纯净度均受已声明参考范围约束。')
-    runtime=_table(['方法','版本','部署','完成条件'],[
-        (escape(PROVIDER_NAMES.get(name,name)),escape(str(data['runtime'][name].get('browser_version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('version') or provenance.get(data['runtime'][name].get('binary_sha256'),{}).get('identity') or '版本未记录')),
-         escape(str(data['runtime'][name].get('deployment') or '—')),
-         escape(str(data['runtime'][name].get('wait_until') or '—')))
-        for name in data['providers']], '版本未记录不是可忽略信息；二进制哈希仍保留在环境与复现页。')
-    web_rows=data['tracks']['web']['providers']
-    summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in web_rows.items())
-    dynamic_summary='；'.join(f'{PROVIDER_NAMES.get(n,n)} {r["passed"]}/{r["attempts"]}' for n,r in data['tracks']['dynamic']['providers'].items())
-    moli_names=['moli-1.0.6','moli','moli-1.1.3']
-    moli_comparison=''
-    if all(name in data['providers'] for name in moli_names):
-        totals={name:sum(data['tracks'][track]['providers'].get(name,{}).get('passed',0) for track in TRACK_NAMES) for name in moli_names}
-        total_attempts={name:sum(data['tracks'][track]['providers'].get(name,{}).get('attempts',0) for track in TRACK_NAMES) for name in moli_names}
-        documents={name:data['tracks']['document']['providers'].get(name,{'passed':0,'attempts':0}) for name in moli_names}
-        moli_comparison=(
-            '<p class="callout"><b>Moli 版本结论：</b>三版使用相同路线；当前总通过数为 '
-            f'Moli 1.0.6 {totals["moli-1.0.6"]}/{total_attempts["moli-1.0.6"]}、'
-            f'Moli 1.1.1 {totals["moli"]}/{total_attempts["moli"]}、'
-            f'Moli 1.1.3 {totals["moli-1.1.3"]}/{total_attempts["moli-1.1.3"]}，'
-            f'文档正文分别为 {documents["moli-1.0.6"]["passed"]}/{documents["moli-1.0.6"]["attempts"]}、'
-            f'{documents["moli"]["passed"]}/{documents["moli"]["attempts"]}、'
-            f'{documents["moli-1.1.3"]["passed"]}/{documents["moli-1.1.3"]["attempts"]}。'
-            '本轮没有显示版本越新通过越多。三轮独立配对诊断中，document-03 两版均为 3/3；challenge-01 的 1.1.1 为 1/3、1.1.3 为 0/3，且失败均为空响应。'
-            '另对正式时延差异最大的四题做三轮顺序轮换复测：1.1.3 相对 1.1.1 的各题中位数从快 6% 到慢 18%，区间大量重叠；本地固定页五轮中位数则为 57 ms 对 56 ms。'
-            '这说明公网长尾主要发生在原生抓取与页面等待阶段，可能仍含版本策略差异，但尚不能归因为核心性能普遍回退。纠正后的主榜对三版相同四题统一采用第三轮计时，不按最快结果挑选；此前计时及全部三轮仍由纠正收据绑定。</p>')
-    if audit:
-        reviewer=audit.get('reviewer',{})
-        main_subject='自动失败项' if audit.get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出'
-        scopes=f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}'
-        revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
-        revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已另行盲审；'
-                       if revision else '')
-        review_summary=(f'{scopes}；机器通过未逐条审查 '
-            f'{audit.get("accepted_unreviewed_passes",0)}；未决 {audit.get("unresolved",0)}。'
-            '轮次与修正见“核验记录”。')
-    else:review_summary='本报告没有绑定独立结果核验记录。'
-    values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
-        'track_count':str(sum(bool(data['tracks'][track]['cases']) for track in TRACK_NAMES)),
-        'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,
-        'moli_comparison':moli_comparison,
-        'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
-        'pairs':pairs,'latency':latency,'dynamic':dynamic,'stages':stages,'quality':quality,
-        'web_summary':escape(summary),'dynamic_summary':escape(dynamic_summary)}
-    template=Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())
-    body=template.substitute(values)
+    audit_path = contained_path(out, 'result-review.json')
+    data['independent_result_audit'] = json.loads(audit_path.read_text()) if audit_path.is_file() else None
+    selected = ['moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf']
+    missing = sorted(set(selected) - set(data['providers']))
+    if missing:
+        raise ValueError('Five-browser article requires every reviewed provider; missing: ' + ', '.join(missing))
+    speed_path = contained_path(out, 'speed-cohort/speed-comparison.json')
+    if not speed_path.is_file():
+        raise ValueError('Five-browser article requires speed evidence; missing speed-comparison.json')
+    # The authored case explanations contain measured numbers as prose. Bind the
+    # complete five-browser edition to its reviewed evidence so a later rebuild
+    # cannot silently combine fresh charts with stale narrative measurements.
+    reviewed_input = _headless_article_input(cases, records, selected)
+    if _digest(reviewed_input) != 'd8ec77788689869fcfe0be31bf303bdcaa28c52947a09fcbda172c47e96422e5':
+        raise ValueError('Five-browser article evidence changed; review case prose and rebind the article before rebuilding')
+    def passed(r):
+        return task_passed(r['ok'], r['metrics'], cases[r['case_id']].get('task_kind', 'body'))
+    rows = {n: {r['case_id']: r for r in records if r['provider'] == n} for n in selected}
+    pass_ids = {n: {cid for cid, r in rows[n].items() if passed(r)} for n in selected}
+    totals = {n: len(pass_ids[n]) for n in selected}
+    def label(n):
+        return escape(PROVIDER_NAMES.get(n, n.title()))
+    def bars(values, unit='', maximum=None):
+        top = maximum or max(v for _, v in values) or 1
+        return '<div class="m-bars">' + ''.join(
+            f'<div class="m-bar-row"><span class="m-bar-label">{label(n)}</span><div class="m-bar-track"><i style="width:{v/top*100:.3f}%" class="{"primary" if n == "moli" else ""}"></i></div><b>{v:g}{unit}</b></div>'
+            for n, v in values) + '</div>'
+    groups = [('网页类', ('web', 'dynamic', 'challenge')), ('文档与媒体', ('document', 'image', 'video'))]
+    group_data = []
+    for name, tracks in groups:
+        ids = {cid for cid, c in cases.items() if c.get('track', 'web') in tracks}
+        group_data.append({'name': name, 'cases': len(ids), 'moli': len(pass_ids.get('moli', set()) & ids), 'chromium': len(pass_ids.get('chromium', set()) & ids)})
+    split = ''.join(f'<div class="m-split-panel"><span>{g["cases"]} 个任务 · {g["name"]}</span><div class="m-duel"><b>{g["moli"]}<small>Moli 1.1.1</small></b><em>:</em><b>{g["chromium"]}<small>Chromium</small></b></div><p>{"两者完成数相同" if g["moli"] == g["chromium"] else "净差 +" + str(g["moli"]-g["chromium"])+" 题"}</p></div>' for g in group_data)
+    ma, ch = pass_ids.get('moli', set()), pass_ids.get('chromium', set())
+    disagreement = [('共同通过', len(ma & ch)), ('Moli 单独通过', len(ma-ch)), ('Chromium 单独通过', len(ch-ma)), ('共同未通过', len(set(cases)-(ma|ch)))]
+    four = ''.join(f'<div><b>{n}</b><span>{escape(name)}</span></div>' for name,n in disagreement)
+    matrix = _table(['任务类型', *(label(n) for n in selected)], [(name, *(str(data['tracks'][track]['providers'].get(n,{}).get('passed',0))+'/'+str(data['tracks'][track]['cases']) for n in selected)) for track,name in [('web','普通网页'),('dynamic','动态网页'),('challenge','热门站点'),('document','文档'),('image','图片'),('video','视频')]], '每题等权。速度和全文指标不计入任务通过率；普通网页占总样本的三分之二。')
+    quality_data = {}
+    for n in ('moli','chromium'):
+        eligible = [r for r in rows.get(n,{}).values() if cases[r['case_id']].get('track','web')=='web' and comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
+        quality_data[n] = {'cases':len(eligible), **{k:_mean(r['metrics'].get(k) for r in eligible) for k in ('word_precision','word_recall','word_f1')}}
+    quality = _table(['全文指标','Moli 1.1.1','Chromium'], [(name,*(_percent(quality_data[n][k]) for n in ('moli','chromium'))) for k,name in [('word_recall','参考正文找回比例 · Recall'),('word_precision','输出文字纯净度 · Precision'),('word_f1','综合文字重合 · F1')]], f'{quality_data["moli"]["cases"]} 个具有完整可比参考的普通网页，取逐题算术平均，包含已测失败项。文字重合不等于事实准确率。')
+    speed = json.loads(speed_path.read_text())
+    if _digest(speed) != '5915ed32fcbfa27bd7fe2e4c9d4a32a5080936482fb6f2f51d09a2d9bff85dc3':
+        raise ValueError('Article speed evidence changed; review latency prose before rebuilding')
+    speed_inputs = {}
+    for name in ('dataset', 'results'):
+        extension = 'json' if name == 'dataset' else 'jsonl'
+        raw = contained_path(out, f'speed-cohort/{name}.{extension}').read_bytes()
+        if hashlib.sha256(raw).hexdigest() != speed['bindings'][name + '_sha256']:
+            raise ValueError('Article speed source evidence changed; review latency prose before rebuilding')
+        speed_inputs[name] = (json.loads(raw) if name == 'dataset'
+                              else [json.loads(line) for line in raw.splitlines() if line.strip()])
+    main_speed = _article_speed_population(cases, records, selected,
+        execution_scope='Historical authoritative main-evaluation calls assembled across dates and batches; includes declared latency corrections. Not a same-window controlled speed comparison.')
+    paired_speed = _article_speed_population(
+        {case['id']: case for case in speed_inputs['dataset']['cases']}, speed_inputs['results'], selected,
+        execution_scope='Separate predeclared 20-page ordinary-web speed run; use all tasks accepted by the five displayed configurations. Small-sample P95 is the observed maximum.')
+    paired_speed['bindings'] = speed['bindings']
+    data['editorial_speed'] = {'main': main_speed, 'same_window': paired_speed}
+    pdf = rows.get('moli',{}).get('document-01')
+    pdf_chars = pdf['metrics'].get('content_chars',0) if pdf else 0
+    pdf_ms = pdf['elapsed_ms'] if pdf else 0
+    pdf_meta = pdf.get('provider_metadata',{}) if pdf else {}
+    cases_links = ' · '.join(_attempt(rows['moli'][cid], name) for cid,name in [('document-01','PDF 正文'),('image-10','PNG 原文件'),('challenge-01','商品列表')] if cid in rows.get('moli',{}))
+    from .report_article_cases import render_article_cases
+    data['editorial'] = {'providers':selected,'version_selection':'Moli 1.1.1 selected after observing version totals; one complete version, no per-case selection','totals':totals,'groups':group_data,'disagreements':dict(disagreement),'full_reference_quality':quality_data}
+    latency_rows = {row['provider']: row for row in main_speed['rows']}
+    reductions = {metric: (1 - latency_rows['moli'][metric] / latency_rows['chromium'][metric]) * 100
+                  for metric in ('mean_ms', 'p50_ms', 'p95_ms')}
+    data['editorial']['chromium_latency_reduction_pct'] = reductions
+    values = {
+        'time_window': escape(' 至 '.join(
+            datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d')
+            for t in data['time_window'])),
+        'title': HEADLESS_TITLE,
+        'total': str(len(cases)),
+        'moli_total': str(totals['moli']),
+        'moli_rate': f'{totals["moli"]/len(cases):.0%}',
+        'delta': str(totals['moli'] - totals['chromium']),
+        'ranking': bars([(n, totals[n]) for n in selected], maximum=len(cases)),
+        'overview_ranking': _table(
+            ['浏览器', '综合任务通过率', '普通网页', '动态网页', '热门站点', '文档', '图片', '视频'],
+            [(label(n), f'<strong>{totals[n]/len(cases):.1%}</strong><br>{totals[n]}/{len(cases)}',
+              *(str(data['tracks'][track]['providers'][n]['passed']) + '/' + str(data['tracks'][track]['cases'])
+                for track in ('web', 'dynamic', 'challenge', 'document', 'image', 'video')))
+             for n in sorted(selected, key=lambda n: -totals[n])],
+            '五款浏览器综合通过率。每款执行相同的 150 道任务，每题等权；分组列为通过数 / 本组任务数。'),
+        'split': split, 'four': four, 'matrix': matrix,
+        'quality': quality, 'speed_main': _render_article_speed(main_speed),
+        'speed': _render_article_speed(paired_speed),
+        'pdf_chars': f'{pdf_chars:,}',
+        'pdf_seconds': f'{pdf_ms/1000:.2f}',
+        'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',
+        'pdf_parse': f'{pdf_meta.get("document_extract_ms", 0)/1000:.2f}',
+        'case_links': cases_links,
+        'report_url': escape(HUB, quote=True),
+        'browser_profiles': '',
+        'case_workbench': render_article_cases(out, cases, records),
+        'moli_web': str(data['tracks']['web']['providers']['moli']['passed']),
+        'chromium_web': str(data['tracks']['web']['providers']['chromium']['passed']),
+        'moli_docs': str(data['tracks']['document']['providers']['moli']['passed']),
+        'chromium_docs': str(data['tracks']['document']['providers']['chromium']['passed']),
+        'quality_count': str(quality_data['moli']['cases']),
+        'mean_reduction': f'{reductions["mean_ms"]:.1f}',
+        'p50_reduction': f'{reductions["p50_ms"]:.1f}',
+        'p95_reduction': f'{reductions["p95_ms"]:.1f}',
+    }
+    from .report_article_figures import render_article_figures
+    online_figures, embedded_figures, data['editorial_figures'] = render_article_figures(out)
+    template = Template((Path(__file__).parent/'templates/interpretation-headless.html').read_text())
+    body = template.substitute(values | online_figures)
+    standalone_body = template.substitute(values | embedded_figures)
     contained_path(out,'guide').mkdir(parents=True,exist_ok=True)
     contained_path(out,'guide/interpretation-evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
-        f'<title>{HEADLESS_TITLE}</title><style>{STYLE}</style></head><body class="standalone-article"><main class="wrap essay">{body}</main></body></html>')
-    return '<div class="wrap essay">'+body+'<aside id="evidence"><h2>文章与证据下载</h2><p><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json" download>计算明细</a> · <a href="../results.jsonl" download>逐次记录</a></p></aside></div>'
+    contained_path(out,'guide/article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+f'<title>{escape(HEADLESS_TITLE)}</title></head><body class="standalone-article">{standalone_body}</body></html>')
+    return body + '<aside id="evidence" class="m-downloads"><a href="article.html" download="moli-web-fetch.html">下载独立 HTML</a> · <a href="interpretation-evidence.json" download>本文计算明细</a></aside>'
 
 
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):

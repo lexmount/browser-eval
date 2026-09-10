@@ -52,15 +52,16 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
             invalid.add(entry)
         groups[entry][field] = fact
 
-    # Nested Markdown images may survive visible-link normalization as
-    # ![AltTitleAltTitle $amount](url). Collapse only the identical adjacent
-    # image-alt/title pair, not ordinary repeated text or separate records.
+    # A linked card containing an image and the same visible title can become
+    # ``TitleTitle $amount`` after Markdown visibility normalization. Collapse
+    # only that exact, unseparated duplicate immediately before a price; real
+    # repeated records retain a separator and remain distinct.
     for fields in groups.values():
         for value in fields.get('name', {}).get('alternatives', []):
             value = normalize(str(value))
             if value:
-                folded = re.sub(r'(!\[)(' + re.escape(value) + r')\2(?=\s)',
-                                r'\1\2', folded)
+                folded = re.sub(r'(?<!\w)(' + re.escape(value) + r')\1(?=\s+[$€£¥])',
+                                r'\1', folded)
 
     # Longest known identity wins: Blue T-Shirt inside Marine Blue T-shirt is
     # not a second product. Include occurrences even when their tuple is broken.
@@ -90,15 +91,7 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                 # declared field literal closes the ambiguity, so a word
                 # boundary after the label would reject complete content.
                 gap = _SEP + rf'(?:(?:{label})\s*:?\s*)?' + _SEP
-                # Tags are a set-like visible field. Native Markdown extractors
-                # can preserve every tag while dropping only the whitespace
-                # between adjacent inline elements (``change deep-thoughts``
-                # becomes ``changedeep-thoughts``). Accept that serialization
-                # difference without relaxing quote, author, or record ownership.
-                literal = '|'.join(
-                    re.escape(v).replace(r'\ ', r'\s*') if field == 'tags'
-                    else re.escape(v)
-                    for v in values)
+                literal = '|'.join(re.escape(v) for v in values)
                 parts.append((gap if index else '') + rf'(?P<f{index}>{literal})')
             else:
                 pattern = re.compile('(?=(' + ''.join(parts) + '))')
@@ -138,9 +131,7 @@ def matching_entry_facts(folded: str, facts: list, normalize, fact_match) -> dic
                             break
                         context = folded[max(0, start-3):end+4]
                         alternatives = [v for v in fields[field].get('alternatives', [])
-                                        if ((normalize(str(v)).replace(' ', '') == value.replace(' ', ''))
-                                            if field == 'tags' else normalize(str(v)) == value)
-                                        and fact_match(context, value)]
+                                        if normalize(str(v)) == value and fact_match(context, value)]
                         if not alternatives:
                             break
                         hits[fields[field]['id']] = alternatives

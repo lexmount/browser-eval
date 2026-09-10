@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication_target import require_publication_site, require_publication_version
-token=load_token()
+token=load_token(base_url=BASE)
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')
 updating='--update' in sys.argv

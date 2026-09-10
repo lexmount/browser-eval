@@ -1,10 +1,32 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,provider_configuration,review_cell,table,write
+from harness.web_fetch.report import active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 
 class ReportRevisionTests(unittest.TestCase):
+ def test_overview_latency_includes_every_configuration_and_same_case_mean(self):
+  cases={cid:{'id':cid,'name':cid,'task_kind':'body'} for cid in ('a','b','c')}
+  providers=['moli','chromium','lightpanda','obscura','kitesurf','moli-1.0.6','moli-1.1.3']
+  records=[]
+  for provider in providers:
+   for cid,value in zip(cases,[1000,3000,99000]):
+    passed=not(provider=='moli-1.0.6' and cid=='c')
+    records.append({'provider':provider,'case_id':cid,'ok':passed,
+                    'metrics':{'content_pass':passed},'elapsed_ms':value,
+                    'started_at':'2026-09-04T00:00:00+00:00'})
+  rendered=overview_matched_latency(records,cases)
+  self.assertIn('全部 7 种受测配置',rendered)
+  self.assertIn('<strong>2/3</strong>',rendered)
+  self.assertIn('同题均值',rendered)
+  self.assertIn('同题 P95',rendered)
+  self.assertEqual(rendered.count('<strong>2,000 ms</strong>'),14)
+  self.assertEqual(rendered.count('<strong>3,000 ms</strong>'),7)
+  for provider in providers:self.assertIn('providers/'+provider+'.html',rendered)
+  self.assertIn('跨日期、跨批次',rendered)
+  self.assertNotIn('99,000 ms',rendered)
+  self.assertIn('调用矩阵尚不完整',overview_matched_latency(records[1:],cases))
+
  def row(self,**kw):return dict({'ok':True,'metrics':{'content_pass':False,'length_pass':True}},**kw)
  def test_result_default_failure(self):
   controls=filter_controls([('result','结果',[('pass','任务通过'),('fail','任务失败')])])
@@ -172,3 +194,34 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertEqual(untranslated_english_narrative(rendered),[])
   self.assertIn('Figure 3 · Scoring:',rendered)
   self.assertIn('aria-label="Download original:',rendered)
+ def test_article_aria_labels_localize_without_touching_evidence_attributes(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<nav aria-label="文章目录" data-evidence="文章目录"></nav><img src="data:image/png;base64,YQ==" alt="文章目录">'
+  translated=localize_html(markup,PurePosixPath('guide/article.html'))
+  self.assertIn('aria-label="Article contents"',translated)
+  self.assertIn('data-evidence="文章目录"',translated)
+  self.assertIn('alt="Article contents"',translated)
+  self.assertIn('src="data:image/png;base64,YQ=="',translated)
+  other=localize_html(markup,PurePosixPath('attempts/example.html'))
+  self.assertIn('aria-label="文章目录"',other)
+  self.assertIn('alt="文章目录"',other)
+ def test_article_selects_localized_assets_before_rewriting_relative_urls(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<a href="figures/zh.png" data-en-href="figures/en.png"><img src="figures/zh.png" data-en-src="figures/en.png" alt="文章目录" data-evidence="原始证据"></a>'
+  for route in ('guide/index.html','guide/article.html'):
+   translated=localize_html(markup,PurePosixPath(route))
+   self.assertIn('href="../../guide/figures/en.png"',translated)
+   self.assertIn('src="../../guide/figures/en.png"',translated)
+   self.assertNotIn('data-en-',translated)
+   self.assertIn('data-evidence="原始证据"',translated)
+ def test_article_embedded_assets_and_measured_markup_stay_distinct(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<img src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg==" alt="文章目录"><pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>'
+  translated=localize_html(markup,PurePosixPath('guide/article.html'))
+  self.assertIn('src="data:image/png;base64,Yg==" alt="Article contents"',translated)
+  self.assertIn('<pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>',translated)
+  outside=localize_html(markup,PurePosixPath('attempts/example.html'))
+  self.assertIn('src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg=="',outside)

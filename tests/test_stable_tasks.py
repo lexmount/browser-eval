@@ -347,7 +347,7 @@ class StableTaskTests(unittest.TestCase):
                             hosts=["example.com"], entry_path=r"/r/programming/comments/\d+")
         self.assertTrue(result["stable_task_pass"], result)
 
-    def test_quote_anchors_match_owned_fields_not_markup_or_ui_link(self):
+    def test_quote_anchors_match_owned_fields_and_preserve_tag_boundaries(self):
         anchors = [{"id": "fixed", "alternatives": ['“An independent thought.”\nby Some Author\nTags: first second']}]
         texts = ('“An independent thought.”by [Some Author](/author) [(about)](/about)\n'
                  'Tags: [first](/tag/1)[second](/tag/2)\n##### Loading...',
@@ -357,7 +357,8 @@ class StableTaskTests(unittest.TestCase):
             self.assertTrue(self.check(text, "quote", 1, stable_text_anchors=anchors)["stable_task_pass"])
         compact = self.check('“An independent thought.”by Some Author\nTags: firstsecond',
                              "quote", 1, stable_text_anchors=anchors)
-        self.assertTrue(compact["stable_task_pass"])
+        self.assertTrue(compact["stable_structure_pass"])
+        self.assertFalse(compact["stable_content_pass"])
         wrong = self.check('“An independent thought.”by Wrong Author\nTags: first second',
                            "quote", 1, stable_text_anchors=anchors)
         self.assertTrue(wrong["stable_structure_pass"])

@@ -8,7 +8,9 @@ import unittest
 
 from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
     require_verified_reference_checks, valid_scoring_revision)
-from harness.web_fetch.report_explainer import headless_evidence, render_explainer
+from harness.web_fetch.report_explainer import (
+    _digest, _headless_article_input, _article_speed_population,
+    headless_evidence, render_explainer)
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
                                        bind_assembled_scoring_revision,
@@ -17,6 +19,55 @@ from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_article_speed_uses_all_common_tasks_of_displayed_providers(self):
+        cases = {cid: {'id': cid, 'track': 'web'} for cid in ('a', 'b', 'c')}
+        rows = []
+        for provider, values in [('moli', [10, 100, 1000]), ('peer', [20, 50, 60]),
+                                 ('undisplayed-version', [5, 5, 5])]:
+            for cid, elapsed in zip(cases, values):
+                passed = not (provider == 'peer' and cid == 'c') and not (
+                    provider == 'undisplayed-version' and cid == 'b')
+                rows.append({'provider': provider, 'case_id': cid, 'ok': passed,
+                             'elapsed_ms': elapsed, 'metrics': {'content_pass': passed}})
+        population = _article_speed_population(cases, rows, ['moli', 'peer'], execution_scope='test')
+        self.assertEqual(population['planned_case_count'], 3)
+        self.assertEqual(population['common_pass_cases'], ['a', 'b'])
+        self.assertEqual(population['track_counts'], {'web': 2})
+        self.assertEqual(population['rows'][0]['mean_ms'], 55)
+        self.assertEqual(population['rows'][0]['p50_ms'], 55)
+        self.assertEqual(population['rows'][0]['p95_ms'], 100)
+        # Including another configuration legitimately changes the population;
+        # its failure must not silently constrain a five-browser article.
+        expanded = _article_speed_population(cases, rows,
+            ['moli', 'peer', 'undisplayed-version'], execution_scope='test')
+        self.assertEqual(expanded['common_pass_cases'], ['a'])
+        with self.assertRaisesRegex(ValueError, 'one authoritative'):
+            _article_speed_population(cases, rows + [rows[0]], ['moli', 'peer'], execution_scope='test')
+        with self.assertRaisesRegex(ValueError, 'complete declared matrix'):
+            _article_speed_population(cases, rows[1:], ['moli', 'peer'], execution_scope='test')
+
+    def test_article_binding_ignores_only_report_derived_annotations(self):
+        cases = {'a': {'id': 'a', 'track': 'web', 'minimum_content_chars': 10}}
+        record = {'provider': 'moli', 'case_id': 'a', 'attempt_id': 'moli__a',
+                  'ok': True, 'elapsed_ms': 10,
+                  'metrics': {'content_pass': True, 'content_sha256': 'original'},
+                  'provider_metadata': {'browser_version': 'moli 1.1.1'}}
+        def binding(cs, row):
+            return _digest(_headless_article_input(cs, [row], ['moli']))
+        expected = binding(cases, record)
+        annotated = record | {'diagnosis': {'independent_source_check': 'available'},
+                              'title_quality': {'score': 0.5}, 'failure_category': 'label'}
+        self.assertEqual(binding(cases, annotated), expected)
+        mutations = [record | {'ok': False}, record | {'elapsed_ms': 11},
+                     record | {'metrics': record['metrics'] | {'content_pass': False}},
+                     record | {'metrics': record['metrics'] | {'content_sha256': 'changed'}},
+                     record | {'provider_metadata': {'browser_version': 'moli 1.1.3'}}]
+        for changed in mutations:
+            with self.subTest(record=changed):
+                self.assertNotEqual(binding(cases, changed), expected)
+        changed_cases = {'a': cases['a'] | {'minimum_content_chars': 11}}
+        self.assertNotEqual(binding(changed_cases, record), expected)
+
     def test_assembled_scoring_history_is_bound_to_exact_reviewed_output(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
@@ -105,13 +156,46 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertEqual(pair['provider_only'],['c'])
         self.assertEqual(pair['chromium_only'],['b'])
         self.assertIsNone(evidence['quality']['moli']['word_f1'])
+        self.assertEqual(evidence['cases'], 3)
+        self.assertEqual(evidence['tracks']['web']['providers']['moli']['passed'], 2)
+
+    def test_authored_article_rejects_incomplete_browser_matrix(self):
+        cases = {'a': {'id': 'a', 'track': 'web'}}
+        record = {'provider': 'moli', 'case_id': 'a', 'provider_type': 'headless_html',
+                  'started_at': '2026-09-03T00:00:00Z', 'provider_metadata': {},
+                  'ok': True, 'elapsed_ms': 10,
+                  'metrics': {'content_pass': True, 'word_f1': None}}
         with tempfile.TemporaryDirectory() as temp:
-            page=render_explainer(Path(temp),cases,records)
-            article=(Path(temp)/'guide/article.html').read_text()
-            body=page.split('<article',1)[1].split('</article>',1)[0]
-            self.assertIn('<article'+body+'</article>',article)
-            self.assertNotIn('<script',article)
-            self.assertIn('仅本方法通过',article)
+            with self.assertRaisesRegex(ValueError, 'missing: chromium, kitesurf, lightpanda, obscura'):
+                render_explainer(Path(temp), cases, [record])
+            self.assertFalse((Path(temp) / 'guide/article.html').exists())
+
+    def test_authored_five_browser_article_rejects_changed_evidence(self):
+        cases = {'a': {'id': 'a', 'track': 'web'}}
+        records = [{'provider': name, 'case_id': 'a', 'attempt_id': name + '__a',
+                    'provider_type': 'headless_html', 'started_at': '2026-09-03T00:00:00Z',
+                    'provider_metadata': {}, 'ok': True, 'elapsed_ms': 10,
+                    'metrics': {'content_pass': True, 'word_f1': None}}
+                   for name in ('moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf')]
+        with tempfile.TemporaryDirectory() as temp:
+            speed_dir = Path(temp) / 'speed-cohort'
+            speed_dir.mkdir()
+            (speed_dir / 'speed-comparison.json').write_text('{}')
+            with self.assertRaisesRegex(ValueError, 'article evidence changed'):
+                render_explainer(Path(temp), cases, records)
+            self.assertFalse((Path(temp) / 'guide/article.html').exists())
+
+    def test_authored_article_rejects_missing_speed_evidence(self):
+        cases = {'a': {'id': 'a', 'track': 'web'}}
+        records = [{'provider': name, 'case_id': 'a', 'attempt_id': name + '__a',
+                    'provider_type': 'headless_html', 'started_at': '2026-09-03T00:00:00Z',
+                    'provider_metadata': {}, 'ok': True, 'elapsed_ms': 10,
+                    'metrics': {'content_pass': True, 'word_f1': None}}
+                   for name in ('moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf')]
+        with tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(ValueError, 'requires speed evidence'):
+                render_explainer(Path(temp), cases, records)
+            self.assertFalse((Path(temp) / 'guide/article.html').exists())
 
     def prepare(self,root):
         now=datetime.now(timezone.utc)
