@@ -9,8 +9,11 @@ from harness.browser_use.report import (
     _absolute_metric_cell,
     _annotate_source_marks,
     _correctness_table,
+    _method_page,
     _metric_tables,
     _ratio_metric_cell,
+    _suite_page,
+    _summary_page,
     _task_detail_body,
     write_latest_report,
 )
@@ -516,6 +519,60 @@ def test_detail_renders_webarena_evaluators_as_readable_rules():
     assert "完整预期" in body
     assert "完整实际值" in body
     assert "逐条断言" in body
+
+
+def test_webarena_report_uses_self_hosted_trajectory_scope_language():
+    manifest = {
+        "run_id": "run",
+        "suite": [
+            {
+                "task_id": "webarena-521",
+                "title": "Subscribe",
+                "complexity": "simple",
+                "tool_calls": [{"action": "click", "selector": "button"}],
+                "ground_truth": {"expected_actions": ["click"]},
+                "source": {
+                    "url": "https://example.test/official-trace.zip",
+                    "verified_evaluators": [
+                        {"evaluator": "AgentResponseEvaluator"},
+                        {"evaluator": "NetworkEventEvaluator"},
+                    ],
+                },
+                "evaluator": {"kind": "webarena_verified"},
+                "environment": {
+                    "kind": "webarena_verified",
+                    "sites": ["shopping"],
+                    "start_urls": ["__SHOPPING__"],
+                },
+            }
+        ],
+        "protocol": {"post_reset_settle_ms": 1500},
+        "environment": {},
+    }
+    summary = {
+        "functional": {
+            "chromium": {"result_final_passes": 1, "tasks": 1},
+            "moli": {"result_final_passes": 0, "tasks": 1},
+        },
+        "resource_comparison": {
+            "intersection_attempts": 0,
+            "by_engine": {},
+            "paired_ratios": {"metrics": {}},
+        },
+    }
+
+    homepage = _summary_page(manifest, summary)
+    suite = _suite_page(manifest)
+    method = _method_page(manifest)
+
+    assert "不足以推出浏览器总体优劣" in homepage
+    assert "不是 LLM Agent 排名" in homepage
+    assert "公开轨迹任务" in suite
+    assert "自托管站点" in suite
+    assert "自托管测试环境" in suite
+    assert "官方轨迹来源" in suite
+    assert "没有 agent 或模型在运行时选择下一步" in method
+    assert "不使用 LLM judge" in method
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):

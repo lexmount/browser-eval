@@ -377,12 +377,20 @@ def _detail_filename(task_id: str, engine: str) -> str:
     return f"{REPORT_STEM}-task-{task_id.encode().hex()}-{engine.encode().hex()}.html"
 
 
+def _is_webarena_manifest(manifest: dict[str, Any]) -> bool:
+    return any(
+        ((task.get("evaluator") or {}).get("kind") == "webarena_verified")
+        for task in manifest.get("suite") or []
+    )
+
+
 def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     task_count = len(manifest.get("suite") or [])
     f = summary.get("functional") or {}
     c = f.get("chromium") or {}
     m = f.get("moli") or {}
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
+    webarena = _is_webarena_manifest(manifest)
 
     agent_smoke = manifest.get("agent_smoke") or {}
     smoke_html = ""
@@ -394,12 +402,18 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
 
     if c_passes > m_passes:
         recommendation = (
-            f"本轮建议默认使用 Chromium：其结果正确任务数为 {c_passes}，高于 Moli 的 {m_passes}；"
+            f"本轮固定轨迹中 Chromium 通过 {c_passes} 个任务，高于 Moli 的 {m_passes} 个。"
+            "这定位了当前兼容性差异，不足以推出浏览器总体优劣。"
+            if webarena
+            else f"本轮建议默认使用 Chromium：其结果正确任务数为 {c_passes}，高于 Moli 的 {m_passes}；"
             "Moli 在双方均成功的任务上若表现出更低耗时或资源占用，可作为任务已验证兼容时的备选。"
         )
     elif m_passes > c_passes:
         recommendation = (
-            f"本轮建议默认使用 Moli：其结果正确任务数为 {m_passes}，高于 Chromium 的 {c_passes}；"
+            f"本轮固定轨迹中 Moli 通过 {m_passes} 个任务，高于 Chromium 的 {c_passes} 个。"
+            "这定位了当前兼容性差异，不足以推出浏览器总体优劣。"
+            if webarena
+            else f"本轮建议默认使用 Moli：其结果正确任务数为 {m_passes}，高于 Chromium 的 {c_passes}；"
             "仍需结合双方成功任务上的资源指标和失败类型确认适用边界。"
         )
     else:
@@ -408,12 +422,26 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
         )
     correctness = _correctness_table(summary)
-    return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
-<section class="card"><h2>任务正确率</h2>{correctness}</section>
-<section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>
-<li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
+    if webarena:
+        scope = (
+            "这是 WebArena-Verified 公开人类轨迹的自托管确定性重放，不是 LLM Agent 排名。"
+            f"本轮分母是资格筛选后固定的 {task_count} 个任务；结果只说明这些轨迹与环境中的浏览器兼容性，"
+            "不代表任一浏览器的总体能力。"
+        )
+        findings = """<li><strong>变量隔离：</strong>两个浏览器执行同一条已资格验证的参考轨迹；没有 agent 规划、模型调用或 LLM judge。</li>
+<li><strong>验收对象：</strong>固定的 WebArena-Verified evaluator 检查任务回答、最终服务状态和 HAR 网络事件；不要求逐步模仿原始录制坐标。</li>
+<li><strong>资格边界：</strong>179 个官方人类录制只是候选。架构预筛、冷 Chromium 重放和完整证据验收都通过后，任务才进入本轮分母。</li>"""
+    else:
+        scope = (
+            "这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。"
+            f"评测集包含 {task_count} 个结果唯一的任务。"
+        )
+        findings = f"""<li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
 <li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
-<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="browser-use-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
+<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="browser-use-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li>"""
+    return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>{scope}</p></section>
+<section class="card"><h2>任务正确率</h2>{correctness}</section>
+<section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>{findings}</ul></section>
 <section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
 
 
@@ -472,6 +500,7 @@ def _source_mark_note(values: Any) -> str:
 
 def _suite_page(manifest: dict[str, Any]) -> str:
     suite = manifest.get("suite") or []
+    webarena = _is_webarena_manifest(manifest)
     validation = manifest.get("ground_truth_validation") or {}
     replay = validation.get("automatic_browser_replay") or {}
     difficulty_values = [str(task.get("complexity") or "") for task in suite]
@@ -497,17 +526,25 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         )
         or "未标注难度"
     )
-    site_counts = Counter(
-        urlparse(str((task.get("source") or {}).get("url") or "")).hostname or "未标注"
-        for task in suite
-    )
+    site_counts: Counter[str] = Counter()
+    for task in suite:
+        environment_sites = list((task.get("environment") or {}).get("sites") or [])
+        if environment_sites:
+            site_counts.update(str(site) for site in environment_sites)
+        else:
+            site_counts.update(
+                [
+                    urlparse(str((task.get("source") or {}).get("url") or "")).hostname
+                    or "未标注"
+                ]
+            )
     action_counts = Counter(
         str(call.get("action") or "") for task in suite for call in task.get("tool_calls") or []
     )
     distribution = (
         '<div class="grid suite-stats">'
-        f'<div class="metric"><strong>{len(suite)}</strong><span>公网任务</span></div>'
-        f'<div class="metric"><strong>{len(site_counts)}</strong><span>独立网站/域名</span></div>'
+        f'<div class="metric"><strong>{len(suite)}</strong><span>{"公开轨迹任务" if webarena else "公网任务"}</span></div>'
+        f'<div class="metric"><strong>{len(site_counts)}</strong><span>{"自托管站点" if webarena else "独立网站/域名"}</span></div>'
         f'<div class="metric"><strong>{sum(action_counts.values())}</strong><span>参考 BrowserTool 调用</span></div>'
         "</div>"
         + _table(
@@ -547,21 +584,46 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         expected_inline = "；".join(
             f"{name} = {value}" for name, value in (truth.get("expected_outputs") or {}).items()
         )
+        expected_outputs = truth.get("expected_outputs") or {}
+        verified_evaluators = (task.get("source") or {}).get("verified_evaluators") or []
         expected_rows = (
             '<dl class="expected-values">'
             + "".join(
                 f"<div><dt>{_e(name)}</dt><dd>{_annotate_source_marks(_e(value))}</dd></div>"
-                for name, value in (truth.get("expected_outputs") or {}).items()
+                for name, value in expected_outputs.items()
             )
             + "</dl>"
-            + _source_mark_note(truth.get("expected_outputs"))
+            + _source_mark_note(expected_outputs)
+            if expected_outputs
+            else "<p>"
+            + _e(
+                " + ".join(
+                    str(item.get("evaluator") or "程序化 evaluator")
+                    for item in verified_evaluators
+                )
+                or "程序化 evaluator"
+            )
+            + "</p>"
         )
         reference_path = " → ".join(truth.get("expected_actions") or [])
         source = task.get("source") or {}
         target_url = str(source.get("url") or "")
-        source_html = (
-            f'<a target="_blank" rel="noopener" href="{_e(target_url)}">{_e(target_url)}</a>'
-        )
+        environment = task.get("environment") or {}
+        if environment.get("kind") == "webarena_verified":
+            environment_label = " + ".join(environment.get("start_urls") or environment.get("sites") or [])
+            source_html = f"<code>{_e(environment_label)}</code>"
+            if target_url:
+                source_html += (
+                    f'<br><a target="_blank" rel="noopener" href="{_e(target_url)}">官方轨迹来源</a>'
+                )
+            environment_heading = "自托管测试环境"
+            oracle_heading = "程序化验收器"
+        else:
+            source_html = (
+                f'<a target="_blank" rel="noopener" href="{_e(target_url)}">{_e(target_url)}</a>'
+            )
+            environment_heading = "公网测试页面"
+            oracle_heading = "唯一预期结果"
         shared_tags = {"simple", "medium", "complex", "public-web", "exact-oracle"}
         chips = "".join(
             f'<span class="chip">{_e(tag)}</span>'
@@ -577,9 +639,9 @@ def _suite_page(manifest: dict[str, Any]) -> str:
         cards.append(
             f'<section class="card suite-task" data-difficulty="{_e(task.get("complexity"))}" data-site="{_e(urlparse(target_url).hostname or "未标注")}" data-actions="{_e(",".join(sorted({str(c.get("action")) for c in calls})))}" data-search="{_e(search_text)}"><div class="eyebrow">任务 {index:02d}</div><h2>{_e(title)}</h2><span class="chip">{_difficulty(str(task.get("complexity")))}</span><span class="chip">{len(calls)} 次工具调用</span>{chips}'
             '<div class="task-verification">'
-            f"<div><strong>公网测试页面</strong><span>{source_html}</span></div>"
+            f"<div><strong>{environment_heading}</strong><span>{source_html}</span></div>"
             f"<div><strong>参考路径</strong><span><code>{_e(reference_path)}</code></span></div>"
-            f"<div><strong>唯一预期结果</strong>{expected_rows}</div>"
+            f"<div><strong>{oracle_heading}</strong>{expected_rows}</div>"
             "</div>"
             f"<details><summary>逐步操作与答案依据</summary>{call_html}<p><strong>答案依据：</strong>{_e(truth.get('derivation'))}</p>{_source_references(source)}</details></section>"
         )
@@ -641,7 +703,13 @@ def _method_page(manifest: dict[str, Any]) -> str:
         ],
         ["采样", f"每 {p.get('sample_interval_ms', '?')} ms 采样内存、PID、CPU、网络计数"],
     ]
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该工具调用内部，不单列、不计步。每次调用的参数、耗时、输出和状态写入执行轨迹。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2><ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 CowAgent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="browser-use-evaluation-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+    if _is_webarena_manifest(manifest):
+        scoring = """<ol><li><strong>结果正确（主指标）：</strong>固定的 WebArena-Verified evaluator 根据任务回答、最终服务状态和 HAR 网络事件判定；不使用 LLM judge，也不读取参考动作作为答案。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>结果正确之外，参考轨迹中的全部浏览器操作还必须成功执行，且动作类型与预注册轨迹一致。</li></ol><p><strong>边界：</strong>官方人类轨迹只用于固定输入路径。资格验证允许在不改变任务、环境和 evaluator 的前提下修正失效目标；每个修正都必须重新通过独立冷 Chromium 验证。</p>"""
+        flow = f"""<ol><li>每个 task/browser attempt 前，从固定镜像重建任务涉及的有状态站点；只读 Map 只做健康检查。</li><li>等待官方入口初始化退出并验证外部 origin，随后用测试凭据登录；这些准备步骤不计入浏览器动作耗时。</li><li>创建干净页面，固定 1280×720 视口，计时外静置 {p.get("post_reset_settle_ms", "?")} ms；任务顺序交替两个浏览器。</li><li>执行固定轨迹，同时保存回答、动作、最终页面、截图、HAR、资源和终止原因。</li><li>每个任务每个浏览器一个主样本；只有主样本失败才重试一次。资源比较只使用双方首次均成功的配对任务。</li></ol>"""
+    else:
+        scoring = """<ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 agent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p>"""
+        flow = f"""<ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol>"""
+    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 固定参考轨迹中的一次浏览器工具调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该调用内部，不单列、不计步。没有 agent 或模型在运行时选择下一步。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2>{scoring}</section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2>{flow}</section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="browser-use-evaluation-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
 
 
 METRICS = (
