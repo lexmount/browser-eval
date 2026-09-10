@@ -73,6 +73,15 @@ def locator_for(page: Any, step: dict[str, Any], *, all_matches: bool = False) -
     if bool(step.get("allow_many", False)):
         return locator.first
     count = locator.count()
+    if count == 0:
+        first = locator.first
+        wait_for = getattr(first, "wait_for", None)
+        if callable(wait_for):
+            wait_for(
+                state="attached",
+                timeout=int(step.get("target_timeout_ms", step.get("timeout_ms", 30_000))),
+            )
+            count = locator.count()
     if count != 1:
         raise ValueError(f"structured target must match exactly one element; matched {count}")
     return locator

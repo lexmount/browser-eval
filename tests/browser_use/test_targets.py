@@ -16,6 +16,9 @@ class Locator:
     def count(self):
         return self._count
 
+    def wait_for(self, **kwargs):
+        return None
+
 
 class Page:
     def __init__(self, count=1):
@@ -55,6 +58,33 @@ def test_structured_role_target_uses_public_playwright_locator():
 def test_structured_target_fails_on_ambiguous_match():
     with pytest.raises(ValueError, match="exactly one element; matched 2"):
         locator_for(Page(count=2), {"target": {"by": "css", "value": ".item"}})
+
+
+def test_structured_target_waits_for_dynamic_match_before_cardinality_gate():
+    class DynamicLocator(Locator):
+        def __init__(self):
+            super().__init__(0)
+            self.wait = None
+
+        def wait_for(self, **kwargs):
+            self.wait = kwargs
+            self._count = 1
+
+    page = Page()
+    dynamic = DynamicLocator()
+    page.get_by_text = lambda *_args, **_kwargs: dynamic
+
+    assert (
+        locator_for(
+            page,
+            {
+                "target": {"by": "text", "value": "Loaded"},
+                "target_timeout_ms": 4_000,
+            },
+        )
+        is dynamic
+    )
+    assert dynamic.wait == {"state": "attached", "timeout": 4_000}
 
 
 def test_all_matches_returns_structured_locator_without_cardinality_gate():
