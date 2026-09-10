@@ -63,3 +63,14 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=table(['Method'],[('', '<td>Moli</td>')],index_header='No.')
   self.assertIn('<th>No.</th>',rendered)
   self.assertNotIn('<th>序号</th>',rendered)
+ def test_article_aria_labels_localize_without_touching_evidence_attributes(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  markup='<nav aria-label="文章目录" data-evidence="文章目录"></nav><img src="data:image/png;base64,YQ==" alt="文章目录">'
+  translated=localize_html(markup,PurePosixPath('guide/article.html'))
+  self.assertIn('aria-label="Article contents"',translated)
+  self.assertIn('data-evidence="文章目录"',translated)
+  self.assertIn('alt="文章目录"',translated)
+  self.assertIn('src="data:image/png;base64,YQ=="',translated)
+  other=localize_html(markup,PurePosixPath('attempts/example.html'))
+  self.assertIn('aria-label="文章目录"',other)

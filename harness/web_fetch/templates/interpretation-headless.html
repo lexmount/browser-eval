@@ -1,58 +1,96 @@
-<article class="essay-body publication-article" aria-labelledby="article-title">
-  <header class="essay-head">
-    <p class="eyebrow">Web Fetch · 浏览器路线实测</p>
-    <h1 id="article-title">${title}</h1>
-    <p class="lead">同一 URL、同一任务交付物、同一评测集与验收规则；每种方法使用本轮可获得的最快正式路径，不强迫内部实现一致。</p>
-    <p class="source-note">${cases} 个任务 · ${providers} 种方法 · ${attempts} 次纳入结果 · ${time_window}（UTC）</p>
-  </header>
+<style>
+.m-article{--paper:#fff;--surface:#fff;--surface-2:#f1f4f3;--ink:#243940;--muted:#64757a;--line:#d8e1df;--navy:#123e4a;--blue:#14657a;--blue-soft:#edf5f7;--green:#25714f;--rust:#a74e31;--reading:850px;box-sizing:border-box;max-width:1376px;margin:24px auto 64px;padding:0 64px 40px;background:var(--paper);color:var(--ink);font:18px/1.85 "PingFang SC","Microsoft YaHei",system-ui,sans-serif;text-align:left;color-scheme:light}
+.m-article *{box-sizing:border-box;min-width:0}.m-article h1,.m-article h2,.m-article h3,.m-article h4,.m-article p,.m-article figure{margin:0}.m-article a{color:var(--blue);text-underline-offset:4px;overflow-wrap:anywhere}.m-article :focus-visible{outline:3px solid var(--blue);outline-offset:4px}.m-article p+p{margin-top:18px}.m-article img{display:block;max-width:100%;height:auto}.m-article code,.m-article pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.m-article h1{font-size:clamp(44px,5.6vw,80px);line-height:1.14;letter-spacing:-.045em;font-weight:780;color:var(--navy);margin:26px 0}.m-article h2{font-size:clamp(30px,3.5vw,46px);line-height:1.3;letter-spacing:-.025em;color:var(--navy);margin-bottom:28px;text-align:left;max-width:1120px}.m-article h3{font-size:26px;line-height:1.45;color:var(--navy);margin:30px 0 18px}.m-article h4{font-size:19px;line-height:1.5;color:var(--navy);margin-bottom:12px}.m-hero{padding:46px 0 0;border-top:6px solid var(--navy)}.m-chips{display:flex;gap:12px;flex-wrap:wrap;color:var(--blue);font-size:13px;font-weight:650}.m-chips span+span{border-left:1px solid var(--line);padding-left:12px}.m-deck{font-size:24px;line-height:1.75;max-width:1080px}.m-ledger{display:grid;grid-template-columns:1.15fr 1fr 1fr;border-block:1px solid var(--line);margin:34px 0 24px}.m-ledger>div{padding:22px 22px 22px 0}.m-ledger>div+div{padding-left:24px;border-left:1px solid var(--line)}.m-ledger span{font-size:13px;color:var(--muted)}.m-ledger b{display:block;color:var(--navy);font-size:34px;line-height:1.3;margin:9px 0 12px}.m-ledger p{font-size:13px;line-height:1.75;color:var(--muted)}.m-article .m-report-link{max-width:none;margin:26px 0 30px;display:flex;align-items:baseline;gap:12px 24px;flex-wrap:wrap}.m-report-link a{font-size:17px;font-weight:650}.m-report-link span{font-size:13px;color:var(--muted)}.m-toc{display:flex;overflow:auto;gap:24px;border-bottom:1px solid var(--line)}.m-toc a{flex-shrink:0;text-decoration:none;color:var(--muted);font-size:14px;padding:16px 0}.m-section{padding:54px 0;border-bottom:1px solid var(--line);scroll-margin-top:24px}.m-section-number{display:block;color:var(--rust);font-size:16px;font-weight:700;letter-spacing:.08em;margin-bottom:16px}.m-section>p,.m-section>h3{max-width:var(--reading);margin-left:0;margin-right:auto}.m-section>p+figure{margin-top:26px}.m-verdict-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin:26px 0}.m-verdict-grid>div{padding:20px 0;border-top:3px solid var(--line)}.m-verdict-grid>div:first-child{border-color:var(--blue)}.m-verdict-grid h3{margin:0 0 12px;font-size:21px}.m-verdict-grid p{font-size:16px}.m-route{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px;font-size:14px}.m-route span{border-bottom:2px solid var(--line);padding-bottom:5px}.m-route i{font-style:normal;color:var(--muted)}.m-figure{margin:28px 0!important;padding:24px;border:1px solid var(--line);border-top:3px solid var(--blue)}.m-figure h3{font-size:20px;margin:0 0 24px}.m-article figcaption,.m-article caption{font-size:13px;line-height:1.75;color:var(--muted);text-align:left;margin-top:20px}.m-bars{display:grid;gap:20px}.m-bar-row{display:grid;grid-template-columns:135px 1fr 100px;gap:16px;align-items:center;font-size:15px}.m-bar-track,.m-speed-track{background:var(--surface-2);height:16px}.m-bar-track i,.m-speed-track i{display:block;height:100%;background:#9daeb0}.m-bar-track i.primary{background:var(--blue)}.m-bar-row b{text-align:right;font-variant-numeric:tabular-nums}.m-split{display:grid;grid-template-columns:1fr 1fr;gap:40px}.m-split-panel>span{font-size:15px;font-weight:650}.m-duel{display:flex;align-items:center;gap:28px;margin-top:20px}.m-duel b{font-size:44px;line-height:1.3;color:var(--navy)}.m-duel small{display:block;font-size:13px;font-weight:400}.m-duel em{font-style:normal;color:var(--muted);font-size:26px}.m-split-panel p{font-size:14px;color:var(--blue);margin-top:18px}.m-speed-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}.m-speed-column h4{font-size:19px;margin:0 0 7px}.m-speed-column>p{font-size:12px;color:var(--muted);min-height:45px;line-height:1.7}.m-speed-row{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin-top:15px;font-size:13px}.m-speed-row b{font-variant-numeric:tabular-nums}.m-speed-track{grid-column:1/-1;height:9px}.m-speed-track i.best{background:var(--green)}.m-details{margin:26px 0 0;border-block:1px solid var(--line);padding:16px 0;font-size:15px}.m-details summary{cursor:pointer;font-weight:650;color:var(--blue);min-height:32px}.m-details>p{max-width:var(--reading);margin:18px 0 0}.m-rule-strip{display:flex;gap:12px 28px;flex-wrap:wrap;margin:24px 0;color:var(--muted);font-size:14px}.m-rule-strip b{color:var(--ink)}
+.case-scroll-hint{display:none}.case-excerpt mark{background:#fff0b8;color:#183f4a;padding:1px 0}.case-workbench{position:relative;margin:24px 0 0;border:1px solid var(--line);background:var(--surface)}.case-choice{position:absolute;left:14px;top:14px;width:1px;height:1px;opacity:0}.case-tab-nav{display:flex;overflow:auto;background:var(--surface-2);border-bottom:1px solid var(--line)}.case-tab-nav label{padding:14px 20px;min-height:52px;flex:1 0 auto;font-size:15px;font-weight:650;cursor:pointer;text-align:center;border-bottom:3px solid transparent;color:var(--muted)}
+#article-case-1:checked~.case-tab-nav label[for=article-case-1],#article-case-2:checked~.case-tab-nav label[for=article-case-2],#article-case-3:checked~.case-tab-nav label[for=article-case-3],#article-case-4:checked~.case-tab-nav label[for=article-case-4],#article-case-5:checked~.case-tab-nav label[for=article-case-5]{background:var(--surface);border-color:var(--blue);color:var(--blue)}
+#article-case-1:focus-visible~.case-tab-nav label[for=article-case-1],#article-case-2:focus-visible~.case-tab-nav label[for=article-case-2],#article-case-3:focus-visible~.case-tab-nav label[for=article-case-3],#article-case-4:focus-visible~.case-tab-nav label[for=article-case-4],#article-case-5:focus-visible~.case-tab-nav label[for=article-case-5]{outline:3px solid var(--blue);outline-offset:-5px}
+.case-panel{display:none;padding:26px}.case-panel h3{margin:0 0 10px;font-size:25px}.case-input{font-size:13px;overflow-wrap:anywhere;color:var(--muted)}
+#article-case-1:checked~.case-panels #article-panel-1,#article-case-2:checked~.case-panels #article-panel-2,#article-case-3:checked~.case-panels #article-panel-3,#article-case-4:checked~.case-panels #article-panel-4,#article-case-5:checked~.case-panels #article-panel-5{display:block}
+.case-compare{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:24px 0;border:1px solid var(--line)}.case-reference,.case-actual{padding:20px;background:var(--surface-2)}.case-actual{background:var(--blue-soft);border-left:1px solid var(--line)}.case-compare h4{font-size:17px;margin:0 0 16px}.case-compare p{font-size:12px;color:var(--muted);margin:12px 0 8px}.case-excerpt{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.8;margin:0;background:transparent;border:0;padding:0;color:var(--ink);max-height:350px;overflow:auto}.case-counterexample{border-top:1px solid var(--line);margin-top:20px;padding-top:4px}.case-file-preview{max-width:130px!important;max-height:150px;object-fit:contain;margin:12px 0}.m-article .case-contract p{font-size:13px;color:var(--ink);line-height:1.7;margin:8px 0}.case-conclusion{font-size:14px;line-height:1.8;margin-top:18px!important}.case-evidence{font-size:13px;margin-top:14px!important}.case-check-wrap,.table-wrap,.editorial-table{overflow-x:auto;max-width:100%;margin:24px 0}.m-article table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.75;text-align:left}.m-article th,.m-article td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top;white-space:normal;overflow-wrap:anywhere}.m-article thead{background:var(--surface-2);font-size:12px;color:var(--muted)}.m-article th{font-weight:650;text-align:left}.case-check-name{font-weight:650}.case-checks{table-layout:fixed}.case-checks th:first-child{width:6%}.case-checks th:nth-child(2){width:16%}.case-checks th:last-child{width:12%}.case-checks td:last-child{color:var(--green);font-weight:650}.m-article caption{caption-side:bottom;padding:13px 0}.editorial-table-hint{font-size:12px;color:var(--muted);margin-top:20px!important}.m-webfail{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin:26px 0}.m-webfail>div{border-top:3px solid var(--line);padding-top:18px}.m-webfail p{font-size:15px}.m-delay{display:flex;gap:10px;align-items:center;margin:20px 0;font-size:14px}.m-delay span{border-bottom:2px solid var(--blue);padding:10px 0}.m-delay i{font-style:normal}.m-frame-map{border:1px solid var(--line);padding:10px;margin:20px 0;font-size:14px}.m-frame-map>div{border:1px dashed var(--blue);padding:8px;margin-top:8px;color:var(--blue)}.m-end{padding:30px 0 0;font-size:12px;color:var(--muted)}.standalone-article{margin:0;background:#edf1f0}.m-downloads{max-width:1376px;margin:24px auto;text-align:center;font-size:14px}
+@media(max-width:1000px){.m-article{padding:0 32px 36px;margin:0}.m-ledger b{font-size:27px}.m-deck{font-size:21px}.m-speed-grid{gap:20px}.case-panel{padding:20px}}
+@media(max-width:700px){.m-article .case-scroll-hint{display:block;font-size:12px;color:var(--muted);margin:14px 0 0}.m-article{padding:0 20px 28px;font-size:16px}.m-hero{padding-top:28px}.m-article h1{font-size:38px;line-height:1.2}.m-article h1 br{display:none}.m-article h2{font-size:29px}.m-article h3{font-size:22px}.m-deck{font-size:18px}.m-chips{font-size:11px;gap:8px}.m-ledger{grid-template-columns:1fr;margin-top:24px}.m-ledger>div,.m-ledger>div+div{padding:17px 0;border-left:0}.m-ledger>div+div{border-top:1px solid var(--line)}.m-ledger b{font-size:30px;margin:5px 0}.m-section{padding:36px 0}.m-section-number{font-size:14px}.m-toc{gap:20px}.m-verdict-grid,.m-webfail,.m-split{grid-template-columns:1fr;gap:20px}.m-verdict-grid>div{padding-bottom:8px}.m-figure{padding:16px;margin:24px 0!important}.m-figure h3{font-size:18px}.m-bar-row{grid-template-columns:92px 1fr 74px;gap:8px;font-size:12px}.m-bar-track{height:12px}.m-speed-grid{grid-template-columns:1fr;gap:30px}.m-speed-column>p{min-height:0}.m-speed-column+.m-speed-column{border-top:1px solid var(--line);padding-top:20px}.m-speed-row{grid-template-columns:110px 1fr 65px;align-items:center;font-size:13px}.m-speed-row b{grid-column:3;grid-row:1;text-align:right}.m-speed-track{grid-column:2;grid-row:1}.case-panel{padding:16px}.case-panel h3{font-size:21px}.case-tab-nav label{font-size:13px;padding:13px 16px}.case-compare{grid-template-columns:1fr}.case-reference,.case-actual{padding:15px}.case-actual{border-left:0;border-top:1px solid var(--line)}.case-excerpt{font-size:12px;max-height:280px}.m-article table{font-size:12px;min-width:570px}.m-article th,.m-article td{padding:10px}.m-rule-strip{font-size:12px;gap:8px 14px}.m-rule-strip b{flex-basis:100%}.m-report-link span{display:block}.m-details{font-size:14px}.m-article figcaption{font-size:12px}.m-duel b{font-size:38px}}
+@media(prefers-color-scheme:dark){.standalone-article{background:#10191d}.m-article{--paper:#142126;--surface:#142126;--surface-2:#243238;--ink:#e0e8e8;--muted:#a4b8bc;--line:#3b4c50;--navy:#b1dbe6;--blue:#83c9dd;--blue-soft:#213c44;--green:#8fd3a9;--rust:#e8a18a;color-scheme:dark}}
+[data-theme="dark"] .m-article,.m-article[data-theme="dark"]{--paper:#142126;--surface:#142126;--surface-2:#243238;--ink:#e0e8e8;--muted:#a4b8bc;--line:#3b4c50;--navy:#b1dbe6;--blue:#83c9dd;--blue-soft:#213c44;--green:#8fd3a9;--rust:#e8a18a;color-scheme:dark}
+[data-theme="light"] .m-article,.m-article[data-theme="light"]{--paper:#fff;--surface:#fff;--surface-2:#f1f4f3;--ink:#243940;--muted:#64757a;--line:#d8e1df;--navy:#123e4a;--blue:#14657a;--blue-soft:#edf5f7;--green:#25714f;--rust:#a74e31;color-scheme:light}
+@media print{.m-article{--paper:#fff;--surface:#fff;--surface-2:#f1f4f3;--ink:#243940;--muted:#64757a;--line:#d8e1df;--navy:#123e4a;--blue:#14657a;--blue-soft:#edf5f7;--green:#25714f;--rust:#a74e31;max-width:none;margin:0;padding:0;font-size:10pt;background:#fff!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}.standalone-article{background:#fff}.m-article h1{font-size:30pt}.m-article h2{font-size:21pt;break-after:avoid}.m-article h3{font-size:15pt;break-after:avoid}.m-deck{font-size:13pt}.m-hero{padding-top:12px}.m-ledger{grid-template-columns:repeat(3,1fr)}.m-ledger b{font-size:19pt}.m-ledger p{font-size:9pt}.m-section{padding:25px 0}.m-toc,.case-tab-nav,.case-choice,.m-downloads,.sidebar,.topbar{display:none!important}.case-panel{display:block!important;padding:20px 0;break-before:auto}.case-panel+.case-panel{border-top:2px solid var(--line)}.case-workbench{border:0}.case-excerpt{max-height:none;overflow:visible;font-size:9pt}.case-compare{break-inside:avoid}.case-check-wrap,.table-wrap,.editorial-table{overflow:visible}.m-article table{min-width:0;font-size:8pt}.m-article table tr{break-inside:avoid}.m-article table thead{display:table-header-group}.m-article caption{caption-side:top}.m-figure{break-inside:avoid;padding:16px}.m-speed-grid{grid-template-columns:repeat(3,1fr)}.m-details>*{display:block!important}.m-details{font-size:10pt}.m-article p{orphans:3;widows:3}.m-end{font-size:8pt}}
+@page{margin:15mm}
 
-  <section id="result">
-    <h2>先看任务是否交付</h2>
-    <p>静态网页通过数：${web_summary}。综合榜按 150 个任务等权计数；六类分榜仍分别解释，耗时和文字质量不混入综合通过率。</p>
-    ${overview}
-    ${moli_comparison}
-  </section>
+</style>
+<article class="m-article publication-article" aria-labelledby="article-title">
+<header class="m-hero">
+<div class="m-chips"><span>Web Fetch 实测</span><span>Moli 1.1.1</span><span>五款浏览器 · 150 道任务</span></div>
+<h1 id="article-title">Moli 的 Web Fetch 实测：<br>五款浏览器，150 道任务</h1>
+<p class="m-deck">同一个链接，浏览器返回的可能是整篇论文，也可能只有标题或一个下载地址。我们用 150 道网页与文件读取任务，对比 Moli 1.1.1、Chromium、Lightpanda、Obscura 和 Kitesurf。Moli 通过 135 道，比 Chromium 多 10 道；在 8 道共同成功的网页任务中，平均耗时为 3.41 秒，比 Chromium 少 35.5%。</p>
+<div class="m-ledger"><div><span>任务通过率</span><b>135 / 150 · 90.0%</b><p>Chromium：125 / 150 · 83.3%<br>多通过 10 道，提高 6.7 个百分点</p></div><div><span>平均耗时 · 同样 8 道网页</span><b>3.41 秒</b><p>Chromium：5.28 秒<br>Moli 平均少等 1.87 秒，减少 35.5%</p></div><div><span>P50 · 同样 8 道网页</span><b>2.70 秒</b><p>Chromium：3.63 秒，Moli 减少 25.8%<br>P95：Moli 6.55 秒，Lightpanda 6.03 秒</p></div></div>
+<p class="m-report-link"><a href="${report_url}">阅读完整评测报告 →</a><span>查看全部任务、评分规则与浏览器原始返回</span></p>
+<nav class="m-toc" aria-label="文章目录"><a href="#background">测什么</a><a href="#results">结果与速度</a><a href="#method">五个真实案例</a><a href="#browsers">浏览器与配置</a><a href="#limits">失败与改进</a></nav>
+</header>
+<div class="m-body">
+<section class="m-section" id="background"><span class="m-section-number">浏览器与 AI</span><h2>AI 读到的网页，取决于浏览器交回什么</h2>
+<p>给 AI 一个论文链接，并不等于把论文交给了它。程序需要访问网址、取得响应，再把正文提取出来。遇到动态网页，正文可能要等页面脚本执行后才出现；遇到 PDF，还要从文件里解析文字。这一段从 URL 到所需内容的工作，通常称为 Web Fetch。</p>
+<p>这里比较的是供程序调用的浏览器及其内容提取配置。Moli 面向 AI Agent，Chromium 是通用浏览器，本轮以不显示窗口的无头模式运行。它们通常将网页转换成 Markdown，也就是带少量格式标记的文字，交给 AI 使用。</p>
+<div class="m-verdict-grid"><div><h3>Web Fetch：读取内容</h3><p>输入论文地址，返回可供总结的正文。任务也可以要求商品列表、图片下载地址或原始文件。</p><div class="m-route"><span>给定 URL</span><i>→</i><span>读取与提取</span><i>→</i><span>正文或文件</span></div></div><div><h3>Browser Use：操作网页</h3><p>让 AI 搜索商品、筛选规格，再加入购物车。它需要看当前页面，决定点击或填写什么，操作后再继续观察。</p><div class="m-route"><span>观察页面</span><i>→</i><span>点击或填写</span><i>→</i><span>继续下一步</span></div></div></div>
+<p>这次的 150 道任务评测 Web Fetch：同样的网址、同样的内容要求，每题给 45 秒，检查交回的结果并记录耗时。浏览器是否适合连续操作网页，需要用 Browser Use 任务另外评测。</p>
 
-  <section id="routes">
-    <h2>方法各走最快的正式交付路径</h2>
-    <p>网页正文以可读 Markdown 为目标：Kitesurf 使用 Cloudflare 账号版 Browser Run <code>/markdown</code>；Lightpanda、Obscura 与三个 Moli 版本使用本地原生 Markdown；Chromium 取完整渲染 DOM 后转换。直接文档或媒体不强制先转 Markdown：三个 Moli 版本使用裸 <code>fetch</code>，正文题在同一次计时内从确实取得的 PDF/DOCX 提取文字，文件题直接校验原始字节。所有路线最终进入同一套任务裁判。</p>
-    ${runtime}
-    ${stages}
-  </section>
+</section>
+<section class="m-section" id="results"><span class="m-section-number">主要结果</span><h2>150 道任务，Moli 通过 135 道</h2>
+<p>Moli 的任务通过率为 90.0%，高于 Chromium 的 83.3%、Lightpanda 的 79.3%、Obscura 的 78.0% 和 Kitesurf 的 74.7%。这里的“通过”是按每题要求取得合格结果，失败和超时仍计入总题数。</p>
+<p class="m-scope-note">完整报告包含三个 Moli 版本。本文选取总通过数最高的 1.1.1，所有任务统一使用该版本结果。</p>
+<figure class="m-figure"><h3>任务通过数 / 总任务数</h3>${ranking}<figcaption>每款浏览器均执行 150 道题，每题等权。该指标是任务完成率，不是对所有返回文字的事实准确率。</figcaption></figure>
+<h3>文档与媒体：Moli 通过 24/30，Chromium 通过 14/30</h3>
+<p>把 150 道题按内容拆开，净增的 10 道全部来自文档、图片和视频。120 道网页任务中，两者各通过 111 道。</p>
+<figure class="m-figure"><div class="m-split">${split}</div><figcaption>网页类：普通网页 100 道、动态网页 10 道、热门站点 10 道。文档、图片、视频各 10 道。</figcaption></figure>
+<p>其中六道 PDF 题只有 Moli 的本轮配置通过。Moli 先取得 PDF 文件，再交给本地 pypdf 解析器提取正文；其余四款使用本轮配置的 Markdown 输出路线，未能交回合格正文。对需要读论文的 AI 来说，这一步决定了后续有没有内容可读。成绩属于这条完整处理路径，PDF 解析时间也计入耗时。</p>
+<p>网页类的得失则发生在不同站点。普通网页中，Moli 通过 97/100，Chromium 通过 99/100；热门站点中，Moli 为 6/10，Chromium 为 4/10。只看合计的 111 道，会漏掉这两种差异。</p>
+${matrix}
+<p>普通网页占题量的三分之二；其余每组只有 10 道，相差一道就是 10 个百分点。这是本轮样本的构成，并不代表全网内容的真实比例。应用以什么内容为主，应当对应看哪一组结果。</p>
+<h3>同样 8 道网页，平均耗时从 5.28 秒降到 3.41 秒</h3>
+<p>测速从上述 150 道任务的普通网页中预选 20 道，单独安排同一时间窗口运行。完整报告包含三个 Moli 版本，共七个配置；其中大家都成功读取的网页有 8 道。本文沿用这 8 道比较五款浏览器的速度：Moli 平均 3.41 秒，Chromium 5.28 秒，Lightpanda 3.60 秒。只比较相同的成功任务，可以排除快速返回空内容对成绩的影响。</p>
+<figure class="m-figure"><h3>同样 8 道网页任务的耗时 · 越低越快</h3>${speed}<figcaption>绿色表示该项最低值。均值由原始耗时求算术平均；P50、P95 沿用完整报告口径。包含内容提取与后处理，远端服务还包含网络往返。</figcaption></figure>
+<p>Moli 的 P50 为 2.70 秒，Chromium 为 3.63 秒，减少 25.8%。均值与 P50 两项，Moli 都是这五款中最低。</p>
+<p>P95 用来观察较慢的任务。Lightpanda 为 6.03 秒，Moli 为 6.55 秒，相差 0.53 秒；这一项 Lightpanda 更低。这里仅有 8 道题，按报告的计算方法，P95 就是各自最慢的一次，尚不足以判断长期运行中的尾部延迟。</p>
+<details class="m-details"><summary>速度样本与计时口径</summary><p>预选任务按参考正文长度分层，并覆盖不同域名。每个配置每题运行一次，计时覆盖从输入网址到返回内容的过程，包括内容提取与后处理；Kitesurf 通过远端服务调用，还包含网络往返。</p><p>20 道预选任务与 8 道共同成功任务的名单、单次耗时，均可在完整报告的测速页查看。</p></details>
+</section>
+<section class="m-section" id="method"><span class="m-section-number">内容与判分</span><h2>一篇 PDF 怎样算读完，一张图片怎样算取到</h2>
+<p>《Attention Is All You Need》这道题要求取得论文正文。只返回标题，或者只返回 PDF 地址，都不合格：输出需要包含指定文字，并覆盖论文各段的内容。换成图片任务，要求又可能是下载地址，也可能是图片文件本身。这些不同的交付要求，决定了每道题怎样判分。</p>
+<div class="m-rule-strip"><b>每题只记通过或失败</b><span>共同预算 45 秒</span><span>必需检查全部满足</span><span>未通过项保留在分母</span></div>
+${case_workbench}
+<details class="m-details"><summary>评测集与判定规则</summary>
+<p>150 道任务按来源分为普通网页、动态网页、热门站点、文档、图片、视频六组。同类来源也可能有不同的交付要求：图片页面可以只要求找到原图地址，直接图片链接则可以要求下载原文件。</p>
+<p>正文与文件参考来自独立获取的来源；商品列表检查经独立确认的稳定文字与结构，不把每天变化的商品名单固定成答案。正文覆盖阈值是本评测采用的工程验收下限，尚未通过阈值敏感性实验校准。</p>
+<p>每款配置每题保留一次主结果。完整报告提供每道题的参考内容、实际输出和各项判定，便于逐条复查。</p>
+<p>正文与列表还检查明显乱码：替代字符同时达到 20 个、占输出至少 2%，会导致该文本任务失败。文本规范化、逐项阈值、完整参考与原始返回均保存在完整报告中。</p>
+</details>
+</section>
+<section class="m-section" id="browsers"><span class="m-section-number">浏览器与配置</span><h2>相同任务，五条内容获取路径</h2>
+<p>浏览器怎样把内容交出来，会直接影响成绩。本轮四款在本地运行，Kitesurf 通过远端服务调用；Chromium 需要将页面结构转换为 Markdown，Moli 的 PDF 路线另有本地解析步骤。</p>
+<div class="table-wrap"><table><thead><tr><th>序号</th><th>浏览器</th><th>定位与运行位置</th><th>本轮交付路径</th><th>通过数</th></tr></thead><tbody>
+<tr><td>1</td><td><a href="https://github.com/lexmount/moli">Moli 1.1.1</a></td><td>面向 AI Agent 的 Rust 浏览器；本地</td><td>原生 Markdown；文档与媒体可取原始响应；PDF 使用 pypdf</td><td>135 / 150</td></tr>
+<tr><td>2</td><td><a href="https://www.chromium.org/Home/">Chromium</a></td><td>通用开源浏览器；本地无头模式</td><td>页面 DOM 经 node-html-markdown 2.0.0 转成 Markdown</td><td>125 / 150</td></tr>
+<tr><td>3</td><td><a href="https://github.com/lightpanda-io/browser">Lightpanda</a></td><td>Zig 开发的自动化浏览器；本地</td><td>原生 Markdown</td><td>119 / 150</td></tr>
+<tr><td>4</td><td><a href="https://github.com/h4ckf0r0day/obscura">Obscura</a></td><td>采用 V8 的 Rust 无头浏览器；本地</td><td>标准模式的原生 Markdown，未启用 stealth 或备用引擎</td><td>117 / 150</td></tr>
+<tr><td>5</td><td><a href="https://developers.cloudflare.com/browser-run/kitesurf/">Kitesurf</a></td><td>Cloudflare 面向 Agent 的浏览器；远端</td><td>通过 Browser Run 接口提交 URL、返回 Markdown</td><td>112 / 150</td></tr>
+</tbody><caption>这是五款浏览器在上述配置下的任务结果，不是单独比较内核。改变下载器、提取器或等待策略，需要重新测试。</caption></table></div>
+<p>几道单独通过的任务，也说明了总榜没有涵盖的差异。Lightpanda 完成了其他四款未通过的 IMDb 题；Kitesurf 完成了 YouTube 题。Obscura、Lightpanda 和 Chromium 找到了 Blender 下载包的可解析入口，而 Moli 虽返回目标文件名，却没有把它交成合格链接。</p>
+<p>选型时，任务构成会改变这张榜单的意义。文档与媒体占本轮题量的 20%，Moli 在这 30 道里比 Chromium 多通过 10 道；如果应用只读普通网页，对应成绩就是 97/100 与 99/100。需要云端部署的团队，还要结合并发和成本测试；本轮未测量这两项。</p>
+</section>
+<section class="m-section" id="limits"><span class="m-section-number">未通过的任务</span><h2>长网页的验证页，动态页面的等待</h2>
+<h3>三份 W3C 标准，返回的都是 475 字符验证页</h3>
+<p>Moli 未通过的三个普通网页都是 W3C 长标准：CSS 2.1、WCAG 2.1、XML 1.0。它们返回了同样的 475 字符安全验证页，Chromium 和 Lightpanda 则取到了正文。</p>
+<p>98 道有完整可比参考的普通网页中，Moli 平均找回 95.3% 的参考正文词语，Chromium 为 99.8%。这个比例称为 Recall。另一个指标 Precision 检查输出词语中有多少与参考重合，F1 综合两者；它们衡量文字重合，不判断文字中的事实是否正确。</p>${quality}
+<p>任务通过与正文完整度因此要分开看：结果可以满足题目要求，同时夹带多余导航；也可能找回部分正文，却漏掉必需段落而未通过。只有完整参考可用的任务才参与上表统计，缺少参考的任务不按零分或满分处理。</p>
+<h3>动态内容：延迟出现的列表和 iframe</h3>
+<p>五款浏览器的动态任务均通过 8/10，共同未通过的是延迟列表和 iframe 目录。iframe 是嵌在网页里的子页面；主页面读取成功，子页面的内容仍可能缺失。</p>
+<div class="m-webfail"><div><h4>内容晚 3 秒出现</h4><div class="m-delay"><span>0 秒：页面框架</span><i>→</i><span>3 秒：目标列表</span></div><p>Moli 交回了页面框架，目标列表缺失。对此类页面，读取何时结束会影响最终能否拿到记录。</p></div><div><h4>目录在 iframe 里</h4><div class="m-frame-map">外围页面<div>iframe 子页面：目标目录</div></div><p>Moli 达到 45 秒仍无结果；Chromium、Lightpanda 和 Kitesurf 只取得外围页面。</p></div></div>
+<p>这些样本能告诉我们缺了什么，还不足以将原因完全归于浏览器内核。等待策略、子页面获取和网络条件，需要用受控实验进一步分开。</p>
+</section>
+<section class="m-section" id="outlook"><span class="m-section-number">后续评测</span><h2>从 150 道读取任务，走向连续网页操作</h2>
+<p>PDF 和原文件交付解释了 Moli 在这轮混合任务中的增益。下一步需要验证：增加站点与文档类型后，这些成功能否重复，现有的读取缺口能否补齐。</p>
+<p>延迟列表、iframe，以及本轮未通过的 DOCX 和嵌入式文档查看器，需要在迭代后重新验证；热门站点需要重复运行，速度比较也需要更多共同成功样本。</p>
+<p>随后还会用独立的浏览器自动化评测，比较搜索、点击、翻页和填写等连续操作，检验 Agent 能否完成整段网页任务。</p>
+<p class="m-report-link"><a href="${report_url}">查看完整报告与全部真实输出 →</a><span>按任务或浏览器查看结果，也可核对评分与调用记录</span></p>
+</section>
+<footer class="m-end"><p>主结果时间：${time_window}（UTC）。Moli 统一采用 1.1.1。产品定位依据各自公开说明；结果仅对应本轮输入、配置与运行条件。</p><p>案例原始记录：${case_links}。</p></footer>
+</div>
 
-  <section id="fairness">
-    <h2>公平边界在输入、输出和裁判，不在内部形态</h2>
-    <p>远端 Kitesurf 包含公网往返、排队与远端执行；本地方法包含进程启动和本机资源竞争。不同批次的耗时不直接排名；速度结论只使用同一时间窗口、双方共同通过的样本。它衡量客户端拿到合格 Markdown 的时间，不是纯内核 CPU、长期吞吐或 SLA。</p>
-    <div class="table-wrap"><table><thead><tr><th>序号</th><th>可能偏差</th><th>引入位置</th><th>本报告处理</th></tr></thead><tbody>
-      <tr><td>1</td><td>原生 Markdown 与二次转换</td><td>输出形成阶段</td><td>允许最快正式路径；统一最终 Markdown 与裁判</td></tr>
-      <tr><td>2</td><td>远端网络、排队与本地资源</td><td>调用与执行阶段</td><td>全部计入端到端时间；仅同窗共同成功样本排名</td></tr>
-      <tr><td>3</td><td>冷启动、缓存、会话与失败重试</td><td>进程或浏览器生命周期</td><td>每次新进程或新上下文，不复用个人会话；本轮每题一次且未重试。后续若预先启用一次失败重试，保留两次物理证据并固定采用最后一次，禁止择优</td></tr>
-      <tr><td>4</td><td>完成条件不同</td><td>动态页面等待阶段</td><td>各自正式接口完成后，再用同一任务契约验收</td></tr>
-      <tr><td>5</td><td>版本与远端服务漂移</td><td>二进制或托管后端</td><td>计时外记录批次前后版本与 SHA-256，身份变化直接失败；每次调用绑定该身份。事后恢复与运行时记录分开披露，nightly 无法映射 commit 时不猜测</td></tr>
-    </tbody></table></div>
-    ${pairs}
-    ${latency}
-  </section>
-
-  <section id="quality">
-    <h2>任务通过和文字重合分开看</h2>
-    ${quality}
-    <p>完整度、纯净度与 F1 是参考范围内的词级诊断，不证明逐句语义或实时事实。任务未通过时，已取回的有效文字也不会被强制记为零；没有完整参考的题显示未测。</p>
-  </section>
-
-  <section id="dynamic">
-    <h2>动态页还要判断何时可以交付</h2>
-    <p>动态任务通过数：${dynamic_summary}。允许浏览器渲染、读取页面内嵌状态或使用页面公开数据接口；不允许为单题追加特例、失败后切换实现，或把另一个抓取器的结果算给当前方法。</p>
-    ${dynamic}
-  </section>
-
-  <section id="audit">
-    <h2>结果核验是发布门禁</h2>
-    <p>${review_summary}</p>
-  </section>
-
-  <section id="protocol">
-    <h2>如何复验</h2>
-    <p>报告保存任务 ID、原始输出、哈希、运行 ID、方法版本或版本缺口、参数、计时与参考来源。正文分区页直接展示每段标准答案、最低要求、实际命中数和缺失词。环境、批次、代码与命令集中在“环境与复现”，不在多页重复。</p>
-  </section>
 </article>
