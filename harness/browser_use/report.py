@@ -2224,6 +2224,10 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             {
                 "schema": failure_cause_review.get("schema"),
                 "bindings": failure_cause_review.get("bindings") or {},
+                "coverage": failure_cause_review.get("coverage") or {},
+                "unresolved": failure_cause_review.get("unresolved") or [],
+                "reviewed_at": failure_cause_review.get("reviewed_at"),
+                "reviewer_class": failure_cause_review.get("reviewer_class"),
                 "review_protocol": failure_cause_review.get("review_protocol") or {},
                 "results": verified_causes,
             },

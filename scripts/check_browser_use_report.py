@@ -410,6 +410,11 @@ def check(
             raise ValueError("current report profile is not bound to the failure-cause review")
         if set(verified_causes) != failed_result_ids:
             raise ValueError("every failed logical result must have a verified root cause")
+        cause_bindings = cause_review.get("bindings") or {}
+        if cause_bindings.get("manifest_sha256") != _sha256(manifest_path):
+            raise ValueError("failure-cause review is not bound to the current manifest")
+        if cause_bindings.get("selection_sha256") != selection.sha256:
+            raise ValueError("failure-cause review is not bound to the current selection")
         published_cause_review = json.loads(
             (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")
         )

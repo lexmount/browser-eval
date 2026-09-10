@@ -65,6 +65,17 @@ def validate_failure_cause_review(
     if require_complete and set(verified) != failed_result_ids:
         missing = sorted(failed_result_ids - set(verified))
         raise ValueError(f"failure-cause review is incomplete: {missing}")
+    if require_complete:
+        expected_coverage = {
+            "failed_results": len(failed_result_ids),
+            "verified_results": len(verified),
+        }
+        if review.get("coverage") != expected_coverage:
+            raise ValueError("failure-cause review coverage is inconsistent")
+        if review.get("unresolved"):
+            raise ValueError("failure-cause review contains unresolved items")
+        if not review.get("reviewer_class") or not review.get("reviewed_at"):
+            raise ValueError("failure-cause review must identify its reviewer class and date")
     return verified
 
 

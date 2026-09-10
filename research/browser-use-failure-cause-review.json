@@ -1,14 +1,20 @@
 {
   "schema": "lex_browser_use_failure_cause_review/1",
   "benchmark": "WebArena-Verified 1.2.3",
+  "reviewed_at": "2026-09-10",
+  "reviewer_class": "evidence analyst",
   "bindings": {
-    "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7"
+    "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+    "manifest_sha256": "23a747e6286e7b8c28c07abae83b343892f6376e9aae1dcc0f3ab4da98271cae",
+    "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38"
   },
   "review_protocol": {
     "unit": "one score-bearing logical result per browser and task",
     "method": "manual root-cause verification against the official task contract, score-bearing final response, evaluator assertions, network evidence, and autonomous Agent event trajectory",
     "rule": "automatic evaluator classification remains available; root-cause subcategory and reason remain empty until status is verified"
   },
+  "coverage": {"failed_results": 10, "verified_results": 10},
+  "unresolved": [],
   "results": {
     "chromium-68": {
       "status": "verified",

@@ -20,7 +20,14 @@ def _review(status: str = "verified") -> dict:
         cause = {"status": status}
     return {
         "schema": "lex_browser_use_failure_cause_review/1",
+        "reviewed_at": "2026-09-10",
+        "reviewer_class": "evidence analyst",
         "bindings": {"attempts_sha256": "attempts-hash"},
+        "coverage": {
+            "failed_results": 1,
+            "verified_results": 1 if status == "verified" else 0,
+        },
+        "unresolved": [],
         "results": {"chromium-124": cause},
     }
 
