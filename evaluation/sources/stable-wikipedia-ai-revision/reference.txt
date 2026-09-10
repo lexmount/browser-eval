@@ -12148,6 +12148,7 @@ BLOOM
 Chinchilla
 Claude
 DBRX
+DeepSeek-LLM
 Gemini
 Gemma
 GloVe
@@ -12156,7 +12157,7 @@ GPT
 GPT-J
 PanGu
 Granite
-Hy4
+Hy
 Inkling
 Jais
 LaMDA
@@ -12231,8 +12232,8 @@ Deep learning software
 Open-source AI software
 Hardware and infrastructure
 AI data center
-GPU
 CUDA
+GPU
 High Bandwidth Memory
 Neural processing unit
 TPU
