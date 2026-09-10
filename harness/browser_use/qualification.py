@@ -55,7 +55,9 @@ def _validated_attempt(
         or row.get("engine") != "chromium"
         or row.get("is_retry") is not False
         or row.get("qualification_run") is not True
+        or row.get("status") != "pass"
         or row.get("combined_status") != "pass"
+        or row.get("evidence_status") != "pass"
     ):
         raise ValueError(f"{task_id}: validated attempt is not a passing primary qualification run")
     if row.get("task_contract_sha256") != expected_contract_sha256:
@@ -70,6 +72,21 @@ def _validated_attempt(
     expected_creator = {"name": HAR_CREATOR_NAME, "version": HAR_CREATOR_VERSION}
     if (har.get("log") or {}).get("creator") != expected_creator:
         raise ValueError(f"{task_id}: validated attempt requires HAR creator {expected_creator}")
+    final_evidence = row.get("final_page_evidence") or {}
+    if final_evidence.get("status") != "complete":
+        raise ValueError(f"{task_id}: validated attempt final-page evidence is incomplete")
+    for key, expected_name in (("screenshot", "final.png"), ("page", "final-page.json")):
+        metadata = final_evidence.get(key) or {}
+        if metadata.get("path") != expected_name:
+            raise ValueError(f"{task_id}: validated attempt {key} evidence path is invalid")
+        evidence_path = evidence_directory / expected_name
+        if not evidence_path.is_file():
+            raise ValueError(f"{task_id}: validated attempt {key} evidence is missing")
+        expected_sha256 = str(metadata.get("sha256") or "")
+        if not _SHA256_RE.fullmatch(expected_sha256):
+            raise ValueError(f"{task_id}: validated attempt {key} sha256 is invalid")
+        if hashlib.sha256(evidence_path.read_bytes()).hexdigest() != expected_sha256:
+            raise ValueError(f"{task_id}: validated attempt {key} sha256 mismatch")
     return sha256
 
 
@@ -119,8 +136,14 @@ def build_repair_queue(
             raise ValueError(f"{task.task_id}: qualification attempt does not match task contract")
         if not task.tool_calls:
             disposition = "needs_trace_repair"
-        elif row.get("combined_status") == "pass":
+        elif (
+            row.get("combined_status") == "pass"
+            and row.get("status") == "pass"
+            and row.get("evidence_status") == "pass"
+        ):
             disposition = "eligible"
+        elif row.get("combined_status") == "pass":
+            disposition = "needs_evidence_revalidation"
         elif row.get("process_status") == "pass" and not task.ground_truth.get("response_builder"):
             disposition = "needs_response_annotation"
         else:
@@ -231,7 +254,8 @@ def build_repair_validation_suite(
             raise ValueError(f"{task['id']}: response annotation requires response_builder")
         if not str(adjudication.get("reason") or "").strip():
             raise ValueError(f"{task['id']}: repaired eligibility requires reason")
-        if not _apply_material_change(task, adjudication):
+        material_change = _apply_material_change(task, adjudication)
+        if disposition != "needs_evidence_revalidation" and not material_change:
             raise ValueError(f"{task['id']}: repaired validation requires a material change")
         task["ground_truth"]["qualification"] = {"status": "pending"}
         selected.append(task)

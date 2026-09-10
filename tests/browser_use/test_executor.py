@@ -39,7 +39,10 @@ class FakePage:
                 return self
 
             def click(self, **kwargs):
-                page.calls.append(("click", selector))
+                page.calls.append(("click", selector, kwargs))
+
+            def dblclick(self, **kwargs):
+                page.calls.append(("double_click", selector, kwargs))
 
             def fill(self, value, **kwargs):
                 page.calls.append(("fill", selector, value))
@@ -57,7 +60,10 @@ class FakePage:
                 return [" First ", "Second"]
 
             def select_option(self, value, **kwargs):
-                page.calls.append(("select", selector, value))
+                page.calls.append(("select", selector, value, kwargs))
+
+            def press(self, key, **kwargs):
+                page.calls.append(("press_target", selector, key, kwargs))
 
             def get_attribute(self, name, **kwargs):
                 page.calls.append(("get_attribute", selector, name))
@@ -110,7 +116,7 @@ def test_declared_navigation_wait_surrounds_form_action():
     )
     assert page.calls[0] == ("navigation_start", "domcontentloaded")
     assert page.calls[-1] == ("navigation_complete",)
-    assert ("select", "#author", "Jane Austen") in page.calls
+    assert any(call[:3] == ("select", "#author", "Jane Austen") for call in page.calls)
 
 
 @pytest.mark.parametrize("action", ["click", "fill", "select"])
@@ -174,6 +180,31 @@ def test_default_action_timeout_is_thirty_seconds():
     execute_steps(page, ({"action": "click", "selector": "#target"},))
 
     assert page.calls == [("timeout", 30_000)]
+
+
+@pytest.mark.parametrize(
+    ("call", "record_prefix"),
+    (
+        ({"action": "click", "selector": "#target"}, ("click", "#target")),
+        ({"action": "double_click", "selector": "#target"}, ("double_click", "#target")),
+        (
+            {"action": "select", "selector": "#target", "value": "x"},
+            ("select", "#target", "x"),
+        ),
+        (
+            {"action": "press", "selector": "#target", "key": "Enter"},
+            ("press_target", "#target", "Enter"),
+        ),
+    ),
+)
+def test_navigation_triggering_actions_can_disable_playwright_auto_wait(
+    call, record_prefix
+):
+    page = FakePage()
+    execute_steps(page, ({**call, "no_wait_after": True},))
+
+    record = next(item for item in page.calls if item[: len(record_prefix)] == record_prefix)
+    assert record[-1]["no_wait_after"] is True
 
 
 def test_page_observer_runs_before_the_measured_action():

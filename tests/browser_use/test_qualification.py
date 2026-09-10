@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -54,6 +55,8 @@ def test_repair_queue_covers_every_task_and_separates_trace_from_response_work(t
             "engine": "chromium",
             "is_retry": False,
             "combined_status": "pass",
+            "status": "pass",
+            "evidence_status": "pass",
             "process_status": "pass",
             "result_status": "pass",
             "trace": [],
@@ -122,6 +125,47 @@ def test_repair_queue_covers_every_task_and_separates_trace_from_response_work(t
         "status": "eligible",
         "validated_attempt_path": str(tmp_path / "pass" / "attempt.json"),
     }
+
+
+def test_passing_outcome_without_required_final_evidence_needs_revalidation(tmp_path):
+    task = _task("legacy-pass")
+    attempt_dir = tmp_path / "legacy-pass"
+    attempt_dir.mkdir()
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text(
+        json.dumps(
+            {
+                "task_id": task.task_id,
+                "engine": "chromium",
+                "is_retry": False,
+                "qualification_run": True,
+                "status": "pass",
+                "combined_status": "pass",
+                "process_status": "pass",
+                "result_status": "pass",
+                "evidence_status": "fail",
+                "trace": [],
+                "evidence_directory": str(attempt_dir),
+                "task_contract_sha256": task_contract_sha256(
+                    {
+                        "id": task.task_id,
+                        "title": task.title,
+                        "trajectory": task.trajectory,
+                        "evaluator": task.evaluator,
+                        "environment": task.environment,
+                        "ground_truth": task.ground_truth,
+                    }
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)
+
+    assert result["tasks"][0]["disposition"] == "needs_evidence_revalidation"
+    assert result["tasks"][0]["adjudication"] is None
 
 
 def test_repaired_task_cannot_be_eligible_without_validated_attempt():
@@ -199,8 +243,15 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
                 "engine": "chromium",
                 "is_retry": False,
                 "qualification_run": True,
+                "status": "pass",
                 "combined_status": "pass",
+                "evidence_status": "pass",
                 "evidence_directory": str(tmp_path),
+                "final_page_evidence": {
+                    "status": "complete",
+                    "screenshot": {"path": "final.png", "sha256": "0" * 64},
+                    "page": {"path": "final-page.json", "sha256": "0" * 64},
+                },
             }
         ),
         encoding="utf-8",
@@ -216,6 +267,8 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
         ),
         encoding="utf-8",
     )
+    (tmp_path / "final.png").write_bytes(b"image")
+    (tmp_path / "final-page.json").write_text("{}", encoding="utf-8")
     suite = {
         "benchmark": {},
         "tasks": [
@@ -263,6 +316,12 @@ def test_correction_is_applied_only_with_passing_primary_qualification_attempt(t
     )
     attempt_payload = json.loads(attempt.read_text(encoding="utf-8"))
     attempt_payload["task_contract_sha256"] = task_contract_sha256(validation_task)
+    attempt_payload["final_page_evidence"]["screenshot"]["sha256"] = hashlib.sha256(
+        (tmp_path / "final.png").read_bytes()
+    ).hexdigest()
+    attempt_payload["final_page_evidence"]["page"]["sha256"] = hashlib.sha256(
+        (tmp_path / "final-page.json").read_bytes()
+    ).hexdigest()
     attempt.write_text(json.dumps(attempt_payload), encoding="utf-8")
 
     result = apply_adjudication(suite, qualification)
@@ -296,9 +355,16 @@ def test_repaired_task_cannot_use_old_har_evidence(tmp_path):
                 "engine": "chromium",
                 "is_retry": False,
                 "qualification_run": True,
+                "status": "pass",
                 "combined_status": "pass",
+                "evidence_status": "pass",
                 "evidence_directory": str(tmp_path),
                 "task_contract_sha256": task_contract_sha256(suite["tasks"][0]),
+                "final_page_evidence": {
+                    "status": "complete",
+                    "screenshot": {"path": "final.png", "sha256": "0" * 64},
+                    "page": {"path": "final-page.json", "sha256": "0" * 64},
+                },
             }
         ),
         encoding="utf-8",
@@ -307,6 +373,16 @@ def test_repaired_task_cannot_use_old_har_evidence(tmp_path):
         json.dumps({"log": {"creator": {"name": "browser-eval-cdp", "version": "1"}}}),
         encoding="utf-8",
     )
+    (tmp_path / "final.png").write_bytes(b"image")
+    (tmp_path / "final-page.json").write_text("{}", encoding="utf-8")
+    payload = json.loads(attempt.read_text(encoding="utf-8"))
+    payload["final_page_evidence"]["screenshot"]["sha256"] = hashlib.sha256(
+        (tmp_path / "final.png").read_bytes()
+    ).hexdigest()
+    payload["final_page_evidence"]["page"]["sha256"] = hashlib.sha256(
+        (tmp_path / "final-page.json").read_bytes()
+    ).hexdigest()
+    attempt.write_text(json.dumps(payload), encoding="utf-8")
     qualification = {
         "schema": "lex_browser_use_qualification/1",
         "tasks": [

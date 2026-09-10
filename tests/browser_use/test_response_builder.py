@@ -102,6 +102,29 @@ def test_response_builder_normalizes_observed_string_case():
     assert response["retrieved_data"] == ["canceled"]
 
 
+@pytest.mark.parametrize(("observed", "expected"), (("Closed", True), ("Open", False)))
+def test_response_builder_derives_closed_boolean_from_visible_issue_state(observed, expected):
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_shape",
+                "task_type": "retrieve",
+                "shape": [
+                    {
+                        "$output": "issue",
+                        "regex": r"Issue state: (Open|Closed)",
+                        "coerce": "closed_boolean",
+                    }
+                ],
+            }
+        ),
+        {"issue": f"Issue state: {observed}"},
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == [expected]
+
+
 def test_response_builder_rejects_unmatched_or_unsupported_transforms():
     for output in (
         {"$output": "value", "regex": r"_(\d+)$", "coerce": "integer"},
@@ -186,7 +209,7 @@ def test_response_builder_reports_not_found_only_from_explicit_observed_evidence
 
     assert response == {
         "task_type": "retrieve",
-        "status": "SUCCESS",
+        "status": "NOT_FOUND_ERROR",
         "retrieved_data": None,
     }
 

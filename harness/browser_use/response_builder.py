@@ -47,6 +47,13 @@ def _resolve(value: Any, outputs: dict[str, str]) -> Any:
         if coerce == "number":
             number = float(resolved)
             return int(number) if number.is_integer() else number
+        if coerce == "closed_boolean":
+            normalized = resolved.strip().lower()
+            if normalized == "closed":
+                return True
+            if normalized in {"open", "opened"}:
+                return False
+            raise ValueError("closed_boolean requires observed Open, Opened, or Closed text")
         raise ValueError(f"unsupported output coercion: {coerce!r}")
     if isinstance(value, dict):
         return {key: _resolve(item, outputs) for key, item in value.items()}
@@ -63,6 +70,7 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
     if task_type not in {"retrieve", "navigate", "mutate"}:
         raise ValueError("response builder requires retrieve, navigate, or mutate task_type")
     kind = config.get("kind")
+    response_status = "SUCCESS"
     if kind == "null_after_verified_path":
         if task_type == "retrieve":
             raise ValueError("retrieve responses must be built from observed page output")
@@ -124,10 +132,11 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
         if re.search(evidence_regex, outputs[output_name], flags=re.IGNORECASE) is None:
             raise ValueError("observed_not_found evidence regex did not match observed output")
         retrieved_data = None
+        response_status = "NOT_FOUND_ERROR"
     else:
         raise ValueError(f"unsupported response builder kind: {kind!r}")
     return {
         "task_type": task_type,
-        "status": "SUCCESS",
+        "status": response_status,
         "retrieved_data": retrieved_data,
     }

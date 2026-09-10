@@ -114,10 +114,16 @@ def execute_steps(
                     else nullcontext()
                 )
                 with navigation:
-                    locator_for(action_page, call).click(timeout=timeout)
+                    locator_for(action_page, call).click(
+                        timeout=timeout,
+                        no_wait_after=bool(call.get("no_wait_after", False)),
+                    )
                 observation = "Clicked successfully."
             elif action == "double_click":
-                locator_for(action_page, call).dblclick(timeout=timeout)
+                locator_for(action_page, call).dblclick(
+                    timeout=timeout,
+                    no_wait_after=bool(call.get("no_wait_after", False)),
+                )
                 observation = "Double-clicked successfully."
             elif action == "fill":
                 if (call.get("source") or {}).get("unresolved_external_input"):
@@ -139,7 +145,11 @@ def execute_steps(
                         if isinstance(selected, list)
                         else str(selected)
                     )
-                    locator_for(action_page, call).select_option(selected, timeout=timeout)
+                    locator_for(action_page, call).select_option(
+                        selected,
+                        timeout=timeout,
+                        no_wait_after=bool(call.get("no_wait_after", False)),
+                    )
                 observation = f"Selected option {call.get('value', '')}."
             elif action == "check":
                 locator_for(action_page, call).check(timeout=timeout)
@@ -222,7 +232,11 @@ def execute_steps(
             elif action == "press":
                 target = call.get("target") or call.get("selector")
                 if target:
-                    locator_for(action_page, call).press(str(call["key"]), timeout=timeout)
+                    locator_for(action_page, call).press(
+                        str(call["key"]),
+                        timeout=timeout,
+                        no_wait_after=bool(call.get("no_wait_after", False)),
+                    )
                 else:
                     action_page.keyboard.press(str(call["key"]))
                 observation = f"Pressed key: {call['key']}"
