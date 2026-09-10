@@ -251,6 +251,10 @@ class MoliWebFetchProvider(Provider):
             self._cancel_requested = True
             self._kill(self._active_process)
 
+    @property
+    def cancellation_cleanup_seconds(self) -> float:
+        return 1.0
+
     @staticmethod
     def _kill(process):
         if process is not None and process.poll() is None:

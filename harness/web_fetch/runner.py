@@ -218,7 +218,13 @@ def run_evaluation(
                                 error_type=error_type,
                                 error_message=error_message,
                             )
-                        physical_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        # Cancellable adapters may need a bounded post-deadline
+                        # unwind. That cleanup determines quarantine safety but
+                        # is not part of the answer latency.
+                        physical_elapsed_ms = result.metadata.pop(
+                            '_answer_elapsed_ms', wall_elapsed_ms
+                        )
                         previous_request_completed = time.monotonic()
                         if case.task_kind == 'file':
                             result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,

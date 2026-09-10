@@ -214,6 +214,42 @@ class RunnerConcurrencyTest(unittest.TestCase):
         finally:
             release.set()
 
+    def test_cancellable_timeout_cleans_up_and_continues_without_latency_inflation(self):
+        calls = []
+
+        class Cancellable(Provider):
+            def __init__(self, name, config):
+                super().__init__(name, config)
+                self.release = threading.Event()
+
+            @property
+            def cancellation_cleanup_seconds(self):
+                return .2
+
+            def begin_call(self):
+                self.release.clear()
+
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                self.release.wait(1)
+                raise TimeoutError('cancelled')
+
+            def cancel(self):
+                self.release.set()
+
+        cases = [EvalCase(f'case-{i}', 'Case', 'https://example.com', 'static', []) for i in range(2)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records, _ = run_evaluation(
+                output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
+                dataset_path=Path('dataset.json'), cases=cases,
+                providers=[Cancellable('slow', {})], provider_config_path=Path('providers.json'),
+                runs=1, timeout=.02, delay=0,
+            )
+        self.assertEqual(calls, ['case-0', 'case-1'])
+        self.assertEqual([record['error_type'] for record in records], ['timeout', 'timeout'])
+        self.assertTrue(all(record['elapsed_ms'] < 100 for record in records))
+
     def test_providers_overlap_but_results_remain_deterministic(self) -> None:
         barrier = threading.Barrier(2)
         providers = [BarrierProvider("first", barrier), BarrierProvider("second", barrier)]

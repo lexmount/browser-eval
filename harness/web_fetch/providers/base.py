@@ -27,6 +27,15 @@ class Provider(ABC):
     def cancel(self) -> None:
         """Best-effort cancellation; non-cancellable calls are quarantined."""
 
+    @property
+    def cancellation_cleanup_seconds(self) -> float:
+        """Bounded post-deadline grace for a cancellable call to stop.
+
+        This is cleanup time, not answer latency. Adapters must opt in only
+        when ``cancel`` actively stops their underlying work.
+        """
+        return 0.0
+
     def begin_call(self) -> None:
         """Reset cancellation state before the timed worker can start."""
 

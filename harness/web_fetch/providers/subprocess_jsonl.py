@@ -162,6 +162,12 @@ class SubprocessJsonlProvider(Provider):
         if process is not None and process.poll() is None:
             process.kill()
 
+    @property
+    def cancellation_cleanup_seconds(self) -> float:
+        # SIGKILL is synchronous to send, but the fetch and pipe-drain threads
+        # need a bounded moment to observe process exit and unwind.
+        return 1.0
+
     def __del__(self) -> None:
         process = self._process
         if process is not None and process.poll() is None:
