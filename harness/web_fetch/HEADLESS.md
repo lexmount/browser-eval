@@ -114,6 +114,14 @@ uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observa
 uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 1 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
 
+For new `run_benchmark.py` cohorts, use the fail-closed wrapper so an aggregate
+run cannot be mistaken for publishable evidence before its worker manifests
+and top-level execution file carry verified postchecks:
+
+```sh
+uv run --frozen python scripts/run_certified_benchmark.py --dataset evaluation/dataset.json --output RUN --work-root WORK --providers METHOD --case-ids ID1,ID2 --browser-binary /absolute/path/to/chromium
+```
+
 Failure retry is disabled by default. Add `--max-failure-retries 1` only when
 the protocol calls for one retry before measurement begins. This is distinct
 from correcting a proven wrong command, implementation version, scorer or
