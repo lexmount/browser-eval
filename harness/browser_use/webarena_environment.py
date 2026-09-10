@@ -74,6 +74,13 @@ class _DockerClientBackend:
         env_vars: dict[str, str] | None = None,
     ) -> None:
         environment = dict(env_vars or {})
+        # GitLab's image entrypoint does not run env-ctrl init.  Its fallback
+        # reconfiguration also rewrites the internal nginx listener to the
+        # public host port, breaking Docker's host-port -> 8023 mapping.  Keep
+        # the baked internal listener here; WebArenaEnvironment performs one
+        # explicit official init after the service is healthy.
+        if name == "webarena_verified_gitlab":
+            environment["WA_ENV_CTRL_SKIP_RECONFIGURE"] = "true"
         self.client.containers.run(
             image,
             detach=True,
@@ -391,18 +398,25 @@ class WebArenaEnvironment:
                     "image_id": container.image.id,
                     "repo_digests": sorted(container.image.attrs.get("RepoDigests") or []),
                 }
-                # The official entrypoint already runs env-ctrl init with
-                # WA_ENV_CTRL_EXTERNAL_SITE_URL. A second explicit init can
-                # overlap Magento/GitLab reconfiguration and stall the daemon.
                 self._wait_ready(url, timeout_seconds=timeout_seconds)
-                self._wait_container_initialization(
-                    container, timeout_seconds=timeout_seconds
-                )
-                receipts[site]["external_url_configuration"] = {
-                    "external_url": started.url,
-                    "mode": "entrypoint_init_verified",
-                    **({"internal_port": 8023} if site == "gitlab" else {}),
-                }
+                if site == "gitlab":
+                    self._configure_gitlab_external_url(container, started.url)
+                    self._wait_ready(url, timeout_seconds=timeout_seconds)
+                    receipts[site]["external_url_configuration"] = {
+                        "external_url": started.url,
+                        "internal_port": 8023,
+                        "mode": "explicit_official_init_verified",
+                    }
+                else:
+                    # Shopping, Shopping Admin and Reddit run their one
+                    # env-ctrl init from the official image entrypoint.
+                    self._wait_container_initialization(
+                        container, timeout_seconds=timeout_seconds
+                    )
+                    receipts[site]["external_url_configuration"] = {
+                        "external_url": started.url,
+                        "mode": "entrypoint_init_verified",
+                    }
             else:
                 receipts[site] = {
                     "mode": "local_docker",
@@ -457,6 +471,24 @@ class WebArenaEnvironment:
                 return
             time.sleep(0.5)
         raise RuntimeError("WebArena entrypoint initialization did not finish")
+
+    @staticmethod
+    def _configure_gitlab_external_url(container: Any, external_url: str) -> None:
+        """Run GitLab's official initializer exactly once after cold startup."""
+        result = container.exec_run(
+            ["env-ctrl", "--verbose", "init", "--base-url", external_url],
+            demux=False,
+        )
+        output = result.output
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        try:
+            payload = json.loads(str(output or ""))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("WebArena GitLab init returned invalid JSON") from exc
+        if result.exit_code != 0 or payload.get("success") is not True:
+            message = str(payload.get("message") or "official initializer failed")
+            raise RuntimeError(f"WebArena GitLab init failed: {message}")
 
     @staticmethod
     def _wait_site_ready(url: str, *, timeout_seconds: float) -> None:

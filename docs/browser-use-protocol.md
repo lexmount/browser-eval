@@ -161,14 +161,15 @@ the canonical suite. Validate the choice from a disposable container: the page m
 redirect or cookie domain must remain on the configured origin.
 
 GitLab needs one additional port rule when the public host port differs from upstream port 8023:
-the harness maps the chosen host port to the image's internal 8023 listener. For GitLab and every
-other stateful fixture, the browser-facing URL is passed once as
-`WA_ENV_CTRL_EXTERNAL_SITE_URL` and the official image entrypoint performs its one initialization.
-The harness must not run a second `env-ctrl init`; concurrent Magento or GitLab reconfiguration can
-stall both the site and Docker daemon. Qualification waits for control-plane readiness, then for the
-entrypoint initialization process to exit, and finally requires two public-site responses whose
-final origin still matches the configured origin. Docker health alone, or an HTTP response that
-redirects to the image's baked CMU origin, is insufficient.
+the harness maps the chosen host port to the image's internal 8023 listener. Unlike Shopping,
+Shopping Admin and Reddit, the GitLab image entrypoint does not run `env-ctrl init`; its fallback
+reconfiguration also changes nginx's internal listener to the public port. The harness therefore
+sets `WA_ENV_CTRL_SKIP_RECONFIGURE=true` only for GitLab, waits for the baked 8023 service to become
+healthy, and then runs the image's official `env-ctrl init --base-url` exactly once. Other stateful
+fixtures continue to receive `WA_ENV_CTRL_EXTERNAL_SITE_URL` and use their entrypoint's single
+initialization. Qualification then requires two public-site responses whose final origin still
+matches the configured origin. Docker health alone, or an HTTP response that redirects to the
+image's baked CMU origin, is insufficient.
 
 `site_docker_host` may point to an absolute Unix socket when browser and site containers deliberately
 use different daemons. Resource limits are validated against the browser daemon; image identity,

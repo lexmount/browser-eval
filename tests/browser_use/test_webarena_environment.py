@@ -304,14 +304,30 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
     monkeypatch.setattr(environment, "_wait_ready", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
 
-    environment.reset(task, docker_client)
+    result = environment.reset(task, docker_client)
 
     assert captured["config"].host_port == 18023
     assert captured["config"].container_port == 8023
-    assert docker_client.containers.container.exec_calls == []
+    assert docker_client.containers.container.exec_calls == [
+        (
+            [
+                "env-ctrl",
+                "--verbose",
+                "init",
+                "--base-url",
+                "http://10.2.131.41:18023",
+            ],
+            False,
+        )
+    ]
+    assert result["sites"]["gitlab"]["external_url_configuration"] == {
+        "external_url": "http://10.2.131.41:18023",
+        "internal_port": 8023,
+        "mode": "explicit_official_init_verified",
+    }
 
 
-@pytest.mark.parametrize("site", ["shopping_admin", "shopping", "reddit", "gitlab"])
+@pytest.mark.parametrize("site", ["shopping_admin", "shopping", "reddit"])
 def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     calls = []
 
@@ -333,6 +349,40 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
     assert calls[0][1]["environment"] == {
         "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
     }
+
+
+def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
+    calls = []
+
+    class Containers:
+        def run(self, *args, **kwargs):
+            calls.append((args, kwargs))
+
+    backend = _DockerClientBackend(SimpleNamespace(containers=Containers()))
+
+    backend.container_run(
+        name="webarena_verified_gitlab",
+        image="gitlab@sha256:digest",
+        port_mappings={18023: 8023, 18024: 8877},
+        volume_mappings={},
+        env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023"},
+    )
+
+    assert calls[0][1]["environment"] == {
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
+        "WA_ENV_CTRL_SKIP_RECONFIGURE": "true",
+    }
+
+
+def test_gitlab_initializer_fails_closed_on_invalid_response():
+    container = SimpleNamespace(
+        exec_run=lambda *_args, **_kwargs: SimpleNamespace(exit_code=0, output=b"not-json")
+    )
+
+    with pytest.raises(RuntimeError, match="invalid JSON"):
+        WebArenaEnvironment._configure_gitlab_external_url(
+            container, "http://10.2.131.41:18023"
+        )
 
 
 def test_stateful_reset_requires_explicit_distinct_ports(tmp_path):
