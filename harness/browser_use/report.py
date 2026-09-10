@@ -7,6 +7,7 @@ import hashlib
 import html
 import json
 import math
+import re
 import shutil
 import statistics
 import tempfile
@@ -40,13 +41,18 @@ SITE_LABELS = {
 }
 MUTATE_IDS = {399, 404, 441, 506}
 NAVIGATE_IDS = {44, 45, 118}
-FAILURE_OBSERVATIONS = {
-    68: "官方期望包含多本书；四次执行的实际回答都只包含一本。",
-    124: "实际回答中的价格范围与该题官方目标商品范围不一致。",
-    142: "实际订单汇总与官方期望值不一致。",
-    168: "实际回答为空列表，而官方期望为非空项目列表。",
-    506: "官方网络副作用合同未通过；购物车最终状态未满足题目要求。",
+RESEARCH_ROOT = Path(__file__).parents[2] / "research"
+SHARED_FAILURE_DIAGNOSES = {
+    int(task_id): diagnosis
+    for task_id, diagnosis in json.loads(
+        (RESEARCH_ROOT / "browser-use-failure-analysis.json").read_text(encoding="utf-8")
+    )["tasks"].items()
 }
+MAC_EXPANSION = json.loads(
+    (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
+)
+MAC_ENVIRONMENT_CANDIDATES = MAC_EXPANSION["environments"]
+MAC_COUNTS = MAC_EXPANSION["official_counts"]
 
 
 def _configure_engine_labels(profile: dict[str, Any]) -> None:
@@ -782,6 +788,7 @@ REPORT_STYLE = (
 .browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:22px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.comparison-controls{display:grid;grid-template-columns:minmax(170px,1fr) minmax(240px,1.4fr) minmax(170px,1fr);gap:14px}.comparison-controls label{display:grid;gap:6px;font-weight:750}.comparison-controls select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}.comparison-browsers{border:0;padding:0;margin:20px 0 0}.comparison-browsers legend{font-weight:750;margin-bottom:10px}.browser-checks{display:flex;gap:8px;flex-wrap:wrap}.browser-checks label{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;background:var(--bg);cursor:pointer}.browser-checks label.disabled{opacity:.45;cursor:not-allowed}.browser-checks input{accent-color:var(--accent)}.comparison-result{margin-top:20px}.table-wrap .comparison-table{min-width:720px;table-layout:fixed}.comparison-table th:first-child,.comparison-table td:first-child{width:48%}.comparison-table th:nth-child(2),.comparison-table td:nth-child(2),.comparison-table th:nth-child(3),.comparison-table td:nth-child(3){width:26%}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-list{display:flex;gap:6px;flex-wrap:wrap}.outcome-pill{display:inline-block;padding:5px 8px;border-radius:8px;font-size:13px;text-decoration:none}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}
 .action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
 .attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
+.task-goal{padding:22px 24px;border-radius:16px;background:var(--wash);border:1px solid var(--line);margin-bottom:18px}.task-goal span,.rule-index{display:block;color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.task-goal p{font-size:20px;font-weight:750;line-height:1.6;margin:7px 0}.task-goal small{color:var(--muted)}.verification-list{display:grid;gap:14px}.verification-rule{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;background:var(--panel);min-width:0}.verification-rule.rule-fail{border-left-color:var(--bad)}.verification-rule>header{display:flex;align-items:start;justify-content:space-between;gap:18px}.verification-rule h3{margin:4px 0 0;font-size:19px}.rule-verdict{flex:0 0 auto;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:850}.rule-verdict.pass{background:var(--success-bg);color:var(--good)}.rule-verdict.fail{background:var(--failure-bg);color:var(--bad)}.rule-purpose{color:var(--muted);margin:12px 0 6px}.rule-summary{font-size:17px;font-weight:750;margin:0 0 14px}.verification-rule details{border-top:1px solid var(--line);padding-top:12px;margin-top:10px}.verification-rule summary{cursor:pointer;font-weight:750}.compact-evidence{margin-top:12px}.compact-evidence .json-view{max-height:360px}
 .page-main{overflow-x:clip}
 .section[id]{scroll-margin-top:76px}
 @media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -952,34 +959,89 @@ def _failure_brief(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     return "全部官方 evaluator 均通过。"
 
 
-def _evaluator_result_html(result: dict[str, Any] | None) -> str:
+def _rule_purpose(name: str) -> str:
+    if name == "AgentResponseEvaluator":
+        return "检查 Agent 最终回答的状态、字段和值是否符合官方答案合同。"
+    if name == "NetworkEventEvaluator":
+        return "检查浏览器网络记录中是否出现合同要求的页面副作用。"
+    return "检查该题官方合同声明的结果条件。"
+
+
+def _rule_outcome_summary(item: dict[str, Any]) -> str:
+    if float(item.get("score") or 0) == 1:
+        return (
+            "已观察到满足合同的网络事件。"
+            if item.get("name") == "NetworkEventEvaluator"
+            else "最终回答符合该规则。"
+        )
+    messages = [
+        str(message)
+        for assertion in item.get("assertions") or []
+        for message in (assertion.get("assertion_msgs") or [])[:1]
+    ]
+    message = messages[0] if messages else str(item.get("error") or "")
+    status = re.fullmatch(r"Expected ([^,]+), got (.+)", message)
+    if status:
+        return f"最终状态不符：期望 {status.group(1)}，实际为 {status.group(2)}。"
+    missing = re.fullmatch(
+        r"Array is missing (\d+) expected element\(s\)\. Matched \((\d+)/(\d+)\)",
+        message,
+    )
+    if missing:
+        return f"最终数据缺少 {missing.group(1)} 项；官方期望 {missing.group(3)} 项，匹配 {missing.group(2)} 项。"
+    if "Array value mismatch" in message:
+        return "最终数据与官方期望值不一致。"
+    if "No matching network event" in message:
+        return "浏览器网络记录中没有出现满足该规则的事件。"
+    return message or "该规则未通过。"
+
+
+def _verification_html(
+    task: dict[str, Any], result: dict[str, Any] | None, response: Any
+) -> str:
     items = evaluator_summary(result)
     if not items:
         return '<p class="muted-box">没有 evaluator 明细。</p>'
     cards = []
     for item in items:
         passed = float(item.get("score") or 0) == 1
-        detail = {
+        observed = response if item.get("name") == "AgentResponseEvaluator" else item.get("actual")
+        technical = {
             key: item.get(key)
             for key in ("assertions", "error", "should_not_exist")
             if item.get(key) not in (None, [], {})
         }
         cards.append(
-            f'<article class="evidence-card rule-{"pass" if passed else "fail"}"><h3>规则 {item["index"]} · {_e(item["name"])}</h3>'
-            f"<p>{'通过' if passed else '失败'} · score={_e(item.get('score'))}</p>"
-            '<div class="evidence-pair"><div><h4>官方期望</h4>'
+            f'<article class="verification-rule rule-{"pass" if passed else "fail"}">'
+            '<header><div><span class="rule-index">'
+            + _e(f"规则 {item['index']}")
+            + "</span><h3>"
+            + _e(item["name"])
+            + f'</h3></div><span class="rule-verdict {"pass" if passed else "fail"}">'
+            + ("通过" if passed else "失败")
+            + "</span></header>"
+            + f'<p class="rule-purpose">{_e(_rule_purpose(item["name"]))}</p>'
+            + f'<p class="rule-summary">{_e(_rule_outcome_summary(item))}</p>'
+            + '<details><summary>查看官方期望与本次观察</summary><div class="evidence-pair compact-evidence"><div><h4>官方期望</h4>'
             + _json_pre(item.get("expected"))
-            + "</div><div><h4>实际归一化结果</h4>"
-            + _json_pre(item.get("actual"))
-            + "</div></div>"
+            + "</div><div><h4>本次观察</h4>"
+            + _json_pre(observed)
+            + "</div></div></details>"
             + (
-                f"<details open><summary>断言与错误</summary>{_json_pre(detail)}</details>"
-                if detail
+                f'<details><summary>查看 evaluator 技术明细</summary>{_json_pre(technical)}</details>'
+                if technical
                 else ""
             )
             + "</article>"
         )
-    return "".join(cards)
+    return (
+        '<div class="task-goal"><span>任务目标</span><p>'
+        + _e(task.get("intent") or "—")
+        + '</p><small>Agent 可自主选择 UI 路径；计分只看以下最终回答与必要网络副作用。</small></div>'
+        + '<div class="verification-list">'
+        + "".join(cards)
+        + "</div>"
+    )
 
 
 def _trajectory_html(steps: list[dict[str, Any]]) -> str:
@@ -1022,7 +1084,13 @@ def _article_body(
     summary = _primary_summary(attempts)
     chromium, moli = summary["chromium"], summary["moli"]
     failures = [
-        [f"#{task_id}", FAILURE_OBSERVATIONS[task_id]] for task_id in sorted(FAILURE_OBSERVATIONS)
+        [
+            f"#{task_id}",
+            diagnosis["mismatch"],
+            diagnosis["diagnosis"],
+            diagnosis["confidence"],
+        ]
+        for task_id, diagnosis in SHARED_FAILURE_DIAGNOSES.items()
     ]
     return (
         '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Use 实测解读</div>'
@@ -1042,14 +1110,14 @@ def _article_body(
             caption="表 1｜30 个任务的逐题最终结果配对。",
         )
         + f"<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired['paired']} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>"
-        "<section><h2>二、共同失败是待核验线索，不是已证实根因</h2>"
-        f"<p>{paired['both_fail']} 个共同失败任务均未满足官方验收合同。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>"
+        "<section><h2>二、为什么五个失败任务会完全相同</h2>"
+        f"<p>两个浏览器共享 CowAgent、模型、提示与工具合同、站点状态、30 步上限和 evaluator，只有浏览器实现不同。{paired['both_fail']} 个共同失败都落在共享层，因此结果高度相关并不反常；它更说明这批题没有触发足以改变最终成败的浏览器差异。</p>"
         + _table(
-            ["任务", "公开诊断"],
+            ["任务", "实际差异", "证据支持的诊断", "置信度"],
             failures,
-            caption="表 2｜任务详情公开官方合同、实际回答、逐规则判定与执行轨迹。",
+            caption="表 2｜诊断来自最终回答、官方 evaluator 与执行轨迹的交叉核对；不修改官方分数。",
         )
-        + "<p>这五题在本轮没有任何成功轨迹，因此当前站点快照的可完成性也未被本报告独立证明。下一步应先做不参与计分的人工或 oracle 可完成性核验，再区分 Agent、工具抽象、步数上限、站点状态和浏览器因素。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
+        + "<p><strong>结论：</strong>现有证据不支持“网站本身报错”“官方 evaluator 实现错误”或“标准答案错误”。其中 #124 的站内搜索召回过宽会增加歧义，但返回结果仍需要按任务语义过滤。更准确的归因是：四题属于共享 Agent/模型的语义、聚合或输出协议问题，一题属于共享的长链完成与步数预算问题。这不是对模型通用能力的定论，只描述当前 CowAgent、模型与运行协议。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
         + _table(
             ["本项目分层", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "tier"),
@@ -1060,7 +1128,7 @@ def _article_body(
             _group_rows(attempts, tasks, "sites"),
             caption="表 4｜四个可重置自托管站点。",
         )
-        + '</section><section><h2>四、选择 WebArena‑Verified 是为了归因，不是因为它最流行</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、下一轮应主动寻找内核敏感样本</h2><p>保留 CowAgent、模型、reasoning=low 和每题最多两次执行的固定协议，扩大稳定可验收的配对样本；新增长页面、上传下载、复杂编辑器、弹窗、多标签页等更可能诱发内核差异的任务。实时网站另开 Online‑Mind2Web / WebVoyager 泛化轨道，LLM judge 与人工抽检单列。</p><div class="essay-note"><h3>决策边界</h3><p>本轮支持“流程可比、当前样本无方向性差异”；不支持“内核等价”“Moli 已全面替代 Chromium”或“端到端耗时就是纯内核速度”。Astra 获权后必须形成独立运行。</p></div></section></article>'
+        + f'</section><section><h2>四、选择 WebArena‑Verified 是为了归因，不是因为它最流行</h2><p>Mind2Web 家族采用面更广，但原版主要评离线动作预测；Online‑Mind2Web 和 WebVoyager贴近实时网页，却引入网页漂移和模型裁判。WebArena‑Verified 可以自托管、逐题重置，并用结构化最终答案和必要网络副作用做程序化验收，更适合“只替换浏览器”的 A/B。</p><p>代价也明确：部署重，环境兼容本身会成为工程变量；官方 evaluator 不衡量路径效率，也不能覆盖开放互联网泛化。</p></section><section><h2>五、下一轮先扩展四个已验证站点</h2><p>官方包有 {MAC_COUNTS["full"]} 题和 {MAC_COUNTS["hard"]} 题 hard 子集，没有官方 179 题版本；179 只能是另行声明的自定义样本。当前 Mac 已实跑的四个站点可覆盖 {MAC_COUNTS["current_four_sites_single_site"]} 个单站任务；再计入只依赖这四站的跨站任务，共有 {MAC_COUNTS["current_four_sites_including_cross_site"]} 个候选，其中 hard 子集有 {MAC_COUNTS["current_four_sites_hard_including_cross_site"]} 个。下一轮应在这些候选中先做登录、重置、健康检查与 evaluator 预检，再按简单、中等、困难和内核敏感交互分层抽样。</p><p>Wikipedia 需要约 100 GB 数据，Map 需要约 60 GB 数据且当前公开镜像为 amd64；二者可作为后续扩展，但没有理由成为本机下一批的前置阻塞。</p><p>保留 CowAgent、模型、reasoning=low 和每题最多两次执行的固定协议，优先加入长页面、复杂编辑器、弹窗、多标签页、上传下载等更可能诱发浏览器差异的任务。实时网站另开 Online‑Mind2Web / WebVoyager 泛化轨道，LLM judge 与人工抽检单列。</p><div class="essay-note"><h3>决策边界</h3><p>本轮支持“流程可比、当前样本无方向性差异”；不支持“内核等价”“Moli 已全面替代 Chromium”或“端到端耗时就是纯内核速度”。Astra 获权后必须形成独立运行。</p></div></section></article>'
     )
 
 
@@ -1394,7 +1462,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "先看结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>需要可完成性核验</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout failure"><strong>归因边界：</strong>{paired["both_fail"]} 个共同失败任务没有任何成功轨迹。报告只能确认结果未满足官方合同，尚不能证明任务在当前快照可完成，也不能归因给 Agent 或浏览器。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
+            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium 任务通过</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli 任务通过</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">共同失败</span><div class="n">{paired["both_fail"]}</div><p>共享链路诊断</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout"><strong>失败归因：</strong>{paired["both_fail"]} 个共同失败中，四题指向共享 Agent/模型的语义、聚合或输出协议，一题指向共享的步数预算与长链完成；没有发现站点、官方 evaluator 或答案合同错误的证据。</p><p class="fine">这是固定选择的 30 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。</p>',
         )
         home += _section(
             "任务族覆盖",
@@ -1569,7 +1637,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         methodology += _section(
             "这 30 题如何部署并由 Agent 执行",
             '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="WebArena-Verified 本地部署、CowAgent 自主操作、双浏览器对照与程序化验收流程" width="1672" height="941"><figcaption>图 1 · 从官方站点镜像、逐题隔离与健康检查，到 CowAgent 观察—决策—操作闭环，再到 Chromium/Moli 对照和官方程序化验收。窄屏可横向滚动查看。</figcaption></figure>'
-            "<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；Shopping、Shopping Admin、Reddit、GitLab 四个官方镜像把应用端口发布到 Colima/Docker 宿主。Chromium 与 Moli 各自在独立浏览器容器中运行，通过容器内解析到的宿主网关 <code>192.168.5.2</code> 访问这些端口。这个地址只是本轮私有网络中的宿主入口，不是评测网站或固定产品配置。</p>"
+            "<p><strong>站点确实部署在本机，不是公网代站。</strong>macOS 上的 Docker 由 Colima 虚拟机承载；本轮 Colima VM 地址是 <code>192.168.5.3</code>，其默认路由指向 <code>192.168.5.2</code>。后者是 VM 视角下的 macOS 宿主网关，不是虚拟机地址，也不是评测网站。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个宿主入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。</p>"
             "<p>WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 30 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。</p>"
             "<p>运行器代码在每个执行前调用 <code>ContainerManager.start(reset=True)</code>，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前冻结证据保存了代码提交、运行协议和镜像身份；事件流从环境准备完成后开始，因此逐次 reset、ready 与 health 结果未形成独立绑定的准备回执。新版运行协议已要求保存该回执。</p>"
             "<p>预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 30 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。</p>"
@@ -1586,6 +1654,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             + '<p class="callout"><strong>证据边界：</strong>事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。当前证据没有独立的逐次环境准备 receipt，因此报告不把“每次重置均成功”当成已经独立核验的事实。</p>'
             '<p class="page-links"><a href="results/chromium-44.html#trajectory">查看 Chromium 自主轨迹示例</a><a href="results/moli-44.html#trajectory">查看 Moli 自主轨迹示例</a><a href="reproduce/">核对镜像与运行身份</a></p>',
+        )
+        methodology += _section(
+            "Mac 上可以继续扩展哪些实例",
+            f'<p>官方完整集有 {MAC_COUNTS["full"]} 题，hard 子集有 {MAC_COUNTS["hard"]} 题；官方没有 179 题版本。若运行 179 题，必须把它标注为本项目自定义样本并冻结任务清单。当前四个已实跑站点可直接进入下一轮预检：覆盖 {MAC_COUNTS["current_four_sites_single_site"]} 个单站任务，计入只依赖这四站的跨站任务后为 {MAC_COUNTS["current_four_sites_including_cross_site"]} 个候选；hard 子集中可覆盖 {MAC_COUNTS["current_four_sites_hard_including_cross_site"]} 个。</p>'
+            + _table(
+                ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
+                MAC_ENVIRONMENT_CANDIDATES,
+                caption="Wikipedia 与 Map 的容量来自官方环境说明；状态中的“实跑”只指本项目已有执行证据。",
+            )
+            + '<p class="callout"><strong>最小扩展方案：</strong>先从四个已验证站点的 678 个候选中做可完成性预检和分层抽样；Wikipedia、Map 等大数据环境后置。这样扩容不会先引入新的部署变量。</p>'
+            '<p class="page-links"><a href="https://github.com/ServiceNow/webarena-verified">官方任务集与安装说明</a><a href="https://servicenow.github.io/webarena-verified/dev/environments/">官方环境容量说明</a></p>',
         )
         methodology += _section(
             "固定协议",
@@ -1702,15 +1781,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             detail = _hero(
                 public["id"],
                 f"{ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
-                "从官方 ground truth、实际回答、规则级判定下钻到 CowAgent 的每一步 BrowserTool 调用。",
+                "先看任务目标与验收结论，再按需展开技术明细和 CowAgent 的每一步 BrowserTool 调用。",
             )
             # Pages declare <base href="../"> so every internal URL is rooted at
             # the report bundle, including same-page fragment links.
             attempt_page = f"results/{public['id']}.html"
             detail += (
                 '<nav class="page-links wrap" aria-label="结果详情导航">'
-                f'<a href="{attempt_page}#comparison">答案对照</a>'
-                f'<a href="{attempt_page}#rules">规则判定</a>'
+                f'<a href="{attempt_page}#verification">任务与验收</a>'
                 f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
                 f'<a href="{attempt_page}#runtime">运行与证据</a>'
                 "</nav>"
@@ -1719,7 +1797,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 "结果与运行",
                 f'<div class="attempt-summary"><article class="attempt-verdict{" failure" if float(row["score"]) < 1 else ""}">'
                 f'<span class="status-line">{_status(row)}</span><p>{_e(_failure_brief(evaluation_record, row))}</p>'
-                f'<div class="attempt-jumps"><a href="{attempt_page}#rules">查看逐规则判定</a></div></article>'
+                f'<div class="attempt-jumps"><a href="{attempt_page}#verification">查看任务与验收</a></div></article>'
                 f'<div class="attempt-fact"><b>累计自主操作</b>{public["action_count"]} 次 BrowserTool 调用</div>'
                 f'<div class="attempt-fact"><b>Agent 链路累计耗时</b>{_seconds(public["duration_ms"])}</div>'
                 f'<div class="attempt-fact"><b>BrowserTool 累计耗时</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
@@ -1730,18 +1808,17 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 f'<div class="attempt-fact"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div>'
                 '<p class="fine">Agent 链路耗时包含会话准备、登录、模型推理、调度、工具执行和收尾，不包含 Docker 站点重置；BrowserTool 耗时是全部 browser 工具调用的墙钟时间之和，不等同于纯内核时间。</p>',
             )
-            detail += '<div id="comparison"></div>' + _section(
-                "Ground truth 与实际最终回答",
-                '<div class="evidence-pair"><article class="evidence-card"><h3>官方任务合同</h3>'
-                + _task_contract_html(task)
-                + '</article><article class="evidence-card"><h3>Agent 实际回答</h3>'
-                + _json_pre(response_record)
-                + "</article></div>",
-            )
-            detail += '<div id="rules"></div>' + _section(
-                "官方 evaluator 逐规则判定",
-                "<p>所有规则都必须得分 1.0；这里使用 evaluator 已归一化的实际值与期望值直接对照。</p>"
-                + _evaluator_result_html(evaluation_record),
+            detail += '<div id="verification"></div>' + _section(
+                "任务要求与验收结果",
+                _verification_html(task, evaluation_record, response_record)
+                + (
+                    '<div class="callout"><strong>证据诊断：</strong>'
+                    + _e(SHARED_FAILURE_DIAGNOSES[public["task_id"]]["diagnosis"])
+                    + " 本诊断不修改官方分数。</div>"
+                    if public["task_id"] in SHARED_FAILURE_DIAGNOSES
+                    else ""
+                )
+                + '<p class="fine">所有规则均为官方程序化验收，必须全部得分 1.0。页面先给出可读结论；官方期望、实际观察和断言保留在折叠技术明细及下载文件中。</p>',
             )
             detail += '<div id="trajectory"></div>' + _section(
                 "CowAgent 自主执行轨迹",
@@ -1972,7 +2049,10 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "schema": "lex_browser_use_interpretation/1",
             "claims": [
                 {"claim": "当前样本未观察到成功率差异", "basis": paired},
-                {"claim": "失败任务完全重合", "basis": sorted(FAILURE_OBSERVATIONS)},
+                {
+                    "claim": "失败任务完全重合，且证据诊断均位于共享链路",
+                    "basis": SHARED_FAILURE_DIAGNOSES,
+                },
             ],
             "bound_attempts_sha256": _sha256(evidence / "attempts.jsonl"),
             "selection_sha256": selection.sha256,

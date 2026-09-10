@@ -1,0 +1,37 @@
+{
+  "schema": "lex_browser_use_failure_analysis/1",
+  "scope": {
+    "benchmark": "WebArena-Verified 1.2.3",
+    "task_ids": [68, 124, 142, 168, 506],
+    "engines": ["chromium", "moli"],
+    "evidence": "final response, official evaluator output, and autonomous BrowserTool trajectory",
+    "score_effect": "none"
+  },
+  "tasks": {
+    "68": {
+      "mismatch": "两种浏览器都返回《The Hobbit》，遗漏《A Christmas Carol》（作者允许为空）。",
+      "diagnosis": "共享的跨帖聚合与空值处理错误。轨迹已看到两篇符合条件的帖子，说明站点内容存在；失败发生在最终答案整理。",
+      "confidence": "高"
+    },
+    "124": {
+      "mismatch": "两者都把搜索结果中的无关投影仪计入 wireless earphone 价格范围，最大值报为 17,774.32，官方期望为 298.00。",
+      "diagnosis": "共享的搜索结果相关性过滤错误；站内搜索召回过宽是诱因，但 Agent 仍应按任务语义筛选商品。",
+      "confidence": "中"
+    },
+    "142": {
+      "mismatch": "两者都汇总为 80.50，官方期望为 68.51；差额来自把水晶发箍计入 hair care/style 商品。",
+      "diagnosis": "共享的商品类别判定错误。订单数据和 evaluator 数值一致，未见站点或计分器异常。",
+      "confidence": "高"
+    },
+    "168": {
+      "mismatch": "两者都正确找到空集合，却返回 SUCCESS + []；合同要求 NOT_FOUND_ERROR + null。",
+      "diagnosis": "共享的最终状态协议错误，不是检索内容错误，也不是浏览器执行错误。",
+      "confidence": "高"
+    },
+    "506": {
+      "mismatch": "两者都选中正确商品并清空旧购物车，但未产生付款提交与成功页事件。",
+      "diagnosis": "共享的长链任务完成错误：30 步上限前没有完成结账。两种浏览器路径细节不同，但都未越过同一验收终点。",
+      "confidence": "高"
+    }
+  }
+}

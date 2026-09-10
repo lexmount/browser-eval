@@ -210,15 +210,21 @@ def check(
         marker not in rendered_pages[page]
         for page in result_pages
         for marker in (
-            "Agent 实际回答",
-            "官方 evaluator 逐规则判定",
+            "任务要求与验收结果",
+            "查看官方期望与本次观察",
             "CowAgent 自主执行轨迹",
             "运行、日志与证据",
             "attempt-summary",
-            "查看逐规则判定",
+            "查看任务与验收",
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
+    if any(
+        marker in rendered_pages[page]
+        for page in result_pages
+        for marker in ("Ground truth 与实际最终回答", "官方 evaluator 逐规则判定")
+    ):
+        raise ValueError("result pages must not duplicate answer and evaluator presentations")
     html = rendered_pages[index]
     standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
     if "<script" in standalone or "assets/" in standalone:

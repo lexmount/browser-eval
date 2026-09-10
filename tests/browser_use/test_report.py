@@ -10,6 +10,7 @@ from harness.browser_use.report import (
     _logical_results,
     _paired_summary,
     _same_task_comparison,
+    _verification_html,
     build_report,
 )
 
@@ -38,6 +39,37 @@ def test_english_localization_includes_visible_attributes() -> None:
     assert 'title="Better"' in localized
     assert 'aria-label="Better"' in localized
     assert 'placeholder="Task, intent, or acceptance contract"' in localized
+
+
+def test_result_verification_is_readable_and_does_not_duplicate_raw_panels() -> None:
+    result = {
+        "evaluators_results": [
+            {
+                "evaluator_name": "AgentResponseEvaluator",
+                "score": 0,
+                "expected": {"status": "success", "retrieved_data": [1, 2]},
+                "actual": {"status": "success", "retrieved_data": [1]},
+                "assertions": [
+                    {
+                        "assertion_msgs": [
+                            "Array is missing 1 expected element(s). Matched (1/2)"
+                        ]
+                    }
+                ],
+            }
+        ]
+    }
+
+    rendered = _verification_html(
+        {"intent": "Return both records."},
+        result,
+        {"status": "success", "retrieved_data": [1]},
+    )
+
+    assert "最终数据缺少 1 项；官方期望 2 项，匹配 1 项" in rendered
+    assert rendered.count("<h4>官方期望</h4>") == 1
+    assert "<details open>" not in rendered
+    assert "Ground truth 与实际最终回答" not in rendered
 
 
 def test_paired_summary_uses_final_logical_results() -> None:
@@ -229,15 +261,17 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(tmp_path:
     assert "逐结果覆盖" not in review
     attempt = (output / "results/chromium-44.html").read_text(encoding="utf-8")
     for expected in (
-        "Agent 实际回答",
-        "官方 evaluator 逐规则判定",
+        "任务要求与验收结果",
         "CowAgent 自主执行轨迹",
         "运行、日志与证据",
         'href="results/chromium-44.html#trajectory"',
         "attempt-summary",
-        "查看逐规则判定",
+        "查看任务与验收",
     ):
         assert expected in attempt
+    assert "没有 evaluator 明细" in attempt
+    assert "Ground truth 与实际最终回答" not in attempt
+    assert "官方 evaluator 逐规则判定" not in attempt
     for artifact in (
         "agent-response.json",
         "evaluation.json",
