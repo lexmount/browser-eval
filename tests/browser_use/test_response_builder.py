@@ -236,6 +236,28 @@ def test_response_builder_extracts_authors_only_from_matching_observed_reviews()
     assert response["retrieved_data"] == ["Ada"]
 
 
+def test_response_builder_deduplicates_review_authors_across_observed_pages():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_review_authors_matching",
+                "task_type": "retrieve",
+                "outputs": ["page_two", "page_one"],
+                "match_regex": r"quality",
+                "author_regex": r"Review by\s+([^\n]+)",
+            }
+        ),
+        {
+            "page_two": '["Review by Ada\\nLow quality"]',
+            "page_one": '["Review by Grace\\nQuality issue", '
+            '"Review by Ada\\nQuality issue"]',
+        },
+    )
+
+    assert response is not None
+    assert response["retrieved_data"] == ["Ada", "Grace"]
+
+
 def test_response_builder_review_matching_fails_closed_without_observed_match():
     with pytest.raises(ValueError, match="no observed reviews matched"):
         build_agent_response(

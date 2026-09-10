@@ -116,15 +116,19 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
             for index in range(next(iter(lengths)))
         ]
     elif kind == "observed_review_authors_matching":
-        output_name = str(config.get("output") or "")
-        if output_name not in outputs:
-            raise ValueError(f"response builder output is missing: {output_name}")
-        reviews = json.loads(outputs[output_name])
+        raw_output_names = config.get("outputs")
+        if raw_output_names is None:
+            raw_output_names = [config.get("output")]
+        if not isinstance(raw_output_names, list) or not raw_output_names:
+            raise ValueError("observed_review_authors_matching requires outputs")
+        output_names = [str(value or "") for value in raw_output_names]
+        if any(name not in outputs for name in output_names):
+            missing = next(name for name in output_names if name not in outputs)
+            raise ValueError(f"response builder output is missing: {missing}")
         match_regex = config.get("match_regex")
         author_regex = config.get("author_regex")
         if (
-            not isinstance(reviews, list)
-            or not isinstance(match_regex, str)
+            not isinstance(match_regex, str)
             or not match_regex
             or not isinstance(author_regex, str)
             or not author_regex
@@ -133,16 +137,22 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
                 "observed_review_authors_matching requires a JSON array and two regexes"
             )
         authors: list[str] = []
-        for review in reviews:
-            text = str(review)
-            if re.search(match_regex, text, flags=re.IGNORECASE) is None:
-                continue
-            author = re.search(author_regex, text, flags=re.IGNORECASE)
-            if author is None or author.lastindex is None:
-                raise ValueError("matching review does not expose an author capture group")
-            value = author.group(1).strip()
-            if value and value not in authors:
-                authors.append(value)
+        for output_name in output_names:
+            reviews = json.loads(outputs[output_name])
+            if not isinstance(reviews, list):
+                raise ValueError(
+                    "observed_review_authors_matching outputs must contain JSON arrays"
+                )
+            for review in reviews:
+                text = str(review)
+                if re.search(match_regex, text, flags=re.IGNORECASE) is None:
+                    continue
+                author = re.search(author_regex, text, flags=re.IGNORECASE)
+                if author is None or author.lastindex is None:
+                    raise ValueError("matching review does not expose an author capture group")
+                value = author.group(1).strip()
+                if value and value not in authors:
+                    authors.append(value)
         if not authors:
             raise ValueError("no observed reviews matched the requested evidence regex")
         retrieved_data = authors

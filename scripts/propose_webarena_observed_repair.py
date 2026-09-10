@@ -34,7 +34,12 @@ def _builder_outputs(builder: dict[str, Any]) -> set[str]:
             raise ValueError("observed_json_zip requires fields")
         names = {str(value) for value in fields.values()}
     elif kind == "observed_review_authors_matching":
-        names = {str(builder.get("output") or "")}
+        raw_names = builder.get("outputs")
+        if raw_names is None:
+            raw_names = [builder.get("output")]
+        if not isinstance(raw_names, list) or not raw_names:
+            raise ValueError(f"{kind} requires output or outputs")
+        names = {str(value or "") for value in raw_names}
         for key in ("match_regex", "author_regex"):
             if not isinstance(builder.get(key), str) or not builder[key]:
                 raise ValueError(f"{kind} requires {key}")
@@ -56,17 +61,19 @@ def propose_observed_repair(
     if not isinstance(observations, list) or not observations:
         raise ValueError("observed repair requires observation_actions")
     declared_outputs: set[str] = set()
-    validated: list[dict[str, Any]] = []
+    validated: list[tuple[int | None, dict[str, Any]]] = []
     for raw in observations:
         if not isinstance(raw, dict) or raw.get("action") not in OBSERVATION_ACTIONS:
             raise ValueError("observed repair may append only read-only observation actions")
         action = deepcopy(raw)
+        raw_after = action.pop("after_action_index", None)
+        after_action_index = int(raw_after) if raw_after is not None else None
         save_as = str(action.get("save_as") or "")
         if not save_as or save_as in declared_outputs:
             raise ValueError("observation save_as values must be non-empty and unique")
         validate_selector(action)
         declared_outputs.add(save_as)
-        validated.append(action)
+        validated.append((after_action_index, action))
     builder = config.get("response_builder")
     if not isinstance(builder, dict):
         raise ValueError("observed repair requires response_builder")
@@ -78,7 +85,19 @@ def propose_observed_repair(
         raise ValueError("observed repair requires reason")
     task = matches[0]
     actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
-    actions.extend(validated)
+    official_action_count = len(actions)
+    for position, (after_action_index, action) in enumerate(validated):
+        if after_action_index is None:
+            actions.append(action)
+            continue
+        if after_action_index < 0 or after_action_index > official_action_count:
+            raise ValueError("after_action_index is outside the official trajectory")
+        prior_insertions = sum(
+            1
+            for prior_index, _ in validated[:position]
+            if prior_index is not None and prior_index <= after_action_index
+        )
+        actions.insert(after_action_index + prior_insertions, action)
     return {
         "schema": "lex_browser_use_repair_proposal/1",
         "task_id": task_id,
