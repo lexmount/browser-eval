@@ -114,3 +114,33 @@ vm.runInContext("applyReportAnchor('evidence-firecrawl')",anchors);
 assert.equal(adoptionDetail.open,true);
 assert.deepEqual(anchorSelections.pop(),['method-guide','adoption']);
 console.log('PASS: official capability and adoption anchors reveal their own tab, not a hard-coded tab');
+
+const comparisonRows=[
+ {dataset:{track:'web',pass:'a c',fail:'b'}},
+ {dataset:{track:'document',pass:'a b c',fail:''}},
+ {dataset:{track:'web',pass:'b',fail:'a c'}},
+ {dataset:{track:'web',pass:'',fail:'a b c'}}
+];
+const comparisonControls={
+ 'compare-a':{value:'a'},'compare-relation':{value:'a_pass_others_fail'},'compare-track':{value:''},'compare-count':{textContent:''}
+};
+const compareChecks=['a','b','c'].map(value=>({value,checked:value==='b',disabled:false,closest(){return {classList:{toggle(){}}}}}));
+const comparison=vm.createContext({window:{addEventListener(){}},document:{
+ getElementById(id){return comparisonControls[id]},
+ querySelectorAll(selector){if(selector==='#compare-rows tr')return comparisonRows;if(selector==='[data-compare-method]')return compareChecks;return []}
+}});
+vm.runInContext(js,comparison);
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[false,true,true,true]);assert.equal(comparisonControls['compare-count'].textContent,'找到 1 个任务');
+assert.equal(compareChecks[0].disabled,true,'baseline must not also be a comparison method');
+comparisonControls['compare-relation'].value='mixed';comparisonControls['compare-track'].value='web';
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[false,true,false,true]);
+compareChecks[2].checked=true;comparisonControls['compare-relation'].value='all_fail';comparisonControls['compare-track'].value='';
+vm.runInContext('compareMethods()',comparison);
+assert.deepEqual(comparisonRows.map(r=>r.hidden),[true,true,true,false]);
+compareChecks[1].checked=false;compareChecks[2].checked=false;vm.runInContext('compareMethods()',comparison);
+assert.ok(comparisonRows.every(r=>r.hidden));assert.equal(comparisonControls['compare-count'].textContent,'请至少选择一个对比方法');
+comparisonControls['compare-track']=null;
+assert.doesNotThrow(()=>vm.runInContext('compareMethods()',comparison));
+console.log('PASS: one unified method-set comparison covers asymmetric, shared, mixed and empty selections');

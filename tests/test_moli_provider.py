@@ -58,12 +58,18 @@ class MoliTests(unittest.TestCase):
 
     def test_file_task_preserves_binary_stdout(self):
         from dataclasses import replace
-        provider = self.provider('import sys\nassert sys.argv[3] == "html"\nsys.stdout.buffer.write(b"\\x89PNG\\r\\n\\x1a\\n" + b"x"*40)')
+        provider = self.provider(
+            'import sys\n'
+            'assert "--dump" not in sys.argv\n'
+            'assert "--wait-until" not in sys.argv\n'
+            'sys.stdout.buffer.write(b"\\x89PNG\\r\\n\\x1a\\n" + b"x"*40)'
+        )
         result = provider.fetch(replace(self.case, task_kind="file"), 2)
         self.assertTrue(result.ok)
         self.assertEqual(result.files[0]["data"], b"\x89PNG\r\n\x1a\n" + b"x"*40)
         self.assertEqual(result.content, "")
-        self.assertEqual(result.metadata["dump"], "html")
+        self.assertIsNone(result.metadata["dump"])
+        self.assertIsNone(result.metadata["wait_until"])
 
     def test_failure_empty_binary_and_oversized_output(self):
         for script, config, expected in [

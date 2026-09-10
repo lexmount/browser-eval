@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_lifecycle import reference_revision_cases
+from harness.web_fetch.result_review import review_input_identity
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from scripts.rescore_content import rescore
 
@@ -35,21 +36,44 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
             'dataset_sha256': old_dataset_hash,
             'results_sha256': old_results_hash}:
         raise ValueError('Existing result review is not bound to scoring inputs')
-    if before_dataset != after_dataset:
-        raise ValueError('Dataset changed; independent result review must be rerun')
+    before_document = json.loads(before_dataset)
+    after_document = json.loads(after_dataset)
+    review_inputs = ('cases', 'coverage_plan')
+    changed_review_inputs = [key for key in review_inputs
+                             if before_document.get(key) != after_document.get(key)]
+    if changed_review_inputs:
+        raise ValueError(
+            'Dataset review inputs changed; independent result review must be rerun: '
+            + ', '.join(changed_review_inputs))
+    allowed_metadata = {'id', 'name', 'comparison'}
+    changed_top_level = sorted(
+        key for key in set(before_document) | set(after_document)
+        if before_document.get(key) != after_document.get(key)
+    )
+    if set(changed_top_level) - allowed_metadata:
+        raise ValueError('Dataset changed outside non-judgmental metadata; independent result review must be rerun')
+    before_comparison = before_document.get('comparison', {})
+    after_comparison = after_document.get('comparison', {})
+    changed_comparison = {
+        key for key in set(before_comparison) | set(after_comparison)
+        if before_comparison.get(key) != after_comparison.get(key)
+    }
+    if changed_comparison - {'conversion'}:
+        raise ValueError(
+            'Comparison semantics changed; independent result review must be rerun: '
+            + ', '.join(sorted(changed_comparison - {'conversion'}))
+        )
     old_rows = {row['attempt_id']: row for row in map(json.loads, before_results.splitlines())}
     new_rows = {row['attempt_id']: row for row in map(json.loads, after_results.splitlines())}
     if old_rows.keys() != new_rows.keys():
         raise ValueError('Attempt inventory changed; independent result review must be rerun')
-    cases = {case['id']: case for case in json.loads(after_dataset)['cases']}
+    cases = {case['id']: case for case in after_document['cases']}
     scope = review.get('review_protocol', {}).get('scope', 'all')
     reviewed_ids = {row['attempt_id'] for row in review.get('attempts', [])}
     expected = set()
     for attempt_id, old in old_rows.items():
         new = new_rows[attempt_id]
-        visible = ('provider', 'case_id', 'artifact_path', 'ok', 'error_type')
-        if (any(old.get(key) != new.get(key) for key in visible)
-                or old.get('metrics', {}).get('content_sha256') != new.get('metrics', {}).get('content_sha256')):
+        if review_input_identity(old) != review_input_identity(new):
             raise ValueError('Review-visible input changed; independent result review must be rerun')
         kind = cases[new['case_id']].get('task_kind', 'body')
         old_verdict = task_passed(old['ok'], old['metrics'], kind)
@@ -67,11 +91,16 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
             cases[new_rows[attempt_id]['case_id']].get('task_kind', 'body')) else 'fail'
         if machine[attempt_id].get('machine_verdict') != verdict:
             raise ValueError('Reviewed machine verdict changed; independent result review must be rerun')
-    review['bindings']['results_sha256'] = hashlib.sha256(after_results).hexdigest()
-    review.setdefault('review_protocol', {})['rebound_after_metadata_only_rescore'] = {
+    review['bindings'] = {
+        'dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
+        'results_sha256': hashlib.sha256(after_results).hexdigest(),
+    }
+    review.setdefault('review_protocol', {})['rebound_after_nonjudgmental_metadata_change'] = {
         'at': rebound_at, 'prior_results_sha256': old_results_hash,
+        'prior_dataset_sha256': old_dataset_hash,
+        'changed_top_level_fields': changed_top_level,
         'provider_calls': 0,
-        'condition': 'dataset, review-visible inputs, artifact hashes, scope and machine verdicts unchanged',
+        'condition': 'cases, coverage, review-visible inputs, artifact hashes, scope and machine verdicts unchanged',
     }
     path.write_text(json.dumps(review, ensure_ascii=False, indent=2)+'\n')
     return True

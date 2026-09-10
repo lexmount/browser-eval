@@ -10,7 +10,7 @@ import tempfile
 import unittest
 import zipfile
 
-from harness.web_fetch.publication_privacy import project_file
+from harness.web_fetch.publication_privacy import project_file, publication_risk
 
 
 class PublicationPrivacyTests(unittest.TestCase):
@@ -32,18 +32,46 @@ class PublicationPrivacyTests(unittest.TestCase):
         css = b'.task-list-item-convert-container{display:none}'
         self.assertEqual(project_file('artifacts/browser/case/run-001.txt', css), (css, None))
 
-    def test_scored_or_structured_file_is_never_silently_redacted(self):
+    def test_exactly_replaceable_credentials_are_audited_in_every_public_file(self):
         key = b'AIzaSy' + b'x' * 33
         for path in ('results.jsonl', 'dataset.json', 'artifacts/browser/case/run-001.md', 'index.html'):
-            with self.subTest(path=path), self.assertRaises(ValueError):
-                project_file(path, key)
+            with self.subTest(path=path):
+                projected, row = project_file(path, key)
+                self.assertNotIn(key, projected)
+                self.assertIn('credential', row['kinds'])
 
     def test_non_google_secrets_and_hidden_files_fail_closed(self):
-        for value in (b'ahp_' + b'x' * 32, b'-----BEGIN PRIVATE KEY-----'):
+        for value in (b'ahp_' + b'x' * 32, b'AKIA' + b'X' * 16,
+                      b'xoxb-' + b'x' * 28, b'-----BEGIN PRIVATE KEY-----'):
             with self.assertRaises(ValueError):
                 project_file('sources/case/source.html.txt', value)
         with self.assertRaises(ValueError):
             project_file('.env', b'API_KEY=example')
+
+    def test_public_bundle_rejects_real_auth_values_and_local_user_paths(self):
+        self.assertEqual(publication_risk(b'Authorization: Bearer <API_TOKEN>'), None)
+        self.assertEqual(publication_risk(b'Authorization: Bearer abcdefghijklmnop'),
+                         'authorization header value')
+        self.assertEqual(publication_risk(b'/Users/example/private/file.txt'),
+                         'machine-local user path')
+        projected_path, path_row = project_file(
+            'execution.json', b'{"source":"/Users/example/private/file.txt"}')
+        self.assertNotIn(b'/Users/example/', projected_path)
+        self.assertIn(b'/[REDACTED_USER]/', projected_path)
+        self.assertEqual(path_row['replacements'], 1)
+        public_example = b'Proxy-Authorization: basic aGVsbG86d29ybGQ='
+        self.assertEqual(publication_risk(public_example), None)
+        self.assertEqual(project_file('artifacts/browser/case/run-001.txt', public_example),
+                         (public_example, None))
+        projected, row = project_file(
+            'artifacts/browser/case/run-001.html.txt',
+            b'Authorization: Basic QUJDREVGR0hJSktMTU5P')
+        self.assertNotIn(b'QUJDREVGR0hJSktMTU5P', projected)
+        self.assertEqual(row['replacements'], 1)
+        auth_projected, auth_row = project_file(
+            'results.jsonl', b'Authorization: Bearer abcdefghijklmnop')
+        self.assertNotIn(b'abcdefghijklmnop', auth_projected)
+        self.assertIn('credential', auth_row['kinds'])
 
     def test_packaged_downloads_and_disclosure(self):
         repository = Path(__file__).resolve().parents[1]
@@ -100,6 +128,10 @@ class PublicationPrivacyTests(unittest.TestCase):
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
+                self.assertEqual(manifest['architecture']['kind'],
+                                 'single_html_shell_with_lazy_virtual_routes')
+                self.assertEqual(manifest['architecture']['logical_routes'], 4)
+                self.assertGreaterEqual(manifest['architecture']['content_packs'], 1)
                 def unpack(name):
                     output = bytearray()
                     for key_hash in manifest['files'][name]['parts']:

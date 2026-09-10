@@ -15,6 +15,7 @@ from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.runner import load_list_reference
+from harness.web_fetch.storage import require_current_report_profile
 
 
 def require(condition,message):
@@ -45,6 +46,7 @@ def check(root,rescore=False):
             # generic default here would silently erase the reviewed exception.
             require(cases[cid]['body_requirements']==original[cid].get('body_requirements'),
                     ('Body requirements differ from canonical task rule',cid))
+    require_current_report_profile(root, ROOT/'evaluation/current-report.json')
     records=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
     provider_configs=json.loads((ROOT/'configs/providers.headless.json').read_text())['providers']
     names=set(provider_configs)
