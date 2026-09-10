@@ -99,8 +99,17 @@ class _DockerClientBackend:
             return int(value.getsockname()[1])
 
 
-def configure_gitlab_external_url(container: Any, external_url: str) -> dict[str, Any]:
-    """Set GitLab's public URL while preserving its internal port 8023."""
+def configure_stateful_external_url(
+    container: Any, *, site: str, external_url: str
+) -> dict[str, Any]:
+    """Apply the browser-facing URL after a stateful fixture becomes ready.
+
+    The images advertise ``WA_ENV_CTRL_EXTERNAL_SITE_URL`` support, but some
+    released Magento/Postmill images can still retain their baked CMU origin.
+    Running the same idempotent env-ctrl initialization explicitly makes the
+    redirect target part of the reset receipt instead of trusting entrypoint
+    behavior that cannot be observed from the outside.
+    """
     result = container.exec_run(
         ["env-ctrl", "--verbose", "init", "--base-url", external_url],
         demux=False,
@@ -108,15 +117,18 @@ def configure_gitlab_external_url(container: Any, external_url: str) -> dict[str
     output = result.output.decode("utf-8", errors="replace") if result.output else ""
     if result.exit_code != 0:
         raise RuntimeError(
-            f"GitLab external URL configuration failed with exit {result.exit_code}: {output}"
+            f"{site} external URL configuration failed with exit {result.exit_code}: {output}"
         )
     try:
         payload = json.loads(output)
     except json.JSONDecodeError as exc:
-        raise RuntimeError("GitLab external URL configuration returned invalid JSON") from exc
+        raise RuntimeError(f"{site} external URL configuration returned invalid JSON") from exc
     if payload.get("success") is not True:
-        raise RuntimeError(f"GitLab external URL configuration failed: {payload}")
-    return {"external_url": external_url, "internal_port": 8023}
+        raise RuntimeError(f"{site} external URL configuration failed: {payload}")
+    receipt: dict[str, Any] = {"external_url": external_url}
+    if site == "gitlab":
+        receipt["internal_port"] = 8023
+    return receipt
 
 
 class WebArenaEnvironment:
@@ -360,14 +372,18 @@ class WebArenaEnvironment:
                     "image_id": container.image.id,
                     "repo_digests": sorted(container.image.attrs.get("RepoDigests") or []),
                 }
-                if site == "gitlab":
-                    # First wait for the baked localhost:8023 configuration,
-                    # then change only external_url. The entrypoint reconfigure
-                    # is disabled so nginx and env-ctrl keep agreeing on 8023.
-                    self._wait_ready(url, timeout_seconds=timeout_seconds)
-                    receipts[site]["gitlab_configuration"] = configure_gitlab_external_url(
-                        container, started.url
+                # Wait for the image's internal services, then explicitly apply
+                # the browser-facing origin.  This is required for GitLab's
+                # preserved 8023 listener and also guards against Magento or
+                # Postmill retaining a baked metis.lti.cs.cmu.edu redirect.
+                self._wait_ready(url, timeout_seconds=timeout_seconds)
+                receipts[site]["external_url_configuration"] = (
+                    configure_stateful_external_url(
+                        container,
+                        site=site,
+                        external_url=started.url,
                     )
+                )
             else:
                 receipts[site] = {
                     "mode": "local_docker",

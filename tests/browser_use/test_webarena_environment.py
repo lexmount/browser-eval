@@ -169,6 +169,21 @@ def test_stateful_reset_recreates_container_from_pinned_image(tmp_path, monkeypa
     assert starts[0]["env_ctrl_port"] == 17781
     assert result["sites"]["shopping_admin"]["reset"] == ("container_recreated_from_pinned_image")
     assert result["sites"]["shopping_admin"]["repo_digests"] == [pinned]
+    assert result["sites"]["shopping_admin"]["external_url_configuration"] == {
+        "external_url": "http://host.docker.internal:17780"
+    }
+    assert docker_client.containers.container.exec_calls == [
+        (
+            [
+                "env-ctrl",
+                "--verbose",
+                "init",
+                "--base-url",
+                "http://host.docker.internal:17780",
+            ],
+            False,
+        )
+    ]
 
 
 def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, monkeypatch):
