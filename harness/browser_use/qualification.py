@@ -444,7 +444,7 @@ def build_evidence_revalidation_suite(
             "task_count": len(selected),
             "browser": "chromium",
             "attempts_per_task": 1,
-            "purpose": "bind HAR v2, final screenshot, and final visible page state",
+            "purpose": "bind HAR v3, final screenshot, and final visible page state",
         },
     }
     return result
