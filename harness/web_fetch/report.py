@@ -467,6 +467,34 @@ def matched_latency(groups,cases,base):
  links='、'.join(link(base+'datasets/'+key+'.html',cases[key].get('name',key)) for key in sorted(common))
  return '<details><summary>同题耗时 · 全部方法共同通过子集</summary><p>'+note+'</p>'+ (table(['方法','同题均值','同题 P50'],rows,metrics=[])+ '<p>'+links+'</p>' if rows else '')+'</details>'
 
+def overview_matched_latency(records,cases):
+ from .report_explainer import _article_speed_population
+ names=sorted({r['provider'] for r in records})
+ keys={(r['provider'],r['case_id']) for r in records}
+ if not names or len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
+  return '<p>调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。</p>'
+ common=set.intersection(*({r['case_id'] for r in records if r['provider']==name and succeeded(r,cases[r['case_id']])} for name in names))
+ if not common:return '<p>全部方法尚无共同成功任务，不计算同题耗时。</p>'
+ population=_article_speed_population(cases,records,names,execution_scope='Main-evaluation historical calls across batches; all registered methods and configurations, not a same-window controlled experiment.')
+ metrics=['mean_ms','p50_ms','p95_ms'];rows=[]
+ minima={key:min(row[key] for row in population['rows']) for key in metrics}
+ for row in population['rows']:
+  values=cell(link('providers/'+row['provider']+'.html',provider_label(row['provider'])))
+  for key in metrics:
+   value=ms(row[key]);values+=cell('<strong>'+value+'</strong>' if row[key]==minima[key] else value,row[key])
+  rows.append(('',values))
+ count=population['common_pass_count']
+ note=(f'<p>全部 {len(names)} 种受测配置共同通过 <strong>{count}/{len(cases)}</strong> 个任务。下表每行使用这同一组任务；均值、P50、P95 的最低值加粗。</p>'
+       '<p class="source-note">范围包含报告登记的全部方法与版本。统计沿用主评测的历史调用及已披露时延修正，调用跨日期、跨批次；这些数值不代表同一时间窗口内的受控速度比较，也不包含失败任务的耗时。</p>')
+ dates=[]
+ for row in population['rows']:
+  observed=row['recorded_start_dates']
+  if observed:
+   dates.append(esc(provider_label(row['provider']))+'：'+esc('、'.join(f'{date}（{number} 题）' for date,number in observed.items())))
+ links='、'.join(link('datasets/'+cid+'.html',cases[cid].get('name',cid)) for cid in population['common_pass_cases'])
+ return (note+table(['方法','同题均值','同题 P50','同题 P95'],rows,'overall-matched-latency-table',metrics=[])
+         +'<details><summary>共同任务与调用日期</summary><p>'+links+'</p><p>'+'<br>'.join(dates)+'</p></details>')
+
 def title_diagnostics(groups,selected,base,identifier):
  rows=[]
  for name,rs in sorted(groups.items()):
@@ -615,6 +643,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section('六类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
+ home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  home+=section('六类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',list(TRACKS.items())),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])

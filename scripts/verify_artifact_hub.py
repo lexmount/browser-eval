@@ -24,7 +24,7 @@ from harness.web_fetch.publication_target import DEFAULT_BASE
 def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
     endpoint=base+'/api/sites/'+quote(slug,safe='')
     def metadata():
-        request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+load_token()})
+        request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+load_token(base_url=base)})
         with urllib.request.urlopen(request,timeout=60) as response:return json.load(response)
     before=metadata()
     with zipfile.ZipFile(expected_archive) as expected:
@@ -101,7 +101,7 @@ def main():
         print(json.dumps(verify_public_files(args.slug,args.expected_archive,base)),flush=True)
         return
     request=urllib.request.Request(base+'/api/sites/'+quote(args.slug,safe='')+'/export',
-        headers={'Authorization':'Bearer '+load_token()})
+        headers={'Authorization':'Bearer '+load_token(base_url=base)})
     (ROOT/'publish').mkdir(exist_ok=True)
     version,path=download_export(request,ROOT/'publish')
     with zipfile.ZipFile(path) as remote:

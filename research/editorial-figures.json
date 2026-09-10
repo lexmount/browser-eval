@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generator": "built-in image_gen",
+  "figures": [
+    {
+      "slot": "overview_figure",
+      "kind": "measured-summary",
+      "alt": "五款浏览器的通过率、Moli 相对 Chromium 的耗时减少比例，以及文档与媒体的通过数。",
+      "caption": "本轮结果汇总。耗时减少比例以 Chromium 为基准，取 98 道共同成功任务。",
+      "assets": {
+        "zh": {
+          "file": "overview-zh.png",
+          "sha256": "bdeae9f5af822e5b62376cb9ef78de47fdec2040e1b1271c1c543d1951684676"
+        },
+        "en": {
+          "file": "overview-en.png",
+          "sha256": "0b0ab93ffad68c3cca567ad75f1b8865301530e4f464d14ae45673cf09aa3230"
+        }
+      }
+    },
+    {
+      "slot": "browser_modes_figure",
+      "kind": "conceptual-illustration",
+      "alt": "上方读取论文内容，下方搜索商品、筛选并加入购物车，对比 Web Fetch 与 Browser Use。",
+      "caption": "以读论文和购物为例，说明读取内容与连续操作的区别。图中页面为流程示意。",
+      "assets": {
+        "zh": {
+          "file": "browser-modes.png",
+          "sha256": "df41509f9453b7f7204b030318cf7a1128563add17bd53270cf54834cc714602"
+        }
+      }
+    },
+    {
+      "slot": "delivery_types_figure",
+      "kind": "conceptual-illustration",
+      "alt": "五行分别展示网页正文、文档文字、列表记录、媒体地址和原始文件的获取与交付。",
+      "caption": "按最终交付物区分任务；图中页面为流程示意，下面的案例展示实测输出。",
+      "assets": {
+        "zh": {
+          "file": "delivery-types.png",
+          "sha256": "71d592a562e43dcd634d2dbe9fc3258152da0ee48b89e41dad503957e8dafd00"
+        }
+      }
+    }
+  ]
+}
