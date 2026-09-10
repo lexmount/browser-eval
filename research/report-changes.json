@@ -3,6 +3,16 @@
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
   "browser_use_reviews": [
     {
+      "id": "review-2026-09-11-90-task-expansion",
+      "date": "2026-09-11",
+      "title": "90 题扩容与失败根因核验",
+      "status": "已处理",
+      "scope": "90 个预注册任务、180 个浏览器逻辑结果、220 次物理执行、环境准备回执、官方判分和全部最终失败结果。",
+      "findings": "Chromium 通过 73/90，Moli 通过 70/90；69 题共同通过、16 题共同失败、5 题结果不一致。37 个最终失败覆盖 Agent 检索与执行、站点依赖、官方验收合同及 Moli 网络证据采集四类责任层，不能用“模型能力不行”统一解释。",
+      "corrections": "逐结果绑定官方合同、最终回答、HAR 和 Agent 轨迹，完成 37/37 根因核验；报告改用 90 题动态口径并披露 220/220 环境准备回执。运行器对 Agent 启动前的瞬态 BrowserContextNotLoaded 增加一次仅限会话准备的恢复，不改变逻辑结果协议。",
+      "remaining": "Astra 未由当前 OpenAI 代理暴露，本轮保持 gpt-5.6-sol、reasoning=low。Wikipedia 与 Map 尚未进入实跑；官方 evaluator 的已核验缺陷需上游修复后以新证据复测。"
+    },
+    {
       "id": "review-2026-09-10-shared-failure-and-expansion",
       "date": "2026-09-10",
       "title": "失败根因、修复与本机扩展核验",
@@ -64,6 +74,40 @@
     }
   ],
   "browser_use_releases": [
+    {
+      "id": "2026-09-11-90-task-browser-use-comparison",
+      "date": "2026-09-11",
+      "title": "扩展到 90 个 Browser Use 任务",
+      "summary": "预注册样本扩展为 90 题，覆盖 easy 15、medium 30、hard 45；Chromium 通过 73 题，Moli 通过 70 题。全部 37 个最终失败结果已追到可复核根因，官方分数保持原样，不以人工核验改分。",
+      "attempts_sha256": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+      "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
+      "changes": [
+        [
+          "评测范围",
+          "上一批只覆盖 30 题，无法同时形成足够的简单、中等和长链任务观察。",
+          "扩展为 90 个结果盲选任务，按最少可见 UI 动作预注册为 easy 15、medium 30、hard 45，覆盖 Shopping、Shopping Admin、Reddit 和 GitLab。",
+          "分母由 30 增至 90；难度标签是本项目操作长度分层，不是官方难度。"
+        ],
+        [
+          "正式结果",
+          "上一批 Chromium 与 Moli 均为 25/30。",
+          "本批 Chromium 为 73/90，Moli 为 70/90；69 题共同通过、16 题共同失败、Chromium 单边通过 4 题、Moli 单边通过 1 题。",
+          "结果只适用于当前 CowAgent、gpt-5.6-sol low、四个本地站点与冻结运行协议，不外推完整 benchmark。"
+        ],
+        [
+          "失败根因",
+          "程序化 evaluator 只能先定位失败规则，不能单独解释错误由哪一层产生。",
+          "对 37 个最终失败逻辑结果逐项核对合同、回答、网络证据和自主轨迹，记录具体根因子类与原因。",
+          "37/37 已核验、0 项未决；人工核验不覆盖官方分数。"
+        ],
+        [
+          "环境证据",
+          "旧批次没有逐执行绑定的环境准备回执。",
+          "本批 220/220 次物理执行均保存 reset、ready、应用健康检查和登录准备状态，并继续披露 Colima 网关与本地镜像拓扑。",
+          "支持确认本批确在自托管站点执行；不代表 Wikipedia 与 Map 已部署。"
+        ]
+      ]
+    },
     {
       "id": "2026-09-10-shared-failure-diagnosis-and-mac-expansion",
       "date": "2026-09-10",

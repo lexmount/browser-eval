@@ -87,7 +87,11 @@ for(const button of document.querySelectorAll('th .sort-button')){
   const box=button.getBoundingClientRect(),style=getComputedStyle(button),line=parseFloat(style.lineHeight)||16;
   if(button.textContent.trim().length>2 && box.height>line*2.6 && box.width<52)vertical.push(button.textContent.trim());
 }
-return {overflow,clipped:[...new Set(clipped)],vertical};
+const textOverflow=[];
+for(const element of document.querySelectorAll('.hero h1,.hero .lead')){
+  if(element.scrollWidth > element.clientWidth + 2)textOverflow.push(element.tagName+'.'+element.className);
+}
+return {overflow,clipped:[...new Set(clipped)],vertical,textOverflow};
 }
 """
                         )
@@ -99,7 +103,12 @@ return {overflow,clipped:[...new Set(clipped)],vertical};
                             **result,
                         }
                         states.append(state)
-                        if result["overflow"] > 2 or result["clipped"] or result["vertical"]:
+                        if (
+                            result["overflow"] > 2
+                            or result["clipped"]
+                            or result["vertical"]
+                            or result["textOverflow"]
+                        ):
                             failures.append(state)
                         page.close()
         finally:

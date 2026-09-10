@@ -24,14 +24,31 @@
   "independent_semantic_review": false,
   "failure_cause_review": {
     "required_for_publication": true,
-    "source_sha256": null
+    "source_sha256": "3b05bf34914a52dddbd740ac3174bcc0dc457467bee64e8c6cf043a27228043f"
   },
-  "tasks_without_measured_success_path": [],
+  "tasks_without_measured_success_path": [
+    124,
+    258,
+    279,
+    284,
+    339,
+    464,
+    470,
+    475,
+    510,
+    528,
+    547,
+    600,
+    625,
+    676,
+    694,
+    699
+  ],
   "publication": {
     "base_url": "https://artifact-hub.dev.lexmount.net",
     "site_slug": "28OH4YZkUYF1",
     "share_url": "https://artifact-hub.dev.lexmount.net/v/5Vhnhdc_f8FEM2RzctQm-ChRlXUf174Y",
-    "expected_version": "ver_0bb766584e944330995bb009c4562dc4",
-    "state": "pending-90-task-evidence"
+    "expected_version": "ver_0f62710dd3a24b10adbc24b1b1635acb",
+    "state": "verified"
   }
 }

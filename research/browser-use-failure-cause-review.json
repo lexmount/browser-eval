@@ -1,70 +1,57 @@
 {
   "schema": "lex_browser_use_failure_cause_review/1",
   "benchmark": "WebArena-Verified 1.2.3",
-  "reviewed_at": "2026-09-10",
+  "reviewed_at": "2026-09-11",
   "reviewer_class": "evidence analyst",
   "bindings": {
-    "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
-    "manifest_sha256": "23a747e6286e7b8c28c07abae83b343892f6376e9aae1dcc0f3ab4da98271cae",
-    "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38"
+    "attempts_sha256": "73146500152db62d79f84b63c85a14027c005a6320c19bce7426651f167466bd",
+    "manifest_sha256": "5466f30619d19ffda87689a1b31c9c6782b8837f72e4acdf6020f48c2fe89422",
+    "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b"
   },
   "review_protocol": {
     "unit": "one score-bearing logical result per browser and task",
     "method": "manual root-cause verification against the official task contract, score-bearing final response, evaluator assertions, network evidence, and autonomous Agent event trajectory",
     "rule": "automatic evaluator classification remains available; root-cause subcategory and reason remain empty until status is verified"
   },
-  "coverage": {"failed_results": 10, "verified_results": 10},
+  "coverage": {"failed_results": 37, "verified_results": 37},
   "unresolved": [],
   "results": {
-    "chromium-68": {
-      "status": "verified",
-      "subcategory": {"code": "benchmark_contract", "zh": "评测合同缺陷", "en": "Benchmark contract defect"},
-      "reason": {"zh": "官方 expected 要求第二条图书记录的 author 为 null，但同题公开 results_schema 规定 author 只能是 string；官方答案与自身输出合同冲突。", "en": "The official expected value requires a null author for the second book record, while the task's published results_schema permits only a string; the official answer conflicts with its own output contract."}
-    },
-    "moli-68": {
-      "status": "verified",
-      "subcategory": {"code": "benchmark_contract", "zh": "评测合同缺陷", "en": "Benchmark contract defect"},
-      "reason": {"zh": "官方 expected 要求第二条图书记录的 author 为 null，但同题公开 results_schema 规定 author 只能是 string；官方答案与自身输出合同冲突。", "en": "The official expected value requires a null author for the second book record, while the task's published results_schema permits only a string; the official answer conflicts with its own output contract."}
-    },
-    "chromium-124": {
-      "status": "verified",
-      "subcategory": {"code": "agent_strategy", "zh": "Agent 策略缺陷", "en": "Agent strategy defect"},
-      "reason": {"zh": "Agent 直接对 Magento 全文搜索结果取价格极值，没有逐项确认商品是否属于“无线耳机”；最终把投影仪 17774.32 当成目标品类最高价。", "en": "The Agent took a price extreme directly from Magento full-text search results without verifying that each item was a wireless earphone; it returned a 17774.32 projector price as the category maximum."}
-    },
-    "moli-124": {
-      "status": "verified",
-      "subcategory": {"code": "agent_strategy", "zh": "Agent 策略缺陷", "en": "Agent strategy defect"},
-      "reason": {"zh": "Agent 直接对 Magento 全文搜索结果取价格极值，没有逐项确认商品是否属于“无线耳机”；最终把投影仪 17774.32 当成目标品类最高价。", "en": "The Agent took a price extreme directly from Magento full-text search results without verifying that each item was a wireless earphone; it returned a 17774.32 projector price as the category maximum."}
-    },
-    "chromium-142": {
-      "status": "verified",
-      "subcategory": {"code": "benchmark_acceptance", "zh": "验收边界缺失", "en": "Undefined acceptance boundary"},
-      "reason": {"zh": "任务未给出“hair care and hair style”的可观察归类规则。Agent 按商品名纳入 11.99 的 Crystal Headband，官方答案却排除该商品，现有页面和合同无法推出这一边界。", "en": "The task gives no observable membership rule for 'hair care and hair style'. The Agent included the 11.99 Crystal Headband by product name, while the official answer excludes it; the boundary cannot be derived from the page or contract."}
-    },
-    "moli-142": {
-      "status": "verified",
-      "subcategory": {"code": "benchmark_acceptance", "zh": "验收边界缺失", "en": "Undefined acceptance boundary"},
-      "reason": {"zh": "任务未给出“hair care and hair style”的可观察归类规则。Agent 按商品名纳入 11.99 的 Crystal Headband，官方答案却排除该商品，现有页面和合同无法推出这一边界。", "en": "The task gives no observable membership rule for 'hair care and hair style'. The Agent included the 11.99 Crystal Headband by product name, while the official answer excludes it; the boundary cannot be derived from the page or contract."}
-    },
-    "chromium-168": {
-      "status": "verified",
-      "subcategory": {"code": "harness_protocol", "zh": "Agent 适配协议缺陷", "en": "Agent adapter protocol defect"},
-      "reason": {"zh": "站点中没有符合条件的项目，但本项目系统协议错误地要求所有 RETRIEVE 返回列表，且未规定零结果必须映射为 NOT_FOUND_ERROR；Agent 因而输出 SUCCESS 与空列表。", "en": "No matching project existed, but this project's system protocol incorrectly required every RETRIEVE result to be a list and did not map zero results to NOT_FOUND_ERROR; the Agent therefore emitted SUCCESS with an empty list."}
-    },
-    "moli-168": {
-      "status": "verified",
-      "subcategory": {"code": "harness_protocol", "zh": "Agent 适配协议缺陷", "en": "Agent adapter protocol defect"},
-      "reason": {"zh": "站点中没有符合条件的项目，但本项目系统协议错误地要求所有 RETRIEVE 返回列表，且未规定零结果必须映射为 NOT_FOUND_ERROR；Agent 因而输出 SUCCESS 与空列表。", "en": "No matching project existed, but this project's system protocol incorrectly required every RETRIEVE result to be a list and did not map zero results to NOT_FOUND_ERROR; the Agent therefore emitted SUCCESS with an empty list."}
-    },
-    "chromium-506": {
-      "status": "verified",
-      "subcategory": {"code": "evidence_capture", "zh": "证据采集缺陷", "en": "Evidence-capture defect"},
-      "reason": {"zh": "结账实际完成，成功页和订单号已出现，response、商品、付款及成功页规则均通过；只有购物车总额规则失败，因为 HAR 到运行结束才读取付款响应体，此时 CDP 已淘汰该 body。该零分是采集假阴性。", "en": "Checkout completed and the success page and order number appeared; response, product, payment, and success-page checks passed. Only the cart-total rule failed because the HAR collector fetched the payment response body at run end after CDP had evicted it. This zero score is a collection false negative."}
-    },
-    "moli-506": {
-      "status": "verified",
-      "subcategory": {"code": "completion_budget", "zh": "完成确认失败", "en": "Completion-confirmation failure"},
-      "reason": {"zh": "第 30 个决策回合才发出 Place order 点击，之后没有剩余回合观察付款结果；证据中没有付款或成功事件，但超限收尾仍生成成功形态回答，导致任务未被确认完成。", "en": "The Agent issued the Place order click only on decision turn 30, leaving no turn to observe the payment result. The evidence contains no payment or success event, yet max-step finalization emitted a success-shaped answer, so completion was never confirmed."}
-    }
+    "chromium-124": {"status":"verified","subcategory":{"code":"agent_retrieval_coverage","zh":"检索覆盖不足","en":"Incomplete retrieval coverage"},"reason":{"zh":"Agent 只覆盖部分无线耳机，最高价返回 169.99，遗漏官方全集的 298.0 上界。","en":"The Agent covered only part of the wireless-earphone set, returning 169.99 and missing the official 298.0 upper bound."}},
+    "moli-124": {"status":"verified","subcategory":{"code":"agent_retrieval_coverage","zh":"检索覆盖不足","en":"Incomplete retrieval coverage"},"reason":{"zh":"Agent 只覆盖部分无线耳机，最高价返回 199.9，遗漏官方全集的 298.0 上界。","en":"The Agent covered only part of the wireless-earphone set, returning 199.9 and missing the official 298.0 upper bound."}},
+    "chromium-258": {"status":"verified","subcategory":{"code":"agent_navigation_semantics","zh":"导航语义错误","en":"Navigation-semantics error"},"reason":{"zh":"Agent 停在 GitLab Explore 总页 /explore，没有启用 Public 过滤参数 visibility_level=20。","en":"The Agent stopped at generic /explore without applying the Public filter visibility_level=20."}},
+    "moli-258": {"status":"verified","subcategory":{"code":"agent_navigation_semantics","zh":"导航语义错误","en":"Navigation-semantics error"},"reason":{"zh":"Agent 停在 GitLab Explore 总页 /explore，没有启用 Public 过滤参数 visibility_level=20。","en":"The Agent stopped at generic /explore without applying the Public filter visibility_level=20."}},
+    "chromium-279": {"status":"verified","subcategory":{"code":"agent_retrieval_coverage","zh":"检索覆盖不足","en":"Incomplete retrieval coverage"},"reason":{"zh":"Agent 仅收集 7/12 个 Sony 蓝牙耳机，遗漏条目同时包含 18.99 最低价和 406.0 最高价。","en":"The Agent collected only 7 of 12 Sony Bluetooth headphones, omitting both the 18.99 minimum and 406.0 maximum."}},
+    "moli-279": {"status":"verified","subcategory":{"code":"agent_retrieval_coverage","zh":"检索覆盖不足","en":"Incomplete retrieval coverage"},"reason":{"zh":"Agent 仅收集 6/12 个 Sony 蓝牙耳机，遗漏条目同时包含 18.99 最低价和 406.0 最高价。","en":"The Agent collected only 6 of 12 Sony Bluetooth headphones, omitting both the 18.99 minimum and 406.0 maximum."}},
+    "chromium-284": {"status":"verified","subcategory":{"code":"agent_comparison_strategy","zh":"候选比较错误","en":"Candidate-comparison error"},"reason":{"zh":"Agent 选择了可放 20 双鞋的 Kingpavonini，没有完成所有合格候选的价格比较；官方最低价是 OnlyEasy 24-pocket。","en":"The Agent chose a 20-pair Kingpavonini rack without completing the price comparison; the official cheapest qualifying item is OnlyEasy 24-pocket."}},
+    "moli-284": {"status":"verified","subcategory":{"code":"agent_comparison_strategy","zh":"候选比较错误","en":"Candidate-comparison error"},"reason":{"zh":"Agent 选择了 72 双容量的 Aeitc，没有完成所有合格候选的价格比较；官方最低价是 OnlyEasy 24-pocket。","en":"The Agent chose a 72-pair Aeitc rack without completing the price comparison; the official cheapest qualifying item is OnlyEasy 24-pocket."}},
+    "chromium-339": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"Agent 已打开含 state=opened 与 label_name[]=bug 的正确页面；官方规则错误要求 /issues/.*，拒绝合法的无尾斜杠 /issues?... 路由。","en":"The Agent opened the correct filtered page; the official /issues/.* rule rejects the valid no-trailing-slash /issues?... route."}},
+    "moli-339": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"Agent 已打开含 state=opened 与 label_name[]=bug 的正确页面；官方规则错误要求 /issues/.*，拒绝合法的无尾斜杠 /issues?... 路由。","en":"The Agent opened the correct filtered page; the official /issues/.* rule rejects the valid no-trailing-slash /issues?... route."}},
+    "chromium-464": {"status":"verified","subcategory":{"code":"agent_step_budget","zh":"步骤预算耗尽","en":"Step-budget exhaustion"},"reason":{"zh":"Agent 在 40 步内未完成统计评论、编辑描述和保存，证据中没有目标商品保存请求。","en":"The Agent did not finish counting reviews, editing, and saving within 40 steps; no target-product save request exists."}},
+    "moli-464": {"status":"verified","subcategory":{"code":"agent_step_budget","zh":"步骤预算耗尽","en":"Step-budget exhaustion"},"reason":{"zh":"Agent 在 40 步内未完成统计评论、编辑描述和保存，证据中没有目标商品保存请求。","en":"The Agent did not finish counting reviews, editing, and saving within 40 steps; no target-product save request exists."}},
+    "moli-448": {"status":"verified","subcategory":{"code":"evidence_capture","zh":"网络证据匹配缺陷","en":"Network-evidence matching defect"},"reason":{"zh":"HAR 有字段正确的 302 /profile POST，页面也已更新；同一提交又被记录为 200，evaluator 只选中 200 记录而误判。","en":"The HAR has a correct 302 /profile POST and the page is updated, but a duplicate 200 record is selected by the evaluator, causing a false negative."}},
+    "chromium-470": {"status":"verified","subcategory":{"code":"site_dependency_failure","zh":"站点依赖故障","en":"Site dependency failure"},"reason":{"zh":"确认取消后 Magento 返回 No alive nodes found in your cluster，订单仍为 Pending；本地搜索服务不可用。","en":"After cancellation confirmation Magento returned No alive nodes found in your cluster and the order remained Pending; the local search service was unavailable."}},
+    "moli-470": {"status":"verified","subcategory":{"code":"site_dependency_failure","zh":"站点依赖故障","en":"Site dependency failure"},"reason":{"zh":"确认取消后 Magento 返回 No alive nodes found in your cluster，订单仍为 Pending；本地搜索服务不可用。","en":"After cancellation confirmation Magento returned No alive nodes found in your cluster and the order remained Pending; the local search service was unavailable."}},
+    "chromium-475": {"status":"verified","subcategory":{"code":"benchmark_form_contract","zh":"表单验收缺陷","en":"Form-acceptance defect"},"reason":{"zh":"空项目已按正确名称、路径和命名空间创建；HTML 会省略未勾选的 initialize_with_readme，官方规则却要求显式值 0。","en":"The empty project was created with the correct name, path, and namespace; HTML omits unchecked initialize_with_readme, while the official rule requires an explicit 0."}},
+    "moli-475": {"status":"verified","subcategory":{"code":"benchmark_form_contract","zh":"表单验收缺陷","en":"Form-acceptance defect"},"reason":{"zh":"空项目已按正确名称、路径和命名空间创建；HTML 会省略未勾选的 initialize_with_readme，官方规则却要求显式值 0。","en":"The empty project was created with the correct name, path, and namespace; HTML omits unchecked initialize_with_readme, while the official rule requires an explicit 0."}},
+    "moli-506": {"status":"verified","subcategory":{"code":"agent_step_budget","zh":"步骤预算耗尽","en":"Step-budget exhaustion"},"reason":{"zh":"达到 40 步时仍在购物流程；证据只有购物车增删，没有付款或成功页事件。","en":"At the 40-step limit the Agent was still shopping; evidence has cart changes but no payment or success-page event."}},
+    "chromium-510": {"status":"verified","subcategory":{"code":"agent_product_selection","zh":"商品选择错误","en":"Incorrect product selection"},"reason":{"zh":"Agent 完成结账，但买的是 Hiquphon Tweeters，而非官方目标 Atlantic Technology FS-7.0-GLB；筛选排序执行错误。","en":"The Agent completed checkout with Hiquphon Tweeters instead of the official Atlantic Technology FS-7.0-GLB target; the ranking was applied incorrectly."}},
+    "moli-510": {"status":"verified","subcategory":{"code":"agent_step_budget","zh":"步骤预算耗尽","en":"Step-budget exhaustion"},"reason":{"zh":"Agent 在 40 步内反复比较和调整购物车，最终没有付款成功事件。","en":"The Agent repeatedly compared products and changed the cart within 40 steps, but never produced a successful payment event."}},
+    "chromium-528": {"status":"verified","subcategory":{"code":"benchmark_instruction_contract","zh":"任务与验收矛盾","en":"Instruction-evaluator contradiction"},"reason":{"zh":"Agent 正确填写退款表单并按“不要提交”停在提交前；官方 evaluator 却要求出现 dummy_bin POST，任务与验收相互矛盾。","en":"The Agent correctly filled the refund form and stopped before submission, but the evaluator requires a dummy_bin POST, contradicting the instruction."}},
+    "moli-528": {"status":"verified","subcategory":{"code":"benchmark_instruction_contract","zh":"任务与验收矛盾","en":"Instruction-evaluator contradiction"},"reason":{"zh":"Agent 正确填写退款表单并按“不要提交”停在提交前；官方 evaluator 却要求出现 dummy_bin POST，任务与验收相互矛盾。","en":"The Agent correctly filled the refund form and stopped before submission, but the evaluator requires a dummy_bin POST, contradicting the instruction."}},
+    "chromium-547": {"status":"verified","subcategory":{"code":"agent_step_budget","zh":"步骤预算耗尽","en":"Step-budget exhaustion"},"reason":{"zh":"Agent 在 40 步内未完成新增 Brown 色板和 S 码变体，两个必要保存请求都不存在。","en":"The Agent did not finish adding the Brown swatch and size-S variation within 40 steps; both required save requests are absent."}},
+    "moli-547": {"status":"verified","subcategory":{"code":"site_backend_failure","zh":"站点保存故障","en":"Site save failure"},"reason":{"zh":"Agent 到达变体保存阶段后 Magento 返回 The stock item was unable to be saved，S/Brown 变体未建立。","en":"At the variation-save stage Magento returned The stock item was unable to be saved, so the S/Brown variation was not created."}},
+    "moli-595": {"status":"verified","subcategory":{"code":"evidence_capture","zh":"网络证据缺失","en":"Missing network evidence"},"reason":{"zh":"页面显示已订阅且 HAR 有 subscribe.json 200 POST，但 Moli 记录缺少 Referer 和响应 JSON，evaluator 无法确认 subscribed=true。","en":"The page shows subscribed and the HAR has a 200 subscribe.json POST, but Moli lacks Referer and response JSON, so the evaluator cannot confirm subscribed=true."}},
+    "chromium-600": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"合法的 /submit/gaming 302 POST 含正确标题和论坛 ID 10039；evaluator 只接受精确 /submit。","en":"The valid /submit/gaming 302 POST contains the correct title and forum ID 10039; the evaluator accepts only exact /submit."}},
+    "moli-600": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"合法的 /submit/gaming 302 POST 含正确标题和论坛 ID 10039；evaluator 只接受精确 /submit。","en":"The valid /submit/gaming 302 POST contains the correct title and forum ID 10039; the evaluator accepts only exact /submit."}},
+    "moli-615": {"status":"verified","subcategory":{"code":"agent_field_omission","zh":"提交字段遗漏","en":"Submission-field omission"},"reason":{"zh":"发帖请求包含正确标题和 Connecticut 论坛 ID，但 submission[url] 为空，遗漏 Bald Eagle 图片 URL。","en":"The post has the correct title and Connecticut forum ID, but submission[url] is empty, omitting the Bald Eagle image URL."}},
+    "chromium-625": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"合法的 /submit/technology 302 POST 含正确标题、正文和论坛 ID 10043；evaluator 只接受精确 /submit。","en":"The valid /submit/technology 302 POST contains the correct title, body, and forum ID 10043; the evaluator accepts only exact /submit."}},
+    "moli-625": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"合法的 /submit/technology 302 POST 含正确标题、正文和论坛 ID 10043；evaluator 只接受精确 /submit。","en":"The valid /submit/technology 302 POST contains the correct title, body, and forum ID 10043; the evaluator accepts only exact /submit."}},
+    "chromium-676": {"status":"verified","subcategory":{"code":"benchmark_route_contract","zh":"路由验收缺陷","en":"Route-acceptance defect"},"reason":{"zh":"HAR 有完整 sales_order_grid 与 status=fraud 请求，Referer 为合法的 /sales/order/；官方规则把尾斜杠差异判为失败。","en":"The HAR has the complete sales_order_grid request with status=fraud and a valid /sales/order/ Referer; the official rule fails on the trailing slash."}},
+    "moli-676": {"status":"verified","subcategory":{"code":"evidence_capture","zh":"网络证据缺失","en":"Missing network evidence"},"reason":{"zh":"HAR 有完整 sales_order_grid 与 status=fraud 请求，但 Moli 未记录 Referer，evaluator 无法匹配。","en":"The HAR has the complete sales_order_grid request with status=fraud, but Moli omits its Referer, preventing evaluator matching."}},
+    "chromium-694": {"status":"verified","subcategory":{"code":"site_backend_failure","zh":"站点保存故障","en":"Site save failure"},"reason":{"zh":"Agent 两次创建商品均被 Magento 以 The stock item was unable to be saved 拒绝，目录仍为空。","en":"Magento rejected both product-creation attempts with The stock item was unable to be saved, leaving the catalog empty."}},
+    "moli-694": {"status":"verified","subcategory":{"code":"site_backend_failure","zh":"站点保存故障","en":"Site save failure"},"reason":{"zh":"Agent 两次创建商品均被 Magento 以 The stock item was unable to be saved 拒绝，商品未创建。","en":"Magento rejected both product-creation attempts with The stock item was unable to be saved, so the product was not created."}},
+    "chromium-699": {"status":"verified","subcategory":{"code":"benchmark_evaluator_defect","zh":"evaluator 实现错误","en":"Evaluator implementation defect"},"reason":{"zh":"evaluator 在比较实际提交前即因单元素 Alternatives 配置抛出 Alternatives require 2+ items，零分来自官方规则错误。","en":"Before comparing the submission, the evaluator throws Alternatives require 2+ items for a one-item configuration; the zero comes from the official rule."}},
+    "moli-699": {"status":"verified","subcategory":{"code":"benchmark_evaluator_defect","zh":"evaluator 实现错误","en":"Evaluator implementation defect"},"reason":{"zh":"evaluator 在比较实际提交前即因单元素 Alternatives 配置抛出 Alternatives require 2+ items，零分来自官方规则错误。","en":"Before comparing the submission, the evaluator throws Alternatives require 2+ items for a one-item configuration; the zero comes from the official rule."}},
+    "chromium-771": {"status":"verified","subcategory":{"code":"agent_workflow_completeness","zh":"批量操作遗漏","en":"Incomplete batch workflow"},"reason":{"zh":"任务要求批准全部至少 4 星评论；Chromium 没有保存官方要求的评论 352 和 347，而 Moli 在相同条件下完成了两项。","en":"The task requires approving all reviews rated at least four stars; Chromium did not save required reviews 352 and 347, while Moli completed both under the same controls."}}
   }
 }

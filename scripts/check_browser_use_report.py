@@ -186,7 +186,7 @@ def check(
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
     methodology_index = rendered_pages[report_dir / "methodology/index.html"]
-    for marker in ("192.168.5.2", "Wikipedia", "Map", "未形成独立绑定的准备回执"):
+    for marker in ("192.168.5.2", "Wikipedia", "Map", "环境准备证据"):
         if marker not in methodology_index:
             raise ValueError(f"methodology is missing deployment evidence boundary: {marker}")
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
@@ -448,13 +448,14 @@ def check(
                     raise ValueError(
                         f"published evidence contains a secret or local origin: {path}"
                     )
-                risky_patterns = (
-                    r"/Users/[^/\s<]+/",
-                    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
-                    r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
-                    r"\bsk-[A-Za-z0-9_-]{12,}",
-                )
-                if any(re.search(pattern, text, flags=re.I) for pattern in risky_patterns):
+                if re.search(r"/Users/[^/\s<]+/", text) or any(
+                    re.search(pattern, text, flags=re.I)
+                    for pattern in (
+                        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+                        r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
+                        r"\bsk-[A-Za-z0-9_-]{12,}",
+                    )
+                ):
                     raise ValueError(f"published evidence contains sensitive text: {path}")
 
 
