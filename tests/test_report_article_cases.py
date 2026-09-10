@@ -4,7 +4,10 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from harness.web_fetch.report_article_cases import _link, _list_example, _read_output, _text_example
+from harness.web_fetch.report_article_cases import (
+    CASE_TABS, _dynamic_example, _link, _list_example, _read_output,
+    _resource_example, _text_example, render_article_cases,
+)
 
 
 class ArticleCaseTests(unittest.TestCase):
@@ -84,6 +87,45 @@ class ArticleCaseTests(unittest.TestCase):
         self.assertIn('未通过', checks[-2])
         self.assertIn('20 个替换字符', checks[-1])
         self.assertIn('未通过', checks[-1])
+
+    def test_dynamic_example_shows_reference_and_returned_shell_without_inventing_content(self):
+        reference = 'A fixed quote\nby Example Author\nTags: example'
+        output = '# Quotes to Scrape\n[Login](/login)'
+        case = {'ground_truth_main_content': reference, 'forbidden_any': ['CAPTCHA'],
+                'acceptance_contract': {'minimum_records': 10, 'stable_text_anchors': [
+                    {'alternatives': [reference]}]}}
+        metrics = dict(content_chars=len(output), stable_complete_record_count=0,
+                       stable_unique_record_count=0, stable_structure_pass=False,
+                       stable_anchor_hits=0, stable_anchor_total=10, stable_content_pass=False,
+                       forbidden_hits=[], stable_blocked_page=False,
+                       replacement_character_count=0, text_encoding_corruption=False,
+                       fact_results=[{'alternatives': [s], 'matched': [], 'pass': False}
+                                     for s in ['A fixed quote', 'Example Author', 'example']])
+        left, right, checks, _ = _dynamic_example(case, {'metrics': metrics, 'elapsed_ms': 5000}, output)
+        self.assertIn(reference, left)
+        self.assertIn(output, right)
+        self.assertNotIn('A fixed quote', right)
+        self.assertIn('0/10', checks[4])
+        self.assertIn('未通过', checks[3])
+        self.assertIn('未通过', checks[4])
+
+    def test_video_example_preserves_relative_link_and_shows_resolved_target(self):
+        target = 'https://example.com/rabbit320.webm'
+        output = "Your browser doesn't support HTML5 video. [video](rabbit320.webm)"
+        case = {'expected_resources': [{'urls': [target]}]}
+        metrics = {'resource_candidate_urls': [target], 'resource_results': [
+            {'matched_urls': [target], 'pass': True}]}
+        left, right, checks, _ = _resource_example(case, {'metrics': metrics}, output)
+        self.assertIn(target, left)
+        self.assertIn('support HTML5 video', right)
+        self.assertIn('(\u003cmark\u003erabbit320.webm\u003c/mark\u003e)', right)
+        self.assertIn(target, right)
+        self.assertIn('通过', checks[0])
+
+    def test_cases_reject_duplicate_track_coverage(self):
+        cases = {cid: {'track': 'web'} for cid, _ in CASE_TABS}
+        with self.assertRaisesRegex(ValueError, 'each benchmark track exactly once'):
+            render_article_cases('.', cases, [])
 
 
 if __name__ == '__main__':

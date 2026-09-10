@@ -2347,6 +2347,132 @@ TEXT.update({
 })
 
 
+TEXT.update({
+    "让 AI 读一篇论文、整理一页商品，浏览器先要把内容交回来。我们用 150 道 Web Fetch 任务比较 Moli 1.1.1、Chromium、Lightpanda、Obscura 和 Kitesurf。Moli 通过 135 道，比 Chromium 多 10 道，净增来自文档与媒体。速度则同时看全部共同成功任务的耗时，以及另行安排的同窗测速。": "Before AI can read a paper or organize a product page, the browser must return the content. We compared Moli 1.1.1, Chromium, Lightpanda, Obscura, and Kitesurf on 150 Web Fetch tasks. Moli passed 135, 10 more than Chromium, with the net gain coming from documents and media. For speed, we examine all shared successful tasks and a separate latency test run within the same time window.",
+    "98 道共同成功任务 · 主评测均值": "98 shared successes · main evaluation mean",
+    "Chromium：5.27 秒": "Chromium: 5.27 seconds",
+    "历史主结果，调用跨批次；详见测速分析": "Recorded primary results span batches; see the latency analysis",
+    "9 道共同成功网页 · 同窗测速 P50": "9 shared web successes · same-window P50",
+    "Chromium：3.87 秒，Moli 减少 27.2%": "Chromium: 3.87 seconds; Moli is 27.2% lower",
+    "同窗均值 / P95：Moli 4.45 / 12.84 秒；Lightpanda 3.82 / 6.03 秒": "Same-window mean / P95: Moli 4.45 / 12.84 seconds; Lightpanda 3.82 / 6.03 seconds",
+    "六组真实案例": "Examples from six groups",
+    "98 道共同成功任务，Moli 的平均耗时为 3.01 秒": "98 shared successful tasks: Moli averages 3.01 seconds",
+    "150 道主任务中，五款浏览器都通过的有 98 道：普通网页 79 道、动态网页 8 道、热门站点 2 道、文档 1 道、图片 5 道、视频 3 道。比较同一组成功任务，能排除“很快返回空内容”或各自只完成简单任务的影响。": "Of the 150 main tasks, all five browsers pass 98: 79 general pages, 8 dynamic pages, 2 popular sites, 1 document, 5 images, and 3 videos. Comparing identical successful tasks excludes quick empty responses and differences caused by browsers completing only their easier tasks.",
+    "主评测：全部 98 道共同成功任务 · 秒": "Main evaluation: all 98 shared successes · seconds",
+    "同一任务集合，包含内容提取与后处理。主结果跨批次采集：Lightpanda 的这 98 道调用均在 9 月 8 日，其余四款多数在 9 月 4 日。以下统计反映实际保存的调用耗时，不是同一环境下的纯浏览器内核速度。": "The same task set, including content extraction and post-processing. Primary results were collected across batches: all 98 Lightpanda calls were on 9/8, while most calls for the other four browsers were on 9/4. These statistics describe recorded call times, not isolated browser-engine speed under identical conditions.",
+    "这 98 道中，Moli 的均值为 3.01 秒、P50 为 2.44 秒、P95 为 6.03 秒，三项都是五款中最低。但网络和运行时间不同，不能仅凭这组记录确定差距有多少来自浏览器实现。": "Across these 98 tasks, Moli records a mean of 3.01 seconds, P50 of 2.44 seconds, and P95 of 6.03 seconds, the lowest of the five on all three measures. Network conditions and execution times differ, so these records alone cannot establish how much of the gap comes from browser implementation.",
+    "9 道同窗测速：Moli 的 P50 为 2.82 秒": "9 same-window tasks: Moli records a P50 of 2.82 seconds",
+    "为进一步观察速度，我们从主评测的普通网页中预选 20 道，另行安排在同一个时间窗口执行。其中五款都成功读取的有 9 道，下面比较这 9 个相同网页。": "To examine speed further, we preselected 20 general pages from the main evaluation and ran them separately within the same time window. All five browsers successfully retrieved 9 pages. The comparison below uses those same 9 pages.",
+    "同窗测速：9 道共同成功网页 · 秒": "Same-window latency: 9 shared web successes · seconds",
+    "绿色标记该项最低值。计时包含内容提取与后处理；远端 Kitesurf 还包含网络往返。P50 为中位数；本组仅 9 道，按报告算法，P95 等于各自最慢的一道。": "Green marks the lowest value in each measure. Timing includes content extraction and post-processing; remote Kitesurf calls also include network round trips. P50 is the median. With only 9 tasks, the report’s P95 calculation gives each browser’s slowest task.",
+    "Moli 的 P50 为 2.82 秒，Chromium 为 3.87 秒，Lightpanda 为 3.51 秒。均值与 P95 则是 Lightpanda 更低：分别为 3.82 秒和 6.03 秒，Moli 为 4.45 秒和 12.84 秒。": "Moli’s P50 is 2.82 seconds, versus 3.87 for Chromium and 3.51 for Lightpanda. Lightpanda has the lower mean and P95: 3.82 and 6.03 seconds, respectively, versus Moli’s 4.45 and 12.84 seconds.",
+    "差异集中在一张 Sponsors 页面：Moli 成功取得内容，但花了 12.84 秒，Lightpanda 用了 5.59 秒。这次慢调用把 Moli 的均值和 P95 拉高，却没有改变 P50 最低的结果。对通常要等多久、偶尔会等多长，两类指标给出了不同的信息。": "The difference centers on a Sponsors page. Moli successfully retrieved its content in 12.84 seconds; Lightpanda took 5.59 seconds. This slow call raised Moli’s mean and P95 while leaving its P50 the lowest. Typical waits and occasional slow calls tell different parts of the story.",
+    "测速样本与计算方法": "Latency samples and calculations",
+    "两组统计都取本文五款浏览器共同通过的全部任务，不混用各自成功的不同网页。主评测为 98 道，同窗测速为预选 20 道中的 9 道。完整报告另保留其他 Moli 版本，可按受测配置查看其对应样本。": "Both sets use every task passed by all five browsers in this article, without mixing different successful pages. The main evaluation has 98 shared successes; the same-window test has 9 out of 20 preselected tasks. The full report also retains other Moli versions, with samples available by tested configuration.",
+    "均值是所有耗时的算术平均；P50 是分布中点；P95 观察较慢一端。显示值保留两位小数，差值与百分比使用未舍入值计算。主评测的跨批次采集与同窗测速的小样本，都限制了对长期运行速度的推断。": "The mean is the arithmetic average of all latencies; P50 is the midpoint of the distribution; P95 describes its slower end. Displayed values use two decimal places; differences and percentages use unrounded values. Collection across batches in the main evaluation and the small same-window sample both limit conclusions about long-term speed.",
+    "网页、列表和文件，怎样交给 AI": "Delivering pages, lists, and files to AI",
+    "Web Fetch 的输入都是地址，交付物却不一样。读论文要正文，整理商品要记录，下载图片可能要地址，也可能要文件本身。五种常见任务分别经过下面的处理步骤；浏览器可以采用不同实现，最后按同样的交付要求验收。": "Web Fetch always starts with an address, but the required output varies. Reading a paper needs text; organizing products needs records; an image task may need a URL or the file itself. The five common task types below follow different processing steps. Browsers may implement them differently, but their outputs face the same acceptance requirements.",
+    "取页、等待内容": "Retrieve page and wait for content",
+    "提取正文": "Extract body text",
+    "例如 Example Domain：标题、用途说明和更多信息入口都要保留。": "Example Domain: retain the title, purpose statement, and further-information link.",
+    "取得文件": "Retrieve file",
+    "例如论文 PDF：正文要覆盖指定区域，只有文件地址不够。": "Paper PDF: text must cover specified regions; a file URL alone is insufficient.",
+    "列表页": "List page",
+    "提取名称与字段": "Extract names and fields",
+    "检查完整、去重": "Check completeness and deduplicate",
+    "例如商品页：每条需要名称和详情链接，重复条目不增加数量。": "Product page: each record needs a name and detail link; duplicates do not add records.",
+    "媒体页面": "Media page",
+    "返回可用 URL": "Return a usable URL",
+    "例如视频演示页：找到指定视频地址，不能用导航链接代替。": "Video demo page: retrieve the specified video URL; a navigation link is insufficient.",
+    "文件直链": "Direct file URL",
+    "校验并交付": "Validate and deliver",
+    "例如 PNG：取得图片文件，后续工具才能识别或保存；图片说明不能代替文件。": "PNG: retrieve the image file so downstream tools can inspect or save it; an image description cannot replace the file.",
+    "六个评测集，各看一道真实任务": "One recorded task from each of six dataset groups",
+    "评测集按内容来源分成六组，和上面的交付类型相互交叉。例如动态网页可能要求列表，视频页面可能要求资源地址。每组取一道实测任务，核对独立参考、浏览器输出和具体判定；动态网页保留了失败例子。": "The dataset has six source-based groups, which overlap with the output types above. A dynamic page may require a list; a video page may require a resource URL. Each group has one recorded example with an independent reference, browser output, and item-level verdicts. The dynamic-page example is a failure.",
+    "失败与超时计入总题数": "Failures and timeouts remain in the total",
+    "五款浏览器的实现与实测差异": "Implementations and measured differences across five browsers",
+    "Moli 是面向 AI Agent 的 Rust 浏览器，提供网页获取与浏览器自动化接口。本轮网页输出原生 Markdown；直接文档与媒体可交付原始响应，PDF 再由本地 pypdf 提取文字。": "Moli is a Rust browser for AI agents, with interfaces for page retrieval and browser automation. In this run, it returns native Markdown for pages and raw responses for direct document and media URLs. Local pypdf then extracts PDF text.",
+    "文档 7/10、图片 10/10、视频 7/10，说明这条配置能处理网页之外的输入。普通网页为 97/100；三个 W3C 标准停在安全验证页，DOCX 和嵌入式文档查看器也有未完成任务。": "Scores of 7/10 for documents, 10/10 for images, and 7/10 for videos show that this configuration handles inputs beyond web pages. General pages score 97/100. Three W3C standards stop at security-verification pages, with additional failures involving DOCX and embedded document viewers.",
+    "Chromium 是通用开源浏览器，也是许多浏览器产品的基础。本轮以无头模式运行，读取 DOM（浏览器维护的页面结构），再用 node-html-markdown 2.0.0 转成 Markdown。": "Chromium is a general-purpose open-source browser and the basis for many browser products. Here it runs headlessly, reads the DOM—the page structure maintained by the browser—and converts it to Markdown using node-html-markdown 2.0.0.",
+    "普通网页通过 99/100，参考正文词语找回比例为 99.8%。文档为 1/10，这对应当前页面转文本路线；若增加文件下载与 PDF 解析，需要重新评测那条组合配置。": "It passes 99/100 general pages and recovers 99.8% of reference body words. Its document score is 1/10 under the current page-to-text path. Adding file downloading and PDF parsing would require evaluating that combined configuration again.",
+    "Lightpanda 是用 Zig 开发、面向 AI 与自动化的无头浏览器，并非 Chromium 分支。本轮在本地调用，直接取得原生 Markdown。": "Lightpanda is a headless browser written in Zig for AI and automation, rather than a Chromium fork. This run calls it locally and retrieves native Markdown.",
+    "普通网页通过 92/100，三篇 Moli 未完成的 W3C 标准都取得了正文，IMDb 题只有它通过。9 道同窗测速的均值为 3.82 秒、P95 为 6.03 秒，均为五款最低；文档则通过 1/10。": "It passes 92/100 general pages, retrieves all three W3C standards missed by Moli, and is the only browser to pass IMDb. Across 9 same-window latency tasks, its mean is 3.82 seconds and P95 is 6.03 seconds, both the lowest of the five. It passes 1/10 documents.",
+    "Obscura 是采用 V8 执行 JavaScript 的 Rust 无头浏览器。本轮使用本地标准模式的原生 Markdown，没有启用 stealth 模式或备用引擎。": "Obscura is a Rust headless browser that uses V8 to execute JavaScript. This run uses native Markdown in local standard mode, without stealth mode or an alternative engine.",
+    "普通网页通过 90/100，热门站点通过 5/10，也取得了 Moli 未交回的 Blender 下载资源入口。9 道同窗测速 P50 为 13.72 秒；这一等待时间只对应受测标准模式。": "It passes 90/100 general pages and 5/10 popular-site tasks, and retrieves the Blender download link missed by Moli. Its P50 across 9 same-window latency tasks is 13.72 seconds; this latency applies to the tested standard mode.",
+    "Kitesurf 是 Cloudflare 面向 Agent 的浏览器方案。本轮通过远端 Browser Run 接口提交 URL、返回 Markdown，浏览器在云端运行。": "Kitesurf is Cloudflare’s browser offering for agents. This run submits URLs through the remote Browser Run interface and receives Markdown, with the browser running in the cloud.",
+    "普通网页通过 88/100，动态网页通过 8/10，YouTube 题只有它通过。9 道同窗测速 P50 为 6.21 秒，包含网络往返与远端处理；本轮未测试托管成本、扩容和生产并发。": "It passes 88/100 general pages and 8/10 dynamic pages, and is the only browser to pass YouTube. Its P50 across 9 same-window tasks is 6.21 seconds, including network round trips and remote processing. Hosting cost, scaling, and production concurrency were not tested.",
+    "任务构成会改变这张榜单的意义。文档与媒体占本轮题量的 20%，Moli 在这 30 道里比 Chromium 多通过 10 道；如果应用只读普通网页，对应成绩就是 97/100 与 99/100。选择时应把自己的输入类型，与对应分组和失败案例一起看。": "The task mix changes how this ranking should be read. Documents and media make up 20% of the dataset; Moli passes 10 more of those 30 tasks than Chromium. For applications reading only general pages, the relevant scores are 97/100 and 99/100. Match your input types to the corresponding groups and failure cases.",
+    "Moli 也在继续迭代：1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布。1.1.4 的抓取修复包括流式解析暂停时保留重定向处理。版本变化说明开发仍在推进，但是否解决这里的延迟列表、iframe 或文档问题，要用同题复测确认。": "Moli continues to change: versions 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Retrieval fixes in 1.1.4 include preserving redirect handling when streaming parsing pauses. These releases show ongoing development, but resolving the delayed-list, iframe, or document failures requires retesting the same tasks.",
+    "本组仅 9 题，按报告算法等于最慢一题": "With only 9 tasks, the report’s calculation gives the slowest task",
+    "95% 的任务耗时不超过这个值": "95% of task latencies do not exceed this value",
+    "从输入到交付共 2.44 秒，包含流程开销。本题预先声明为 PDF 文档，未测试未知链接的自动类型识别。": "Total input-to-output time: 2.44 seconds, including processing overhead. This task is declared as a PDF document in advance; automatic type detection for an unknown URL was not tested."
+})
+
+
+TEXT.update({
+    "Quotes 延迟加载的名言": "Quotes: quotations loaded after a delay",
+    "独立渲染后可见的第一条完整记录": "First complete record visible after independent rendering",
+    "查看全部 10 条独立参考记录": "View all 10 independent reference records",
+    "页面自动加载完成后应有 10 条名言，每条保留原句、作者与标签；无需滚动或点击。": "After automatic loading completes, the page should contain 10 quotations, each with its text, author, and tags. No scrolling or clicking is required.",
+    "返回 170 字符，用时 5.75 秒；输出里有标题、登录和翻页入口，没有名言记录。": "Returned 170 characters in 5.75 seconds. The output contains a title, login link, and pagination links, but no quotation records.",
+    "完整名言记录 0 条；固定名言命中 0/10 组。": "Complete quotation records: 0; fixed quotation groups matched: 0/10.",
+    "第一条原句": "First quotation’s text",
+    "第一条作者": "First quotation’s author",
+    "第一条标签": "First quotation’s tags",
+    "完整且不同的记录": "Complete, distinct records",
+    "至少 10 条，每条包含原句、作者和标签": "At least 10 records, each with quotation text, author, and tags",
+    "完整 0 条；去重后 0 条": "Complete: 0 records; after deduplication: 0 records",
+    "全部固定名言": "All fixed quotations",
+    "10 组原句、作者与标签均须匹配独立参考": "All 10 groups of quotation text, author, and tags must match the independent reference",
+    "排除：Access denied / CAPTCHA；不得返回安全验证或拒绝访问页": "Exclude: Access denied / CAPTCHA; must not return a security-verification or access-denied page",
+    "这个练习页将名言延迟呈现。调用正常返回，不等于目标内容已经到齐；Moli 与 Chromium 本轮都只取得了页面框架。等待与内容完成判断，是这类任务需要改进的环节。": "This practice page displays quotations after a delay. A completed call does not mean the requested content has arrived. Moli and Chromium both retrieve only the page shell in this run. Waiting and detecting content completion are areas to improve for this type of task.",
+    "MDN 视频播放文件": "MDN video playback file",
+    "独立源文档确认的视频文件地址": "Video file URL confirmed in an independent source document",
+    "应交付视频文件或有效播放器入口；封面图片与普通首页链接不算。": "Return the video file or a valid player entry point; a cover image or ordinary homepage link does not qualify.",
+    "以输入页面地址补全相对路径后": "After resolving relative paths against the input page URL",
+    "视频资源地址": "Video resource URL",
+    "输出虽含“不支持 HTML5 视频”的后备提示，仍提供了正确的播放文件链接。资源题检查目标地址，而不是把这句话当作抓取失败。本题 Moli 与 Chromium 均通过，不涉及视频听写或内容理解。": "The output includes fallback text saying HTML5 video is unsupported, but still provides the correct playback file link. This resource task checks the target URL; the fallback message alone does not mean retrieval failed. Moli and Chromium both pass this task, which does not test video transcription or comprehension."
+})
+
+
+TEXT.update({
+    "全部方法共同成功任务的耗时": "Latency on tasks passed by every method",
+    "全部 7 种受测配置共同通过": "All 7 tested configurations pass",
+    "个任务。下表每行使用这同一组任务；均值、P50、P95 的最低值加粗。": "tasks in common. Every row below uses this same task set; the lowest mean, P50, and P95 are shown in bold.",
+    "范围包含报告登记的全部方法与版本。统计沿用主评测的历史调用及已披露时延修正，调用跨日期、跨批次；这些数值不代表同一时间窗口内的受控速度比较，也不包含失败任务的耗时。": "This includes all methods and versions registered in the report. Statistics use recorded primary calls and disclosed latency corrections across dates and batches. These values are not a controlled speed comparison within one time window and exclude failed-task latency.",
+    "共同任务与调用日期": "Shared tasks and call dates",
+    "同题均值": "Mean on shared tasks",
+    "同题 P50": "P50 on shared tasks",
+    "同题 P95": "P95 on shared tasks",
+    "调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。": "The call matrix is incomplete, so latency on tasks passed by every method is not yet summarized.",
+    "全部方法尚无共同成功任务，不计算同题耗时。": "No task is yet passed by every method, so shared-task latency is not calculated."
+})
+
+
+TEXT.update({
+    "绿色标记该项最低值。计时包含内容提取与后处理；远端 Kitesurf 还包含网络往返。本组仅 9 道，按报告算法，P95 等于各自最慢的一道。": "Green marks the lowest value in each measure. Timing includes content extraction and post-processing; remote Kitesurf calls also include network round trips. With only 9 tasks, the report’s P95 calculation gives each browser’s slowest task.",
+    "显示值保留两位小数，差值与百分比使用未舍入值计算。主评测的跨批次采集与同窗测速的小样本，都限制了对长期运行速度的推断。": "Displayed values use two decimal places; differences and percentages use unrounded values. Collection across batches in the main evaluation and the small same-window sample both limit conclusions about long-term speed.",
+    "每款配置每题保留一次主结果。参考内容在被测输出之外独立准备，浏览器可以采用不同获取与转换路径，最后按同一题目要求判定。完整报告保留每道题的运行记录、原始输出、文件指纹及逐项判定，可从结论追溯到具体返回内容。": "Each configuration retains one primary result per task. References are prepared independently of the tested outputs. Browsers may use different retrieval and conversion paths, but face the same task requirements. The full report retains run records, original outputs, file fingerprints, and item-level verdicts, allowing conclusions to be traced to the returned content.",
+    "正文质量另看 98 道有完整可比参考的普通网页。这与前面跨类型、共同成功的 98 道耗时样本不是同一集合。在这组普通网页中，Moli 平均找回 95.3% 的参考正文词语，Chromium 为 99.8%。这个比例称为 Recall。另一个指标 Precision 检查输出词语中有多少与参考重合，F1 综合两者；它们衡量文字重合，不判断文字中的事实是否正确。": "Text quality uses a separate set of 98 general pages with complete, comparable references. This differs from the earlier latency set of 98 shared successes across content types. On these general pages, Moli recovers an average of 95.3% of reference body words, versus Chromium’s 99.8%. This proportion is recall. Precision measures how much of the output overlaps the reference, and F1 combines the two. These metrics measure text overlap, not factual correctness.",
+    "网页加载完成的信号也不同：Chromium 使用页面结构就绪事件，Kitesurf 等待网络活动趋于空闲，Moli 与 Lightpanda 使用各自的 done 状态，Obscura 在加载事件后继续等待页面稳定。这些信号不保证目标内容已经出现，因此最终仍要检查实际交回的列表和正文。": "Page-completion signals also differ. Chromium uses the event indicating that the page structure is ready; Kitesurf waits for network activity to become idle; Moli and Lightpanda use their respective done states; Obscura waits for the page to stabilize after the load event. These signals do not guarantee that the requested content has appeared, so the returned lists and text still need checking.",
+    "Moli 也在继续迭代：1.1.2、1.1.3、1.1.4 分别于 9 月 4 日、5 日、8 日发布。1.1.4 包含页面重定向处理修复。是否改善这里的延迟列表、iframe 或文档问题，仍需同题复测。": "Moli continues to change: versions 1.1.2, 1.1.3, and 1.1.4 were released on 9/4, 5, and 8, respectively. Version 1.1.4 includes fixes to page-redirect handling. Whether it improves the delayed-list, iframe, or document issues here requires retesting the same tasks.",
+    "应交付目标视频文件的地址或有效播放器入口；封面图片与普通首页链接不算。": "Return the target video file URL or a valid player entry point; a cover image or ordinary homepage link does not qualify.",
+    "文章对比 Moli 1.1.1 与另外四款浏览器，明确 150 题中通过 135 题，完整展示均值、P50、P95，并用六个评测集的可切换案例并列标准答案与真实输出。原始调用、评分及榜单分母不变。": "The article compares Moli 1.1.1 with four other browsers, states that it passed 135 of 150 tasks, presents mean latency, P50, and P95, and provides selectable examples from six dataset groups pairing references with actual outputs. Original calls, scores, and ranking denominators are unchanged.",
+    "加载恢复": "Loading recovery",
+    "短暂网络失败后，失败缓存使页面内重试无法重新请求。": "After a temporary network failure, cached failures prevented in-page retries from making a new request.",
+    "清除失败缓存，为页面和证据内容提供重新加载入口。": "Clear cached failures and provide reload controls for pages and evidence content.",
+    "仅修复报告读取行为，原始输出与评分不变。": "Only report loading behavior changes; original outputs and scores are unchanged.",
+    "PDF 结论包含本地解析器；文件校验不测媒体语义；98 道共同成功主任务的耗时跨批次；五款同窗测速使用全部 9 道共同成功题，不改变原七配置测速结果。": "PDF results include the local parser; file checks do not assess media semantics. Latency for the 98 shared successful main tasks spans batches. The five-browser same-window comparison uses all 9 shared successes, without changing the original seven-configuration latency results.",
+    "普通网页、动态网页、热门站点、文档、图片、视频各取一个案例，逐项核对独立参考与真实返回；保留原始 PNG，关键数字直接排版。": "One example each from general pages, dynamic pages, popular sites, documents, images, and videos compares independent references with actual outputs check by check. The original PNG is retained and key figures are rendered directly as text."
+})
+
+
+REGEX.insert(0, (
+    re.compile(r"^(?:.+：)?\d{4}-\d{2}-\d{2}（\d+ 题）(?:、\d{4}-\d{2}-\d{2}（\d+ 题）)*$"),
+    lambda m: m.group().replace("：", ": ").replace("（", " (").replace(" 题）", " tasks)").replace("、", "; "),
+))
+
+
 def translate_text(value: str) -> str:
     leading = value[:len(value) - len(value.lstrip())]
     trailing = value[len(value.rstrip()):]

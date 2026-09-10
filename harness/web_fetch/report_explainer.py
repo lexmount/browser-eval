@@ -479,6 +479,62 @@ def _headless_article_input(cases, records, providers):
     }
 
 
+def _article_speed_population(cases, records, providers, *, execution_scope):
+    """Same accepted tasks for the displayed providers, independent of ranking."""
+    indexed = {}
+    for record in records:
+        if record['provider'] not in providers:
+            continue
+        key = (record['provider'], record['case_id'])
+        if key in indexed:
+            raise ValueError('Article latency requires one authoritative record per provider and task')
+        indexed[key] = record
+    if any((provider, cid) not in indexed for provider in providers for cid in cases):
+        raise ValueError('Article latency requires the complete declared matrix')
+    common = sorted(cid for cid, case in cases.items() if all(
+        task_passed(indexed[provider, cid]['ok'], indexed[provider, cid]['metrics'], case.get('task_kind', 'body'))
+        for provider in providers))
+    if not common:
+        raise ValueError('Article latency has no commonly accepted tasks')
+    rows = []
+    for provider in providers:
+        records_for_provider = [indexed[provider, cid] for cid in common]
+        values = [record['elapsed_ms'] for record in records_for_provider]
+        times = [record['started_at'] for record in records_for_provider if record.get('started_at')]
+        rows.append({'provider': provider, 'attempts': len(common), 'values_ms': values,
+                     'mean_ms': statistics.mean(values), 'p50_ms': percentile(values, .5),
+                     'p95_ms': percentile(values, .95),
+                     'recorded_start_dates': dict(sorted(Counter(time[:10] for time in times).items())),
+                     'latency_corrected_cases': [record['case_id'] for record in records_for_provider
+                                                if 'latency_correction' in record.get('provider_metadata', {})]})
+    return {'providers': providers, 'planned_case_count': len(cases),
+            'common_pass_count': len(common), 'common_pass_cases': common,
+            'track_counts': dict(sorted(Counter(cases[cid].get('track', 'web') for cid in common).items())),
+            'execution_scope': execution_scope, 'rows': rows}
+
+
+def _render_article_speed(population):
+    size = population['common_pass_count']
+    metrics = [('mean_ms', '平均耗时', '全部耗时相加，再除以任务数'),
+               ('p50_ms', 'P50 · 中位数', '一半任务的等待不超过这个值'),
+               ('p95_ms', 'P95 · 较慢一端',
+                f'本组仅 {size} 题，按报告算法等于最慢一题' if size < 20
+                else '95% 的任务耗时不超过这个值')]
+    html = '<div class="m-speed-grid">'
+    for metric, title, explanation in metrics:
+        values = [(row['provider'], row[metric]) for row in population['rows']]
+        best, top = min(value for _, value in values), max(value for _, value in values)
+        html += f'<div class="m-speed-column"><h4>{title}</h4><p>{explanation}</p>'
+        for provider, value in values:
+            label = escape(PROVIDER_NAMES.get(provider, provider.title()))
+            html += (f'<div class="m-speed-row"><span>{label}</span><b>{value/1000:.2f} s</b>'
+                     '<div class="m-speed-track">'
+                     f'<i class="{"best" if value == best else ""}" style="width:{value/top*100:.3f}%"></i>'
+                     '</div></div>')
+        html += '</div>'
+    return html + '</div>'
+
+
 def _render_headless(out, cases, records):
     """Five-browser editorial view, derived from the unchanged report evidence."""
     from .report_components import comparable_body_reference
@@ -528,25 +584,21 @@ def _render_headless(out, cases, records):
     speed = json.loads(speed_path.read_text())
     if _digest(speed) != '5915ed32fcbfa27bd7fe2e4c9d4a32a5080936482fb6f2f51d09a2d9bff85dc3':
         raise ValueError('Article speed evidence changed; review latency prose before rebuilding')
-    speed_rows = {r['provider']: r for r in speed['rows']}
-    speed_metrics = [('mean_ms', '平均耗时', '全部耗时相加，再除以任务数'),
-                     ('p50_ms', 'P50 · 中位数', '一半任务的等待不超过这个值'),
-                     ('p95_ms', 'P95 · 较慢一端', '本组仅 8 题，按报告算法等于最慢一题')]
-    speed_html = '<div class="m-speed-grid">'
-    for metric, title, explanation in speed_metrics:
-        metric_values = [(n, statistics.mean(speed_rows[n]['values_ms']) if metric == 'mean_ms'
-                          else speed_rows[n][metric]) for n in selected]
-        best = min(value for _, value in metric_values)
-        top = max(value for _, value in metric_values)
-        speed_html += f'<div class="m-speed-column"><h4>{title}</h4><p>{explanation}</p>'
-        for n, value in metric_values:
-            speed_html += (f'<div class="m-speed-row"><span>{label(n)}</span>'
-                           f'<b>{value/1000:.2f} s</b><div class="m-speed-track">'
-                           f'<i class="{"best" if value == best else ""}" style="width:{value/top*100:.3f}%"></i>'
-                           '</div></div>')
-        speed_html += '</div>'
-    speed_html += '</div>'
-    data['editorial_speed'] = speed
+    speed_inputs = {}
+    for name in ('dataset', 'results'):
+        extension = 'json' if name == 'dataset' else 'jsonl'
+        raw = contained_path(out, f'speed-cohort/{name}.{extension}').read_bytes()
+        if hashlib.sha256(raw).hexdigest() != speed['bindings'][name + '_sha256']:
+            raise ValueError('Article speed source evidence changed; review latency prose before rebuilding')
+        speed_inputs[name] = (json.loads(raw) if name == 'dataset'
+                              else [json.loads(line) for line in raw.splitlines() if line.strip()])
+    main_speed = _article_speed_population(cases, records, selected,
+        execution_scope='Historical authoritative main-evaluation calls assembled across dates and batches; includes declared latency corrections. Not a same-window controlled speed comparison.')
+    paired_speed = _article_speed_population(
+        {case['id']: case for case in speed_inputs['dataset']['cases']}, speed_inputs['results'], selected,
+        execution_scope='Separate predeclared 20-page ordinary-web speed run; use all tasks accepted by the five displayed configurations. Small-sample P95 is the observed maximum.')
+    paired_speed['bindings'] = speed['bindings']
+    data['editorial_speed'] = {'main': main_speed, 'same_window': paired_speed}
     pdf = rows.get('moli',{}).get('document-01')
     pdf_chars = pdf['metrics'].get('content_chars',0) if pdf else 0
     pdf_ms = pdf['elapsed_ms'] if pdf else 0
@@ -565,7 +617,8 @@ def _render_headless(out, cases, records):
         'delta': str(totals['moli'] - totals['chromium']),
         'ranking': bars([(n, totals[n]) for n in selected], maximum=len(cases)),
         'split': split, 'four': four, 'matrix': matrix,
-        'quality': quality, 'speed': speed_html,
+        'quality': quality, 'speed_main': _render_article_speed(main_speed),
+        'speed': _render_article_speed(paired_speed),
         'pdf_chars': f'{pdf_chars:,}',
         'pdf_seconds': f'{pdf_ms/1000:.2f}',
         'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',

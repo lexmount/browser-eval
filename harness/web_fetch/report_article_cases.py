@@ -1,4 +1,4 @@
-"""Five article examples: frozen references beside hash-verified actual output."""
+"""One article example per benchmark track, with hash-verified actual output."""
 import base64
 import hashlib
 import re
@@ -12,18 +12,21 @@ from .safety import contained_path, safe_identifier
 
 
 CASE_TABS = (
-    ('document-01', 'PDF 正文'),
-    ('static-simple', '网页正文'),
-    ('challenge-01', '商品列表'),
-    ('image-pexels-detail', '图片地址'),
-    ('image-10', '原始文件'),
+    ('static-simple', '普通网页'),
+    ('dynamic-delayed', '动态网页'),
+    ('challenge-01', '热门站点'),
+    ('document-01', '文档'),
+    ('image-10', '图片'),
+    ('video-02', '视频'),
 )
+CASE_TRACKS = ('web', 'dynamic', 'challenge', 'document', 'image', 'video')
 CASE_TITLES = {
     'static-simple': 'Example Domain 网页',
+    'dynamic-delayed': 'Quotes 延迟加载的名言',
     'document-01': 'Attention Is All You Need 论文',
     'challenge-01': 'Anthropologie 蜡烛列表',
-    'image-pexels-detail': 'Pexels 图片下载地址',
     'image-10': 'httpbin PNG 文件',
+    'video-02': 'MDN 视频播放文件',
 }
 
 
@@ -179,23 +182,56 @@ def _list_example(case, record, output):
     return left, right, checks, note
 
 
-def _resource_example(case, record, output):
-    metrics = record['metrics']
-    expected = case['expected_resources'][0]['urls'][0]
-    lines = [line for line in output.splitlines() if expected in line]
-    if not lines:
-        raise ValueError('Reviewed target image URL is absent from output')
-    left = '<p>独立确认的目标资源</p>' + _pre(expected)
-    left += _pre(case['reference_answer'])
-    right = '<p>Moli 1.1.1 · 含目标下载链接的原始输出节选</p>' + _pre(lines[0])
-    checks = [_row('目标图片地址', '与上方登记的完整 URL 匹配',
-                   '规范化后相同' if item['matched_urls'] else '未命中', item['pass'])
-              for item in metrics['resource_results']]
-    note = '本题的资源匹配规则忽略 URL 查询参数，因此实际下载链接与登记目标匹配；这不是对任意下载地址的通用等价判断。本题不要求下载图片，也不检查推荐图片的数量。'
+def _dynamic_example(case, record, output):
+    contract, metrics = case['acceptance_contract'], record['metrics']
+    anchors = contract['stable_text_anchors']
+    first = anchors[0]['alternatives'][0]
+    if first not in case['ground_truth_main_content']:
+        raise ValueError('Reviewed dynamic reference entry is missing')
+    left = '<p>独立渲染后可见的第一条完整记录</p>' + _pre(first)
+    left += ('<details><summary>查看全部 10 条独立参考记录</summary>'
+             + _pre(case['ground_truth_main_content']) + '</details>')
+    left += '<p>页面自动加载完成后应有 10 条名言，每条保留原句、作者与标签；无需滚动或点击。</p>'
+    right = '<p>Moli 1.1.1 · 原始 Markdown 全文</p>' + _pre(output)
+    right += f'<p>返回 {metrics["content_chars"]} 字符，用时 {record["elapsed_ms"]/1000:.2f} 秒；输出里有标题、登录和翻页入口，没有名言记录。</p>'
+    checks = []
+    for field, item in zip(('第一条原句', '第一条作者', '第一条标签'), metrics['fact_results'][:3]):
+        checks.append(_row(field, ' / '.join(item['alternatives']),
+                           ' / '.join(item['matched']) or '未命中', item['pass']))
+    checks += [
+        _row('完整且不同的记录', f'至少 {contract["minimum_records"]} 条，每条包含原句、作者和标签',
+             f'完整 {metrics["stable_complete_record_count"]} 条；去重后 {metrics["stable_unique_record_count"]} 条',
+             metrics['stable_structure_pass']),
+        _row('全部固定名言', '10 组原句、作者与标签均须匹配独立参考',
+             f'{metrics["stable_anchor_hits"]}/{metrics["stable_anchor_total"]} 组命中', metrics['stable_content_pass']),
+        _row('排除错误页', '排除：' + ' / '.join(case['forbidden_any']) + '；不得返回安全验证或拒绝访问页',
+             ' / '.join(metrics['forbidden_hits']) if metrics['forbidden_hits'] else
+             ('命中拦截页特征' if metrics['stable_blocked_page'] else '未命中排除项或拦截页特征'),
+             not metrics['forbidden_hits'] and not metrics['stable_blocked_page']),
+        _row('文字解码', '替换字符数 ≥20 且占比 ≥2% 时拒绝',
+             f'{metrics["replacement_character_count"]} 个替换字符', not metrics['text_encoding_corruption']),
+    ]
+    note = ('这个练习页将名言延迟呈现。调用正常返回，不等于目标内容已经到齐；'
+            'Moli 与 Chromium 本轮都只取得了页面框架。等待与内容完成判断，是这类任务需要改进的环节。')
     return left, right, checks, note
 
 
-def _file_example(out, case, record, *, media_records=(), cases=None):
+def _resource_example(case, record, output):
+    metrics = record['metrics']
+    expected = case['expected_resources'][0]['urls'][0]
+    left = '<p>独立源文档确认的视频文件地址</p>' + _pre(expected)
+    left += '<p>应交付目标视频文件的地址或有效播放器入口；封面图片与普通首页链接不算。</p>'
+    right = '<p>Moli 1.1.1 · 原始 Markdown 全文</p>' + _pre(output, ('rabbit320.webm',))
+    right += '<p>以输入页面地址补全相对路径后</p>' + _pre('\n'.join(metrics['resource_candidate_urls']))
+    checks = [_row('视频资源地址', expected,
+                   ' / '.join(item['matched_urls']) or '未命中', item['pass'])
+              for item in metrics['resource_results']]
+    note = ('输出虽含“不支持 HTML5 视频”的后备提示，仍提供了正确的播放文件链接。'
+            '资源题检查目标地址，而不是把这句话当作抓取失败。本题 Moli 与 Chromium 均通过，不涉及视频听写或内容理解。')
+    return left, right, checks, note
+
+
+def _file_example(out, case, record):
     expected_hash = case['source_verification']['file_sha256']
     files = record['provider_metadata']['file_evaluation']['files']
     if len(files) != 1:
@@ -220,28 +256,14 @@ def _file_example(out, case, record, *, media_records=(), cases=None):
               _row('文件一致性', '匹配独立目标 SHA-256',
                    '一致' if digest == expected_hash else '不一致', digest == expected_hash)]
     note = '文件长度的通用门槛是 32 字节。SHA-256 是按文件字节计算的指纹，用来核对是否同一份文件；不评价图片识别或媒体语义。'
-    media_facts = []
-    for media in media_records:
-        target = cases[media['case_id']]
-        delivered_files = media['provider_metadata']['file_evaluation']['files']
-        if len(delivered_files) != 1 or not task_passed(media['ok'], media['metrics'], 'file'):
-            raise ValueError('Reviewed media example requires one accepted file')
-        file = delivered_files[0]
-        data = contained_path(out, file['artifact_path']).read_bytes()
-        file_hash = hashlib.sha256(data).hexdigest()
-        if (file_hash != file['sha256'] or len(data) != file['bytes']
-                or file_hash != target['source_verification']['file_sha256']):
-            raise ValueError('Article media-file integrity mismatch')
-        name = {'video/webm': 'WebM', 'video/mp4': 'MP4'}[file['mime']]
-        media_facts.append(f'{name} {len(data):,} 字节，用时 {media["elapsed_ms"]/1000:.2f} 秒')
-    if media_facts:
-        note += '同组另外两道原文件题也通过：' + '；'.join(media_facts) + '，均与独立目标文件哈希一致。'
     return left, right, checks, note
 
 
 def render_article_cases(out, cases, records):
-    """Return five CSS-radio panels; no calls, rescoring, or artifact mutation."""
+    """Return six track panels; no calls, rescoring, or artifact mutation."""
     out = Path(out)
+    if tuple(cases[case_id].get('track') for case_id, _ in CASE_TABS) != CASE_TRACKS:
+        raise ValueError('Article examples must cover each benchmark track exactly once')
     indexed = {}
     for record in records:
         key = (record['provider'], record['case_id'])
@@ -255,12 +277,12 @@ def render_article_cases(out, cases, records):
         output = _read_output(out, record)
         if case_id == 'challenge-01':
             left, right, checks, note = _list_example(case, record, output)
-        elif case_id == 'image-pexels-detail':
+        elif case_id == 'dynamic-delayed':
+            left, right, checks, note = _dynamic_example(case, record, output)
+        elif case_id == 'video-02':
             left, right, checks, note = _resource_example(case, record, output)
         elif case_id == 'image-10':
-            left, right, checks, note = _file_example(
-                out, case, record, cases=cases,
-                media_records=[indexed[('moli', cid)] for cid in ('video-05', 'video-08')])
+            left, right, checks, note = _file_example(out, case, record)
         else:
             left, right, checks, note = _text_example(case, record, output, pdf=case_id == 'document-01')
         chromium = indexed.get(('chromium', case_id))
@@ -278,8 +300,11 @@ def render_article_cases(out, cases, records):
             elif case_id == 'challenge-01':
                 reason = (f'完整记录 {other_metrics["stable_complete_record_count"]} 条；稳定文字命中 '
                           f'{other_metrics["stable_anchor_hits"]}/{other_metrics["stable_anchor_total"]}。')
-            elif case_id == 'image-pexels-detail':
-                reason = f'目标图片地址命中 {other_metrics["resource_hits"]}/{other_metrics["resource_total"]}。'
+            elif case_id == 'dynamic-delayed':
+                reason = (f'完整名言记录 {other_metrics["stable_complete_record_count"]} 条；固定名言命中 '
+                          f'{other_metrics["stable_anchor_hits"]}/{other_metrics["stable_anchor_total"]} 组。')
+            elif case_id == 'video-02':
+                reason = f'视频资源地址命中 {other_metrics["resource_hits"]}/{other_metrics["resource_total"]}。'
             elif case_id == 'image-10':
                 count = len(chromium['provider_metadata']['file_evaluation']['files'])
                 reason = f'实际交付 {count} 个原始文件；这里只返回了 Markdown 图片链接。'
@@ -302,7 +327,7 @@ def render_article_cases(out, cases, records):
     radios = ''.join(
         f'<input class="case-choice" type="radio" name="article-case" id="article-case-{i}"'
         f' aria-labelledby="article-label-{i}"'
-        + (' checked' if i == 1 else '') + '>' for i in range(1, 6))
+        + (' checked' if i == 1 else '') + '>' for i in range(1, len(CASE_TABS) + 1))
     labels = ''.join(f'<label id="article-label-{i}" for="article-case-{i}">{escape(tab)}</label>'
                      for i, (_, tab) in enumerate(CASE_TABS, 1))
     return ('<div class="case-workbench">' + radios + '<div class="case-tab-nav">' + labels +

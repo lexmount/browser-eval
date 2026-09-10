@@ -9,7 +9,7 @@ import unittest
 from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
     require_verified_reference_checks, valid_scoring_revision)
 from harness.web_fetch.report_explainer import (
-    _digest, _headless_article_input,
+    _digest, _headless_article_input, _article_speed_population,
     headless_evidence, render_explainer)
 from scripts.certify_headless_cases import certify_case
 from scripts.assemble_headless import (assemble, copy_bound_review, read_verified_batches,
@@ -19,6 +19,33 @@ from unittest.mock import patch
 
 
 class HeadlessReportTests(unittest.TestCase):
+    def test_article_speed_uses_all_common_tasks_of_displayed_providers(self):
+        cases = {cid: {'id': cid, 'track': 'web'} for cid in ('a', 'b', 'c')}
+        rows = []
+        for provider, values in [('moli', [10, 100, 1000]), ('peer', [20, 50, 60]),
+                                 ('undisplayed-version', [5, 5, 5])]:
+            for cid, elapsed in zip(cases, values):
+                passed = not (provider == 'peer' and cid == 'c') and not (
+                    provider == 'undisplayed-version' and cid == 'b')
+                rows.append({'provider': provider, 'case_id': cid, 'ok': passed,
+                             'elapsed_ms': elapsed, 'metrics': {'content_pass': passed}})
+        population = _article_speed_population(cases, rows, ['moli', 'peer'], execution_scope='test')
+        self.assertEqual(population['planned_case_count'], 3)
+        self.assertEqual(population['common_pass_cases'], ['a', 'b'])
+        self.assertEqual(population['track_counts'], {'web': 2})
+        self.assertEqual(population['rows'][0]['mean_ms'], 55)
+        self.assertEqual(population['rows'][0]['p50_ms'], 55)
+        self.assertEqual(population['rows'][0]['p95_ms'], 100)
+        # Including another configuration legitimately changes the population;
+        # its failure must not silently constrain a five-browser article.
+        expanded = _article_speed_population(cases, rows,
+            ['moli', 'peer', 'undisplayed-version'], execution_scope='test')
+        self.assertEqual(expanded['common_pass_cases'], ['a'])
+        with self.assertRaisesRegex(ValueError, 'one authoritative'):
+            _article_speed_population(cases, rows + [rows[0]], ['moli', 'peer'], execution_scope='test')
+        with self.assertRaisesRegex(ValueError, 'complete declared matrix'):
+            _article_speed_population(cases, rows[1:], ['moli', 'peer'], execution_scope='test')
+
     def test_article_binding_ignores_only_report_derived_annotations(self):
         cases = {'a': {'id': 'a', 'track': 'web', 'minimum_content_chars': 10}}
         record = {'provider': 'moli', 'case_id': 'a', 'attempt_id': 'moli__a',

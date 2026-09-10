@@ -1,10 +1,32 @@
 import tempfile
 from pathlib import Path
 import unittest
-from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write
+from harness.web_fetch.report import failure_category,filter_controls,case_attrs,failure_filters,review_cell,table,write,overview_matched_latency
 from harness.web_fetch.report_interfaces import SPECS,HEADLESS_ACCESS
 
 class ReportRevisionTests(unittest.TestCase):
+ def test_overview_latency_includes_every_configuration_and_same_case_mean(self):
+  cases={cid:{'id':cid,'name':cid,'task_kind':'body'} for cid in ('a','b','c')}
+  providers=['moli','chromium','lightpanda','obscura','kitesurf','moli-1.0.6','moli-1.1.3']
+  records=[]
+  for provider in providers:
+   for cid,value in zip(cases,[1000,3000,99000]):
+    passed=not(provider=='moli-1.0.6' and cid=='c')
+    records.append({'provider':provider,'case_id':cid,'ok':passed,
+                    'metrics':{'content_pass':passed},'elapsed_ms':value,
+                    'started_at':'2026-09-04T00:00:00+00:00'})
+  rendered=overview_matched_latency(records,cases)
+  self.assertIn('全部 7 种受测配置',rendered)
+  self.assertIn('<strong>2/3</strong>',rendered)
+  self.assertIn('同题均值',rendered)
+  self.assertIn('同题 P95',rendered)
+  self.assertEqual(rendered.count('<strong>2,000 ms</strong>'),14)
+  self.assertEqual(rendered.count('<strong>3,000 ms</strong>'),7)
+  for provider in providers:self.assertIn('providers/'+provider+'.html',rendered)
+  self.assertIn('跨日期、跨批次',rendered)
+  self.assertNotIn('99,000 ms',rendered)
+  self.assertIn('调用矩阵尚不完整',overview_matched_latency(records[1:],cases))
+
  def row(self,**kw):return dict({'ok':True,'metrics':{'content_pass':False,'length_pass':True}},**kw)
  def test_result_default_failure(self):
   controls=filter_controls([('result','结果',[('pass','任务通过'),('fail','任务失败')])])
