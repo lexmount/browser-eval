@@ -3,18 +3,29 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
-import urllib.request
 import urllib.parse
+import urllib.request
 import uuid
 from pathlib import Path
 
 from harness.web_fetch.artifact_auth import load_token
 
-BASE = "https://artifact-hub.dev.lexmount.net"
 ARCHIVE = Path("publish/browser-agent-sites.zip")
 RECEIPT = Path("publish/browser-agent-artifact-hub-receipt.json")
+PROFILE = Path("evaluation/browser-agent/current-report.json")
+
+
+def publication_target() -> tuple[str, str]:
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    publication = profile.get("publication") or {}
+    base = str(publication.get("base_url") or "").rstrip("/")
+    slug = str(publication.get("site_slug") or "")
+    if not base.startswith("https://") or not slug:
+        raise ValueError("current Browser Agent report has no valid publication target")
+    return base, slug
 
 
 def request(
@@ -24,13 +35,14 @@ def request(
     *,
     method: str | None = None,
 ):
+    base, _ = publication_target()
     headers = {
         "Authorization": "Bearer " + load_token(),
         "User-Agent": "Browser-Agent-Report-Publisher/1.0",
     }
     if content_type:
         headers["Content-Type"] = content_type
-    req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
+    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=240) as response:
         return response.status, response.read()
 
@@ -69,10 +81,23 @@ def save_receipt(result: dict) -> None:
     os.chmod(RECEIPT, 0o600)
 
 
-def main() -> None:
+def main(*, create: bool = False) -> None:
     payload, content_type = multipart_archive()
-    if RECEIPT.exists():
+    base, expected_slug = publication_target()
+    if create:
+        status, raw = request("/api/sites", payload, content_type)
+        result = json.loads(raw)
+        if status != 200 or not result.get("slug"):
+            raise RuntimeError(result)
+        save_receipt(result)
+    elif not RECEIPT.exists():
+        raise ValueError(
+            "bound Browser Agent site receipt is missing; refusing to create a new site"
+        )
+    else:
         result = json.loads(RECEIPT.read_text(encoding="utf-8"))
+        if result.get("slug") != expected_slug:
+            raise ValueError("Artifact Hub receipt differs from the bound Browser Agent site")
         status, raw = request(f"/api/sites/{result['slug']}")
         current = json.loads(raw)
         version_id = (current.get("site") or {}).get("currentVersionId")
@@ -85,16 +110,13 @@ def main() -> None:
         updated = json.loads(raw)
         if not 200 <= status < 300:
             raise RuntimeError(updated)
-        result.update({key: value for key, value in updated.items() if key not in {"editToken", "claimToken"}})
-    else:
-        status, raw = request("/api/sites", payload, content_type)
-        result = json.loads(raw)
-        if status != 200 or not result.get("slug"):
-            raise RuntimeError(result)
-        # Persist the remote identity before the separate share request. If that
-        # request fails, the next run must update this site rather than create
-        # an orphaned duplicate.
-        save_receipt(result)
+        result.update(
+            {
+                key: value
+                for key, value in updated.items()
+                if key not in {"editToken", "claimToken"}
+            }
+        )
     if not result.get("share_url"):
         status, raw = request(
             f"/api/sites/{result['slug']}/shares",
@@ -112,7 +134,7 @@ def main() -> None:
         if response.status != 200:
             raise RuntimeError(f"public report returned {response.status}")
     preview = urllib.request.Request(
-        f"{BASE}/api/preview/{result['slug']}",
+        f"{base}/api/preview/{result['slug']}",
         headers={"User-Agent": "Browser-Agent-Report-Publisher/1.0"},
     )
     with urllib.request.urlopen(preview, timeout=60) as response:
@@ -123,4 +145,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--create",
+        action="store_true",
+        help="explicitly create a new owned site when the bound site cannot be updated",
+    )
+    main(create=parser.parse_args().create)

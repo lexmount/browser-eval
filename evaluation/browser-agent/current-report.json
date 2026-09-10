@@ -1,0 +1,33 @@
+{
+  "schema": "lex_browser_agent_current_report/1",
+  "benchmark": "WebArena-Verified",
+  "benchmark_version": "1.2.3",
+  "task_count": 30,
+  "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+  "official_data_checksum": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30",
+  "engines": [
+    "chromium",
+    "moli"
+  ],
+  "model": "gpt-5.6-sol",
+  "reasoning_effort": "low",
+  "primary_attempts_per_engine_task": 1,
+  "failure_retries": 1,
+  "model_transport_retries": 1,
+  "scoring_authority": "unmodified official programmatic evaluator",
+  "review_kind": "deterministic evidence integrity audit",
+  "independent_semantic_review": false,
+  "tasks_without_measured_success_path": [
+    68,
+    124,
+    142,
+    168,
+    506
+  ],
+  "publication": {
+    "base_url": "https://artifact-hub.dev.lexmount.net",
+    "site_slug": "28OH4YZkUYF1",
+    "share_url": "https://artifact-hub.dev.lexmount.net/v/5Vhnhdc_f8FEM2RzctQm-ChRlXUf174Y",
+    "state": "verified"
+  }
+}

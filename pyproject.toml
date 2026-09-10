@@ -58,6 +58,7 @@ select = ["B", "E", "F", "I", "UP"]
 [tool.ruff.lint.per-file-ignores]
 "harness/browser_kernel/report.py" = ["E501"]
 "harness/browser_agent/report.py" = ["E501"]
+"harness/browser_agent/report_i18n.py" = ["E501"]
 
 [build-system]
 requires = ["setuptools>=64"]

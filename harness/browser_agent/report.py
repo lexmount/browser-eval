@@ -27,6 +27,7 @@ from .publication import (
     trajectory,
     trajectory_label,
 )
+from .report_i18n import write_english_report
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -39,12 +40,12 @@ SITE_LABELS = {
 }
 MUTATE_IDS = {399, 404, 441, 506}
 NAVIGATE_IDS = {44, 45, 118}
-FAILURE_NOTES = {
-    68: "多帖聚合不完整：四次执行都只返回一本书。",
-    124: "把全局价格范围当成目标商品范围。",
-    142: "未完成目标月份与品类的完整订单汇总。",
-    168: "个人项目筛选返回空列表，官方答案非空。",
-    506: "购物车最终状态不满足唯一目标商品；重试也未在步数上限内完成。",
+FAILURE_OBSERVATIONS = {
+    68: "官方期望包含多本书；四次执行的实际回答都只包含一本。",
+    124: "实际回答中的价格范围与该题官方目标商品范围不一致。",
+    142: "实际订单汇总与官方期望值不一致。",
+    168: "实际回答为空列表，而官方期望为非空项目列表。",
+    506: "官方网络副作用合同未通过；购物车最终状态未满足题目要求。",
 }
 
 
@@ -85,6 +86,10 @@ def _number(value: float | int | None) -> str:
     return "—" if value is None else f"{value:,.0f}"
 
 
+def _probability(value: float | None) -> str:
+    return "—" if value is None else f"{value:.3f}"
+
+
 def _table(headers: list[str], rows: Iterable[Iterable[Any]], *, caption: str = "") -> str:
     head = "".join(f"<th>{_e(x)}</th>" for x in headers)
     body = "".join(
@@ -109,6 +114,7 @@ def _public_attempt(row: dict[str, Any]) -> dict[str, Any]:
     usage, resource = row.get("model_usage") or {}, row.get("resource") or {}
     return {
         "id": _attempt_id(row),
+        "run_id": str(row.get("run_id") or ""),
         "engine": str(row["engine"]),
         "task_id": int(row["task_id"]),
         "tier": str(row["tier"]),
@@ -209,16 +215,28 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {"paired": len(ids), **counts, "mcnemar_exact_p": p}
 
 
-def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
+def _resolve_tasks(
+    selection: PilotSelection, *, expected_data_checksum: str | None = None
+) -> list[dict[str, Any]]:
     try:
         from .runner import _configure_benchmark
 
         benchmark = _configure_benchmark()
+        if expected_data_checksum:
+            dataset_path = Path(benchmark.config.test_data_file)
+            actual_data_checksum = _sha256(dataset_path)
+            if actual_data_checksum != expected_data_checksum:
+                raise ValueError(
+                    "installed WebArena-Verified data checksum differs from measured evidence: "
+                    f"{actual_data_checksum} != {expected_data_checksum}"
+                )
         tasks = validate_against_official(selection, benchmark)
         official = {
             int(task["task_id"]): benchmark.get_task(int(task["task_id"])) for task in tasks
         }
     except Exception:
+        if expected_data_checksum:
+            raise
         tasks = [
             {
                 "task_id": t.task_id,
@@ -238,12 +256,164 @@ def _resolve_tasks(selection: PilotSelection) -> list[dict[str, Any]]:
         official_task = official.get(int(task["task_id"])) if "official" in locals() else None
         contract = task_contract(official_task) if official_task is not None else {}
         task["contract"] = contract
+        task["contract_sha256"] = hashlib.sha256(
+            json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
         evals = contract.get("evaluation_contract") or []
+        if expected_data_checksum and not evals:
+            raise ValueError(f"official task {task['task_id']} has no evaluator contract")
         expected = (evals[0].get("expected") or {}) if evals else {}
         task["task_type"] = str(
             expected.get("task_type") or _task_type(int(task["task_id"]))
         ).upper()
     return tasks
+
+
+def _wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float, float] | None:
+    if total <= 0:
+        return None
+    p = successes / total
+    denominator = 1 + z**2 / total
+    centre = (p + z**2 / (2 * total)) / denominator
+    spread = z * math.sqrt((p * (1 - p) + z**2 / (4 * total)) / total) / denominator
+    return max(0.0, centre - spread), min(1.0, centre + spread)
+
+
+def _task_family_summary(
+    tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    primary = {
+        (str(row["engine"]), int(row["task_id"])): float(row["score"]) == 1
+        for row in attempts
+        if int(row["attempt"]) == 1
+    }
+    result = []
+    for kind in ("RETRIEVE", "NAVIGATE", "MUTATE"):
+        selected = [task for task in tasks if task["task_type"] == kind]
+        result.append(
+            {
+                "kind": kind,
+                "count": len(selected),
+                "scores": {
+                    engine: sum(primary.get((engine, int(task["task_id"])), False) for task in selected)
+                    for engine in ENGINE_LABELS
+                },
+            }
+        )
+    return result
+
+
+def _adoption_top3(evidence: dict[str, Any]) -> str:
+    families = sorted(
+        (item for item in evidence.get("benchmark_families") or [] if item.get("interaction")),
+        key=lambda item: (-len(item.get("adopters") or []), str(item.get("family") or "")),
+    )[:3]
+    if len(families) != 3 or not evidence.get("verified_at"):
+        raise ValueError("benchmark adoption evidence must provide a dated interaction Top 3")
+    cards = []
+    for item in families:
+        adopters = item.get("adopters") or []
+        note = item.get("warning") or {
+            "WebArena": "自托管、可重置、结果验收，更适合浏览器 A/B。",
+            "WebVoyager": "真实网站直观，但网页漂移与 LLM judge 降低精确复现性。",
+        }.get(str(item.get("family")), "采用数不代表评测质量。")
+        cards.append(
+            '<article class="rank-item"><div>'
+            f'<h3>{_e(item.get("family"))} 家族 · {len(adopters)} 家</h3>'
+            f'<p>{_e("、".join(adopters))}。{_e(note)}</p></div></article>'
+        )
+    return (
+        '<div class="rank-list">'
+        + "".join(cards)
+        + '</div><p class="fine">采用次数来自公开一手材料中的机构去重计数，不是质量分；'
+        f'证据核对日期 {_e(evidence.get("verified_at") or "未记录")}。未找到 DeepSeek、Kimi '
+        "公开的一手 UI browser-use benchmark，不等于内部没有评测。</p>"
+    )
+
+
+def _paired_task_table(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
+    primary = {
+        (str(row["engine"]), int(row["task_id"])): row
+        for row in attempts
+        if int(row["attempt"]) == 1
+    }
+    rows = []
+    for task in tasks:
+        task_id = int(task["task_id"])
+        chromium = primary.get(("chromium", task_id))
+        moli = primary.get(("moli", task_id))
+        if not chromium or not moli:
+            continue
+        c_pass, m_pass = float(chromium["score"]) == 1, float(moli["score"]) == 1
+        relation = (
+            "both_pass"
+            if c_pass and m_pass
+            else "chromium_only"
+            if c_pass
+            else "moli_only"
+            if m_pass
+            else "both_fail"
+        )
+        relation_label = {
+            "both_pass": "共同通过",
+            "chromium_only": "仅 Chromium",
+            "moli_only": "仅 Moli",
+            "both_fail": "共同失败",
+        }[relation]
+        site = str(task["sites"][0])
+
+        def metrics(row: dict[str, Any]) -> str:
+            events = read_public_json(Path((row.get("paths") or {}).get("events", "")))
+            step_count = len(trajectory(events if isinstance(events, list) else []))
+            usage = row.get("model_usage") or {}
+            return (
+                f'{_status(row)}<br><span class="fine">{step_count} 步 · '
+                f'{int(usage.get("request_count") or 0)} 次模型请求 · '
+                f'{_number(int(usage.get("total_tokens") or 0))} tokens · '
+                f'{_seconds(float(row.get("duration_ms") or 0))}</span>'
+            )
+
+        search = " ".join(
+            (str(task_id), task["rationale"], str(task.get("intent") or ""), relation_label)
+        )
+        attrs = (
+            f' data-relation="{relation}" data-tier="{_e(task["tier"])}"'
+            f' data-site="{_e(site)}" data-kind="{_e(task["task_type"])}"'
+            f' data-search="{_e(search)}"'
+        )
+        rows.append(
+            f"<tr{attrs}><td><a href=\"datasets/{task_id}.html\">#{task_id}</a>"
+            f'<div class="fine">{_e(task["rationale"])}</div></td>'
+            f"<td>{_e(TIER_LABELS[task['tier']])}</td>"
+            f"<td>{_e(SITE_LABELS.get(site, site))}</td><td>{_e(task['task_type'])}</td>"
+            f"<td>{metrics(chromium)}</td><td>{metrics(moli)}</td>"
+            f'<td><span class="status-{"pass" if relation == "both_pass" else "fail"}">{_e(relation_label)}</span></td>'
+            f'<td><a href="datasets/{task_id}.html">查看两种浏览器全部试次</a></td></tr>'
+        )
+    controls = (
+        '<div class="pair-controls">'
+        '<label>关系 <select id="pair-relation" data-pair-filter="relation">'
+        '<option value="">全部</option><option value="discordant">有分歧</option>'
+        '<option value="both_pass">共同通过</option><option value="both_fail" selected>共同失败</option>'
+        '<option value="chromium_only">仅 Chromium</option><option value="moli_only">仅 Moli</option>'
+        '</select></label>'
+        '<label>层级 <select data-pair-filter="tier"><option value="">全部</option>'
+        '<option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
+        '<label>站点 <select data-pair-filter="site"><option value="">全部</option>'
+        '<option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option>'
+        '<option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
+        '<label>类型 <select data-pair-filter="kind"><option value="">全部</option>'
+        '<option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>'
+        '<span class="comparison-count" data-pair-count></span></div>'
+    )
+    return (
+        controls
+        + '<div class="table-wrap"><table id="pair-table"><thead><tr><th>任务</th><th>层级</th>'
+        '<th>站点</th><th>类型</th><th>Chromium</th><th>Moli 1.1.3</th><th>对照结论</th><th>证据</th>'
+        '</tr></thead><tbody id="pair-rows">'
+        + "".join(rows)
+        + "</tbody></table></div>"
+    )
 
 
 def _group_rows(
@@ -273,26 +443,27 @@ function updateViewUrl(){const u=new URL(location.href),q=document.querySelector
 function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
 function applySort(t,col,dir){const b=t?.tBodies[0];if(!b)return;[...b.rows].sort((a,z)=>{const av=a.cells[col]?.dataset.sort||a.cells[col]?.textContent||'',zv=z.cells[col]?.dataset.sort||z.cells[col]?.textContent||'';const an=Number(av.replace(/[^0-9.-]/g,'')),zn=Number(zv.replace(/[^0-9.-]/g,''));const cmp=!Number.isNaN(an)&&!Number.isNaN(zn)?an-zn:av.localeCompare(zv,'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=String(col);t.dataset.dir=dir}
 function sortTable(id,col){const t=document.getElementById(id);if(!t)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';applySort(t,col,dir);const u=new URL(location.href);u.searchParams.set('sort',id+':'+col+':'+dir);history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString()+u.hash)}
-function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null)c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);try{const y=sessionStorage.getItem('browser-agent-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}restoreView();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-agent-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
+function pairRows(save=true){const controls=[...document.querySelectorAll('[data-pair-filter]')];let shown=0;document.querySelectorAll('#pair-rows tr').forEach(r=>{const hidden=controls.some(c=>{if(!c.value)return false;if(c.dataset.pairFilter==='relation'&&c.value==='discordant')return !['chromium_only','moli_only'].includes(r.dataset.relation);return r.dataset[c.dataset.pairFilter]!==c.value});r.hidden=hidden;if(!hidden)shown++});document.querySelectorAll('[data-pair-count]').forEach(x=>x.textContent=(document.documentElement.lang==='en'?'Showing ':'找到 ')+shown+(document.documentElement.lang==='en'?' paired tasks':' 个配对任务'));if(save){const u=new URL(location.href);[...u.searchParams.keys()].filter(k=>k.startsWith('p_')).forEach(k=>u.searchParams.delete(k));controls.forEach(c=>{if(c.value)u.searchParams.set('p_'+c.dataset.pairFilter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}}
+function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null)c.value=v});document.querySelectorAll('[data-pair-filter]').forEach(c=>{const v=p.get('p_'+c.dataset.pairFilter);if(v!==null)c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);pairRows(false);try{const y=sessionStorage.getItem('browser-agent-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}catch(e){}}
+document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-agent-theme')||'light'}catch(e){}restoreView();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-pair-filter]').forEach(x=>x.addEventListener('change',()=>pairRows()))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-agent-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
 REPORT_STYLE = (
     SHARED_STYLE
     + """
-body{overflow-x:hidden}.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
-.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px 1fr;gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(3,1fr)}.evidence-pair{grid-template-columns:1fr}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}}@media print{.top,.filters{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
+.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word}
+.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding-bottom:22px}.hero.compact h1{font-size:clamp(34px,4.5vw,52px)}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:28px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
 """
 )
 NAV = [
-    ("", "首页", "home"),
-    ("guide/", "报告解读", "guide"),
-    ("changes/", "变更记录", "changes"),
+    ("", "Browser Use", "home"),
     ("datasets/", "评测集", "datasets"),
     ("methodology/", "评测方法", "methodology"),
     ("analysis/", "结果分析", "analysis"),
     ("review/", "核验记录", "review"),
+    ("guide/", "报告解读", "guide"),
     ("adoption/", "方法介绍", "adoption"),
     ("reproduce/", "环境与复现", "reproduce"),
-    ("accounts/", "账号", "accounts"),
+    ("changes/", "变更记录", "changes"),
+    ("accounts/", "账号与安装", "accounts"),
     ("en/", "English", "en"),
 ]
 
@@ -300,7 +471,7 @@ NAV = [
 def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
     local_base = "../" * depth or "./"
     links = "".join(
-        f'<a href="{href}"'
+        f'<a href="{href}"' + (' class="brand"' if key == "home" else "")
         + (' aria-current="page"' if key == active else "")
         + f">{_e(label)}</a>"
         for href, label, key in NAV
@@ -502,9 +673,19 @@ def _artifact_links(attempt_id: str) -> str:
 def _article_body(
     paired: dict[str, Any], attempts: list[dict[str, Any]], tasks: list[dict[str, Any]]
 ) -> str:
-    failures = [[f"#{task_id}", FAILURE_NOTES[task_id]] for task_id in sorted(FAILURE_NOTES)]
+    summary = _primary_summary(attempts)
+    chromium, moli = summary["chromium"], summary["moli"]
+    failures = [
+        [f"#{task_id}", FAILURE_OBSERVATIONS[task_id]]
+        for task_id in sorted(FAILURE_OBSERVATIONS)
+    ]
     return (
-        '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Agent 实测解读</div><h1>25 比 25 不是“内核等价”：它真正暴露的是共同瓶颈</h1><p class="lead">同一 CowAgent 与同一模型替换浏览器后，30 个配对任务没有一个出现单边胜出。这个结果证明对照流程跑通，却没有为内核优劣提供方向性证据。</p><p class="source-note">测量口径：WebArena‑Verified 1.2.3；首轮 pass@1；失败最多一次诊断重试；官方确定性 evaluator；无 LLM judge。</p></header><section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2><p>Chromium 与 Moli 都通过 25/30，首轮成功率都是 83.3%。逐题配对后，25 题共同通过、5 题共同失败，两个浏览器单边通过都是 0。精确 McNemar 双侧 p=1.000，但这里最有解释力的不是 p 值，而是检验没有拿到任何不一致样本。</p>'
+        '<article class="publication-article"><header class="essay-head"><div class="eyebrow">Browser Agent 实测解读</div>'
+        f'<h1>{chromium["passed"]} 比 {moli["passed"]} 不是“内核等价”：当前样本没有产生分歧</h1>'
+        f'<p class="lead">同一 CowAgent 与同一模型替换浏览器后，{paired["paired"]} 个配对任务没有一个出现单边胜出。这个结果证明对照流程跑通，却没有为内核优劣提供方向性证据。</p>'
+        '<p class="source-note">测量口径：WebArena‑Verified 1.2.3；首轮 pass@1；失败最多一次诊断重试；官方确定性 evaluator；无 LLM judge。</p></header>'
+        '<section><h2>一、最重要的结果不是平分，而是零个不一致配对</h2>'
+        f'<p>Chromium 与 Moli 分别通过 {chromium["passed"]}/{chromium["completed"]} 和 {moli["passed"]}/{moli["completed"]}。逐题配对后，{paired["both_pass"]} 题共同通过、{paired["both_fail"]} 题共同失败，两个浏览器单边通过都是 0。精确 McNemar 双侧 p={_probability(paired["mcnemar_exact_p"])}，但这里最有解释力的不是 p 值，而是检验没有拿到任何不一致样本。</p>'
         + _table(
             ["配对结果", "任务数", "可支持的判断"],
             [
@@ -515,13 +696,15 @@ def _article_body(
             ],
             caption="表 1｜30 个首轮任务的逐题配对；重试不并入主分。",
         )
-        + "<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。30 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section><section><h2>二、五个共同失败指向检索聚合与最终状态，不是重试次数</h2><p>失败集中在四个信息聚合任务和一个购物车状态任务。十个失败试次各获得一次重试，恢复数仍为 0。继续增加重试只会提高成本并模糊 pass@1。</p>"
+        + f'<p>严谨表述只能是“本轮没有观察到成功率差异”，不能写成“两种内核等价”。{paired["paired"]} 题对小效应检出力有限；更关键的是，样本没有诱发内核分歧。</p></section>'
+        '<section><h2>二、共同失败是待核验线索，不是已证实根因</h2>'
+        f'<p>{paired["both_fail"]} 个共同失败任务的 {chromium["retry_count"] + moli["retry_count"]} 次诊断重试均未恢复。下表只陈述官方期望与实际结果的差异，不把差异直接归因给 Agent、浏览器或站点。</p>'
         + _table(
             ["任务", "公开诊断"],
             failures,
             caption="表 2｜任务详情公开官方合同、实际回答、逐规则判定与执行轨迹。",
         )
-        + "<p>共同失败不能单独证明模型是唯一根因，因为 CowAgent 提示、工具抽象和步数上限也是共同变量；但它足以改变下一步优先级：先检查跨页收集、去重、范围约束和提交后状态验证。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
+        + "<p>这五题在本轮没有任何成功轨迹，因此当前站点快照的可完成性也未被本报告独立证明。下一步应先做不参与计分的人工或 oracle 可完成性核验，再区分 Agent、工具抽象、步数上限、站点状态和浏览器因素。</p></section><section><h2>三、简单、中等、困难都覆盖了，但“难度”只是操作长度</h2><p>WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8+ 三档，配额 5/10/15。它控制操作链覆盖，不等同于推理难度。</p>"
         + _table(
             ["本项目分层", "Chromium", "Moli"],
             _group_rows(attempts, tasks, "tier"),
@@ -708,7 +891,7 @@ def _failure_inventory(attempts: list[dict[str, Any]], tasks: list[dict[str, Any
                 Safe(f'<a href="datasets/{task_id}.html">任务与两浏览器对照</a>'),
             ]
         )
-    return _table(["首轮试次", "任务", "失败规则", "直接原因", "同题对照"], rows)
+    return _table(["首轮试次", "任务", "失败规则", "记录中的验收差异", "同题对照"], rows)
 
 
 def _engine_attempts(
@@ -742,12 +925,15 @@ def _write_json(path: Path, value: Any) -> None:
 
 def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     selection = load_pilot(selection_path)
-    tasks = _resolve_tasks(selection)
     attempts = _read_attempts(evidence)
     public_attempts = [_public_attempt(r) for r in attempts]
     manifest, config, review = (
         _read_json(evidence / name)
         for name in ("manifest.json", "run-config.json", "result-review.json")
+    )
+    official = (manifest.get("environment") or {}).get("official_evaluator") or {}
+    tasks = _resolve_tasks(
+        selection, expected_data_checksum=str(official.get("data_checksum") or "") or None
     )
     summary, paired = _primary_summary(attempts), _paired_summary(attempts)
     measured_solvable_ids = {
@@ -761,8 +947,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         str(protocol.get("model") or "未记录"),
         str(manifest.get("created_at") or "")[:10] or "未记录",
     )
+    adoption_evidence = _read_json(Path("research/browser-agent-benchmark-adoption.json"))
     parent = output.parent
     parent.mkdir(parents=True, exist_ok=True)
+    marker = output / ".generated-report"
+    if output.exists() and (
+        not marker.is_file() or marker.read_text(encoding="utf-8") != "browser-agent-report/2\n"
+    ):
+        raise ValueError(f"refusing to replace an unmarked report directory: {output}")
     stage = Path(tempfile.mkdtemp(prefix=f".{output.name}-", dir=parent))
     try:
         for folder in (
@@ -778,7 +970,6 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             "adoption",
             "reproduce",
             "accounts",
-            "en",
             "data",
             "artifacts",
         ):
@@ -787,6 +978,19 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         (stage / "assets/report.js").write_text(REPORT_JS, encoding="utf-8")
         article = _article_body(paired, attempts, tasks)
         c, m = summary["chromium"], summary["moli"]
+        c_ci = _wilson_interval(c["passed"], c["completed"]) or (None, None)
+        m_ci = _wilson_interval(m["passed"], m["completed"]) or (None, None)
+        families = _task_family_summary(tasks, attempts)
+        coverage = review.get("coverage") or {}
+        family_cards = "".join(
+            '<article class="overview-card">'
+            f'<span class="tiny">{_e(family["kind"])}</span>'
+            f'<h3>{family["count"]} 个任务</h3>'
+            f'<p>Chromium {family["scores"]["chromium"]}/{family["count"]} · '
+            f'Moli {family["scores"]["moli"]}/{family["count"]}</p>'
+            f'<a href="datasets/?f_kind={_e(family["kind"])}">查看这类任务 →</a></article>'
+            for family in families
+        )
         home = _hero(
             f"Browser Agent Evaluation · {run_date}",
             "同一自主 Agent、同一模型，只替换浏览器",
@@ -794,7 +998,20 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         home += _section(
             "先看结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium pass@1</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])}</p></div><div class="card"><span class="tiny">Moli pass@1</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">失败重试恢复</span><div class="n">{c["recovered"] + m["recovered"]}/{c["retry_count"] + m["retry_count"]}</div><p>不回写主分</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。五个共同失败更值得优先检查 Agent 的跨页聚合与最终状态验证。</p>',
+            f'<div class="result-grid"><div class="card"><span class="tiny">Chromium pass@1</span><div class="n">{c["passed"]}/{c["completed"]}</div><p>{_pct(c["score"])} · 95% CI {_pct(c_ci[0])}–{_pct(c_ci[1])}</p></div><div class="card"><span class="tiny">Moli pass@1</span><div class="n">{m["passed"]}/{m["completed"]}</div><p>{_pct(m["score"])} · 95% CI {_pct(m_ci[0])}–{_pct(m_ci[1])}</p></div><div class="card"><span class="tiny">单边胜出</span><div class="n">{paired["chromium_only"] + paired["moli_only"]}</div><p>{paired["paired"]} 个完整配对</p></div><div class="card"><span class="tiny">失败重试恢复</span><div class="n">{c["recovered"] + m["recovered"]}/{c["retry_count"] + m["retry_count"]}</div><p>不回写主分</p></div></div><p class="callout success"><strong>当前结论：</strong>本轮没有观察到浏览器成功率差异；这证明对照流程可比，不证明两个内核等价。</p><p class="callout failure"><strong>归因边界：</strong>{paired["both_fail"]} 个共同失败任务没有任何成功轨迹。报告只能确认结果未满足官方合同，尚不能证明任务在当前快照可完成，也不能归因给 Agent 或浏览器。</p>',
+        )
+        home += _section(
+            "任务族覆盖",
+            '<p>样本同时包含信息提取、页面导航和状态变更任务；类别来自每题官方最终答案合同。</p>'
+            f'<div class="overview-grid">{family_cards}</div>',
+        )
+        home += _section(
+            "运行与证据是否完整",
+            '<div class="audit-strip">'
+            f'<p class="callout success"><strong>正式调用：</strong>{len(attempts)} 个试次均保留回答、官方 evaluator 结果、Agent 事件和证据哈希；每题每浏览器首轮一次，只有失败任务再诊断重试一次。</p>'
+            f'<p class="callout success"><strong>证据完整性审计：</strong>{coverage.get("reviewed_attempts", 0)}/{coverage.get("recorded_attempts", len(attempts))} 个试次完成确定性一致性检查，{len(review.get("unresolved") or [])} 个未决。它不重新判题，也不是独立语义复核。</p>'
+            f'<p class="callout"><strong>可完成性覆盖：</strong>{len(measured_solvable_ids)}/{len(tasks)} 题至少有一条自主成功轨迹；其余 {len(unproven_ids)} 题仅有官方验收合同。</p>'
+            '</div>',
         )
         home += _section(
             "从结论进入证据",
@@ -812,59 +1029,11 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 ],
                 caption="同一任务的两个首轮结果；重试不参与配对主分。",
             )
-            + '<p class="fine">精确 McNemar 双侧 p=1.000。零个不一致配对意味着当前样本无法估计内核方向性效应。</p>',
+            + f'<p class="fine">精确 McNemar 双侧 p={_probability(paired["mcnemar_exact_p"])}。零个不一致配对意味着当前样本无法估计内核方向性效应。</p><p class="page-links"><a href="analysis/#paired">打开逐题横向对照 →</a></p>',
         )
         (stage / "index.html").write_text(
             _page(title="首页", active="home", body=home), encoding="utf-8"
         )
-
-        english = _hero(
-            f"Browser Agent Evaluation · {run_date}",
-            "One autonomous agent and model; only the browser changes",
-            f"CowAgent with {model} (reasoning=low) ran the same 30 preregistered WebArena-Verified tasks on Chromium and Moli.",
-        )
-        english += '<div id="results"></div>' + _section(
-            "Results",
-            _table(
-                ["Browser", "Primary passes", "pass@1", "Retry recoveries", "Median latency"],
-                [
-                    [
-                        ENGINE_LABELS[engine],
-                        f"{summary[engine]['passed']}/{summary[engine]['completed']}",
-                        _pct(summary[engine]["score"]),
-                        f"{summary[engine]['recovered']}/{summary[engine]['retry_count']}",
-                        (
-                            f"{summary[engine]['median_duration_ms'] / 1000:.1f} s"
-                            if summary[engine]["median_duration_ms"] is not None
-                            else "—"
-                        ),
-                    ]
-                    for engine in ENGINE_LABELS
-                ],
-            )
-            + f'<p class="callout success"><strong>Observed result:</strong> {paired["both_pass"]} tasks passed on both browsers, {paired["both_fail"]} failed on both, and {paired["chromium_only"] + paired["moli_only"]} had a one-browser-only pass. This run found no directional success-rate difference; it does not establish browser equivalence.</p>',
-        )
-        english += '<div id="scope"></div>' + _section(
-            "Scope",
-            "<p>The suite contains 5 easy, 10 medium, and 15 hard project tiers, defined before execution by estimated minimum visible UI actions. These are operation-length strata, not official WebArena difficulty labels. Every primary failure receives at most one diagnostic retry, which never changes pass@1.</p>",
-        )
-        english += '<div id="method"></div>' + _section(
-            "How tasks are judged",
-            "<p>WebArena-Verified does not prescribe one canonical click path. A task passes only when every configured deterministic evaluator scores 1.0: <code>AgentResponseEvaluator</code> checks the normalized final JSON, while <code>NetworkEventEvaluator</code> checks required observable requests or side effects. There is no LLM-as-a-judge and no human score override.</p>",
-        )
-        english += '<div id="evidence"></div>' + _section(
-            "Task and attempt evidence",
-            '<p>Each task page publishes the official evaluation contract, whether this run contains a successful trajectory, every Chromium and Moli result, exact failed assertions, and links to the actual autonomous trajectory. Each attempt page publishes the final response, rule-level expected/actual values, BrowserTool calls, output excerpts, and downloadable sanitized records.</p><div class="page-links"><a href="datasets/">Open 30 tasks</a><a href="analysis/">Open 70 attempts</a><a href="data/selection.json" download>Download task contracts</a><a href="data/evidence-index.json" download>Download evidence index</a></div>',
-        )
-        english += '<div id="review"></div>' + _section(
-            "Independent integrity review",
-            f'<p>{(review.get("coverage") or {}).get("reviewed_attempts", 0)}/{(review.get("coverage") or {}).get("recorded_attempts", 0)} attempts passed deterministic evidence checks, with {len(review.get("disagreements") or [])} score disagreements and {len(review.get("unresolved") or [])} unresolved records. The official evaluator remains the only scoring authority.</p><p><a href="review/">Open the review inventory →</a></p>',
-        )
-        english += '<div id="access"></div>' + _section(
-            "Access, privacy, and reproduction",
-            '<p>The four benchmark sites are self-hosted and reset before each task. Model access is separate. The public bundle includes sanitized responses, evaluator records, events, trajectories, hashes, and runtime identities. Raw HAR and Playwright traces remain private because they may contain cookies and session state.</p><div class="page-links"><a href="accounts/">Account requirements</a><a href="reproduce/">Reproduction and downloads</a><a href="data/publication-privacy.json" download>Privacy manifest</a></div>',
-        )
-        (stage / "en/index.html").write_text(_english_page(english), encoding="utf-8")
 
         guide = (
             _hero(
@@ -907,7 +1076,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         )
         datasets += _section(
             "公开采用信号 Top 3",
-            '<div class="rank-list"><article class="rank-item"><div><h3>Mind2Web 家族 · 5 家</h3><p>OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use。原版是离线动作预测，Online 与 2.0 的目标和判分不同。</p></div></article><article class="rank-item"><div><h3>WebArena 家族 · 3 家</h3><p>OpenAI、Anthropic、THUDM / ChatGLM。自托管、可重置、结果验收，更适合浏览器 A/B。</p></div></article><article class="rank-item"><div><h3>WebVoyager · 2 家</h3><p>OpenAI、Google DeepMind。真实网站直观，但网页漂移与 LLM judge 降低精确复现性。</p></div></article></div><p class="fine">采用次数是公开一手材料中的机构数，不是质量分；未找到 DeepSeek、Kimi 公开的一手 UI browser-use benchmark，不等于内部没有评测。</p>',
+            _adoption_top3(adoption_evidence),
         )
         datasets += (
             _section(
@@ -979,8 +1148,8 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                 "两种浏览器的全部正式试次",
                 _table(["浏览器", "口径", "官方结果", "端到端耗时", "证据"], task_rows)
                 + (
-                    f'<p class="callout failure"><strong>共同失败诊断：</strong>{_e(FAILURE_NOTES[task_id])}</p>'
-                    if task_id in FAILURE_NOTES
+                    f'<p class="callout failure"><strong>已观察到的验收差异：</strong>{_e(FAILURE_OBSERVATIONS[task_id])} 这不是根因归属。</p>'
+                    if task_id in FAILURE_OBSERVATIONS
                     else ""
                 ),
             )
@@ -1160,9 +1329,14 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             + '<p class="fine">耗时包含模型响应、页面等待、站点重置与浏览器执行，不能解释为纯内核速度。</p>',
         )
+        analysis += '<div id="paired"></div>' + _section(
+            "同题首轮关系对比",
+            "<p>每行固定为同一任务的 Chromium 与 Moli 首轮。关系筛选只改变可见行，不产生新分数；步数、模型请求、tokens 和端到端耗时只用于诊断。</p>"
+            + _paired_task_table(tasks, attempts),
+        )
         analysis += _section(
             "首轮失败定位",
-            "<p>两种浏览器在同五题失败。下表不是人工猜测：失败环节来自官方 evaluator，补充说明来自 Agent 最终错误和执行记录。</p>"
+            f'<p>两种浏览器在同 {paired["both_fail"]} 题失败。失败规则来自官方 evaluator；补充文字只复述期望、实际值和记录中的错误，不代表已确认根因。</p>'
             + _failure_inventory(attempts, tasks),
         )
         analysis += _section(
@@ -1217,7 +1391,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             )
             detail += _section(
                 "结果与运行",
-                f'<div class="detail-grid"><div class="kv"><b>官方结果</b>{_status(row)}</div><div class="kv"><b>失败定位</b>{_e(_failure_diagnosis(evaluation_record, row))}</div><div class="kv"><b>自主操作</b>{len(steps)} 次 BrowserTool 调用</div><div class="kv"><b>端到端耗时</b>{_seconds(public["duration_ms"])}</div><div class="kv"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div><div class="kv"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div><div class="kv"><b>传输错误</b>{public["transport_error_count"]}</div><div class="kv"><b>证据复核</b>{_e(item.get("outcome") or "未记录")}</div></div>',
+                f'<div class="detail-grid"><div class="kv"><b>官方结果</b>{_status(row)}</div><div class="kv"><b>失败定位</b>{_e(_failure_diagnosis(evaluation_record, row))}</div><div class="kv"><b>自主操作</b>{len(steps)} 次 BrowserTool 调用</div><div class="kv"><b>端到端耗时</b>{_seconds(public["duration_ms"])}</div><div class="kv"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div><div class="kv"><b>模型请求</b>{usage["request_count"]} 次调用 / {usage["request_attempt_count"]} 次传输尝试</div><div class="kv"><b>传输错误</b>{public["transport_error_count"]}</div><div class="kv"><b>Run ID</b>{_e(public["run_id"] or "未记录")}</div><div class="kv"><b>证据完整性审计</b>{_e(item.get("outcome") or "未记录")}</div></div>',
             )
             detail += '<div id="comparison"></div>' + _section(
                 "Ground truth 与实际最终回答",
@@ -1282,13 +1456,13 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
             for x in review.get("attempts") or []
         ]
         review_page = _hero(
-            "Result review",
-            "70/70 个试次均完成确定性证据复核",
-            "复核不重新判题，也不是 LLM-as-a-judge；官方 evaluator 仍是唯一成绩来源。",
+            "Evidence integrity audit",
+            f'{coverage.get("reviewed_attempts", 0)}/{coverage.get("recorded_attempts", len(attempts))} 个试次完成证据完整性审计',
+            "这是确定性记录一致性检查，不是独立语义复核，也不是 LLM-as-a-judge；官方 evaluator 仍是唯一成绩来源。",
         )
         review_page += _section(
-            "核验结论",
-            f'<div class="result-grid"><div class="card"><span class="tiny">记录试次</span><div class="n">{coverage.get("recorded_attempts", 0)}</div></div><div class="card"><span class="tiny">已复核</span><div class="n">{coverage.get("reviewed_attempts", 0)}</div></div><div class="card"><span class="tiny">记分分歧</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>检查回答、HAR、Agent trace、事件和 evaluator 明细是否存在，并核对哈希、分数、状态、官方版本和模型传输尝试。</p>',
+            "审计结论",
+            f'<div class="result-grid"><div class="card"><span class="tiny">记录试次</span><div class="n">{coverage.get("recorded_attempts", 0)}</div></div><div class="card"><span class="tiny">已审计</span><div class="n">{coverage.get("reviewed_attempts", 0)}</div></div><div class="card"><span class="tiny">记录不一致</span><div class="n">{len(review.get("disagreements") or [])}</div></div><div class="card"><span class="tiny">未决</span><div class="n">{len(review.get("unresolved") or [])}</div></div></div><p>检查回答、HAR、Agent trace、事件和 evaluator 明细是否存在，并核对哈希、分数、状态、官方版本和模型传输尝试。</p><p class="callout"><strong>没有执行的工作：</strong>本轮没有第二名人工或模型对任务结果做盲审，因此不能把本页称为“独立结果复核”。</p>',
         )
         review_page += _section(
             "复核协议",
@@ -1420,7 +1594,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
         accounts = _hero(
             "Accounts",
             "本地站点账号、模型权限与发布权限分开处理",
-            "这里只说明权限边界，不展示密钥、Cookie、用户名或个人信息。",
+            "不展示密钥、Cookie 或真实个人信息；官方合同中的内置测试邮箱和用户名作为合成 ground truth 保留。",
         ) + _section(
             "权限与费用",
             _table(
@@ -1455,7 +1629,7 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                         for e in ENGINE_LABELS
                     },
                 },
-                {"claim": "五个失败完全重合", "basis": sorted(FAILURE_NOTES)},
+                {"claim": "首轮失败任务完全重合", "basis": sorted(FAILURE_OBSERVATIONS)},
             ],
             "bound_attempts_sha256": _sha256(evidence / "attempts.jsonl"),
             "selection_sha256": selection.sha256,
@@ -1590,12 +1764,27 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
                     "local service origins replaced with benchmark URL placeholders",
                     "machine-local filesystem paths",
                 ],
+                "retained_test_fixtures": [
+                    "synthetic usernames and email addresses that are part of official task contracts",
+                    "public benchmark task identifiers and expected values",
+                ],
             },
         )
+        write_english_report(stage)
         (stage / ".generated-report").write_text("browser-agent-report/2\n", encoding="utf-8")
+        backup: Path | None = None
         if output.exists():
-            shutil.rmtree(output)
-        stage.rename(output)
+            backup = Path(tempfile.mkdtemp(prefix=f".{output.name}-backup-", dir=parent))
+            backup.rmdir()
+            output.rename(backup)
+        try:
+            stage.rename(output)
+        except Exception:
+            if backup is not None and backup.exists() and not output.exists():
+                backup.rename(output)
+            raise
+        if backup is not None:
+            shutil.rmtree(backup)
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise

@@ -19,6 +19,15 @@ const rows = [
   {dataset: {tier: 'easy', result: 'pass', engine: 'chromium'}, textContent: 'complete'},
 ];
 const count = {textContent: ''};
+const pairControls = [
+  {dataset: {pairFilter: 'relation'}, value: 'both_fail', addEventListener() {}},
+];
+const pairedRows = [
+  {dataset: {relation: 'both_fail'}},
+  {dataset: {relation: 'chromium_only'}},
+  {dataset: {relation: 'moli_only'}},
+];
+const pairCount = {textContent: ''};
 const listeners = {};
 const storage = new Map();
 let replaced = '';
@@ -36,6 +45,9 @@ const document = {
     if (selector === '[data-search]') return [search];
     if (selector === 'tbody tr[data-tier]') return rows;
     if (selector === '[data-visible-count]') return [count];
+    if (selector === '[data-pair-filter]') return pairControls;
+    if (selector === '#pair-rows tr') return pairedRows;
+    if (selector === '[data-pair-count]') return [pairCount];
     return [];
   },
   querySelector(selector) { return selector === '[data-search]' ? search : null; },
@@ -64,6 +76,13 @@ assert.equal(search.value, 'missing');
 assert.equal(controls[0].value, 'fail');
 assert.deepEqual(rows.map(row => row.hidden), [false, true]);
 assert.equal(count.textContent, '1 / 2');
+assert.deepEqual(pairedRows.map(row => row.hidden), [false, true, true]);
+assert.equal(pairCount.textContent, '找到 1 个配对任务');
+
+pairControls[0].value = 'discordant';
+vm.runInContext('pairRows()', context);
+assert.deepEqual(pairedRows.map(row => row.hidden), [true, false, false]);
+assert.match(replaced, /p_relation=discordant/);
 
 controls[0].value = 'pass';
 search.value = '';

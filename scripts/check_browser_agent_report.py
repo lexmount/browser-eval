@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from harness.browser_agent.selection import load_pilot
@@ -34,7 +35,6 @@ def check(
         "adoption/index.html",
         "reproduce/index.html",
         "accounts/index.html",
-        "en/index.html",
         "engines/chromium.html",
         "engines/moli.html",
     )
@@ -62,6 +62,10 @@ def check(
             else []
         )
     )
+    chinese_pages = (*pages, *task_pages, *attempt_pages)
+    english_pages = tuple(
+        report_dir / "en" / page.relative_to(report_dir) for page in chinese_pages
+    )
     data_files = tuple(
         report_dir / "data" / name
         for name in (
@@ -87,7 +91,13 @@ def check(
     )
     if not all(
         path.is_file()
-        for path in (*pages, *task_pages, *attempt_pages, *data_files, *artifact_files, audit_path)
+        for path in (
+            *chinese_pages,
+            *english_pages,
+            *data_files,
+            *artifact_files,
+            audit_path,
+        )
     ):
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
@@ -123,8 +133,10 @@ def check(
                     f"retry is allowed only after a failed primary: {(engine, task_id)}"
                 )
     rendered_pages = {
-        page: page.read_text(encoding="utf-8") for page in (*pages, *task_pages, *attempt_pages)
+        page: page.read_text(encoding="utf-8") for page in (*chinese_pages, *english_pages)
     }
+    if any('<html lang="en">' not in rendered_pages[page] for page in english_pages):
+        raise ValueError("every Chinese report route must have an English mirror")
     if task_pages and any(
         "Ground truth · 官方验收合同" not in rendered_pages[page]
         or "参考状态 · 当前环境是否有成功路径证据" not in rendered_pages[page]
@@ -149,9 +161,10 @@ def check(
     standalone = (report_dir / "guide/article.html").read_text(encoding="utf-8")
     if "<script" in standalone or "assets/" in standalone:
         raise ValueError("standalone article must be self-contained and JavaScript-free")
+    article_heading = "不是“内核等价”：当前样本没有产生分歧"
     if (
-        "25 比 25 不是“内核等价”" not in standalone
-        or "25 比 25 不是“内核等价”" not in rendered_pages[report_dir / "guide/index.html"]
+        article_heading not in standalone
+        or article_heading not in rendered_pages[report_dir / "guide/index.html"]
     ):
         raise ValueError(
             "dashboard guide and standalone article must share the authored interpretation"
@@ -183,6 +196,21 @@ def check(
             raise ValueError("complete evidence requires manifest.json and run-config.json")
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         run_config = json.loads(run_config_path.read_text(encoding="utf-8"))
+        profile = json.loads(
+            Path("evaluation/browser-agent/current-report.json").read_text(encoding="utf-8")
+        )
+        official = (manifest.get("environment") or {}).get("official_evaluator") or {}
+        expected_profile = {
+            "selection_sha256": selection.sha256,
+            "model": (manifest.get("protocol") or {}).get("model"),
+            "reasoning_effort": (manifest.get("protocol") or {}).get("reasoning_effort"),
+            "official_data_checksum": official.get("data_checksum"),
+        }
+        for key, expected in expected_profile.items():
+            if profile.get(key) != expected:
+                raise ValueError(f"current report profile mismatch for {key}")
+        if profile.get("engines") != ["chromium", "moli"]:
+            raise ValueError("current report profile must bind the two browser engines")
         if manifest.get("selection_sha256") != selection.sha256:
             raise ValueError("manifest selection hash differs from the registered cohort")
         if run_config.get("selection_sha256") != selection.sha256:
@@ -253,6 +281,14 @@ def check(
                     raise ValueError(
                         f"published evidence contains a secret or local origin: {path}"
                     )
+                risky_patterns = (
+                    r"/Users/[^/\s<]+/",
+                    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+                    r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
+                    r"\bsk-[A-Za-z0-9_-]{12,}",
+                )
+                if any(re.search(pattern, text, flags=re.I) for pattern in risky_patterns):
+                    raise ValueError(f"published evidence contains sensitive text: {path}")
 
 
 def main() -> None:

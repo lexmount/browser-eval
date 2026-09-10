@@ -47,5 +47,5 @@ browser-agent-review: runtime-check
 
 browser-agent-report-check: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/check_browser_agent_report.py reports/browser-agent --evidence "$(EVIDENCE)"
+	$(PY) scripts/check_browser_agent_report.py reports/browser-agent --evidence "$(EVIDENCE)" --require-complete
 	$(PY) scripts/check_report_links.py reports/browser-agent

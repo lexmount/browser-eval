@@ -112,7 +112,6 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path) -> None:
                     "webarena_verified_version": "1.2.3",
                     "official_evaluator": {
                         "evaluator_checksum": "eval-checksum",
-                        "data_checksum": "data-checksum",
                     },
                     "browser_versions": {
                         "chromium": {"Browser": "Chrome/151"},
