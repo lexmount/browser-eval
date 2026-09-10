@@ -79,11 +79,11 @@ The complete run and report are code-driven: `run.sh` writes raw
 To recalculate all metrics and HTML from existing raw attempts without running
 the browsers again:
 
-    uv run python examples/browser_use/rebuild_report.py
+    uv run --frozen python examples/browser_use/rebuild_report.py
 
 Independent raw-data audit (does not import the aggregation implementation):
 
-    uv run python examples/browser_use/verify_metrics.py --artifacts artifacts/browser_use/latest
+    uv run --frozen python examples/browser_use/verify_metrics.py --artifacts artifacts/browser_use/latest
 
 `run.sh` runs this audit automatically. It checks correctness counts, the
 successful-task intersection, 81 aggregate/ratio metric groups, and every

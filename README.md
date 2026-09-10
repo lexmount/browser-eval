@@ -8,12 +8,14 @@ The first backend compares warm local Chromium and Moli in equal, isolated
 Docker cgroups. It does not require Codex, another coding agent, an LLM API key,
 website accounts, or login state.
 
-## Latest report
+## Latest reports
 
-[Chromium 与 Moli 浏览器工具调用评测](https://artifact-hub.dev.lexmount.net/s/zzzUqvSKjTFB)
+[Web Fetch 与浏览器轨迹评测](https://artifact-hub.app.lexmount.com/s/UUAhhQMnrGwm)
 
-This stable Sites link opens the latest published version. Generated report
-files are local build outputs and are not committed to this repository.
+This stable Artifact Hub link opens the current report library. The existing 30 browser-use cases
+are deterministic tool microbenchmarks. The library also contains the separate formal comparison
+that replays qualified official WebArena human trajectories; the two denominators are never merged.
+Generated report files are local build outputs and are not committed to this repository.
 
 ## Run the browser evaluation
 

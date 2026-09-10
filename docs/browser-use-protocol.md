@@ -220,6 +220,23 @@ included. Resource comparisons use only task pairs that both engines pass on the
 The repository-curated suite and public WebArena suite remain separate report tracks and never
 share a success-rate denominator.
 
+Run the frozen eligible subset against both engines. The loader admits only tasks already marked
+`eligible`; skipped candidates remain in the canonical suite for audit but never enter the formal
+denominator:
+
+```text
+uv run --frozen python -m harness.browser_use.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --engines chromium,moli --failure-retries 1 --output <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
+```
+
+After the run, audit the physical-attempt matrix and rebuild the current HTML from the immutable raw
+attempts. Rebuilding accepts the manifest-selected subset but fails if any attempt task lies outside
+the suite or differs from the manifest:
+
+```text
+uv run --frozen python examples/browser_use/verify_metrics.py --artifacts <evidence>/formal/webarena-public-trajectories/run
+uv run --frozen python examples/browser_use/rebuild_report.py --suite evaluation/browser-use-public/webarena-human-suite.json --artifacts <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
+```
+
 ## Operator sequence
 
 Download and audit all public traces, then build the common suite:
