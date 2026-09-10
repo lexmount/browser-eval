@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 from string import Template
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from .metrics import evaluate_content, task_passed, percentile
 from .scoring import score_attempt
@@ -275,6 +275,55 @@ def _table(headers, rows, caption):
             '<tbody>' + body + '</tbody></table></div>')
 
 
+def _speed_comparison(out):
+    """Render the bound speed cohort without changing its declared denominator."""
+    path = contained_path(out, 'speed-cohort/speed-comparison.json')
+    if not path.is_file():
+        return '', '', None
+    speed = json.loads(path.read_text())
+    rows = speed.get('rows', [])
+    planned_cases = speed.get('planned_cases', [])
+    common_cases = speed.get('common_pass_cases', [])
+    provider_count = len(speed.get('providers') or rows)
+
+    def num(value):
+        return '—' if value is None else f'{value:,.0f}'
+
+    if speed.get('schema_version', 1) == 1:
+        table = _table(['方法', '共同成功样本', 'P50 ms', '样本 P95 ms'], [
+            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+             str(row['attempts']), num(row['p50_ms']), num(row['p95_ms']))
+            for row in rows],
+            f'同窗速度子集：预先声明 {len(planned_cases)} 题，{provider_count} 种方法共同通过 '
+            f'{len(common_cases)} 题；所有方法使用完全相同的成功样本。P95 只作本次样本诊断。')
+        note = (f'<p class="callout">这份旧版测速汇总只使用 {len(common_cases)}/{len(planned_cases)} 个全部 '
+                f'{provider_count} 种方法共同通过的同窗任务；它保留原报告的共同成功样本口径，'
+                '不能补充解释失败等待，也不能与跨批次主结果直接排名。</p>')
+        return table, note, speed
+
+    if speed.get('schema_version') != 2:
+        raise ValueError(f'Unsupported speed-comparison schema: {speed.get("schema_version")}')
+    max_observations = max((row.get('planned_attempts', 0) for row in rows), default=0)
+    total_calls = sum(row.get('planned_attempts', 0) for row in rows)
+    table = _table(
+        ['方法', '计划调用', '任务通过', '通过率', '全调用 P50 ms', '全调用 P95 ms',
+         '通过调用 P50 ms', '通过调用 P95 ms'], [
+            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+             str(row['planned_attempts']), str(row['successful_attempts']),
+             _percent(row['task_pass_rate']), num(row['all_calls_p50_ms']),
+             num(row['all_calls_p95_ms']), num(row['successful_calls_p50_ms']),
+             num(row['successful_calls_p95_ms']))
+            for row in rows],
+        f'同窗速度子集：预先声明 {len(planned_cases)} 题，{provider_count} 种方法使用同一完整任务样本。'
+        '全调用耗时包含成功、失败和截止超时；通过调用耗时按各方法自己的成功子集计算，分母必须同时阅读。'
+        f'每种方法最多 {max_observations} 个单次观察，P95 只作本次样本诊断。')
+    note = (f'<p class="callout">全部 {provider_count} 种方法共同通过 '
+            f'{len(common_cases)}/{len(planned_cases)} 题；共同通过数只作诊断，不用于筛选测速样本。'
+            f'报告保留预声明的全部 {total_calls} 次调用，不按结果重新选题；全调用耗时可在相同分母下阅读，'
+            '通过调用耗时只描述各方法的条件分布，不能解释为同题速度排名。</p>')
+    return table, note, speed
+
+
 def _price_experiment(out, cases, records):
     sample = next((r for r in records if r['provider'] == 'cowagent-built-in'
                    and r['case_id'] == 'ecommerce-list'), None)
@@ -466,8 +515,6 @@ def _render_headless(out, cases, records):
     data = headless_evidence(cases, records)
     audit_path=contained_path(out,'result-review.json')
     audit=json.loads(audit_path.read_text()) if audit_path.is_file() else None
-    speed_audit_path=contained_path(out,'speed-cohort/result-review.json')
-    speed_audit=json.loads(speed_audit_path.read_text()) if speed_audit_path.is_file() else None
     data['independent_result_audit']=audit
     provenance={}
     provenance_path=contained_path(out,'implementation-provenance.json')
@@ -485,13 +532,9 @@ def _render_headless(out, cases, records):
     latency = _table(['浏览器','网页请求成功','网页任务通过','全部网页 P50 ms','全部网页 P95 ms'],[
         (escape(PROVIDER_NAMES.get(name,name)),str(row['request_ok']),str(row['passed']),num(row['p50_ms']),num(row['p95_ms']))
         for name,row in data['tracks']['web']['providers'].items()], '普通网页全部调用，包含失败及超时；分位数与完整榜单共用仓库的线性插值实现。')
-    speed_path=contained_path(out,'speed-cohort/speed-comparison.json')
-    if speed_path.is_file():
-        speed=json.loads(speed_path.read_text())
-        latency=_table(['方法','共同成功样本','P50 ms','样本 P95 ms'],[
-            (escape(PROVIDER_NAMES.get(row['provider'],row['provider'])),str(row['attempts']),num(row['p50_ms']),num(row['p95_ms']))
-            for row in speed['rows']],f'同窗速度子集：预先声明 {len(speed["planned_cases"])} 题，{len(speed["rows"])} 种方法共同通过 {len(speed["common_pass_cases"])} 题；所有方法使用完全相同的成功样本。样本少于 20 时，P95 只作本次样本诊断，不视为稳定尾延迟。')
-        pairs='<p class="callout">速度仅使用 '+str(len(speed['common_pass_cases']))+'/'+str(len(speed['planned_cases']))+' 个全部 '+str(len(speed['rows']))+' 种方法共同通过的同窗任务；这是小样本探索性比较。主结果中的跨批次耗时只作逐次诊断，不参与此表排名。</p>'
+    speed_table, speed_note, speed = _speed_comparison(out)
+    if speed:
+        latency, pairs = speed_table, speed_note
     dynamic = _table(['任务',*data['providers']], [
         (_link('datasets/'+cid+'.html',cases[cid]['name']), *('通过' if cid in data['tracks']['dynamic']['providers'].get(n,{}).get('pass_ids',[]) else '未通过' for n in data['providers']))
         for cid in sorted(cases) if cases[cid].get('track')=='dynamic'], '动态网页逐例验收。延迟、异步取数与 iframe 分别检查；固定 DOMContentLoaded 不是内容完成判据。')
@@ -512,31 +555,33 @@ def _render_headless(out, cases, records):
     moli_names=['moli-1.0.6','moli','moli-1.1.3']
     moli_comparison=''
     if all(name in data['providers'] for name in moli_names):
-        totals={name:sum(data['tracks'][track]['providers'][name]['passed'] for track in TRACK_NAMES) for name in moli_names}
-        documents={name:data['tracks']['document']['providers'][name]['passed'] for name in moli_names}
+        totals={name:sum(data['tracks'][track]['providers'].get(name,{}).get('passed',0) for track in TRACK_NAMES) for name in moli_names}
+        total_attempts={name:sum(data['tracks'][track]['providers'].get(name,{}).get('attempts',0) for track in TRACK_NAMES) for name in moli_names}
+        documents={name:data['tracks']['document']['providers'].get(name,{'passed':0,'attempts':0}) for name in moli_names}
         moli_comparison=(
             '<p class="callout"><b>Moli 版本结论：</b>三版使用相同路线；当前总通过数为 '
-            f'Moli 1.0.6 {totals["moli-1.0.6"]}/150、Moli 1.1.1 {totals["moli"]}/150、Moli 1.1.3 {totals["moli-1.1.3"]}/150，'
-            f'文档正文分别为 {documents["moli-1.0.6"]}/10、{documents["moli"]}/10、{documents["moli-1.1.3"]}/10。'
+            f'Moli 1.0.6 {totals["moli-1.0.6"]}/{total_attempts["moli-1.0.6"]}、'
+            f'Moli 1.1.1 {totals["moli"]}/{total_attempts["moli"]}、'
+            f'Moli 1.1.3 {totals["moli-1.1.3"]}/{total_attempts["moli-1.1.3"]}，'
+            f'文档正文分别为 {documents["moli-1.0.6"]["passed"]}/{documents["moli-1.0.6"]["attempts"]}、'
+            f'{documents["moli"]["passed"]}/{documents["moli"]["attempts"]}、'
+            f'{documents["moli-1.1.3"]["passed"]}/{documents["moli-1.1.3"]["attempts"]}。'
             '本轮没有显示版本越新通过越多。三轮独立配对诊断中，document-03 两版均为 3/3；challenge-01 的 1.1.1 为 1/3、1.1.3 为 0/3，且失败均为空响应。'
             '另对正式时延差异最大的四题做三轮顺序轮换复测：1.1.3 相对 1.1.1 的各题中位数从快 6% 到慢 18%，区间大量重叠；本地固定页五轮中位数则为 57 ms 对 56 ms。'
             '这说明公网长尾主要发生在原生抓取与页面等待阶段，可能仍含版本策略差异，但尚不能归因为核心性能普遍回退。纠正后的主榜对三版相同四题统一采用第三轮计时，不按最快结果挑选；此前计时及全部三轮仍由纠正收据绑定。</p>')
     if audit:
         reviewer=audit.get('reviewer',{})
-        reviewed=audit.get('reviewed_attempts',0)+(speed_audit or {}).get('reviewed_attempts',0)
-        expected=audit.get('expected_attempts',0)+(speed_audit or {}).get('expected_attempts',0)
-        disagreements=audit.get('disagreements',0)+(speed_audit or {}).get('disagreements',0)
         main_subject='自动失败项' if audit.get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出'
-        speed_subject=('自动失败项' if (speed_audit or {}).get('review_protocol',{}).get('scope')=='machine-failures' else '全部输出')
-        scopes=(f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}' +
-                (f'；同窗测速{speed_subject} {speed_audit.get("reviewed_attempts",0)}/{speed_audit.get("expected_attempts",0)}' if speed_audit else ''))
+        scopes=f'主结果{main_subject} {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}'
         revision=audit.get('review_protocol',{}).get('scoring_rule_revision_review') or {}
         revision_note=(f'评分规则修订涉及 {revision.get("reviewed_attempts",0)} 条输出，已另行盲审；'
                        if revision else '')
-        review_summary=(f'{scopes}；未决 {audit.get("unresolved",0)+(speed_audit or {}).get("unresolved",0)}。'
-            '成功项与失败项均已逐条独立核验，轮次与修正见“核验记录”。')
+        review_summary=(f'{scopes}；机器通过未逐条审查 '
+            f'{audit.get("accepted_unreviewed_passes",0)}；未决 {audit.get("unresolved",0)}。'
+            '轮次与修正见“核验记录”。')
     else:review_summary='本报告没有绑定独立结果核验记录。'
     values={'title':HEADLESS_TITLE,'attempts':str(data['attempts']),'cases':str(data['cases']),
+        'track_count':str(sum(bool(data['tracks'][track]['cases']) for track in TRACK_NAMES)),
         'providers':str(len(data['providers'])),'review_summary':escape(review_summary),'runtime':runtime,
         'moli_comparison':moli_comparison,
         'time_window':escape(' 至 '.join(datetime.fromisoformat(t).astimezone(timezone.utc).strftime('%Y-%m-%d %H:%M:%S') for t in data['time_window'])),'overview':overview,
@@ -612,6 +657,22 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
         (TRACK_NAMES[k], str(v['case_count']), str(len(v['providers'])), escape(_window_text(v['time_window'])))
         for k, v in tracks.items() if v['case_count']],
         '样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照')
+    speed_table, speed_note, speed = _speed_comparison(out)
+    data['same_window_speed'] = speed
+    values['speed_section'] = (
+        '<section id="speed"><h2>同一时间窗的速度怎样读</h2>'
+        '<p>主结果来自不同批次，耗时只用于逐次诊断；下面单列预先声明的同窗子集。'
+        '全调用统计保留失败与截止超时，回答完整任务队列要等多久；通过调用统计只描述各方法已通过任务，'
+        '成功分母可能不同，不能单独拿来排同题速度。</p>' + speed_note + speed_table
+        + '<p>' + _link('speed-cohort/speed-comparison.json', '速度汇总与样本分母') + '与'
+        + _link('speed-cohort/results.jsonl', '测速逐次记录') + '保留可复核证据。</p></section>'
+        if speed else '')
+    focused_hosts = {'github.com', 'docs.python.org'}
+    focused_cases = sum(urlsplit(case.get('url', '')).hostname in focused_hosts
+                        for case in cases.values() if case.get('track', 'web') == 'web')
+    values['web_sample_scope'] = (
+        f'{web["case_count"]} 个普通网页中，GitHub 与 Python 官方文档占 {focused_cases} 个，'
+        '样本偏向技术文档')
     wm = web['providers'].get('moli-webfetch')
     dm = tracks['dynamic']['providers'].get('moli-webfetch')
     values['lead'] = (f'同一配置的 Moli，在静态网站正文任务中通过 {wm["task_pass"]}/{wm["records"]}，'

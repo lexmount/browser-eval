@@ -106,9 +106,10 @@ def evaluate_resources(
     answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
     candidates = _metadata_resource_urls(answer_fields) if eligible else []
     if eligible:
+        from .reference_quality import markdown_link_destinations
         candidates.extend(re.findall(r"https?://[^\s<>'\")\]]+", content))
         candidates.extend(match[1] for match in re.findall(r"(?:src|href)\s*=\s*([\"'])(.*?)\1", content, re.I))
-        candidates.extend(re.findall(r"\[[^\]]*\]\(([^)]+)\)", content))
+        candidates.extend(markdown_link_destinations(content))
         candidates.extend(_visible_relative_resource_urls(content))
     normalized_candidates = sorted({url for item in candidates if (url := normalize_resource_url(item, base_url))})
     normalized_candidates = [url for url in normalized_candidates if url != normalize_resource_url(base_url,base_url)]
@@ -240,6 +241,7 @@ def evaluate_content(
     content: str,
     expected: list[str],
     *,
+    title: str | None = None,
     required_facts: list[dict[str, Any]] | None = None,
     forbidden_any: list[str] | None = None,
     min_content_chars: int = 1,
@@ -251,8 +253,9 @@ def evaluate_content(
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
 ) -> dict[str, Any]:
-    replacement_count, replacement_ratio, encoding_corruption = text_corruption(content)
-    folded = normalize_for_match(content)
+    answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
+    folded = normalize_for_match(answer_text)
     matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
@@ -283,7 +286,7 @@ def evaluate_content(
         reference_exemptions = []
     forbidden = [item for item in (forbidden_any or [])
                  if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
-    lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in content.splitlines()]
+    lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
@@ -292,15 +295,15 @@ def evaluate_content(
                     and not forbidden and not encoding_corruption)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], content, re.I)))
+        count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
-    body_checks = evaluate_body_requirements(content, body_requirements or {})
+    body_checks = evaluate_body_requirements(answer_text, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
-        word_precision, word_recall, word_f1 = word_overlap(content, ground_truth_main_content)
+        word_precision, word_recall, word_f1 = word_overlap(answer_text, ground_truth_main_content)
     result = {
         **body_checks,
         "content_pass": content_pass,
@@ -321,6 +324,7 @@ def evaluate_content(
         "minimum_content_chars": min_content_chars,
         "length_pass": length_pass,
         "content_chars": len(content),
+        "title_chars": len(title or ''),
         "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
         "unique_line_ratio": unique_line_ratio,
         "markdown_headings": len(re.findall(r"(?m)^#{1,6}\s+", content)),
@@ -341,7 +345,7 @@ def evaluate_content(
     }
     if acceptance_contract:
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(content, acceptance_contract, base_url, links=named_links))
+        result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

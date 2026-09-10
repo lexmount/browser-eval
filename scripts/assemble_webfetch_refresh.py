@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -20,9 +21,10 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.reference_lifecycle import (  # noqa: E402
     require_verified_reference_checks,
 )
-from harness.web_fetch.result_review import require_result_review  # noqa: E402
 from harness.web_fetch.safety import contained_path, validate_report_ids  # noqa: E402
 from scripts.assemble_headless import _prune_shadowed_batch_attempts  # noqa: E402
+from scripts.package_headless_speed import build_summary as build_speed_summary  # noqa: E402
+from scripts.run_benchmark import artifact_bindings  # noqa: E402
 
 
 def _sha256(path: Path) -> str:
@@ -134,25 +136,9 @@ def _validate_record_identity(
             )
 
 
-def _artifact_bindings(row: dict) -> list[tuple[str, str]]:
-    metrics = row.get("metrics", {})
-    result = [(row.get("artifact_path"), metrics.get("content_sha256"))]
-    metadata = row.get("provider_metadata", {})
-    for path_key, hash_key in (
-        ("rendered_html_path", "rendered_html_sha256"),
-        ("raw_stdout_path", "raw_stdout_sha256"),
-    ):
-        if metadata.get(path_key):
-            result.append((metadata[path_key], metadata.get(hash_key)))
-    for delivered in metadata.get("file_evaluation", {}).get("files", []):
-        if delivered.get("artifact_path"):
-            result.append((delivered["artifact_path"], delivered.get("sha256")))
-    return result
-
-
 def _verify_artifacts(root: Path, rows: list[dict]) -> None:
     for row in rows:
-        for relative, digest in _artifact_bindings(row):
+        for relative, digest in artifact_bindings(row):
             if not isinstance(relative, str) or not isinstance(digest, str) or len(digest) != 64:
                 raise ValueError(f"Incomplete artifact binding: {row.get('attempt_id')}")
             source = contained_path(root, relative)
@@ -210,8 +196,34 @@ def _require_canonical_cases(
             # Independently refreshed short batches may have different capture
             # timestamps while binding the exact same reference bytes and task
             # contract.  Every other source-verification field remains strict.
-            incoming.get("source_verification", {}).pop("checked_at", None)
-            canonical.get("source_verification", {}).pop("checked_at", None)
+            # These fields describe the independent capture instance rather
+            # than the frozen evaluation contract. The reference lifecycle
+            # separately binds and verifies their exact bytes and timing.
+            for verification in (
+                incoming.get("source_verification", {}),
+                canonical.get("source_verification", {}),
+            ):
+                status = verification.get("http_status")
+                if status is not None and (type(status) is not int or not 100 <= status <= 599):
+                    raise ValueError(f"{label} has malformed capture HTTP status: {case_id}")
+                for field in (
+                    "reference_sha256",
+                    "source_snapshot_sha256",
+                    "extracted_reference_sha256",
+                ):
+                    digest = verification.get(field)
+                    if digest is not None and (
+                        not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                    ):
+                        raise ValueError(f"{label} has invalid capture hash: {case_id}/{field}")
+            for field in (
+                "checked_at",
+                "http_status",
+                "source_snapshot_sha256",
+                "extracted_reference_sha256",
+            ):
+                incoming.get("source_verification", {}).pop(field, None)
+                canonical.get("source_verification", {}).pop(field, None)
         if incoming != canonical:
             raise ValueError(f"{label} case/reference binding differs from canonical: {case_id}")
 
@@ -219,7 +231,7 @@ def _require_canonical_cases(
 def _copy_artifacts(output: Path, selections: list[tuple[dict, Path]]) -> None:
     copied: dict[str, str] = {}
     for row, root in selections:
-        for relative, digest in _artifact_bindings(row):
+        for relative, digest in artifact_bindings(row):
             if relative in copied:
                 if copied[relative] != digest:
                     raise ValueError(f"Selected artifacts collide with different bytes: {relative}")
@@ -229,6 +241,46 @@ def _copy_artifacts(output: Path, selections: list[tuple[dict, Path]]) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
             copied[relative] = digest
+
+
+def _copy_speed_bundle(
+    source: Path, target: Path, dataset: dict, rows: list[dict], batches: list[dict]
+) -> None:
+    """Copy only reviewed speed evidence; worker scratch trees are never publishable."""
+    if source.is_symlink():
+        raise ValueError("Speed cohort root must not be a symlink")
+    for child in source.rglob("*"):
+        if child.is_symlink():
+            raise ValueError(f"Speed cohort contains a symlink: {child.relative_to(source)}")
+    allowed = {
+        "dataset.json", "results.jsonl", "execution.json",
+        "result-review.json", "speed-comparison.json",
+    }
+    for row in rows:
+        allowed.update(relative for relative, _ in artifact_bindings(row))
+    for batch in batches:
+        evidence = batch.get("reference_checks", {}).get("postcheck", {}).get("evidence_path")
+        if evidence:
+            allowed.add(evidence)
+    for case in dataset.get("cases", []):
+        case_id = case["id"]
+        source_dir = contained_path(source, f"sources/{case_id}")
+        if source_dir.is_dir():
+            allowed.update(
+                child.relative_to(source).as_posix()
+                for child in source_dir.rglob("*") if child.is_file()
+            )
+        reference = contained_path(source, f"list-references/{case_id}.json")
+        if reference.is_file():
+            allowed.add(reference.relative_to(source).as_posix())
+    target.mkdir(parents=True)
+    for relative in sorted(allowed):
+        source_file = contained_path(source, relative)
+        if not source_file.is_file():
+            raise ValueError(f"Speed cohort allowlisted file is missing: {relative}")
+        target_file = contained_path(target, relative)
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, target_file)
 
 
 def _bundle_identity(root: Path, execution_path: Path) -> dict:
@@ -393,8 +445,24 @@ def _assemble(
     _speed_batches, speed_execution = _validate_source_batches(
         speed_cohort, speed_dataset, speed_rows, references=True
     )
-    if speed_plan.get("require_independent_result_review") is True:
-        require_result_review(speed_cohort, speed_dataset, speed_rows)
+    if speed_execution.name != "execution.json":
+        raise ValueError("Speed cohort requires aggregate execution.json")
+    speed_execution_value = _read_json(speed_execution)
+    if speed_execution_value.get("schema_version") != 1:
+        raise ValueError("Unsupported speed execution schema")
+    expected_speed_summary = build_speed_summary(
+        speed_dataset,
+        speed_rows,
+        _speed_batches,
+        speed_execution_value.get("aggregate"),
+    )
+    expected_speed_summary["bindings"] = {
+        "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
+        "results_sha256": _sha256(speed_cohort / "results.jsonl"),
+    }
+    packaged_speed_summary = _read_json(speed_cohort / "speed-comparison.json")
+    if packaged_speed_summary != expected_speed_summary:
+        raise ValueError("Speed comparison schema, bindings, or rows differ from measured evidence")
 
     output.mkdir(parents=True)
     for folder in ("sources", "list-references"):
@@ -441,7 +509,9 @@ def _assemble(
     for index, (root, path) in enumerate(execution_sources):
         shutil.copy2(path, history / f"{index:03d}-{root.name}-{path.name}")
 
-    shutil.copytree(speed_cohort, output / "speed-cohort")
+    _copy_speed_bundle(
+        speed_cohort, output / "speed-cohort", speed_dataset, speed_rows, _speed_batches
+    )
     receipt = {
         "schema_version": 1,
         "kind": "predeclared_webfetch_refresh_assembly",
@@ -486,6 +556,8 @@ def assemble(
     plan: Path = ROOT / "evaluation/current-rerun.json",
 ) -> None:
     """Validate into a sibling staging directory and expose the result atomically."""
+    if speed_cohort.is_symlink():
+        raise ValueError("Speed cohort root must not be a symlink")
     baseline = baseline.resolve()
     main_reruns = [root.resolve() for root in main_reruns]
     speed_cohort = speed_cohort.resolve()

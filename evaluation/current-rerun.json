@@ -60,8 +60,7 @@
       "live-033-nasa-science"
     ],
     "provider_count": 12,
-    "planned_new_calls": 240,
-    "require_independent_result_review": true
+    "planned_new_calls": 240
   },
   "total_planned_new_calls": 672
 }

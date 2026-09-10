@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from scripts.assemble_webfetch_refresh import assemble, expected_refresh_pairs
+from scripts.package_headless_speed import build_summary as build_speed_summary
 
 PROVIDERS = [
     "cloudflare-markdown",
@@ -172,7 +173,28 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             "cases": [case for case in self.canonical_cases if case["id"] in SPEED_CASES],
             "comparison": {"require_independent_result_review": True},
         }
+        speed_case_order = [case["id"] for case in speed_dataset["cases"]]
         self.write_bundle(self.speed, speed_dataset, speed_rows)
+        speed_batches = []
+        for provider in PROVIDERS:
+            attempt_ids = [f"{provider}__{case_id}__r001" for case_id in speed_case_order]
+            speed_batches.append({
+                "providers": [{"name": provider}],
+                "started_at": "2026-09-10T00:00:00+00:00",
+                "completed_at": "2026-09-10T00:00:03+00:00",
+                "attempt_count": len(attempt_ids),
+                "attempt_ids": attempt_ids,
+            })
+        aggregate = {
+            "started_at": "2026-09-09T23:59:59+00:00",
+            "completed_at": "2026-09-10T00:00:04+00:00",
+            "providers": PROVIDERS,
+            "case_ids": speed_case_order,
+            "batch_count": len(speed_batches),
+        }
+        self.write_json(self.speed / "execution.json", {
+            "schema_version": 1, "aggregate": aggregate, "batches": speed_batches,
+        })
         review = {
             "schema_version": 1,
             "bindings": {
@@ -191,6 +213,12 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             ],
         }
         self.write_json(self.speed / "result-review.json", review)
+        speed_summary = build_speed_summary(speed_dataset, speed_rows, speed_batches, aggregate)
+        speed_summary["bindings"] = {
+            "dataset_sha256": sha((self.speed / "dataset.json").read_bytes()),
+            "results_sha256": sha((self.speed / "results.jsonl").read_bytes()),
+        }
+        self.write_json(self.speed / "speed-comparison.json", speed_summary)
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -286,6 +314,7 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertTrue(
             (output / "history/source-executions/000-baseline-execution.json").is_file()
         )
+        self.assertFalse((output / "speed-cohort/workers").exists())
 
     def test_duplicate_rerun_pair_fails_without_creating_output(self) -> None:
         rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
@@ -309,17 +338,23 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             )
         self.assertFalse(output.exists())
 
-    def test_equivalent_capture_mode_allows_only_timestamp_drift(self) -> None:
+    def test_equivalent_capture_mode_allows_only_observation_metadata_drift(self) -> None:
         canonical_case = self.canonical["cases"][0]
         canonical_case["source_verification"] = {
+            "state": "valid",
             "checked_at": "2026-09-10T00:00:00+00:00",
+            "http_status": 200,
             "reference_sha256": "a" * 64,
         }
         self.write_json(self.canonical_path, self.canonical)
         dataset = json.loads((self.main / "dataset.json").read_text())
         dataset["comparison"] = self.canonical["comparison"]
         dataset["cases"][0]["source_verification"] = {
+            "state": "valid",
             "checked_at": "2026-09-10T00:10:00+00:00",
+            "http_status": 200,
+            "source_snapshot_sha256": "c" * 64,
+            "extracted_reference_sha256": "d" * 64,
             "reference_sha256": "a" * 64,
         }
         self.write_json(self.main / "dataset.json", dataset)
@@ -343,6 +378,102 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 canonical_dataset=self.canonical_path,
                 plan=self.plan_path,
             )
+
+    def test_speed_schema_and_symlinks_fail_before_output(self) -> None:
+        comparison = json.loads((self.speed / "speed-comparison.json").read_text())
+        comparison["rows"][0]["planned_attempts"] -= 1
+        self.write_json(self.speed / "speed-comparison.json", comparison)
+        with self.assertRaisesRegex(ValueError, "Speed comparison schema"):
+            assemble(self.baseline, [self.main], self.speed, self.root / "bad-speed",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((self.root / "bad-speed").exists())
+
+        comparison["rows"][0]["planned_attempts"] += 1
+        self.write_json(self.speed / "speed-comparison.json", comparison)
+        (self.speed / "workers").mkdir()
+        (self.speed / "workers/outside").symlink_to(self.canonical_path)
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            assemble(self.baseline, [self.main], self.speed, self.root / "symlink-speed",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((self.root / "symlink-speed").exists())
+
+        speed_link = self.root / "speed-link"
+        speed_link.symlink_to(self.speed, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "root must not be a symlink"):
+            assemble(self.baseline, [self.main], speed_link, self.root / "root-symlink-speed",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((self.root / "root-symlink-speed").exists())
+
+    def test_speed_execution_schema_fails_before_output(self) -> None:
+        execution = json.loads((self.speed / "execution.json").read_text())
+        execution["schema_version"] = 99
+        self.write_json(self.speed / "execution.json", execution)
+        with self.assertRaisesRegex(ValueError, "speed execution schema"):
+            assemble(self.baseline, [self.main], self.speed, self.root / "execution-schema-speed",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((self.root / "execution-schema-speed").exists())
+
+    def test_equivalent_capture_rejects_invalid_observation_metadata(self) -> None:
+        dataset = json.loads((self.main / "dataset.json").read_text())
+        dataset["comparison"] = self.canonical["comparison"]
+        dataset["cases"][0]["source_verification"] = {
+            "state": "valid",
+            "checked_at": "2026-09-10T00:10:00+00:00",
+            "http_status": 700,
+            "reference_sha256": "a" * 64,
+            "source_snapshot_sha256": "not-a-hash",
+        }
+        self.write_json(self.main / "dataset.json", dataset)
+        with self.assertRaisesRegex(ValueError, "malformed capture HTTP status"):
+            assemble(self.baseline, [self.main], self.speed, self.root / "bad-capture",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+
+        dataset["cases"][0]["source_verification"]["http_status"] = 403
+        self.write_json(self.main / "dataset.json", dataset)
+        with self.assertRaisesRegex(ValueError, "invalid capture hash"):
+            assemble(self.baseline, [self.main], self.speed, self.root / "bad-capture-hash",
+                     canonical_dataset=self.canonical_path, plan=self.plan_path)
+
+    def test_equivalent_capture_accepts_unavailable_http_error_without_reference(self) -> None:
+        case_id = self.canonical["cases"][0]["id"]
+        unavailable = {
+            "state": "unavailable",
+            "checked_at": "2026-09-10T00:00:00+00:00",
+            "http_status": 403,
+            "reference_sha256": None,
+        }
+        self.canonical["cases"][0]["ground_truth_main_content"] = ""
+        self.canonical["cases"][0]["source_verification"] = unavailable
+        self.write_json(self.canonical_path, self.canonical)
+        for root in (self.main, self.speed):
+            dataset = json.loads((root / "dataset.json").read_text())
+            case = next((row for row in dataset["cases"] if row["id"] == case_id), None)
+            if case is not None:
+                case["ground_truth_main_content"] = ""
+                case["source_verification"] = {
+                    **unavailable, "checked_at": "2026-09-10T00:10:00+00:00"
+                }
+                self.write_json(root / "dataset.json", dataset)
+        assemble(self.baseline, [self.main], self.speed, self.root / "unavailable-output",
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+
+    def test_equivalent_capture_accepts_valid_403_without_text_reference(self) -> None:
+        case_id = self.canonical["cases"][0]["id"]
+        verification = {
+            "state": "valid", "checked_at": "2026-09-10T00:00:00+00:00",
+            "http_status": 403, "reference_sha256": None,
+            "note": "Independent HTTP plus browser verification",
+        }
+        self.canonical["cases"][0]["source_verification"] = verification
+        self.write_json(self.canonical_path, self.canonical)
+        dataset = json.loads((self.main / "dataset.json").read_text())
+        case = next(row for row in dataset["cases"] if row["id"] == case_id)
+        case["source_verification"] = {
+            **verification, "checked_at": "2026-09-10T00:10:00+00:00"
+        }
+        self.write_json(self.main / "dataset.json", dataset)
+        assemble(self.baseline, [self.main], self.speed, self.root / "valid-403-output",
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
 
     def test_baseline_hash_mismatch_fails_closed(self) -> None:
         self.plan["baseline"]["results_sha256"] = "0" * 64

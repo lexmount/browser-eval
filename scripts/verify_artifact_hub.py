@@ -28,20 +28,55 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
         with urllib.request.urlopen(request,timeout=60) as response:return json.load(response)
     before=metadata()
     with zipfile.ZipFile(expected_archive) as expected:
-        wanted={x.filename:hashlib.sha256(expected.read(x)).hexdigest() for x in expected.infolist() if not x.is_dir()}
+        wanted={};expected_html={}
+        for info in expected.infolist():
+            if info.is_dir():continue
+            raw=expected.read(info)
+            wanted[info.filename]=hashlib.sha256(raw).hexdigest()
+            if info.filename.endswith('.html'):expected_html[info.filename]=raw
     if set(before['files'])!=set(wanted):raise ValueError('Remote file set differs')
+
+    entry=before.get('file')
+    authenticated_entry=False
+    if entry in wanted and isinstance(before.get('content'),str):
+        original=before['content'].encode()
+        if hashlib.sha256(original).hexdigest()!=wanted[entry]:
+            raise ValueError('Authenticated original entry differs: '+entry)
+        authenticated_entry=True
+
+    def injected_html_matches(name, served):
+        """Accept only an exact submitted suffix after the Hub's HTML bootstrap."""
+        original=expected_html[name]
+        if not served.endswith(original):return False
+        prefix=served[:-len(original)] if original else served
+        expected_base=('<base href="/api/preview/'+quote(slug,safe='')+'/">').encode()
+        if not prefix.startswith(expected_base):return False
+        bootstrap=prefix[len(expected_base):]
+        # The service may add one or more bootstrap scripts. Do not normalize or
+        # ignore arbitrary HTML: every injected byte must belong to such scripts.
+        while bootstrap:
+            opening=b'<script data-artifact-bootstrap>'
+            if not bootstrap.startswith(opening):return False
+            end=bootstrap.find(b'</script>',len(opening))
+            if end<0:return False
+            bootstrap=bootstrap[end+len(b'</script>'):]
+        return True
+
     def digest(name):
-        if name==before['file'] and isinstance(before.get('content'),str):
-            return name,hashlib.sha256(before['content'].encode()).hexdigest()
-        # HTML preview injects runtime markup, so compare original source via metadata.
-        if name.endswith('.html'):raise ValueError('Additional HTML requires original-source export')
         url=base+'/api/preview/'+quote(slug,safe='')+'/'+quote(name,safe='/')
         for attempt in range(3):
             try:
                 with urllib.request.urlopen(url,timeout=180) as response:
+                    if name.endswith('.html'):
+                        served=response.read()
+                        digest=hashlib.sha256(served).hexdigest()
+                        if digest==wanted[name]:return name,digest,'byte_identical'
+                        if injected_html_matches(name,served):
+                            return name,wanted[name],'injected_html'
+                        return name,digest,'different'
                     digest=hashlib.sha256()
                     while chunk:=response.read(1024*1024):digest.update(chunk)
-                return name,digest.hexdigest()
+                return name,digest.hexdigest(),'byte_identical'
             except HTTPError as error:
                 retryable=error.code>=500
                 error.close()
@@ -50,14 +85,28 @@ def verify_public_files(slug, expected_archive, base=DEFAULT_BASE):
                 if attempt==2:raise
             time.sleep(2**attempt)
     with ThreadPoolExecutor(max_workers=2) as pool:
-        actual={}
-        for name,sha in pool.map(digest,wanted):
+        actual={};verification={}
+        for name,sha,layer in pool.map(digest,wanted):
             actual[name]=sha
             if sha!=wanted[name]:raise ValueError('Remote file differs: '+name)
+            verification[name]=layer
             if len(actual)%20==0:print(f'Verified {len(actual)}/{len(wanted)} public files',flush=True)
     after=metadata()
     if before['version']['id']!=after['version']['id']:raise ValueError('Remote version changed during verification')
-    return {'version':after['version']['id'],'files':len(actual),'submitted_bytes_verified':True,'method':'public_files_and_original_entry'}
+    exact=sum(layer=='byte_identical' for layer in verification.values())
+    injected=sum(layer=='injected_html' for layer in verification.values())
+    return {
+        'version':after['version']['id'],
+        'files':len(actual),
+        'anonymous_byte_identical_files':exact,
+        'anonymous_injected_html_files':injected,
+        'anonymous_all_files_byte_identical':exact==len(actual),
+        'authenticated_original_entry_verified':authenticated_entry,
+        'submitted_bytes_verified_by_layer':exact+injected==len(actual),
+        'method':('anonymous_file_bytes; injected HTML requires an exact submitted '
+                  'suffix after validated Artifact Hub bootstrap scripts; authenticated '
+                  'metadata verifies the original entry'),
+    }
 
 
 def download_export(request, destination, attempts=3):

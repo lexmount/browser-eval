@@ -92,3 +92,83 @@ class ReportRevisionTests(unittest.TestCase):
   translated=translate_text('本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。 未启用额外的理解模型或付费后备方法。')
   self.assertNotIn('本轮',translated)
   self.assertIn('Contents response',translated)
+ def test_speed_caption_localizes_its_actual_sample_count(self):
+  from harness.web_fetch.report_i18n import translate_text,untranslated_english_narrative
+  source=('同窗速度子集：预先声明 17 题，12 种方法使用同一完整任务样本。'
+          '全调用耗时包含成功、失败和截止超时；通过调用耗时按各方法自己的成功子集计算，'
+          '分母必须同时阅读。每种方法最多 17 个单次观察，P95 只作本次样本诊断。')
+  translated=translate_text(source)
+  self.assertIn('17 tasks were declared',translated)
+  self.assertIn('at most 17 single observations',translated)
+  self.assertNotIn('20 single observations',translated)
+  samples=[
+   '全部 12 种方法共同通过 0/17 题；共同通过数只作诊断，不用于筛选测速样本。'
+   '报告保留预声明的全部 204 次调用，不按结果重新选题；全调用耗时可在相同分母下阅读，'
+   '通过调用耗时只描述各方法的条件分布，不能解释为同题速度排名。',
+   '这份旧版测速汇总只使用 8/20 个全部 7 种方法共同通过的同窗任务；它保留原报告的共同成功样本口径，'
+   '不能补充解释失败等待，也不能与跨批次主结果直接排名。',
+   '静态网页通过数：chromium 99/100。综合榜按 150 个任务等权计数；6 类分榜仍分别解释，'
+   '耗时和文字质量不混入综合通过率。',
+  ]
+  for sample in samples:
+   self.assertEqual(untranslated_english_narrative('<p>'+translate_text(sample)+'</p>'),[])
+ def test_english_article_audit_excludes_preserved_evidence_and_task_names(self):
+  from harness.web_fetch.report_i18n import untranslated_english_narrative
+  page=('<html><body><p>English explanation</p><p>中文任务名</p>'
+        '<pre>标准答案原文</pre><code>实际输出原文</code></body></html>')
+  self.assertEqual(untranslated_english_narrative(page, {'中文任务名'}),[])
+  self.assertEqual(untranslated_english_narrative('<p>漏译的解释</p>'),['漏译的解释'])
+  self.assertEqual(untranslated_english_narrative('<img alt="漏译的替代文字">'),
+                   ['漏译的替代文字'])
+ def test_generic_speed_and_scope_narrative_is_fully_localized(self):
+  from harness.web_fetch.report_i18n import translate_text,untranslated_english_narrative
+  samples=[
+   '同一时间窗的速度怎样读',
+   '主结果来自不同批次，耗时只用于逐次诊断；下面单列预先声明的同窗子集。'
+   '全调用统计保留失败与截止超时，回答完整任务队列要等多久；通过调用统计只描述各方法已通过任务，'
+   '成功分母可能不同，不能单独拿来排同题速度。',
+   '统计按实际调用记录计算，未运行和缺少验收证据的项目不记为失败。静态网站正文、动态网站正文与热门网站正文分别陈述，'
+   '文档、资源地址和原文件按各自契约验收。100 个普通网页中，GitHub 与 Python 官方文档占 48 个，样本偏向技术文档；'
+   '每个方法与案例组合只有一次观察，不能估计波动或外推为全网成功率。调用日期相邻不构成同时间对照，公开练习站也不能代表生产网站分布。',
+  ]
+  localized=''.join('<p>'+translate_text(sample)+'</p>' for sample in samples)
+  self.assertEqual(untranslated_english_narrative(localized),[])
+ def test_english_article_gate_rejects_untranslated_narrative(self):
+  from harness.web_fetch.report_i18n import write_english_report
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);(root/'guide').mkdir()
+   (root/'guide/article.html').write_text('<html lang="zh-CN"><body><p>漏译的解释</p></body></html>')
+   with self.assertRaisesRegex(ValueError,'Untranslated English article'):
+    write_english_report(root)
+ def test_english_article_gate_keeps_source_evidence(self):
+  from harness.web_fetch.report_i18n import write_english_report
+  with tempfile.TemporaryDirectory() as directory:
+   root=Path(directory);(root/'guide').mkdir()
+   (root/'dataset.json').write_text('{"cases":[{"name":"中文任务名"}]}')
+   (root/'guide/article.html').write_text(
+       '<html lang="zh-CN"><body><p>中文任务名</p><pre>标准答案与实际输出原文</pre></body></html>')
+   write_english_report(root)
+   rendered=(root/'en/guide/article.html').read_text()
+   self.assertIn('中文任务名',rendered)
+   self.assertIn('标准答案与实际输出原文',rendered)
+ def test_visible_accessibility_attributes_are_localized(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_i18n import localize_html
+  page=('<html lang="zh-CN"><body><img alt="页面中稳定标题、栏目与说明作为内容核对点；'
+        '变化条目检查数量、字段类型和结构；全文参考单独声明范围。"></body></html>')
+  rendered=localize_html(page,PurePosixPath('guide/article.html'))
+  self.assertIn('alt="Stable headings, sections, and explanations',rendered)
+  self.assertNotIn('页面中稳定标题',rendered)
+ def test_methodology_figure_ui_and_captions_pass_the_article_gate(self):
+  from pathlib import PurePosixPath
+  from harness.web_fetch.report_explainer import METHODOLOGY_FIGURES
+  from harness.web_fetch.report_i18n import localize_html,untranslated_english_narrative
+  figures=[]
+  for index,(_,title,alt,caption) in enumerate(METHODOLOGY_FIGURES,1):
+   figures.append(f'<figure><img alt="{alt}"><a aria-label="获取原图：{title}"></a>'
+                  f'<figcaption>图 {index} · {title}。{caption} 点击图像获取原图。</figcaption></figure>')
+  rendered=localize_html('<html lang="zh-CN"><body>'+''.join(figures)+'</body></html>',
+                         PurePosixPath('guide/article.html'))
+  self.assertEqual(untranslated_english_narrative(rendered),[])
+  self.assertIn('Figure 3 · Scoring:',rendered)
+  self.assertIn('aria-label="Download original:',rendered)

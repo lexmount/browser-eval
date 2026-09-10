@@ -1,9 +1,11 @@
 """Run the current task set with per-track provider settings, then build a report."""
 import argparse
+import hashlib
 import json
 import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -11,7 +13,66 @@ from harness.web_fetch.config import load_dataset,load_provider_config,load_runt
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.report_build import build_report
+from harness.web_fetch.safety import contained_path
 from harness.web_fetch.storage import data_home
+
+
+def artifact_bindings(record):
+    bindings = {}
+    def add(relative, digest):
+        if relative in bindings and bindings[relative] != digest:
+            raise ValueError('Artifact has conflicting hash bindings: ' + relative)
+        bindings[relative] = digest
+
+    add(record['artifact_path'], record['metrics']['content_sha256'])
+    metadata = record.get('provider_metadata', {})
+    for path_key, hash_key in (('rendered_html_path', 'rendered_html_sha256'),
+                               ('raw_stdout_path', 'raw_stdout_sha256')):
+        if metadata.get(path_key):
+            add(metadata[path_key], metadata[hash_key])
+    for item in metadata.get('file_evaluation', {}).get('files', []):
+        if item.get('artifact_path'):
+            add(item['artifact_path'], item['sha256'])
+    for attempt in metadata.get('retry', {}).get('attempts', []):
+        hashes = attempt.get('artifact_sha256', {})
+        for relative in attempt.get('artifact_paths', []):
+            digest = hashes.get(relative)
+            if relative == attempt.get('artifact_path'):
+                digest = digest or attempt.get('content_sha256')
+            if not digest:
+                raise ValueError('Retry artifact has no hash binding: ' + relative)
+            add(relative, digest)
+    return list(bindings.items())
+
+
+def bind_retry_artifacts(worker, records):
+    """Bind auxiliary physical-call evidence before leaving the worker tree."""
+    for record in records:
+        retry = record.get('provider_metadata', {}).get('retry', {})
+        for attempt in retry.get('attempts', []):
+            hashes = attempt.setdefault('artifact_sha256', {})
+            for relative in attempt.get('artifact_paths', []):
+                source = contained_path(worker, relative)
+                if not source.is_file():
+                    raise ValueError('Retry artifact is missing: ' + relative)
+                hashes[relative] = hashlib.sha256(source.read_bytes()).hexdigest()
+
+
+def materialize_worker_artifacts(output, worker, records):
+    """Copy every hash-bound deliverable from a worker into the aggregate root."""
+    bind_retry_artifacts(worker, records)
+    for record in records:
+        for relative, digest in artifact_bindings(record):
+            source = contained_path(worker, relative)
+            if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+                raise ValueError('Worker artifact differs from its result binding: ' + relative)
+            target = contained_path(output, relative)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                    raise ValueError('Aggregate artifact collision: ' + relative)
+            else:
+                shutil.copy2(source, target)
 
 
 def main(argv=None):
@@ -76,15 +137,19 @@ def main(argv=None):
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
             rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=1,timeout=45,delay=.5,provider_concurrency=1)
-            for r in rs:
-                target=args.output/r['artifact_path'];target.parent.mkdir(parents=True,exist_ok=True)
-                shutil.copy2(folder/r['artifact_path'],target)
+            materialize_worker_artifacts(args.output, folder, rs)
             batches.append(json.loads((folder/'manifest.json').read_text()));records.extend(rs)
         return records,batches
+    aggregate_started_at=datetime.now(UTC).isoformat()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:parts=list(pool.map(work,names))
+    aggregate_completed_at=datetime.now(UTC).isoformat()
     records=[r for rs,_ in parts for r in rs];batches=[b for _,bs in parts for b in bs]
     assert len(records)==len(cases)*len(names)
-    for name,value in [('dataset.json',dataset),('execution.json',{'batches':batches})]:
+    execution={'schema_version':1,'aggregate':{
+        'started_at':aggregate_started_at,'completed_at':aggregate_completed_at,
+        'providers':sorted(names),'case_ids':[case.id for case in cases],'batch_count':len(batches),
+    },'batches':batches}
+    for name,value in [('dataset.json',dataset),('execution.json',execution)]:
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
     (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
     for case in cases:

@@ -71,6 +71,10 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual([case['id'] for case in data['cases']], ['web-a','dynamic-b'])
         records = [json.loads(line) for line in (self.output/'results.jsonl').read_text().splitlines()]
         self.assertEqual({row['case_id'] for row in records}, {'web-a','dynamic-b'})
+        execution = json.loads((self.output/'execution.json').read_text())
+        self.assertEqual(execution['aggregate']['providers'], ['fixture-one'])
+        self.assertEqual(execution['aggregate']['case_ids'], ['web-a','dynamic-b'])
+        self.assertEqual(execution['aggregate']['batch_count'], 2)
         self.assertFalse((self.output/'report').exists())
 
     def test_dynamic_subset_builds_a_real_report(self):
@@ -113,6 +117,51 @@ class BenchmarkSelectionTests(unittest.TestCase):
         for provider in ['firecrawl','tavily','exa']:
             self.assertIn(f'resources/{provider}: missing api_key', stderr.getvalue())
         self.assertFalse(self.output.exists())
+
+    def test_materializes_all_hash_bound_worker_artifacts(self):
+        worker = self.root / 'worker'
+        output = self.root / 'aggregate'
+        files = {
+            'artifacts/p/c/run-001.txt': b'answer',
+            'artifacts/p/c/run-001.html.txt': b'<main>answer</main>',
+            'artifacts/p/c/run-001-file-000.bin': b'\x89PNG\r\n\x1a\nbytes',
+            'artifacts/p/c/run-000.txt': b'failed answer',
+            'artifacts/p/c/run-000.bin': b'failed raw bytes',
+        }
+        for relative, content in files.items():
+            path = worker / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+        digest = lambda value: __import__('hashlib').sha256(value).hexdigest()
+        record = {
+            'artifact_path': 'artifacts/p/c/run-001.txt',
+            'metrics': {'content_sha256': digest(files['artifacts/p/c/run-001.txt'])},
+            'provider_metadata': {
+                'rendered_html_path': 'artifacts/p/c/run-001.html.txt',
+                'rendered_html_sha256': digest(files['artifacts/p/c/run-001.html.txt']),
+                'file_evaluation': {'files': [{
+                    'artifact_path': 'artifacts/p/c/run-001-file-000.bin',
+                    'sha256': digest(files['artifacts/p/c/run-001-file-000.bin']),
+                }]},
+                'retry': {'attempts': [{
+                    'artifact_path': 'artifacts/p/c/run-000.txt',
+                    'artifact_paths': [
+                        'artifacts/p/c/run-000.txt', 'artifacts/p/c/run-000.bin',
+                    ],
+                    'content_sha256': digest(files['artifacts/p/c/run-000.txt']),
+                }]},
+            },
+        }
+
+        run_benchmark.materialize_worker_artifacts(output, worker, [record])
+
+        for relative, content in files.items():
+            self.assertEqual((output / relative).read_bytes(), content)
+        retry = record['provider_metadata']['retry']['attempts'][0]
+        self.assertEqual(
+            retry['artifact_sha256']['artifacts/p/c/run-000.bin'],
+            digest(files['artifacts/p/c/run-000.bin']),
+        )
 
 
 class FirecrawlValidationTests(unittest.TestCase):

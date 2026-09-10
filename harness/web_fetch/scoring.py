@@ -60,6 +60,7 @@ def score_attempt(
     list_reference: dict | None = None,
     status_code: int | None = None,
     prepared_answer: tuple | None = None,
+    title: str | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
@@ -81,7 +82,7 @@ def score_attempt(
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements")
-    result.update(evaluate_content(content, case.get("expected_any", []),
+    result.update(evaluate_content(content, case.get("expected_any", []), title=title,
         base_url=case["url"], named_links=links, **{key: case[key] for key in keys if key in case}))
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))

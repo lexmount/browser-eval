@@ -41,7 +41,7 @@ class HeadlessTests(unittest.TestCase):
             argv = ['review_headless_results.py','--evidence',str(evidence),
                     '--work',str(work),'--batch-cases','1','--model','inherited',
                     '--reviewer','internal','--scope','all','--provider','p',
-                    '--prepare-only']
+                    '--confirm-full-review','--prepare-only']
             with patch('sys.argv', argv):
                 review_main()
             packets = sorted(work.glob('batch-*-input.json'))
@@ -52,14 +52,56 @@ class HeadlessTests(unittest.TestCase):
                              {'p__a__r001','p__b__r001'})
             self.assertTrue(all('metrics' not in row for row in attempts))
 
+    def test_review_defaults_to_failures_and_full_scope_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);evidence=root/'evidence';work=root/'work'
+            evidence.mkdir()
+            dataset={'cases':[{'id':'a','task_kind':'body'}]}
+            rows=[
+                {'attempt_id':'p__a__r001','provider':'p','case_id':'a',
+                 'artifact_path':'a.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':False}},
+                {'attempt_id':'q__a__r001','provider':'q','case_id':'a',
+                 'artifact_path':'b.txt','ok':True,'error_type':None,
+                 'metrics':{'content_pass':True}},
+            ]
+            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows))
+            argv=['review_headless_results.py','--evidence',str(evidence),
+                  '--work',str(work),'--model','inherited','--reviewer','internal',
+                  '--prepare-only']
+            with patch('sys.argv',argv): review_main()
+            packet=json.loads(next(work.glob('batch-*-input.json')).read_text())
+            self.assertEqual([x['attempt_id'] for x in packet['attempts']],['p__a__r001'])
+            with patch('sys.argv',argv[:-1]+['--scope','all','--prepare-only']):
+                with self.assertRaises(SystemExit): review_main()
+
     def test_independent_review_receives_real_file_evidence(self):
         row = {'attempt_id':'a','provider':'moli-1.1.3','artifact':'empty.txt',
                'request_ok':True,'error_type':None,'file_artifacts':['file.bin'],
-               'raw_response_artifact':'raw.bin','metrics':{'raw_file_pass':True}}
+               'raw_response_artifact':'raw.bin',
+               'answer_metadata_artifact':'answer.json',
+               'metrics':{'raw_file_pass':True}}
         packet = independent_attempt(row)
         self.assertEqual(packet['file_artifacts'], ['file.bin'])
         self.assertEqual(packet['raw_response_artifact'], 'raw.bin')
+        self.assertEqual(packet['answer_metadata_artifact'], 'answer.json')
         self.assertNotIn('metrics', packet)
+
+    def test_review_answer_metadata_whitelists_only_answer_fields(self):
+        from harness.web_fetch.result_review import review_answer_metadata
+        record={'title':'Page title','provider_metadata':{
+            'links':[{'href':'/asset.png'}], 'images':['/image.png'],
+            'request_url':'secret request', 'final_url':'diagnostic redirect',
+            'logs':['not answer evidence'], 'resource_candidate_urls':['derived'],
+        }}
+        self.assertEqual(review_answer_metadata(record), {
+            'title':'Page title', 'links':[{'href':'/asset.png'}],
+            'images':['/image.png'],
+        })
+        self.assertEqual(review_answer_metadata(record, include_resources=False), {
+            'title':'Page title',
+        })
 
     def test_whitespace_normalization_preserves_original_semantics(self):
         import itertools

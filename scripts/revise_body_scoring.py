@@ -16,8 +16,12 @@ from scripts.rescore_content import rescore
 
 ALLOWED_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts',
-    'acceptance_contract',
+    'acceptance_contract', 'forbidden_any',
 }
+
+
+class IndependentReviewRequired(ValueError):
+    """The prior review is valid history but cannot certify revised scores."""
 
 
 def _without_rules(case):
@@ -42,7 +46,7 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
     changed_review_inputs = [key for key in review_inputs
                              if before_document.get(key) != after_document.get(key)]
     if changed_review_inputs:
-        raise ValueError(
+        raise IndependentReviewRequired(
             'Dataset review inputs changed; independent result review must be rerun: '
             + ', '.join(changed_review_inputs))
     allowed_metadata = {'id', 'name', 'comparison'}
@@ -51,7 +55,8 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
         if before_document.get(key) != after_document.get(key)
     )
     if set(changed_top_level) - allowed_metadata:
-        raise ValueError('Dataset changed outside non-judgmental metadata; independent result review must be rerun')
+        raise IndependentReviewRequired(
+            'Dataset changed outside non-judgmental metadata; independent result review must be rerun')
     before_comparison = before_document.get('comparison', {})
     after_comparison = after_document.get('comparison', {})
     changed_comparison = {
@@ -59,14 +64,15 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
         if before_comparison.get(key) != after_comparison.get(key)
     }
     if changed_comparison - {'conversion'}:
-        raise ValueError(
+        raise IndependentReviewRequired(
             'Comparison semantics changed; independent result review must be rerun: '
             + ', '.join(sorted(changed_comparison - {'conversion'}))
         )
     old_rows = {row['attempt_id']: row for row in map(json.loads, before_results.splitlines())}
     new_rows = {row['attempt_id']: row for row in map(json.loads, after_results.splitlines())}
     if old_rows.keys() != new_rows.keys():
-        raise ValueError('Attempt inventory changed; independent result review must be rerun')
+        raise IndependentReviewRequired(
+            'Attempt inventory changed; independent result review must be rerun')
     cases = {case['id']: case for case in after_document['cases']}
     scope = review.get('review_protocol', {}).get('scope', 'all')
     reviewed_ids = {row['attempt_id'] for row in review.get('attempts', [])}
@@ -74,23 +80,27 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
     for attempt_id, old in old_rows.items():
         new = new_rows[attempt_id]
         if review_input_identity(old) != review_input_identity(new):
-            raise ValueError('Review-visible input changed; independent result review must be rerun')
+            raise IndependentReviewRequired(
+                'Review-visible input changed; independent result review must be rerun')
         kind = cases[new['case_id']].get('task_kind', 'body')
         old_verdict = task_passed(old['ok'], old['metrics'], kind)
         new_verdict = task_passed(new['ok'], new['metrics'], kind)
         if old_verdict != new_verdict:
-            raise ValueError('Machine verdict changed; independent result review must be rerun')
+            raise IndependentReviewRequired(
+                'Machine verdict changed; independent result review must be rerun')
         if scope == 'all' or not new_verdict:
             expected.add(attempt_id)
     if reviewed_ids != expected:
-        raise ValueError('Review scope changed; independent result review must be rerun')
+        raise IndependentReviewRequired(
+            'Review scope changed; independent result review must be rerun')
     machine = {row['attempt_id']: row for row in review['attempts']}
     for attempt_id in expected:
         verdict = 'pass' if task_passed(
             new_rows[attempt_id]['ok'], new_rows[attempt_id]['metrics'],
             cases[new_rows[attempt_id]['case_id']].get('task_kind', 'body')) else 'fail'
         if machine[attempt_id].get('machine_verdict') != verdict:
-            raise ValueError('Reviewed machine verdict changed; independent result review must be rerun')
+            raise IndependentReviewRequired(
+                'Reviewed machine verdict changed; independent result review must be rerun')
     review['bindings'] = {
         'dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
         'results_sha256': hashlib.sha256(after_results).hexdigest(),
@@ -106,6 +116,33 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
     return True
 
 
+def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
+                                     before_results: bytes) -> dict:
+    """Move a valid superseded review into immutable, hash-addressed history."""
+    review_bytes = path.read_bytes()
+    review = json.loads(review_bytes)
+    old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
+    old_results_hash = hashlib.sha256(before_results).hexdigest()
+    if review.get('bindings') != {
+            'dataset_sha256': old_dataset_hash,
+            'results_sha256': old_results_hash}:
+        raise ValueError('Existing result review is not bound to scoring inputs')
+    history = path.parent/'review-history'
+    history.mkdir(exist_ok=True)
+    archive = history/f'result-review-{old_dataset_hash[:12]}-{old_results_hash[:12]}.json'
+    if archive.exists():
+        if archive.read_bytes() != review_bytes:
+            raise ValueError(f'Review history collision: {archive.name}')
+        path.unlink()
+    else:
+        path.replace(archive)
+    return {
+        'prior_result_review_path': archive.relative_to(path.parent).as_posix(),
+        'prior_result_review_sha256': hashlib.sha256(review_bytes).hexdigest(),
+        'independent_review_required': True,
+    }
+
+
 def revise(source: Path, canonical_path: Path):
     source = source.resolve()
     dataset_path = contained_path(source, 'dataset.json')
@@ -113,6 +150,12 @@ def revise(source: Path, canonical_path: Path):
     before_dataset = dataset_path.read_bytes()
     before_results = results_path.read_bytes()
     review_path = source/'result-review.json'
+    if review_path.is_file():
+        review = json.loads(review_path.read_text())
+        if review.get('bindings') != {
+                'dataset_sha256': hashlib.sha256(before_dataset).hexdigest(),
+                'results_sha256': hashlib.sha256(before_results).hexdigest()}:
+            raise ValueError('Existing result review is not bound to scoring inputs')
     # Validate and retain any preceding reference correction before changing
     # the dataset hash.  The rescore then checks both revisions against the
     # original live-call bindings.
@@ -153,6 +196,16 @@ def revise(source: Path, canonical_path: Path):
         raise
     receipt_path = source/'scoring-revisions.json'
     history = json.loads(receipt_path.read_text()) if receipt_path.exists() else []
+    review_revision = {}
+    try:
+        rebind_unchanged_result_review(
+            review_path, before_dataset, before_results,
+            dataset_path.read_bytes(), results_path.read_bytes(),
+            rebound_at=datetime.now(timezone.utc).isoformat())
+    except IndependentReviewRequired:
+        review_revision = archive_superseded_result_review(
+            review_path, before_dataset=before_dataset,
+            before_results=before_results)
     receipt = {
         'kind':'audited_scoring_rule_revision',
         'scored_at':datetime.now(timezone.utc).isoformat(),
@@ -164,6 +217,7 @@ def revise(source: Path, canonical_path: Path):
         'task_decision_changes':decisions,
         'provider_calls':0,
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps and elapsed time retained',
+        **review_revision,
     }
     history.append(receipt)
     receipt_path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n')
@@ -182,10 +236,6 @@ def revise(source: Path, canonical_path: Path):
             row['rebound_by_scoring_revision_receipt_sha256'] = receipt_sha
         reference_receipt_path.write_text(json.dumps(
             prior_reference_receipts, ensure_ascii=False, indent=2)+'\n')
-    rebind_unchanged_result_review(
-        review_path, before_dataset, before_results,
-        dataset_path.read_bytes(), results_path.read_bytes(),
-        rebound_at=receipt['scored_at'])
     return receipt
 
 

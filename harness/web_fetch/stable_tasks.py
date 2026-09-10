@@ -470,7 +470,7 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "field_minimum_records"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records"}:
         raise ValueError("Unknown stable acceptance contract fields")
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
@@ -500,12 +500,21 @@ def validate_acceptance_contract(contract: dict) -> None:
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
                 or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
             raise ValueError("Named links require allowed hosts and detail path pattern")
+        if contract.get('entry_context', 'list_or_card') != 'list_or_card':
+            raise ValueError('Named-link entry context must be list_or_card')
         patterns = [*patterns, contract["entry_path"]]
+        identity_pattern = contract.get('entry_identity_pattern')
+        if identity_pattern is not None:
+            if not isinstance(identity_pattern, str) or not identity_pattern:
+                raise ValueError('Invalid named-link identity pattern')
+            patterns.append(identity_pattern)
     elif "hosts" in contract or "entry_path" in contract:
         raise ValueError("Host/path contracts apply only to named_link records")
     try:
         for pattern in patterns:
-            re.compile(pattern)
+            compiled = re.compile(pattern)
+            if pattern == contract.get('entry_identity_pattern') and compiled.groups != 1:
+                raise ValueError('Named-link identity pattern must have one capture group')
     except re.error as error:
         raise ValueError("Invalid stable acceptance regex") from error
 

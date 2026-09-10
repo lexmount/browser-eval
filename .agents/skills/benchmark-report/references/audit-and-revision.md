@@ -22,9 +22,9 @@ Source-dependent calls require a fail-closed boundary: capture and freeze the de
 
 ## Independent result review
 
-Review every attempt against the case contract and complete output. Include machine passes because false positives can be more damaging than visible failures. Whenever practical, hide the machine verdict and score from the reviewer until an independent judgment is recorded.
+Do not start independent result review automatically. It is an expensive, user-directed stage. When the user requests review without saying full/all, review only machine failures; include machine passes only after an explicit full-review request. Whenever practical, hide the machine verdict and score until the independent judgment is recorded, and supply the complete answer-bearing evidence (including allowlisted source title/resource metadata rather than machine-derived candidates).
 
-The review record should contain reviewer identity or class, protocol, exact attempt inventory, input hashes, independent verdict, disagreement reason, adjudicated verdict, and unresolved state. Public presentation should summarize rounds as scope, findings, corrections, and remaining work; detailed review evidence may stay in the evidence store.
+The review record should contain reviewer identity or class, protocol, exact attempt inventory, total matrix size, accepted unreviewed machine passes, input hashes, independent verdict, disagreement reason, adjudicated verdict, and unresolved state. Public presentation must state the reviewed fraction and must not label failure-only review as all-result review.
 
 Formatting differences are not failures when the output contract treats them as equivalent. Missing boundaries, encoding corruption, challenge pages, wrong artifacts, stale content, and incomplete structures are substantive when they violate the contract. Do not create provider-specific scoring exceptions to repair a general normalization problem.
 

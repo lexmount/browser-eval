@@ -44,6 +44,28 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_source_title_is_answer_evidence_without_inflating_body_length(self):
+        c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},
+                              {'id':'body','alternatives':['Body fact']}],
+               min_content_chars=20)
+        measured=score_attempt(c,b'Body fact',ok=True,title='Exact page title')
+        self.assertEqual(measured['fact_coverage'],1)
+        self.assertEqual(measured['content_chars'],len('Body fact'))
+        self.assertEqual(measured['title_chars'],len('Exact page title'))
+        self.assertFalse(measured['length_pass'])
+        self.assertFalse(task_passed(True,measured))
+
+    def test_resource_markdown_parser_handles_balanced_multiline_links(self):
+        c = case(task_kind='resource', expected_resources=[{
+            'id': 'guide', 'urls': ['/files/guide(v2).pdf?download=1'],
+        }])
+        content = ('[Download **guide**\nnow]\n'
+                   '(/files/guide(v2).pdf?download=1 "PDF copy")')
+        measured = score_attempt(c, content.encode(), ok=True)
+        self.assertTrue(measured['resource_pass'])
+        self.assertIn('https://example.test/files/guide(v2).pdf?download=1',
+                      measured['resource_candidate_urls'])
+
     def test_current_cloudflare_adapter_already_distinguishes_empty_extraction(self):
         with patch("harness.web_fetch.providers.cloudflare.request", return_value=HttpResponse(
                 200, "https://example.test/api", {}, b'{"success":true,"result":""}')):

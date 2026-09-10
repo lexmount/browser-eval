@@ -168,7 +168,7 @@ class StableTaskTests(unittest.TestCase):
                     text.replace("New title", "Details"), text.replace("/item/", "/category/")):
             self.assertFalse(self.check(bad, "named_link", **rules)["stable_task_pass"])
         plain = "First title\nhttps://example.test/item/1\nSecond title\nhttps://example.test/item/2"
-        self.assertTrue(self.check(plain, "named_link", **rules)["stable_task_pass"])
+        self.assertFalse(self.check(plain, "named_link", **rules)["stable_task_pass"])
         self.assertFalse(self.check("[Bad URL](https://[invalid/item/1)", "named_link", **rules)["stable_task_pass"])
 
     def test_named_links_accept_declared_tracking_path_suffix(self):

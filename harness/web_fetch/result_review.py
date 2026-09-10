@@ -4,6 +4,19 @@ import json
 from .metrics import task_passed
 
 
+ANSWER_METADATA_FIELDS = ('links', 'images', 'videos', 'media', 'extras')
+
+
+def review_answer_metadata(record, *, include_resources=True):
+    """Return source answer fields a blind reviewer may inspect, never scores."""
+    metadata = record.get('provider_metadata', {})
+    answer = ({key: metadata[key] for key in ANSWER_METADATA_FIELDS if key in metadata}
+              if include_resources else {})
+    if record.get('title') is not None:
+        answer['title'] = record['title']
+    return answer
+
+
 def _sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -28,6 +41,9 @@ def review_input_identity(record):
             'path': metadata.get('raw_stdout_path'),
             'sha256': metadata.get('raw_stdout_sha256'),
         } if metadata.get('raw_stdout_path') else None,
+        'answer_metadata_sha256': hashlib.sha256(json.dumps(
+            review_answer_metadata(record), ensure_ascii=False, sort_keys=True,
+            separators=(',', ':')).encode()).hexdigest(),
     }
 
 

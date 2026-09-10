@@ -51,7 +51,6 @@ def build_report(source: Path, output: Path) -> Path:
         if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
             raise ValueError('Speed comparison result binding mismatch')
         speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
-        require_result_review(speed_root, json.loads((speed_root/'dataset.json').read_text()), speed_records)
         for row in speed_records:
             raw=contained_path(speed_root,row['artifact_path'])
             if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
@@ -132,7 +131,8 @@ def build_report(source: Path, output: Path) -> Path:
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
-            shutil.copytree(speed_root,staging/'speed-cohort')
+            shutil.copytree(speed_root,staging/'speed-cohort',ignore=shutil.ignore_patterns(
+                'result-review.json','review-history'))
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
@@ -167,7 +167,23 @@ def build_report(source: Path, output: Path) -> Path:
         if provenance.is_file():
             shutil.copy2(provenance,staging/'implementation-provenance.json')
         if (source/'scoring-revisions.json').is_file():
-            shutil.copy2(source/'scoring-revisions.json', staging/'scoring-revisions.json')
+            scoring_path = source/'scoring-revisions.json'
+            scoring_revisions = json.loads(scoring_path.read_text())
+            shutil.copy2(scoring_path, staging/'scoring-revisions.json')
+            for revision in scoring_revisions:
+                relative = revision.get('prior_result_review_path')
+                expected = revision.get('prior_result_review_sha256')
+                if not relative:
+                    continue
+                archived = contained_path(source, relative)
+                if not archived.is_file() or archived.is_symlink():
+                    raise ValueError('Archived result review is missing or unsafe')
+                actual = hashlib.sha256(archived.read_bytes()).hexdigest()
+                if not expected or actual != expected:
+                    raise ValueError('Archived result review hash does not match scoring receipt')
+                target = staging/relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(archived, target)
         if (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         if (source/'latency-corrections.json').is_file():

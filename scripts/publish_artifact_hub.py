@@ -69,6 +69,9 @@ if creating or updating:
  else:
   from harness.web_fetch.publication import updated_receipt
   result=updated_receipt(result,response)
+ # Defend against legacy or service-returned aliases after an update. A create
+ # response may still use ``version`` as its only initial-version field.
+ if updating:result.pop('version',None)
  result['base_url']=BASE
  # Retain manageability without putting edit/claim credentials in console output.
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)

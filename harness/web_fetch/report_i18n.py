@@ -7,12 +7,18 @@ therefore generated from the same rows rather than maintained as separate report
 from __future__ import annotations
 
 import html
+import json
 import posixpath
 import re
 import shutil
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, urlunsplit
+
+from harness.web_fetch.report_i18n_adoption_a import TEXT as ADOPTION_TEXT_A
+from harness.web_fetch.report_i18n_adoption_b import TEXT as ADOPTION_TEXT_B
+from harness.web_fetch.report_i18n_adoption_c import TEXT as ADOPTION_TEXT_C
+from harness.web_fetch.report_i18n_adoption_d import TEXT as ADOPTION_TEXT_D
 
 
 NAV = [
@@ -48,6 +54,12 @@ TEXT = {
     "切换主题": "Toggle theme",
     "序号": "No.",
     "方法": "Method",
+    "计划调用": "Planned calls",
+    "通过率": "Pass rate",
+    "全调用 P50 ms": "All-call P50 (ms)",
+    "全调用 P95 ms": "All-call P95 (ms)",
+    "通过调用 P50 ms": "Successful-call P50 (ms)",
+    "通过调用 P95 ms": "Successful-call P95 (ms)",
     "类型": "Family",
     "结果": "Result",
     "任务通过": "Pass",
@@ -495,6 +507,7 @@ TEXT.update({
     "同窗速度证据": "Same-window latency evidence",
     "方法版本": "Method versions",
     "速度汇总与共同成功样本": "Latency summary and shared-pass subset",
+    "速度汇总与样本分母": "Latency summary and sample denominators",
     "速度子集逐次记录": "Per-call latency-cohort records",
     "唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。": "The only output directory is reports/webfetch/. The build fails immediately if the pinned Python 3.11 and uv.lock environment is unavailable. Fresh measurement uses uv run --frozen python scripts/run_headless_benchmark.py and configs/providers.headless.json: capture and freeze references independently, run provider calls, then perform post-run validation. See harness/web_fetch/HEADLESS.md for complete commands and versions.",
     "官方浏览器安装说明": "Official browser installation guide",
@@ -559,7 +572,7 @@ TEXT.update({
     "展开查看原价、年付、追加用量、功能加价与失败扣费规则。": "Expand a provider to inspect list price, annual terms, overage, feature surcharges, and failed-request billing.",
     "产品 / 模式": "Product / mode",
     "原始计价": "Published pricing basis",
-    "每千页参考价": "Reference price per 1,000 pages",
+    "每千页参考价": "Reference price per thousand pages",
     "付费门槛": "Minimum commitment",
     "优惠与限制": "Discounts and limits",
     "价格状态": "Pricing status",
@@ -569,11 +582,11 @@ TEXT.update({
     "每月积分": "Monthly credits",
     "月付原价": "Monthly list price",
     "年付总额与优惠": "Annual total and discount",
-    "满额每千页（月付 / 年付）": "Fully utilized price per 1,000 pages (monthly / annual)",
+    "满额每千页（月付 / 年付）": "Fully utilized price per thousand pages (monthly / annual)",
     "额度外用量": "Overage",
     "时长敏感性示例": "Duration sensitivity example",
     "假设计费时长 / 页": "Assumed billable time / page",
-    "每千页边际价": "Marginal price / 1,000 pages",
+    "每千页边际价": "Marginal price per thousand pages",
     "1,000 页/月总支出": "Total monthly spend at 1,000 pages",
     "100,000 页/月总支出": "Total monthly spend at 100,000 pages",
     "其他参评方法的成本归属": "Cost ownership for other evaluated methods",
@@ -742,6 +755,7 @@ TEXT.update({
     "服务端浏览器 ms": "Server browser (ms)",
     "端到端 ms": "End to end (ms)",
     "公平边界在输入、输出和裁判，不在内部形态": "Fairness is aligned at inputs, deliverables, and judging—not internal architecture",
+    "远端方法包含公网往返、排队与远端执行；本地方法包含进程启动和本机资源竞争。不同批次的耗时不直接排名；同窗队列保留全部预声明任务，并把相同分母的全调用耗时与各方法成功子集的条件耗时分开。它衡量客户端形成可评分交付物的时间，不是纯内核 CPU、长期吞吐或 SLA。": "Remote methods include public-network round trips, queueing, and remote execution; local methods include process startup and local resource contention. Latencies from different batches are not ranked directly. The same-window cohort retains every predeclared task and separates all-call latency on a common denominator from latency conditioned on each method's successful subset. It measures the time until the client forms a judgeable deliverable, not engine-only CPU, sustained throughput, or an SLA.",
     "可能偏差": "Potential bias",
     "引入位置": "Where it enters",
     "本报告处理": "Benchmark treatment",
@@ -751,6 +765,119 @@ TEXT.update({
     "远端网络、排队与本地资源": "Remote network/queueing vs. local resources",
     "调用与执行阶段": "Call and execution stage",
     "全部计入端到端时间；仅同窗共同成功样本排名": "Include all in end-to-end latency; rank only shared passes in the same window",
+    "全部计入端到端时间；同窗完整样本与条件成功样本分列": "Include all in end-to-end latency; separate the complete same-window sample from the conditional successful sample",
+    "混合标注：稳定文字、易变字段与全文参考": "Mixed annotation: stable text, volatile fields, and full-text references",
+    "页面中稳定标题、栏目与说明作为内容核对点；变化条目检查数量、字段类型和结构；全文参考单独声明范围。": "Stable headings, sections, and explanations are content checks; volatile records are checked for count, field types, and structure; full-text reference scope is declared separately.",
+    "稳定文字仍做内容核对，易变值不固定为答案；参考文本的范围决定质量指标能解释什么。": "Stable text remains part of content validation, while volatile values are not frozen as answers; reference scope determines what the quality metrics can explain.",
+    "校验：独立来源、正反样例与原始输出": "Validation: independent sources, positive and negative examples, and raw output",
+    "独立来源支撑任务标注，完整字段与空占位作为结构校验的正反样例；保存原始输出及其哈希供复核。": "Independent sources support task annotations; complete fields and empty placeholders provide positive and negative structural examples; raw outputs and their hashes are retained for review.",
+    "来源独立、规则有正反样例、输出可按哈希追溯，是不同的证据要求；哈希本身不证明内容正确。": "Source independence, positive and negative rule examples, and hash-traceable output are distinct evidence requirements; a hash alone does not establish correctness.",
+    "计分：任务验收与文本重合分别计算": "Scoring: task acceptance and text overlap are calculated separately",
+    "内容与结构检查产生任务通过或失败；有明确范围的参考另算纯净度、完整度与 F1。零通过仍可能有词语重合。": "Content and structure checks produce the task verdict; a clearly scoped reference separately yields precision, recall, and F1. Zero passes can still have textual overlap.",
+    "任务验收与全文 P/R/F1 回答不同问题。未通过不抹去已测得的词语重合，缺少参考也不把 F1 记为零。": "Task acceptance and full-text P/R/F1 answer different questions. Failure does not erase measured textual overlap, and a missing reference does not turn F1 into zero.",
+    "点击图像获取原图。": "Select the image to download the original.",
+    "同一时间窗的速度怎样读": "How to read the same-window latency cohort",
+    "主结果来自不同批次，耗时只用于逐次诊断；下面单列预先声明的同窗子集。全调用统计保留失败与截止超时，回答完整任务队列要等多久；通过调用统计只描述各方法已通过任务，成功分母可能不同，不能单独拿来排同题速度。": "Primary results come from different batches, so their latency is only a per-call diagnostic. The separately reported cohort below was declared before measurement in one time window. All-call statistics retain failures and deadline timeouts and answer how long the complete task queue takes. Successful-call statistics describe only tasks passed by each method; their denominators may differ and cannot independently rank matched-task speed.",
+    "测速逐次记录": "Per-call latency records",
+    "保留可复核证据。": "retain reviewable evidence.",
+    "逐例审计摘要与校验值": "Per-task audit summary and checksums",
+    "保留了核查依据。": "retain the audit basis.",
+    "这些互补案例暴露了不同缺口。Quotes to Scrape 的": "These complementary tasks expose different gaps. The Quotes to Scrape",
+    "页面在 CowAgent 输出里留下页面壳，名言和作者核对点缺失；飞书帮助文档只有标题，没有要求的正文。零售退换货页则是请求被拒绝。前两例要靠内容判断才能触发后备方法，最后一例可以由请求错误触发。因此，只在网络异常时切换方法，无法复现这里看到的全部互补覆盖。": "page leaves only a page shell in CowAgent output, with quote and author checks missing; the Feishu help document contains only its title, not the required body. The retail returns page is rejected at request time. The first two need content validation to trigger a fallback, while the last can use a request error. Switching methods only on network errors therefore cannot reproduce all of the complementary coverage observed here.",
+    "页面壳也不能直接证明正文必须经异步请求取得。对初始源文档的复核发现，": "A page shell also does not prove that the body must be fetched asynchronously. Review of the initial source documents found that",
+    "的名言载荷和飞书文章内容已经嵌入 HTML；取回源字节与正确提取嵌入内容是两件事。它们揭示的是当前提取路径的缺口，不能作为浏览器执行能力的独立证据。": "already embeds both the quote payload and the Feishu article content in HTML. Retrieving source bytes and correctly extracting embedded content are distinct tasks. These cases expose a gap in the current extraction path; they are not independent evidence that browser execution is required.",
+    "客户端计时从调用开始到最终内容及必要转换完成，涵盖下载、渲染和本地解析。离线评分和报告生成不计入调用耗时。超过原调用登记预算的记录保留实际内容和耗时，但不算按时交付；历史调用的硬截止执行和运行时审计开销没有重新测量。主结果里各方法自身通过项的耗时均值不能当作同题速度排名；如有同窗速度子集，应同时阅读固定分母的全调用耗时、各方法条件成功耗时和共同通过诊断。": "Client timing runs from the start of the call until final content and any required conversion are complete, including downloading, rendering, and local parsing. Offline scoring and report generation are excluded. Records exceeding their registered call budget retain their actual content and latency but do not count as on-time delivery; hard-deadline enforcement and runtime-audit overhead for historical calls were not remeasured. Mean latency among each method's own passing primary results is not a matched-task speed ranking. When a same-window cohort is available, read its fixed-denominator all-call latency together with each method's conditional successful-call latency and the shared-pass diagnostic.",
+    "不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。": "Different methods run in parallel while calls within each method are serial. Non-body tasks run after body-text tasks. Firecrawl cools down for 6.1 seconds after each call. This report is not an official WCXB leaderboard.",
+    "十二方法机器失败项盲审与分歧裁决": "Blind review and adjudication of machine failures across twelve methods",
+    "失败项盲审发现 2 条机器判定与独立审查分歧，均为 Exa 正文名称与另一组裸 URL 被审查者按顺序推断成具名链接。": "Failure-only blind review found 2 disagreements with machine verdicts. In both, the reviewer inferred named Exa links by positionally joining body names to a separate array of bare URLs.",
+    "两条分歧分别由独立代理回到任务合同、完整返回和原生字段裁决；由于输出没有明确的名称—URL 配对，均维持机器失败。审查记录保存模型、协议、证据绑定与裁决理由。": "Independent agents adjudicated both disagreements against the task contract, complete response, and native fields. Because neither output explicitly paired names with URLs, both machine failures were retained. The review record preserves the model, protocol, evidence bindings, and adjudication reasons.",
+    "Web Fetch · 实测分析": "Web Fetch · Measured analysis",
+    "网页抓取成功之后，内容离可用还有多远": "After a web fetch succeeds, how far is the content from usable?",
+    "正常返回，是内容验收的起点": "A normal response is only the start of content acceptance",
+    "通过更多网页的方法，未必交付更干净的正文": "The method that passes more pages may not deliver cleaner body text",
+    "固定内容与变化列表，需要不同的验收问题": "Fixed content and changing lists need different acceptance questions",
+    "普通文本提取能覆盖哪些任务": "What can plain-text extraction cover?",
+    "比再排一次名更有用的，是比较失败是否重叠": "Failure overlap is more useful than another ranking",
+    "换成文件或媒体，交付边界先于方法排名": "For files and media, define the deliverable before ranking methods",
+    "热门网站正文：内容可以变化，交付契约仍然稳定": "Popular-site text: content may change while the delivery contract stays stable",
+    "方法与样本范围": "Methods and sample scope",
+    "各类任务的样本数与实际调用日期": "Task counts and actual call dates by family",
+    "这轮评测给每种方法一个 URL，检查它是否交付指定的正文、条目或资源。参评者包括普通 HTTP 与文本提取、浏览器型实现和托管抓取 API；没有让 Agent 自主搜索或反复尝试。任务通过由确定性规则判断，不使用大模型裁判。每例可同时登记稳定的内容核对点与数量、字段、结构要求：页面标题、栏目和说明文字仍可核验，频繁变化的名单与价格不锁定字面值。": "Each method receives one URL and must deliver the requested body text, records, or resources. The cohort includes plain HTTP/text extraction, browser-based implementations, and managed scraping APIs; agents are not allowed to search autonomously or retry repeatedly. Deterministic rules, not an LLM judge, decide task acceptance. A task may combine stable content checks with count, field, and structure requirements: headings, sections, and explanatory text remain verifiable, while frequently changing names and prices are not frozen as literal answers.",
+    "任务通过要满足该例登记的内容核对点、结构及错误页等规则，不设 F1 门槛。F1 是另一项文本质量诊断：完整度看参考词语取回了多少，纯净度看输出有多少属于参考，F1 用调和平均综合二者。只有参考范围明确时才计算，并说明比较的是整篇正文还是选定部分；局部参考不能解释为整页质量。它不裁定逐句语义，也不取代内容和结构验收。": "A task passes only when its registered content checks, structure rules, and error-page checks are satisfied; there is no F1 threshold. F1 is a separate text-quality diagnostic: recall measures how much reference text was retrieved, precision measures how much output belongs to the reference, and F1 is their harmonic mean. It is calculated only when reference scope is explicit, with whole-body and selected-region comparisons identified separately. A partial reference cannot describe whole-page quality. It neither judges sentence-level meaning nor replaces content and structure acceptance.",
+    "正文任务还检查分布在全文的覆盖要求：按已声明参考划分最多五个区域，每区至少取回 80% 的参考词语计数。只返回标题或开头不能代表完整正文。这是覆盖下限，不是逐句语义验证，也不等同于 F1 门槛；连续的全文指标仍按实际输出计算。": "Body-text tasks also check coverage across the document: the declared reference is divided into at most five regions, and each region must recover at least 80% of its reference-word count. Returning only a title or opening section is not a complete body. This is a coverage floor, not sentence-level semantic validation or an F1 threshold; continuous full-text metrics are still computed from the actual output.",
+    "当前核对到的网页提取函数先删除 script 和 style 内容，再删除 HTML 标签、整理空白。这条文本路线没有借助大模型理解页面，也不会因为网页里包含脚本就自动执行脚本。对已经出现在响应 HTML 中的正文，它可能足够；对藏在脚本或运行时响应中的内容，同样的操作就可能把所需信息留在文本之外。": "The inspected extraction function first removes script and style content, then strips HTML tags and normalizes whitespace. This text-only route does not use an LLM to understand the page, and it does not execute scripts merely because the page contains them. It may suffice for body text already present in the response HTML; content hidden in scripts or runtime responses may remain outside the delivered text.",
+    "同一次去标签操作会保留文字，但丢掉地址。它可以完成一些正文任务，却不能代替下游判断需要什么。交付目标应决定文本清洗的激进程度，以及是否保留链接。属性一旦从输出中消失，后续再精确的关键词检查也找不回地址。": "The same tag-stripping operation preserves text but discards URLs. It can satisfy some body-text tasks, but it cannot decide what downstream consumers need. The delivery goal must determine how aggressively text is cleaned and whether links must be retained. Once attributes have disappeared from the output, more precise keyword matching cannot recover their URLs.",
+    "这个实验只验证合成输入上的当前提取函数。已保存的 CowAgent 调用没有逐次源响应指纹，也没有把同一响应字节交给多个提取器。因此不能把每一个实测成功或失败都归因到这个函数，也不能从这个实验计算保留文本范围对通过率的贡献。": "This experiment validates only the current extraction function on synthetic input. Saved CowAgent calls do not include a per-call source fingerprint or feed the same response bytes through multiple extractors. The experiment therefore cannot attribute every observed success or failure to this function, or quantify how retained-text scope affects pass rate.",
+    "后备方法能否发挥作用，先取决于系统能否检出主方法的错误。生产环境通常没有每个新 URL 的完整参考，不能直接照搬这份评测的事后评分。页面身份、最小内容和业务必需字段，才是要测的触发条件。如果验收器把看似合理但错误的正文当成成功，再强的后备也不会被调用。": "A fallback helps only if the system detects the primary method's error. Production usually lacks a complete reference for every new URL, so this benchmark's post-hoc scoring cannot be copied directly. Page identity, minimum content, and business-required fields are the trigger conditions to test. If the validator accepts plausible but incorrect body text, a capable fallback is never invoked.",
+    "这使 CowAgent 作为技术文档基线、Moli 作为后备成为值得验证的组合。试验应在同一时间窗跑完整链路，记录错误触发、漏触发、后备结果和总耗时，而不能只重放已经知道会失败的案例。正文噪声还应单独验收，以免提高了交付覆盖，却降低了检索质量。": "This makes CowAgent as a technical-document baseline and Moli as a fallback a combination worth validating. Run the complete chain in one time window and record correct triggers, missed triggers, fallback outcomes, and total latency; do not replay only cases already known to fail. Judge body-text noise separately so that higher delivery coverage does not come at the cost of retrieval quality.",
+    "这也解释了为什么不能把正文选型直接带到文档和媒体交付。PDF 或 DOCX 正文可读，不等于版式或原文件被保留；图片或视频地址可访问，不等于文件已下载或内容已理解。下游要地址，就验收地址；下游要文件，就要求可校验字节。更可读的纯文本不能代替这项检查。": "This also explains why a body-text choice cannot be carried directly into document and media delivery. Usable PDF or DOCX text does not mean layout or the original file was preserved; an accessible image or video URL does not mean the file was downloaded or its content understood. If downstream needs a URL, validate the URL; if it needs a file, require verifiable bytes. More readable plain text cannot substitute for this check.",
+    "剧集榜单的名字和顺序可以更新，页面身份、稳定栏目与说明文字仍然可以核对。条目按要求数量、非空名称和有效详情地址验收。标题正确但列表为空，或条目完整但来自错误栏目，都可能不通过混合契约。可重现的是问题与规则，不是某天的全部答案。": "A show's name and rank may change, while page identity, stable sections, and explanatory copy remain valid checks. Records are checked for the required count, non-empty names, and valid detail URLs. A correct title with an empty list—or complete records from the wrong section—can still fail the mixed contract. What is reproducible is the question and its rules, not every answer from one day.",
+    "通过率衡量已登记的内容与结构要求。只数卡片会让空占位通过；只看字段非空，又可能放过错位或伪造的条目。稳定文字命中与字段完整，也不能证明每个事实准确、实时或无遗漏。只有参考范围明确时才计算文本重合。缺少参考不会抹掉已完成的内容与结构检查，也不把 F1 记成零分。": "Pass rate measures the registered content and structure requirements. Counting cards alone accepts empty placeholders; checking only non-empty fields can accept mismatched or fabricated records. Even stable-text matches and complete fields do not prove every fact is accurate, current, or exhaustive. Use text overlap only when reference scope is explicit. A missing reference does not erase completed content/structure checks or turn F1 into zero.",
+    "独立 HTML 与证据下载": "Standalone HTML and evidence downloads",
+    "正常返回但任务未通过": "Normal response; task failed",
+    "动态网站正文：内容何时可以交付": "Rendered web text: when is content deliverable?",
+    "用于比较排名逆转与提取机制的方法：同一静态网站正文范围，F1 为有指标记录的逐例算术平均": "Methods used to compare ranking reversals and extraction mechanisms: within the same general-web scope, F1 is the arithmetic mean across calls with measured values.",
+    "任务通过 / 调用": "Tasks passed / calls", "平均 F1": "Mean F1", "F1 样本数": "F1 sample count",
+    "当前输入没有与案例及参考校验值完整匹配的初始源文档审计，不能汇总动态内容依赖比例。类别标签既不能证明正文已经在初始 HTML 中，也不能证明必须执行 JavaScript。": "No initial-source audit in the current input fully matches the task and reference checksums, so the share that depends on dynamic content cannot be aggregated. A category label proves neither that body text is already in the initial HTML nor that JavaScript execution is required.",
+    "离线机制实验：纯文本提取函数对合成 HTML 的输出，不计入方法排名": "Offline mechanism experiment: output of the plain-text extractor on synthetic HTML; excluded from method rankings",
+    "合成输入中的信息": "Information in synthetic input", "提取后": "After extraction",
+    "正文": "Body text", "保留": "Retained", "导航": "Navigation", "页脚": "Footer",
+    "链接文字": "Link text", "脚本内容": "Script content", "未保留": "Not retained",
+    "详情 URL（href）": "Detail URL (href)", "图片 URL（src）": "Image URL (src)",
+    "视频 URL（src）": "Video URL (src)", "核对合成输入与实际输出": "Compare synthetic input with actual output",
+    "输入 HTML": "Input HTML", "实验代码、观察结果与源码 SHA-256": "Experiment code, observations, and source SHA-256",
+    "两种方法的结果组合": "Outcome combination", "网页案例数": "Web tasks",
+    "都通过": "Both pass", "仅 CowAgent 通过": "CowAgent only", "仅 Moli 通过": "Moli only",
+    "都未通过": "Neither passes", "互补案例": "Complementary task", "CowAgent 本次结果": "CowAgent result",
+    "Moli 本次结果": "Moli result", "任务范围": "Task family", "任务数": "Tasks",
+    "实际方法数": "Measured methods", "调用开始时间（UTC）": "Call window (UTC)",
+    "本文计算明细": "Article calculations", "下载本文计算明细": "Download article calculations",
+    "下载规范化执行记录": "Download normalized run records", "下载离线提取实验": "Download offline extraction experiment",
+    "Lexmount 中国区": "Lexmount China", "Lexmount 国际": "Lexmount Global",
+    "报告不可靠：评测未完整": "Report unreliable: evaluation incomplete",
+    "动态网站正文：取到页面之后，还要等什么": "Rendered web text: what must happen after retrieving the page?",
+    "内容呈现方式": "Delivery mechanism", "通过 / 已运行": "Passed / run",
+    "Angular 路由＋JSON": "Angular routing + JSON", "客户端目录": "Client-rendered catalog",
+    "内嵌数据＋延迟呈现": "Embedded data + delayed rendering", "iframe 子文档（不依赖 JS）": "iframe subdocument (no JS required)",
+    "内嵌 JSON 呈现": "Embedded JSON rendering", "异步接口": "Asynchronous API",
+    "React 应用": "React application", "GraphQL 异步接口": "Asynchronous GraphQL API",
+    "接口规范转为可读目录": "API specification converted to a readable catalog",
+    "名言列表与 ScrapingCourse 的 JavaScript 商品页，经独立 GET 和浏览器核对，目标条目未出现在初始 HTML 中。它们要求在首次加载后交付指定范围的名言或商品。这支持“单靠初始 HTML 不够”，但不支持“必须执行 JavaScript”：直接调用页面使用的内容 API，只要返回满足同一任务契约，也是一条有效路线。": "The quote list and ScrapingCourse JavaScript product page were checked through independent GET and browser observations; their target records were absent from the initial HTML. They require delivery of the specified quotes or products after initial load. This shows that initial HTML alone is insufficient, not that JavaScript execution is mandatory: directly calling the page's content API is also valid when it satisfies the same task contract.",
+    "商品页还有一个会制造假完成的细节：初始页面已有 12 个占位卡片，但卡片文字为空。只等 DOM 数量达标，会把空占位当成加载完成。参考采集要求“数量达标且必需字段非空”，在有上限的等待内取得目标条目，并由独立观察核对完整范围。数量与字段要同时满足，才能把“布局已经出现”与“内容可以交付”区分开。": "The product page exposes another false-completion trap: its initial page contains 12 cards whose text is empty. Waiting only for the DOM count treats placeholders as complete. Reference capture therefore requires both the target count and non-empty required fields within a bounded wait, followed by an independent full-scope observation. Count and field requirements together distinguish visible layout from deliverable content.",
+    "动态取数也不只涉及脚本等待。Swagger 页要把外部接口规范变成可读目录；商品评论已经放在内嵌 JSON 中，页面稍后才把它显示出来；龟类目录位于另一个 iframe 文档，沿着父页给出的地址继续获取即可，不需要 JavaScript。它们都说明初始页面的文字抽取不等于内容交付，但所需的补救路径并不相同。这组样本来自公开练习站和应用示例，适合检验机制，不能代表生产网站的分布。": "Dynamic retrieval is not only about waiting for scripts. The Swagger task must turn an external API specification into a readable catalog; reviews are embedded in JSON before the page displays them; and a turtle catalog lives in an iframe document that can be fetched from its parent URL without JavaScript. Initial-page text extraction is therefore not the same as content delivery, and the required remedy differs by case. These public practice sites and examples test mechanisms, not the distribution of production websites.",
+    "动态呈现与数据变化是两个维度。固定的名言也可以经异步接口或计时器显示；每日变动的榜单也可能直接写在 HTML 中。任务可以要求一定数量的完整条目、非空名称和指定类型的字段，不必锁定今天的名字或价格；稳定的标题、栏目和说明仍保留内容核对。页面内容变化，不妨碍用同一份内容与结构契约验收。": "Dynamic presentation and changing data are separate dimensions. Fixed quotes may appear through an asynchronous API or timer, while a daily chart may be present directly in HTML. Tasks can require a count of complete records, non-empty names, and typed fields without freezing today's names or prices; stable headings, sections, and explanations remain content checks. Changing page content can still be judged by one stable content-and-structure contract.",
+    "对这类页面，接入前应试验的是取数路径与完成条件：源 HTML 是否足够，如果不够，后续数据从哪里来，什么状态才允许交付。浏览器启动成功并没有替应用回答这些问题。": "Before integrating such pages, test the retrieval path and completion condition: whether source HTML is sufficient, where later data comes from, and what state permits delivery. Successful browser startup does not answer these application-level questions.",
+    "原始输出与当前参考": "Raw output and current reference",
+    "Books to Scrape 的书目页": "The Books to Scrape catalog",
+    "、JSON 字段和转义字符；脚本载荷里的词语也进入 F1 的重合计算，但尚未成为任务要求的逐条名言、作者与标签。解析载荷并正确组织条目可能是一条取数路径，直接交付脚本文字则没有完成正文契约。": ", JSON fields, and escapes. Words in a script payload may overlap the F1 reference without becoming the required quote, author, and tag records. Parsing and structuring that payload may be a valid route; delivering raw script text is not the body-text contract.",
+    "换成": "with", "，再运行统一的": ", then run the shared ", "通过，": "passes, while its",
+    "未提供调用时间": "Call time not provided", "调用日期未提供": "Call date not provided",
+    "抓取接口正常返回之后，正文仍可能缺失、混入导航，或丢掉详情地址。这轮实测从这些差异出发，判断哪些方法值得接入，哪些结论还需要试验。": "After a fetch interface returns normally, body text may still be missing, mixed with navigation, or stripped of detail URLs. These measured differences show which methods merit integration and which conclusions still require experiments.",
+    "当前输入不足以比较 Cloudflare Markdown 与 Exa。": "The current input cannot compare Cloudflare Markdown with Exa.",
+    "当前输入没有可展示的 CowAgent 低 F1 通过案例。": "The current input has no low-F1 passing CowAgent task to show.",
+    "当前输入未包含书目页的 CowAgent 执行记录，无法核算价格反事实。": "The current input contains no CowAgent run for the book catalog, so the price counterfactual cannot be calculated.",
+    "这项固定内容任务登记了具体价格，所以价格替换会改变判定。会更新的商品列表则可以保留稳定的栏目标题与说明核对，同时检查条目数量、名称、价格字段和详情链接。这样既能发现抓错页面或漏掉说明，也不会因今天换了商品而判错。格式合格的价格仍可能不准确，不能把字段齐全当成事实核验。": "This fixed-content task registers exact prices, so replacing a price changes the verdict. A changing product list can instead retain stable headings and explanations while checking record count, names, price fields, and detail links. That catches wrong pages and missing explanations without failing merely because today's products changed. A well-formed price may still be inaccurate; complete fields are not factual verification.",
+    "提供各例匹配口径。": "provides each task's matching rules.",
+    "当前输入没有 CowAgent 网页记录。": "The current input has no CowAgent web records.",
+    "当前输入不满足逐例配对条件，不能计算 CowAgent 与 Moli 的离线互补覆盖。": "The current input does not support task-level pairing, so CowAgent and Moli's offline complementary coverage cannot be calculated.",
+    "同一网页的正文与媒体地址是两种交付目标；文字保留完整，地址仍可能丢失。": "Body text and media URLs from the same page are different deliverables; complete text can still omit the URLs.",
+    "成功集并集覆盖了全部案例，仍需验证线上能否识别缺项并触发后备；离线覆盖不能直接当作服务保证。": "The union covers every task, but production still must detect missing content and trigger fallback. Offline coverage is not a service guarantee.",
+    "这也解释了为什么不能把正文选型直接用于文档与媒体交付。PDF、DOCX 的文字可用，不代表版式或原文件已保留；图片与视频入口可用，也不代表文件已经下载或画面已被理解。若下游需要地址，就应核验地址；若下游需要文件，就必须收到可核验的字节。纯文本输出是否更易读，无法代替这项检查。": "A body-text choice cannot be applied directly to document and media delivery. Usable PDF or DOCX text does not preserve layout or the original file; accessible image and video endpoints do not mean files were downloaded or understood. Validate URLs when downstream needs URLs, and require verifiable bytes when it needs files. Readable plain text cannot replace that check.",
+    "这也解释了为什么不能把正文选型直接用于文档与媒体交付。PDF、DOCX 的文字可用，不代表版式或原文件已保留；图片与视频入口可用，也不代表文件已经下载或画面已被理解。若下游需要地址，就应核验地址；若下游需要文件，就必须收到可校验的字节。纯文本输出是否更易读，无法代替这项检查。": "A body-text choice cannot be applied directly to document and media delivery. Usable PDF or DOCX text does not preserve layout or the original file; an accessible image or video endpoint does not mean the file was downloaded or understood. Validate URLs when downstream needs URLs, and require verifiable bytes when it needs files. Readable plain text cannot replace that check.",
+    "剧集榜单的名字和顺序可以更新，页面身份、稳定栏目和说明内容仍可作为核对点；条目部分则检查规定数量、非空名称和符合要求的详情地址。标题正确但列表为空，或条目齐全却来自错误栏目，都可能不满足这份混合契约。可重复的是问题与规则，不是某天的全部答案。": "Show names and order may change, while page identity, stable sections, and explanations remain valid checks. Records must meet count, non-empty-name, and detail-URL requirements. A correct heading with an empty list, or complete records from the wrong section, can fail this mixed contract. What is reproducible is the question and its rules, not every answer from one day.",
+    "通过率衡量已登记的内容与结构要求。只数卡片会接受空占位，只查非空字段也可能接受错配或虚假条目；即使稳定内容命中、字段齐全，也不证明所有事实准确、数据最新或整页无遗漏。参考范围明确时再看文本重合，缺少参考不抹去已完成的内容与结构检查，也不把 F1 记成零分。": "Pass rate measures registered content and structure requirements. Counting cards alone accepts empty placeholders, while checking only non-empty fields can accept mismatched or false records. Stable-content matches and complete fields still do not prove every fact accurate, current, or exhaustive. Use text overlap only with explicit reference scope; missing references do not erase content and structure checks or turn F1 into zero.",
+    "样本与时间范围：各类任务按各自契约验收，日期不构成同时间受控对照": "Sample and date scope: each family follows its own contract; dates are not a same-time controlled comparison",
+    "判定规则与指标口径": "Acceptance rules and metric definitions",
+    "规范化执行记录": "Normalized run records", "计算明细与复验入口：": "Calculation details and reproduction: ",
+    "复现说明": "Reproduction instructions", "实际输出": "Actual output",
+    "书目页：规则实际检查了什么": "Book catalog: what the rules actually check",
+    "可接受表达": "Accepted expression", "核对本例的书名、价格与库存规则": "Inspect this task's title, price, and stock rules",
+    "Moli 通过而 CowAgent 未通过的网页，逐例回到原始记录": "Web tasks passed by Moli but not CowAgent, linked to original runs",
+    "正常返回；任务未通过": "Normal response; task failed",
+    "同一次去标签操作，既保住了文字，也丢掉了地址。它能满足某些正文任务，却无法替下游决定哪些部分值得保留；文字要清理到什么程度、链接是否必须保留，应由交付目标决定。属性已经从输出中消失之后，再提高关键词匹配精度也找不回地址。": "The same tag-stripping operation preserves text but discards URLs. It can satisfy some body-text tasks, but it cannot decide what downstream consumers need. The delivery goal must determine how aggressively text is cleaned and whether links must be retained. Once attributes have disappeared, more precise keyword matching cannot recover their URLs.",
+    "这个实验只验证合成输入上的当前提取函数。已保存的 CowAgent 调用没有逐次源码指纹，也没有把同一份响应字节交给多个提取算法做对照。因此，还不能把每次成功或失败都归因于这段函数，更不能量化保留文字范围对通过率的贡献。": "This experiment validates only the current extraction function on synthetic input. Saved CowAgent calls lack per-call source fingerprints and were not compared by feeding identical response bytes to multiple extractors. The experiment therefore cannot attribute every success or failure to this function or quantify how retained-text scope affects pass rate.",
+    "后备方法能否发挥作用，取决于系统是否识别出了首方法的错误。生产环境通常没有每个新 URL 的完整参考，不能照搬这里的事后判分；页面身份、最低内容量和业务必需字段才是需要试验的触发条件。若判定器接受了一份看似充足的错误正文，后备方法即使有能力也不会被调用。": "A fallback helps only when the system detects the primary method's error. Production usually lacks a complete reference for every new URL, so this post-hoc scoring cannot be copied directly. Page identity, minimum content, and business-required fields are the trigger conditions to test. If the validator accepts plausible but wrong body text, a capable fallback is never called.",
+    "这也解释了为什么不能把正文选型直接用于文档与媒体交付。PDF、DOCX 的文字可用，不代表版式或原文件已保留；图片与视频入口可用，也不代表文件已经下载或画面已被理解。若下游需要地址，就应核验地址；若下游需要文件，就必须收到可校验的字节。纯文本输出是否更易读，无法代替这项检查。": "This is also why a body-text choice cannot be applied directly to document and media delivery. Usable PDF or DOCX text does not preserve layout or the original file; an accessible image or video endpoint does not mean the file was downloaded or its content understood. Validate a URL when downstream needs a URL, and require verifiable bytes when it needs a file. Readable plain text cannot replace that check.",
     "冷启动、缓存、会话与失败重试": "Cold start, cache, session, and failure retry",
     "进程或浏览器生命周期": "Process or browser lifecycle",
     "完成条件不同": "Different completion signals",
@@ -1454,6 +1581,20 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
+    "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
+    "Quotes to Scrape 的": "Quotes to Scrape's ",
+    "CowAgent 已通过网页中 F1 最低的是": "The lowest-F1 general-web task passed by CowAgent is ",
+    "CowAgent 的已保存输出": "CowAgent's saved output ",
+    "在这份输出的内存副本中，把": "In an in-memory copy of this output, replace ",
+    "保留完整协议，": "retains the complete protocol; ",
+    "保留逐次调用。本文的配对、离线并集和反事实实验用于选择后续验证方向，不是线上重试链路、成本或长期稳定性的测量。": "retains every call. The paired comparisons, offline unions, and counterfactual experiments guide follow-up validation; they do not measure a production retry chain, cost, or long-term reliability.",
+    "同一个 Books to Scrape 站点，CowAgent 的": "On the same Books to Scrape site, CowAgent's ",
+    "书目正文任务": "catalog body-text task",
+    "商品封面地址任务": "product-cover URL task",
+    "未通过。书名和价格留在文本里，不能保证封面地址也交付了。下游需要分别验收文字和资源地址，才能发现这种交付差异。": " fails. Titles and prices remaining in text do not guarantee delivery of cover URLs. Downstream must validate text and resource URLs separately to detect this difference.",
+    "没有任何方法满足任务规则的案例包括：": "Tasks passed by no method include: ",
+    "。这些共同缺口使单纯增加后备方法的收益存疑；应先查实际输出缺少哪些字段、是否只有加载占位，或是否收到拦截页面。登录、地区和访问限制本身不使任务无效，它们可能就是目标业务需要处理的条件。": ". These shared gaps make the value of simply adding a fallback uncertain. First inspect missing fields, loading placeholders, or block pages. Login, region, and access constraints do not invalidate the task; they may be conditions the target workflow must handle.",
     "本轮记录的交付路线：": "Measured delivery path: ",
     "；输出契约：": "; output contract: ",
     "Cloudflare Browser Run /markdown 直接返回 Markdown": "Markdown returned directly by Cloudflare Browser Run /markdown",
@@ -1503,14 +1644,122 @@ PHRASES = {
     "文字核对范围：各方法均为 8/10 例。": "Required-text coverage: 8/10 tasks for every method. ",
     "文字核对范围：各方法均为 9/10 例。": "Required-text coverage: 9/10 tasks for every method. ",
     "文字核对范围：各方法均为 10/10 例。": "Required-text coverage: 10/10 tasks for every method. ",
+    "在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。": "Run in the benchmark repository using the current measured data in evaluation/; this does not call provider APIs.",
+    "输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。": "Output directory: reports/webfetch/. The command fails immediately unless the pinned Python 3.11 and uv.lock dependencies are satisfied. Credentials are loaded only from the local environment and are not included in the report.",
+    "完成十二方法升级、影响范围重跑与失败项核验": "Complete the twelve-method upgrade, impact-scoped reruns, and failure review",
+    "十二方法报告已重新绑定当前评测集、实现身份和独立发布目标。主矩阵按预声明影响范围新增 432 次调用，同窗测速新增 240 次；主矩阵 705 条机器失败结果完成独立核验，1,095 条机器通过结果未逐条审查，分歧逐条裁决，未决为 0。": "The twelve-method report is now bound to the current evaluation set, implementation identities, and an independent publication target. The primary matrix adds 432 calls within the predeclared impact scope and the same-window latency cohort adds 240 calls. All 705 machine failures in the primary matrix received independent review; the 1,095 machine passes were not reviewed individually. Every disagreement was adjudicated, with 0 unresolved.",
+    "LangChain 与 Crawl4AI 因旧权威证据未记录库版本，各自完整重跑 150 题；源码型方法只有精确且干净的绑定实现进入本轮。": "LangChain and Crawl4AI each reran all 150 tasks because the previous authoritative evidence did not record their library versions. For source-based methods, only exact, clean, bound implementations entered this run.",
+    "受路线影响的文档结果已进入声明的重跑范围；评分与盲审均使用新保存输出。": "Document results affected by the route change were included in the declared rerun scope; scoring and blind review both use the newly saved outputs.",
+    "主矩阵预先声明 13 题 × 12 方法、LangChain 与 Crawl4AI 的其余完整方法 cohort，以及两个超时边界修正，共完成 432 次新调用；另以 provider-blind、域名去重的 20 题完成 240 次十二方法同窗测速。": "The primary matrix predeclared 13 tasks × 12 methods, the remaining full-method cohorts for LangChain and Crawl4AI, and two deadline-boundary corrections, for 432 new calls in total. A separate provider-blind, domain-deduplicated set of 20 tasks produced 240 same-window latency calls across all twelve methods.",
+    "主矩阵固定每个方法—任务一个权威逻辑结果，不按最好或最快挑选。测速保留完整预声明矩阵：全调用延迟按同一 20 题分母统计，成功调用延迟另作条件统计；十二方法共同通过为 1/20，只作为诊断，不据此筛样本或排名。": "The primary matrix fixes one authoritative logical result for every method–task pair and never selects the best or fastest result. The latency cohort retains its complete predeclared matrix: all-call latency uses the same 20-task denominator, while successful-call latency is reported separately as a conditional statistic. All twelve methods jointly passed 1/20 tasks; this is diagnostic only and is not used to select samples or rank methods.",
+    "证据与失败项核验": "Evidence and failure review",
+    "旧组装器可能把 worker 工作树和符号链接带入汇总，又会漏掉重试物理调用返回的辅助文件；审查包若遗漏原生答案字段，也会制造系统性假分歧。": "The old assembler could pull worker trees and symbolic links into the aggregate while omitting auxiliary files returned by physical retry calls. A review packet that omitted native answer fields could also create systematic false disagreements.",
+    "汇总只复制哈希绑定的公开文件，拒绝符号链接和工作树路径，并绑定主返回、辅助文件与每次物理重试。Codex gpt-5.6-sol 对主矩阵 705 条机器失败结果盲审，审查包同时提供白名单化的原生答案 metadata；2 条分歧逐条裁决。": "Aggregation now copies only hash-bound public files, rejects symbolic links and worker-tree paths, and binds the primary response, auxiliary files, and every physical retry. Codex gpt-5.6-sol blindly reviewed the 705 machine failures in the primary matrix, with allowlisted native answer metadata included in the review packet; the 2 disagreements were adjudicated individually.",
+    "最终证据为 12 × 150 的唯一主矩阵和 12 × 20 的唯一测速矩阵；主矩阵失败项核验 705/705，机器通过未逐条审查 1,095 条，测速结果不在本次审查范围，未决 0。裁决只确定审计结论，不回写或择优替换 provider 输出。": "The final evidence consists of one 12 × 150 primary matrix and one 12 × 20 latency matrix. Failure review covers 705/705 primary-matrix failures; 1,095 machine passes were not reviewed individually, and latency results were outside this review scope. There are 0 unresolved items. Adjudication determines only the audit conclusion and never rewrites or selectively replaces provider output.",
+    "发布器逐文件核验公开文件；服务端允许的 HTML 外壳注入与匿名字节一致性分层披露，不再把两者混称为全站字节相同。": "The publisher verifies public files individually. Server-permitted HTML shell injection and anonymous byte equality are disclosed as separate layers rather than being conflated as site-wide byte identity.",
+    "环境导入": "Environment import",
+    "托管方法凭据已存在于用户级 ~/.env，但旧流程只读取仓库 .env，导致新会话会误报缺少变量。": "Credentials for hosted methods already existed in the user-level ~/.env, but the old workflow read only the repository .env, causing new sessions to report variables as missing incorrectly.",
+    "新增显式 import-env：仅将九个允许变量从用户级文件补入仓库 .env，保留已有非空值、隐藏变量内容并强制 0600 权限；文档和测试固定该入口。": "An explicit import-env command now copies only nine allowlisted variables from the user-level file into the repository .env, preserves existing non-empty values, hides variable contents, and enforces 0600 permissions. Documentation and tests make this the stable entry point.",
+    "凭据值仍不进入 Git、证据、日志或报告；导入后六个托管方法的前置校验通过。": "Credential values still never enter Git, evidence, logs, or the report. Preflight validation passes for all six hosted methods after import.",
+    "账号 · Web Fetch": "Access · Web Fetch",
+    "账号与凭据": "Accounts and credentials",
+    "只列官方入口和环境变量名称，不保存实际凭据。": "Only official entry points and environment-variable names are listed; actual credentials are never stored.",
+    "注册清单": "Setup checklist",
+    "提供方": "Provider",
+    "官方入口": "Official entry point",
+    "环境变量": "Environment variables",
+    "取得方式": "How to obtain",
+    "免费 / 准入说明": "Free tier / access notes",
+    "注册 Cloudflare，复制 32 位 Account ID，再创建自定义 API token：Account → Browser Rendering → Edit；运行前用 GET /client/v4/user/tokens/verify 验证。": "Register with Cloudflare, copy the 32-character Account ID, then create a custom API token with Account → Browser Rendering → Edit; verify it with GET /client/v4/user/tokens/verify before running.",
+    "Workers Free 可用 Browser Rendering；token 需要 Browser Rendering Edit 权限，并受账户限额约束。": "Browser Rendering is available on Workers Free; the token needs Browser Rendering Edit permission and remains subject to account limits.",
+    "CowAgent 内置 Web Fetch": "CowAgent built-in Web Fetch",
+    "检出并固定 CowAgent 源码，配置仓库路径和隔离工作目录；不需要供应商 API Key。": "Check out and pin the CowAgent source, then configure its repository path and isolated working directory; no provider API key is required.",
+    "本地项目内置实现。": "Built into the local project.",
+    "使用仓库冻结的 Python 环境及匹配的浏览器运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。": "Run with the repository's frozen Python environment and matching browser; set OSS_PYTHON only when explicitly overriding the worker interpreter.",
+    "本地开源库；不需要供应商账号。": "Local open-source library; no provider account is required.",
+    "DeepSeek Harness 内置 Web Fetch": "DeepSeek Harness built-in Web Fetch",
+    "检出并固定 DeepSeek Harness 源码与依赖；本轮不调用聊天模型。": "Check out and pin the DeepSeek Harness source and dependencies; this run does not call a chat model.",
+    "本地项目内置实现；不需要模型 API Key。": "Built into the local project; no model API key is required.",
+    "注册或登录 Exa 控制台，打开 API Keys，创建 key；如系统要求则设置预算。": "Register for or sign in to the Exa console, open API Keys, and create a key; set a budget if required by the system.",
+    "需要控制台账号；用量由 credits/预算控制。": "A console account is required; usage is governed by credits and budget.",
+    "注册账号，打开 Firecrawl 控制台 API Keys 页面，创建以 fc- 开头的 key。": "Register an account, open the API Keys page in the Firecrawl console, and create a key beginning with fc-.",
+    "存在无 key 的限流层；可复现评测应使用免费账号。": "A rate-limited keyless tier exists; reproducible evaluation should use a free account.",
+    "使用仓库冻结的 Python 环境运行；OSS_PYTHON 只在显式覆盖 worker 解释器时设置。": "Run with the repository's frozen Python environment; set OSS_PYTHON only when explicitly overriding the worker interpreter.",
+    "登录中国区控制台，复制同一项目下的 API key 与 Project ID；本评测使用 api.lexmount.cn。": "Sign in to the China-region console and copy the API key and Project ID from the same project; this evaluation uses api.lexmount.cn.",
+    "API key 与 Project ID 必须来自同一个中国区项目。": "The API key and Project ID must come from the same China-region project.",
+    "登录后打开 Settings → API Keys，创建或复制 API key，并复制对应 Project ID；本评测使用 api.lexmount.com。": "After signing in, open Settings → API Keys, create or copy an API key, and copy the corresponding Project ID; this evaluation uses api.lexmount.com.",
+    "内测准入；API key 与 Project ID 必须来自同一个 Global 项目。": "Private-beta access; the API key and Project ID must come from the same Global project.",
+    "安装并固定本轮 Moli 可执行文件；不需要供应商账号或 API Key。": "Install and pin the Moli executable used in this run; no provider account or API key is required.",
+    "本地 CLI；二进制路径和版本属于运行证据。": "Local CLI; the binary path and version are part of the run evidence.",
+    "OpenClaw 内置 Web Fetch": "OpenClaw built-in Web Fetch",
+    "检出并固定 OpenClaw 源码及 Node 运行时；本轮关闭 Firecrawl 回退。": "Check out and pin the OpenClaw source and Node runtime; the Firecrawl fallback is disabled in this run.",
+    "本地项目内置实现；不需要云端抓取 Key。": "Built into the local project; no cloud-retrieval key is required.",
+    "注册或登录 Tavily Platform，从控制台复制 API key。": "Register for or sign in to Tavily Platform and copy an API key from the console.",
+    "官方快速开始说明每月有 1,000 免费 API credits，无需绑卡。": "The official quickstart states that 1,000 free API credits are available each month with no card required.",
 }
 
 
+# The adoption page carries a large, evidence-bound capability and pricing
+# inventory. Keep its exact-string translations in small data-only modules so
+# the shared localization engine remains reviewable.
+for adoption_text in (
+    ADOPTION_TEXT_A,
+    ADOPTION_TEXT_B,
+    ADOPTION_TEXT_C,
+    ADOPTION_TEXT_D,
+):
+    TEXT.update(adoption_text)
+
+
 REGEX = [
-    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
-    (re.compile(r"^(\d+)类任务概览$"), r"\1 task families"),
-    (re.compile(r"^(\d+)类分榜$"), r"Rankings for \1 task families"),
-    (re.compile(r"^(\d+)类通过数$"), r"Passes across \1 task families"),
+    (re.compile(r"^最终报告纳入 ([\d,]+) 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。$"), r"The final report includes \1 calls. Execution began after tasks and references were frozen; calls were sequential within each method and did not reuse personal login state."),
+    (re.compile(r"^初始源文档审计进一步缩小了这批样本的解释范围：静态网站正文 (\d+) 例中，(\d+) 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。$"), r"The initial-source audit further narrows how this sample can be interpreted: for \1 general-web body tasks, \2 frozen references can be reproduced exactly from the saved initial HTML after reference extraction and normalization. This checks reference-text recoverability; it neither means that all of the text was statically visible nor that CowAgent used the same extractor. Embedded script payloads still require correct parsing. High web pass rates therefore cannot be extrapolated to content that arrives only after the initial response."),
+    (re.compile(r"^这组另有 (\d+)/(\d+) 条返回标题能按详情链接对应到独立名称参考，据此计算标题完整度、纯净度和 F1。例如一部电影从第三名移到第十名，只要仍返回同一详情链接，就比较这部电影的名称，不比较名次，也不要求旧榜单里的电影继续出现。只返回电影名称可能取得很高的标题分，却仍不足以完成至少三条结果的任务。因此这三个分数须与任务通过率和参考覆盖量一起读，不能当作整页正文质量。新条目没有独立名称参考时不计文字分；同一条目的标题也可能改写，重合度只是相对已记录名称的诊断，不认证当前内容真假。$"), r"For this group, \1/\2 returned titles can be joined by detail URL to independent name references, enabling title recall, precision, and F1. If a film moves from third to tenth while retaining the same detail URL, its name is compared without comparing rank or requiring old list membership. Returning names alone can score highly on title overlap while still failing the task's minimum of three complete records. Read these three diagnostics together with task pass rate and reference coverage; they are not whole-page body-quality metrics. New entries without independent name references are excluded, and titles may be rewritten, so overlap is only a diagnostic against recorded names, not proof that current content is true."),
+    (re.compile(r"^获取原图：(.+)$"), lambda match: "Download original: " + translate_text(match.group(1))),
+    (re.compile(r"^图 (\d+) · (.+?)。(.+) 点击图像获取原图。$"),
+     lambda match: f"Figure {match.group(1)} · {translate_text(match.group(2))}. "
+                   f"{translate_text(match.group(3))} Select the image to download the original."),
+    (re.compile(r"^同窗速度子集：预先声明 (\d+) 题，(\d+) 种方法使用同一完整任务样本。全调用耗时包含成功、失败和截止超时；通过调用耗时按各方法自己的成功子集计算，分母必须同时阅读。每种方法最多 (\d+) 个单次观察，P95 只作本次样本诊断。$"), r"Same-window latency cohort: \1 tasks were declared in advance and all \2 methods use the same complete task sample. All-call latency includes successes, failures, and deadline timeouts; successful-call latency uses each method's own successful subset, so its denominator must be read alongside it. Each method has at most \3 single observations; P95 is only a diagnostic for this sample."),
+    (re.compile(r"^同窗速度子集：预先声明 (\d+) 题，(\d+) 种方法共同通过 (\d+) 题；所有方法使用完全相同的成功样本。P95 只作本次样本诊断。$"), r"Same-window latency cohort: \1 tasks were declared in advance and all \2 methods jointly passed \3; every method uses exactly the same successful sample. P95 is only a diagnostic for this sample."),
+    (re.compile(r"^这份旧版测速汇总只使用 (\d+)/(\d+) 个全部 (\d+) 种方法共同通过的同窗任务；它保留原报告的共同成功样本口径，不能补充解释失败等待，也不能与跨批次主结果直接排名。$"), r"This legacy latency summary uses only the \1/\2 same-window tasks jointly passed by all \3 methods. It preserves the original report's shared-pass denominator, cannot account for time spent on failures, and cannot be ranked directly against cross-batch primary results."),
+    (re.compile(r"^全部 (\d+) 种方法共同通过 (\d+)/(\d+) 题；共同通过数只作诊断，不用于筛选测速样本。报告保留预声明的全部 ([\d,]+) 次调用，不按结果重新选题；全调用耗时可在相同分母下阅读，通过调用耗时只描述各方法的条件分布，不能解释为同题速度排名。$"), r"All \1 methods jointly pass \2/\3 tasks; the shared-pass count is diagnostic only and is not used to select the latency sample. The report retains all \4 predeclared calls without reselecting tasks after observing outcomes. All-call latency uses a common denominator; successful-call latency only describes each method's conditional distribution and is not a matched-task speed ranking."),
+    (re.compile(r"^(\d+) 个普通网页中，GitHub 与 Python 官方文档占 (\d+) 个，样本偏向技术文档$"), r"Of \1 general-web tasks, \2 are from GitHub or the official Python documentation, so the sample is weighted toward technical documentation"),
+    (re.compile(r"^统计按实际调用记录计算，未运行和缺少验收证据的项目不记为失败。静态网站正文、动态网站正文与热门网站正文分别陈述，文档、资源地址和原文件按各自契约验收。(\d+) 个普通网页中，GitHub 与 Python 官方文档占 (\d+) 个，样本偏向技术文档；每个方法与案例组合只有一次观察，不能估计波动或外推为全网成功率。调用日期相邻不构成同时间对照，公开练习站也不能代表生产网站分布。$"), r"Statistics use the calls actually run; items that were not run or lack acceptance evidence are not counted as failures. General-web, dynamic-web, and popular-site body text are reported separately, while documents, resource URLs, and original files follow their own contracts. Of \1 general-web tasks, \2 are from GitHub or the official Python documentation, so the sample is weighted toward technical documentation. Each method–task pair has only one observation, which cannot estimate variation or be extrapolated to a web-wide success rate. Nearby call dates are not a simultaneous control, and public practice sites do not represent the distribution of production websites."),
+    (re.compile(r"^静态网页通过数：(.+)。综合榜按 (\d+) 个任务等权计数；(\d+) 类分榜仍分别解释，耗时和文字质量不混入综合通过率。$"), r"General-web passes: \1. The overall ranking counts \2 tasks equally. Each of the \3 family rankings is interpreted separately, and neither latency nor text quality is blended into overall task pass rate."),
+    (re.compile(r"^数据截至 (.+)（UTC） · 正文、文档与媒体交付实测 ·$"), r"Data through \1 (UTC) · measured body-text, document, and media delivery ·"),
+    (re.compile(r"^先看静态网站正文：([\d,]+) 个任务、([\d,]+) 种方法，共 ([\d,]+) 次调用。“请求成功”指接口正常返回，“任务通过”还要求正文满足该例验收规则。$"), r"Start with general-web text: \1 tasks, \2 methods, and \3 calls. “Request succeeded” means the interface returned normally; “Task passed” also requires the body to satisfy that task's acceptance contract."),
+    (re.compile(r"^静态网站正文调用的互斥状态分解；(.+)。正常返回不等于源站 HTTP 200。$"), lambda match: f"Mutually exclusive outcomes for general-web calls; {translate_text(match.group(1))}. A normal provider response does not imply origin HTTP 200."),
+    (re.compile(r"^(\d+) 个任务覆盖异步取数、客户端呈现与子文档获取。实际运行 (\d+) 种方法、([\d,]+) 次调用，([\d,]+) 次请求正常返回，([\d,]+) 次任务通过。任务难度、源站状态和调用日期没有与静态网站正文任务构成受控对照；两类结果分别比较。$"), r"The \1 tasks cover asynchronous retrieval, client-side presentation, and subdocument fetching. \2 methods made \3 calls; \4 returned normally and \5 passed. Task difficulty, origin state, and call date were not controlled against general-web tasks, so the two groups are compared separately."),
+    (re.compile(r"^动态网站正文：([\d,]+) 个任务、([\d,]+) 种已运行方法；分母按每个任务实际运行数计算$"), r"Rendered web text: \1 tasks and \2 measured methods; each task uses its actual run count as denominator."),
+    (re.compile(r"^CowAgent 在静态网站正文中请求成功 ([\d,]+)/([\d,]+)，任务通过 ([\d,]+)/([\d,]+)。一个以 HTTP 取页、再去除标签的实现，在这批网页上已能满足大部分关键内容规则。这使它值得作为正文入口的基线，但还不足以解释全部成功来自哪里。$"), r"CowAgent returned normally on \1/\2 general-web calls and passed \3/\4 tasks. An implementation that fetches via HTTP and strips tags satisfies most key content rules in this sample. It is worth considering as a body-text baseline, but this does not explain every success."),
+    (re.compile(r"^同一配置的 Moli，在静态网站正文任务中通过 ([\d,]+)/([\d,]+)，在动态网站正文中通过 ([\d,]+)/([\d,]+)。网页高分为什么没有自然延伸到动态内容？关键在于目标内容在哪里、何时到达，以及接口最终保留了什么。$"), r"With the same configuration, Moli passes \1/\2 general-web tasks and \3/\4 rendered-web tasks. Why does strong general-web performance not extend automatically to dynamic content? The answer depends on where and when target content arrives and what the interface ultimately retains."),
+    (re.compile(r"^(?:失败集中在正常返回之后|请求状态没有覆盖全部任务失败)：正常返回但任务未通过，占静态网站正文全部失败的 ([^。]+)。单看接口错误率，会漏掉相当一部分未交付任务。返回错误页面、正文缺失或内容规则不满足，都可能落在这里。接入服务后，应检查下游所需的内容，并保留可定位的失败原因。$"), lambda match: f"Normal responses that fail task acceptance account for {translate_text(match.group(1))} of all general-web failures. Interface error rate alone misses part of the undelivered workload. Error pages, missing body text, and unmet content rules can all fall here. After integration, validate downstream-required content and retain actionable failure reasons."),
+    (re.compile(r"^Cloudflare Markdown 在 ([\d,]+) 次网页调用中通过 ([\d,]+) 次，Exa 为 ([\d,]+)/([\d,]+)。(按全文 F1 看，次序却倒过来了。|全文 F1 给出另一种观察角度。)任务验收关心指定内容是否交付，F1 关心输出与参考正文的词频重合。同一个“最好”，在这两个目标下可能指向不同方法。$"), lambda match: f"Cloudflare Markdown passes {match.group(2)} of {match.group(1)} web calls; Exa passes {match.group(3)}/{match.group(4)}. " + ("By full-text F1, the order reverses. " if match.group(5).startswith('按') else "Full-text F1 provides another perspective. ") + "Task acceptance asks whether specified content was delivered; F1 measures token-frequency overlap with reference body text. “Best” can name different methods for these two goals."),
+    (re.compile(r"^在两者都有一次记录的 ([\d,]+) 个网页任务上，CowAgent 通过 ([\d,]+) 例，Moli 通过 ([\d,]+) 例。按案例 ID 对齐后，Moli 能补上 CowAgent 未通过的 ([\d,]+) 例；反方向，CowAgent 也能补上 Moli 未通过的 ([\d,]+) 例。只看单方法分数，会丢掉这层信息。$"), r"Across \1 web tasks with one result from each method, CowAgent passes \2 and Moli passes \3. After aligning task IDs, Moli recovers \4 CowAgent failures, while CowAgent recovers \5 Moli failures. A single-method score hides this complementarity."),
+    (re.compile(r"^二者成功集的离线并集为 ([\d,]+)/([\d,]+)。这给出的决策是开展一次有内容校验的候选 fallback 试验。它尚未测试串行调用、失败识别与实时重试，更不构成线上全覆盖保证。$"), r"The offline union of their passing sets is \1/\2. This supports running a candidate fallback experiment with content validation. It has not tested sequential calls, failure detection, or live retries, and does not guarantee complete production coverage."),
+    (re.compile(r"^在共同通过且都有耗时的 ([\d,]+) 例中，CowAgent 的客户端墙钟耗时中位数为 ([\d.]+) ms，Moli 为 ([\d.]+) ms。对齐成功任务后，这个比较排除了各自成功集不同的影响；失败等待仍未计入，不同时间批次、页面状态和网络条件也没有被消除。它不能用来相加计算生产 fallback 延迟，本轮也没有实测金额，不能据此推出成本节省。$"), r"Among \1 jointly passed tasks with latency, median client wall time is \2 ms for CowAgent and \3 ms for Moli. Aligning successful tasks removes differing success sets, but still excludes failure waits and does not control batch timing, page state, or network conditions. These values cannot be added to estimate production fallback latency; no cost was measured, so they do not imply savings."),
+    (re.compile(r"^热门网站正文的 ([\d,]+) 个任务有 ([\d,]+) 次调用，其中 ([\d,]+) 次满足各例任务规则。单方法最好通过 ([\d,]+)/([\d,]+)，各方法成功集的离线并集为 ([\d,]+)/([\d,]+)。这里的通过指任务声明的内容与结构契约，并不认证全部文字与某份实时快照一致。$"), r"The \1 popular-site tasks have \2 calls, of which \3 satisfy their task rules. The best single method passes \4/\5; the offline union of method success sets is \6/\7. Passing means satisfying the declared content-and-structure contract, not certifying every word against a live snapshot."),
+    (re.compile(r"^原文件任务尤其需要区分缺测与产品失败。本轮共有 ([\d,]+) 条记录，([\d,]+) 条没有写入$"), r"Original-file tasks especially require distinguishing unmeasured cases from product failures. This run has \1 records; \2 do not contain "),
+    (re.compile(r"^，只有 ([\d,]+) 条形成已验证通过记录。缺失验收的记录显示为未测，不进入任务通过率分母或失败数；不能据此宣称参评产品不支持文件下载。后续调用通过统一文件入口核验返回字节、格式特征、长度及 SHA-256，已有独立文件哈希时还须匹配目标。历史调用没有这些证据，不能补认证为测过。$"), r"; only \1 are verified passes. Records without acceptance evidence are shown as unmeasured and excluded from pass-rate denominators and failure counts; they do not establish that the evaluated product lacks file-download support. Subsequent calls validate returned bytes, format signatures, length, and SHA-256 through the shared file path, and must match an independent target hash when available. Historical calls without this evidence cannot be retroactively certified as measured."),
+    (re.compile(r"^其中 ([\d,]+)/([\d,]+) 个案例还登记了任务相关的固定文字：例如 IMDb 的榜单说明、JustWatch 的观看方式说明，以及商品或餐馆的字段标签。这些文字与列表条目共同决定任务是否通过，不能只拿到三个链接就算完成。每例命中多少必需文字组，由文字核对覆盖率回答；没有文字依据的案例不计入这项均值。少量核对句不是整页参考，因此不能拿它们计算整页纯净度和 F1，否则完整返回的其它正文反而会被当成杂文扣分。$"), r"Of these, \1/\2 tasks also register task-relevant stable text, such as IMDb ranking explanations, JustWatch viewing information, and product or restaurant field labels. This text and the records jointly determine acceptance; three links alone are insufficient. Required-text coverage reports matched groups per task, excluding tasks without textual evidence. A few check sentences are not a whole-page reference and must not be used for whole-page precision or F1, which would penalize other correctly returned text as noise."),
+    (re.compile(r"^延迟名言页把等待条件的问题暴露得更直接。页面可以已经完成初始请求，网络暂时空闲，正文却还要等计时器触发。本次延迟页的 ([\d,]+) 次调用中，([\d,]+) 次满足完整内容规则。浏览器启动成功或 network-idle 到达，都不能单独充当内容完成的证据。应按目标条目出现、数量与关键内容稳定来判断何时取结果；本轮没有对各种等待策略做消融，不能从一次失败计算换策略后的收益。$"), r"The delayed-quote page exposes completion criteria directly. Its initial request may finish and the network may go idle while body text still awaits a timer. Of \1 calls, \2 satisfy the complete-content rule. Browser startup or network-idle alone is not evidence of completion. Results should be taken only after target records, counts, and key content stabilize. This run did not ablate waiting strategies, so one failure cannot estimate the benefit of another strategy."),
+    (re.compile(r"^(.+) 在动态网站正文中通过 ([\d,]+)/([\d,]+)，平均 F1 却为 ([\d.]+%)。其中$"), lambda m: f"{translate_text(m.group(1))} passes {m.group(2)}/{m.group(3)} rendered-web tasks but has mean F1 {m.group(4)}. Among them, "),
+    (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。这份输出仍有$"), r"has F1 \1 but does not satisfy its task rules. Zero passes means no call met every threshold, not zero textual overlap. This F1 compares saved sample text only and does not verify live facts. The output still contains "),
+    (re.compile(r"^：完整度 ([\d.]+%)，纯净度 ([\d.]+%)，F1 ([\d.]+%)。这些指标描述输出与该例参考的重合程度。参考外文字可能是导航，也可能是有用的目录或附录，仅凭低纯净度不能认定它们全是噪声，应先核对任务的正文范围。$"), r": recall \1, precision \2, and F1 \3. These metrics describe overlap with the task reference. Text outside the reference may be navigation or useful contents and appendices; low precision alone does not prove it is all noise. Check the task's body scope first."),
+    (re.compile(r"^CSS 2\.1 标准是一个具体例子：文档目录属于本例要求保留的正文，CowAgent 这次输出相对完整范围的 F1 为 ([\d.]+%)。若参考剔除长目录，保留目录的方法会被大量扣分；这样的分差反映参考范围不一致，不能用来证明方法提取了大量噪声。$"), r"CSS 2.1 is a concrete example: its contents belong to the required body, and CowAgent's output has F1 \1 against the complete scope. Removing a long contents section from the reference would heavily penalize methods that retain it; such a difference reflects inconsistent reference scope, not proof of noisy extraction."),
+    (re.compile(r"^要求书名、价格和库存核对点满足，返回长度至少为 ([\d,]+) 字符。$"), r"requires its title, price, and stock checks and at least \1 returned characters."),
+    (re.compile(r"^有 ([\d,]+) 字符。$"), r"contains \1 characters."),
+    (re.compile(r"^。原文正文规则通过；替换后长度规则通过，价格核对点未通过，正文规则未通过。请求状态没有改变，但内容验收改变了。这个离线反事实只改副本，不改实测记录、不进入排名。$"), r". The original passes the body rule; after replacement, length still passes but the price and body checks fail. Request status is unchanged while content acceptance changes. This offline counterfactual changes only a copy, not measured records or rankings."),
+    (re.compile(r"^([\d]{4}-[\d]{2}-[\d]{2} [\d:]+) 至 ([\d]{4}-[\d]{2}-[\d]{2} [\d:]+) UTC$"), r"\1 to \2 UTC"),
+    (re.compile(r"^离线成功集分解，分母 ([\d,]+) 个配对网页任务；每例只进入一个分组$"), r"Offline success-set partition over \1 paired web tasks; each task appears in exactly one group"),
+    (re.compile(r"^评测集没有覆盖计划；存在 ([\d,]+) 个计划外调用(?:；存在 ([\d,]+) 个无法判定通过或失败的调用)?。本页排名不得用于结论或发布。$"),
+     lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
+                   + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
+                   + ". Rankings on this page must not be used for conclusions or publication."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+) 类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
+    (re.compile(r"^(\d+) 类任务概览$"), r"\1 task families"),
+    (re.compile(r"^(\d+) 类分榜$"), r"Rankings for \1 task families"),
+    (re.compile(r"^(\d+) 类通过数$"), r"Passes across \1 task families"),
     (re.compile(r"^每种方法都执行当前评测集计划的 (\d+) 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到 (\d+) 个分榜。$"), r"Every method runs the current dataset's \1 planned tasks. Each task contributes one pass or fail and the results are summed directly; latency, full-text quality, and family difficulty are not blended into a weighted score. The overall ranking shows delivery coverage, while specific capabilities belong in the \2 family rankings."),
     (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),
@@ -1529,6 +1778,13 @@ REGEX = [
     (re.compile(r"^(\d+) 个案例$"), r"\1 tasks"),
     (re.compile(r"^(\d+)/(\d+) 次均有结果。$"), r"\1/\2 calls have results."),
     (re.compile(r"^独立核验：主结果 ([\d,]+)/([\d,]+)；同窗测速 ([\d,]+)/([\d,]+)；未决 (\d+)$"), r"Independent review: primary results \1/\2; same-window latency \3/\4; \5 unresolved"),
+    (re.compile(r"^独立核验：机器失败 ([\d,]+)/([\d,]+)；未决 (\d+)$"), r"Independent review: machine failures \1/\2; \3 unresolved"),
+    (re.compile(r"^主结果机器失败 ([\d,]+)/([\d,]+)；机器通过未逐条审查 ([\d,]+)；代理分歧 ([\d,]+)；已裁定 ([\d,]+)；未决 ([\d,]+)。$"), r"Primary machine failures reviewed: \1/\2; machine passes not reviewed individually: \3; reviewer disagreements: \4; adjudicated: \5; unresolved: \6."),
+    (re.compile(r"^十二种方法主矩阵的 ([\d,]+) 条机器失败结果；([\d,]+) 条机器通过结果和 ([\d,]+) 条同窗测速结果未逐条独立审查。$"), r"Machine failures in the twelve-method primary matrix: \1. The \2 machine passes and \3 same-window latency results were not independently reviewed item by item."),
+    (re.compile(r"^从结构化结果中读取标题与详情链接，共 ([\d,]+) 个标题。$"), r"Read titles and detail URLs from structured results: \1 returned titles."),
+    (re.compile(r"^([\d,]+)/([\d,]+) 个标题找到独立名称证据；没有对应证据的不评分。$"), r"\1/\2 titles join to independent name evidence; titles without matching evidence are not scored."),
+    (re.compile(r"^覆盖 (\d+)/(\d+) 个案例；这是标题诊断，不参与任务通过判定。$"), r"Coverage: \1/\2 tasks. This is a title diagnostic and does not determine task acceptance."),
+    (re.compile(r"^(\d+)/(\d+) · (\d+)/(\d+) 例（无可评分标题）$"), r"\1/\2 · \3/\4 tasks (no scorable titles)"),
     (re.compile(r"^(\d+) 个任务中满足各自验收规则的数量；每题等权。$"), r"Number of the \1 tasks satisfying their own acceptance contracts; every task has equal weight."),
     (re.compile(r"^当前参评方法共同通过 (\d+) 个案例；仅在这个相同子集内比较耗时，不代表失败任务的成本或生产 SLA。$"), r"The evaluated methods jointly pass \1 tasks. Latency is compared only on this identical subset; it does not represent the cost of failed tasks or a production SLA."),
     (re.compile(r"^完整参考覆盖 (\d+)/(\d+)；缺少参考只影响全文指标，不影响任务结果。$"), r"Complete-reference coverage: \1/\2. A missing reference affects only full-text metrics, not the task verdict."),
@@ -1620,10 +1876,10 @@ class Localizer(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs) -> None:
         self.stack.append(tag)
-        self.parts.append(self.get_starttag_text())
+        self.parts.append(_translate_visible_attributes(self.get_starttag_text()))
 
     def handle_startendtag(self, tag: str, attrs) -> None:
-        self.parts.append(self.get_starttag_text())
+        self.parts.append(_translate_visible_attributes(self.get_starttag_text()))
 
     def handle_endtag(self, tag: str) -> None:
         if tag in self.stack:
@@ -1644,6 +1900,66 @@ class Localizer(HTMLParser):
 
     def handle_comment(self, data: str) -> None:
         self.parts.append(f"<!--{data}-->")
+
+
+_VISIBLE_ATTRIBUTE = re.compile(
+    r'(?P<prefix>\b(?:alt|aria-label|placeholder|title)=)(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
+    re.S,
+)
+
+
+def _translate_visible_attributes(start_tag: str) -> str:
+    def replace(match: re.Match) -> str:
+        value = html.unescape(match.group("value"))
+        translated = html.escape(translate_text(value), quote=True)
+        return match.group("prefix") + match.group("quote") + translated + match.group("quote")
+    return _VISIBLE_ATTRIBUTE.sub(replace, start_tag)
+
+
+class EnglishNarrativeAudit(HTMLParser):
+    """Find CJK left in UI/prose while excluding preserved measured evidence."""
+
+    def __init__(self, allowed_source_text=()) -> None:
+        super().__init__(convert_charrefs=False)
+        self.skip = 0
+        self.allowed = sorted(set(filter(None, allowed_source_text)), key=len, reverse=True)
+        self.untranslated: list[str] = []
+
+    def _check(self, value: str) -> None:
+        remainder = html.unescape(value).strip()
+        for allowed in self.allowed:
+            remainder = remainder.replace(allowed, "")
+        if re.search(r"[\u4e00-\u9fff]", remainder):
+            self.untranslated.append(html.unescape(value).strip())
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if not self.skip:
+            for name, value in attrs:
+                if name in {"alt", "aria-label", "placeholder", "title"} and value:
+                    self._check(value)
+        if tag in {"pre", "code", "script", "style"}:
+            self.skip += 1
+
+    def handle_startendtag(self, tag: str, attrs) -> None:
+        if not self.skip:
+            for name, value in attrs:
+                if name in {"alt", "aria-label", "placeholder", "title"} and value:
+                    self._check(value)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"pre", "code", "script", "style"}:
+            self.skip = max(0, self.skip - 1)
+
+    def handle_data(self, data: str) -> None:
+        if not self.skip:
+            self._check(data)
+
+
+def untranslated_english_narrative(page: str, allowed_source_text=()) -> list[str]:
+    parser = EnglishNarrativeAudit(allowed_source_text)
+    parser.feed(page)
+    parser.close()
+    return parser.untranslated
 
 
 def _relative(source: PurePosixPath, target: PurePosixPath) -> str:
@@ -1695,10 +2011,24 @@ def write_english_report(out: Path) -> int:
     english_root = out / "en"
     if english_root.exists():
         shutil.rmtree(english_root)
+    dataset_path = out / "dataset.json"
+    allowed_source_text = {"中文"}
+    if dataset_path.is_file():
+        dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+        allowed_source_text.update(
+            case.get("name") for case in dataset.get("cases", []) if case.get("name")
+        )
     sources = sorted(path for path in out.rglob("*.html") if "en" not in path.relative_to(out).parts)
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(localize_html(source_path.read_text(encoding="utf-8"), source), encoding="utf-8")
+        localized = localize_html(source_path.read_text(encoding="utf-8"), source)
+        if source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
+            untranslated = untranslated_english_narrative(localized, allowed_source_text)
+            if untranslated:
+                raise ValueError(
+                    "Untranslated English article UI or narrative: " + repr(untranslated[:20])
+                )
+        target.write_text(localized, encoding="utf-8")
     return len(sources)

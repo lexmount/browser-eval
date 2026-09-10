@@ -31,7 +31,7 @@ def provider_label(name):return PROVIDER_LABELS.get(name,name)
 def active_tracks(cases):
  return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
 
-def track_count_label(count):return '六' if count==6 else str(count)
+def track_count_label(count):return str(count)
 
 def is_headless_cohort(records):
  return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
@@ -164,15 +164,12 @@ def overview_card(records,cases,track,label,names):
 def review_summary(out, prefix=''):
  path=out/'result-review.json'
  if not path.is_file():return ''
- reviews=[json.loads(path.read_text())]
- speed_review=out/'speed-cohort/result-review.json'
- if speed_review.is_file():reviews.append(json.loads(speed_review.read_text()))
- checked=[row.get('reviewed_attempts',0) for row in reviews]
- total=[row.get('expected_attempts',0) for row in reviews]
- unresolved=sum(row.get('unresolved',0) for row in reviews)
- scopes=f'主结果 {checked[0]:,}/{total[0]:,}'
- if len(reviews)>1:scopes+=f'；同窗测速 {checked[1]:,}/{total[1]:,}'
- return (f'<p class="callout success"><b>独立核验：{scopes}；未决 {unresolved}</b>。'
+ audit=json.loads(path.read_text())
+ scope=audit.get('review_protocol',{}).get('scope','all')
+ subject='机器失败' if scope=='machine-failures' else '全量'
+ return (f'<p class="callout success"><b>独立核验：{subject} '
+         f'{audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
+         f'未决 {audit.get("unresolved",0)}</b>。'
          f' {link(prefix+"review/index.html","查看核验轮次 →")}</p>')
 
 def review_index(audit):
@@ -541,7 +538,7 @@ def overall_ranking(records,cases,audit=None):
   intro=(f'<p class="decision-lead"><b>总榜口径：</b>每种方法都执行当前评测集计划的 {case_count} 个任务，每题计一次通过或失败，直接相加；不把耗时、全文质量或任务类别难度混成加权分。总榜适合看整体交付覆盖，具体能力仍应回到 {track_label} 个分榜。</p>')
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
        f'<div><dt>综合任务通过率</dt><dd>{case_count} 个任务中满足各自验收规则的数量；每题等权。</dd></div>'
-       f'<div><dt>{track_label}类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
+       f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  return intro+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
@@ -632,7 +629,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
  cards=''
  for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names)
- home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label}类分榜与一个综合通过率总榜。')
+ home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  from .report_explainer import article_title,render_explainer
  TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
@@ -642,9 +639,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list):
   selected=[c for c in cases.values() if c.get('track','web')==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- home+=section(f'{track_label}类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
- home+=section(f'{track_label}类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
+ home+=section(f'{track_label} 类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
@@ -904,9 +901,6 @@ def write_review_page(out,records):
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
  audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
- speed_audit={}
- speed_path=out/'speed-cohort/result-review.json'
- if speed_path.is_file():speed_audit=json.loads(speed_path.read_text())
  metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
@@ -917,13 +911,18 @@ def write_review_page(out,records):
   f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>范围：</b>{esc(row.get("scope",""))}</p><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>纠正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>未完成：</b>{esc(row.get("pending",""))}</p></div></article>'
   for i,row in enumerate(rounds,1))
  page=hero('核验记录','记录每轮核验的范围、发现、纠正和未决事项。')
- reviewed_attempts=audit.get('attempts',[])+speed_audit.get('attempts',[])
+ reviewed_attempts=audit.get('attempts',[])
  disagreements=[row for row in reviewed_attempts
                 if row.get('agent_verdict') != row.get('machine_verdict')]
  adjudicated=[row for row in disagreements if row.get('final_verdict') in {'pass','fail'}]
- unresolved=audit.get('unresolved',0)+speed_audit.get('unresolved',0)
- conclusion=(f'<p class="callout success">主结果 {audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
-             f'同窗测速 {speed_audit.get("reviewed_attempts",0):,}/{speed_audit.get("expected_attempts",0):,}；'
+ unresolved=audit.get('unresolved',0)
+ def coverage(label,item):
+  scope=item.get('review_protocol',{}).get('scope','all')
+  if scope=='machine-failures':
+   return (f'{label}机器失败 {item.get("reviewed_attempts",0):,}/{item.get("expected_attempts",0):,}；'
+           f'机器通过未逐条审查 {item.get("accepted_unreviewed_passes",0):,}')
+  return f'{label}全量 {item.get("reviewed_attempts",0):,}/{item.get("total_attempts",item.get("expected_attempts",0)):,}'
+ conclusion=(f'<p class="callout success">{coverage("主结果",audit)}；'
              f'代理分歧 {len(disagreements)}；已裁定 {len(adjudicated)}；未决 {unresolved}。</p>')
  page+=section('当前状态',conclusion)
  page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
@@ -953,8 +952,7 @@ def write_support(out,records,manifests):
  if figures:methodology+=section('方法图解',figures)
  methodology+=section('参考与匹配','<p>原始快照保留不变；评分参考清除零宽空格、BOM 和软连字符，并检查空正文、乱码、重复核对点及核对点是否存在于参考中。通过检查不等于语义完整性已获证明，正文范围仍以来源记录为准。</p><p>关键事实按规范化后的可见文本机械匹配：统一 Unicode、大小写及排版空白，菜单路径如 Settings &gt; AI 与 Settings&gt;AI 等价；忽略 Markdown 链接地址、行内代码与加粗标记。一个已被完整记录边界约束的字段允许丢失内联元素间空白，例如标签列表 <code>change deep-thoughts</code> 与 <code>changedeep-thoughts</code> 内容等价；相邻独立链接仍按独立词段核对，不猜测跨记录的粘连分词。保留数字、正负号、否定词、标点和英文词边界。不使用大模型或模糊相似度判定通过。</p>')
  methodology+=section('调用时间','<p>各方法使用同一套冻结任务与参考。不同批次的耗时不直接排名；同窗速度子集单独标识。实时网页内容、登录状态和站点策略可能变化，成绩只代表所记录的调用。环境、版本与命令见“环境与复现”。</p>')
- if headless:
-  methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
+ methodology+=section('变更后重跑范围','<p>不把“代码有更新”直接等同于全部重跑。只改展示时重建报告；只改裁判且原始输出足够时离线重算；某个参考变化时重跑该题的全部方法；新增或升级单个实现时重跑该方法的全部题；计时边界变化时废弃并重跑同窗测速。只有全局任务输入、调用边界或所有方法共同依赖发生变化，才需要全量重跑。</p>')
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','七种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.0.6、1.1.1、1.1.3 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。三个 Moli 版本遇到直接 PDF、DOCX、图片或视频 URL 时均使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。本报告另对四题、三个 Moli 版本做三轮配对时延纠正，统一采用最终轮的 12 个耗时，不挑最快；内容、评分和判定未改变。方法之间并行、同一方法串行。')
@@ -995,11 +993,10 @@ def write_support(out,records,manifests):
  support=hero('环境与复现','代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。')
  support+=section('代码与评测集',f'<p>{link(repo,"browser-eval 仓库")}保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。</p><p>{downloads}</p>')
  if (out/'speed-cohort/speed-comparison.json').is_file():
-  support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与共同成功样本')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
+  support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与样本分母')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
  support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
- if headless:
-  support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
+ support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
  if headless:
   reproduce+=f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>'
  else:

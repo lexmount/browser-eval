@@ -6,7 +6,10 @@ import unittest
 
 from harness.web_fetch.result_review import require_result_review
 from scripts.merge_result_review_revision import merge, merge_replacement
-from scripts.revise_body_scoring import rebind_unchanged_result_review
+from scripts.revise_body_scoring import (
+    IndependentReviewRequired, archive_superseded_result_review,
+    rebind_unchanged_result_review,
+)
 
 
 class ResultReviewTests(unittest.TestCase):
@@ -108,7 +111,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertEqual(rebound['bindings']['results_sha256'],hashlib.sha256(new_bytes).hexdigest())
 
             changed=json.loads(json.dumps(new));changed['metrics']['content_pass']=True
-            with self.assertRaisesRegex(ValueError,'verdict changed'):
+            with self.assertRaisesRegex(IndependentReviewRequired,'verdict changed'):
                 rebind_unchanged_result_review(
                     path,dataset,new_bytes,dataset,(json.dumps(changed)+'\n').encode(),rebound_at='later')
 
@@ -141,13 +144,13 @@ class ResultReviewTests(unittest.TestCase):
                 rebound['review_protocol']['rebound_after_nonjudgmental_metadata_change']['changed_top_level_fields'],
                 ['comparison','id','name'])
             changed=json.loads(json.dumps(after));changed['cases'][0]['task_kind']='file'
-            with self.assertRaisesRegex(ValueError,'review inputs changed'):
+            with self.assertRaisesRegex(IndependentReviewRequired,'review inputs changed'):
                 rebind_unchanged_result_review(
                     path,after_bytes,results,(json.dumps(changed)+'\n').encode(),results,
                     rebound_at='later')
             semantic=json.loads(json.dumps(after))
             semantic['comparison']['reference_binding_mode']='relaxed'
-            with self.assertRaisesRegex(ValueError,'Comparison semantics changed'):
+            with self.assertRaisesRegex(IndependentReviewRequired,'Comparison semantics changed'):
                 rebind_unchanged_result_review(
                     path,after_bytes,results,(json.dumps(semantic)+'\n').encode(),results,
                     rebound_at='later')
@@ -159,9 +162,29 @@ class ResultReviewTests(unittest.TestCase):
                                              'mime':'application/pdf','pass':True}]},
             }
             changed_results=(json.dumps(changed_row)+'\n').encode()
-            with self.assertRaisesRegex(ValueError,'Review-visible input changed'):
+            with self.assertRaisesRegex(IndependentReviewRequired,'Review-visible input changed'):
                 rebind_unchanged_result_review(
                     path,after_bytes,results,after_bytes,changed_results,rebound_at='later')
+
+    def test_superseded_review_is_hash_addressed_and_binding_checked(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset,records,review=self.fixture(root)
+            path=root/'result-review.json';path.write_text(json.dumps(review))
+            archived=archive_superseded_result_review(
+                path, before_dataset=(root/'dataset.json').read_bytes(),
+                before_results=(root/'results.jsonl').read_bytes())
+            archive=root/archived['prior_result_review_path']
+            self.assertFalse(path.exists())
+            self.assertTrue(archive.is_file())
+            self.assertEqual(archived['prior_result_review_sha256'],
+                             hashlib.sha256(archive.read_bytes()).hexdigest())
+            self.assertTrue(archived['independent_review_required'])
+
+            path.write_text(json.dumps(review))
+            with self.assertRaisesRegex(ValueError, 'not bound'):
+                archive_superseded_result_review(
+                    path, before_dataset=b'different',
+                    before_results=(root/'results.jsonl').read_bytes())
 
     def test_changed_case_requires_complete_supplemental_blind_review(self):
         with tempfile.TemporaryDirectory() as directory:

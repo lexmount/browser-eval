@@ -98,8 +98,11 @@ all applicable records through the shared scorer without supplier calls.
 `scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
 and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
 output hashes, identities and timing. Historical hard deadlines and timing
-overhead cannot be retroactively certified. Conditional successful-task latency
-and same-task common-success latency are separate, explicitly scoped tables.
+overhead cannot be retroactively certified. For a heterogeneous same-window
+cohort, keep every predeclared call and report all-call latency (one shared task
+denominator) separately from successful-call latency (each method's conditional
+subset). The all-method common-pass intersection is diagnostic only: never
+reselect tasks after seeing outcomes.
 
 `content_check_coverage` measures matched required text groups, not body recall.
 All declared groups are required by stable contracts; record count/type/uniqueness

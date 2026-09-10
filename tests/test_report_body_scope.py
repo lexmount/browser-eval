@@ -452,6 +452,19 @@ class ReportBodyScopeTests(unittest.TestCase):
             for name in ['annotation','validation','scoring']:
                 self.assertIn(f'../assets/methodology/{name}.png',page)
 
+    def test_general_report_explains_rerun_scope_and_packaged_loading(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory)
+            with patch('harness.web_fetch.report_methods.render_methods', return_value='methods'):
+                write_support(out, [], [])
+            methodology = (out/'methodology/index.html').read_text()
+            reproduce = (out/'reproduce/index.html').read_text()
+        self.assertIn('变更后重跑范围', methodology)
+        self.assertIn('只改展示时重建报告', methodology)
+        self.assertIn('发布与加载', reproduce)
+        self.assertIn('通用 HTML 外壳', reproduce)
+        self.assertIn('超过 256 KiB', reproduce)
+
     def test_real_methodology_pngs_available_before_generate(self):
         from harness.web_fetch.report_build import build_report
         assets=Path(__file__).resolve().parents[1]/'harness/web_fetch/assets/methodology'

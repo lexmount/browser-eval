@@ -236,6 +236,7 @@ def run_evaluation(
                         artifact_bytes = result.content.encode('utf-8', errors='replace')
                         measured = score_attempt(
                             case, artifact_bytes, ok=result.ok, metadata=result.metadata,
+                            title=result.title,
                             list_reference=load_list_reference(case, dataset_path.parent),
                             status_code=result.status_code,
                             prepared_answer=result.prepared_answer,
@@ -421,6 +422,7 @@ def rescore_evaluation(
         previous_deadline = bool(record.get("metrics", {}).get("deadline_overrun"))
         record["metrics"] = score_attempt(
             case, artifact.read_bytes(), ok=bool(record.get("ok")),
+            title=record.get('title'),
             metadata=record.get("provider_metadata", {}), previous_metrics=record["metrics"],
             list_reference=load_list_reference(case, dataset_path.parent),
             status_code=record.get('status_code'),
