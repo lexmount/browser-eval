@@ -400,7 +400,7 @@ def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
     return adoption, catalog
 
 
-def _research_page(manifest: dict[str, Any]) -> str:
+def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     adoption, catalog = _load_public_research()
     records = adoption.get("records") or []
     by_family: dict[str, list[dict[str, Any]]] = {}
@@ -505,6 +505,11 @@ def _research_page(manifest: dict[str, Any]) -> str:
         '<p><strong>固定轨迹比较浏览器内核，首选 WebArena-Verified。</strong>'
         '采用次数只能说明公开认可度，不能说明它最适合隔离浏览器变量。WebArena 与 Mind2Web 家族在限定的一方材料中各有 3 家机构采用；工程选择仍由自托管、可重放轨迹和程序化最终状态验收决定。</p>'
         '<p>本报告把 benchmark 分为四类，不做跨类排名。原始 Mind2Web、Online-Mind2Web 与 Mind2Web 2 也分别统计，因为三者测量对象不同。</p></section>'
+        '<section class="card"><h2>公开轨迹正式结果</h2>'
+        f'<p>正式分母为资格验证后冻结的 {len(manifest.get("suite") or [])} 个 WebArena-Verified 任务。'
+        '两个浏览器执行相同轨迹；每个 task/browser 只有一个主样本，首次失败才补一次重试。主指标是首次成功，恢复数与最终成功率单独报告。</p>'
+        + _correctness_table(summary)
+        + '<p class="muted">这批任务用于验证固定操作路径的兼容性。它不能推出 Chromium 或 Moli 在任意网站、任意 agent 下的总体优势。仓库原有 30 例另属确定性工具微基准，不与这里合并分母。</p></section>'
         '<section class="card"><h2>端到端 browser-use 采用 Top 3</h2>'
         '<p>统计范围只含 OpenAI、Anthropic、Google、DeepSeek、智谱/ChatGLM、Moonshot/Kimi 的模型卡、技术报告和官方仓库。同一机构同一家族只计一次，保留具体版本。采用数相同后依次看最新官方采用、公开获取和可复现性。</p>'
         + _table(["名次", "Benchmark 家族", "采用机构数", "机构", "具体版本"], adoption_rows[:3], "一方材料采用统计")
@@ -1607,7 +1612,7 @@ def write_latest_report(
     )
     renderers = {
         "index": lambda: _summary_page(manifest, summary),
-        "research": lambda: _research_page(manifest),
+        "research": lambda: _research_page(manifest, summary),
         "suite": lambda: _suite_page(manifest),
         "method": lambda: _method_page(manifest),
         "analysis": lambda: analysis,
