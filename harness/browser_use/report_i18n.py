@@ -448,6 +448,35 @@ TEXT.update(
         # Current home page and dataset-only inventory.
         "Chromium 任务通过": "Chromium tasks passed",
         "Moli 任务通过": "Moli tasks passed",
+        "单边通过": "One-browser pass",
+        "共同失败": "Both fail",
+        "结果边界：": "Result boundary:",
+        "失败根因是报告解读的核心证据": "Root causes are core interpretation evidence",
+        "官方 evaluator 的错误信息只定位未满足的验收规则；根因核验继续检查任务合同、最终回答、网络记录和自主轨迹。未完成核验前，报告保留自动分类，但不展示推测性根因。": "The official evaluator identifies the unmet acceptance rule. Root-cause review then checks the task contract, final answer, network record, and autonomous trajectory. Until that review is complete, the report retains the automatic classification but shows no speculative cause.",
+        "根因核验：": "Root-cause review:",
+        "本轮没有失败结果。": "This run has no failed results.",
+        "解释配对结果、失败根因和结论边界。": "Interpret paired outcomes, failure root causes, and conclusion boundaries.",
+        "筛选任务并下钻验收合同。": "Filter tasks and inspect their acceptance contracts.",
+        "一、先看总分，再看同题分歧": "1. Start with aggregate scores, then inspect task-level disagreements",
+        "二、失败结果必须追到根因": "2. Every failed result requires a root-cause review",
+        "三、简单、中等、困难都覆盖，但难度只表示操作长度": "3. Easy, medium, and hard are all covered, but difficulty means operation length only",
+        "四、选择 WebArena‑Verified 是为了可归因的结果验收": "4. WebArena-Verified was selected for attributable outcome evaluation",
+        "五、结论只适用于本轮受控样本": "5. Conclusions apply only to this controlled sample",
+        "程序化 evaluator 先给出失败环节；核验再检查最终执行的任务合同、回答、网络记录和 Agent 轨迹，形成更具体的根因子类与原因。共同失败不默认是共同根因，单边失败也不默认是浏览器缺陷。": "The programmatic evaluator first identifies the failed acceptance stage. Review then checks the score-bearing task contract, answer, network record, and agent trajectory to establish a specific root-cause subtype and reason. A shared failure does not imply a shared cause, and a one-browser failure does not automatically imply a browser defect.",
+        "本轮没有失败结果，无需生成失败根因记录。": "This run has no failed results, so no failure-cause records are needed.",
+        "先修复已核验根因并形成新证据，再扩大任务与浏览器范围；历史官方分数不被人工覆盖。": "Fix verified root causes and produce new evidence before expanding the task and browser scope. Historical official scores are never overwritten manually.",
+        "逻辑结果": "Logical result",
+        "根因子类": "Root-cause subtype",
+        "已核验根因": "Verified root cause",
+        "表 2｜根因核验不修改官方分数；修复后必须产生新的执行证据。": "Table 2 | Root-cause review does not alter official scores; fixes require new execution evidence.",
+        "环境准备证据：": "Environment-preparation evidence:",
+        "未记录": "Not recorded",
+        "macOS 上的 Docker 由 Colima 虚拟机承载；运行配置记录的": "Docker on macOS runs inside a Colima virtual machine. The run configuration records",
+        "是浏览器容器访问 macOS 宿主发布端口所用的 Colima 网关，不是评测网站自身地址。Shopping、Shopping Admin、Reddit、GitLab 四个官方站点镜像通过 Docker 端口发布到这个入口，独立的 Chromium/Moli 浏览器容器据此访问本地站点。": "as the Colima gateway through which browser containers reach ports published on the macOS host; it is not the address of an evaluation website. The four official Shopping, Shopping Admin, Reddit, and GitLab images publish Docker ports to this entry point, which the isolated Chromium and Moli containers use to access the local sites.",
+        "运行器在每个物理执行前调用": "Before every physical execution, the runner calls",
+        "，只保留该题所需站点；env-ctrl 报告 ready 后，再做连续应用健康检查、清浏览器状态、登录测试账号并打开起始页。当前证据尚未完整保存逐执行环境准备回执，因此不能把每次准备成功当成已独立核验的事实。": ", retaining only the sites required by that task. After env-ctrl reports ready, it performs repeated application health checks, clears browser state, signs into the benchmark account, and opens the start page. The current evidence does not contain a complete preparation receipt for every execution, so successful preparation cannot be claimed as independently verified for every run.",
+        "事件流能证明 CowAgent 在准备完成后产生了 BrowserTool 调用序列；镜像 ID、digest、代码提交与网关记录限定了本地运行身份。逐执行环境准备回执尚不完整。": "The event stream shows that CowAgent generated BrowserTool calls after preparation. Image IDs, digests, code commits, and the recorded gateway bind the local runtime identity. Per-execution preparation receipts remain incomplete.",
+        "逐执行环境准备回执尚不完整；现有记录只能核对运行器配置与镜像身份。": "Per-execution environment-preparation receipts are incomplete; current records can verify only runner configuration and image identity.",
         "需要可完成性核验": "Solvability review required",
         "已确认失败点": "Confirmed failure points",
         "失败结论：": "Failure conclusion:",
@@ -993,16 +1022,114 @@ def translate_text(value: str) -> str:
                 ),
             ),
             (
+                r"Browser Use Capability Evaluation · (.+)",
+                lambda m: "Browser Use Capability Evaluation · "
+                + ("Not recorded" if m.group(1) == "未记录" else m.group(1)),
+            ),
+            (
                 r"最终状态不符：期望 (.+)，实际为 (.+)。",
                 lambda match: (
                     f"Final status mismatch: expected {match.group(1)}, observed {match.group(2)}."
                 ),
             ),
             (
-                r"在同一 CowAgent、同一 (.+?)（reasoning=low）和同一 WebArena‑Verified 30 题样本下，对比两种浏览器完成真实网页任务的能力。",
+                r"在同一 CowAgent、同一 (.+?)（reasoning=low）和同一 WebArena‑Verified (\d+) 题样本下，对比两种浏览器完成真实网页任务的能力。",
                 lambda match: (
-                    f"Compare how Chromium and Moli complete real browser tasks with the same CowAgent, {match.group(1)} (reasoning=low), and the same 30-task WebArena-Verified sample."
+                    f"Compare how Chromium and Moli complete real browser tasks with the same CowAgent, {match.group(1)} (reasoning=low), and the same {match.group(2)}-task WebArena-Verified sample."
                 ),
+            ),
+            (
+                r"(.+?) 任务通过",
+                lambda match: f"{match.group(1)} tasks passed",
+            ),
+            (
+                r"本轮观察到 (\d+) 个浏览器间不一致配对；结论只适用于这批受控任务，不证明内核等价或全面替代关系。",
+                lambda match: f"This run observed {match.group(1)} discordant browser pair(s). The conclusion applies only to this controlled cohort and does not establish browser-core equivalence or comprehensive substitutability.",
+            ),
+            (
+                r"这是固定选择的 (\d+) 题试验，不是从全部 WebArena‑Verified 任务随机抽样；比例只描述本样本，不外推总体能力。",
+                lambda match: f"This is a fixed {match.group(1)}-task experiment, not a random sample of all WebArena-Verified tasks. Percentages describe this cohort only and are not population estimates.",
+            ),
+            (
+                r"从 (\d+)/(\d+) 对 (\d+)/(\d+) 读出下一轮该怎么做",
+                lambda match: f"What {match.group(1)}/{match.group(2)} versus {match.group(3)}/{match.group(4)} implies for the next run",
+            ),
+            (
+                r"(\d+)/(\d+) 对 (\d+)/(\d+)：(\d+) 个任务出现浏览器分歧",
+                lambda match: f"{match.group(1)}/{match.group(2)} versus {match.group(3)}/{match.group(4)}: {match.group(5)} task(s) show a browser disagreement",
+            ),
+            (
+                r"同一 CowAgent、模型、任务、站点状态和 evaluator 下，只替换浏览器后端。总分给出结果，(\d+) 个同题配对用于定位差异；每个失败结果还要沿官方合同、最终回答、网络证据和自主轨迹追到可复核根因。",
+                lambda match: f"The browser backend is the only changed variable; CowAgent, model, tasks, site state, and evaluator are held constant. Aggregate scores summarize outcomes, while {match.group(1)} paired tasks locate differences. Every failed result is then traced through the official contract, final answer, network evidence, and autonomous trajectory to a reviewable root cause.",
+            ),
+            (
+                r"Chromium 与 Moli 分别通过 (\d+)/(\d+) 和 (\d+)/(\d+)。逐题配对后，(\d+) 题共同通过、(\d+) 题共同失败、(\d+) 题仅 Chromium 通过、(\d+) 题仅 Moli 通过。",
+                lambda m: f"Chromium and Moli passed {m.group(1)}/{m.group(2)} and {m.group(3)}/{m.group(4)}, respectively. Across paired tasks, both passed {m.group(5)}, both failed {m.group(6)}, Chromium alone passed {m.group(7)}, and Moli alone passed {m.group(8)}.",
+            ),
+            (
+                r"表 1｜(\d+) 个任务的逐题最终结果配对。",
+                lambda match: f"Table 1 | Paired final outcomes for {match.group(1)} tasks.",
+            ),
+            (
+                r"固定样本中观察到 (\d+) 个不一致配对。这个数字用于发现浏览器相关差异，但不能单独证明整个浏览器内核的优劣，也不对 WebArena‑Verified 全集作统计外推。",
+                lambda match: f"The fixed cohort contains {match.group(1)} discordant pair(s). This identifies browser-related differences, but does not by itself establish overall browser-core superiority or support statistical generalization to the complete WebArena-Verified benchmark.",
+            ),
+            (
+                r"WebArena‑Verified 没有官方 easy/medium/hard 三档。本项目在运行前按最少可见 UI 操作数注册为 1–4、5–7、8\+ 三档，配额 (\d+)/(\d+)/(\d+)。它控制操作链覆盖，不等同于推理难度。",
+                lambda m: f"WebArena-Verified has no official easy/medium/hard tiers. Before execution, this project registered tasks by minimum visible UI actions as 1-4, 5-7, and 8+, with quotas of {m.group(1)}/{m.group(2)}/{m.group(3)}. This controls operation-chain coverage and is not equivalent to reasoning difficulty.",
+            ),
+            (
+                r"本轮固定 (\d+) 题，覆盖四个已验证站点。结果只说明当前 CowAgent、模型、任务与运行协议下的浏览器差异；不支持把总分直接解释为浏览器内核等价、全面替代关系或纯内核速度。端到端耗时包含模型、调度、页面等待和工具开销，动作延迟也包含 CDP 往返。",
+                lambda match: f"This run fixes {match.group(1)} tasks across four verified sites. Results describe browser differences only under the current CowAgent, model, tasks, and run protocol. Aggregate scores do not establish browser-core equivalence, comprehensive substitutability, or pure engine speed. End-to-end latency includes model, scheduling, page waits, and tool overhead; action latency also includes CDP round trips.",
+            ),
+            (
+                r"(\d+) 个逻辑结果",
+                lambda match: f"{match.group(1)} logical results",
+            ),
+            (
+                r"(\d+) 个任务×浏览器结果均保留最终回答、官方 evaluator 结果、Agent 事件和证据哈希。",
+                lambda match: f"All {match.group(1)} task-browser results retain the final answer, official evaluator output, agent events, and evidence hashes.",
+            ),
+            (
+                r"(\d+)/(\d+) 个逻辑结果已覆盖，(\d+) 个未决。它不重新判题，也不是独立语义复核。",
+                lambda m: f"Evidence-integrity review covers {m.group(1)}/{m.group(2)} logical results, with {m.group(3)} unresolved. It does not rescore tasks or constitute independent semantic review.",
+            ),
+            (r"预注册 (\d+) 题", lambda m: f"Preregister {m.group(1)} tasks"),
+            (
+                r"这 (\d+) 题如何部署并由 Agent 执行",
+                lambda m: f"How the {m.group(1)} tasks were deployed and run by the agent",
+            ),
+            (
+                r"WebArena‑Verified 当前提供 Shopping、Shopping Admin、Reddit、GitLab、Wikipedia、Map 六类环境。本轮 (\d+) 题只覆盖前四类；Wikipedia 与 Map 需要额外大型数据卷，因此没有部署，也没有任务进入成绩。",
+                lambda m: f"WebArena-Verified provides six environments: Shopping, Shopping Admin, Reddit, GitLab, Wikipedia, and Map. This {m.group(1)}-task run covers only the first four. Wikipedia and Map require additional large data volumes, so they were not deployed and contribute no scored tasks.",
+            ),
+            (
+                r"预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 (.+) 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每个逻辑结果保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。",
+                lambda m: f"The preregistration contains task IDs, tiers, and selection rationales, but no click sequence. Given a natural-language objective, CowAgent repeatedly reads the page, requests a model decision, and generates the next BrowserTool call for up to {'an unrecorded number of' if m.group(1) == '未记录' else m.group(1)} steps. Chromium and Moli connect to separate CDP browser containers. Every logical result retains the final JSON, agent event stream, network HAR, and Playwright trace.",
+            ),
+            (
+                r"未部署；不在 (\d+) 题",
+                lambda m: f"Not deployed; outside the {m.group(1)} tasks",
+            ),
+            (
+                r"给出全部 (\d+) 个逻辑结果的页面与下载路径。",
+                lambda m: f"lists page and download paths for all {m.group(1)} logical results.",
+            ),
+            (
+                r"同一 (\d+) 题；同一批本地站点镜像",
+                lambda m: f"Same {m.group(1)} tasks; same local site images",
+            ),
+            (
+                r"相同 CPU、内存、viewport 与最多 (.+) 步",
+                lambda m: f"Same CPU, memory, viewport, and up to {'an unrecorded number of' if m.group(1) == '未记录' else m.group(1)} steps",
+            ),
+            (
+                r"这 (\d+) 题由 CowAgent 自主执行。",
+                lambda m: f"CowAgent executes all {m.group(1)} tasks autonomously.",
+            ),
+            (
+                r"仓库中的 Browser Trajectory Replay（轨迹重放）固定动作微基准属于另一条实验轨道，不是本报告的参评选手，也不计入这 (\d+) 题成绩。",
+                lambda m: f"The repository's fixed-action Browser Trajectory Replay microbenchmark is a separate evaluation track, not a participant in this report, and is excluded from these {m.group(1)} task results.",
             ),
             (
                 r"CowAgent \+ (.+?)（reasoning=low）在预注册的 (\d+) 题 WebArena‑Verified 样本上对比 Chromium 与 Moli。",

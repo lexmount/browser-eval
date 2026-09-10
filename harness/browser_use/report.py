@@ -1513,7 +1513,9 @@ def build_report(*, evidence: Path, output: Path, selection_path: Path) -> Path:
     )
     task_count = len(tasks)
     result_count = len(attempts)
-    max_agent_steps = int(config.get("max_agent_steps") or protocol.get("max_agent_steps") or 0)
+    max_agent_steps = str(
+        config.get("max_agent_steps") or protocol.get("max_agent_steps") or "未记录"
+    )
     site_access_host = str(environment.get("site_access_host") or config.get("site_access_host") or "未记录")
     preparation_receipt_count = sum(
         Path(str((row.get("paths") or {}).get("environment_prepare") or "")).is_file()
