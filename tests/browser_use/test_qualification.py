@@ -7,6 +7,7 @@ import pytest
 
 from harness.browser_use.qualification import (
     apply_adjudication,
+    build_evidence_revalidation_suite,
     build_repair_queue,
     build_repair_validation_suite,
     task_contract_sha256,
@@ -504,6 +505,66 @@ def test_repair_validation_suite_is_loadable_and_keeps_contract_hash(tmp_path):
         }
     )
     assert raw_contract == loaded_contract
+
+
+def test_evidence_revalidation_includes_direct_and_corrected_eligible_tasks():
+    suite = {
+        "benchmark": {"name": "WebArena"},
+        "tasks": [
+            {
+                "id": "direct",
+                "trajectory": {
+                    "schema": "lex_browser_trajectory/1",
+                    "actions": [{"action": "click"}],
+                },
+                "ground_truth": {"expected_actions": ["click"]},
+            },
+            {
+                "id": "corrected",
+                "trajectory": {
+                    "schema": "lex_browser_trajectory/1",
+                    "actions": [{"action": "click"}],
+                },
+                "ground_truth": {"expected_actions": ["click"]},
+            },
+            {
+                "id": "pending",
+                "trajectory": {
+                    "schema": "lex_browser_trajectory/1",
+                    "actions": [{"action": "click"}],
+                },
+                "ground_truth": {"expected_actions": ["click"]},
+            },
+        ],
+    }
+    qualification = {
+        "tasks": [
+            {"task_id": "direct", "adjudication": {"status": "eligible"}},
+            {
+                "task_id": "corrected",
+                "adjudication": {
+                    "status": "eligible",
+                    "corrected_trajectory": {
+                        "schema": "lex_browser_trajectory/1",
+                        "actions": [{"action": "snapshot", "selector": "body", "save_as": "page"}],
+                    },
+                    "response_builder": {
+                        "kind": "observed_shape",
+                        "task_type": "retrieve",
+                        "shape": [{"$output": "page"}],
+                    },
+                },
+            },
+            {"task_id": "pending", "adjudication": None},
+        ]
+    }
+
+    result = build_evidence_revalidation_suite(suite, qualification)
+
+    assert [task["id"] for task in result["tasks"]] == ["direct", "corrected"]
+    assert result["tasks"][0]["ground_truth"]["qualification"] == {"status": "pending"}
+    assert result["tasks"][1]["trajectory"]["actions"][0]["action"] == "snapshot"
+    assert result["benchmark"]["evidence_revalidation"]["task_count"] == 2
 
 
 def test_skipped_task_requires_public_reason():

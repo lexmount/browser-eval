@@ -273,6 +273,41 @@ def build_repair_validation_suite(
     return result
 
 
+def build_evidence_revalidation_suite(
+    suite_payload: dict[str, Any], qualification: dict[str, Any]
+) -> dict[str, Any]:
+    """Re-run every provisionally eligible task under the current evidence contract."""
+    result = deepcopy(suite_payload)
+    tasks = result.get("tasks") or []
+    decisions = {str(item["task_id"]): item for item in qualification.get("tasks") or []}
+    if set(decisions) != {str(task["id"]) for task in tasks}:
+        raise ValueError("qualification task set does not match suite")
+    selected: list[dict[str, Any]] = []
+    for task in tasks:
+        decision = decisions[str(task["id"])]
+        adjudication = decision.get("adjudication")
+        if not isinstance(adjudication, dict) or adjudication.get("status") != "eligible":
+            continue
+        _apply_material_change(task, adjudication)
+        if not (task.get("trajectory") or {}).get("actions"):
+            raise ValueError(f"{task['id']}: evidence revalidation requires a trajectory")
+        task["ground_truth"]["qualification"] = {"status": "pending"}
+        selected.append(task)
+    if not selected:
+        raise ValueError("qualification contains no eligible tasks to revalidate")
+    result["tasks"] = selected
+    result["benchmark"] = {
+        **(result.get("benchmark") or {}),
+        "evidence_revalidation": {
+            "task_count": len(selected),
+            "browser": "chromium",
+            "attempts_per_task": 1,
+            "purpose": "bind HAR v2, final screenshot, and final visible page state",
+        },
+    }
+    return result
+
+
 def apply_adjudication(
     suite_payload: dict[str, Any], qualification: dict[str, Any]
 ) -> dict[str, Any]:
