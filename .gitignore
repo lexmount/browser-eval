@@ -29,6 +29,6 @@ run.log
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
-artifacts/browser_kernel/
-artifacts/browser_agent/
-/docs/reports/browser-kernel-evaluation-*
+artifacts/trajectory_replay/
+artifacts/browser_use/
+/docs/reports/trajectory-replay-evaluation-*

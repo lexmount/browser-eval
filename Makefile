@@ -1,7 +1,7 @@
 UV ?= uv
 PY := $(UV) run --frozen python
 
-.PHONY: setup runtime-check test test-python test-ui fixture-smoke ci report report-check browser-agent-review browser-agent-report browser-agent-report-check
+.PHONY: setup runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check browser-use-review browser-use-report browser-use-report-check browser-use-visual-check
 
 setup:
 	$(UV) sync --frozen --all-extras
@@ -10,15 +10,18 @@ setup:
 runtime-check:
 	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'
 
+naming-check: runtime-check
+	$(PY) scripts/check_track_naming.py
+
 test-python: runtime-check
 	$(PY) -m unittest discover -s tests -v
-	$(PY) -m pytest tests/browser_agent -q
-	$(PY) -m pytest tests/browser_kernel -q
+	$(PY) -m pytest tests/browser_use -q
+	$(PY) -m pytest tests/trajectory_replay -q
 
 test-ui:
 	node tests/test_report_ui.mjs
 	node tests/test_report_loader.mjs
-	node tests/browser_agent/test_report_ui.mjs
+	node tests/browser_use/test_report_ui.mjs
 
 fixture-smoke: runtime-check
 	$(PY) -m harness.web_fetch validate --providers fixture
@@ -26,7 +29,7 @@ fixture-smoke: runtime-check
 
 test: test-python test-ui
 
-ci: test fixture-smoke
+ci: naming-check test fixture-smoke
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
@@ -37,15 +40,19 @@ report-check: runtime-check
 	$(PY) scripts/check_report_links.py reports/webfetch
 	$(PY) scripts/check_report_revision.py reports/webfetch
 
-browser-agent-report: runtime-check
+browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_browser_agent_report.py --evidence "$(EVIDENCE)" --output reports/browser-agent
+	$(PY) scripts/build_browser_use_report.py --evidence "$(EVIDENCE)" --output reports/browser-use
 
-browser-agent-review: runtime-check
+browser-use-review: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/review_browser_agent_results.py --evidence "$(EVIDENCE)"
+	$(PY) scripts/review_browser_use_results.py --evidence "$(EVIDENCE)"
 
-browser-agent-report-check: runtime-check
+browser-use-visual-check: runtime-check
+	$(PY) scripts/check_browser_use_visual.py reports/browser-use
+
+browser-use-report-check: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/check_browser_agent_report.py reports/browser-agent --evidence "$(EVIDENCE)" --require-complete
-	$(PY) scripts/check_report_links.py reports/browser-agent
+	$(PY) scripts/check_browser_use_report.py reports/browser-use --evidence "$(EVIDENCE)" --require-complete
+	$(PY) scripts/check_report_links.py reports/browser-use
+	$(MAKE) browser-use-visual-check

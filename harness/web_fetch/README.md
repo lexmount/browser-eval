@@ -146,8 +146,8 @@ metrics require a separately scoped, comparable complete reference.
 
 Web Fetch providers, execution, reference checks, scoring and report generation
 live in this package. The fixed-action kernel benchmark remains independent in
-`harness/browser_kernel`; autonomous browser-agent evaluation lives in
-`harness/browser_agent`.
+`harness/trajectory_replay`; autonomous browser-use evaluation lives in
+`harness/browser_use`.
 
 From the repository root:
 

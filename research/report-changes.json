@@ -1,7 +1,17 @@
 {
   "schema_version": 1,
   "history_scope": "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。",
-  "browser_agent_reviews": [
+  "browser_use_reviews": [
+    {
+      "id": "review-2026-09-10-track-naming-and-release-gates",
+      "date": "2026-09-10",
+      "title": "轨道命名与发布门禁核验",
+      "status": "已处理",
+      "scope": "自主评测与固定轨迹评测的命名、优胜标记、英文界面属性、筛选状态和视觉发布门禁。",
+      "findings": "轨道名称按实现层命名，读者不易判断测量对象；并列最优和显示值相同的指标仍可能被标优；英文可访问属性与失效筛选链接缺少回归保护；SVG 和跨断点布局只受人工规范约束。",
+      "corrections": "统一命名为 Browser Use 与 Browser Trajectory Replay（轨迹重放），完成代码与命令迁移且不保留旧入口；优胜只允许显示值唯一领先；补充英文属性翻译、失效链接回退、SVG 拒绝和核心路由双语双主题宽窄屏渲染检查。",
+      "remaining": "视觉门禁验证结构性溢出、裁切和表头竖排，仍不能替代人工对信息层级与审美质量的判断。"
+    },
     {
       "id": "review-2026-09-10-scalable-comparison-ui",
       "date": "2026-09-10",
@@ -43,7 +53,35 @@
       "remaining": "无阻塞项。"
     }
   ],
-  "browser_agent_releases": [
+  "browser_use_releases": [
+    {
+      "id": "2026-09-10-track-naming-and-release-hardening",
+      "date": "2026-09-10",
+      "title": "统一轨道名称并加固发布检查",
+      "summary": "自主轨道统一为 Browser Use，固定动作轨道统一为 Browser Trajectory Replay（轨迹重放）；旧代码路径和命令一次性迁移。优胜标记、英文可访问文本、筛选恢复、SVG 资产和跨断点布局新增自动门禁。官方成绩、分母和冻结证据不变。",
+      "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
+      "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
+      "changes": [
+        [
+          "轨道命名",
+          "旧名称混合了实现层与评测对象，难以直接区分自主任务与固定动作轨迹。",
+          "自主评测统一为 Browser Use；固定动作轨迹评测统一为 Browser Trajectory Replay（轨迹重放）；代码包、示例、测试、命令、配置和发布路径同步迁移，不保留兼容入口。",
+          "只改变命名和入口，不改变任务、运行或判分。"
+        ],
+        [
+          "比较与本地化",
+          "并列最优或舍入后显示相同的数值可能仍被标为优胜；英文页面部分可访问属性和动态标题保留中文。",
+          "只有按页面展示精度唯一领先的值才标优；英文标题、title、aria-label 和 placeholder 纳入本地化及完整性检查；失效的浏览器筛选链接回退到有效默认值。",
+          "修正读者界面，不改变测量值和官方分数。"
+        ],
+        [
+          "防复发门禁",
+          "命名、图形格式和跨宽度布局主要依赖人工记忆。",
+          "CI 增加旧命名扫描；发布检查拒绝 SVG 图；视觉检查渲染中英文核心路由的桌面与窄屏、明暗主题组合，阻止页面级溢出、核心卡片裁切和表头竖排。",
+          "新增 104 个渲染状态的结构性视觉门禁；不改变报告数据。"
+        ]
+      ]
+    },
     {
       "id": "2026-09-10-comparison-and-review-presentation",
       "date": "2026-09-10",
@@ -183,7 +221,7 @@
     {
       "id": "2026-09-10-report-evidence-restructure",
       "date": "2026-09-10",
-      "title": "按证据链重构 Browser Agent 报告",
+      "title": "按证据链重构 Browser Use 报告",
       "summary": "报告新增任务族覆盖、95% Wilson 区间、30 题同题横向对照和全路由英文镜像；将原“独立复核”纠正为确定性证据完整性审计，并明确五个共同失败尚无本轮成功路径，不能直接归因 Agent 或浏览器。测量结果、分母和原始证据未改变。",
       "attempts_sha256": "517b613adcc40fc0ebe41af2ab2115d76f49faaba5378b426cc196b5b633e9c7",
       "selection_sha256": "ba3c344df003dd4eba3a5d1ef97162ee98df2ed728f7c29c4188bc4247982d38",
@@ -230,8 +268,8 @@
         ],
         [
           "明确自主 Agent 轨道",
-          "仓库同时存在执行层 browser_kernel harness 和自主 browser_agent harness，若统称为“原 30 题”会误读运行方式。",
-          "本报告的 30 个 WebArena-Verified 任务明确由 CowAgent 自主观察、规划和操作；browser_kernel 作为另一条执行层微基准单独说明。",
+          "仓库同时存在执行层 trajectory_replay harness 和自主 browser_use harness，若统称为“原 30 题”会误读运行方式。",
+          "本报告的 30 个 WebArena-Verified 任务明确由 CowAgent 自主观察、规划和操作；trajectory_replay 作为另一条执行层微基准单独说明。",
           "本轮成绩只来自自主 Agent 轨道；两类 harness 不合并计分。"
         ],
         [

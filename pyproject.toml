@@ -45,10 +45,10 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
-  "harness/browser_agent/**/*.py",
-  "harness/browser_kernel/**/*.py",
-  "tests/browser_agent/**/*.py",
-  "tests/browser_kernel/**/*.py",
+  "harness/browser_use/**/*.py",
+  "harness/trajectory_replay/**/*.py",
+  "tests/browser_use/**/*.py",
+  "tests/trajectory_replay/**/*.py",
 ]
 target-version = "py311"
 
@@ -56,9 +56,9 @@ target-version = "py311"
 select = ["B", "E", "F", "I", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-"harness/browser_kernel/report.py" = ["E501"]
-"harness/browser_agent/report.py" = ["E501"]
-"harness/browser_agent/report_i18n.py" = ["E501"]
+"harness/trajectory_replay/report.py" = ["E501"]
+"harness/browser_use/report.py" = ["E501"]
+"harness/browser_use/report_i18n.py" = ["E501"]
 
 [build-system]
 requires = ["setuptools>=64"]
