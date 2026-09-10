@@ -71,3 +71,26 @@ def test_authoring_suite_rejects_empty_scope():
                 ]
             },
         )
+
+
+def test_authoring_suite_can_resume_an_exact_subset():
+    suite = {
+        "schema": "lex_browser_use_tasks/4",
+        "benchmark": {},
+        "tasks": [
+            _task("webarena-1", "retrieve", "shopping"),
+            _task("webarena-2", "retrieve", "shopping"),
+        ],
+    }
+    qualification = {
+        "tasks": [
+            {"task_id": "webarena-1", "disposition": "needs_trace_repair"},
+            {"task_id": "webarena-2", "disposition": "needs_trace_repair"},
+        ]
+    }
+
+    result = build_authoring_suite(
+        suite, qualification, site="shopping", task_ids={"webarena-2"}
+    )
+
+    assert [task["id"] for task in result["tasks"]] == ["webarena-2"]

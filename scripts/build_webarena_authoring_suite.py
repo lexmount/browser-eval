@@ -17,6 +17,7 @@ def build_authoring_suite(
     *,
     site: str | None = None,
     target_timeout_ms: int = 5_000,
+    task_ids: set[str] | None = None,
 ) -> dict[str, Any]:
     if target_timeout_ms < 1:
         raise ValueError("authoring target timeout must be positive")
@@ -34,7 +35,12 @@ def build_authoring_suite(
         sites = (task.get("environment") or {}).get("sites") or []
         if site is not None and site not in sites:
             continue
+        if task_ids is not None and task_id not in task_ids:
+            continue
         selected_ids.append(task_id)
+    if task_ids is not None and set(selected_ids) != task_ids:
+        missing = sorted(task_ids.difference(selected_ids))
+        raise ValueError(f"requested authoring tasks are outside the eligible scope: {missing}")
     if not selected_ids:
         raise ValueError("no retrieve-only trace repairs match the requested authoring scope")
 
@@ -67,6 +73,7 @@ def main() -> None:
     parser.add_argument("--qualification", type=Path, required=True)
     parser.add_argument("--site")
     parser.add_argument("--target-timeout-ms", type=int, default=5_000)
+    parser.add_argument("--task-ids")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     result = build_authoring_suite(
@@ -74,6 +81,11 @@ def main() -> None:
         json.loads(args.qualification.read_text(encoding="utf-8")),
         site=args.site,
         target_timeout_ms=args.target_timeout_ms,
+        task_ids=(
+            {item.strip() for item in args.task_ids.split(",") if item.strip()}
+            if args.task_ids
+            else None
+        ),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
