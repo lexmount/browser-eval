@@ -23,14 +23,29 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
     answers and browser-comparison results are deliberately out of scope.
     """
     title = str(task.get("title") or "").casefold()
+    actions = (task.get("trajectory") or {}).get("actions") or []
     targets = "\n".join(
         json.dumps(action.get("target"), ensure_ascii=False, sort_keys=True).casefold()
-        for action in ((task.get("trajectory") or {}).get("actions") or [])
+        for action in actions
         if action.get("target") is not None
     )
     conflicts: list[str] = []
     if "new branch" in title and "commit to main branch" in targets:
         conflicts.append("new_branch_required_but_main_branch_selected")
+    requested_name = re.search(r'(?:called|named)\s+["“]([^"”]+)["”]', title)
+    project_name_fills = [
+        str(action.get("text") or "").casefold()
+        for action in actions
+        if action.get("action") == "fill"
+        and "project name"
+        in json.dumps(action.get("target"), ensure_ascii=False, sort_keys=True).casefold()
+    ]
+    if (
+        requested_name is not None
+        and project_name_fills
+        and requested_name.group(1).strip().casefold() not in project_name_fills
+    ):
+        conflicts.append("required_project_name_not_filled")
     return tuple(conflicts)
 
 

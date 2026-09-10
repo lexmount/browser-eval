@@ -300,6 +300,47 @@ def test_semantic_audit_does_not_guess_when_main_branch_is_allowed():
     assert trajectory_semantic_conflicts(task) == ()
 
 
+def test_declared_project_name_must_appear_in_project_name_fills():
+    task = {
+        "title": 'Start a private project called "web_agent_android_xl"',
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Project name"},
+                    "text": "web_agent_android",
+                }
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == (
+        "required_project_name_not_filled",
+    )
+
+
+def test_project_name_audit_accepts_a_later_corrected_fill():
+    task = {
+        "title": 'Create a project named "expected-name"',
+        "trajectory": {
+            "actions": [
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Project name"},
+                    "text": "initial-name",
+                },
+                {
+                    "action": "fill",
+                    "target": {"by": "label", "value": "Project name"},
+                    "text": "expected-name",
+                },
+            ]
+        },
+    }
+
+    assert trajectory_semantic_conflicts(task) == ()
+
+
 def test_empty_candidate_cannot_be_adjudicated_eligible_without_correction():
     suite = {
         "benchmark": {},
