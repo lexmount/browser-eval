@@ -31,6 +31,10 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "浏览器操作轨迹评测": "Browser trajectory benchmark",
+    "Chromium 与 Moli：公开参考轨迹实测": "Chromium vs. Moli: public reference trajectories",
+    "现有 30 例是确定性工具微基准；这里单列 WebArena 官方人工轨迹的双浏览器正式评测与评测集采用研究。": "The existing 30 cases are deterministic tool microbenchmarks. This separate report covers the formal two-browser run of official WebArena human trajectories and the benchmark-adoption research.",
+    "查看报告 →": "View report →",
     "公共文件另以独立 HTTP 字节链路验证 3/3 次目标哈希匹配，用于确认源文件与统一字节验收链路可用。该对照不是参评方法，不进入排名，也不替代任何 provider 的调用。": "Public files were also checked through an independent HTTP byte path, with the target hash matching in 3/3 trials. This confirms that the source files and shared byte-validation path work. The control is not an evaluated method, does not enter the ranking, and does not replace any provider call.",
     "本页从有完整审计依据的修订开始记录。更早的站点版本仍保留在 Artifact Hub，但没有逐项变更说明，故不补编历史。": "This page begins with revisions that have a complete audit basis. Earlier site versions remain available in Artifact Hub, but no itemized history is reconstructed where none was recorded.",
     "Web Fetch · 实测报告": "Web Fetch · Measured benchmark",
